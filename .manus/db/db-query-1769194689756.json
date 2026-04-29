@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `action_settings` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `actionCode` VARCHAR(255) NOT NULL UNIQUE,\n  `actionLabel` VARCHAR(255) NOT NULL,\n  `actionDescription` TEXT,\n  `parentStage` VARCHAR(255) NOT NULL,\n  `order` INT NOT NULL DEFAULT 0,\n  `route` VARCHAR(255),\n  `requiredRoles` JSON,\n  `prerequisiteAction` VARCHAR(255),\n  `nextAction` VARCHAR(255),\n  `relationWithNext` ENUM('before', 'after', 'concurrent', 'independent') DEFAULT 'after',\n  `isActive` BOOLEAN DEFAULT TRUE,\n  `icon` VARCHAR(255),\n  `color` VARCHAR(255),\n  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute CREATE TABLE IF NOT EXISTS `action_settings` (\n  `id` INT AUTO_INCREMENT PRIMARY KEY,\n  `actionCode` VARCHAR(255) NOT NULL UNIQUE,\n  `actionLabel` VARCHAR(255) NOT NULL,\n  `actionDescription` TEXT,\n  `parentStage` VARCHAR(255) NOT NULL,\n  `order` INT NOT NULL DEFAULT 0,\n  `route` VARCHAR(255),\n  `requiredRoles` JSON,\n  `prerequisiteAction` VARCHAR(255),\n  `nextAction` VARCHAR(255),\n  `relationWithNext` ENUM('before', 'after', 'concurrent', 'independent') DEFAULT 'after',\n  `isActive` BOOLEAN DEFAULT TRUE,\n  `icon` VARCHAR(255),\n  `color` VARCHAR(255),\n  `createdAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1720
+}

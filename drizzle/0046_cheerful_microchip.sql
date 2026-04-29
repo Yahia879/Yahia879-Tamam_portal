@@ -1,0 +1,2 @@
+ALTER TABLE `field_visits` ADD `assignedTo` int;--> statement-breakpoint
+ALTER TABLE `field_visits` ADD CONSTRAINT `field_visits_assignedTo_users_id_fk` FOREIGN KEY (`assignedTo`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;

@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO contract_clauses (contract_template_id, title, title_ar, content, category, is_required, is_editable, sort_order, is_global, created_at, updated_at) VALUES (1, 'Obligations of Second Party', 'التزامات الطرف الثاني', '1. تنفيذ الأعمال المتفق عليها وفقاً للمواصفات والمعايير المحددة.\\n2. الالتزام بالجدول الزمني المتفق عليه لتنفيذ الأعمال.\\n3. توفير العمالة المؤهلة والمدربة لتنفيذ الأعمال.\\n4. الالتزام بأنظمة السلامة والصحة المهنية.\\n5. تقديم تقارير دورية عن سير العمل.\\n6. ضمان جودة المواد المستخدمة ومطابقتها للمواصفات.\\n7. تصحيح أي عيوب أو أخطاء خلال فترة الضمان.\\n8. الحفاظ على سرية المعلومات المتعلقة بالمشروع.', 'obligations', 1, 1, 2, 0, NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO contract_clauses (contract_template_id, title, title_ar, content, category, is_required, is_editable, sort_order, is_global, created_at, updated_at) VALUES (1, 'Obligations of Second Party', 'التزامات الطرف الثاني', '1. تنفيذ الأعمال المتفق عليها وفقاً للمواصفات والمعايير المحددة.\\n2. الالتزام بالجدول الزمني المتفق عليه لتنفيذ الأعمال.\\n3. توفير العمالة المؤهلة والمدربة لتنفيذ الأعمال.\\n4. الالتزام بأنظمة السلامة والصحة المهنية.\\n5. تقديم تقارير دورية عن سير العمل.\\n6. ضمان جودة المواد المستخدمة ومطابقتها للمواصفات.\\n7. تصحيح أي عيوب أو أخطاء خلال فترة الضمان.\\n8. الحفاظ على سرية المعلومات المتعلقة بالمشروع.', 'obligations', 1, 1, 2, 0, NOW(), NOW());",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'contract_template_id' in 'field list'"
+  ]
+}

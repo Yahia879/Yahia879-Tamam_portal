@@ -1,0 +1,16 @@
+{
+  "query": "SELECT requestId, scheduledDate, executionDate, reportSubmitted FROM field_visits WHERE requestId = 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT requestId, scheduledDate, executionDate, reportSubmitted FROM field_visits WHERE requestId = 10;",
+  "rows": [
+    {
+      "requestId": "10",
+      "scheduledDate": "2026-02-20 00:00:00",
+      "executionDate": "2026-02-03 00:00:00",
+      "reportSubmitted": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "requestId\tscheduledDate\texecutionDate\treportSubmitted\n10\t2026-02-20 00:00:00\t2026-02-03 00:00:00\t0\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

@@ -1,0 +1,10 @@
+ALTER TABLE `contract_clauses` MODIFY COLUMN `category` enum('obligations_first_party','obligations_second_party','financial','duration','modifications','notifications','general','confidentiality','intellectual_property','disputes','termination','penalties','warranty','force_majeure','copies','custom') DEFAULT 'general';--> statement-breakpoint
+ALTER TABLE `contract_templates` MODIFY COLUMN `type` enum('supervision','construction','supply','maintenance','consulting') NOT NULL;--> statement-breakpoint
+ALTER TABLE `contracts_enhanced` MODIFY COLUMN `contractType` enum('supervision','construction','supply','maintenance','consulting') NOT NULL;--> statement-breakpoint
+ALTER TABLE `contracts_enhanced` MODIFY COLUMN `status` enum('draft','pending_approval','approved','active','completed','terminated','cancelled') DEFAULT 'draft';--> statement-breakpoint
+ALTER TABLE `mosque_requests` MODIFY COLUMN `programType` enum('bunyan','daaem','enaya','emdad','ethraa','sedana','taqa','miyah','suqya') NOT NULL;--> statement-breakpoint
+ALTER TABLE `mosque_requests` MODIFY COLUMN `currentStage` enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval_and_approval','contracting','execution','handover','closed') NOT NULL DEFAULT 'submitted';--> statement-breakpoint
+ALTER TABLE `mosque_requests` MODIFY COLUMN `status` enum('pending','under_review','approved','rejected','suspended','in_progress','completed') NOT NULL DEFAULT 'pending';--> statement-breakpoint
+ALTER TABLE `notifications` MODIFY COLUMN `type` enum('info','success','warning','error','request_update','system') DEFAULT 'info';--> statement-breakpoint
+ALTER TABLE `quotations` MODIFY COLUMN `status` enum('pending','negotiating','accepted','approved','rejected','expired') DEFAULT 'pending';--> statement-breakpoint
+ALTER TABLE `users` MODIFY COLUMN `role` enum('super_admin','system_admin','projects_office','field_team','quick_response','financial','project_manager','corporate_comm','service_requester') NOT NULL DEFAULT 'service_requester';

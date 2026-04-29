@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO mosques (name, city, district, address, latitude, longitude, registeredBy, approvalStatus, createdAt, updatedAt)\nSELECT 'مسجد الهدى', 'الرياض', 'النرجس', 'شارع الأمير محمد بن عبدالعزيز', '24.7136', '46.6753', id, 'approved', NOW(), NOW()\nFROM users WHERE email = 'amarzog@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO mosques (name, city, district, address, latitude, longitude, registeredBy, approvalStatus, createdAt, updatedAt)\nSELECT 'مسجد الهدى', 'الرياض', 'النرجس', 'شارع الأمير محمد بن عبدالعزيز', '24.7136', '46.6753', id, 'approved', NOW(), NOW()\nFROM users WHERE email = 'amarzog@gmail.com';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1527
+}

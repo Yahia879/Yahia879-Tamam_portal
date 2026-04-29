@@ -1,0 +1,190 @@
+{
+  "query": "SELECT * FROM permissions LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM permissions LIMIT 20;",
+  "rows": [
+    {
+      "id": "contracts.approve",
+      "module_id": "contracts",
+      "action": "approve",
+      "name_ar": "اعتماد إدارة العقود",
+      "name_en": "Approve Contracts Management",
+      "description": "صلاحية اعتماد في إدارة العقود",
+      "created_at": "2026-02-02 22:21:05"
+    },
+    {
+      "id": "contracts.create",
+      "module_id": "contracts",
+      "action": "create",
+      "name_ar": "إضافة إدارة العقود",
+      "name_en": "Create Contracts Management",
+      "description": "صلاحية إضافة في إدارة العقود",
+      "created_at": "2026-02-02 22:21:04"
+    },
+    {
+      "id": "contracts.delete",
+      "module_id": "contracts",
+      "action": "delete",
+      "name_ar": "حذف إدارة العقود",
+      "name_en": "Delete Contracts Management",
+      "description": "صلاحية حذف في إدارة العقود",
+      "created_at": "2026-02-02 22:21:05"
+    },
+    {
+      "id": "contracts.edit",
+      "module_id": "contracts",
+      "action": "edit",
+      "name_ar": "تعديل إدارة العقود",
+      "name_en": "Edit Contracts Management",
+      "description": "صلاحية تعديل في إدارة العقود",
+      "created_at": "2026-02-02 22:21:04"
+    },
+    {
+      "id": "contracts.export",
+      "module_id": "contracts",
+      "action": "export",
+      "name_ar": "تصدير إدارة العقود",
+      "name_en": "Export Contracts Management",
+      "description": "صلاحية تصدير في إدارة العقود",
+      "created_at": "2026-02-02 22:21:05"
+    },
+    {
+      "id": "contracts.print",
+      "module_id": "contracts",
+      "action": "print",
+      "name_ar": "طباعة إدارة العقود",
+      "name_en": "Print Contracts Management",
+      "description": "صلاحية طباعة في إدارة العقود",
+      "created_at": "2026-02-02 22:21:05"
+    },
+    {
+      "id": "contracts.view",
+      "module_id": "contracts",
+      "action": "view",
+      "name_ar": "عرض إدارة العقود",
+      "name_en": "View Contracts Management",
+      "description": "صلاحية عرض في إدارة العقود",
+      "created_at": "2026-02-02 22:21:04"
+    },
+    {
+      "id": "financial.approve",
+      "module_id": "financial",
+      "action": "approve",
+      "name_ar": "اعتماد الإدارة المالية",
+      "name_en": "Approve Financial Management",
+      "description": "صلاحية اعتماد في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:08"
+    },
+    {
+      "id": "financial.create",
+      "module_id": "financial",
+      "action": "create",
+      "name_ar": "إضافة الإدارة المالية",
+      "name_en": "Create Financial Management",
+      "description": "صلاحية إضافة في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:07"
+    },
+    {
+      "id": "financial.delete",
+      "module_id": "financial",
+      "action": "delete",
+      "name_ar": "حذف الإدارة المالية",
+      "name_en": "Delete Financial Management",
+      "description": "صلاحية حذف في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:08"
+    },
+    {
+      "id": "financial.edit",
+      "module_id": "financial",
+      "action": "edit",
+      "name_ar": "تعديل الإدارة المالية",
+      "name_en": "Edit Financial Management",
+      "description": "صلاحية تعديل في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:07"
+    },
+    {
+      "id": "financial.export",
+      "module_id": "financial",
+      "action": "export",
+      "name_ar": "تصدير الإدارة المالية",
+      "name_en": "Export Financial Management",
+      "description": "صلاحية تصدير في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:08"
+    },
+    {
+      "id": "financial.print",
+      "module_id": "financial",
+      "action": "print",
+      "name_ar": "طباعة الإدارة المالية",
+      "name_en": "Print Financial Management",
+      "description": "صلاحية طباعة في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:08"
+    },
+    {
+      "id": "financial.view",
+      "module_id": "financial",
+      "action": "view",
+      "name_ar": "عرض الإدارة المالية",
+      "name_en": "View Financial Management",
+      "description": "صلاحية عرض في الإدارة المالية",
+      "created_at": "2026-02-02 22:21:07"
+    },
+    {
+      "id": "mosques.approve",
+      "module_id": "mosques",
+      "action": "approve",
+      "name_ar": "اعتماد إدارة المساجد",
+      "name_en": "Approve Mosques Management",
+      "description": "صلاحية اعتماد في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:02"
+    },
+    {
+      "id": "mosques.create",
+      "module_id": "mosques",
+      "action": "create",
+      "name_ar": "إضافة إدارة المساجد",
+      "name_en": "Create Mosques Management",
+      "description": "صلاحية إضافة في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:01"
+    },
+    {
+      "id": "mosques.delete",
+      "module_id": "mosques",
+      "action": "delete",
+      "name_ar": "حذف إدارة المساجد",
+      "name_en": "Delete Mosques Management",
+      "description": "صلاحية حذف في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:01"
+    },
+    {
+      "id": "mosques.edit",
+      "module_id": "mosques",
+      "action": "edit",
+      "name_ar": "تعديل إدارة المساجد",
+      "name_en": "Edit Mosques Management",
+      "description": "صلاحية تعديل في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:01"
+    },
+    {
+      "id": "mosques.export",
+      "module_id": "mosques",
+      "action": "export",
+      "name_ar": "تصدير إدارة المساجد",
+      "name_en": "Export Mosques Management",
+      "description": "صلاحية تصدير في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:02"
+    },
+    {
+      "id": "mosques.print",
+      "module_id": "mosques",
+      "action": "print",
+      "name_ar": "طباعة إدارة المساجد",
+      "name_en": "Print Mosques Management",
+      "description": "صلاحية طباعة في إدارة المساجد",
+      "created_at": "2026-02-02 22:21:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmodule_id\taction\tname_ar\tname_en\tdescription\tcreated_at\ncontracts.approve\tcontracts\tapprove\tاعتماد إدارة العقود\tApprove Contracts Management\tصلاحية اعتماد في إدارة العقود\t2026-02-02 22:21:05\ncontracts.create\tcontracts\tcreate\tإضافة إدارة العقود\tCreate Contracts Management\tصلاحية إضافة في إدارة العقود\t2026-02-02 22:21:04\ncontracts.delete\tcontracts\tdelete\tحذف إدارة العقود\tDelete Contracts Management\tصلاحية حذف في إدارة العقود\t2026-02-02 22:21:05\ncontracts.edit\tcontracts\tedit\tتعديل إدارة العقود\tEdit Contracts Management\tصلاحية تعديل في إدارة العقود\t2026-02-02 22:21:04\ncontracts.export\tcontracts\texport\tتصدير إدارة العقود\tExport Contracts Management\tصلاحية تصدير في إدارة العقود\t2026-02-02 22:21:05\ncontracts.print\tcontracts\tprint\tطباعة إدارة العقود\tPrint Contracts Management\tصلاحية طباعة في إدارة العقود\t2026-02-02 22:21:05\ncontracts.view\tcontracts\tview\tعرض إدارة العقود\tView Contracts Management\tصلاحية عرض في إدارة العقود\t2026-02-02 22:21:04\nfinancial.approve\tfinancial\tapprove\tاعتماد الإدارة المالية\tApprove Financial Management\tصلاحية اعتماد في الإدارة المالية\t2026-02-02 22:21:08\nfinancial.create\tfinancial\tcreate\tإضافة الإدارة المالية\tCreate Financial Management\tصلاحية إضافة في الإدارة المالية\t2026-02-02 22:21:07\nfinancial.delete\tfinancial\tdelete\tحذف الإدارة المالية\tDelete Financial Management\tصلاحية حذف في الإدارة المالية\t2026-02-02 22:21:08\nfinancial.edit\tfinancial\tedit\tتعديل الإدارة المالية\tEdit Financial Management\tصلاحية تعديل في الإدارة المالية\t2026-02-02 22:21:07\nfinancial.export\tfinancial\texport\tتصدير الإدارة المالية\tExport Financial Management\tصلاحية تصدير في الإدارة المالية\t2026-02-02 22:21:08\nfinancial.print\tfinancial\tprint\tطباعة الإدارة المالية\tPrint Financial Management\tصلاحية طباعة في الإدارة المالية\t2026-02-02 22:21:08\nfinancial.view\tfinancial\tview\tعرض الإدارة المالية\tView Financial Management\tصلاحية عرض في الإدارة المالية\t2026-02-02 22:21:07\nmosques.approve\tmosques\tapprove\tاعتماد إدارة المساجد\tApprove Mosques Management\tصلاحية اعتماد في إدارة المساجد\t2026-02-02 22:21:02\nmosques.create\tmosques\tcreate\tإضافة إدارة المساجد\tCreate Mosques Management\tصلاحية إضافة في إدارة المساجد\t2026-02-02 22:21:01\nmosques.delete\tmosques\tdelete\tحذف إدارة المساجد\tDelete Mosques Management\tصلاحية حذف في إدارة المساجد\t2026-02-02 22:21:01\nmosques.edit\tmosques\tedit\tتعديل إدارة المساجد\tEdit Mosques Management\tصلاحية تعديل في إدارة المساجد\t2026-02-02 22:21:01\nmosques.export\tmosques\texport\tتصدير إدارة المساجد\tExport Mosques Management\tصلاحية تصدير في إدارة المساجد\t2026-02-02 22:21:02\nmosques.print\tmosques\tprint\tطباعة إدارة المساجد\tPrint Mosques Management\tصلاحية طباعة في إدارة المساجد\t2026-02-02 22:21:02\n",
+  "stderr": "",
+  "execution_time_ms": 1552
+}

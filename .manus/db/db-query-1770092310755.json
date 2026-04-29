@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, name, email, role, status FROM users WHERE openId LIKE 'test_%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, email, role, status FROM users WHERE openId LIKE 'test_%';",
+  "rows": [
+    {
+      "id": "7",
+      "name": "أحمد محمد - مكتب المشاريع",
+      "email": "projects@test.tamam.local",
+      "role": "projects_office",
+      "status": "suspended"
+    },
+    {
+      "id": "8",
+      "name": "خالد عبدالله - فريق ميداني",
+      "email": "field@test.tamam.local",
+      "role": "field_team",
+      "status": "suspended"
+    },
+    {
+      "id": "9",
+      "name": "فاطمة أحمد - مالية",
+      "email": "financial@test.tamam.local",
+      "role": "financial",
+      "status": "suspended"
+    },
+    {
+      "id": "10",
+      "name": "محمد سعيد - طالب خدمة",
+      "email": "requester@test.tamam.local",
+      "role": "service_requester",
+      "status": "suspended"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tstatus\n7\tأحمد محمد - مكتب المشاريع\tprojects@test.tamam.local\tprojects_office\tsuspended\n8\tخالد عبدالله - فريق ميداني\tfield@test.tamam.local\tfield_team\tsuspended\n9\tفاطمة أحمد - مالية\tfinancial@test.tamam.local\tfinancial\tsuspended\n10\tمحمد سعيد - طالب خدمة\trequester@test.tamam.local\tservice_requester\tsuspended\n",
+  "stderr": "",
+  "execution_time_ms": 1508
+}

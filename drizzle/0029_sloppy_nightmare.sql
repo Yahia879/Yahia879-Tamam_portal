@@ -1,0 +1,3 @@
+ALTER TABLE `mosque_requests` MODIFY COLUMN `currentStage` enum('submitted','initial_review','field_visit','technical_eval','financial_eval','quotation_approval','contracting','execution','handover','closed') NOT NULL DEFAULT 'submitted';--> statement-breakpoint
+ALTER TABLE `request_history` MODIFY COLUMN `fromStage` enum('submitted','initial_review','field_visit','technical_eval','financial_eval','quotation_approval','contracting','execution','handover','closed');--> statement-breakpoint
+ALTER TABLE `request_history` MODIFY COLUMN `toStage` enum('submitted','initial_review','field_visit','technical_eval','financial_eval','quotation_approval','contracting','execution','handover','closed');

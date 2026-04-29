@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, email, name, role FROM users LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, name, role FROM users LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "admin@tamam.org",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin"
+    },
+    {
+      "id": "2",
+      "email": "projects@tamam.org",
+      "name": "أحمد المشاريع",
+      "role": "projects_office"
+    },
+    {
+      "id": "3",
+      "email": "field@tamam.org",
+      "name": "محمد الميداني",
+      "role": "field_team"
+    },
+    {
+      "id": "4",
+      "email": "finance@tamam.org",
+      "name": "فاطمة المالية",
+      "role": "financial"
+    },
+    {
+      "id": "5",
+      "email": "requester1@test.com",
+      "name": "خالد طالب الخدمة",
+      "role": "service_requester"
+    },
+    {
+      "id": "6",
+      "email": "amarzogi@gmail.com",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin"
+    },
+    {
+      "id": "7",
+      "email": "projects@test.tamam.local",
+      "name": "أحمد محمد - مكتب المشاريع",
+      "role": "projects_office"
+    },
+    {
+      "id": "8",
+      "email": "field@test.tamam.local",
+      "name": "خالد عبدالله - فريق ميداني",
+      "role": "field_team"
+    },
+    {
+      "id": "9",
+      "email": "financial@test.tamam.local",
+      "name": "فاطمة أحمد - مالية",
+      "role": "financial"
+    },
+    {
+      "id": "10",
+      "email": "requester@test.tamam.local",
+      "name": "محمد سعيد - طالب خدمة",
+      "role": "service_requester"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tadmin@tamam.org\tعبدالإله المرزوقي\tsuper_admin\n2\tprojects@tamam.org\tأحمد المشاريع\tprojects_office\n3\tfield@tamam.org\tمحمد الميداني\tfield_team\n4\tfinance@tamam.org\tفاطمة المالية\tfinancial\n5\trequester1@test.com\tخالد طالب الخدمة\tservice_requester\n6\tamarzogi@gmail.com\tعبدالإله المرزوقي\tsuper_admin\n7\tprojects@test.tamam.local\tأحمد محمد - مكتب المشاريع\tprojects_office\n8\tfield@test.tamam.local\tخالد عبدالله - فريق ميداني\tfield_team\n9\tfinancial@test.tamam.local\tفاطمة أحمد - مالية\tfinancial\n10\trequester@test.tamam.local\tمحمد سعيد - طالب خدمة\tservice_requester\n",
+  "stderr": "",
+  "execution_time_ms": 1564
+}

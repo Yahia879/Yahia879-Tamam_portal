@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, email, name, role FROM users WHERE role IN ('system_admin', 'super_admin', 'projects_office') LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, name, role FROM users WHERE role IN ('system_admin', 'super_admin', 'projects_office') LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "admin@tamam.org",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin"
+    },
+    {
+      "id": "2",
+      "email": "projects@tamam.org",
+      "name": "محمد المصعدي",
+      "role": "projects_office"
+    },
+    {
+      "id": "6",
+      "email": "amarzogi@gmail.com",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin"
+    },
+    {
+      "id": "7",
+      "email": "projects@test.tamam.local",
+      "name": "أحمد محمد - مكتب المشاريع",
+      "role": "projects_office"
+    },
+    {
+      "id": "60001",
+      "email": "admin@tamam.sa",
+      "name": "مدير النظام",
+      "role": "system_admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tadmin@tamam.org\tعبدالإله المرزوقي\tsuper_admin\n2\tprojects@tamam.org\tمحمد المصعدي\tprojects_office\n6\tamarzogi@gmail.com\tعبدالإله المرزوقي\tsuper_admin\n7\tprojects@test.tamam.local\tأحمد محمد - مكتب المشاريع\tprojects_office\n60001\tadmin@tamam.sa\tمدير النظام\tsystem_admin\n",
+  "stderr": "",
+  "execution_time_ms": 1631
+}

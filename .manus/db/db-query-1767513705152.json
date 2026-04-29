@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Notifications and Correspondence', 'الإشعارات والمراسلات', '1. تُرسل جميع الإشعارات والمراسلات على العناوين المذكورة في هذا العقد.\\n2. يُعتبر الإشعار مستلماً بعد 3 أيام عمل من تاريخ إرساله.\\n3. يجب إخطار الطرف الآخر بأي تغيير في بيانات الاتصال خلال 7 أيام.', 'notifications', 0, 1, 6, 0);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Notifications and Correspondence', 'الإشعارات والمراسلات', '1. تُرسل جميع الإشعارات والمراسلات على العناوين المذكورة في هذا العقد.\\n2. يُعتبر الإشعار مستلماً بعد 3 أيام عمل من تاريخ إرساله.\\n3. يجب إخطار الطرف الآخر بأي تغيير في بيانات الاتصال خلال 7 أيام.', 'notifications', 0, 1, 6, 0);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1530
+}

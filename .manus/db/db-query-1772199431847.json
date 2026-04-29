@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, name, role FROM users WHERE phone = '0552777335' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, role FROM users WHERE phone = '0552777335' LIMIT 1;",
+  "rows": [
+    {
+      "id": "180001",
+      "name": "شخص يجرب المنصة",
+      "role": "super_admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\n180001\tشخص يجرب المنصة\tsuper_admin\n",
+  "stderr": "",
+  "execution_time_ms": 1514
+}

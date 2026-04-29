@@ -1,0 +1,22 @@
+{
+  "query": "SHOW TABLES LIKE '%permission%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW TABLES LIKE '%permission%';",
+  "rows": [
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j (%permission%)": "permissions"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j (%permission%)": "permissions_audit_log"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j (%permission%)": "role_permissions"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j (%permission%)": "user_permissions"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j (%permission%)\npermissions\npermissions_audit_log\nrole_permissions\nuser_permissions\n",
+  "stderr": "",
+  "execution_time_ms": 1498
+}

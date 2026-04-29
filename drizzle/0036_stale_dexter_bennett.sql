@@ -1,0 +1,1 @@
+ALTER TABLE `quotations` ADD `discount` decimal(15,2);

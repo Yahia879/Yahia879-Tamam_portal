@@ -1,0 +1,32 @@
+{
+  "query": "SELECT * FROM field_visits WHERE requestId = 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM field_visits WHERE requestId = 10;",
+  "rows": [
+    {
+      "id": "2",
+      "requestId": "10",
+      "scheduledDate": "2026-02-20 00:00:00",
+      "scheduledTime": "10:00",
+      "teamMembers": "محمد العلي، أحمد السعيد",
+      "scheduleNotes": "زيارة ميدانية للمعاينة",
+      "scheduledBy": "60001",
+      "scheduledAt": "2026-02-03 16:04:15",
+      "executionDate": "2026-02-03 00:00:00",
+      "executionTime": "11:30",
+      "attendees": "محمد العلي",
+      "executionNotes": "تمت الزيارة بنجاح",
+      "executedBy": "60001",
+      "executedAt": "2026-02-03 16:05:01",
+      "reportSubmitted": "0",
+      "reportSubmittedBy": "NULL",
+      "reportSubmittedAt": "NULL",
+      "status": "executed",
+      "createdAt": "2026-02-03 16:04:15",
+      "updatedAt": "2026-02-03 16:05:01"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\tscheduledDate\tscheduledTime\tteamMembers\tscheduleNotes\tscheduledBy\tscheduledAt\texecutionDate\texecutionTime\tattendees\texecutionNotes\texecutedBy\texecutedAt\treportSubmitted\treportSubmittedBy\treportSubmittedAt\tstatus\tcreatedAt\tupdatedAt\n2\t10\t2026-02-20 00:00:00\t10:00\tمحمد العلي، أحمد السعيد\tزيارة ميدانية للمعاينة\t60001\t2026-02-03 16:04:15\t2026-02-03 00:00:00\t11:30\tمحمد العلي\tتمت الزيارة بنجاح\t60001\t2026-02-03 16:05:01\t0\tNULL\tNULL\texecuted\t2026-02-03 16:04:15\t2026-02-03 16:05:01\n",
+  "stderr": "",
+  "execution_time_ms": 1535
+}

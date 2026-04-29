@@ -1,0 +1,10 @@
+import mysql from "mysql2/promise";
+const connection = await mysql.createConnection(process.env.DATABASE_URL);
+await connection.execute("SET FOREIGN_KEY_CHECKS = 0");
+await connection.execute("TRUNCATE TABLE contract_payments");
+await connection.execute("TRUNCATE TABLE project_phases");
+await connection.execute("TRUNCATE TABLE contracts_enhanced");
+await connection.execute("TRUNCATE TABLE projects");
+await connection.execute("SET FOREIGN_KEY_CHECKS = 1");
+console.log("تم حذف المشاريع والعقود السابقة");
+await connection.end();

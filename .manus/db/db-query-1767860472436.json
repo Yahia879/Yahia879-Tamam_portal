@@ -1,0 +1,31 @@
+{
+  "query": "SELECT id, requestNumber, userId, status, currentStage FROM mosque_requests LIMIT 10",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber, userId, status, currentStage FROM mosque_requests LIMIT 10",
+  "rows": [
+    {
+      "id": "90005",
+      "requestNumber": "BUN-MK2P3MZZ-7A85",
+      "userId": "630003",
+      "status": "pending",
+      "currentStage": "submitted"
+    },
+    {
+      "id": "120001",
+      "requestNumber": "DAA-MK41MCHV-03CD",
+      "userId": "630011",
+      "status": "approved",
+      "currentStage": "financial_eval"
+    },
+    {
+      "id": "150001",
+      "requestNumber": "SUQ-MK4BPUSJ-3478",
+      "userId": "630011",
+      "status": "in_progress",
+      "currentStage": "field_visit"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tuserId\tstatus\tcurrentStage\n90005\tBUN-MK2P3MZZ-7A85\t630003\tpending\tsubmitted\n120001\tDAA-MK41MCHV-03CD\t630011\tapproved\tfinancial_eval\n150001\tSUQ-MK4BPUSJ-3478\t630011\tin_progress\tfield_visit\n",
+  "stderr": "",
+  "execution_time_ms": 1669
+}

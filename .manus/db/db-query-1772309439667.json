@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, email, role, status FROM users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, role, status FROM users;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "admin@tamam.org",
+      "role": "super_admin",
+      "status": "active"
+    },
+    {
+      "id": "270001",
+      "email": "amarzogi@gmail.com",
+      "role": "super_admin",
+      "status": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\trole\tstatus\n1\tadmin@tamam.org\tsuper_admin\tactive\n270001\tamarzogi@gmail.com\tsuper_admin\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 1536
+}

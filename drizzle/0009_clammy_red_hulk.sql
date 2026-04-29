@@ -1,0 +1,1 @@
+ALTER TABLE `quotations` ADD `approvedAmount` decimal(15,2);

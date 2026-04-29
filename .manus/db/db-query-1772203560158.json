@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, name, phone, email, role FROM users ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, phone, email, role FROM users ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "180001",
+      "name": "شخص يجرب المنصة",
+      "phone": "0552777335",
+      "email": "hananalhseen@gmail.com",
+      "role": "super_admin"
+    },
+    {
+      "id": "150001",
+      "name": "عبدالوليه العنزي",
+      "phone": "NULL",
+      "email": "amarzog@gmail.com",
+      "role": "service_requester"
+    },
+    {
+      "id": "120001",
+      "name": "مدير المشاريع - تجريبي",
+      "phone": "0501234567",
+      "email": "project.manager@test.tamam.sa",
+      "role": "project_manager"
+    },
+    {
+      "id": "120005",
+      "name": "طالب خدمة - تجريبي",
+      "phone": "0501234571",
+      "email": "requester@test.tamam.sa",
+      "role": "service_requester"
+    },
+    {
+      "id": "120002",
+      "name": "فريق ميداني - تجريبي",
+      "phone": "0501234568",
+      "email": "field.team@test.tamam.sa",
+      "role": "field_team"
+    },
+    {
+      "id": "120004",
+      "name": "الشؤون المالية - تجريبي",
+      "phone": "0501234570",
+      "email": "financial@test.tamam.sa",
+      "role": "financial"
+    },
+    {
+      "id": "120003",
+      "name": "مكتب المشاريع - تجريبي",
+      "phone": "0501234569",
+      "email": "projects.office@test.tamam.sa",
+      "role": "projects_office"
+    },
+    {
+      "id": "90002",
+      "name": "مدير اختبار",
+      "phone": "0501234567",
+      "email": "testmanager@tamam.org",
+      "role": "projects_office"
+    },
+    {
+      "id": "60001",
+      "name": "مدير النظام",
+      "phone": "0500000000",
+      "email": "admin@tamam.sa",
+      "role": "system_admin"
+    },
+    {
+      "id": "10",
+      "name": "محمد سعيد - طالب خدمة",
+      "phone": "0501234570",
+      "email": "requester@test.tamam.local",
+      "role": "service_requester"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tphone\temail\trole\n180001\tشخص يجرب المنصة\t0552777335\thananalhseen@gmail.com\tsuper_admin\n150001\tعبدالوليه العنزي\tNULL\tamarzog@gmail.com\tservice_requester\n120001\tمدير المشاريع - تجريبي\t0501234567\tproject.manager@test.tamam.sa\tproject_manager\n120005\tطالب خدمة - تجريبي\t0501234571\trequester@test.tamam.sa\tservice_requester\n120002\tفريق ميداني - تجريبي\t0501234568\tfield.team@test.tamam.sa\tfield_team\n120004\tالشؤون المالية - تجريبي\t0501234570\tfinancial@test.tamam.sa\tfinancial\n120003\tمكتب المشاريع - تجريبي\t0501234569\tprojects.office@test.tamam.sa\tprojects_office\n90002\tمدير اختبار\t0501234567\ttestmanager@tamam.org\tprojects_office\n60001\tمدير النظام\t0500000000\tadmin@tamam.sa\tsystem_admin\n10\tمحمد سعيد - طالب خدمة\t0501234570\trequester@test.tamam.local\tservice_requester\n",
+  "stderr": "",
+  "execution_time_ms": 1527
+}

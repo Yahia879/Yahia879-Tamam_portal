@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, requestId, scheduledDate, scheduledTime, assignedTo, status FROM field_visits;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestId, scheduledDate, scheduledTime, assignedTo, status FROM field_visits;",
+  "rows": [
+    {
+      "id": "30001",
+      "requestId": "10",
+      "scheduledDate": "2026-02-11 00:00:00",
+      "scheduledTime": "12:54",
+      "assignedTo": "NULL",
+      "status": "executed"
+    },
+    {
+      "id": "60001",
+      "requestId": "1",
+      "scheduledDate": "2026-02-19 00:00:00",
+      "scheduledTime": "05:27",
+      "assignedTo": "NULL",
+      "status": "executed"
+    },
+    {
+      "id": "90001",
+      "requestId": "9",
+      "scheduledDate": "2026-02-10 00:00:00",
+      "scheduledTime": "05:07",
+      "assignedTo": "NULL",
+      "status": "scheduled"
+    },
+    {
+      "id": "120001",
+      "requestId": "60001",
+      "scheduledDate": "2026-03-05 00:00:00",
+      "scheduledTime": "10:00",
+      "assignedTo": "NULL",
+      "status": "scheduled"
+    },
+    {
+      "id": "150001",
+      "requestId": "120001",
+      "scheduledDate": "2026-03-02 00:00:00",
+      "scheduledTime": "08:07",
+      "assignedTo": "2",
+      "status": "scheduled"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\tscheduledDate\tscheduledTime\tassignedTo\tstatus\n30001\t10\t2026-02-11 00:00:00\t12:54\tNULL\texecuted\n60001\t1\t2026-02-19 00:00:00\t05:27\tNULL\texecuted\n90001\t9\t2026-02-10 00:00:00\t05:07\tNULL\tscheduled\n120001\t60001\t2026-03-05 00:00:00\t10:00\tNULL\tscheduled\n150001\t120001\t2026-03-02 00:00:00\t08:07\t2\tscheduled\n",
+  "stderr": "",
+  "execution_time_ms": 1555
+}

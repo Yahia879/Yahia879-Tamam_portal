@@ -1,0 +1,26 @@
+{
+  "query": "SELECT id, name, email, role, passwordHash, createdAt FROM users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, email, role, passwordHash, createdAt FROM users LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "email": "admin@tamam.org",
+      "role": "super_admin",
+      "passwordHash": "ec6ddf17a9a35da0d11340661d508f05:ee588fa9e7b1bd9acc4d1c7ea64ff6e4b42f1a1860138c812520bf161f94aa63fefaf3386aceb78fa803f844a7ec2805b7114fcc6e4c8cf46cba22cb1513bb2b",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "270001",
+      "name": "عبدالإله المرزوقي",
+      "email": "amarzogi@gmail.com",
+      "role": "super_admin",
+      "passwordHash": "NULL",
+      "createdAt": "2026-02-28 19:55:50"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tpasswordHash\tcreatedAt\n1\tعبدالإله المرزوقي\tadmin@tamam.org\tsuper_admin\tec6ddf17a9a35da0d11340661d508f05:ee588fa9e7b1bd9acc4d1c7ea64ff6e4b42f1a1860138c812520bf161f94aa63fefaf3386aceb78fa803f844a7ec2805b7114fcc6e4c8cf46cba22cb1513bb2b\t2026-02-02 22:03:27\n270001\tعبدالإله المرزوقي\tamarzogi@gmail.com\tsuper_admin\tNULL\t2026-02-28 19:55:50\n",
+  "stderr": "",
+  "execution_time_ms": 1519
+}

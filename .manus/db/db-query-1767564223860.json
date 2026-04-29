@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `quotations` ADD CONSTRAINT `quotations_negotiatedBy_users_id_fk` FOREIGN KEY (`negotiatedBy`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute ALTER TABLE `quotations` ADD CONSTRAINT `quotations_negotiatedBy_users_id_fk` FOREIGN KEY (`negotiatedBy`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2302
+}

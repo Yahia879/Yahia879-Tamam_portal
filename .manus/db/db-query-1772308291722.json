@@ -1,0 +1,181 @@
+{
+  "query": "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME;",
+  "rows": [
+    {
+      "TABLE_NAME": "__drizzle_migrations"
+    },
+    {
+      "TABLE_NAME": "action_settings"
+    },
+    {
+      "TABLE_NAME": "audit_logs"
+    },
+    {
+      "TABLE_NAME": "authorized_signatories"
+    },
+    {
+      "TABLE_NAME": "brand_colors"
+    },
+    {
+      "TABLE_NAME": "brand_logos"
+    },
+    {
+      "TABLE_NAME": "brand_settings"
+    },
+    {
+      "TABLE_NAME": "categories"
+    },
+    {
+      "TABLE_NAME": "category_values"
+    },
+    {
+      "TABLE_NAME": "contract_clause_values"
+    },
+    {
+      "TABLE_NAME": "contract_clauses"
+    },
+    {
+      "TABLE_NAME": "contract_modification_logs"
+    },
+    {
+      "TABLE_NAME": "contract_modification_requests"
+    },
+    {
+      "TABLE_NAME": "contract_number_sequence"
+    },
+    {
+      "TABLE_NAME": "contract_payments"
+    },
+    {
+      "TABLE_NAME": "contract_templates"
+    },
+    {
+      "TABLE_NAME": "contracts"
+    },
+    {
+      "TABLE_NAME": "contracts_enhanced"
+    },
+    {
+      "TABLE_NAME": "disbursement_orders"
+    },
+    {
+      "TABLE_NAME": "disbursement_requests"
+    },
+    {
+      "TABLE_NAME": "donation_opportunities"
+    },
+    {
+      "TABLE_NAME": "donations"
+    },
+    {
+      "TABLE_NAME": "employees"
+    },
+    {
+      "TABLE_NAME": "escalation_logs"
+    },
+    {
+      "TABLE_NAME": "field_visit_reports"
+    },
+    {
+      "TABLE_NAME": "field_visits"
+    },
+    {
+      "TABLE_NAME": "final_reports"
+    },
+    {
+      "TABLE_NAME": "homepage_customization"
+    },
+    {
+      "TABLE_NAME": "modules"
+    },
+    {
+      "TABLE_NAME": "mosque_images"
+    },
+    {
+      "TABLE_NAME": "mosque_requests"
+    },
+    {
+      "TABLE_NAME": "mosques"
+    },
+    {
+      "TABLE_NAME": "notifications"
+    },
+    {
+      "TABLE_NAME": "organization_settings"
+    },
+    {
+      "TABLE_NAME": "partners"
+    },
+    {
+      "TABLE_NAME": "password_reset_tokens"
+    },
+    {
+      "TABLE_NAME": "payments"
+    },
+    {
+      "TABLE_NAME": "permissions"
+    },
+    {
+      "TABLE_NAME": "permissions_audit_log"
+    },
+    {
+      "TABLE_NAME": "project_funding_sources"
+    },
+    {
+      "TABLE_NAME": "project_phases"
+    },
+    {
+      "TABLE_NAME": "projects"
+    },
+    {
+      "TABLE_NAME": "quantity_schedules"
+    },
+    {
+      "TABLE_NAME": "quick_response_reports"
+    },
+    {
+      "TABLE_NAME": "quotations"
+    },
+    {
+      "TABLE_NAME": "request_attachments"
+    },
+    {
+      "TABLE_NAME": "request_comments"
+    },
+    {
+      "TABLE_NAME": "request_history"
+    },
+    {
+      "TABLE_NAME": "request_stage_tracking"
+    },
+    {
+      "TABLE_NAME": "role_permissions"
+    },
+    {
+      "TABLE_NAME": "roles"
+    },
+    {
+      "TABLE_NAME": "signatories"
+    },
+    {
+      "TABLE_NAME": "stage_settings"
+    },
+    {
+      "TABLE_NAME": "suppliers"
+    },
+    {
+      "TABLE_NAME": "user_permissions"
+    },
+    {
+      "TABLE_NAME": "user_roles"
+    },
+    {
+      "TABLE_NAME": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\n__drizzle_migrations\naction_settings\naudit_logs\nauthorized_signatories\nbrand_colors\nbrand_logos\nbrand_settings\ncategories\ncategory_values\ncontract_clause_values\ncontract_clauses\ncontract_modification_logs\ncontract_modification_requests\ncontract_number_sequence\ncontract_payments\ncontract_templates\ncontracts\ncontracts_enhanced\ndisbursement_orders\ndisbursement_requests\ndonation_opportunities\ndonations\nemployees\nescalation_logs\nfield_visit_reports\nfield_visits\nfinal_reports\nhomepage_customization\nmodules\nmosque_images\nmosque_requests\nmosques\nnotifications\norganization_settings\npartners\npassword_reset_tokens\npayments\npermissions\npermissions_audit_log\nproject_funding_sources\nproject_phases\nprojects\nquantity_schedules\nquick_response_reports\nquotations\nrequest_attachments\nrequest_comments\nrequest_history\nrequest_stage_tracking\nrole_permissions\nroles\nsignatories\nstage_settings\nsuppliers\nuser_permissions\nuser_roles\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 1525
+}

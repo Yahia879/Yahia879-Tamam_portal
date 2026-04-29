@@ -1,0 +1,8 @@
+{
+  "query": "DELETE FROM projects;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute DELETE FROM projects;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1451 (23000) at line 1: Cannot delete or update a parent row: a foreign key constraint fails (`6tun3hpsk4hj6fxv2ar83j`.`contracts_enhanced`, CONSTRAINT `contracts_enhanced_projectId_projects_id_fk` FOREIGN KEY (`projectId`) REFERENCES `projects` (`id`) ON DELETE NO ACTION ON UPDATE NO )"
+  ]
+}

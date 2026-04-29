@@ -1,0 +1,110 @@
+{
+  "query": "SELECT * FROM categories LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM categories LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "أبها",
+      "nameAr": "أبها",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:09"
+    },
+    {
+      "id": "2",
+      "name": "خميس مشيط",
+      "nameAr": "خميس مشيط",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:09"
+    },
+    {
+      "id": "3",
+      "name": "بيشة",
+      "nameAr": "بيشة",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:10"
+    },
+    {
+      "id": "4",
+      "name": "النماص",
+      "nameAr": "النماص",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:10"
+    },
+    {
+      "id": "5",
+      "name": "محايل عسير",
+      "nameAr": "محايل عسير",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:10"
+    },
+    {
+      "id": "6",
+      "name": "ظهران الجنوب",
+      "nameAr": "ظهران الجنوب",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:10"
+    },
+    {
+      "id": "7",
+      "name": "تثليث",
+      "nameAr": "تثليث",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:10"
+    },
+    {
+      "id": "8",
+      "name": "سراة عبيدة",
+      "nameAr": "سراة عبيدة",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:11"
+    },
+    {
+      "id": "9",
+      "name": "رجال ألمع",
+      "nameAr": "رجال ألمع",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:11"
+    },
+    {
+      "id": "10",
+      "name": "أحد رفيدة",
+      "nameAr": "أحد رفيدة",
+      "type": "city",
+      "parentId": "NULL",
+      "sortOrder": "0",
+      "isActive": "1",
+      "createdAt": "2026-01-02 13:14:11"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tnameAr\ttype\tparentId\tsortOrder\tisActive\tcreatedAt\n1\tأبها\tأبها\tcity\tNULL\t0\t1\t2026-01-02 13:14:09\n2\tخميس مشيط\tخميس مشيط\tcity\tNULL\t0\t1\t2026-01-02 13:14:09\n3\tبيشة\tبيشة\tcity\tNULL\t0\t1\t2026-01-02 13:14:10\n4\tالنماص\tالنماص\tcity\tNULL\t0\t1\t2026-01-02 13:14:10\n5\tمحايل عسير\tمحايل عسير\tcity\tNULL\t0\t1\t2026-01-02 13:14:10\n6\tظهران الجنوب\tظهران الجنوب\tcity\tNULL\t0\t1\t2026-01-02 13:14:10\n7\tتثليث\tتثليث\tcity\tNULL\t0\t1\t2026-01-02 13:14:10\n8\tسراة عبيدة\tسراة عبيدة\tcity\tNULL\t0\t1\t2026-01-02 13:14:11\n9\tرجال ألمع\tرجال ألمع\tcity\tNULL\t0\t1\t2026-01-02 13:14:11\n10\tأحد رفيدة\tأحد رفيدة\tcity\tNULL\t0\t1\t2026-01-02 13:14:11\n",
+  "stderr": "",
+  "execution_time_ms": 1573
+}

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS contract_templates (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(255) NOT NULL,\n  nameAr VARCHAR(255) NOT NULL,\n  type ENUM('supervision', 'construction', 'supply', 'maintenance', 'services', 'equipment', 'consulting', 'other') NOT NULL,\n  description TEXT,\n  headerTemplate TEXT,\n  introTemplate TEXT,\n  footerTemplate TEXT,\n  signatureTemplate TEXT,\n  isActive BOOLEAN DEFAULT TRUE,\n  isDefault BOOLEAN DEFAULT FALSE,\n  createdBy INT,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,\n  FOREIGN KEY (createdBy) REFERENCES users(id)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute CREATE TABLE IF NOT EXISTS contract_templates (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(255) NOT NULL,\n  nameAr VARCHAR(255) NOT NULL,\n  type ENUM('supervision', 'construction', 'supply', 'maintenance', 'services', 'equipment', 'consulting', 'other') NOT NULL,\n  description TEXT,\n  headerTemplate TEXT,\n  introTemplate TEXT,\n  footerTemplate TEXT,\n  signatureTemplate TEXT,\n  isActive BOOLEAN DEFAULT TRUE,\n  isDefault BOOLEAN DEFAULT FALSE,\n  createdBy INT,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,\n  FOREIGN KEY (createdBy) REFERENCES users(id)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1793
+}

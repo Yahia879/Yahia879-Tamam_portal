@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE users SET passwordHash = '64aa454740fb94483be38e59587f4e75:8f0460e8a9405ad08c8183c80a59d82058918cff60233748c85aed7489ec38ccaf658a461dced70f47bc3e4dd51c0ed0f20ff6c7342943f28b7ebfa296fa11a1' WHERE email = 'admin@tamam.sa';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute UPDATE users SET passwordHash = '64aa454740fb94483be38e59587f4e75:8f0460e8a9405ad08c8183c80a59d82058918cff60233748c85aed7489ec38ccaf658a461dced70f47bc3e4dd51c0ed0f20ff6c7342943f28b7ebfa296fa11a1' WHERE email = 'admin@tamam.sa';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1497
+}

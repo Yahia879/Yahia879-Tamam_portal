@@ -1,0 +1,82 @@
+{
+  "query": "SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'quotations' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT COLUMN_NAME, COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'quotations' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)"
+    },
+    {
+      "COLUMN_NAME": "quotationNumber",
+      "COLUMN_TYPE": "varchar(50)"
+    },
+    {
+      "COLUMN_NAME": "requestId",
+      "COLUMN_TYPE": "int(11)"
+    },
+    {
+      "COLUMN_NAME": "projectId",
+      "COLUMN_TYPE": "int(11)"
+    },
+    {
+      "COLUMN_NAME": "supplierId",
+      "COLUMN_TYPE": "int(11)"
+    },
+    {
+      "COLUMN_NAME": "totalAmount",
+      "COLUMN_TYPE": "decimal(15,2)"
+    },
+    {
+      "COLUMN_NAME": "approvedAmount",
+      "COLUMN_TYPE": "decimal(15,2)"
+    },
+    {
+      "COLUMN_NAME": "validUntil",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "enum('pending','negotiating','accepted','rejected','expired')"
+    },
+    {
+      "COLUMN_NAME": "items",
+      "COLUMN_TYPE": "json"
+    },
+    {
+      "COLUMN_NAME": "notes",
+      "COLUMN_TYPE": "text"
+    },
+    {
+      "COLUMN_NAME": "documentUrl",
+      "COLUMN_TYPE": "varchar(500)"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "updatedAt",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "negotiatedAmount",
+      "COLUMN_TYPE": "decimal(15,2)"
+    },
+    {
+      "COLUMN_NAME": "negotiationNotes",
+      "COLUMN_TYPE": "text"
+    },
+    {
+      "COLUMN_NAME": "negotiatedBy",
+      "COLUMN_TYPE": "int(11)"
+    },
+    {
+      "COLUMN_NAME": "negotiatedAt",
+      "COLUMN_TYPE": "timestamp"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tCOLUMN_TYPE\nid\tint(11)\nquotationNumber\tvarchar(50)\nrequestId\tint(11)\nprojectId\tint(11)\nsupplierId\tint(11)\ntotalAmount\tdecimal(15,2)\napprovedAmount\tdecimal(15,2)\nvalidUntil\ttimestamp\nstatus\tenum('pending','negotiating','accepted','rejected','expired')\nitems\tjson\nnotes\ttext\ndocumentUrl\tvarchar(500)\ncreatedAt\ttimestamp\nupdatedAt\ttimestamp\nnegotiatedAmount\tdecimal(15,2)\nnegotiationNotes\ttext\nnegotiatedBy\tint(11)\nnegotiatedAt\ttimestamp\n",
+  "stderr": "",
+  "execution_time_ms": 1524
+}

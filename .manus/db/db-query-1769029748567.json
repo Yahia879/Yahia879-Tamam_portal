@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, requestId, action, fromStage, toStage, notes, createdAt FROM request_history WHERE requestId = 420001 ORDER BY createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestId, action, fromStage, toStage, notes, createdAt FROM request_history WHERE requestId = 420001 ORDER BY createdAt DESC;",
+  "rows": [
+    {
+      "id": "300001",
+      "requestId": "420001",
+      "action": "stage_updated",
+      "fromStage": "initial_review",
+      "toStage": "field_visit",
+      "notes": "تم تحويل الطلب إلى مرحلة الزيارة الميدانية",
+      "createdAt": "2026-01-15 11:14:26"
+    },
+    {
+      "id": "270001",
+      "requestId": "420001",
+      "action": "stage_updated",
+      "fromStage": "submitted",
+      "toStage": "initial_review",
+      "notes": "تم تحويل الطلب إلى مرحلة المراجعة الأولية",
+      "createdAt": "2026-01-14 22:27:47"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\taction\tfromStage\ttoStage\tnotes\tcreatedAt\n300001\t420001\tstage_updated\tinitial_review\tfield_visit\tتم تحويل الطلب إلى مرحلة الزيارة الميدانية\t2026-01-15 11:14:26\n270001\t420001\tstage_updated\tsubmitted\tinitial_review\tتم تحويل الطلب إلى مرحلة المراجعة الأولية\t2026-01-14 22:27:47\n",
+  "stderr": "",
+  "execution_time_ms": 1541
+}

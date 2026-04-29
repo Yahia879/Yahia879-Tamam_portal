@@ -1,0 +1,9 @@
+{
+  "query": "\nINSERT INTO users (name, email, phone, role, status, createdAt) VALUES\n('مدير المشاريع - تجريبي', 'project.manager@test.tamam.sa', '0501234567', 'project_manager', 'active', NOW()),\n('فريق ميداني - تجريبي', 'field.team@test.tamam.sa', '0501234568', 'field_team', 'active', NOW()),\n('مكتب المشاريع - تجريبي', 'projects.office@test.tamam.sa', '0501234569', 'projects_office', 'active', NOW()),\n('الشؤون المالية - تجريبي', 'financial@test.tamam.sa', '0501234570', 'financial', 'active', NOW()),\n('طالب خدمة - تجريبي', 'requester@test.tamam.sa', '0501234571', 'service_requester', 'active', NOW())\nON DUPLICATE KEY UPDATE name=VALUES(name);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute \nINSERT INTO users (name, email, phone, role, status, createdAt) VALUES\n('مدير المشاريع - تجريبي', 'project.manager@test.tamam.sa', '0501234567', 'project_manager', 'active', NOW()),\n('فريق ميداني - تجريبي', 'field.team@test.tamam.sa', '0501234568', 'field_team', 'active', NOW()),\n('مكتب المشاريع - تجريبي', 'projects.office@test.tamam.sa', '0501234569', 'projects_office', 'active', NOW()),\n('الشؤون المالية - تجريبي', 'financial@test.tamam.sa', '0501234570', 'financial', 'active', NOW()),\n('طالب خدمة - تجريبي', 'requester@test.tamam.sa', '0501234571', 'service_requester', 'active', NOW())\nON DUPLICATE KEY UPDATE name=VALUES(name);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1663
+}

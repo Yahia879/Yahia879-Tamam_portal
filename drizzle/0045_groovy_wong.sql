@@ -1,0 +1,1 @@
+ALTER TABLE `request_comments` ADD `isRead` boolean DEFAULT false;

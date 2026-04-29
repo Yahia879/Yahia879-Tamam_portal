@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS signatoryPhone VARCHAR(20),\nADD COLUMN IF NOT EXISTS signatoryEmail VARCHAR(320),\nADD COLUMN IF NOT EXISTS bankName VARCHAR(100),\nADD COLUMN IF NOT EXISTS bankAccountName VARCHAR(255),\nADD COLUMN IF NOT EXISTS iban VARCHAR(34),\nADD COLUMN IF NOT EXISTS contractPrefix VARCHAR(10) DEFAULT 'CON',\nADD COLUMN IF NOT EXISTS contractFooterText TEXT,\nADD COLUMN IF NOT EXISTS contractTermsAndConditions TEXT;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS signatoryPhone VARCHAR(20),\nADD COLUMN IF NOT EXISTS signatoryEmail VARCHAR(320),\nADD COLUMN IF NOT EXISTS bankName VARCHAR(100),\nADD COLUMN IF NOT EXISTS bankAccountName VARCHAR(255),\nADD COLUMN IF NOT EXISTS iban VARCHAR(34),\nADD COLUMN IF NOT EXISTS contractPrefix VARCHAR(10) DEFAULT 'CON',\nADD COLUMN IF NOT EXISTS contractFooterText TEXT,\nADD COLUMN IF NOT EXISTS contractTermsAndConditions TEXT;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3797
+}

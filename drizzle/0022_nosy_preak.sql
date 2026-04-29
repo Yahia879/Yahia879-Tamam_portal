@@ -1,0 +1,1 @@
+ALTER TABLE `disbursement_orders` MODIFY COLUMN `paymentMethod` varchar(50) DEFAULT 'bank_transfer';

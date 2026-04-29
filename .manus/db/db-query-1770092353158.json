@@ -1,0 +1,34 @@
+{
+  "query": "SELECT \n  u.name,\n  u.email,\n  u.role AS user_role_field,\n  GROUP_CONCAT(r.name_ar SEPARATOR ', ') AS assigned_roles\nFROM users u\nLEFT JOIN user_roles ur ON u.id = ur.user_id\nLEFT JOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nGROUP BY u.id, u.name, u.email, u.role;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT \n  u.name,\n  u.email,\n  u.role AS user_role_field,\n  GROUP_CONCAT(r.name_ar SEPARATOR ', ') AS assigned_roles\nFROM users u\nLEFT JOIN user_roles ur ON u.id = ur.user_id\nLEFT JOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nGROUP BY u.id, u.name, u.email, u.role;",
+  "rows": [
+    {
+      "name": "محمد سعيد - طالب خدمة",
+      "email": "requester@test.tamam.local",
+      "user_role_field": "service_requester",
+      "assigned_roles": "NULL"
+    },
+    {
+      "name": "أحمد محمد - مكتب المشاريع",
+      "email": "projects@test.tamam.local",
+      "user_role_field": "projects_office",
+      "assigned_roles": "مكتب المشاريع"
+    },
+    {
+      "name": "فاطمة أحمد - مالية",
+      "email": "financial@test.tamam.local",
+      "user_role_field": "financial",
+      "assigned_roles": "NULL"
+    },
+    {
+      "name": "خالد عبدالله - فريق ميداني",
+      "email": "field@test.tamam.local",
+      "user_role_field": "field_team",
+      "assigned_roles": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tuser_role_field\tassigned_roles\nمحمد سعيد - طالب خدمة\trequester@test.tamam.local\tservice_requester\tNULL\nأحمد محمد - مكتب المشاريع\tprojects@test.tamam.local\tprojects_office\tمكتب المشاريع\nفاطمة أحمد - مالية\tfinancial@test.tamam.local\tfinancial\tNULL\nخالد عبدالله - فريق ميداني\tfield@test.tamam.local\tfield_team\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1577
+}

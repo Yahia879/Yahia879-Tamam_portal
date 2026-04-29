@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Agreement Copies', 'نُسخ الاتفاقية', 'حُرر هذا العقد من نسختين أصليتين، بيد كل طرف نسخة للعمل بموجبها.', 'copies', 1, 0, 11, 0);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Agreement Copies', 'نُسخ الاتفاقية', 'حُرر هذا العقد من نسختين أصليتين، بيد كل طرف نسخة للعمل بموجبها.', 'copies', 1, 0, 11, 0);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1533
+}

@@ -1,0 +1,142 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contracts_enhanced' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contracts_enhanced' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "contractNumber"
+    },
+    {
+      "COLUMN_NAME": "contractYear"
+    },
+    {
+      "COLUMN_NAME": "contractSequence"
+    },
+    {
+      "COLUMN_NAME": "templateId"
+    },
+    {
+      "COLUMN_NAME": "contractType"
+    },
+    {
+      "COLUMN_NAME": "contractTitle"
+    },
+    {
+      "COLUMN_NAME": "projectId"
+    },
+    {
+      "COLUMN_NAME": "requestId"
+    },
+    {
+      "COLUMN_NAME": "supplierId"
+    },
+    {
+      "COLUMN_NAME": "secondPartyName"
+    },
+    {
+      "COLUMN_NAME": "secondPartyCommercialRegister"
+    },
+    {
+      "COLUMN_NAME": "secondPartyRepresentative"
+    },
+    {
+      "COLUMN_NAME": "secondPartyTitle"
+    },
+    {
+      "COLUMN_NAME": "secondPartyAddress"
+    },
+    {
+      "COLUMN_NAME": "secondPartyPhone"
+    },
+    {
+      "COLUMN_NAME": "secondPartyEmail"
+    },
+    {
+      "COLUMN_NAME": "secondPartyBankName"
+    },
+    {
+      "COLUMN_NAME": "secondPartyIban"
+    },
+    {
+      "COLUMN_NAME": "secondPartyAccountName"
+    },
+    {
+      "COLUMN_NAME": "mosqueName"
+    },
+    {
+      "COLUMN_NAME": "mosqueNeighborhood"
+    },
+    {
+      "COLUMN_NAME": "mosqueCity"
+    },
+    {
+      "COLUMN_NAME": "contractAmount"
+    },
+    {
+      "COLUMN_NAME": "contractAmountText"
+    },
+    {
+      "COLUMN_NAME": "duration"
+    },
+    {
+      "COLUMN_NAME": "durationUnit"
+    },
+    {
+      "COLUMN_NAME": "contractDate"
+    },
+    {
+      "COLUMN_NAME": "contractDateHijri"
+    },
+    {
+      "COLUMN_NAME": "startDate"
+    },
+    {
+      "COLUMN_NAME": "endDate"
+    },
+    {
+      "COLUMN_NAME": "status"
+    },
+    {
+      "COLUMN_NAME": "customTerms"
+    },
+    {
+      "COLUMN_NAME": "customNotifications"
+    },
+    {
+      "COLUMN_NAME": "customGeneralTerms"
+    },
+    {
+      "COLUMN_NAME": "documentUrl"
+    },
+    {
+      "COLUMN_NAME": "signedDocumentUrl"
+    },
+    {
+      "COLUMN_NAME": "approvedBy"
+    },
+    {
+      "COLUMN_NAME": "approvedAt"
+    },
+    {
+      "COLUMN_NAME": "createdBy"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "updatedAt"
+    },
+    {
+      "COLUMN_NAME": "paymentScheduleJson"
+    },
+    {
+      "COLUMN_NAME": "clauseValuesJson"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\ncontractNumber\ncontractYear\ncontractSequence\ntemplateId\ncontractType\ncontractTitle\nprojectId\nrequestId\nsupplierId\nsecondPartyName\nsecondPartyCommercialRegister\nsecondPartyRepresentative\nsecondPartyTitle\nsecondPartyAddress\nsecondPartyPhone\nsecondPartyEmail\nsecondPartyBankName\nsecondPartyIban\nsecondPartyAccountName\nmosqueName\nmosqueNeighborhood\nmosqueCity\ncontractAmount\ncontractAmountText\nduration\ndurationUnit\ncontractDate\ncontractDateHijri\nstartDate\nendDate\nstatus\ncustomTerms\ncustomNotifications\ncustomGeneralTerms\ndocumentUrl\nsignedDocumentUrl\napprovedBy\napprovedAt\ncreatedBy\ncreatedAt\nupdatedAt\npaymentScheduleJson\nclauseValuesJson\n",
+  "stderr": "",
+  "execution_time_ms": 1516
+}

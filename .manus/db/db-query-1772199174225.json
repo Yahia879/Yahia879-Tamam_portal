@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, name, email, phone, role FROM users WHERE email LIKE '%@test.tamam.sa' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, email, phone, role FROM users WHERE email LIKE '%@test.tamam.sa' ORDER BY id;",
+  "rows": [
+    {
+      "id": "120001",
+      "name": "مدير المشاريع - تجريبي",
+      "email": "project.manager@test.tamam.sa",
+      "phone": "0501234567",
+      "role": "project_manager"
+    },
+    {
+      "id": "120002",
+      "name": "فريق ميداني - تجريبي",
+      "email": "field.team@test.tamam.sa",
+      "phone": "0501234568",
+      "role": "field_team"
+    },
+    {
+      "id": "120003",
+      "name": "مكتب المشاريع - تجريبي",
+      "email": "projects.office@test.tamam.sa",
+      "phone": "0501234569",
+      "role": "projects_office"
+    },
+    {
+      "id": "120004",
+      "name": "الشؤون المالية - تجريبي",
+      "email": "financial@test.tamam.sa",
+      "phone": "0501234570",
+      "role": "financial"
+    },
+    {
+      "id": "120005",
+      "name": "طالب خدمة - تجريبي",
+      "email": "requester@test.tamam.sa",
+      "phone": "0501234571",
+      "role": "service_requester"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tphone\trole\n120001\tمدير المشاريع - تجريبي\tproject.manager@test.tamam.sa\t0501234567\tproject_manager\n120002\tفريق ميداني - تجريبي\tfield.team@test.tamam.sa\t0501234568\tfield_team\n120003\tمكتب المشاريع - تجريبي\tprojects.office@test.tamam.sa\t0501234569\tprojects_office\n120004\tالشؤون المالية - تجريبي\tfinancial@test.tamam.sa\t0501234570\tfinancial\n120005\tطالب خدمة - تجريبي\trequester@test.tamam.sa\t0501234571\tservice_requester\n",
+  "stderr": "",
+  "execution_time_ms": 1478
+}

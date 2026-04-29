@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, name, nameAr, type, isActive FROM categories WHERE isActive = true LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, nameAr, type, isActive FROM categories WHERE isActive = true LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "أبها",
+      "nameAr": "أبها",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "2",
+      "name": "خميس مشيط",
+      "nameAr": "خميس مشيط",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "3",
+      "name": "بيشة",
+      "nameAr": "بيشة",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "4",
+      "name": "النماص",
+      "nameAr": "النماص",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "5",
+      "name": "محايل عسير",
+      "nameAr": "محايل عسير",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "6",
+      "name": "ظهران الجنوب",
+      "nameAr": "ظهران الجنوب",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "7",
+      "name": "تثليث",
+      "nameAr": "تثليث",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "8",
+      "name": "سراة عبيدة",
+      "nameAr": "سراة عبيدة",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "9",
+      "name": "رجال ألمع",
+      "nameAr": "رجال ألمع",
+      "type": "city",
+      "isActive": "1"
+    },
+    {
+      "id": "10",
+      "name": "أحد رفيدة",
+      "nameAr": "أحد رفيدة",
+      "type": "city",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tnameAr\ttype\tisActive\n1\tأبها\tأبها\tcity\t1\n2\tخميس مشيط\tخميس مشيط\tcity\t1\n3\tبيشة\tبيشة\tcity\t1\n4\tالنماص\tالنماص\tcity\t1\n5\tمحايل عسير\tمحايل عسير\tcity\t1\n6\tظهران الجنوب\tظهران الجنوب\tcity\t1\n7\tتثليث\tتثليث\tcity\t1\n8\tسراة عبيدة\tسراة عبيدة\tcity\t1\n9\tرجال ألمع\tرجال ألمع\tcity\t1\n10\tأحد رفيدة\tأحد رفيدة\tcity\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1472
+}

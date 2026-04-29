@@ -1,0 +1,10 @@
+import mysql from "mysql2/promise";
+const connection = await mysql.createConnection(process.env.DATABASE_URL);
+const [columns] = await connection.execute("DESCRIBE disbursement_requests");
+console.log("أعمدة جدول disbursement_requests:");
+columns.forEach(col => console.log(`  - ${col.Field}: ${col.Type} ${col.Null === 'YES' ? '(nullable)' : ''}`));
+console.log("\n");
+const [columns2] = await connection.execute("DESCRIBE disbursement_orders");
+console.log("أعمدة جدول disbursement_orders:");
+columns2.forEach(col => console.log(`  - ${col.Field}: ${col.Type} ${col.Null === 'YES' ? '(nullable)' : ''}`));
+await connection.end();

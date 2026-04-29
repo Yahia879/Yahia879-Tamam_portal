@@ -1,0 +1,138 @@
+{
+  "query": "SELECT id, name, email, phone, role, createdAt FROM users LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, email, phone, role, createdAt FROM users LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "email": "admin@tamam.org",
+      "phone": "0501234567",
+      "role": "super_admin",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "2",
+      "name": "محمد المصعدي",
+      "email": "projects@tamam.org",
+      "phone": "0501234568",
+      "role": "projects_office",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "3",
+      "name": "تركي الشريف",
+      "email": "field@tamam.org",
+      "phone": "0501234569",
+      "role": "field_team",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "4",
+      "name": "سلمان العلياني",
+      "email": "finance@tamam.org",
+      "phone": "0501234570",
+      "role": "financial",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "5",
+      "name": "خالد طالب الخدمة",
+      "email": "requester1@test.com",
+      "phone": "0501234571",
+      "role": "service_requester",
+      "createdAt": "2026-02-02 22:03:27"
+    },
+    {
+      "id": "6",
+      "name": "عبدالإله المرزوقي",
+      "email": "amarzogi@gmail.com",
+      "phone": "NULL",
+      "role": "super_admin",
+      "createdAt": "2026-02-02 22:03:33"
+    },
+    {
+      "id": "10",
+      "name": "محمد سعيد - طالب خدمة",
+      "email": "requester@test.tamam.local",
+      "phone": "0501234570",
+      "role": "service_requester",
+      "createdAt": "2026-02-02 22:49:10"
+    },
+    {
+      "id": "60001",
+      "name": "مدير النظام",
+      "email": "admin@tamam.sa",
+      "phone": "0500000000",
+      "role": "system_admin",
+      "createdAt": "2026-02-03 06:20:58"
+    },
+    {
+      "id": "90002",
+      "name": "مدير اختبار",
+      "email": "testmanager@tamam.org",
+      "phone": "0501234567",
+      "role": "projects_office",
+      "createdAt": "2026-02-05 20:10:59"
+    },
+    {
+      "id": "120001",
+      "name": "مدير المشاريع - تجريبي",
+      "email": "project.manager@test.tamam.sa",
+      "phone": "0501234567",
+      "role": "project_manager",
+      "createdAt": "2026-02-06 06:07:16"
+    },
+    {
+      "id": "120002",
+      "name": "فريق ميداني - تجريبي",
+      "email": "field.team@test.tamam.sa",
+      "phone": "0501234568",
+      "role": "field_team",
+      "createdAt": "2026-02-06 06:07:16"
+    },
+    {
+      "id": "120003",
+      "name": "مكتب المشاريع - تجريبي",
+      "email": "projects.office@test.tamam.sa",
+      "phone": "0501234569",
+      "role": "projects_office",
+      "createdAt": "2026-02-06 06:07:16"
+    },
+    {
+      "id": "120004",
+      "name": "الشؤون المالية - تجريبي",
+      "email": "financial@test.tamam.sa",
+      "phone": "0501234570",
+      "role": "financial",
+      "createdAt": "2026-02-06 06:07:16"
+    },
+    {
+      "id": "120005",
+      "name": "طالب خدمة - تجريبي",
+      "email": "requester@test.tamam.sa",
+      "phone": "0501234571",
+      "role": "service_requester",
+      "createdAt": "2026-02-06 06:07:16"
+    },
+    {
+      "id": "150001",
+      "name": "عبدالوليه العنزي",
+      "email": "amarzog@gmail.com",
+      "phone": "NULL",
+      "role": "service_requester",
+      "createdAt": "2026-02-27 10:45:22"
+    },
+    {
+      "id": "180001",
+      "name": "شخص يجرب المنصة",
+      "email": "hananalhseen@gmail.com",
+      "phone": "0552777335",
+      "role": "super_admin",
+      "createdAt": "2026-02-27 12:01:41"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tphone\trole\tcreatedAt\n1\tعبدالإله المرزوقي\tadmin@tamam.org\t0501234567\tsuper_admin\t2026-02-02 22:03:27\n2\tمحمد المصعدي\tprojects@tamam.org\t0501234568\tprojects_office\t2026-02-02 22:03:27\n3\tتركي الشريف\tfield@tamam.org\t0501234569\tfield_team\t2026-02-02 22:03:27\n4\tسلمان العلياني\tfinance@tamam.org\t0501234570\tfinancial\t2026-02-02 22:03:27\n5\tخالد طالب الخدمة\trequester1@test.com\t0501234571\tservice_requester\t2026-02-02 22:03:27\n6\tعبدالإله المرزوقي\tamarzogi@gmail.com\tNULL\tsuper_admin\t2026-02-02 22:03:33\n10\tمحمد سعيد - طالب خدمة\trequester@test.tamam.local\t0501234570\tservice_requester\t2026-02-02 22:49:10\n60001\tمدير النظام\tadmin@tamam.sa\t0500000000\tsystem_admin\t2026-02-03 06:20:58\n90002\tمدير اختبار\ttestmanager@tamam.org\t0501234567\tprojects_office\t2026-02-05 20:10:59\n120001\tمدير المشاريع - تجريبي\tproject.manager@test.tamam.sa\t0501234567\tproject_manager\t2026-02-06 06:07:16\n120002\tفريق ميداني - تجريبي\tfield.team@test.tamam.sa\t0501234568\tfield_team\t2026-02-06 06:07:16\n120003\tمكتب المشاريع - تجريبي\tprojects.office@test.tamam.sa\t0501234569\tprojects_office\t2026-02-06 06:07:16\n120004\tالشؤون المالية - تجريبي\tfinancial@test.tamam.sa\t0501234570\tfinancial\t2026-02-06 06:07:16\n120005\tطالب خدمة - تجريبي\trequester@test.tamam.sa\t0501234571\tservice_requester\t2026-02-06 06:07:16\n150001\tعبدالوليه العنزي\tamarzog@gmail.com\tNULL\tservice_requester\t2026-02-27 10:45:22\n180001\tشخص يجرب المنصة\thananalhseen@gmail.com\t0552777335\tsuper_admin\t2026-02-27 12:01:41\n",
+  "stderr": "",
+  "execution_time_ms": 1521
+}

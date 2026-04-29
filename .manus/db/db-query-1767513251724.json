@@ -1,0 +1,14 @@
+{
+  "query": "SELECT id, name FROM contract_templates LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name FROM contract_templates LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Supply Contract"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\n1\tSupply Contract\n",
+  "stderr": "",
+  "execution_time_ms": 1510
+}

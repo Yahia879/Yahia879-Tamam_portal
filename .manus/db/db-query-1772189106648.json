@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, name, email, role FROM users LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, email, role FROM users LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "email": "admin@tamam.org",
+      "role": "super_admin"
+    },
+    {
+      "id": "2",
+      "name": "محمد المصعدي",
+      "email": "projects@tamam.org",
+      "role": "projects_office"
+    },
+    {
+      "id": "3",
+      "name": "تركي الشريف",
+      "email": "field@tamam.org",
+      "role": "field_team"
+    },
+    {
+      "id": "4",
+      "name": "سلمان العلياني",
+      "email": "finance@tamam.org",
+      "role": "financial"
+    },
+    {
+      "id": "5",
+      "name": "خالد طالب الخدمة",
+      "email": "requester1@test.com",
+      "role": "service_requester"
+    },
+    {
+      "id": "6",
+      "name": "عبدالإله المرزوقي",
+      "email": "amarzogi@gmail.com",
+      "role": "super_admin"
+    },
+    {
+      "id": "10",
+      "name": "محمد سعيد - طالب خدمة",
+      "email": "requester@test.tamam.local",
+      "role": "service_requester"
+    },
+    {
+      "id": "60001",
+      "name": "مدير النظام",
+      "email": "admin@tamam.sa",
+      "role": "system_admin"
+    },
+    {
+      "id": "90002",
+      "name": "مدير اختبار",
+      "email": "testmanager@tamam.org",
+      "role": "projects_office"
+    },
+    {
+      "id": "120001",
+      "name": "مدير المشاريع - تجريبي",
+      "email": "project.manager@test.tamam.sa",
+      "role": "project_manager"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n1\tعبدالإله المرزوقي\tadmin@tamam.org\tsuper_admin\n2\tمحمد المصعدي\tprojects@tamam.org\tprojects_office\n3\tتركي الشريف\tfield@tamam.org\tfield_team\n4\tسلمان العلياني\tfinance@tamam.org\tfinancial\n5\tخالد طالب الخدمة\trequester1@test.com\tservice_requester\n6\tعبدالإله المرزوقي\tamarzogi@gmail.com\tsuper_admin\n10\tمحمد سعيد - طالب خدمة\trequester@test.tamam.local\tservice_requester\n60001\tمدير النظام\tadmin@tamam.sa\tsystem_admin\n90002\tمدير اختبار\ttestmanager@tamam.org\tprojects_office\n120001\tمدير المشاريع - تجريبي\tproject.manager@test.tamam.sa\tproject_manager\n",
+  "stderr": "",
+  "execution_time_ms": 1513
+}

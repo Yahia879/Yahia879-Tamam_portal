@@ -1,0 +1,30 @@
+{
+  "query": "SELECT * FROM quotations WHERE requestId = 120001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM quotations WHERE requestId = 120001;",
+  "rows": [
+    {
+      "id": "1",
+      "quotationNumber": "QUO-MK46ZPP6-MLVM",
+      "requestId": "120001",
+      "projectId": "NULL",
+      "supplierId": "30001",
+      "totalAmount": "24200.00",
+      "approvedAmount": "NULL",
+      "validUntil": "2026-01-22 00:00:00",
+      "status": "pending",
+      "items": "[{\"boqItemId\": 90001, \"itemName\": \"استبدال الإنارة\", \"quantity\": 100, \"totalPrice\": 7500, \"unit\": \"unit\", \"unitPrice\": 75}, {\"boqItemId\": 90003, \"itemName\": \"الدهانات الداخلية والخارجية\", \"quantity\": 400, \"totalPrice\": 3200, \"unit\": \"m2\", \"unitPrice\": 8}, {\"boqItemId\": 90002, \"itemName\": \"صيانة دورات المياه\", \"quantity\": 3, \"totalPrice\": 13500, \"unit\": \"lump_sum\", \"unitPrice\": 4500}]",
+      "notes": "",
+      "documentUrl": "NULL",
+      "createdAt": "2026-01-07 15:47:45",
+      "updatedAt": "2026-01-07 15:47:45",
+      "negotiatedAmount": "NULL",
+      "negotiationNotes": "NULL",
+      "negotiatedBy": "NULL",
+      "negotiatedAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tquotationNumber\trequestId\tprojectId\tsupplierId\ttotalAmount\tapprovedAmount\tvalidUntil\tstatus\titems\tnotes\tdocumentUrl\tcreatedAt\tupdatedAt\tnegotiatedAmount\tnegotiationNotes\tnegotiatedBy\tnegotiatedAt\n1\tQUO-MK46ZPP6-MLVM\t120001\tNULL\t30001\t24200.00\tNULL\t2026-01-22 00:00:00\tpending\t[{\"boqItemId\": 90001, \"itemName\": \"استبدال الإنارة\", \"quantity\": 100, \"totalPrice\": 7500, \"unit\": \"unit\", \"unitPrice\": 75}, {\"boqItemId\": 90003, \"itemName\": \"الدهانات الداخلية والخارجية\", \"quantity\": 400, \"totalPrice\": 3200, \"unit\": \"m2\", \"unitPrice\": 8}, {\"boqItemId\": 90002, \"itemName\": \"صيانة دورات المياه\", \"quantity\": 3, \"totalPrice\": 13500, \"unit\": \"lump_sum\", \"unitPrice\": 4500}]\t\tNULL\t2026-01-07 15:47:45\t2026-01-07 15:47:45\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1534
+}

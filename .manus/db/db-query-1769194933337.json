@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, requestNumber, currentStage FROM mosque_requests WHERE requestNumber = 'TEST-2026-001';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber, currentStage FROM mosque_requests WHERE requestNumber = 'TEST-2026-001';",
+  "rows": [
+    {
+      "id": "420001",
+      "requestNumber": "TEST-2026-001",
+      "currentStage": "field_visit"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tcurrentStage\n420001\tTEST-2026-001\tfield_visit\n",
+  "stderr": "",
+  "execution_time_ms": 1499
+}

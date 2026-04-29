@@ -1,0 +1,1 @@
+ALTER TABLE `disbursement_requests` MODIFY COLUMN `title` varchar(255);

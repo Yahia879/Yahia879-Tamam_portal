@@ -1,0 +1,26 @@
+{
+  "query": "UPDATE users SET passwordHash = '7d34dc3661ca0cd31d4f8678c090713c:d80e7ad882f99402f0700f1921516ff869c4c7c4ca4752b5e9441d85146a4eea6fe164555fcc7ab9d5edc33fa1eb3e056846b72285651a1137838438478ffaa3', status = 'active' WHERE email = 'admin@tamam.sa';\nSELECT id, name, email, role, status, LENGTH(passwordHash) as hashLen FROM users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute UPDATE users SET passwordHash = '7d34dc3661ca0cd31d4f8678c090713c:d80e7ad882f99402f0700f1921516ff869c4c7c4ca4752b5e9441d85146a4eea6fe164555fcc7ab9d5edc33fa1eb3e056846b72285651a1137838438478ffaa3', status = 'active' WHERE email = 'admin@tamam.sa';\nSELECT id, name, email, role, status, LENGTH(passwordHash) as hashLen FROM users;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "email": "admin@tamam.org",
+      "role": "super_admin",
+      "status": "active",
+      "hashLen": "161"
+    },
+    {
+      "id": "270001",
+      "name": "عبدالإله المرزوقي",
+      "email": "amarzogi@gmail.com",
+      "role": "super_admin",
+      "status": "active",
+      "hashLen": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tstatus\thashLen\n1\tعبدالإله المرزوقي\tadmin@tamam.org\tsuper_admin\tactive\t161\n270001\tعبدالإله المرزوقي\tamarzogi@gmail.com\tsuper_admin\tactive\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1748
+}

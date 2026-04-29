@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, name, approvalStatus, workFields FROM suppliers ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, approvalStatus, workFields FROM suppliers ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "30001",
+      "name": "شركة التضامن",
+      "approvalStatus": "pending",
+      "workFields": "[\"construction\", \"plumbing\", \"hvac\", \"aluminum\", \"solar_energy\", \"maintenance\", \"finishing\", \"painting\"]"
+    },
+    {
+      "id": "1",
+      "name": "مؤسسة التجاري المميزة",
+      "approvalStatus": "approved",
+      "workFields": "[\"construction\", \"plumbing\"]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tapprovalStatus\tworkFields\n30001\tشركة التضامن\tpending\t[\"construction\", \"plumbing\", \"hvac\", \"aluminum\", \"solar_energy\", \"maintenance\", \"finishing\", \"painting\"]\n1\tمؤسسة التجاري المميزة\tapproved\t[\"construction\", \"plumbing\"]\n",
+  "stderr": "",
+  "execution_time_ms": 1544
+}

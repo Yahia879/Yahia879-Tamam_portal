@@ -1,0 +1,115 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "audit_logs"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "brand_colors"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "brand_logos"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "brand_settings"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "categories"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "category_values"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "contract_number_sequence"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "contract_payments"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "contracts"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "contracts_enhanced"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "donation_opportunities"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "donations"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "employees"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "field_visit_reports"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "final_reports"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "homepage_customization"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "mosque_images"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "mosque_requests"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "mosques"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "notifications"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "organization_settings"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "partners"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "password_reset_tokens"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "payments"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "project_phases"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "projects"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "quantity_schedules"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "quick_response_reports"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "quotations"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "request_attachments"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "request_comments"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "request_history"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "suppliers"
+    },
+    {
+      "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_6TUn3HPSK4hJ6Fxv2aR83j\n__drizzle_migrations\naudit_logs\nbrand_colors\nbrand_logos\nbrand_settings\ncategories\ncategory_values\ncontract_number_sequence\ncontract_payments\ncontracts\ncontracts_enhanced\ndonation_opportunities\ndonations\nemployees\nfield_visit_reports\nfinal_reports\nhomepage_customization\nmosque_images\nmosque_requests\nmosques\nnotifications\norganization_settings\npartners\npassword_reset_tokens\npayments\nproject_phases\nprojects\nquantity_schedules\nquick_response_reports\nquotations\nrequest_attachments\nrequest_comments\nrequest_history\nsuppliers\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 1556
+}

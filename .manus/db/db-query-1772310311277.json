@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS colorPrimary1 VARCHAR(7) DEFAULT '#09707e',\nADD COLUMN IF NOT EXISTS colorPrimary2 VARCHAR(7) DEFAULT '#0891b2',\nADD COLUMN IF NOT EXISTS colorSecondary1 VARCHAR(7) DEFAULT '#6366f1',\nADD COLUMN IF NOT EXISTS colorSecondary2 VARCHAR(7) DEFAULT '#f59e0b',\nADD COLUMN IF NOT EXISTS colorSecondary3 VARCHAR(7) DEFAULT '#ef4444',\nADD COLUMN IF NOT EXISTS colorSecondary4 VARCHAR(7) DEFAULT '#8b5cf6',\nADD COLUMN IF NOT EXISTS colorSecondary5 VARCHAR(7) DEFAULT '#10b981';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS colorPrimary1 VARCHAR(7) DEFAULT '#09707e',\nADD COLUMN IF NOT EXISTS colorPrimary2 VARCHAR(7) DEFAULT '#0891b2',\nADD COLUMN IF NOT EXISTS colorSecondary1 VARCHAR(7) DEFAULT '#6366f1',\nADD COLUMN IF NOT EXISTS colorSecondary2 VARCHAR(7) DEFAULT '#f59e0b',\nADD COLUMN IF NOT EXISTS colorSecondary3 VARCHAR(7) DEFAULT '#ef4444',\nADD COLUMN IF NOT EXISTS colorSecondary4 VARCHAR(7) DEFAULT '#8b5cf6',\nADD COLUMN IF NOT EXISTS colorSecondary5 VARCHAR(7) DEFAULT '#10b981';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 3460
+}

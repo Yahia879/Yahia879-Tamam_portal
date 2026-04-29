@@ -1,0 +1,16 @@
+{
+  "query": "\nSET @admin_id = (SELECT id FROM users WHERE role = 'admin' OR role = 'system_admin' OR role = 'super_admin' ORDER BY createdAt ASC LIMIT 1);\n\nUPDATE organization_settings SET updatedBy = @admin_id;\n\nDELETE FROM user_roles WHERE user_id != @admin_id;\nDELETE FROM user_permissions WHERE user_id != @admin_id;\nDELETE FROM password_reset_tokens WHERE userId != @admin_id;\nDELETE FROM employees WHERE userId != @admin_id;\nDELETE FROM users WHERE id != @admin_id;\n\nSELECT id, name, email, role FROM users;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute \nSET @admin_id = (SELECT id FROM users WHERE role = 'admin' OR role = 'system_admin' OR role = 'super_admin' ORDER BY createdAt ASC LIMIT 1);\n\nUPDATE organization_settings SET updatedBy = @admin_id;\n\nDELETE FROM user_roles WHERE user_id != @admin_id;\nDELETE FROM user_permissions WHERE user_id != @admin_id;\nDELETE FROM password_reset_tokens WHERE userId != @admin_id;\nDELETE FROM employees WHERE userId != @admin_id;\nDELETE FROM users WHERE id != @admin_id;\n\nSELECT id, name, email, role FROM users;\n",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "email": "admin@tamam.org",
+      "role": "super_admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\n1\tعبدالإله المرزوقي\tadmin@tamam.org\tsuper_admin\n",
+  "stderr": "",
+  "execution_time_ms": 3052
+}

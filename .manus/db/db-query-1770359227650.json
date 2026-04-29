@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, email, name, role, status, passwordHash FROM users WHERE email = 'admin@tamam.sa';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, name, role, status, passwordHash FROM users WHERE email = 'admin@tamam.sa';",
+  "rows": [
+    {
+      "id": "60001",
+      "email": "admin@tamam.sa",
+      "name": "مدير النظام",
+      "role": "system_admin",
+      "status": "active",
+      "passwordHash": "db72141005e7b90d4ee775fc44ae93e6:f09451bdcaec430880d5e7c7cf918746c01e4aff39cbd214b2ab42761227c767abb4839f3429aad4f6d0c18af0336e6d544bdeb6f90866b387212d5ea382bbbc"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tstatus\tpasswordHash\n60001\tadmin@tamam.sa\tمدير النظام\tsystem_admin\tactive\tdb72141005e7b90d4ee775fc44ae93e6:f09451bdcaec430880d5e7c7cf918746c01e4aff39cbd214b2ab42761227c767abb4839f3429aad4f6d0c18af0336e6d544bdeb6f90866b387212d5ea382bbbc\n",
+  "stderr": "",
+  "execution_time_ms": 1525
+}

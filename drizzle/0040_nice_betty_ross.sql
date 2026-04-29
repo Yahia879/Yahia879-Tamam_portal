@@ -1,0 +1,1 @@
+ALTER TABLE `mosque_requests` MODIFY COLUMN `selectedQuotationId` varchar(50);

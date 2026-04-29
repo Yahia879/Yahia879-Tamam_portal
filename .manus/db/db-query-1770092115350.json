@@ -1,0 +1,28 @@
+{
+  "query": "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%role%' OR TABLE_NAME LIKE '%permission%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE '%role%' OR TABLE_NAME LIKE '%permission%';",
+  "rows": [
+    {
+      "TABLE_NAME": "permissions"
+    },
+    {
+      "TABLE_NAME": "roles"
+    },
+    {
+      "TABLE_NAME": "role_permissions"
+    },
+    {
+      "TABLE_NAME": "user_roles"
+    },
+    {
+      "TABLE_NAME": "user_permissions"
+    },
+    {
+      "TABLE_NAME": "permissions_audit_log"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\npermissions\nroles\nrole_permissions\nuser_roles\nuser_permissions\npermissions_audit_log\n",
+  "stderr": "",
+  "execution_time_ms": 1546
+}

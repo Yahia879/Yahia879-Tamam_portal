@@ -1,0 +1,242 @@
+{
+  "query": "SHOW COLUMNS FROM mosque_requests;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW COLUMNS FROM mosque_requests;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int(11)",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "requestNumber",
+      "Type": "varchar(50)",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "mosqueId",
+      "Type": "int(11)",
+      "Null": "YES",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "userId",
+      "Type": "int(11)",
+      "Null": "NO",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "programType",
+      "Type": "enum('bunyan','daaem','enaya','emdad','ethraa','sedana','taqa','miyah','suqya')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "currentStage",
+      "Type": "enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval','quotation_approval','contracting','execution','handover','closed')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "submitted",
+      "Extra": ""
+    },
+    {
+      "Field": "status",
+      "Type": "enum('pending','under_review','approved','rejected','suspended','in_progress','completed')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "pending",
+      "Extra": ""
+    },
+    {
+      "Field": "priority",
+      "Type": "enum('urgent','medium','normal')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "normal",
+      "Extra": ""
+    },
+    {
+      "Field": "assignedTo",
+      "Type": "int(11)",
+      "Null": "YES",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "programData",
+      "Type": "json",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "estimatedCost",
+      "Type": "decimal(15,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "approvedBudget",
+      "Type": "decimal(15,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "submittedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "reviewedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "approvedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "completedAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "requestTrack",
+      "Type": "enum('standard','quick_response','rejected')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "standard",
+      "Extra": ""
+    },
+    {
+      "Field": "technicalEvalDecision",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "technicalEvalJustification",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitAssignedTo",
+      "Type": "int(11)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitScheduledDate",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitScheduledTime",
+      "Type": "varchar(10)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitNotes",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitContactName",
+      "Type": "varchar(255)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitContactTitle",
+      "Type": "varchar(100)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "fieldVisitContactPhone",
+      "Type": "varchar(20)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "selectedQuotationId",
+      "Type": "varchar(50)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint(11)\tNO\tPRI\tNULL\tauto_increment\nrequestNumber\tvarchar(50)\tNO\tUNI\tNULL\t\nmosqueId\tint(11)\tYES\tMUL\tNULL\t\nuserId\tint(11)\tNO\tMUL\tNULL\t\nprogramType\tenum('bunyan','daaem','enaya','emdad','ethraa','sedana','taqa','miyah','suqya')\tNO\t\tNULL\t\ncurrentStage\tenum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval','quotation_approval','contracting','execution','handover','closed')\tNO\t\tsubmitted\t\nstatus\tenum('pending','under_review','approved','rejected','suspended','in_progress','completed')\tNO\t\tpending\t\npriority\tenum('urgent','medium','normal')\tYES\t\tnormal\t\nassignedTo\tint(11)\tYES\tMUL\tNULL\t\nprogramData\tjson\tYES\t\tNULL\t\nestimatedCost\tdecimal(15,2)\tYES\t\tNULL\t\napprovedBudget\tdecimal(15,2)\tYES\t\tNULL\t\nsubmittedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nreviewedAt\ttimestamp\tYES\t\tNULL\t\napprovedAt\ttimestamp\tYES\t\tNULL\t\ncompletedAt\ttimestamp\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\nrequestTrack\tenum('standard','quick_response','rejected')\tYES\t\tstandard\t\ntechnicalEvalDecision\tvarchar(50)\tYES\t\tNULL\t\ntechnicalEvalJustification\ttext\tYES\t\tNULL\t\nfieldVisitAssignedTo\tint(11)\tYES\t\tNULL\t\nfieldVisitScheduledDate\ttimestamp\tYES\t\tNULL\t\nfieldVisitScheduledTime\tvarchar(10)\tYES\t\tNULL\t\nfieldVisitNotes\ttext\tYES\t\tNULL\t\nfieldVisitContactName\tvarchar(255)\tYES\t\tNULL\t\nfieldVisitContactTitle\tvarchar(100)\tYES\t\tNULL\t\nfieldVisitContactPhone\tvarchar(20)\tYES\t\tNULL\t\nselectedQuotationId\tvarchar(50)\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 1527
+}

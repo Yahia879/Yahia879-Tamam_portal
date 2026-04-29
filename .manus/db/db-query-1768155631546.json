@@ -1,0 +1,64 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'quotations' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'quotations' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "quotationNumber"
+    },
+    {
+      "COLUMN_NAME": "requestId"
+    },
+    {
+      "COLUMN_NAME": "projectId"
+    },
+    {
+      "COLUMN_NAME": "supplierId"
+    },
+    {
+      "COLUMN_NAME": "totalAmount"
+    },
+    {
+      "COLUMN_NAME": "approvedAmount"
+    },
+    {
+      "COLUMN_NAME": "validUntil"
+    },
+    {
+      "COLUMN_NAME": "status"
+    },
+    {
+      "COLUMN_NAME": "items"
+    },
+    {
+      "COLUMN_NAME": "notes"
+    },
+    {
+      "COLUMN_NAME": "documentUrl"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "updatedAt"
+    },
+    {
+      "COLUMN_NAME": "negotiatedAmount"
+    },
+    {
+      "COLUMN_NAME": "negotiationNotes"
+    },
+    {
+      "COLUMN_NAME": "negotiatedBy"
+    },
+    {
+      "COLUMN_NAME": "negotiatedAt"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nquotationNumber\nrequestId\nprojectId\nsupplierId\ntotalAmount\napprovedAmount\nvalidUntil\nstatus\nitems\nnotes\ndocumentUrl\ncreatedAt\nupdatedAt\nnegotiatedAmount\nnegotiationNotes\nnegotiatedBy\nnegotiatedAt\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

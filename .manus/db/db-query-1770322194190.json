@@ -1,0 +1,22 @@
+{
+  "query": "SELECT email, name, role, loginMethod FROM users WHERE role IN ('system_admin', 'super_admin', 'projects_office') AND status = 'active' LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT email, name, role, loginMethod FROM users WHERE role IN ('system_admin', 'super_admin', 'projects_office') AND status = 'active' LIMIT 10;",
+  "rows": [
+    {
+      "email": "admin@tamam.org",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin",
+      "loginMethod": "local"
+    },
+    {
+      "email": "amarzogi@gmail.com",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin",
+      "loginMethod": "google"
+    }
+  ],
+  "messages": [],
+  "stdout": "email\tname\trole\tloginMethod\nadmin@tamam.org\tعبدالإله المرزوقي\tsuper_admin\tlocal\namarzogi@gmail.com\tعبدالإله المرزوقي\tsuper_admin\tgoogle\n",
+  "stderr": "",
+  "execution_time_ms": 1604
+}

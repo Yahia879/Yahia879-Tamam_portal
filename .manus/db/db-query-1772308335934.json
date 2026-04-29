@@ -1,0 +1,9 @@
+{
+  "query": "\nDELETE FROM final_reports;\nDELETE FROM project_phases;\nDELETE FROM projects;\nDELETE FROM field_visit_reports;\nDELETE FROM quick_response_reports;\nDELETE FROM field_visits;\nDELETE FROM request_stage_tracking;\nDELETE FROM escalation_logs;\nDELETE FROM request_comments;\nDELETE FROM request_history;\nDELETE FROM request_attachments;\nDELETE FROM mosque_requests;\nDELETE FROM mosque_images;\nDELETE FROM mosques;\nDELETE FROM donations;\nDELETE FROM donation_opportunities;\nDELETE FROM notifications;\nDELETE FROM audit_logs;\nDELETE FROM permissions_audit_log;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute \nDELETE FROM final_reports;\nDELETE FROM project_phases;\nDELETE FROM projects;\nDELETE FROM field_visit_reports;\nDELETE FROM quick_response_reports;\nDELETE FROM field_visits;\nDELETE FROM request_stage_tracking;\nDELETE FROM escalation_logs;\nDELETE FROM request_comments;\nDELETE FROM request_history;\nDELETE FROM request_attachments;\nDELETE FROM mosque_requests;\nDELETE FROM mosque_images;\nDELETE FROM mosques;\nDELETE FROM donations;\nDELETE FROM donation_opportunities;\nDELETE FROM notifications;\nDELETE FROM audit_logs;\nDELETE FROM permissions_audit_log;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 5634
+}

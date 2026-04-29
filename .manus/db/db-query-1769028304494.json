@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, requestNumber, programType, programData FROM mosque_requests WHERE id = 420001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber, programType, programData FROM mosque_requests WHERE id = 420001;",
+  "rows": [
+    {
+      "id": "420001",
+      "requestNumber": "TEST-2026-001",
+      "programType": "bunyan",
+      "programData": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tprogramType\tprogramData\n420001\tTEST-2026-001\tbunyan\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1728
+}

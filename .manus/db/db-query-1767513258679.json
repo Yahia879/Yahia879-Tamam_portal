@@ -1,0 +1,22 @@
+{
+  "query": "SELECT * FROM contract_templates;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM contract_templates;",
+  "rows": [],
+  "messages": [
+    "1\tSupply Contract\tعقد توريد\tsupply\tقالب عقد توريد مواد ومعدات للمساجد\t\tإنه في يوم {{contractDate}} الموافق {{contractDateHijri}}",
+    "تم الاتفاق بين كل من:",
+    "الطرف الأول: {{organizationName}}",
+    "ويمثله: {{signatoryName}} - {{signatoryTitle}}",
+    "السجل التجاري: {{organizationCR}}",
+    "العنوان: {{organizationAddress}}",
+    "الطرف الثاني: {{supplierName}}",
+    "السجل التجاري: {{supplierCR}}",
+    "العنوان: {{supplierAddress}}",
+    "رقم الجوال: {{supplierPhone}}",
+    "تمهيد:",
+    "حيث أن الطرف الأول جمعية خيرية تعنى بالعناية بالمساجد، وحيث أن الطرف الثاني يمتلك الخبرة والإمكانيات اللازمة لتنفيذ الأعمال المطلوبة، فقد اتفق الطرفان على ما يلي:\t\t\t1\t0\t1\t2026-01-04 07:50:39\t2026-01-04 07:50:39"
+  ],
+  "stdout": "id\tname\tnameAr\ttype\tdescription\theaderTemplate\tintroTemplate\tfooterTemplate\tsignatureTemplate\tisActive\tisDefault\tcreatedBy\tcreatedAt\tupdatedAt\n1\tSupply Contract\tعقد توريد\tsupply\tقالب عقد توريد مواد ومعدات للمساجد\t\tإنه في يوم {{contractDate}} الموافق {{contractDateHijri}}\n\nتم الاتفاق بين كل من:\n\nالطرف الأول: {{organizationName}}\nويمثله: {{signatoryName}} - {{signatoryTitle}}\nالسجل التجاري: {{organizationCR}}\nالعنوان: {{organizationAddress}}\n\nالطرف الثاني: {{supplierName}}\nالسجل التجاري: {{supplierCR}}\nالعنوان: {{supplierAddress}}\nرقم الجوال: {{supplierPhone}}\n\nتمهيد:\nحيث أن الطرف الأول جمعية خيرية تعنى بالعناية بالمساجد، وحيث أن الطرف الثاني يمتلك الخبرة والإمكانيات اللازمة لتنفيذ الأعمال المطلوبة، فقد اتفق الطرفان على ما يلي:\t\t\t1\t0\t1\t2026-01-04 07:50:39\t2026-01-04 07:50:39\n",
+  "stderr": "",
+  "execution_time_ms": 1509
+}

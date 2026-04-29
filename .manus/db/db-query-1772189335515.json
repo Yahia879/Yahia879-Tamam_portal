@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO mosques (name, city, district, address, latitude, longitude, registeredBy, approvalStatus, createdAt, updatedAt)\nVALUES ('مسجد التقوى', 'الرياض', 'العليا', 'شارع العروبة', '24.7136', '46.6753', 6, 'approved', NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO mosques (name, city, district, address, latitude, longitude, registeredBy, approvalStatus, createdAt, updatedAt)\nVALUES ('مسجد التقوى', 'الرياض', 'العليا', 'شارع العروبة', '24.7136', '46.6753', 6, 'approved', NOW(), NOW());",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1533
+}

@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `stage_settings` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `stageCode` varchar(50) NOT NULL,\n  `stageName` varchar(100) NOT NULL,\n  `stageOrder` int NOT NULL DEFAULT 0,\n  `durationDays` int NOT NULL DEFAULT 3,\n  `warningDays` int NOT NULL DEFAULT 1,\n  `escalationLevel1Days` int NOT NULL DEFAULT 1,\n  `escalationLevel2Days` int NOT NULL DEFAULT 3,\n  `isActive` boolean DEFAULT true,\n  `description` text,\n  `requiredConditions` text,\n  `availableActions` text,\n  `createdAt` timestamp DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute CREATE TABLE IF NOT EXISTS `stage_settings` (\n  `id` int AUTO_INCREMENT PRIMARY KEY,\n  `stageCode` varchar(50) NOT NULL,\n  `stageName` varchar(100) NOT NULL,\n  `stageOrder` int NOT NULL DEFAULT 0,\n  `durationDays` int NOT NULL DEFAULT 3,\n  `warningDays` int NOT NULL DEFAULT 1,\n  `escalationLevel1Days` int NOT NULL DEFAULT 1,\n  `escalationLevel2Days` int NOT NULL DEFAULT 3,\n  `isActive` boolean DEFAULT true,\n  `description` text,\n  `requiredConditions` text,\n  `availableActions` text,\n  `createdAt` timestamp DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1773
+}

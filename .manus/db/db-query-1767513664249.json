@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Contract Value and Payments', 'قيمة العقد والدفعات', 'قيمة هذا العقد {{contractValue}} ريال سعودي، تُسدد وفقاً لجدول الدفعات التالي:\\n{{paymentSchedule}}\\nويتم الصرف بعد استيفاء المتطلبات واعتماد المستخلصات.', 'financial', 1, 1, 4, 0);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Contract Value and Payments', 'قيمة العقد والدفعات', 'قيمة هذا العقد {{contractValue}} ريال سعودي، تُسدد وفقاً لجدول الدفعات التالي:\\n{{paymentSchedule}}\\nويتم الصرف بعد استيفاء المتطلبات واعتماد المستخلصات.', 'financial', 1, 1, 4, 0);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1541
+}

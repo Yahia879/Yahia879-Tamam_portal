@@ -1,0 +1,26 @@
+{
+  "query": "SELECT id, email, role, status, loginMethod, LEFT(passwordHash, 50) as hash_preview FROM users LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, role, status, loginMethod, LEFT(passwordHash, 50) as hash_preview FROM users LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "admin@tamam.org",
+      "role": "super_admin",
+      "status": "active",
+      "loginMethod": "local",
+      "hash_preview": "ec6ddf17a9a35da0d11340661d508f05:ee588fa9e7b1bd9ac"
+    },
+    {
+      "id": "270001",
+      "email": "amarzogi@gmail.com",
+      "role": "super_admin",
+      "status": "active",
+      "loginMethod": "google",
+      "hash_preview": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\trole\tstatus\tloginMethod\thash_preview\n1\tadmin@tamam.org\tsuper_admin\tactive\tlocal\tec6ddf17a9a35da0d11340661d508f05:ee588fa9e7b1bd9ac\n270001\tamarzogi@gmail.com\tsuper_admin\tactive\tgoogle\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1540
+}

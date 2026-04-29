@@ -1,0 +1,100 @@
+{
+  "query": "SELECT * FROM roles LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM roles LIMIT 10;",
+  "rows": [
+    {
+      "id": "corporate_comm",
+      "name_ar": "الاتصال المؤسسي",
+      "name_en": "Corporate Communications",
+      "description": "إدارة الشركاء والتواصل المؤسسي",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:16",
+      "updated_at": "2026-02-02 22:21:16"
+    },
+    {
+      "id": "field_team",
+      "name_ar": "الفريق الميداني",
+      "name_en": "Field Team",
+      "description": "المعاينة الميدانية وإعداد التقارير",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:15",
+      "updated_at": "2026-02-02 22:21:15"
+    },
+    {
+      "id": "financial",
+      "name_ar": "الإدارة المالية",
+      "name_en": "Financial Management",
+      "description": "إدارة العمليات المالية والدفعات",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:16",
+      "updated_at": "2026-02-02 22:21:16"
+    },
+    {
+      "id": "project_manager",
+      "name_ar": "مدير المشروع",
+      "name_en": "Project Manager",
+      "description": "إدارة تنفيذ المشاريع",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:16",
+      "updated_at": "2026-02-02 22:21:16"
+    },
+    {
+      "id": "projects_office",
+      "name_ar": "مكتب المشاريع",
+      "name_en": "Projects Office",
+      "description": "إدارة الطلبات والمشاريع والعقود",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:15",
+      "updated_at": "2026-02-02 22:21:15"
+    },
+    {
+      "id": "quick_response",
+      "name_ar": "فريق الاستجابة السريعة",
+      "name_en": "Quick Response Team",
+      "description": "الاستجابة السريعة للطلبات العاجلة",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:15",
+      "updated_at": "2026-02-02 22:21:15"
+    },
+    {
+      "id": "service_requester",
+      "name_ar": "طالب الخدمة",
+      "name_en": "Service Requester",
+      "description": "تقديم الطلبات ومتابعتها",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:16",
+      "updated_at": "2026-02-02 22:21:16"
+    },
+    {
+      "id": "super_admin",
+      "name_ar": "المدير العام",
+      "name_en": "Super Admin",
+      "description": "صلاحيات كاملة على جميع الأنظمة",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:15",
+      "updated_at": "2026-02-02 22:21:15"
+    },
+    {
+      "id": "system_admin",
+      "name_ar": "مدير النظام",
+      "name_en": "System Admin",
+      "description": "إدارة النظام والمستخدمين والصلاحيات",
+      "is_system": "1",
+      "is_active": "1",
+      "created_at": "2026-02-02 22:21:15",
+      "updated_at": "2026-02-02 22:21:15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname_ar\tname_en\tdescription\tis_system\tis_active\tcreated_at\tupdated_at\ncorporate_comm\tالاتصال المؤسسي\tCorporate Communications\tإدارة الشركاء والتواصل المؤسسي\t1\t1\t2026-02-02 22:21:16\t2026-02-02 22:21:16\nfield_team\tالفريق الميداني\tField Team\tالمعاينة الميدانية وإعداد التقارير\t1\t1\t2026-02-02 22:21:15\t2026-02-02 22:21:15\nfinancial\tالإدارة المالية\tFinancial Management\tإدارة العمليات المالية والدفعات\t1\t1\t2026-02-02 22:21:16\t2026-02-02 22:21:16\nproject_manager\tمدير المشروع\tProject Manager\tإدارة تنفيذ المشاريع\t1\t1\t2026-02-02 22:21:16\t2026-02-02 22:21:16\nprojects_office\tمكتب المشاريع\tProjects Office\tإدارة الطلبات والمشاريع والعقود\t1\t1\t2026-02-02 22:21:15\t2026-02-02 22:21:15\nquick_response\tفريق الاستجابة السريعة\tQuick Response Team\tالاستجابة السريعة للطلبات العاجلة\t1\t1\t2026-02-02 22:21:15\t2026-02-02 22:21:15\nservice_requester\tطالب الخدمة\tService Requester\tتقديم الطلبات ومتابعتها\t1\t1\t2026-02-02 22:21:16\t2026-02-02 22:21:16\nsuper_admin\tالمدير العام\tSuper Admin\tصلاحيات كاملة على جميع الأنظمة\t1\t1\t2026-02-02 22:21:15\t2026-02-02 22:21:15\nsystem_admin\tمدير النظام\tSystem Admin\tإدارة النظام والمستخدمين والصلاحيات\t1\t1\t2026-02-02 22:21:15\t2026-02-02 22:21:15\n",
+  "stderr": "",
+  "execution_time_ms": 1536
+}

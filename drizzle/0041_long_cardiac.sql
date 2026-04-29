@@ -1,0 +1,20 @@
+CREATE TABLE `action_settings` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`actionCode` varchar(100) NOT NULL,
+	`actionLabel` varchar(255) NOT NULL,
+	`actionDescription` text,
+	`parentStage` varchar(100) NOT NULL,
+	`order` int NOT NULL DEFAULT 0,
+	`route` varchar(255),
+	`requiredRoles` json,
+	`prerequisiteAction` varchar(100),
+	`nextAction` varchar(100),
+	`relationWithNext` enum('before','after','concurrent','independent') DEFAULT 'after',
+	`isActive` boolean NOT NULL DEFAULT true,
+	`icon` varchar(50),
+	`color` varchar(50),
+	`createdAt` datetime NOT NULL DEFAULT (now()),
+	`updatedAt` datetime NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `action_settings_id` PRIMARY KEY(`id`),
+	CONSTRAINT `action_settings_actionCode_unique` UNIQUE(`actionCode`)
+);

@@ -1,0 +1,8 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS user_role_assignments (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  userId INT NOT NULL,\n  roleId INT NOT NULL,\n  assignedBy INT,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,\n  FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE CASCADE,\n  FOREIGN KEY (assignedBy) REFERENCES users(id) ON DELETE SET NULL,\n  UNIQUE KEY unique_user_role (userId, roleId)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute CREATE TABLE IF NOT EXISTS user_role_assignments (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  userId INT NOT NULL,\n  roleId INT NOT NULL,\n  assignedBy INT,\n  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,\n  FOREIGN KEY (roleId) REFERENCES roles(id) ON DELETE CASCADE,\n  FOREIGN KEY (assignedBy) REFERENCES users(id) ON DELETE SET NULL,\n  UNIQUE KEY unique_user_role (userId, roleId)\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 3780 (HY000) at line 1: Referencing column 'roleId' and referenced column 'id' in foreign key constraint 'fk_2' are incompatible."
+  ]
+}

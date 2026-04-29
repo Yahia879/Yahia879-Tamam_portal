@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, requestNumber, currentStage, status FROM mosque_requests WHERE id = 210003;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber, currentStage, status FROM mosque_requests WHERE id = 210003;",
+  "rows": [
+    {
+      "id": "210003",
+      "requestNumber": "SUQ-MJXGZ6KZ-AE42",
+      "currentStage": "financial_eval",
+      "status": "rejected"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tcurrentStage\tstatus\n210003\tSUQ-MJXGZ6KZ-AE42\tfinancial_eval\trejected\n",
+  "stderr": "",
+  "execution_time_ms": 1515
+}

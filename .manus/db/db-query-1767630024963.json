@@ -1,0 +1,46 @@
+{
+  "query": "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contracts_enhanced' AND COLUMN_DEFAULT IS NULL AND IS_NULLABLE = 'NO';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'contracts_enhanced' AND COLUMN_DEFAULT IS NULL AND IS_NULLABLE = 'NO';",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "contractNumber",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "contractYear",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "contractSequence",
+      "DATA_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "contractType",
+      "DATA_TYPE": "enum"
+    },
+    {
+      "COLUMN_NAME": "contractTitle",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "secondPartyName",
+      "DATA_TYPE": "varchar"
+    },
+    {
+      "COLUMN_NAME": "contractAmount",
+      "DATA_TYPE": "decimal"
+    },
+    {
+      "COLUMN_NAME": "duration",
+      "DATA_TYPE": "int"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\nid\tint\ncontractNumber\tvarchar\ncontractYear\tint\ncontractSequence\tint\ncontractType\tenum\ncontractTitle\tvarchar\nsecondPartyName\tvarchar\ncontractAmount\tdecimal\nduration\tint\n",
+  "stderr": "",
+  "execution_time_ms": 1563
+}

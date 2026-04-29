@@ -1,0 +1,18 @@
+{
+  "query": "SHOW COLUMNS FROM mosque_requests LIKE 'currentStage';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW COLUMNS FROM mosque_requests LIKE 'currentStage';",
+  "rows": [
+    {
+      "Field": "currentStage",
+      "Type": "enum('submitted','initial_review','field_visit','technical_eval','financial_eval','execution','closed')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "submitted",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\ncurrentStage\tenum('submitted','initial_review','field_visit','technical_eval','financial_eval','execution','closed')\tNO\t\tsubmitted\t\n",
+  "stderr": "",
+  "execution_time_ms": 1541
+}

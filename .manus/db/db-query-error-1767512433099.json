@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS administrativeSupervisor VARCHAR(255) AFTER licenseNumber,\nADD COLUMN IF NOT EXISTS technicalSupervisor VARCHAR(255) AFTER administrativeSupervisor,\nADD COLUMN IF NOT EXISTS aboutOrganization TEXT AFTER technicalSupervisor,\nADD COLUMN IF NOT EXISTS secondaryLogoUrl VARCHAR(500) AFTER stampUrl;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute ALTER TABLE organization_settings \nADD COLUMN IF NOT EXISTS administrativeSupervisor VARCHAR(255) AFTER licenseNumber,\nADD COLUMN IF NOT EXISTS technicalSupervisor VARCHAR(255) AFTER administrativeSupervisor,\nADD COLUMN IF NOT EXISTS aboutOrganization TEXT AFTER technicalSupervisor,\nADD COLUMN IF NOT EXISTS secondaryLogoUrl VARCHAR(500) AFTER stampUrl;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'administrativesupervisor' in 'organization_settings'"
+  ]
+}

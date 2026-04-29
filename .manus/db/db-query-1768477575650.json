@@ -1,0 +1,44 @@
+{
+  "query": "SHOW CREATE TABLE quotations;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW CREATE TABLE quotations;",
+  "rows": [
+    {
+      "Table": "quotations",
+      "Create Table": "CREATE TABLE `quotations` ("
+    }
+  ],
+  "messages": [
+    "  `id` int(11) NOT NULL AUTO_INCREMENT,",
+    "  `quotationNumber` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,",
+    "  `requestId` int(11) DEFAULT NULL,",
+    "  `projectId` int(11) DEFAULT NULL,",
+    "  `supplierId` int(11) NOT NULL,",
+    "  `totalAmount` decimal(15,2) NOT NULL,",
+    "  `approvedAmount` decimal(15,2) DEFAULT NULL,",
+    "  `validUntil` timestamp NULL DEFAULT NULL,",
+    "  `status` enum('pending','negotiating','accepted','rejected','expired') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',",
+    "  `items` json DEFAULT NULL,",
+    "  `notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `documentUrl` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,",
+    "  `negotiatedAmount` decimal(15,2) DEFAULT NULL,",
+    "  `negotiationNotes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `negotiatedBy` int(11) DEFAULT NULL,",
+    "  `negotiatedAt` timestamp NULL DEFAULT NULL,",
+    "  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,",
+    "  UNIQUE KEY `quotations_quotationNumber_unique` (`quotationNumber`),",
+    "  KEY `quotations_requestId_mosque_requests_id_fk` (`requestId`),",
+    "  KEY `quotations_projectId_projects_id_fk` (`projectId`),",
+    "  KEY `quotations_supplierId_suppliers_id_fk` (`supplierId`),",
+    "  KEY `quotations_negotiatedBy_users_id_fk` (`negotiatedBy`),",
+    "  CONSTRAINT `quotations_requestId_mosque_requests_id_fk` FOREIGN KEY (`requestId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`mosque_requests` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,",
+    "  CONSTRAINT `quotations_projectId_projects_id_fk` FOREIGN KEY (`projectId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`projects` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,",
+    "  CONSTRAINT `quotations_supplierId_suppliers_id_fk` FOREIGN KEY (`supplierId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`suppliers` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,",
+    "  CONSTRAINT `quotations_negotiatedBy_users_id_fk` FOREIGN KEY (`negotiatedBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION",
+    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=60001"
+  ],
+  "stdout": "Table\tCreate Table\nquotations\tCREATE TABLE `quotations` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `quotationNumber` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,\n  `requestId` int(11) DEFAULT NULL,\n  `projectId` int(11) DEFAULT NULL,\n  `supplierId` int(11) NOT NULL,\n  `totalAmount` decimal(15,2) NOT NULL,\n  `approvedAmount` decimal(15,2) DEFAULT NULL,\n  `validUntil` timestamp NULL DEFAULT NULL,\n  `status` enum('pending','negotiating','accepted','rejected','expired') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',\n  `items` json DEFAULT NULL,\n  `notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `documentUrl` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  `negotiatedAmount` decimal(15,2) DEFAULT NULL,\n  `negotiationNotes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `negotiatedBy` int(11) DEFAULT NULL,\n  `negotiatedAt` timestamp NULL DEFAULT NULL,\n  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,\n  UNIQUE KEY `quotations_quotationNumber_unique` (`quotationNumber`),\n  KEY `quotations_requestId_mosque_requests_id_fk` (`requestId`),\n  KEY `quotations_projectId_projects_id_fk` (`projectId`),\n  KEY `quotations_supplierId_suppliers_id_fk` (`supplierId`),\n  KEY `quotations_negotiatedBy_users_id_fk` (`negotiatedBy`),\n  CONSTRAINT `quotations_requestId_mosque_requests_id_fk` FOREIGN KEY (`requestId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`mosque_requests` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,\n  CONSTRAINT `quotations_projectId_projects_id_fk` FOREIGN KEY (`projectId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`projects` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,\n  CONSTRAINT `quotations_supplierId_suppliers_id_fk` FOREIGN KEY (`supplierId`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`suppliers` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,\n  CONSTRAINT `quotations_negotiatedBy_users_id_fk` FOREIGN KEY (`negotiatedBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=60001\n",
+  "stderr": "",
+  "execution_time_ms": 1607
+}

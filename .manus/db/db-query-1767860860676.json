@@ -1,0 +1,22 @@
+{
+  "query": "SELECT id, name, role, openId FROM users WHERE role = 'super_admin'",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, role, openId FROM users WHERE role = 'super_admin'",
+  "rows": [
+    {
+      "id": "1",
+      "name": "عبدالإله المرزوقي",
+      "role": "super_admin",
+      "openId": "FcMdF5FEVvzcpdNgEXXMqy"
+    },
+    {
+      "id": "30001",
+      "name": "مدير النظام",
+      "role": "super_admin",
+      "openId": "admin-1767360025553"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\trole\topenId\n1\tعبدالإله المرزوقي\tsuper_admin\tFcMdF5FEVvzcpdNgEXXMqy\n30001\tمدير النظام\tsuper_admin\tadmin-1767360025553\n",
+  "stderr": "",
+  "execution_time_ms": 1601
+}

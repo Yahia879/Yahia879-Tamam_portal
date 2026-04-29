@@ -1,0 +1,16 @@
+{
+  "query": "-- عرض النتائج\nSELECT \n  u.name,\n  u.email,\n  r.name_ar AS role_name,\n  ur.assigned_at\nFROM user_roles ur\nJOIN users u ON ur.user_id = u.id\nJOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nORDER BY ur.assigned_at DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute -- عرض النتائج\nSELECT \n  u.name,\n  u.email,\n  r.name_ar AS role_name,\n  ur.assigned_at\nFROM user_roles ur\nJOIN users u ON ur.user_id = u.id\nJOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nORDER BY ur.assigned_at DESC;",
+  "rows": [
+    {
+      "name": "أحمد محمد - مكتب المشاريع",
+      "email": "projects@test.tamam.local",
+      "role_name": "مكتب المشاريع",
+      "assigned_at": "2026-02-03 04:18:49"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\trole_name\tassigned_at\nأحمد محمد - مكتب المشاريع\tprojects@test.tamam.local\tمكتب المشاريع\t2026-02-03 04:18:49\n",
+  "stderr": "",
+  "execution_time_ms": 1496
+}

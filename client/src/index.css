@@ -1,0 +1,477 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* ألوان الهوية البصرية */
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-teal: var(--teal);
+  --color-teal-foreground: var(--teal-foreground);
+}
+
+:root {
+  /* ═══════════════════════════════════════════════
+     هوية بوابة تمام البصرية
+     اللون الأساسي: التركواز (#0D9488 / teal-600)
+     اللون الثانوي: الذهبي (#B8860B / dark goldenrod)
+     ═══════════════════════════════════════════════ */
+
+  /* اللون الأساسي - التركواز */
+  --primary: oklch(0.55 0.14 174);           /* teal-600 #0D9488 */
+  --primary-foreground: oklch(0.99 0 0);     /* أبيض */
+
+  /* اللون الثانوي - الذهبي */
+  --gold: oklch(0.72 0.15 75);              /* ذهبي دافئ */
+  --gold-foreground: oklch(0.15 0.02 75);   /* نص داكن على الذهبي */
+
+  /* الألوان الفرعية للهوية (5 ألوان) */
+  --teal:    oklch(0.55 0.14 174);          /* تركواز - الأساسي */
+  --teal-foreground: oklch(0.99 0 0);
+
+  /* ألوان البرامج */
+  --bunyan:  oklch(0.45 0.15 250);          /* بنيان - أزرق داكن */
+  --daaem:   oklch(0.55 0.20 290);          /* دعائم - بنفسجي */
+  --enaya:   oklch(0.55 0.14 174);          /* عناية - تركواز */
+  --emdad:   oklch(0.60 0.18 70);           /* إمداد - برتقالي */
+  --ethraa:  oklch(0.55 0.20 25);           /* إثراء - أحمر وردي */
+  --sedana:  oklch(0.55 0.15 200);          /* سدانة - أزرق سماوي */
+  --taqa:    oklch(0.70 0.18 85);           /* طاقة - أصفر ذهبي */
+  --miyah:   oklch(0.55 0.15 220);          /* مياه - أزرق */
+  --suqya:   oklch(0.60 0.15 190);          /* سقيا - أزرق فيروزي */
+
+  /* ═══════════════════════════════════════════════
+     متغيرات الثيم الفاتح
+     ═══════════════════════════════════════════════ */
+  --radius: 0.625rem;
+  --background: oklch(0.985 0 0);           /* أبيض دافئ */
+  --foreground: oklch(0.20 0.015 65);       /* رمادي داكن */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.20 0.015 65);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.20 0.015 65);
+  --secondary: oklch(0.96 0.005 175);       /* تركواز فاتح جداً */
+  --secondary-foreground: oklch(0.35 0.10 174);
+  --muted: oklch(0.965 0.003 175);          /* رمادي مائل للتركواز */
+  --muted-foreground: oklch(0.52 0.015 174);
+  --accent: oklch(0.94 0.01 174);           /* تركواز خفيف */
+  --accent-foreground: oklch(0.35 0.12 174);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.90 0.006 174);          /* حدود مائلة للتركواز */
+  --input: oklch(0.90 0.006 174);
+  --ring: oklch(0.55 0.14 174);             /* تركواز للتركيز */
+
+  /* القائمة الجانبية - لون #09707e حسب طلب المستخدم */
+  --sidebar: oklch(0.45 0.09 192);          /* #09707e - تركواز متوسط */
+  --sidebar-foreground: oklch(0.97 0.005 192); /* نص أبيض */
+  --sidebar-primary: oklch(0.82 0.15 75);   /* عنصر نشط - ذهبي مميز */
+  --sidebar-primary-foreground: oklch(0.20 0.05 75); /* نص داكن على الذهبي */
+  --sidebar-accent: oklch(0.55 0.09 192);   /* hover - أفتح قليلاً */
+  --sidebar-accent-foreground: oklch(0.99 0.005 192); /* نص أبيض ساطع */
+  --sidebar-border: oklch(1 0 0 / 15%);
+  --sidebar-ring: oklch(0.82 0.15 75);
+
+  /* الرسوم البيانية */
+  --chart-1: oklch(0.55 0.14 174);          /* تركواز */
+  --chart-2: oklch(0.72 0.15 75);           /* ذهبي */
+  --chart-3: oklch(0.45 0.15 250);          /* أزرق داكن */
+  --chart-4: oklch(0.60 0.18 70);           /* برتقالي */
+  --chart-5: oklch(0.55 0.20 290);          /* بنفسجي */
+
+  /* ألوان الهوية البصرية الديناميكية (تُحدَّث من قاعدة البيانات) */
+  --brand-primary-1: #09707e;
+  --brand-primary-2: #0891b2;
+  --brand-secondary-1: #6366f1;
+  --brand-secondary-2: #f59e0b;
+  --brand-secondary-3: #ef4444;
+  --brand-secondary-4: #8b5cf6;
+  --brand-secondary-5: #10b981;
+}
+
+.dark {
+  /* ═══════════════════════════════════════════════
+     متغيرات الثيم الداكن - تركواز على خلفية داكنة
+     ═══════════════════════════════════════════════ */
+  --primary: oklch(0.65 0.14 174);          /* تركواز أفتح للداكن */
+  --primary-foreground: oklch(0.10 0.01 174);
+
+  --background: oklch(0.13 0.008 174);      /* داكن مائل للتركواز */
+  --foreground: oklch(0.92 0.005 174);      /* فاتح مائل للتركواز */
+  --card: oklch(0.17 0.010 174);
+  --card-foreground: oklch(0.92 0.005 174);
+  --popover: oklch(0.17 0.010 174);
+  --popover-foreground: oklch(0.92 0.005 174);
+  --secondary: oklch(0.22 0.012 174);
+  --secondary-foreground: oklch(0.75 0.008 174);
+  --muted: oklch(0.22 0.010 174);
+  --muted-foreground: oklch(0.60 0.012 174);
+  --accent: oklch(0.25 0.015 174);
+  --accent-foreground: oklch(0.90 0.005 174);
+  --destructive: oklch(0.65 0.22 22);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.65 0.14 174);
+
+  /* القائمة الجانبية - لون #09707e حسب طلب المستخدم (ثيم داكن) */
+  --sidebar: oklch(0.45 0.09 192);
+  --sidebar-foreground: oklch(0.97 0.005 192);
+  --sidebar-primary: oklch(0.82 0.15 75);   /* ذهبي مميز */
+  --sidebar-primary-foreground: oklch(0.20 0.05 75);
+  --sidebar-accent: oklch(0.55 0.09 192);
+  --sidebar-accent-foreground: oklch(0.99 0.005 192);
+  --sidebar-border: oklch(1 0 0 / 15%);
+  --sidebar-ring: oklch(0.82 0.15 75);
+
+  /* الرسوم البيانية - داكن */
+  --chart-1: oklch(0.65 0.14 174);
+  --chart-2: oklch(0.78 0.15 75);
+  --chart-3: oklch(0.55 0.15 250);
+  --chart-4: oklch(0.68 0.18 70);
+  --chart-5: oklch(0.65 0.20 290);
+}
+
+/* ═══════════════════════════════════════════════
+   خط Cairo - الخط الرسمي للبوابة
+   ═══════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    direction: rtl;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Cairo', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cairo', system-ui, sans-serif;
+    font-weight: 700;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   التدرجات الرئيسية
+   ═══════════════════════════════════════════════ */
+
+/* التدرج الأساسي - تركواز */
+.gradient-primary {
+  background: linear-gradient(135deg, oklch(0.58 0.16 174) 0%, oklch(0.48 0.14 185) 100%);
+}
+
+/* تدرج الهيرو - تركواز إلى أزرق */
+.gradient-hero {
+  background: linear-gradient(135deg, oklch(0.55 0.15 174) 0%, oklch(0.50 0.13 185) 40%, oklch(0.45 0.12 210) 100%);
+}
+
+/* تدرج ذهبي */
+.gradient-gold {
+  background: linear-gradient(135deg, oklch(0.75 0.16 80) 0%, oklch(0.65 0.18 65) 100%);
+}
+
+/* تدرج القائمة الجانبية */
+.gradient-sidebar {
+  background: linear-gradient(180deg, oklch(0.55 0.14 174) 0%, oklch(0.45 0.12 185) 100%);
+}
+
+/* ═══════════════════════════════════════════════
+   مكونات الهوية البصرية
+   ═══════════════════════════════════════════════ */
+
+/* تأثيرات البطاقات */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+}
+
+.card-hover-strong {
+  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+}
+
+/* نمط الزخرفة الإسلامية */
+.islamic-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════
+   الأزرار المخصصة
+   ═══════════════════════════════════════════════ */
+
+.btn-primary {
+  @apply bg-primary text-primary-foreground hover:opacity-90 active:opacity-80 
+         transition-all duration-200 font-semibold rounded-lg px-5 py-2.5
+         shadow-sm hover:shadow-md;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, oklch(0.75 0.16 80) 0%, oklch(0.65 0.18 65) 100%);
+  @apply text-white font-semibold rounded-lg px-5 py-2.5
+         shadow-sm hover:shadow-md hover:opacity-90 transition-all duration-200;
+}
+
+.btn-outline-primary {
+  @apply border-2 border-primary text-primary bg-transparent hover:bg-primary/10 
+         transition-all duration-200 font-semibold rounded-lg px-5 py-2.5;
+}
+
+/* ═══════════════════════════════════════════════
+   شارات الحالة
+   ═══════════════════════════════════════════════ */
+
+.badge {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
+}
+
+.badge-primary {
+  @apply bg-primary/12 text-primary border border-primary/20;
+}
+
+.badge-gold {
+  background: oklch(0.72 0.15 75 / 0.15);
+  color: oklch(0.55 0.18 70);
+  @apply border border-yellow-300/50;
+}
+
+.badge-success {
+  @apply bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700;
+}
+
+.badge-warning {
+  @apply bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800 border border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700;
+}
+
+.badge-info {
+  @apply bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700;
+}
+
+.badge-muted {
+  @apply bg-muted text-muted-foreground border border-border;
+}
+
+/* ═══════════════════════════════════════════════
+   النماذج
+   ═══════════════════════════════════════════════ */
+
+.form-input {
+  @apply w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground 
+         placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 
+         focus:border-primary transition-all duration-200;
+}
+
+.form-label {
+  @apply block text-sm font-semibold text-foreground mb-1.5;
+}
+
+/* ═══════════════════════════════════════════════
+   الجداول
+   ═══════════════════════════════════════════════ */
+
+.table-container {
+  @apply overflow-x-auto rounded-xl border border-border shadow-sm;
+}
+
+.table-container table {
+  @apply w-full;
+}
+
+.table-container th {
+  @apply bg-primary/8 px-4 py-3 text-right text-sm font-semibold text-primary;
+}
+
+.table-container td {
+  @apply px-4 py-3 text-sm text-foreground border-t border-border;
+}
+
+.table-container tr:hover td {
+  @apply bg-accent/40;
+}
+
+/* ═══════════════════════════════════════════════
+   البطاقات الإحصائية
+   ═══════════════════════════════════════════════ */
+
+.stat-card {
+  @apply bg-card rounded-xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow;
+}
+
+.stat-card-value {
+  @apply text-3xl font-bold text-foreground;
+}
+
+.stat-card-label {
+  @apply text-sm text-muted-foreground mt-1 font-medium;
+}
+
+/* ═══════════════════════════════════════════════
+   القائمة الجانبية
+   ═══════════════════════════════════════════════ */
+
+.sidebar-link {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground 
+         hover:bg-sidebar-accent hover:text-sidebar-accent-foreground
+         transition-all duration-200 font-medium text-sm;
+}
+
+.sidebar-link.active {
+  @apply bg-sidebar-primary text-sidebar-primary-foreground shadow-sm;
+}
+
+.sidebar-section-title {
+  @apply px-3 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider mt-4 mb-1;
+}
+
+/* ═══════════════════════════════════════════════
+   بطاقات البرامج
+   ═══════════════════════════════════════════════ */
+
+.program-card {
+  @apply relative overflow-hidden rounded-xl p-6 text-white 
+         transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer;
+}
+
+.program-card::before {
+  content: '';
+  @apply absolute inset-0 opacity-10;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ═══════════════════════════════════════════════
+   تأثيرات الانتقال
+   ═══════════════════════════════════════════════ */
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-up {
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   شريط التمرير
+   ═══════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.55 0.14 174 / 0.3);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.55 0.14 174 / 0.6);
+}
+
+/* ═══════════════════════════════════════════════
+   التحميل والهياكل
+   ═══════════════════════════════════════════════ */
+
+.skeleton {
+  @apply animate-pulse bg-muted rounded-lg;
+}
+
+/* ═══════════════════════════════════════════════
+   الحاوية الرئيسية
+   ═══════════════════════════════════════════════ */
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+}

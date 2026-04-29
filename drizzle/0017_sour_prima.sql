@@ -1,0 +1,2 @@
+ALTER TABLE `contracts_enhanced` ADD `signatoryId` int;--> statement-breakpoint
+ALTER TABLE `contracts_enhanced` ADD CONSTRAINT `contracts_enhanced_signatoryId_signatories_id_fk` FOREIGN KEY (`signatoryId`) REFERENCES `signatories`(`id`) ON DELETE no action ON UPDATE no action;

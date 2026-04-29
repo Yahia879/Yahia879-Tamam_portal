@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO users (email, passwordHash, name, role, phone, nationalId, city, district, isApproved, approvalStatus, createdAt)\nVALUES ('admin@tamam.sa', '$2a$10$YvN5YvN5YvN5YvN5YvN5.eN5YvN5YvN5YvN5YvN5YvN5YvN5YvN5O', 'مدير النظام', 'system_admin', '0500000000', '1000000000', 'أبها', 'الموظفين', 1, 'approved', NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO users (email, passwordHash, name, role, phone, nationalId, city, district, isApproved, approvalStatus, createdAt)\nVALUES ('admin@tamam.sa', '$2a$10$YvN5YvN5YvN5YvN5YvN5.eN5YvN5YvN5YvN5YvN5YvN5YvN5YvN5O', 'مدير النظام', 'system_admin', '0500000000', '1000000000', 'أبها', 'الموظفين', 1, 'approved', NOW());",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'district' in 'field list'"
+  ]
+}

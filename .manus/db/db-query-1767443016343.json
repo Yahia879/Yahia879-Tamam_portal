@@ -1,0 +1,42 @@
+{
+  "query": "SELECT * FROM quantity_schedules LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM quantity_schedules LIMIT 10;",
+  "rows": [
+    {
+      "id": "210002",
+      "requestId": "210003",
+      "projectId": "210001",
+      "itemName": "بالكرتون ماء 200 مل",
+      "itemDescription": "",
+      "unit": "unit",
+      "quantity": "240.000",
+      "unitPrice": "15.00",
+      "totalPrice": "3600.00",
+      "category": "other",
+      "createdAt": "2026-01-03 12:11:08",
+      "updatedAt": "2026-01-03 12:11:08",
+      "boqCode": "NULL",
+      "boqName": "NULL"
+    },
+    {
+      "id": "210003",
+      "requestId": "210003",
+      "projectId": "210001",
+      "itemName": "توفر ما 200 مل",
+      "itemDescription": "",
+      "unit": "unit",
+      "quantity": "240.000",
+      "unitPrice": "15.00",
+      "totalPrice": "3600.00",
+      "category": "other",
+      "createdAt": "2026-01-03 12:21:19",
+      "updatedAt": "2026-01-03 12:21:19",
+      "boqCode": "NULL",
+      "boqName": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\tprojectId\titemName\titemDescription\tunit\tquantity\tunitPrice\ttotalPrice\tcategory\tcreatedAt\tupdatedAt\tboqCode\tboqName\n210002\t210003\t210001\tبالكرتون ماء 200 مل\t\tunit\t240.000\t15.00\t3600.00\tother\t2026-01-03 12:11:08\t2026-01-03 12:11:08\tNULL\tNULL\n210003\t210003\t210001\tتوفر ما 200 مل\t\tunit\t240.000\t15.00\t3600.00\tother\t2026-01-03 12:21:19\t2026-01-03 12:21:19\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1512
+}

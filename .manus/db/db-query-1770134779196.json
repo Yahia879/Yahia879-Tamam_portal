@@ -1,0 +1,14 @@
+{
+  "query": "SELECT executionDate, status FROM field_visits WHERE requestId = 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT executionDate, status FROM field_visits WHERE requestId = 10;",
+  "rows": [
+    {
+      "executionDate": "2026-02-03 00:00:00",
+      "status": "executed"
+    }
+  ],
+  "messages": [],
+  "stdout": "executionDate\tstatus\n2026-02-03 00:00:00\texecuted\n",
+  "stderr": "",
+  "execution_time_ms": 1520
+}

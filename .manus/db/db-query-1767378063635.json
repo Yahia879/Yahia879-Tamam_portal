@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, requestNumber, currentStage, status, programType FROM mosque_requests ORDER BY id DESC LIMIT 10",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber, currentStage, status, programType FROM mosque_requests ORDER BY id DESC LIMIT 10",
+  "rows": [
+    {
+      "id": "30002",
+      "requestNumber": "SED-MJX1P8BW-D1F7",
+      "currentStage": "submitted",
+      "status": "rejected",
+      "programType": "sedana"
+    },
+    {
+      "id": "30001",
+      "requestNumber": "BUN-MJX1MYNC-9C83",
+      "currentStage": "submitted",
+      "status": "rejected",
+      "programType": "bunyan"
+    },
+    {
+      "id": "2",
+      "requestNumber": "BUN-MJWZMWYP-3443",
+      "currentStage": "submitted",
+      "status": "pending",
+      "programType": "bunyan"
+    },
+    {
+      "id": "1",
+      "requestNumber": "DAA-MJWZ8EHD-2517",
+      "currentStage": "submitted",
+      "status": "pending",
+      "programType": "daaem"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tcurrentStage\tstatus\tprogramType\n30002\tSED-MJX1P8BW-D1F7\tsubmitted\trejected\tsedana\n30001\tBUN-MJX1MYNC-9C83\tsubmitted\trejected\tbunyan\n2\tBUN-MJWZMWYP-3443\tsubmitted\tpending\tbunyan\n1\tDAA-MJWZ8EHD-2517\tsubmitted\tpending\tdaaem\n",
+  "stderr": "",
+  "execution_time_ms": 1592
+}

@@ -1,0 +1,2 @@
+ALTER TABLE `request_history` MODIFY COLUMN `fromStage` enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval','quotation_approval','contracting','execution','handover','closed');--> statement-breakpoint
+ALTER TABLE `request_history` MODIFY COLUMN `toStage` enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval','quotation_approval','contracting','execution','handover','closed');

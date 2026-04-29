@@ -1,0 +1,8 @@
+{
+  "query": "UPDATE mosques SET createdById = (SELECT id FROM users WHERE email = 'amarzog@gmail.com') WHERE name = 'مسجد النور';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute UPDATE mosques SET createdById = (SELECT id FROM users WHERE email = 'amarzog@gmail.com') WHERE name = 'مسجد النور';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'createdById' in 'field list'"
+  ]
+}

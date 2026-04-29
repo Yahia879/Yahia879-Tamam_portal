@@ -1,0 +1,19 @@
+{
+  "query": "SELECT c.id, c.contractNumber, c.requestId, c.projectId, c.status, r.id as req_id, r.currentStage \nFROM contracts_enhanced c \nLEFT JOIN mosque_requests r ON c.requestId = r.id \nORDER BY c.id DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT c.id, c.contractNumber, c.requestId, c.projectId, c.status, r.id as req_id, r.currentStage \nFROM contracts_enhanced c \nLEFT JOIN mosque_requests r ON c.requestId = r.id \nORDER BY c.id DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "30001",
+      "contractNumber": "2026-0046",
+      "requestId": "120001",
+      "projectId": "120001",
+      "status": "approved",
+      "req_id": "120001",
+      "currentStage": "execution"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcontractNumber\trequestId\tprojectId\tstatus\treq_id\tcurrentStage\n30001\t2026-0046\t120001\t120001\tapproved\t120001\texecution\n",
+  "stderr": "",
+  "execution_time_ms": 1689
+}

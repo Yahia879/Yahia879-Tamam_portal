@@ -1,0 +1,8 @@
+{
+  "query": "SELECT r.id, r.request_number, r.current_stage, m.name as mosque_name, \n       (SELECT COUNT(*) FROM quotations q WHERE q.request_id = r.id) as quotation_count\nFROM service_requests r \nLEFT JOIN mosques m ON r.mosque_id = m.id\nORDER BY quotation_count DESC\nLIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT r.id, r.request_number, r.current_stage, m.name as mosque_name, \n       (SELECT COUNT(*) FROM quotations q WHERE q.request_id = r.id) as quotation_count\nFROM service_requests r \nLEFT JOIN mosques m ON r.mosque_id = m.id\nORDER BY quotation_count DESC\nLIMIT 5;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table '6tun3hpsk4hj6fxv2ar83j.service_requests' doesn't exist"
+  ]
+}

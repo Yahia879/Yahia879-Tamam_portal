@@ -1,0 +1,1 @@
+ALTER TABLE `contract_modification_requests` ADD `description` text NOT NULL;

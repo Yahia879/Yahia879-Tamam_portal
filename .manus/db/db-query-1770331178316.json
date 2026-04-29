@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, email, name, role, status FROM users WHERE email = 'admin@tamam.sa';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, email, name, role, status FROM users WHERE email = 'admin@tamam.sa';",
+  "rows": [
+    {
+      "id": "60001",
+      "email": "admin@tamam.sa",
+      "name": "مدير النظام",
+      "role": "system_admin",
+      "status": "suspended"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tstatus\n60001\tadmin@tamam.sa\tمدير النظام\tsystem_admin\tsuspended\n",
+  "stderr": "",
+  "execution_time_ms": 1624
+}

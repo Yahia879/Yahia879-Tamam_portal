@@ -1,0 +1,70 @@
+{
+  "query": "SELECT stageCode, stageName, stageOrder, isActive FROM stage_settings ORDER BY stageOrder;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT stageCode, stageName, stageOrder, isActive FROM stage_settings ORDER BY stageOrder;",
+  "rows": [
+    {
+      "stageCode": "submitted",
+      "stageName": "تقديم الطلب",
+      "stageOrder": "1",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "initial_review",
+      "stageName": "المراجعة الأولية",
+      "stageOrder": "2",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "field_visit",
+      "stageName": "الزيارة الميدانية",
+      "stageOrder": "3",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "technical_eval",
+      "stageName": "إعداد جدول الكميات",
+      "stageOrder": "4",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "financial_eval",
+      "stageName": "التقييم المالي",
+      "stageOrder": "5",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "quotation_approval",
+      "stageName": "اعتماد العرض",
+      "stageOrder": "6",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "contracting",
+      "stageName": "التعاقد",
+      "stageOrder": "7",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "execution",
+      "stageName": "التنفيذ",
+      "stageOrder": "8",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "delivery",
+      "stageName": "الاستلام",
+      "stageOrder": "9",
+      "isActive": "1"
+    },
+    {
+      "stageCode": "closure",
+      "stageName": "الإغلاق",
+      "stageOrder": "10",
+      "isActive": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "stageCode\tstageName\tstageOrder\tisActive\nsubmitted\tتقديم الطلب\t1\t1\ninitial_review\tالمراجعة الأولية\t2\t1\nfield_visit\tالزيارة الميدانية\t3\t1\ntechnical_eval\tإعداد جدول الكميات\t4\t1\nfinancial_eval\tالتقييم المالي\t5\t1\nquotation_approval\tاعتماد العرض\t6\t1\ncontracting\tالتعاقد\t7\t1\nexecution\tالتنفيذ\t8\t1\ndelivery\tالاستلام\t9\t1\nclosure\tالإغلاق\t10\t1\n",
+  "stderr": "",
+  "execution_time_ms": 1865
+}

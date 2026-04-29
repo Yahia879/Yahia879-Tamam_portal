@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, requestNumber FROM mosque_requests WHERE currentStage = 'financial_eval';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, requestNumber FROM mosque_requests WHERE currentStage = 'financial_eval';",
+  "rows": [
+    {
+      "id": "30002",
+      "requestNumber": "SED-MJX1P8BW-D1F7"
+    },
+    {
+      "id": "210003",
+      "requestNumber": "SUQ-MJXGZ6KZ-AE42"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\n30002\tSED-MJX1P8BW-D1F7\n210003\tSUQ-MJXGZ6KZ-AE42\n",
+  "stderr": "",
+  "execution_time_ms": 1559
+}

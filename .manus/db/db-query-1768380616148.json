@@ -1,0 +1,16 @@
+{
+  "query": "INSERT INTO mosque_requests (\n  requestNumber,\n  userId,\n  programType,\n  currentStage,\n  status,\n  priority,\n  submittedAt,\n  createdAt,\n  updatedAt\n) VALUES (\n  'TEST-2026-001',\n  1,\n  'bunyan',\n  'submitted',\n  'pending',\n  'normal',\n  NOW(),\n  NOW(),\n  NOW()\n);\n\nSELECT id, requestNumber, currentStage, status FROM mosque_requests WHERE requestNumber = 'TEST-2026-001';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO mosque_requests (\n  requestNumber,\n  userId,\n  programType,\n  currentStage,\n  status,\n  priority,\n  submittedAt,\n  createdAt,\n  updatedAt\n) VALUES (\n  'TEST-2026-001',\n  1,\n  'bunyan',\n  'submitted',\n  'pending',\n  'normal',\n  NOW(),\n  NOW(),\n  NOW()\n);\n\nSELECT id, requestNumber, currentStage, status FROM mosque_requests WHERE requestNumber = 'TEST-2026-001';",
+  "rows": [
+    {
+      "id": "420001",
+      "requestNumber": "TEST-2026-001",
+      "currentStage": "submitted",
+      "status": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tcurrentStage\tstatus\n420001\tTEST-2026-001\tsubmitted\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 1745
+}

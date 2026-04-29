@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS contract_modification_logs (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  contractId INT NOT NULL,\n  modificationRequestId INT,\n  fieldName VARCHAR(100) NOT NULL,\n  oldValue TEXT,\n  newValue TEXT,\n  modifiedBy INT NOT NULL,\n  modifiedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (contractId) REFERENCES contracts_enhanced(id),\n  FOREIGN KEY (modificationRequestId) REFERENCES contract_modification_requests(id),\n  FOREIGN KEY (modifiedBy) REFERENCES users(id)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute CREATE TABLE IF NOT EXISTS contract_modification_logs (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  contractId INT NOT NULL,\n  modificationRequestId INT,\n  fieldName VARCHAR(100) NOT NULL,\n  oldValue TEXT,\n  newValue TEXT,\n  modifiedBy INT NOT NULL,\n  modifiedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n  FOREIGN KEY (contractId) REFERENCES contracts_enhanced(id),\n  FOREIGN KEY (modificationRequestId) REFERENCES contract_modification_requests(id),\n  FOREIGN KEY (modifiedBy) REFERENCES users(id)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1706
+}

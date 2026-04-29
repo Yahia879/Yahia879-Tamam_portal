@@ -1,0 +1,30 @@
+{
+  "query": "-- إسناد الأدوار المتبقية\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'projects_office', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_projects_office_001';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'field_team', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_field_team_002';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'financial', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_financial_003';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'service_requester', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_service_requester_004';\n\n-- عرض النتائج النهائية\nSELECT \n  u.name,\n  u.email,\n  GROUP_CONCAT(r.name_ar SEPARATOR ', ') AS assigned_roles\nFROM users u\nLEFT JOIN user_roles ur ON u.id = ur.user_id\nLEFT JOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nGROUP BY u.id, u.name, u.email;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute -- إسناد الأدوار المتبقية\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'projects_office', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_projects_office_001';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'field_team', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_field_team_002';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'financial', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_financial_003';\n\nINSERT IGNORE INTO user_roles (user_id, role_id, assigned_by, assigned_at)\nSELECT u.id, 'service_requester', 1, NOW()\nFROM users u\nWHERE u.openId = 'test_service_requester_004';\n\n-- عرض النتائج النهائية\nSELECT \n  u.name,\n  u.email,\n  GROUP_CONCAT(r.name_ar SEPARATOR ', ') AS assigned_roles\nFROM users u\nLEFT JOIN user_roles ur ON u.id = ur.user_id\nLEFT JOIN roles r ON ur.role_id = r.id\nWHERE u.openId LIKE 'test_%'\nGROUP BY u.id, u.name, u.email;",
+  "rows": [
+    {
+      "name": "محمد سعيد - طالب خدمة",
+      "email": "requester@test.tamam.local",
+      "assigned_roles": "NULL"
+    },
+    {
+      "name": "فاطمة أحمد - مالية",
+      "email": "financial@test.tamam.local",
+      "assigned_roles": "NULL"
+    },
+    {
+      "name": "أحمد محمد - مكتب المشاريع",
+      "email": "projects@test.tamam.local",
+      "assigned_roles": "مكتب المشاريع"
+    },
+    {
+      "name": "خالد عبدالله - فريق ميداني",
+      "email": "field@test.tamam.local",
+      "assigned_roles": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tassigned_roles\nمحمد سعيد - طالب خدمة\trequester@test.tamam.local\tNULL\nفاطمة أحمد - مالية\tfinancial@test.tamam.local\tNULL\nأحمد محمد - مكتب المشاريع\tprojects@test.tamam.local\tمكتب المشاريع\nخالد عبدالله - فريق ميداني\tfield@test.tamam.local\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 2380
+}

@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, name, city, approvalStatus FROM mosques ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, city, approvalStatus FROM mosques ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "مسجد الرحمن",
+      "city": "أبها",
+      "approvalStatus": "pending"
+    },
+    {
+      "id": "2",
+      "name": "مسجد النور",
+      "city": "خميس مشيط",
+      "approvalStatus": "rejected"
+    },
+    {
+      "id": "30001",
+      "name": "مسجد الهدى",
+      "city": "الرياض",
+      "approvalStatus": "approved"
+    },
+    {
+      "id": "30002",
+      "name": "مسجد التقوى",
+      "city": "الرياض",
+      "approvalStatus": "approved"
+    },
+    {
+      "id": "60001",
+      "name": "مسجدنا التجريبي الفاخر",
+      "city": "أبها",
+      "approvalStatus": "approved"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcity\tapprovalStatus\n1\tمسجد الرحمن\tأبها\tpending\n2\tمسجد النور\tخميس مشيط\trejected\n30001\tمسجد الهدى\tالرياض\tapproved\n30002\tمسجد التقوى\tالرياض\tapproved\n60001\tمسجدنا التجريبي الفاخر\tأبها\tapproved\n",
+  "stderr": "",
+  "execution_time_ms": 1516
+}

@@ -1,0 +1,37 @@
+{
+  "query": "SELECT * FROM mosques ORDER BY id DESC LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT * FROM mosques ORDER BY id DESC LIMIT 1;",
+  "rows": [
+    {
+      "id": "30001",
+      "name": "مسجد الاختبار الجديد",
+      "latitude": "NULL",
+      "longitude": "NULL",
+      "address": "NULL",
+      "city": "أبها",
+      "district": "NULL",
+      "area": "NULL",
+      "capacity": "NULL",
+      "status": "new",
+      "ownership": "waqf",
+      "imamName": "NULL",
+      "imamPhone": "NULL",
+      "imamEmail": "NULL",
+      "registeredBy": "30001",
+      "approvedBy": "30001",
+      "approvalStatus": "approved",
+      "approvalDate": "2026-01-06 16:22:36",
+      "notes": "NULL",
+      "createdAt": "2026-01-06 16:22:36",
+      "updatedAt": "2026-01-06 16:22:36",
+      "governorate": "عسير",
+      "center": "NULL",
+      "hasPrayerHall": "0",
+      "mosqueAge": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tlatitude\tlongitude\taddress\tcity\tdistrict\tarea\tcapacity\tstatus\townership\timamName\timamPhone\timamEmail\tregisteredBy\tapprovedBy\tapprovalStatus\tapprovalDate\tnotes\tcreatedAt\tupdatedAt\tgovernorate\tcenter\thasPrayerHall\tmosqueAge\n30001\tمسجد الاختبار الجديد\tNULL\tNULL\tNULL\tأبها\tNULL\tNULL\tNULL\tnew\twaqf\tNULL\tNULL\tNULL\t30001\t30001\tapproved\t2026-01-06 16:22:36\tNULL\t2026-01-06 16:22:36\t2026-01-06 16:22:36\tعسير\tNULL\t0\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 1519
+}

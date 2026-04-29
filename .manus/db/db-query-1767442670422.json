@@ -1,0 +1,82 @@
+{
+  "query": "SELECT DISTINCT type, nameAr FROM categories WHERE isActive = true;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT DISTINCT type, nameAr FROM categories WHERE isActive = true;",
+  "rows": [
+    {
+      "type": "city",
+      "nameAr": "بارق"
+    },
+    {
+      "type": "city",
+      "nameAr": "تنومة"
+    },
+    {
+      "type": "city",
+      "nameAr": "ظهران الجنوب"
+    },
+    {
+      "type": "city",
+      "nameAr": "خميس مشيط"
+    },
+    {
+      "type": "city",
+      "nameAr": "رجال ألمع"
+    },
+    {
+      "type": "city",
+      "nameAr": "بلقرن"
+    },
+    {
+      "type": "city",
+      "nameAr": "طريب"
+    },
+    {
+      "type": "city",
+      "nameAr": "الحرجة"
+    },
+    {
+      "type": "city",
+      "nameAr": "تثليث"
+    },
+    {
+      "type": "city",
+      "nameAr": "المجاردة"
+    },
+    {
+      "type": "city",
+      "nameAr": "الأمواه"
+    },
+    {
+      "type": "city",
+      "nameAr": "سراة عبيدة"
+    },
+    {
+      "type": "city",
+      "nameAr": "بيشة"
+    },
+    {
+      "type": "city",
+      "nameAr": "النماص"
+    },
+    {
+      "type": "city",
+      "nameAr": "محايل عسير"
+    },
+    {
+      "type": "city",
+      "nameAr": "أبها"
+    },
+    {
+      "type": "city",
+      "nameAr": "أحد رفيدة"
+    },
+    {
+      "type": "city",
+      "nameAr": "البرك"
+    }
+  ],
+  "messages": [],
+  "stdout": "type\tnameAr\ncity\tبارق\ncity\tتنومة\ncity\tظهران الجنوب\ncity\tخميس مشيط\ncity\tرجال ألمع\ncity\tبلقرن\ncity\tطريب\ncity\tالحرجة\ncity\tتثليث\ncity\tالمجاردة\ncity\tالأمواه\ncity\tسراة عبيدة\ncity\tبيشة\ncity\tالنماص\ncity\tمحايل عسير\ncity\tأبها\ncity\tأحد رفيدة\ncity\tالبرك\n",
+  "stderr": "",
+  "execution_time_ms": 1513
+}

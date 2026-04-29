@@ -1,0 +1,8 @@
+{
+  "query": "INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Contract Modification', 'تعديل العقد', '1. لا يجوز تعديل هذا العقد إلا بموافقة كتابية من الطرفين.\\n2. أي تعديل يجب أن يكون مكتوباً وموقعاً من الطرفين.\\n3. التعديلات تصبح جزءاً لا يتجزأ من هذا العقد.', 'modification', 0, 1, 5, 0);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute INSERT INTO contract_clauses (templateId, title, titleAr, content, category, isRequired, isEditable, orderIndex, isGlobal) VALUES (1, 'Contract Modification', 'تعديل العقد', '1. لا يجوز تعديل هذا العقد إلا بموافقة كتابية من الطرفين.\\n2. أي تعديل يجب أن يكون مكتوباً وموقعاً من الطرفين.\\n3. التعديلات تصبح جزءاً لا يتجزأ من هذا العقد.', 'modification', 0, 1, 5, 0);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1265 (01000) at line 1: Data truncated for column 'category' at row 1"
+  ]
+}

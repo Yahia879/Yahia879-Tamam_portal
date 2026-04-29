@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, name, city, \"approvalStatus\", \"createdById\" FROM mosques;\nSELECT id, name, email, role FROM users WHERE email = 'amarzog@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SELECT id, name, city, \"approvalStatus\", \"createdById\" FROM mosques;\nSELECT id, name, email, role FROM users WHERE email = 'amarzog@gmail.com';",
+  "rows": [
+    {
+      "id": "1",
+      "name": "مسجد الرحمن",
+      "city": "أبها",
+      "approvalStatus": "approvalStatus",
+      "createdById": "createdById"
+    },
+    {
+      "id": "2",
+      "name": "مسجد النور",
+      "city": "خميس مشيط",
+      "approvalStatus": "approvalStatus",
+      "createdById": "createdById"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tcity\tapprovalStatus\tcreatedById\n1\tمسجد الرحمن\tأبها\tapprovalStatus\tcreatedById\n2\tمسجد النور\tخميس مشيط\tapprovalStatus\tcreatedById\n",
+  "stderr": "",
+  "execution_time_ms": 1811
+}

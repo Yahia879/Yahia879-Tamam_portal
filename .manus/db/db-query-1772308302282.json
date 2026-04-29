@@ -1,0 +1,13 @@
+{
+  "query": "\nSET @admin_id = (SELECT id FROM users WHERE role = 'admin' ORDER BY createdAt ASC LIMIT 1);\nSELECT @admin_id as admin_id;\n\nDELETE FROM disbursement_orders;\nDELETE FROM disbursement_requests;\nDELETE FROM payments;\nDELETE FROM contract_payments;\nDELETE FROM contract_modification_logs;\nDELETE FROM contract_modification_requests;\nDELETE FROM contract_clause_values;\nDELETE FROM contracts_enhanced;\nDELETE FROM contracts;\nDELETE FROM quantity_schedules;\nDELETE FROM quotations;\nDELETE FROM suppliers;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute \nSET @admin_id = (SELECT id FROM users WHERE role = 'admin' ORDER BY createdAt ASC LIMIT 1);\nSELECT @admin_id as admin_id;\n\nDELETE FROM disbursement_orders;\nDELETE FROM disbursement_requests;\nDELETE FROM payments;\nDELETE FROM contract_payments;\nDELETE FROM contract_modification_logs;\nDELETE FROM contract_modification_requests;\nDELETE FROM contract_clause_values;\nDELETE FROM contracts_enhanced;\nDELETE FROM contracts;\nDELETE FROM quantity_schedules;\nDELETE FROM quotations;\nDELETE FROM suppliers;\n",
+  "rows": [
+    {
+      "admin_id": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "admin_id\nNULL\n",
+  "stderr": "",
+  "execution_time_ms": 4399
+}

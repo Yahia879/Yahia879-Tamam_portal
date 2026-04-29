@@ -1,0 +1,42 @@
+{
+  "query": "SHOW CREATE TABLE mosques;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 47svcMedBpAqYJW.4862cbe35d00 --database 6TUn3HPSK4hJ6Fxv2aR83j --execute SHOW CREATE TABLE mosques;",
+  "rows": [
+    {
+      "Table": "mosques",
+      "Create Table": "CREATE TABLE `mosques` ("
+    }
+  ],
+  "messages": [
+    "  `id` int(11) NOT NULL AUTO_INCREMENT,",
+    "  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,",
+    "  `latitude` decimal(10,8) DEFAULT NULL,",
+    "  `longitude` decimal(11,8) DEFAULT NULL,",
+    "  `address` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `city` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,",
+    "  `district` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `area` decimal(10,2) DEFAULT NULL,",
+    "  `capacity` int(11) DEFAULT NULL,",
+    "  `status` enum('new','existing','under_construction') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'new',",
+    "  `ownership` enum('government','waqf','private') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'waqf',",
+    "  `imamName` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `imamPhone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `imamEmail` varchar(320) COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `registeredBy` int(11) DEFAULT NULL,",
+    "  `approvedBy` int(11) DEFAULT NULL,",
+    "  `approvalStatus` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',",
+    "  `approvalDate` timestamp NULL DEFAULT NULL,",
+    "  `notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,",
+    "  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,",
+    "  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,",
+    "  KEY `mosques_registeredBy_users_id_fk` (`registeredBy`),",
+    "  KEY `mosques_approvedBy_users_id_fk` (`approvedBy`),",
+    "  CONSTRAINT `mosques_registeredBy_users_id_fk` FOREIGN KEY (`registeredBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,",
+    "  CONSTRAINT `mosques_approvedBy_users_id_fk` FOREIGN KEY (`approvedBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION",
+    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=30001"
+  ],
+  "stdout": "Table\tCreate Table\nmosques\tCREATE TABLE `mosques` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,\n  `latitude` decimal(10,8) DEFAULT NULL,\n  `longitude` decimal(11,8) DEFAULT NULL,\n  `address` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `city` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,\n  `district` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `area` decimal(10,2) DEFAULT NULL,\n  `capacity` int(11) DEFAULT NULL,\n  `status` enum('new','existing','under_construction') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'new',\n  `ownership` enum('government','waqf','private') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'waqf',\n  `imamName` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `imamPhone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `imamEmail` varchar(320) COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `registeredBy` int(11) DEFAULT NULL,\n  `approvedBy` int(11) DEFAULT NULL,\n  `approvalStatus` enum('pending','approved','rejected') COLLATE utf8mb4_unicode_ci DEFAULT 'pending',\n  `approvalDate` timestamp NULL DEFAULT NULL,\n  `notes` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,\n  KEY `mosques_registeredBy_users_id_fk` (`registeredBy`),\n  KEY `mosques_approvedBy_users_id_fk` (`approvedBy`),\n  CONSTRAINT `mosques_registeredBy_users_id_fk` FOREIGN KEY (`registeredBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,\n  CONSTRAINT `mosques_approvedBy_users_id_fk` FOREIGN KEY (`approvedBy`) REFERENCES `6TUn3HPSK4hJ6Fxv2aR83j`.`users` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=30001\n",
+  "stderr": "",
+  "execution_time_ms": 1480
+}
