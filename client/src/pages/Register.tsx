@@ -88,6 +88,13 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // التحقق من طول الاسم (مع مسح المسافات الزائدة)
+    const trimmedName = formData.name.trim();
+    if (trimmedName.length > 60) {
+      toast.error("الاسم يجب ألا يتجاوز 60 حرف");
+      return;
+    }
+
     // التحقق من تطابق كلمة المرور
     if (formData.password !== formData.confirmPassword) {
       toast.error("كلمة المرور وتأكيد كلمة المرور غير متطابقين");
@@ -137,7 +144,7 @@ export default function Register() {
     }
 
     registerMutation.mutate({
-      name: formData.name,
+      name: trimmedName,
       email: formData.email,
       password: formData.password,
       phone: formData.phone,
@@ -216,6 +223,9 @@ export default function Register() {
                     onChange={(e) => handleChange("name", e.target.value)}
                     required
                   />
+                  {formData.name.trim().length > 60 && (
+                    <p className="text-xs text-destructive">الاسم يجب ألا يتجاوز 60 حرف</p>
+                  )}
                 </div>
 
                 {/* البريد الإلكتروني */}

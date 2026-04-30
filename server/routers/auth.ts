@@ -32,7 +32,7 @@ function generateRequestNumber(): string {
 const registerSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
   password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
-  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
+  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف"),
   phone: z.string().regex(/^05[0-9]{8}$/, "رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX"),
   nationalId: z.string().optional(),
   city: z.string().optional(),
@@ -53,7 +53,7 @@ const loginSchema = z.object({
 const createEmployeeSchema = z.object({
   email: z.string().email("البريد الإلكتروني غير صالح"),
   password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
-  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
+  name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف"),
   phone: z.string().optional(),
   nationalId: z.string().optional(),
   role: z.enum([
@@ -472,7 +472,7 @@ export const authRouter = router({
   // تحديث الملف الشخصي
   updateProfile: protectedProcedure
     .input(z.object({
-      name: z.string().min(2).optional(),
+      name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف").optional(),
       phone: z.string().optional(),
       city: z.string().optional(),
     }))

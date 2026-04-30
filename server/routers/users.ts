@@ -59,7 +59,7 @@ export const usersRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        name: z.string().min(2, "الاسم مطلوب"),
+        name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف"),
         email: z.string().email("البريد الإلكتروني غير صحيح"),
         password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
         phone: z.string().optional(),
@@ -147,7 +147,7 @@ export const usersRouter = router({
     .input(
       z.object({
         id: z.number(),
-        name: z.string().optional(),
+        name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف").optional(),
         email: z.string().email().optional(),
         phone: z.string().optional(),
         role: z.enum([...STAFF_ROLES, "service_requester"]).optional(),

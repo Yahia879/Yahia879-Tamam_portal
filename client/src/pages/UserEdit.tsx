@@ -165,6 +165,7 @@ export default function UserEdit() {
                   placeholder="أدخل الاسم الكامل"
                   className="mt-1"
                   required
+                  maxLength={60}
                 />
               </div>
 

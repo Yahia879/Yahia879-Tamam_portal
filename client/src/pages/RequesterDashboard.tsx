@@ -110,13 +110,13 @@ export default function RequesterDashboard() {
                         {user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium hidden sm:block">{user?.name}</span>
+                    <span className="text-sm font-medium hidden sm:block truncate max-w-[150px]">{user?.name}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem className="cursor-pointer">
                     <User className="ml-2 h-4 w-4" />
-                    <span>الملف الشخصي</span>
+                    <span className="truncate">{user?.name || 'الملف الشخصي'}</span>
                   </DropdownMenuItem>
                   {switchable && toggleTheme && (
                     <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
@@ -141,8 +141,8 @@ export default function RequesterDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         {/* رسالة الترحيب */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+        <div className="mb-8 text-center max-w-full overflow-hidden px-4">
+          <h1 className="text-3xl font-bold text-foreground mb-2 break-words line-clamp-2" title={user?.name}>
             مرحباً، {user?.name}
           </h1>
           <p className="text-muted-foreground text-lg">

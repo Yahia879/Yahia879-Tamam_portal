@@ -44,7 +44,7 @@ export default function Profile() {
                   <User className="w-4 h-4" />
                   الاسم الكامل
                 </Label>
-                <Input defaultValue={user?.name || ""} />
+                <Input defaultValue={user?.name || ""} maxLength={60} />
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
