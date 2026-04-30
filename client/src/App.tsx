@@ -93,6 +93,7 @@ import JobPositions from "./pages/JobPositions";
 import ProgramCustomization from "./pages/ProgramCustomization";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
+import ProtectedRoute from "./components/ProtectedRoute";
 import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -132,6 +133,13 @@ const GuestRoute = ({ component: Component }: { component: React.ComponentType }
   </GuestGuard>
 );
 
+// مكون لحماية مسارات طالبي الخدمة
+const RequesterRoute = ({ component: Component }: { component: React.ComponentType }) => (
+  <ProtectedRoute allowedRoles={["service_requester"]}>
+    <Component />
+  </ProtectedRoute>
+);
+
 function Router() {
   return (
     <Switch>
@@ -146,18 +154,18 @@ function Router() {
       
       {/* لوحات التحكم */}
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
-      <Route path="/requester" component={RequesterDashboard} />
-      <Route path="/requester/dashboard" component={RequesterDashboard} />
-      <Route path="/my-requests" component={MyRequests} />
+      <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
+      <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
+      <Route path="/my-requests">{() => <RequesterRoute component={MyRequests} />}</Route>
       
       {/* المساجد - الصفحات الإدارية */}
       <Route path="/mosques">{() => <AdminRoute component={Mosques} />}</Route>
       <Route path="/mosques/map">{() => <AdminRoute component={MosquesMap} />}</Route>
       <Route path="/mosques/new" component={MosqueForm} />
-      <Route path="/requester/mosques/new" component={RequesterMosqueForm} />
+      <Route path="/requester/mosques/new">{() => <RequesterRoute component={RequesterMosqueForm} />}</Route>
       <Route path="/mosques/:id" component={MosqueDetails} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />
-      <Route path="/my-mosques" component={MyMosques} />
+      <Route path="/my-mosques">{() => <RequesterRoute component={MyMosques} />}</Route>
       
       {/* الطلبات - الصفحات الإدارية */}
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
@@ -170,7 +178,7 @@ function Router() {
       <Route path="/field-visits/calendar">{() => <AdminRoute component={FieldVisitsCalendar} />}</Route>
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
-      <Route path="/requester/requests/:id" component={RequestDetails} />      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
+      <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
