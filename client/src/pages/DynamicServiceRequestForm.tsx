@@ -177,7 +177,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                   return (
                     <Card
                       key={program.id}
-                      className={`p-3 cursor-pointer transition-all hover:shadow-md ${
+                      className={`p-3 cursor-pointer transition-all hover:shadow-md gap-0 ${
                         selectedService === program.id
                           ? 'ring-2 ring-primary bg-primary/10'
                           : 'hover:border-primary/40'
@@ -188,7 +188,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                         <Icon className="w-4 h-4 text-white" />
                       </div>
                       <h3 className="font-bold text-foreground text-xs sm:text-sm">{program.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5 hidden sm:block line-clamp-1">{program.description}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-1">{program.description}</p>
                     </Card>
                   );
                 })}
