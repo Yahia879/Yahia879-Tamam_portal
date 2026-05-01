@@ -361,7 +361,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     {visibleFields.map((field) => (
                       <div key={field.name}>
                         <p className="text-sm text-muted-foreground">{field.label}</p>
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-foreground whitespace-pre-wrap break-words">
                           {formData[field.name] ? String(formData[field.name]) : '-'}
                         </p>
                       </div>
