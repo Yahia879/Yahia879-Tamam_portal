@@ -105,16 +105,24 @@ export const DynamicServiceRequestForm: React.FC = () => {
     if (!selectedService || !currentUser) return;
     try {
       const programData: Record<string, any> = {};
+      let mosqueId: number | undefined = undefined;
+
       for (const field of visibleFields) {
-        if (formData[field.name] !== undefined) programData[field.name] = formData[field.name];
+        if (formData[field.name] !== undefined) {
+          if (field.name === 'mosqueId') {
+            mosqueId = Number(formData[field.name]);
+          } else {
+            programData[field.name] = formData[field.name];
+          }
+        }
       }
-      if (selectedProgramConfig?.requiresMosque && formData.mosqueId) {
-        programData.mosqueId = formData.mosqueId;
-      }
+
       await createRequestMutation.mutateAsync({
         programType: selectedService as any,
+        mosqueId,
         programData,
         priority: 'normal',
+        description: formData.workDescription || '',
       });
       alert('تم إرسال الطلب بنجاح');
       navigate('/my-requests');
