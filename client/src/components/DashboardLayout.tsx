@@ -241,17 +241,24 @@ export default function DashboardLayout({
     );
   }
 
-  // إعادة توجيه طالب الخدمة إلى لوحة تحكمه الخاصة
+  // إعادة توجيه طالب الخدمة إلى لوحة تحكمه الخاصة إذا حاول الوصول لصفحة إدارية
+  // نسمح له بالوصول لصفحات مشتركة مثل الإشعارات والملف الشخصي
   if (user.role === "service_requester") {
-    window.location.href = "/requester";
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">جاري التحويل...</p>
+    const isSharedPage = 
+      window.location.pathname === "/notifications" || 
+      window.location.pathname === "/profile";
+      
+    if (!isSharedPage) {
+      window.location.href = "/requester";
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">جاري التحويل...</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
