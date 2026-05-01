@@ -57,20 +57,33 @@ export default function Requests() {
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data: requestsData, isLoading } = trpc.requests.search.useQuery({
     search: search || undefined,
     programType: programFilter !== "all" ? programFilter as any : undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    page,
+    limit,
+  }, {
+    keepPreviousData: true
   });
 
   const requests = requestsData?.requests || [];
+  const total = requestsData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   const stats = {
     total: requestsData?.total || 0,
     pending: requests.filter((r: any) => r.status === "pending").length,
     inProgress: requests.filter((r: any) => r.status === "in_progress").length,
     completed: requests.filter((r: any) => r.status === "completed").length,
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -151,12 +164,18 @@ export default function Requests() {
                 <Input
                   placeholder="البحث برقم الطلب أو اسم المسجد..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="pr-10 h-9"
                 />
               </div>
               <div className="flex gap-2 flex-wrap">
-                <Select value={programFilter} onValueChange={setProgramFilter}>
+                <Select value={programFilter} onValueChange={(v) => {
+                  setProgramFilter(v);
+                  setPage(1);
+                }}>
                   <SelectTrigger className="w-40 h-9 text-sm">
                     <SelectValue placeholder="البرنامج" />
                   </SelectTrigger>
@@ -167,7 +186,10 @@ export default function Requests() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}>
                   <SelectTrigger className="w-36 h-9 text-sm">
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
@@ -287,9 +309,63 @@ export default function Requests() {
                 })}
               </div>
 
-              {/* Footer */}
-              <div className="px-4 py-3 bg-muted/20 border-t text-xs text-muted-foreground text-center">
-                يعرض {requests.length} من أصل {stats.total} طلب
+              {/* Footer with Pagination */}
+              <div className="px-4 py-3 bg-muted/20 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-muted-foreground">
+                  يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} طلب
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 rotate-180" />
+                    </Button>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                      // Logic to show a limited number of page buttons if there are many pages
+                      if (
+                        totalPages <= 7 ||
+                        p === 1 ||
+                        p === totalPages ||
+                        (p >= page - 1 && p <= page + 1)
+                      ) {
+                        return (
+                          <Button
+                            key={p}
+                            variant={page === p ? "default" : "outline"}
+                            size="sm"
+                            className={`h-8 w-8 text-xs ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                            onClick={() => handlePageChange(p)}
+                          >
+                            {p}
+                          </Button>
+                        );
+                      } else if (
+                        (p === page - 2 && page > 3) ||
+                        (p === page + 2 && page < totalPages - 2)
+                      ) {
+                        return <span key={p} className="px-1 text-muted-foreground">...</span>;
+                      }
+                      return null;
+                    })}
+
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page === totalPages}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
