@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Send } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/LocationPicker";
@@ -86,6 +86,9 @@ const getRequesterTypeLabel = (type: string | null | undefined) => {
 };
 
 export default function MosqueForm() {
+  const params = useParams<{ id: string }>();
+  const mosqueId = params.id ? parseInt(params.id) : null;
+  const isEdit = !!mosqueId;
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -105,10 +108,37 @@ export default function MosqueForm() {
     description: "",
   });
 
+  // جلب بيانات المسجد في حالة التعديل
+  const { data: mosque, isLoading: loadingMosque } = trpc.mosques.getById.useQuery(
+    { id: mosqueId as number },
+    { enabled: isEdit }
+  );
+
+  useEffect(() => {
+    if (mosque) {
+      setFormData({
+        name: mosque.name || "",
+        mosqueType: mosque.mosqueType || "",
+        city: mosque.city || "",
+        governorate: mosque.governorate || "عسير",
+        center: mosque.center || "",
+        district: mosque.district || "",
+        address: mosque.address || "",
+        latitude: mosque.latitude || "",
+        longitude: mosque.longitude || "",
+        area: mosque.area || "",
+        capacity: mosque.capacity?.toString() || "",
+        hasPrayerHall: mosque.hasPrayerHall || false,
+        mosqueAge: mosque.mosqueAge?.toString() || "",
+        description: (mosque as any).notes || "",
+      });
+    }
+  }, [mosque]);
+
   // التحقق من وجود طلب مسجد سابق
   const { data: existingMosques, isLoading: checkingMosques } = trpc.mosques.getMyMosques.useQuery(
     undefined,
-    { enabled: !!user?.id && user?.role === "service_requester" }
+    { enabled: !!user?.id && user?.role === "service_requester" && !isEdit }
   );
 
   const hasExistingMosque = existingMosques && existingMosques.length > 0;
@@ -122,6 +152,16 @@ export default function MosqueForm() {
     onSuccess: () => {
       toast.success("تم إرسال طلب تسجيل المسجد بنجاح. سيتم مراجعته من قبل الإدارة.");
       navigate("/mosques");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const updateMutation = trpc.mosques.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات المسجد بنجاح");
+      navigate(user?.role === "service_requester" ? "/my-mosques" : "/mosques");
     },
     onError: (error) => {
       toast.error(error.message);
@@ -149,31 +189,37 @@ export default function MosqueForm() {
       return;
     }
 
-    // التحقق من عدم وجود طلب سابق (مع مراعاة الاستثناءات)
-    if (user?.role === "service_requester" && !canRegisterMore) {
+    // التحقق من عدم وجود طلب سابق (مع مراعاة الاستثناءات) - فقط عند الإضافة
+    if (!isEdit && user?.role === "service_requester" && !canRegisterMore) {
       toast.error("لا يمكنك تقديم أكثر من طلب تسجيل مسجد واحد. يرجى التواصل مع الإدارة للحصول على استثناء.");
       return;
     }
 
-    createMutation.mutate({
+    const payload = {
       name: formData.name,
       city: formData.city,
       governorate: formData.governorate || undefined,
       center: formData.center || undefined,
       district: formData.district || undefined,
-      area: formData.area ? parseInt(formData.area) : undefined,
+      area: formData.area ? parseFloat(formData.area) : undefined,
       address: formData.address || undefined,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
       capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
       hasPrayerHall: formData.hasPrayerHall,
       mosqueAge: formData.mosqueAge ? parseInt(formData.mosqueAge) : undefined,
-      // بيانات مقدم الطلب تُضاف تلقائياً من الخادم
-    });
+      notes: formData.description || undefined,
+    };
+
+    if (isEdit) {
+      updateMutation.mutate({ ...payload, id: mosqueId as number });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
-  // إذا كان لديه طلب سابق ولا يملك استثناءات، عرض رسالة تنبيه
-  if (hasExistingMosque && user?.role === "service_requester" && !canRegisterMore) {
+  // إذا كان لديه طلب سابق ولا يملك استثناءات، عرض رسالة تنبيه - فقط عند الإضافة
+  if (!isEdit && hasExistingMosque && user?.role === "service_requester" && !canRegisterMore) {
     return (
       <DashboardLayout>
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -209,25 +255,39 @@ export default function MosqueForm() {
     );
   }
 
+  if (loadingMosque) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* العنوان */}
         <div className="flex items-center gap-4">
-          <Link href="/mosques">
+          <Link href={user?.role === "service_requester" ? "/my-mosques" : "/mosques"}>
             <Button variant="ghost" size="icon">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إضافة مسجد جديد</h1>
-            <p className="text-muted-foreground">أدخل بيانات المسجد المراد إضافته</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isEdit ? "تعديل بيانات المسجد" : "إضافة مسجد جديد"}
+            </h1>
+            <p className="text-muted-foreground">
+              {isEdit ? "قم بتعديل بيانات المسجد الحالية" : "أدخل بيانات المسجد المراد إضافته"}
+            </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* بيانات مقدم الطلب - للقراءة فقط */}
-          {user?.role === "service_requester" && (
+          {/* بيانات مقدم الطلب - للقراءة فقط - تظهر فقط عند الإضافة للمستفيد */}
+          {!isEdit && user?.role === "service_requester" && (
             <Card className="border-0 shadow-sm bg-muted/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -421,7 +481,7 @@ export default function MosqueForm() {
           </Card>
 
           {/* ملاحظة للموافقة */}
-          {user?.role === "service_requester" && (
+          {!isEdit && user?.role === "service_requester" && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>ملاحظة هامة</AlertTitle>
@@ -433,18 +493,23 @@ export default function MosqueForm() {
 
           {/* زر الحفظ */}
           <div className="flex justify-end gap-4">
-            <Link href="/mosques">
+            <Link href={user?.role === "service_requester" ? "/my-mosques" : "/mosques"}>
               <Button type="button" variant="outline">إلغاء</Button>
             </Link>
             <Button 
               type="submit" 
               className="gradient-primary text-white"
-              disabled={createMutation.isPending || checkingMosques}
+              disabled={createMutation.isPending || updateMutation.isPending || checkingMosques}
             >
-              {createMutation.isPending ? (
+              {createMutation.isPending || updateMutation.isPending ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
-                  جاري الإرسال...
+                  جاري الحفظ...
+                </>
+              ) : isEdit ? (
+                <>
+                  <Save className="w-4 h-4 ml-2" />
+                  حفظ التعديلات
                 </>
               ) : user?.role === "service_requester" ? (
                 <>

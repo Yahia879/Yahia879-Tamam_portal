@@ -242,11 +242,12 @@ export default function DashboardLayout({
   }
 
   // إعادة توجيه طالب الخدمة إلى لوحة تحكمه الخاصة إذا حاول الوصول لصفحة إدارية
-  // نسمح له بالوصول لصفحات مشتركة مثل الإشعارات والملف الشخصي
+  // نسمح له بالوصول لصفحات مشتركة مثل الإشعارات والملف الشخصي وتفاصيل المساجد
   if (user.role === "service_requester") {
     const isSharedPage = 
       window.location.pathname === "/notifications" || 
-      window.location.pathname === "/profile";
+      window.location.pathname === "/profile" ||
+      window.location.pathname.startsWith("/mosques/");
       
     if (!isSharedPage) {
       window.location.href = "/requester";
