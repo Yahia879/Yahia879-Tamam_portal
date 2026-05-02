@@ -150,4 +150,67 @@ export const analyticsRouter = router({
         monthlyTrend,
       };
     }),
+
+  /**
+   * حساب نسبة النمو الشهري للمقاييس الرئيسية
+   */
+  getMonthlyGrowth: protectedProcedure
+    .query(async ({ ctx }) => {
+      // التأكد من أن المستخدم لديه الصلاحية
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        return null;
+      }
+      
+      const db = await getDb();
+      if (!db) return null;
+
+      const now = new Date();
+      const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const firstDayTwoMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+
+      const calculateMetric = async (table: any, conditions: any[] = []) => {
+        const currentMonthResult = await db
+          .select({ count: count() })
+          .from(table)
+          .where(and(gte(table.createdAt, firstDayCurrentMonth), ...conditions));
+
+        const lastMonthResult = await db
+          .select({ count: count() })
+          .from(table)
+          .where(and(
+            gte(table.createdAt, firstDayLastMonth),
+            lte(table.createdAt, firstDayCurrentMonth),
+            ...conditions
+          ));
+
+        const current = currentMonthResult[0]?.count || 0;
+        const previous = lastMonthResult[0]?.count || 0;
+        
+        let percentage = 0;
+        if (previous > 0) {
+          percentage = ((current - previous) / previous) * 100;
+        } else if (current > 0) {
+          percentage = 100; // إذا كان السابق صفرًا والحالي أكبر من صفر
+        }
+        
+        return {
+          current,
+          previous,
+          percentage: Math.round(percentage),
+        };
+      };
+
+      const totalRequests = await calculateMetric(mosqueRequests);
+      const registeredMosques = await calculateMetric(mosques);
+      const inProgressRequests = await calculateMetric(mosqueRequests, [eq(mosqueRequests.status, 'in_progress')]);
+      const completedRequests = await calculateMetric(mosqueRequests, [eq(mosqueRequests.status, 'completed')]);
+
+      return {
+        totalRequests,
+        registeredMosques,
+        inProgressRequests,
+        completedRequests,
+      };
+    }),
 });

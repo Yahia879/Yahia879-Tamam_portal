@@ -45,6 +45,9 @@ export default function Dashboard() {
   const { data: pendingUsers } = trpc.auth.getPendingUsers.useQuery(undefined, {
     enabled: ["super_admin", "system_admin", "projects_office"].includes(user?.role || ""),
   });
+  const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery(undefined, {
+    enabled: ["super_admin", "system_admin", "projects_office"].includes(user?.role || ""),
+  });
 
   // بطاقات الإحصائيات الرئيسية
   const mainStats = [
@@ -55,8 +58,8 @@ export default function Dashboard() {
       gradient: "from-blue-500 to-blue-600",
       bgLight: "bg-blue-50",
       textColor: "text-blue-600",
-      change: "+12%",
-      trend: "up",
+      change: growthStats?.totalRequests.percentage,
+      trend: growthStats?.totalRequests.percentage >= 0 ? "up" : "down",
     },
     {
       title: "المساجد المسجلة",
@@ -65,8 +68,8 @@ export default function Dashboard() {
       gradient: "from-emerald-500 to-emerald-600",
       bgLight: "bg-emerald-50",
       textColor: "text-emerald-600",
-      change: "+8%",
-      trend: "up",
+      change: growthStats?.registeredMosques.percentage,
+      trend: growthStats?.registeredMosques.percentage >= 0 ? "up" : "down",
     },
     {
       title: "قيد التنفيذ",
@@ -75,8 +78,8 @@ export default function Dashboard() {
       gradient: "from-amber-500 to-amber-600",
       bgLight: "bg-amber-50",
       textColor: "text-amber-600",
-      change: "+5%",
-      trend: "up",
+      change: growthStats?.inProgressRequests.percentage,
+      trend: growthStats?.inProgressRequests.percentage >= 0 ? "up" : "down",
     },
     {
       title: "مكتملة",
@@ -85,8 +88,8 @@ export default function Dashboard() {
       gradient: "from-green-500 to-green-600",
       bgLight: "bg-green-50",
       textColor: "text-green-600",
-      change: "+15%",
-      trend: "up",
+      change: growthStats?.completedRequests.percentage,
+      trend: growthStats?.completedRequests.percentage >= 0 ? "up" : "down",
     },
   ];
 
@@ -174,11 +177,19 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                     <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                    <div className="flex items-center gap-1">
-                      <TrendingUp className={`w-4 h-4 ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`} />
-                      <span className="text-sm font-medium text-green-600">{stat.change}</span>
-                      <span className="text-xs text-muted-foreground">هذا الشهر</span>
-                    </div>
+                    {typeof stat.change === 'number' && (
+                      <div className="flex items-center gap-1">
+                        {stat.change >= 0 ? (
+                          <TrendingUp className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <TrendingUp className="w-4 h-4 text-red-500 transform scale-y-[-1]" />
+                        )}
+                        <span className={`text-sm font-medium ${stat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {stat.change >= 0 ? '+' : ''}{stat.change}%
+                        </span>
+                        <span className="text-xs text-muted-foreground">هذا الشهر</span>
+                      </div>
+                    )}
                   </div>
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
                     <stat.icon className="w-7 h-7 text-white" />
