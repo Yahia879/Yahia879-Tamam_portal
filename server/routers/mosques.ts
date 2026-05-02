@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { mosques, mosqueImages, auditLogs, InsertMosque } from "../../drizzle/schema";
+import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque } from "../../drizzle/schema";
 import { eq, and, like, desc, sql } from "drizzle-orm";
 
 // مخطط إنشاء مسجد جديد
@@ -271,6 +271,51 @@ export const mosquesRouter = router({
       });
 
       return { success: true, message: "تم رفض المسجد" };
+    }),
+
+  // حذف مسجد
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف المساجد" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من وجود طلبات مرتبطة بالمسجد
+      const relatedRequests = await db.select().from(mosqueRequests).where(eq(mosqueRequests.mosqueId, input.id)).limit(1);
+      
+      if (relatedRequests.length > 0) {
+        throw new TRPCError({ 
+          code: "PRECONDITION_FAILED", 
+          message: "لا يمكن حذف المسجد لوجود طلبات مرتبطة به" 
+        });
+      }
+
+      // الحصول على بيانات المسجد قبل الحذف
+      const mosqueToDelete = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      if (mosqueToDelete.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+
+      // حذف الصور المرتبطة
+      await db.delete(mosqueImages).where(eq(mosqueImages.mosqueId, input.id));
+      
+      // حذف المسجد
+      await db.delete(mosques).where(eq(mosques.id, input.id));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "mosque_deleted",
+        entityType: "mosque",
+        entityId: input.id,
+        oldValues: mosqueToDelete[0],
+      });
+
+      return { success: true, message: "تم حذف المسجد بنجاح" };
     }),
 
   // إضافة صورة للمسجد

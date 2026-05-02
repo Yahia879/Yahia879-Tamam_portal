@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "bda788c3-c123-476f-ac8d-06e8b28806b9",
-  "prevId": "95ae2dba-e731-4d9b-b68a-d069067db0dc",
+  "id": "4e925cfd-6db0-494e-a431-dcff0737a7f1",
+  "prevId": "ecbde6cc-b5fc-4bfb-bfb5-7dbadcccc21d",
   "tables": {
     "action_settings": {
       "name": "action_settings",
@@ -346,6 +346,137 @@
       "compositePrimaryKeys": {
         "authorized_signatories_id": {
           "name": "authorized_signatories_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "boq_items": {
+      "name": "boq_items",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "requestId": {
+          "name": "requestId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "itemName": {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "itemDescription": {
+          "name": "itemDescription",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "unit": {
+          "name": "unit",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "decimal(15,3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "unitPrice": {
+          "name": "unitPrice",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "totalPrice": {
+          "name": "totalPrice",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "boq_items_requestId_mosque_requests_id_fk": {
+          "name": "boq_items_requestId_mosque_requests_id_fk",
+          "tableFrom": "boq_items",
+          "tableTo": "mosque_requests",
+          "columnsFrom": [
+            "requestId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "boq_items_projectId_projects_id_fk": {
+          "name": "boq_items_projectId_projects_id_fk",
+          "tableFrom": "boq_items",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "boq_items_id": {
+          "name": "boq_items_id",
           "columns": [
             "id"
           ]
@@ -895,7 +1026,7 @@
         },
         "category": {
           "name": "category",
-          "type": "enum('obligations_first_party'_ce_majeure','copies','custom')",
+          "type": "enum('obligations_first_party','obligations_second_party','financial','duration','modifications','notifications','general','confidentiality','intellectual_property','disputes','termination','penalties','warranty','force_majeure','copies','custom')",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
@@ -1472,7 +1603,7 @@
         },
         "type": {
           "name": "type",
-          "type": "enum('supervision','constructi_y','maintenance','consulting')",
+          "type": "enum('supervision','construction','supply','maintenance','consulting')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -1786,7 +1917,7 @@
         },
         "contractType": {
           "name": "contractType",
-          "type": "enum('supervision','constructi_y','maintenance','consulting')",
+          "type": "enum('supervision','construction','supply','maintenance','consulting')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -1976,7 +2107,7 @@
         },
         "status": {
           "name": "status",
-          "type": "enum('draft','pending_approval_ted','terminated','cancelled')",
+          "type": "enum('draft','pending_approval','approved','active','completed','terminated','cancelled')",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
@@ -4432,14 +4563,14 @@
         },
         "programType": {
           "name": "programType",
-          "type": "enum('bunyan','daaem','enaya',_edana','taqa','miyah','suqya')",
+          "type": "enum('bunyan','daaem','enaya','emdad','ethraa','sedana','taqa','miyah','suqya')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
         "currentStage": {
           "name": "currentStage",
-          "type": "enum('submitted','initial_revi_xecution','handover','closed')",
+          "type": "enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval_and_approval','contracting','execution','handover','closed')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -4447,7 +4578,7 @@
         },
         "status": {
           "name": "status",
-          "type": "enum('pending','under_review',_ed','in_progress','completed')",
+          "type": "enum('pending','under_review','approved','rejected','suspended','in_progress','completed')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
@@ -4972,7 +5103,7 @@
         },
         "type": {
           "name": "type",
-          "type": "enum('info','success','warning_or','request_update','system')",
+          "type": "enum('info','success','warning','error','request_update','system')",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
@@ -6946,7 +7077,7 @@
         },
         "status": {
           "name": "status",
-          "type": "enum('pending','negotiating','_pproved','rejected','expired')",
+          "type": "enum('pending','negotiating','accepted','approved','rejected','expired')",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false,
@@ -8999,7 +9130,7 @@
         },
         "role": {
           "name": "role",
-          "type": "enum('super_admin','system_adm_ate_comm','service_requester')",
+          "type": "enum('super_admin','system_admin','projects_office','field_team','quick_response','financial','project_manager','corporate_comm','service_requester')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,

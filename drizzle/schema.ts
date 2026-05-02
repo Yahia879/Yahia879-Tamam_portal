@@ -657,6 +657,22 @@ export const quantitySchedules = mysqlTable("quantity_schedules", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+// جداول الكميات (BOQ) - النسخة المتوافقة مع سكربتات الاختبار والتحقق
+export const boqItems = mysqlTable("boq_items", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").references(() => mosqueRequests.id, { onDelete: "cascade" }),
+  projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
+  itemName: varchar("itemName", { length: 255 }).notNull(),
+  itemDescription: text("itemDescription"),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  quantity: decimal("quantity", { precision: 15, scale: 3 }).notNull(),
+  unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }),
+  totalPrice: decimal("totalPrice", { precision: 15, scale: 2 }),
+  category: varchar("category", { length: 100 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // ==================== جداول الإشعارات ====================
 
 export const notifications = mysqlTable("notifications", {

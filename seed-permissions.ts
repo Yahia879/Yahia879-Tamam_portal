@@ -203,27 +203,27 @@ async function main() {
     const allPermissionIds = allPermissions.map(p => p.id);
 
     for (const [roleId, permPatterns] of Object.entries(ROLE_PERMISSIONS_MAP)) {
-      let rolePermissions: string[] = [];
+      let assignedPermissionIds: string[] = [];
 
       if (permPatterns.includes('*')) {
         // جميع الصلاحيات
-        rolePermissions = allPermissionIds;
+        assignedPermissionIds = allPermissionIds;
       } else {
         // صلاحيات محددة
         for (const pattern of permPatterns) {
           if (pattern.endsWith('.*')) {
             // جميع صلاحيات الوحدة
             const moduleId = pattern.replace('.*', '');
-            rolePermissions.push(...allPermissionIds.filter(p => p.startsWith(`${moduleId}.`)));
+            assignedPermissionIds.push(...allPermissionIds.filter(p => p.startsWith(`${moduleId}.`)));
           } else {
             // صلاحية محددة
-            rolePermissions.push(pattern);
+            assignedPermissionIds.push(pattern);
           }
         }
       }
 
       // إضافة الصلاحيات للدور
-      for (const permId of rolePermissions) {
+      for (const permId of assignedPermissionIds) {
         try {
           await db.insert(rolePermissions).values({
             roleId,
@@ -235,7 +235,7 @@ async function main() {
       }
 
       const role = DEFAULT_ROLES.find(r => r.id === roleId);
-      console.log(`  ✓ ${role?.nameAr}: ${rolePermissions.length} صلاحية`);
+      console.log(`  ✓ ${role?.nameAr}: ${assignedPermissionIds.length} صلاحية`);
     }
     console.log(`✅ تم ربط الصلاحيات بالأدوار\n`);
 

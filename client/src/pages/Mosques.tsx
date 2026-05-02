@@ -63,6 +63,7 @@ export default function Mosques() {
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMosqueId, setSelectedMosqueId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -103,6 +104,19 @@ export default function Mosques() {
     },
   });
 
+  const deleteMutation = trpc.mosques.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف المسجد بنجاح");
+      setDeleteDialogOpen(false);
+      setSelectedMosqueId(null);
+      utils.mosques.search.invalidate();
+      utils.mosques.getStats.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف المسجد");
+    },
+  });
+
   // التحقق من صلاحيات الاعتماد - استبدل بـ PermissionGuard
 
   // استخراج المدن الفريدة
@@ -124,6 +138,17 @@ export default function Mosques() {
   const openRejectDialog = (mosqueId: number) => {
     setSelectedMosqueId(mosqueId);
     setRejectDialogOpen(true);
+  };
+
+  const openDeleteDialog = (mosqueId: number) => {
+    setSelectedMosqueId(mosqueId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (selectedMosqueId) {
+      deleteMutation.mutate({ id: selectedMosqueId });
+    }
   };
 
   return (
@@ -363,10 +388,15 @@ export default function Mosques() {
                                     </DropdownMenuItem>
                                   </Link>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer text-destructive">
-                                    <Trash2 className="w-4 h-4 ml-2" />
-                                    حذف
-                                  </DropdownMenuItem>
+                                  {user?.role === "super_admin" && (
+                                    <DropdownMenuItem 
+                                      className="cursor-pointer text-destructive focus:text-destructive"
+                                      onClick={() => openDeleteDialog(mosque.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4 ml-2" />
+                                      حذف
+                                    </DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -419,6 +449,33 @@ export default function Mosques() {
               disabled={rejectMutation.isPending}
             >
               {rejectMutation.isPending ? "جاري الرفض..." : "تأكيد الرفض"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تأكيد الحذف */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              تأكيد حذف المسجد
+            </DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من رغبتك في حذف هذا المسجد نهائياً؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "جاري الحذف..." : "تأكيد الحذف"}
             </Button>
           </DialogFooter>
         </DialogContent>

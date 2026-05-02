@@ -24,7 +24,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   const db = await getDb();
   if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
-  // 1. جمع صلاحيات جميع الأدوار المسندة للمستخدم
+  // 1. الحصول على الدور الأساسي للمستخدم من جدول المستخدمين
+  const [userData] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
   const userRolesData = await db
     .select({ roleId: userRoleAssignments.roleId })
     .from(userRoleAssignments)
@@ -36,6 +43,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     );
 
   const roleIds = userRolesData.map(r => r.roleId);
+  if (userData?.role) {
+    roleIds.push(userData.role);
+  }
   
   let rolePermissionsData: string[] = [];
   if (roleIds.length > 0) {
