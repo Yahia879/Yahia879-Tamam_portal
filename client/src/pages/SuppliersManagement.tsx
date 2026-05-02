@@ -97,6 +97,29 @@ export default function SuppliersManagement() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
+  const getWorkFieldsArray = (workFields: any): string[] => {
+    if (!workFields) return [];
+    if (Array.isArray(workFields)) return workFields;
+    if (typeof workFields === "string") {
+      try {
+        // محاولة التحليل كـ JSON
+        if (workFields.startsWith("[") && workFields.endsWith("]")) {
+          return JSON.parse(workFields);
+        }
+        // محاولة الفصل بالفواصل
+        if (workFields.includes(",")) {
+          return workFields.split(",").map(s => s.trim());
+        }
+        // قيمة واحدة نصية
+        return [workFields];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  };
+
   // جلب الموردين
   const { data: suppliers, isLoading, refetch } = trpc.suppliers.list.useQuery({
     approvalStatus: activeTab === "all" ? undefined : activeTab as any,
@@ -166,11 +189,11 @@ export default function SuppliersManagement() {
 
   // إحصائيات سريعة
   const suppliersList = suppliers?.suppliers || [];
-  const stats = {
-    total: suppliers?.total || 0,
-    pending: suppliersList.filter((s) => s.approvalStatus === "pending").length,
-    approved: suppliersList.filter((s) => s.approvalStatus === "approved").length,
-    rejected: suppliersList.filter((s) => s.approvalStatus === "rejected").length,
+  const stats = suppliers?.stats || {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
   };
 
   return (
@@ -302,14 +325,14 @@ export default function SuppliersManagement() {
                         <TableCell dir="ltr">{supplier.commercialRegister}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {(supplier.workFields as string[] || []).slice(0, 2).map((field) => (
+                            {getWorkFieldsArray(supplier.workFields).slice(0, 2).map((field) => (
                               <Badge key={field} variant="secondary" className="text-xs">
                                 {WORK_FIELD_LABELS[field] || field}
                               </Badge>
                             ))}
-                            {(supplier.workFields as string[] || []).length > 2 && (
+                            {getWorkFieldsArray(supplier.workFields).length > 2 && (
                               <Badge variant="outline" className="text-xs">
-                                +{(supplier.workFields as string[]).length - 2}
+                                +{getWorkFieldsArray(supplier.workFields).length - 2}
                               </Badge>
                             )}
                           </div>
@@ -425,7 +448,7 @@ export default function SuppliersManagement() {
                   <div className="col-span-2">
                     <span className="text-muted-foreground">مجالات العمل:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {(selectedSupplier.workFields as string[] || []).map((field: string) => (
+                      {getWorkFieldsArray(selectedSupplier.workFields).map((field: string) => (
                         <Badge key={field} variant="secondary">
                           {WORK_FIELD_LABELS[field] || field}
                         </Badge>

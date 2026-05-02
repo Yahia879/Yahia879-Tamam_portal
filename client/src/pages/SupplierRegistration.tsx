@@ -105,7 +105,7 @@ export default function SupplierRegistration() {
   const registerMutation = trpc.suppliers.register.useMutation({
     onSuccess: () => {
       toast.success("تم التسجيل بنجاح - سيتم مراجعة طلبك من قبل الإدارة");
-      navigate("/supplier/dashboard");
+      navigate("/suppliers");
     },
     onError: (error) => {
       // تنظيف رسالة الخطأ من بيانات Base64
@@ -132,7 +132,7 @@ export default function SupplierRegistration() {
     }
 
     // التحقق من معلومات التواصل
-    if (!googleMapsUrl || !email || !phone || !contactPerson || !contactPersonTitle) {
+    if (!address || !googleMapsUrl || !email || !phone || !contactPerson || !contactPersonTitle) {
       toast.error("يرجى ملء جميع حقول معلومات التواصل المطلوبة");
       return false;
     }
@@ -342,7 +342,7 @@ export default function SupplierRegistration() {
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address">عنوان الكيان</Label>
+                <Label htmlFor="address">عنوان الكيان *</Label>
                 <Textarea
                   id="address"
                   value={address}

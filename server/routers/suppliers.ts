@@ -221,15 +221,26 @@ export const suppliersRouter = router({
         );
       }
 
-      // جلب العدد الإجمالي
+      // جلب العدد الإجمالي للمفلتر
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(suppliers)
         .where(conditions.length > 0 ? and(...conditions) : undefined);
 
+      // جلب إحصائيات الحالات (لكل الموردين)
+      const [statsResult] = await db
+        .select({
+          total: sql<number>`count(*)`,
+          pending: sql<number>`count(case when approvalStatus = 'pending' then 1 end)`,
+          approved: sql<number>`count(case when approvalStatus = 'approved' then 1 end)`,
+          rejected: sql<number>`count(case when approvalStatus = 'rejected' then 1 end)`,
+        })
+        .from(suppliers);
+
       return {
         suppliers: filteredSuppliers,
         total: countResult?.count || 0,
+        stats: statsResult || { total: 0, pending: 0, approved: 0, rejected: 0 },
         page,
         limit,
       };
