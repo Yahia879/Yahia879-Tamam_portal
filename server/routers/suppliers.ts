@@ -111,6 +111,65 @@ export const suppliersRouter = router({
       return { success: true, id: result.insertId };
     }),
 
+  // إضافة مورد جديد بواسطة المسؤول (نموذج مبسط)
+  create: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1, "اسم المورد مطلوب"),
+      commercialRegister: z.string().min(1, "رقم السجل التجاري مطلوب"),
+      contactPerson: z.string().min(1, "اسم مسؤول التواصل مطلوب"),
+      phone: z.string().min(1, "رقم الهاتف مطلوب"),
+      email: z.string().email("البريد الإلكتروني غير صحيح"),
+      address: z.string().optional(),
+      bankName: z.string().optional(),
+      iban: z.string().optional(),
+      status: z.enum(["active", "inactive", "blacklisted"]).default("active"),
+      entityType: z.enum(entityTypes).default("establishment"),
+      workFields: z.array(z.enum(workFields)).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحيات
+      if (ctx.user.role === "service_requester") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة مورد" });
+      }
+
+      // التحقق من تكرار السجل التجاري
+      const existing = await db
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.commercialRegister, input.commercialRegister))
+        .limit(1);
+
+      if (existing.length > 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "يوجد مورد مسجل بنفس رقم السجل التجاري",
+        });
+      }
+
+      const [result] = await db.insert(suppliers).values({
+        name: input.name,
+        commercialRegister: input.commercialRegister,
+        contactPerson: input.contactPerson,
+        phone: input.phone,
+        email: input.email,
+        address: input.address || null,
+        bankName: input.bankName || null,
+        iban: input.iban || null,
+        status: input.status,
+        entityType: input.entityType,
+        workFields: input.workFields || [],
+        approvalStatus: "approved", // المورد المضاف من الإدارة يعتبر معتمداً تلقائياً
+        approvedBy: ctx.user.id,
+        approvedAt: new Date(),
+        createdBy: ctx.user.id,
+      });
+
+      return { success: true, id: result.insertId };
+    }),
+
   // ==================== إدارة الموردين ====================
 
   // جلب قائمة الموردين

@@ -435,7 +435,7 @@ export default function RequestDetailsNew() {
                 request.currentStage === 'boq_preparation' && activeAction.canPerformAction
                   ? {
                       label: "الانتقال إلى التقييم المالي",
-                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval' as any }),
+                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any }),
                       variant: 'default' as const,
                     }
                 : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction

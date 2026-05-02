@@ -96,15 +96,6 @@ export default function SuppliersManagement() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-  const [showAddSupplierDialog, setShowAddSupplierDialog] = useState(false);
-  const [newSupplier, setNewSupplier] = useState({
-    name: "",
-    contactPerson: "",
-    phone: "",
-    email: "",
-    address: "",
-    workFields: [] as string[],
-  });
 
   // جلب الموردين
   const { data: suppliers, isLoading, refetch } = trpc.suppliers.list.useQuery({
@@ -192,12 +183,10 @@ export default function SuppliersManagement() {
             <p className="text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
           </div>
           <div className="flex gap-2">
-            <PermissionGuard permission="suppliers.create">
-              <Button onClick={() => setShowAddSupplierDialog(true)}>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة مورد
-              </Button>
-            </PermissionGuard>
+            <Button onClick={() => navigate("/supplier/register")}>
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة مورد
+            </Button>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 ml-2" />
               تحديث
@@ -653,58 +642,6 @@ export default function SuppliersManagement() {
                 <XCircle className="h-4 w-4 ml-2" />
               )}
               تأكيد الرفض
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog إضافة مورد - يفتح صفحة التسجيل الكاملة */}
-      <Dialog open={showAddSupplierDialog} onOpenChange={setShowAddSupplierDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>إضافة مورد جديد</DialogTitle>
-            <DialogDescription>
-              لإضافة مورد جديد، يجب تعبئة نموذج التسجيل الكامل الذي يتضمن:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <div className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
-              <Building2 className="h-5 w-5 text-teal-600" />
-              <div>
-                <p className="font-medium text-teal-800">معلومات الكيان</p>
-                <p className="text-xs text-teal-600">اسم، نوع، سجل تجاري، نشاط، خبرة، مجالات عمل</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-              <Phone className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="font-medium text-blue-800">معلومات التواصل</p>
-                <p className="text-xs text-blue-600">عنوان، خريطة، بريد، هاتف، مسؤول التواصل</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-              <CreditCard className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="font-medium text-purple-800">معلومات الحساب البنكي</p>
-                <p className="text-xs text-purple-600">حساب، بنك، IBAN، رقم ضريبي</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-              <FileText className="h-5 w-5 text-orange-600" />
-              <div>
-                <p className="font-medium text-orange-800">المرفقات</p>
-                <p className="text-xs text-orange-600">سجل تجاري، شهادة ضريبية، عنوان وطني</p>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSupplierDialog(false)}>إلغاء</Button>
-            <Button onClick={() => {
-              setShowAddSupplierDialog(false);
-              navigate("/supplier/register");
-            }}>
-              <Plus className="h-4 w-4 ml-2" />
-              الانتقال لنموذج التسجيل
             </Button>
           </DialogFooter>
         </DialogContent>
