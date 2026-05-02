@@ -318,6 +318,53 @@ export const mosquesRouter = router({
       return { success: true, message: "تم حذف المسجد بنجاح" };
     }),
 
+  updateImam: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      imamName: z.string().min(3),
+      imamPhone: z.string().min(10),
+      imamEmail: z.string().email().optional().or(z.literal('')),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بيانات الإمام" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [originalMosque] = await db.select().from(mosques).where(eq(mosques.id, input.id));
+
+      if (!originalMosque) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+
+      await db.update(mosques).set({
+        imamName: input.imamName,
+        imamPhone: input.imamPhone,
+        imamEmail: input.imamEmail || null,
+      }).where(eq(mosques.id, input.id));
+
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "mosque_imam_updated",
+        entityType: "mosque",
+        entityId: input.id,
+        oldValues: {
+          imamName: originalMosque.imamName,
+          imamPhone: originalMosque.imamPhone,
+          imamEmail: originalMosque.imamEmail,
+        },
+        newValues: {
+          imamName: input.imamName,
+          imamPhone: input.imamPhone,
+          imamEmail: input.imamEmail,
+        }
+      });
+      
+      return { success: true, message: "تم تحديث بيانات الإمام بنجاح" };
+    }),
+
   // إضافة صورة للمسجد
   addImage: protectedProcedure
     .input(z.object({

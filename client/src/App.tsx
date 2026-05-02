@@ -24,6 +24,7 @@ import MosqueForm from "./pages/MosqueForm";
 import MosquesMap from "./pages/MosquesMap";
 import MyMosques from "./pages/MyMosques";
 import RequesterMosqueForm from "./pages/RequesterMosqueForm";
+import EditImam from "./pages/EditImam";
 
 // صفحات الطلبات
 import Requests from "./pages/Requests";
@@ -165,6 +166,7 @@ function Router() {
       <Route path="/requester/mosques/new">{() => <RequesterRoute component={RequesterMosqueForm} />}</Route>
       <Route path="/mosques/:id" component={MosqueDetails} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />
+      <Route path="/mosques/:id/edit-imam">{params => <AdminRoute component={() => <EditImam params={params} />} />}</Route>
       <Route path="/my-mosques">{() => <RequesterRoute component={MyMosques} />}</Route>
       
       {/* الطلبات - الصفحات الإدارية */}
