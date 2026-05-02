@@ -168,9 +168,10 @@ export default function SuppliersManagement() {
   };
 
   // اعتماد المورد
-  const handleApprove = () => {
-    if (!selectedSupplier) return;
-    approveMutation.mutate({ id: selectedSupplier.id });
+  const handleApprove = (id?: number) => {
+    const supplierId = id || selectedSupplier?.id;
+    if (!supplierId) return;
+    approveMutation.mutate({ id: supplierId });
   };
 
   // رفض المورد
@@ -362,8 +363,7 @@ export default function SuppliersManagement() {
                                 <>
                                   <DropdownMenuItem
                                     onClick={() => {
-                                      setSelectedSupplier(supplier);
-                                      handleApprove();
+                                      handleApprove(supplier.id);
                                     }}
                                     className="text-green-600"
                                   >
