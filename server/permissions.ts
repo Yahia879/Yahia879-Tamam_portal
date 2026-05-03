@@ -322,26 +322,93 @@ export const permissionsRouter = router({
   deleteRole: permissionProcedure("permissions.delete")
     .input(z.object({ roleId: z.string() }))
     .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف الأدوار" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // التحقق من أن الدور ليس افتراضياً
-      const role = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
-      if (role.length > 0 && role[0].isSystem) {
+      // قائمة الأدوار المحمية تماماً
+      const protectedRoleIds = ['super_admin', 'system_admin', 'service_requester'];
+      if (protectedRoleIds.includes(input.roleId)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن حذف الأدوار الافتراضية"
+          message: "لا يمكن حذف الأدوار الأساسية للنظام (المدير العام، مدير النظام، طالب الخدمة)"
         });
       }
 
-      await db.delete(roles).where(eq(roles.id, input.roleId));
+      // التحقق من أن الدور موجود وليس افتراضياً (isSystem)
+      const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!role) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+      
+      if (role.isSystem) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن حذف الأدوار الافتراضية للنظام"
+        });
+      }
 
-      await logAudit({
-        actionType: "delete_role",
-        targetUserId: ctx.user.id,
-        targetRoleId: input.roleId,
-        performedBy: ctx.user.id
-      });
+      // التحقق مما إذا كان هناك مستخدمون مسند إليهم هذا الدور
+      const [assignedUser] = await db
+        .select({ id: userRoleAssignments.id })
+        .from(userRoleAssignments)
+        .where(eq(userRoleAssignments.roleId, input.roleId))
+        .limit(1);
+
+      if (assignedUser) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "لا يمكن حذف هذا الدور لأنه مرتبط بمستخدمين حاليين. يرجى إزالة الدور من جميع المستخدمين أولاً."
+        });
+      }
+
+      // تنفيذ الحذف داخل عملية واحدة (Transaction) لضمان سلامة البيانات
+      try {
+        await db.transaction(async (tx) => {
+          console.log(`[Permissions] Starting deletion of role: ${input.roleId}`);
+          
+          // 1. تنظيف مراجع سجلات التدقيق (Permissions Audit Log)
+          const auditUpdateResult = await tx.update(permissionsAuditLog)
+            .set({ targetRoleId: null })
+            .where(eq(permissionsAuditLog.targetRoleId, input.roleId));
+          console.log(`[Permissions] Audit log nullified:`, auditUpdateResult);
+
+          // 2. حذف مراجع الصلاحيات (Role Permissions)
+          const permsDeleteResult = await tx.delete(rolePermissions)
+            .where(eq(rolePermissions.roleId, input.roleId));
+          console.log(`[Permissions] Role permissions deleted:`, permsDeleteResult);
+
+          // 3. حذف مراجع المستخدمين (User Roles) - احتياطاً رغم وجود cascade
+          const userRolesDeleteResult = await tx.delete(userRoleAssignments)
+            .where(eq(userRoleAssignments.roleId, input.roleId));
+          console.log(`[Permissions] User role assignments deleted:`, userRolesDeleteResult);
+
+          // 4. حذف الدور نفسه
+          const roleDeleteResult = await tx.delete(roles)
+            .where(eq(roles.id, input.roleId));
+          console.log(`[Permissions] Role deleted successfully:`, roleDeleteResult);
+
+          // 5. تسجيل الإجراء في سجل التدقيق الجديد
+          await tx.insert(permissionsAuditLog).values({
+            actionType: "delete_role",
+            targetUserId: ctx.user.id,
+            targetRoleId: null,
+            performedBy: ctx.user.id,
+            reason: "حذف دور مخصص (تم تنظيف المراجع برمجياً)",
+            oldValue: JSON.stringify(role)
+          });
+        });
+      } catch (error: any) {
+        console.error(`[Permissions] Failed to delete role ${input.roleId}:`, error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `فشل حذف الدور: ${error.message || "خطأ في قاعدة البيانات"}`
+        });
+      }
 
       return { success: true };
     }),

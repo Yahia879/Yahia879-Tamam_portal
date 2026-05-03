@@ -1760,9 +1760,9 @@ export const userPermissions = mysqlTable("user_permissions", {
 export const permissionsAuditLog = mysqlTable("permissions_audit_log", {
   id: int("id").primaryKey().autoincrement(),
   actionType: varchar("action_type", { length: 50 }).notNull(), // grant_permission, revoke_permission, assign_role, remove_role
-  targetUserId: int("target_user_id").notNull().references(() => users.id),
-  targetRoleId: varchar("target_role_id", { length: 50 }).references(() => roles.id),
-  permissionId: varchar("permission_id", { length: 100 }).references(() => permissions.id),
+  targetUserId: int("target_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetRoleId: varchar("target_role_id", { length: 50 }).references(() => roles.id, { onDelete: "set null" }),
+  permissionId: varchar("permission_id", { length: 100 }).references(() => permissions.id, { onDelete: "set null" }),
   performedBy: int("performed_by").notNull().references(() => users.id),
   reason: text("reason"),
   oldValue: text("old_value"),
