@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, User } from "lucide-react";
+import { ArrowRight, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, User, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PROGRAM_LABELS } from "../../../shared/constants";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isPast, isToday as isDateToday } from "date-fns";
 import { ar } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
+import { AddVisitModal } from "@/components/AddVisitModal";
 
 const PROGRAM_COLORS: Record<string, string> = {
   bunyan: "bg-blue-600",
@@ -50,12 +51,27 @@ const PROGRAM_TEXT_COLORS: Record<string, string> = {
 
 function FieldVisitsCalendarContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const currentMonth = startOfMonth(selectedDate);
-  const monthEnd = endOfMonth(selectedDate);
-  const daysInMonth = eachDayOfInterval({ start: currentMonth, end: monthEnd });
+  const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const currentMonthStart = startOfMonth(currentMonthDate);
+  const monthEnd = endOfMonth(currentMonthDate);
+  const daysInMonth = eachDayOfInterval({ start: currentMonthStart, end: monthEnd });
 
-  // Fetch field visits
-  const { data: visits = [], isLoading } = trpc.requests.getScheduledVisits.useQuery({});
+  // Navigation handlers
+  const nextMonth = () => setCurrentMonthDate(addMonths(currentMonthDate, 1));
+  const prevMonth = () => setCurrentMonthDate(subMonths(currentMonthDate, 1));
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonthDate(today);
+    setSelectedDate(today);
+  };
+
+  // Fetch field visits for the current visible month
+  const { data: visits = [], isLoading, refetch } = trpc.requests.getScheduledVisits.useQuery({
+    startDate: format(currentMonthStart, 'yyyy-MM-dd'),
+    endDate: format(monthEnd, 'yyyy-MM-dd'),
+  });
 
   // Group visits by date
   const visitsByDate = visits.reduce((acc: Record<string, typeof visits>, visit: any) => {
@@ -105,6 +121,15 @@ function FieldVisitsCalendarContent() {
           <h1 className="text-3xl font-bold">جدول الزيارات الميدانية</h1>
           <p className="text-muted-foreground">عرض تقويمي للزيارات المجدولة مع كشف التعارضات</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={goToToday} variant="outline" className="gap-2">
+            اليوم
+          </Button>
+          <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+            <Plus className="h-4 w-4" />
+            جدولة زيارة
+          </Button>
+        </div>
       </div>
 
       {/* Conflicts Alert */}
@@ -127,11 +152,21 @@ function FieldVisitsCalendarContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5" />
-              {format(selectedDate, 'MMMM yyyy', { locale: ar })}
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <span className="min-w-[150px]">
+                {format(currentMonthDate, 'MMMM yyyy', { locale: ar })}
+              </span>
             </CardTitle>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8 text-primary hover:bg-primary/10">
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8 text-primary hover:bg-primary/10">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Days of week */}
@@ -149,14 +184,20 @@ function FieldVisitsCalendarContent() {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayVisits = visitsByDate[dateKey] || [];
                 const isSelected = isSameDay(day, selectedDate);
-                const isToday = isSameDay(day, new Date());
+                const isToday = isDateToday(day);
                 const hasVisits = dayVisits.length > 0;
                 const visitCount = dayVisits.length;
 
                 return (
                   <button
                     key={day.toISOString()}
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => {
+                      if (isSelected) {
+                        setIsAddModalOpen(true);
+                      } else {
+                        setSelectedDate(day);
+                      }
+                    }}
                     className={`
                       relative p-2 rounded-xl border-2 transition-all duration-200 min-h-[60px] flex flex-col items-center justify-start gap-1
                       ${isSelected 
@@ -201,15 +242,29 @@ function FieldVisitsCalendarContent() {
         </Card>
 
         {/* Selected Date Visits */}
-        <Card>
-          <CardHeader>
+        <Card className="flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-lg">
               زيارات {format(selectedDate, 'dd MMMM', { locale: ar })}
             </CardTitle>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-primary"
+              onClick={() => setIsAddModalOpen(true)}
+              title="إضافة زيارة لهذا اليوم"
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-auto max-h-[500px]">
             {selectedDateVisits.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">لا توجد زيارات مجدولة في هذا اليوم</p>
+              <div className="text-center py-8 space-y-4">
+                <p className="text-muted-foreground">لا توجد زيارات مجدولة في هذا اليوم</p>
+                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(true)}>
+                  جدولة زيارة الآن
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 {selectedDateVisits.map((visit: any) => (
@@ -304,6 +359,13 @@ function FieldVisitsCalendarContent() {
           )}
         </CardContent>
       </Card>
+
+      <AddVisitModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        selectedDate={selectedDate}
+        onSuccess={refetch}
+      />
     </div>
   );
 }

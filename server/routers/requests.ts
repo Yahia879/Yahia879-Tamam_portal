@@ -25,7 +25,7 @@ import {
   requestNumberSequence,
   fieldVisits,
 } from "../../drizzle/schema";
-import { eq, and, desc, sql, inArray, or } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or, gte, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -1300,6 +1300,13 @@ export const requestsRouter = router({
       // قراءة من جدول fieldVisits المنفصل (المصدر الصحيح للجدولة)
       const conditions: any[] = [sql`${fieldVisits.scheduledDate} IS NOT NULL`];
       
+      if (input.startDate) {
+        conditions.push(gte(fieldVisits.scheduledDate, new Date(input.startDate)));
+      }
+      if (input.endDate) {
+        conditions.push(lte(fieldVisits.scheduledDate, new Date(input.endDate)));
+      }
+
       if (ctx.user.role === 'field_team') {
         // مستخدم الفريق الميداني: يرى الزيارات المسندة إليه أو غير المسندة (للعلم بالزيارات المتاحة)
         conditions.push(
@@ -1653,5 +1660,41 @@ export const requestsRouter = router({
         message: `تم الرجوع إلى مرحلة "${prevStageName}" بنجاح`,
         previousStage,
       };
+    }),
+
+  // الحصول على الطلبات التي تنتظر زيارة ميدانية (للقائمة المنسدلة في التقويم)
+  getPendingVisits: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const conditions = [
+        eq(mosqueRequests.currentStage, "field_visit"),
+      ];
+
+      if (input.search) {
+        conditions.push(
+          or(
+            sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
+            sql`${mosques.name} LIKE ${`%${input.search}%`}`
+          )!
+        );
+      }
+
+      const results = await db.select({
+        id: mosqueRequests.id,
+        requestNumber: mosqueRequests.requestNumber,
+        mosqueName: mosques.name,
+        mosqueCity: mosques.city,
+      }).from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(and(...conditions))
+        .orderBy(desc(mosqueRequests.createdAt))
+        .limit(50);
+
+      return results;
     }),
 });

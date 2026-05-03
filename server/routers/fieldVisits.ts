@@ -1,7 +1,7 @@
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { getDb } from "../db";
-import { fieldVisits, requestComments, users } from "../../drizzle/schema";
+import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -26,8 +26,10 @@ export const fieldVisitsRouter = router({
       // التحقق من وجود زيارة سابقة
       const existingVisits = await db.select().from(fieldVisits).where(eq(fieldVisits.requestId, requestId)).limit(1);
 
+      let visitId: number;
       if (existingVisits.length > 0) {
         // تحديث الزيارة الموجودة
+        visitId = existingVisits[0].id;
         await db
           .update(fieldVisits)
           .set({
@@ -41,32 +43,38 @@ export const fieldVisitsRouter = router({
             status: "scheduled",
             updatedAt: new Date(),
           })
-          .where(eq(fieldVisits.id, existingVisits[0].id));
-
-        // إضافة التعليق إلى request_comments إذا كان موجوداً
-        if (notes && notes.trim()) {
-          await db.insert(requestComments).values({
-            requestId,
-            userId: ctx.user.id,
-            comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
-            isRead: false,
-          });
-        }
-
-        return { success: true, visitId: existingVisits[0].id };
+          .where(eq(fieldVisits.id, visitId));
+      } else {
+        // إنشاء زيارة جديدة
+        const result = await db.insert(fieldVisits).values({
+          requestId,
+          scheduledDate: new Date(visitDate),
+          scheduledTime: visitTime,
+          assignedTo: assignedUserId || null,
+          teamMembers: teamMembers || null,
+          scheduleNotes: notes || null,
+          scheduledBy: ctx.user.id,
+          scheduledAt: new Date(),
+          status: "scheduled",
+        });
+        visitId = Number(result[0].insertId);
       }
 
-      // إنشاء زيارة جديدة
-      const result = await db.insert(fieldVisits).values({
+      // تحديث حالة الطلب إلى 'scheduled' (إذا لزم الأمر) أو مجرد توثيق في السجل
+      await db.insert(requestHistory).values({
         requestId,
-        scheduledDate: new Date(visitDate),
-        scheduledTime: visitTime,
-        assignedTo: assignedUserId || null,
-        teamMembers: teamMembers || null,
-        scheduleNotes: notes || null,
-        scheduledBy: ctx.user.id,
-        scheduledAt: new Date(),
-        status: "scheduled",
+        userId: ctx.user.id,
+        action: "field_visit_scheduled",
+        notes: `تم جدولة زيارة ميدانية بتاريخ ${visitDate} الساعة ${visitTime}`,
+      });
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "field_visit_scheduled",
+        entityType: "field_visit",
+        entityId: visitId,
+        newValues: { requestId, visitDate, visitTime, assignedUserId },
       });
 
       // إضافة التعليق إلى request_comments إذا كان موجوداً
@@ -79,7 +87,7 @@ export const fieldVisitsRouter = router({
         });
       }
 
-      return { success: true, visitId: result[0].insertId };
+      return { success: true, visitId };
     }),
 
   // تأكيد تنفيذ الزيارة
