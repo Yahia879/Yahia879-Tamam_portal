@@ -31,6 +31,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     .where(eq(users.id, userId))
     .limit(1);
 
+  // إذا كان المستخدم super_admin، نمنحه جميع الصلاحيات مباشرة
+  if (userData?.role === 'super_admin') {
+    const allPerms = await db.select({ id: permissions.id }).from(permissions);
+    return allPerms.map(p => p.id);
+  }
+
   // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
   const userRolesData = await db
     .select({ roleId: userRoleAssignments.roleId })
@@ -398,8 +404,19 @@ export const permissionsRouter = router({
       expiresAt: z.date().optional()
     }))
     .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ (يجب أن يكون مدير نظام أو مدير عام)
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد الأدوار" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // منع إضافة أدوار إضافية للمدير العام (لديه كل الصلاحيات أصلاً)
+      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser?.role === 'super_admin') {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن إضافة أدوار إضافية للمدير العام" });
+      }
 
       await db.insert(userRoleAssignments).values({
         userId: input.userId,
@@ -427,6 +444,11 @@ export const permissionsRouter = router({
       roleId: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإزالة الأدوار" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
@@ -458,8 +480,19 @@ export const permissionsRouter = router({
       expiresAt: z.date().optional()
     }))
     .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // منع منح صلاحيات للمدير العام (لديه كل شيء)
+      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser?.role === 'super_admin') {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "المدير العام لديه كافة الصلاحيات بالفعل" });
+      }
 
       await db.insert(userPermissions).values({
         userId: input.userId,
@@ -491,8 +524,22 @@ export const permissionsRouter = router({
       reason: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لسحب الصلاحيات" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // التحقق من أن المستخدم الهدف ليس super_admin
+      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser?.role === 'super_admin') {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "لا يمكن سحب صلاحيات من المدير العام"
+        });
+      }
 
       await db.insert(userPermissions).values({
         userId: input.userId,
