@@ -80,7 +80,7 @@ export const usersRouter = router({
       // التحقق من عدم تكرار البريد الإلكتروني
       const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
       if (existing) {
-        throw new TRPCError({ code: "CONFLICT", message: "البريد الإلكتروني مستخدم بالفعل" });
+        throw new TRPCError({ code: "CONFLICT", message: "هذا المستخدم مسجل مسبقاً" });
       }
 
       // تشفير كلمة المرور

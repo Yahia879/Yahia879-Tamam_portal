@@ -102,7 +102,22 @@ export default function UsersManagement() {
       refetch();
     },
     onError: (error: any) => {
-      toast.error(error.message || "فشل إنشاء الحساب");
+      let errorMessage = "فشل إنشاء الحساب";
+      
+      try {
+        // إذا كان الخطأ عبارة عن JSON (Zod validation error)
+        const parsedError = JSON.parse(error.message);
+        if (Array.isArray(parsedError)) {
+          errorMessage = parsedError.map((err: any) => err.message).join("، ");
+        } else {
+          errorMessage = error.message;
+        }
+      } catch (e) {
+        // إذا لم يكن JSON، نستخدم الرسالة كما هي
+        errorMessage = error.message || "فشل إنشاء الحساب";
+      }
+
+      toast.error(errorMessage);
     },
   });
 
