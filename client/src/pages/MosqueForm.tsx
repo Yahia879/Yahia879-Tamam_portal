@@ -144,9 +144,9 @@ export default function MosqueForm() {
   const hasExistingMosque = existingMosques && existingMosques.length > 0;
   // التحقق من الاستثناءات الممنوحة
   const exemptionsGranted = user?.mosqueExemptions || 0;
-  const mosquesRegistered = existingMosques?.length || 0;
+  const pendingMosquesCount = existingMosques?.filter(m => m.approvalStatus === 'pending').length || 0;
   // يمكن للمستخدم تسجيل مسجد واحد مجاناً + عدد الاستثناءات
-  const canRegisterMore = mosquesRegistered < (1 + exemptionsGranted);
+  const canRegisterMore = pendingMosquesCount < (1 + exemptionsGranted);
 
   const createMutation = trpc.mosques.create.useMutation({
     onSuccess: () => {

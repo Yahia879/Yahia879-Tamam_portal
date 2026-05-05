@@ -10,7 +10,7 @@ import L from "leaflet";
 
 interface LocationPickerProps {
   value?: { lat: number; lng: number };
-  onChange?: (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => void;
+  onChange?: (location: { lat: number; lng: number; address?: string; region?: string; city?: string; district?: string }) => void;
   className?: string;
 }
 
@@ -53,20 +53,21 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
         const addr = data.address || {};
         const region = addr.state || addr.province || addr.region || "";
         const city = addr.city || addr.town || addr.village || addr.municipality || addr.city_district || "";
-        return { fullAddress: data.display_name, region, city };
+        const district = addr.suburb || addr.neighbourhood || addr.quarter || "";
+        return { fullAddress: data.display_name, region, city, district };
       }
     } catch (error) {
       console.error("Reverse geocoding error:", error);
     }
-    return { fullAddress: "", region: "", city: "" };
+    return { fullAddress: "", region: "", city: "", district: "" };
   };
 
   const handleLocationChange = async (lat: number, lng: number) => {
     const validPosition = { lat, lng };
     setCurrentLocation(validPosition);
 
-    const { fullAddress, region, city } = await reverseGeocode(lat, lng);
-    onChange?.({ ...validPosition, address: fullAddress, region, city });
+    const { fullAddress, region, city, district } = await reverseGeocode(lat, lng);
+    onChange?.({ ...validPosition, address: fullAddress, region, city, district });
     
     if (mapRef.current) {
       mapRef.current.panTo([lat, lng]);
@@ -93,11 +94,12 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
         const addr = firstResult.address || {};
         const region = addr.state || addr.province || addr.region || "";
         const city = addr.city || addr.town || addr.village || addr.municipality || addr.city_district || "";
+        const district = addr.suburb || addr.neighbourhood || addr.quarter || "";
         
         const validPosition = { lat, lng };
         setCurrentLocation(validPosition);
         setAddress(fullAddress);
-        onChange?.({ ...validPosition, address: fullAddress, region, city });
+        onChange?.({ ...validPosition, address: fullAddress, region, city, district });
 
         if (mapRef.current) {
           mapRef.current.setView([lat, lng], 17);

@@ -14,9 +14,10 @@ export const NOTIFICATION_TYPES = {
   error: "خطأ",
   request_update: "تحديث طلب",
   system: "نظام",
+  mosque: "مسجد",
 } as const;
 
-export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system";
+export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque";
 
 // دالة مساعدة لإنشاء إشعار
 export async function createNotification(data: {
@@ -104,6 +105,49 @@ export async function notifyNewRequest(
     "request",
     requestId
   );
+}
+
+// دالة لإرسال إشعار عند تسجيل مسجد جديد
+export async function notifyNewMosque(
+  mosqueId: number,
+  mosqueName: string,
+  requesterId: number
+) {
+  // إشعار للمدراء
+  await notifyUsersByRole(
+    ["super_admin", "system_admin", "projects_office"],
+    "mosque",
+    "مسجد جديد",
+    `تم تسجيل مسجد جديد "${mosqueName}" وهو بانتظار الاعتماد`,
+    "mosque",
+    mosqueId
+  );
+
+  // إشعار لمقدم الطلب لتأكيد استلام طلبه
+  await createNotification({
+    userId: requesterId,
+    type: "mosque",
+    title: "مسجد جديد",
+    message: "تم إضافة مسجد جديد وهو بانتظار الموافقة",
+    relatedType: "mosque",
+    relatedId: mosqueId,
+  });
+}
+
+// دالة لإرسال إشعار عند اعتماد مسجد
+export async function notifyMosqueApproval(
+  mosqueId: number,
+  mosqueName: string,
+  requesterId: number
+) {
+  await createNotification({
+    userId: requesterId,
+    type: "mosque",
+    title: "تم اعتماد المسجد",
+    message: `تم قبول طلب تسجيل المسجد الخاص بك: ${mosqueName}`,
+    relatedType: "mosque",
+    relatedId: mosqueId,
+  });
 }
 
 // دالة لإرسال إشعار عند تغيير حالة الطلب

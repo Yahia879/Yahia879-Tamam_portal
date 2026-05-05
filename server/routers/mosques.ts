@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque } from "../../drizzle/schema";
 import { eq, and, like, desc, sql } from "drizzle-orm";
+import { notifyNewMosque, notifyMosqueApproval } from "./notifications";
 
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
@@ -82,6 +83,9 @@ export const mosquesRouter = router({
         entityId: mosqueId,
         newValues: { name: input.name, city: input.city },
       });
+
+      // إرسال إشعارات
+      await notifyNewMosque(mosqueId, input.name, ctx.user.id);
 
       return { success: true, mosqueId, message: "تم إضافة المسجد بنجاح" };
     }),
@@ -230,6 +234,12 @@ export const mosquesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // الحصول على بيانات المسجد قبل التحديث لإرسال الإشعار
+      const mosque = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      if (mosque.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+
       await db.update(mosques).set({
         approvalStatus: "approved",
         approvedBy: ctx.user.id,
@@ -242,6 +252,11 @@ export const mosquesRouter = router({
         entityType: "mosque",
         entityId: input.id,
       });
+
+      // إرسال إشعار لمقدم الطلب
+      if (mosque[0].registeredBy) {
+        await notifyMosqueApproval(input.id, mosque[0].name, mosque[0].registeredBy);
+      }
 
       return { success: true, message: "تم اعتماد المسجد بنجاح" };
     }),

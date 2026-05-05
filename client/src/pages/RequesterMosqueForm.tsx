@@ -27,58 +27,6 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
-// مدن ومراكز منطقة عسير (47 موقع)
-const asirLocations = [
-  "أبها",
-  "خميس مشيط",
-  "بيشة",
-  "محايل عسير",
-  "النماص",
-  "تثليث",
-  "ظهران الجنوب",
-  "سراة عبيدة",
-  "رجال ألمع",
-  "بلقرن",
-  "أحد رفيدة",
-  "تنومة",
-  "بارق",
-  "المجاردة",
-  "طريب",
-  "البرك",
-  "الحرجة",
-  "الأمواه",
-  "السودة",
-  "بللحمر",
-  "بللسمر",
-  "طبب",
-  "مربة",
-  "القحمة",
-  "وادي بن هشبل",
-  "الواديين",
-  "الفرعة",
-  "الفرشة",
-  "الحبيل",
-  "الربوعة",
-  "الشعف",
-  "العرين",
-  "القرى",
-  "المضة",
-  "النقيع",
-  "بحر أبو سكينة",
-  "تندحة",
-  "ثلوث المنظر",
-  "خاط",
-  "رغدان",
-  "سبت العلاية",
-  "سنامة",
-  "صمخ",
-  "قنا",
-  "كتنة",
-  "وادي الجوف",
-  "جاش",
-  "الزرق",
-];
-
 // ترجمة صفة طالب الخدمة
 const getRequesterTypeLabel = (type: string | null | undefined) => {
   const types: Record<string, string> = {
@@ -121,9 +69,9 @@ export default function RequesterMosqueForm() {
   const hasExistingMosque = existingMosques && existingMosques.length > 0;
   // التحقق من الاستثناءات الممنوحة
   const exemptionsGranted = user?.mosqueExemptions || 0;
-  const mosquesRegistered = existingMosques?.length || 0;
+  const pendingMosquesCount = existingMosques?.filter(m => m.approvalStatus === 'pending').length || 0;
   // يمكن للمستخدم تسجيل مسجد واحد مجاناً + عدد الاستثناءات
-  const canRegisterMore = mosquesRegistered < (1 + exemptionsGranted);
+  const canRegisterMore = pendingMosquesCount < (1 + exemptionsGranted);
 
   const createMutation = trpc.mosques.create.useMutation({
     onSuccess: () => {
@@ -139,22 +87,16 @@ export default function RequesterMosqueForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
-    const detectedCity = location.city || "";
-    const cityExists = asirLocations.includes(detectedCity);
-
+  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string; district?: string }) => {
     setFormData((prev) => ({
       ...prev,
       latitude: location.lat.toString(),
       longitude: location.lng.toString(),
       address: location.address || prev.address,
       governorate: location.region || prev.governorate,
-      city: cityExists ? detectedCity : prev.city,
+      city: location.city || prev.city,
+      district: location.district || prev.district,
     }));
-
-    if (detectedCity && !cityExists) {
-      toast.warning(`الموقع المحدد يتبع لـ "${detectedCity}"، وهي ليست ضمن القائمة المتاحة. يرجى اختيار المدينة يدوياً.`);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -457,18 +399,7 @@ export default function RequesterMosqueForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="city">المدينة أو المركز *</Label>
-                    <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المدينة أو المركز" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {asirLocations.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input id="city" value={formData.city} disabled className="bg-muted" placeholder="سيتم تحديده من الخريطة" />
                   </div>
                   <div>
                     <Label htmlFor="governorate">المنطقة</Label>

@@ -680,8 +680,7 @@ export const notifications = mysqlTable("notifications", {
   userId: int("userId").notNull().references(() => users.id),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message").notNull(),
-  type: mysqlEnum("type", ["info", "success", "warning", "error", "request_update", "system"]).default("info"),
-  relatedType: varchar("relatedType", { length: 50 }), // request, project, user
+  type: mysqlEnum("type", ["info", "success", "warning", "error", "request_update", "system", "mosque"]).default("info"),  relatedType: varchar("relatedType", { length: 50 }), // request, project, user
   relatedId: int("relatedId"),
   isRead: boolean("isRead").default(false),
   readAt: datetime("readAt"),
