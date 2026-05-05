@@ -338,7 +338,7 @@ export const REQUEST_STATUSES = {
   rejected: { key: 'rejected', label: 'مرفوض', color: '#EF4444' },
   suspended: { key: 'suspended', label: 'معلق', color: '#F59E0B' },
   in_progress: { key: 'in_progress', label: 'قيد التنفيذ', color: '#06B6D4' },
-  completed: { key: 'completed', label: 'مكتمل', color: '#10B981' },
+  completed: { key: 'completed', label: 'مكتملة', color: '#10B981' },
 } as const;
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -348,7 +348,7 @@ export const STATUS_LABELS: Record<string, string> = {
   rejected: 'مرفوض',
   suspended: 'معلق',
   in_progress: 'قيد التنفيذ',
-  completed: 'مكتمل',
+  completed: 'مكتملة',
 };
 
 // ==================== حالات المسجد ====================

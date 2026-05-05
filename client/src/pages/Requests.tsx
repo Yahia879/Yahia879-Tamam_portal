@@ -31,6 +31,11 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Reac
     bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
     icon: <Clock className="w-3 h-3" />,
   },
+  under_review: {
+    color: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="w-3 h-3" />,
+  },
   in_progress: {
     color: "text-blue-700 dark:text-blue-400",
     bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
@@ -111,7 +116,7 @@ export default function Requests({
 
   const stats = {
     total: requestsData?.total || 0,
-    pending: (requestsData?.stats?.pending || 0) + (requestsData?.stats?.under_review || 0),
+    underReview: requestsData?.stats?.under_review || 0,
     inProgress: requestsData?.stats?.in_progress || 0,
     completed: requestsData?.stats?.completed || 0,
   };
@@ -157,7 +162,7 @@ export default function Requests({
             },
             {
               label: "قيد المراجعة",
-              value: stats.pending,
+              value: stats.underReview,
               icon: <Clock className="w-5 h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
             },
@@ -234,9 +239,9 @@ export default function Requests({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">جميع الحالات</SelectItem>
-                    {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
+                    <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                    <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                    <SelectItem value="completed">مكتملة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
