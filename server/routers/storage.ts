@@ -8,21 +8,41 @@ import { TRPCError } from "@trpc/server";
 
 // أنواع الملفات المسموح بها
 const ALLOWED_FILE_TYPES = {
-  image: ["image/jpeg", "image/png", "image/webp", "image/gif"],
-  document: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
-  all: ["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+  image: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/jpg", "image/pjpeg", "image/x-png"],
+  document: [
+    "application/pdf", 
+    "application/msword", 
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ],
 };
+
+const ALL_ALLOWED_TYPES = [...ALLOWED_FILE_TYPES.image, ...ALLOWED_FILE_TYPES.document];
 
 // الحد الأقصى لحجم الملف (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// القائمة السوداء للامتدادات الخطيرة
+const FORBIDDEN_EXTENSIONS = [
+  'exe', 'bat', 'sh', 'js', 'vbs', 'msi', 'cmd', 'ps1', 'php', 'py', 'rb', 'pl', 'jsp', 'asp', 'aspx'
+];
 
 // توليد معرف فريد للملف
 function generateFileKey(userId: number, originalName: string, folder: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 8);
-  const extension = originalName.split('.').pop() || 'bin';
-  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50);
-  return `${folder}/${userId}/${timestamp}-${random}-${sanitizedName}`;
+  const parts = originalName.split('.');
+  const extension = parts.length > 1 ? parts.pop()?.toLowerCase() : 'bin';
+  const baseName = parts.join('.');
+  const sanitizedBase = baseName.replace(/[^a-zA-Z0-9-]/g, '_').substring(0, 50) || 'file';
+  return `${folder}/${userId}/${timestamp}-${random}-${sanitizedBase}.${extension}`;
+}
+
+// دالة التحقق من الامتداد
+function isExtensionAllowed(fileName: string): boolean {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  return extension !== '' && !FORBIDDEN_EXTENSIONS.includes(extension);
 }
 
 // تحديد نوع الملف
@@ -49,11 +69,22 @@ export const storageRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
-      // التحقق من نوع الملف
-      if (!ALLOWED_FILE_TYPES.all.includes(input.mimeType)) {
+      // التحقق من نوع الملف (MIME)
+      // السماح بـ application/octet-stream إذا كان الامتداد آمناً لأن بعض المتصفحات ترسله هكذا
+      const isMimeAllowed = ALL_ALLOWED_TYPES.includes(input.mimeType) || input.mimeType === 'application/octet-stream';
+      
+      if (!isMimeAllowed) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
-          message: "نوع الملف غير مسموح. الأنواع المسموحة: صور (JPG, PNG, WebP, GIF) ومستندات (PDF, Word)" 
+          message: `نوع الملف غير مسموح (${input.mimeType}). الأنواع المسموحة: صور ومستندات` 
+        });
+      }
+
+      // التحقق من امتداد الملف (Security)
+      if (!isExtensionAllowed(input.fileName)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "امتداد الملف غير مسموح أو غير موجود لأسباب أمنية"
         });
       }
 
@@ -91,11 +122,13 @@ export const storageRouter = router({
           fileType: getFileCategory(input.mimeType),
           fileSize: fileBuffer.length,
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error uploading file:", error);
+        // إرجاع رسالة خطأ أكثر تفصيلاً للمساعدة في التشخيص
+        const errorMessage = error instanceof Error ? error.message : "فشل في رفع الملف. يرجى المحاولة مرة أخرى";
         throw new TRPCError({ 
           code: "INTERNAL_SERVER_ERROR", 
-          message: "فشل في رفع الملف. يرجى المحاولة مرة أخرى" 
+          message: `خطأ في الرفع: ${errorMessage}`
         });
       }
     }),

@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, Loader2, Paperclip } from 'lucide-react';
 
 type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
 
@@ -34,6 +34,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // الحصول على بيانات المساجد
   const { data: mosquesResult, isLoading: mosquesLoading } = trpc.mosques.search.useQuery(
@@ -100,6 +101,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
 
   // معالج الإرسال
   const createRequestMutation = trpc.requests.create.useMutation();
+  const uploadAttachmentMutation = trpc.storage.uploadRequestAttachment.useMutation();
 
   const handleSubmit = async () => {
     if (!selectedService || !currentUser) return;
@@ -117,13 +119,40 @@ export const DynamicServiceRequestForm: React.FC = () => {
         }
       }
 
-      await createRequestMutation.mutateAsync({
+      const result = await createRequestMutation.mutateAsync({
         programType: selectedService as any,
         mosqueId,
         programData,
         priority: 'normal',
         description: formData.workDescription || '',
       });
+
+      // إذا كان هناك ملف مختار، قم برفعه وربطه بالطلب
+      if (selectedFile && result.requestId) {
+        const reader = new FileReader();
+        const uploadPromise = new Promise((resolve, reject) => {
+          reader.onload = async () => {
+            try {
+              const base64String = (reader.result as string).split(',')[1];
+              await uploadAttachmentMutation.mutateAsync({
+                requestId: result.requestId,
+                fileName: selectedFile.name,
+                fileData: base64String,
+                mimeType: selectedFile.type,
+                category: 'other',
+              });
+              resolve(true);
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(selectedFile);
+        });
+        
+        await uploadPromise;
+      }
+
       alert('تم إرسال الطلب بنجاح');
       navigate('/my-requests');
     } catch (error: any) {
@@ -305,6 +334,61 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     onAddMosque={() => navigate('/requester/mosques/new')}
                   />
                 ))}
+
+                {/* حقل رفع المرفق الاختياري */}
+                <div className="pt-4 border-t border-border">
+                  <label className="flex items-center gap-2 text-sm font-medium mb-3 text-foreground">
+                    <Paperclip className="w-4 h-4 text-primary" />
+                    رفع مرفق (اختياري)
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      id="request-attachment"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        if (file) {
+                          const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+                          const extension = file.name.split('.').pop()?.toLowerCase();
+                          if (!extension || !allowedExtensions.includes(extension)) {
+                            alert('نوع الملف غير مسموح. يرجى اختيار ملف PDF أو صور أو مستندات Word.');
+                            e.target.value = '';
+                            return;
+                          }
+                        }
+                        setSelectedFile(file);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-12 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      onClick={() => document.getElementById('request-attachment')?.click()}
+                    >
+                      {selectedFile ? (
+                        <span className="flex items-center gap-2 text-primary font-medium">
+                          <CheckCircle2 className="w-4 h-4" />
+                          {selectedFile.name}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Plus className="w-4 h-4" />
+                          اضغط لاختيار ملف (PDF, Image, Word)
+                        </span>
+                      )}
+                    </Button>
+                    {selectedFile && (
+                      <button 
+                        onClick={() => setSelectedFile(null)}
+                        className="text-xs text-destructive hover:underline self-start"
+                      >
+                        إزالة الملف
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -366,6 +450,15 @@ export const DynamicServiceRequestForm: React.FC = () => {
                         </p>
                       </div>
                     ))}
+                    {selectedFile && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">المرفق</p>
+                        <p className="font-medium text-primary flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" />
+                          {selectedFile.name}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
