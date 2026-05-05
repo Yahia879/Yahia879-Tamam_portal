@@ -1,16 +1,16 @@
-import { FormField, validateField, getAllFieldsForProgram } from './programFields';
+import { FormField, validateField, getVisibleFieldsForProgram } from './programFields';
 
 /**
- * التحقق من جميع الحقول المطلوبة لبرنامج معين
+ * التحقق من جميع الحقول المطلوبة والمرئية لبرنامج معين
  */
 export function validateAllFields(
   programId: string,
   formData: Record<string, any>,
 ): Record<string, string> {
-  const allFields = getAllFieldsForProgram(programId);
+  const visibleFields = getVisibleFieldsForProgram(programId, formData);
   const errors: Record<string, string> = {};
 
-  for (const field of allFields) {
+  for (const field of visibleFields) {
     const error = validateField(field, formData[field.name]);
     if (error) {
       errors[field.name] = error;

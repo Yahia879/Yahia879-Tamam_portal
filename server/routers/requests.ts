@@ -38,6 +38,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
+import { notifyRequestCreation } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -177,18 +178,8 @@ export const requestsRouter = router({
         newValues: { requestNumber, programType: input.programType, mosqueId: input.mosqueId },
       });
 
-      // إرسال إشعار لمكتب المشاريع
-      const projectsOfficeUsers = await db.select().from(users).where(eq(users.role, "projects_office"));
-      for (const user of projectsOfficeUsers) {
-        await db.insert(notifications).values({
-          userId: user.id,
-          title: "طلب جديد",
-          message: `تم تقديم طلب جديد رقم ${requestNumber} - برنامج ${input.programType}`,
-          type: "request_update",
-          relatedType: "request",
-          relatedId: requestId,
-        });
-      }
+      // إرسال إشعار عند إنشاء طلب جديد
+      await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
 
       return { success: true, requestId, requestNumber, message: "تم تقديم الطلب بنجاح" };
     }),

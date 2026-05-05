@@ -15,11 +15,12 @@ export const NOTIFICATION_TYPES = {
   request_update: "تحديث طلب",
   system: "نظام",
   mosque: "مسجد",
+  request: "طلب",
 } as const;
 
-export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque";
+export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque" | "request";
 
-// دالة مساعدة لإنشاء إشعار
+// ... (createNotification function)
 export async function createNotification(data: {
   userId: number;
   type: NotificationType;
@@ -28,6 +29,7 @@ export async function createNotification(data: {
   relatedType?: string;
   relatedId?: number;
 }) {
+// ... (rest of function)
   const db = await getDb();
   if (!db) return null;
 
@@ -102,6 +104,33 @@ export async function notifyNewRequest(
     "request_update",
     "طلب جديد",
     `تم تقديم طلب جديد رقم ${requestNumber} لبرنامج ${programName} - ${mosqueName}`,
+    "request",
+    requestId
+  );
+}
+
+// دالة لإرسال إشعار عند إنشاء طلب جديد (للمستفيد والمدراء)
+export async function notifyRequestCreation(
+  requestId: number,
+  requestNumber: string,
+  requesterId: number
+) {
+  // إشعار لمقدم الطلب
+  await createNotification({
+    userId: requesterId,
+    type: "request",
+    title: "طلب جديد",
+    message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
+    relatedType: "request",
+    relatedId: requestId,
+  });
+
+  // إشعار للمدراء
+  await notifyUsersByRole(
+    ["super_admin", "system_admin", "projects_office"],
+    "request",
+    "طلب جديد",
+    `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`,
     "request",
     requestId
   );

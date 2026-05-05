@@ -9,6 +9,7 @@ import { ar } from "date-fns/locale";
 
 const notificationIcons: Record<string, any> = {
   request_update: FileText,
+  request: FileText,
   mosque: Building2,
   user: User,
   system: Bell,

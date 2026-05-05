@@ -98,9 +98,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "./_core/hooks/useAuth";
 
 // مكوّن يطبّق ألوان الهوية البصرية على متغيرات CSS عند تحميل التطبيق
-// ... (rest of helper components)
 function BrandColorApplier() {
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   useEffect(() => {
@@ -141,6 +141,13 @@ const RequesterRoute = ({ component: Component }: { component: React.ComponentTy
   </ProtectedRoute>
 );
 
+// مكون وسيط لاختيار صفحة الطلبات المناسبة حسب دور المستخدم
+const MyRequestsWrapper = () => {
+  const { user } = useAuth();
+  if (user?.role === "service_requester") return <MyRequests />;
+  return <Requests initialAssignedToMe={true} />;
+};
+
 function Router() {
   return (
     <Switch>
@@ -160,11 +167,7 @@ function Router() {
       <Route path="/my-requests">
         {() => (
           <ProtectedRoute allowedRoles={["service_requester", "field_team", "quick_response", "projects_office", "super_admin", "system_admin"]}>
-            {() => {
-              const { user } = useAuth();
-              if (user?.role === "service_requester") return <MyRequests />;
-              return <Requests initialAssignedToMe={true} />;
-            }}
+            <MyRequestsWrapper />
           </ProtectedRoute>
         )}
       </Route>
@@ -183,7 +186,6 @@ function Router() {
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
       <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
-      {/* <Route path="/requests/:id/old" component={RequestDetailsOld} /> */}
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
@@ -192,8 +194,6 @@ function Router() {
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
-      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
-      <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />      
@@ -231,8 +231,6 @@ function Router() {
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
       
       {/* التقييم المالي - إدارية */}
-      {/* تم تعطيل /boq المستقل - جداول الكميات متاحة من داخل صفحة الطلب */}
-      {/* <Route path="/boq">{() => <AdminRoute component={BOQ} />}</Route> */}
       <Route path="/boq/:requestId">{() => <AdminRoute component={BOQ} />}</Route>
       <Route path="/quotations">{() => <AdminRoute component={Quotations} />}</Route>
       <Route path="/financial-approval">{() => <AdminRoute component={FinancialApproval} />}</Route>
@@ -279,6 +277,7 @@ function Router() {
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
+      <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />
