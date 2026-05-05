@@ -99,7 +99,7 @@ export default function RequesterMosqueForm() {
     name: "",
     mosqueType: "",
     city: "",
-    governorate: "عسير", // منطقة عسير ثابتة
+    governorate: "", // Will be set dynamically
     center: "",
     district: "",
     address: "",
@@ -139,13 +139,22 @@ export default function RequesterMosqueForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number; address?: string }) => {
+  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
+    const detectedCity = location.city || "";
+    const cityExists = asirLocations.includes(detectedCity);
+
     setFormData((prev) => ({
       ...prev,
       latitude: location.lat.toString(),
       longitude: location.lng.toString(),
       address: location.address || prev.address,
+      governorate: location.region || prev.governorate,
+      city: cityExists ? detectedCity : prev.city,
     }));
+
+    if (detectedCity && !cityExists) {
+      toast.warning(`الموقع المحدد يتبع لـ "${detectedCity}"، وهي ليست ضمن القائمة المتاحة. يرجى اختيار المدينة يدوياً.`);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -463,7 +472,7 @@ export default function RequesterMosqueForm() {
                   </div>
                   <div>
                     <Label htmlFor="governorate">المنطقة</Label>
-                    <Input id="governorate" value="عسير" disabled className="bg-muted" />
+                    <Input id="governorate" value={formData.governorate} disabled className="bg-muted" />
                   </div>
                 </div>
 

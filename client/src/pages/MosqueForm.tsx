@@ -95,7 +95,7 @@ export default function MosqueForm() {
     name: "",
     mosqueType: "",
     city: "",
-    governorate: "عسير", // منطقة عسير ثابتة
+    governorate: "", // Will be set dynamically
     center: "",
     district: "",
     address: "",
@@ -120,7 +120,7 @@ export default function MosqueForm() {
         name: mosque.name || "",
         mosqueType: mosque.mosqueType || "",
         city: mosque.city || "",
-        governorate: mosque.governorate || "عسير",
+        governorate: mosque.governorate || "",
         center: mosque.center || "",
         district: mosque.district || "",
         address: mosque.address || "",
@@ -172,13 +172,22 @@ export default function MosqueForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number; address?: string }) => {
+  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
+    const detectedCity = location.city || "";
+    const cityExists = asirLocations.includes(detectedCity);
+
     setFormData((prev) => ({
       ...prev,
       latitude: location.lat.toString(),
       longitude: location.lng.toString(),
       address: location.address || prev.address,
+      governorate: location.region || prev.governorate,
+      city: cityExists ? detectedCity : prev.city,
     }));
+
+    if (detectedCity && !cityExists) {
+      toast.warning(`الموقع المحدد يتبع لـ "${detectedCity}"، وهي ليست ضمن القائمة المتاحة. يرجى اختيار المدينة يدوياً.`);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

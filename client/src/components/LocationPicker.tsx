@@ -5,18 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Search, Crosshair } from "lucide-react";
+import { Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 
 interface LocationPickerProps {
   value?: { lat: number; lng: number };
-  onChange?: (location: { lat: number; lng: number; address?: string }) => void;
+  onChange?: (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => void;
   className?: string;
 }
 
+// Component to handle map clicks
+function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export function LocationPicker({ value, onChange, className }: LocationPickerProps) {
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  
+  const mapRef = useRef<L.Map | null>(null);
   const [searchAddress, setSearchAddress] = useState("");
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(
     value || null
@@ -24,110 +33,75 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
   const [address, setAddress] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  // تحديث العلامة على الخريطة
-  const updateMarker = (position: { lat: number; lng: number }) => {
-    if (!mapRef.current || !window.google) return;
-
-    // إزالة العلامة القديمة
-    if (markerRef.current) {
-      markerRef.current.map = null;
+  // Sync currentLocation with value prop
+  useEffect(() => {
+    if (value && (!currentLocation || value.lat !== currentLocation.lat || value.lng !== currentLocation.lng)) {
+      setCurrentLocation(value);
+      // Reverse geocode if value changes from outside
+      reverseGeocode(value.lat, value.lng);
     }
+  }, [value]);
 
-    // إنشاء عنصر مخصص للعلامة
-    const markerContent = document.createElement("div");
-    markerContent.innerHTML = `
-      <div style="
-        background-color: #0d9488;
-        width: 40px;
-        height: 40px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 3px solid white;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-      ">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white" style="transform: rotate(45deg);">
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-        </svg>
-      </div>
-    `;
-
-    // إنشاء علامة جديدة
-    markerRef.current = new google.maps.marker.AdvancedMarkerElement({
-      map: mapRef.current,
-      position,
-      content: markerContent,
-      gmpDraggable: true,
-    });
-
-    // إضافة حدث السحب
-    markerRef.current.addListener("dragend", () => {
-      const newPosition = markerRef.current?.position;
-      if (newPosition) {
-        const pos = newPosition as google.maps.LatLngLiteral;
-        handleLocationChange({ lat: pos.lat, lng: pos.lng });
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar&addressdetails=1`
+      );
+      const data = await response.json();
+      if (data && data.display_name) {
+        setAddress(data.display_name);
+        const addr = data.address || {};
+        const region = addr.state || addr.province || addr.region || "";
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.city_district || "";
+        return { fullAddress: data.display_name, region, city };
       }
-    });
-
-    // تحريك الخريطة للموقع الجديد
-    mapRef.current.panTo(position);
+    } catch (error) {
+      console.error("Reverse geocoding error:", error);
+    }
+    return { fullAddress: "", region: "", city: "" };
   };
 
-  // معالجة تغيير الموقع
-  const handleLocationChange = async (position: { lat: number; lng: number }) => {
-    // التحقق من صحة الإحداثيات
-    if (!position) {
-      console.error("Invalid position: null or undefined");
-      return;
-    }
-
-    // التأكد من أن الإحداثيات أرقام صحيحة
-    const lat = typeof position.lat === 'number' ? position.lat : parseFloat(String(position.lat));
-    const lng = typeof position.lng === 'number' ? position.lng : parseFloat(String(position.lng));
-
-    if (isNaN(lat) || isNaN(lng)) {
-      console.error("Invalid coordinates - NaN detected:", { lat, lng });
-      return;
-    }
-
+  const handleLocationChange = async (lat: number, lng: number) => {
     const validPosition = { lat, lng };
     setCurrentLocation(validPosition);
 
-    // الحصول على العنوان من الإحداثيات
-    if (geocoderRef.current) {
-      try {
-        const response = await geocoderRef.current.geocode({ location: validPosition });
-        if (response.results[0]) {
-          const formattedAddress = response.results[0].formatted_address;
-          setAddress(formattedAddress);
-          onChange?.(validPosition);
-        } else {
-          onChange?.(validPosition);
-        }
-      } catch (error) {
-        console.error("Geocoding error:", error);
-        onChange?.(validPosition);
-      }
-    } else {
-      onChange?.(validPosition);
+    const { fullAddress, region, city } = await reverseGeocode(lat, lng);
+    onChange?.({ ...validPosition, address: fullAddress, region, city });
+    
+    if (mapRef.current) {
+      mapRef.current.panTo([lat, lng]);
     }
   };
 
-  // البحث عن عنوان
   const handleSearch = async () => {
-    if (!searchAddress.trim() || !geocoderRef.current) return;
+    if (!searchAddress.trim()) return;
 
     setIsSearching(true);
     try {
-      const response = await geocoderRef.current.geocode({ address: searchAddress });
-      if (response.results[0]) {
-        const location = response.results[0].geometry.location;
-        const position = { lat: location.lat(), lng: location.lng() };
-        updateMarker(position);
-        handleLocationChange(position);
-        mapRef.current?.setZoom(17);
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+          searchAddress
+        )}&accept-language=ar&addressdetails=1`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const firstResult = data[0];
+        const lat = parseFloat(firstResult.lat);
+        const lng = parseFloat(firstResult.lon);
+        const fullAddress = firstResult.display_name;
+        
+        const addr = firstResult.address || {};
+        const region = addr.state || addr.province || addr.region || "";
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.city_district || "";
+        
+        const validPosition = { lat, lng };
+        setCurrentLocation(validPosition);
+        setAddress(fullAddress);
+        onChange?.({ ...validPosition, address: fullAddress, region, city });
+
+        if (mapRef.current) {
+          mapRef.current.setView([lat, lng], 17);
+        }
       }
     } catch (error) {
       console.error("Search error:", error);
@@ -136,18 +110,16 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     }
   };
 
-  // الحصول على الموقع الحالي
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          updateMarker(pos);
-          handleLocationChange(pos);
-          mapRef.current?.setZoom(17);
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          handleLocationChange(lat, lng);
+          if (mapRef.current) {
+            mapRef.current.setView([lat, lng], 17);
+          }
         },
         (error) => {
           console.error("Geolocation error:", error);
@@ -156,25 +128,8 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     }
   };
 
-  // معالجة جاهزية الخريطة
-  const handleMapReady = (map: google.maps.Map) => {
+  const handleMapReady = (map: L.Map) => {
     mapRef.current = map;
-    geocoderRef.current = new google.maps.Geocoder();
-
-    // إضافة حدث النقر على الخريطة
-    map.addListener("click", (e: google.maps.MapMouseEvent) => {
-      if (e.latLng) {
-        const position = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-        updateMarker(position);
-        handleLocationChange(position);
-      }
-    });
-
-    // إذا كان هناك قيمة مبدئية، عرض العلامة
-    if (value) {
-      updateMarker(value);
-      handleLocationChange(value);
-    }
   };
 
   return (
@@ -190,7 +145,8 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="pr-10"
+                className="pr-10 text-right"
+                dir="rtl"
               />
             </div>
             <Button onClick={handleSearch} disabled={isSearching}>
@@ -208,10 +164,25 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
               initialCenter={value || { lat: 24.7136, lng: 46.6753 }}
               initialZoom={value ? 15 : 6}
               onMapReady={handleMapReady}
-            />
+            >
+              <MapClickHandler onClick={handleLocationChange} />
+              {currentLocation && (
+                <Marker 
+                  position={[currentLocation.lat, currentLocation.lng]} 
+                  draggable={true}
+                  eventHandlers={{
+                    dragend: (e) => {
+                      const marker = e.target;
+                      const position = marker.getLatLng();
+                      handleLocationChange(position.lat, position.lng);
+                    },
+                  }}
+                />
+              )}
+            </MapView>
 
             {/* تعليمات */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-muted-foreground">
+            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-muted-foreground z-[1000]">
               <MapPin className="w-3 h-3 inline-block ml-1" />
               انقر على الخريطة أو اسحب العلامة لتحديد الموقع
             </div>
@@ -219,16 +190,16 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
 
           {/* عرض الإحداثيات والعنوان */}
           {currentLocation && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg" dir="rtl">
+              <div className="text-right">
                 <Label className="text-xs text-muted-foreground">خط العرض</Label>
                 <p className="font-mono text-sm">{currentLocation.lat.toFixed(6)}</p>
               </div>
-              <div>
+              <div className="text-right">
                 <Label className="text-xs text-muted-foreground">خط الطول</Label>
                 <p className="font-mono text-sm">{currentLocation.lng.toFixed(6)}</p>
               </div>
-              <div className="md:col-span-1">
+              <div className="md:col-span-1 text-right">
                 <Label className="text-xs text-muted-foreground">العنوان</Label>
                 <p className="text-sm truncate" title={address}>{address || "جاري التحميل..."}</p>
               </div>
@@ -239,3 +210,4 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     </div>
   );
 }
+
