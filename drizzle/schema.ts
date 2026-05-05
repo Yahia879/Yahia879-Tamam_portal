@@ -377,7 +377,7 @@ export const quickResponseReports = mysqlTable("quick_response_reports", {
 // التقارير الختامية للمشاريع
 export const finalReports = mysqlTable("final_reports", {
   id: int("id").autoincrement().primaryKey(),
-  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  requestId: int("requestId").notNull().unique().references(() => mosqueRequests.id),
   projectId: int("projectId").references(() => projects.id),
   preparedBy: int("preparedBy").notNull().references(() => users.id),
   summary: text("summary"),

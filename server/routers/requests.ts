@@ -108,6 +108,8 @@ const searchRequestsSchema = z.object({
   priority: z.enum(["urgent", "medium", "normal"]).optional(),
   mosqueId: z.number().optional(),
   assignedTo: z.number().optional(),
+  fromDate: z.string().optional(),
+  toDate: z.string().optional(),
   page: z.number().default(1),
   limit: z.number().default(20),
 });
@@ -366,6 +368,12 @@ export const requestsRouter = router({
       }
       if (input.assignedTo) {
         conditions.push(eq(mosqueRequests.assignedTo, input.assignedTo));
+      }
+      if (input.fromDate) {
+        conditions.push(gte(mosqueRequests.createdAt, new Date(input.fromDate)));
+      }
+      if (input.toDate) {
+        conditions.push(lte(mosqueRequests.createdAt, new Date(input.toDate)));
       }
 
       const offset = (input.page - 1) * input.limit;
@@ -1696,5 +1704,52 @@ export const requestsRouter = router({
         .limit(50);
 
       return results;
+    }),
+
+  // تحديث أو إضافة مبلغ التنفيذ (Upsert)
+  upsertExecutionPrice: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      amount: z.string(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحيات
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "financial", "project_manager"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث ميزانية التنفيذ" });
+      }
+
+      // التحقق من وجود الطلب
+      const requestResult = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (requestResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // تحديث الميزانية المعتمدة في الطلب
+      await db.update(mosqueRequests).set({
+        approvedBudget: input.amount,
+        updatedAt: new Date(),
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // البحث عن تقرير ختامي لتحديث التكلفة فيه أيضاً إن وجد (للحفاظ على الاتساق)
+      await db.update(finalReports).set({
+        totalCost: input.amount,
+        updatedAt: new Date(),
+      }).where(eq(finalReports.requestId, input.requestId));
+
+      // إضافة سجل في التاريخ
+      const { requestHistory } = await import("../../drizzle/schema");
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: "execution_price_updated",
+        notes: input.notes || `تم تحديث مبلغ التنفيذ إلى ${parseFloat(input.amount).toLocaleString("ar-SA")} ريال`,
+      });
+
+      return { success: true, message: "تم تحديث السعر بنجاح" };
     }),
 });

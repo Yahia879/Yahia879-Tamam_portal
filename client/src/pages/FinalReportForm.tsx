@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
   ClipboardCheck,
@@ -19,6 +20,7 @@ import {
   DollarSign,
   AlertCircle,
   Loader2,
+  XCircle,
 } from "lucide-react";
 
 export default function FinalReportForm() {
@@ -44,10 +46,33 @@ export default function FinalReportForm() {
     { enabled: !!requestId }
   );
 
-  // mutation لإنشاء التقرير الختامي
+  // جلب التقارير الختامية الموجودة لهذا الطلب
+  const { data: existingReports, isLoading: reportsLoading } = trpc.finalReports.getByRequestId.useQuery(
+    { requestId: requestId! },
+    { enabled: !!requestId }
+  );
+
+  const hasExistingReport = existingReports && existingReports.length > 0;
+  const existingReport = existingReports?.[0];
+
+  // تعبئة البيانات إذا كان هناك تقرير سابق
+  useEffect(() => {
+    if (existingReport) {
+      setSummary(existingReport.summary || "");
+      setAchievements(existingReport.achievements || "");
+      setChallenges(existingReport.challenges || "");
+      setTotalCost(existingReport.totalCost || "");
+      if (existingReport.completionDate) {
+        setCompletionDate(new Date(existingReport.completionDate).toISOString().split("T")[0]);
+      }
+      setSatisfactionRating(existingReport.satisfactionRating || 5);
+    }
+  }, [existingReport]);
+
+  // mutation لإنشاء/تحديث التقرير الختامي
   const createFinalReportMutation = trpc.finalReports.create.useMutation({
-    onSuccess: () => {
-      toast.success("تم رفع التقرير الختامي بنجاح!");
+    onSuccess: (data) => {
+      toast.success(data.message || (hasExistingReport ? "تم تحديث التقرير بنجاح" : "تم رفع التقرير الختامي بنجاح!"));
       if (requestId) {
         setLocation(`/requests/${requestId}`);
       } else {
@@ -55,15 +80,32 @@ export default function FinalReportForm() {
       }
     },
     onError: (error: { message: string }) => {
-      toast.error(`خطأ في رفع التقرير: ${error.message}`);
+      toast.error(`خطأ: ${error.message}`);
       setIsSubmitting(false);
     },
   });
+
+  const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
+  const isDisabled = isNotInExecution;
+
+  // توجيه تلقائي في حالة عدم الصلاحية
+  useEffect(() => {
+    if (!requestLoading && !reportsLoading) {
+      if (isNotInExecution) {
+        toast.error("الطلب ليس في مرحلة التنفيذ أو الاستلام");
+        setLocation(`/requests/${requestId}`);
+      }
+    }
+  }, [requestLoading, reportsLoading, isNotInExecution, requestId, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestId) {
       toast.error("معرّف الطلب مفقود");
+      return;
+    }
+    if (isDisabled) {
+      toast.error("لا يمكن إرسال التقرير في الحالة الحالية للطلب");
       return;
     }
     if (!summary.trim()) {
@@ -95,7 +137,7 @@ export default function FinalReportForm() {
     );
   }
 
-  if (requestLoading) {
+  if (requestLoading || reportsLoading) {
     return (
       <div className="container mx-auto py-12 text-center">
         <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
@@ -130,6 +172,25 @@ export default function FinalReportForm() {
           </p>
         </div>
       </div>
+
+      {/* تنبيهات الحالة */}
+      {hasExistingReport && (
+        <Alert className="mb-6 bg-amber-50 border-amber-200 text-amber-800">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            يوجد تقرير ختامي مسبق لهذا الطلب. لا يمكن رفع أكثر من تقرير واحد.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isNotInExecution && !hasExistingReport && (
+        <Alert className="mb-6 bg-red-50 border-red-200 text-red-800">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            هذا الطلب ليس في مرحلة التنفيذ حالياً. لا يمكن رفع التقرير الختامي إلا في مرحلة التنفيذ.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* بيانات الطلب */}
       {request && (
@@ -301,13 +362,23 @@ export default function FinalReportForm() {
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || !summary.trim()}
-            className="gap-2 bg-purple-600 hover:bg-purple-700"
+            disabled={isSubmitting || !summary.trim() || isDisabled}
+            className={`gap-2 ${isDisabled ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'}`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 جاري الرفع...
+              </>
+            ) : hasExistingReport ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                تحديث التقرير الختامي
+              </>
+            ) : isNotInExecution ? (
+              <>
+                <XCircle className="w-4 h-4" />
+                المرحلة غير صحيحة
               </>
             ) : (
               <>

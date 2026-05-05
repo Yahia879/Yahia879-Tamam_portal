@@ -452,9 +452,10 @@ export default function RequestDetailsNew() {
                     }
                   : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
                   ? {
-                      label: "الانتقال إلى مرحلة الاستلام",
+                      label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
                       onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
                       variant: 'default' as const,
+                      disabled: !!latestFinalReport,
                     }
                   : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
                   ? {

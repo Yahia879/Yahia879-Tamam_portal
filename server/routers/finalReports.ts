@@ -36,6 +36,15 @@ export const finalReportsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفع التقرير الختامي" });
       }
 
+      // التحقق من أن الطلب في مرحلة التنفيذ حالياً
+      const currentRequest = requestResult[0];
+      if (currentRequest.currentStage !== "execution" && currentRequest.currentStage !== "handover") {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: `لا يمكن رفع تقرير ختامي في المرحلة الحالية (${currentRequest.currentStage}). يجب أن يكون الطلب في مرحلة التنفيذ أو الاستلام.` 
+        });
+      }
+
       // البحث عن المشروع المرتبط إن لم يُحدد
       let projectId = input.projectId;
       if (!projectId) {
@@ -46,7 +55,27 @@ export const finalReportsRouter = router({
         }
       }
 
-      // إنشاء التقرير
+      // التحقق من وجود تقرير سابق لهذا الطلب (Upsert Logic)
+      const existingReports = await db.select().from(finalReports).where(eq(finalReports.requestId, input.requestId)).limit(1);
+      
+      if (existingReports.length > 0) {
+        const existingReport = existingReports[0];
+        // تحديث التقرير الموجود
+        await db.update(finalReports).set({
+          preparedBy: ctx.user.id,
+          summary: input.summary,
+          achievements: input.achievements || null,
+          challenges: input.challenges || null,
+          totalCost: input.totalCost || null,
+          completionDate: input.completionDate ? new Date(input.completionDate) : null,
+          satisfactionRating: input.satisfactionRating || null,
+          updatedAt: new Date(),
+        }).where(eq(finalReports.id, existingReport.id));
+
+        return { success: true, reportId: existingReport.id, updated: true, message: "تم تحديث التقرير الختامي بنجاح" };
+      }
+
+      // إنشاء تقرير جديد
       const [result] = await db.insert(finalReports).values({
         requestId: input.requestId,
         projectId: projectId || null,
@@ -59,8 +88,7 @@ export const finalReportsRouter = router({
         satisfactionRating: input.satisfactionRating || null,
       });
 
-      // الانتقال للمرحلة handover تلقائياً
-      const currentRequest = requestResult[0];
+      // الانتقال للمرحلة handover تلقائياً (فقط إذا كان في مرحلة execution)
       if (currentRequest.currentStage === "execution") {
         await db.update(mosqueRequests).set({
           currentStage: "handover",
@@ -68,7 +96,7 @@ export const finalReportsRouter = router({
         }).where(eq(mosqueRequests.id, input.requestId));
       }
 
-      return { success: true, reportId: result.insertId };
+      return { success: true, reportId: result.insertId, updated: false, message: "تم رفع التقرير الختامي بنجاح" };
     }),
 
   // جلب التقارير الختامية لطلب معين

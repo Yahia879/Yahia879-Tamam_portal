@@ -178,7 +178,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       label: "الإعدادات",
       items: [
         { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
-        { icon: Layers, label: "إدارة البرامج", path: "/program-customization" },
+        { icon: Layers, label: "البرامج والخدمات", path: "/program-customization" },
       ],
     });
   }

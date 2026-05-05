@@ -133,9 +133,9 @@ export default function ProgramCustomization() {
         {/* رأس الصفحة */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">تخصيص البرامج</h1>
+            <h1 className="text-3xl font-bold text-foreground">البرامج والخدمات</h1>
             <p className="text-muted-foreground mt-2">
-              أضف أو عدّل برامج الخدمات المتاحة في البوابة
+              إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
             </p>
           </div>
           <Button

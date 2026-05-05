@@ -88,7 +88,7 @@ const settingCards: SettingCard[] = [
     icon: Layers,
     title: "البرامج والخدمات",
     description: "إدارة برامج الجمعية وأنواع الخدمات المقدمة",
-    path: "/categories?type=program",
+    path: "/program-customization",
     color: "text-cyan-600",
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
     group: "البيانات",
