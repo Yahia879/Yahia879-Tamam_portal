@@ -1,0 +1,1 @@
+ALTER TABLE `mosque_requests` MODIFY COLUMN `currentStage` enum('submitted','initial_review','field_visit','technical_eval','boq_preparation','financial_eval_and_approval','contracting','execution','handover','closed') NOT NULL DEFAULT 'submitted';

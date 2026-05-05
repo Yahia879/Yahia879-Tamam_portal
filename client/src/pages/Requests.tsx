@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +18,12 @@ import {
   Filter,
   ChevronLeft,
 } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   pending: {
@@ -52,8 +53,6 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Reac
   },
 };
 
-import { useAuth } from "@/_core/hooks/useAuth";
-
 export default function Requests({ 
   initialStage,
   initialAssignedToMe
@@ -63,12 +62,36 @@ export default function Requests({
 }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const searchParamsStr = useSearch();
+  
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
   const [page, setPage] = useState(1);
   const limit = 20;
+
+  // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParamsStr);
+    
+    const program = params.get("program");
+    if (program && (PROGRAM_LABELS[program] || program === "all")) {
+      setProgramFilter(program);
+    }
+
+    const status = params.get("status");
+    if (status && (STATUS_LABELS[status] || status === "all")) {
+      setStatusFilter(status);
+    }
+
+    const stage = params.get("stage");
+    if (stage && (STAGE_LABELS[stage] || stage === "all")) {
+      setStageFilter(stage);
+    }
+
+    setPage(1);
+  }, [searchParamsStr]);
 
   const { data: requestsData, isLoading } = trpc.requests.search.useQuery({
     search: search || undefined,

@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `mosqueExemptions` int DEFAULT 0;

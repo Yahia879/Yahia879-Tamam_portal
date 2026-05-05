@@ -1,0 +1,1 @@
+ALTER TABLE `mosque_requests` MODIFY COLUMN `mosqueId` int;

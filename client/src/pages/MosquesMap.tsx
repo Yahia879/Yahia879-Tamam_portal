@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { MapView } from "@/components/Map";
+import { useState } from "react";
+import { LeafletMap } from "@/components/LeafletMap";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,18 +10,10 @@ import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users } 
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 
-// لون افتراضي للمساجد
-const MOSQUE_COLOR = "#0d9488"; // تركوازي
-
 export default function MosquesMap() {
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
-  
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [searchQuery, setSearchQuery] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
-  const [selectedMosque, setSelectedMosque] = useState<any>(null);
 
   // جلب المساجد
   const { data: mosquesData, isLoading } = trpc.mosques.search.useQuery({
@@ -35,106 +27,50 @@ export default function MosquesMap() {
   // جلب قائمة المدن الفريدة
   const cities = Array.from(new Set(mosques.map(m => m.city).filter(Boolean)));
 
-  // تحديث العلامات على الخريطة
-  useEffect(() => {
-    if (!mapRef.current || !window.google) return;
-
-    // إزالة العلامات القديمة
-    markersRef.current.forEach(marker => {
-      marker.map = null;
-    });
-    markersRef.current = [];
-
-    // إنشاء نافذة معلومات واحدة
-    if (!infoWindowRef.current) {
-      infoWindowRef.current = new google.maps.InfoWindow();
-    }
-
-    // إضافة علامات جديدة
-    mosques.forEach(mosque => {
-      if (!mosque.latitude || !mosque.longitude) return;
-
-      const lat = parseFloat(mosque.latitude);
-      const lng = parseFloat(mosque.longitude);
-      
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      // إنشاء عنصر مخصص للعلامة
-      const markerContent = document.createElement("div");
-      markerContent.innerHTML = `
-        <div style="
-          background-color: ${MOSQUE_COLOR};
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 3px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          cursor: pointer;
-        ">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-          </svg>
-        </div>
-      `;
-
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map: mapRef.current!,
-        position: { lat, lng },
-        title: mosque.name,
-        content: markerContent,
-      });
-
-      // إضافة حدث النقر
-      marker.addListener("click", () => {
-        setSelectedMosque(mosque);
-        
-        const content = `
-          <div style="direction: rtl; padding: 8px; min-width: 200px; font-family: 'Tajawal', sans-serif;">
-            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: bold; color: #1f2937;">${mosque.name}</h3>
-            <p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;">
-              <strong>المدينة:</strong> ${mosque.city}
+  // تحضير العلامات للخريطة
+  const mapMarkers = mosques
+    .filter(m => {
+      if (!m.latitude || !m.longitude) return false;
+      const lat = parseFloat(m.latitude);
+      const lng = parseFloat(m.longitude);
+      return !isNaN(lat) && !isNaN(lng);
+    })
+    .map(mosque => ({
+      id: mosque.id,
+      position: { 
+        lat: parseFloat(mosque.latitude!), 
+        lng: parseFloat(mosque.longitude!) 
+      },
+      title: mosque.name,
+      content: (
+        <div style={{ direction: 'rtl', minWidth: '200px' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 'bold' }}>{mosque.name}</h3>
+          <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>
+            <strong>المدينة:</strong> {mosque.city}
+          </p>
+          {mosque.governorate && (
+            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>
+              <strong>المحافظة:</strong> {mosque.governorate}
             </p>
-            ${mosque.governorate ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>المحافظة:</strong> ${mosque.governorate}</p>` : ''}
-            ${mosque.district ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>الحي:</strong> ${mosque.district}</p>` : ''}
-            ${mosque.capacity ? `<p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280;"><strong>عدد المصلين:</strong> ${mosque.capacity}</p>` : ''}
-            <a href="/mosques/${mosque.id}" style="
-              display: inline-block;
-              background-color: #0d9488;
-              color: white;
-              padding: 6px 12px;
-              border-radius: 6px;
-              text-decoration: none;
-              font-size: 13px;
-              margin-top: 4px;
-            ">عرض التفاصيل</a>
-          </div>
-        `;
-
-        infoWindowRef.current!.setContent(content);
-        infoWindowRef.current!.open(mapRef.current!, marker);
-      });
-
-      markersRef.current.push(marker);
-    });
-
-    // تعديل حدود الخريطة لتشمل جميع العلامات
-    if (markersRef.current.length > 0) {
-      const bounds = new google.maps.LatLngBounds();
-      markersRef.current.forEach(marker => {
-        if (marker.position) {
-          bounds.extend(marker.position as google.maps.LatLng);
-        }
-      });
-      mapRef.current.fitBounds(bounds);
-    }
-  }, [mosques]);
-
-  const handleMapReady = (map: google.maps.Map) => {
-    mapRef.current = map;
-  };
+          )}
+          {mosque.district && (
+            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>
+              <strong>الحي:</strong> {mosque.district}
+            </p>
+          )}
+          {mosque.capacity && (
+            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>
+              <strong>عدد المصلين:</strong> {mosque.capacity}
+            </p>
+          )}
+          <Link href={`/mosques/${mosque.id}`}>
+            <Button variant="default" size="sm" className="w-full mt-2 h-8 text-xs gradient-primary text-white">
+              عرض التفاصيل
+            </Button>
+          </Link>
+        </div>
+      )
+    }));
 
   return (
     <DashboardLayout>
@@ -143,7 +79,7 @@ export default function MosquesMap() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">خريطة المساجد</h1>
-            <p className="text-muted-foreground">عرض جميع المساجد المسجلة على الخريطة</p>
+            <p className="text-muted-foreground">عرض جميع المساجد المسجلة على الخريطة (OpenStreetMap)</p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -187,7 +123,7 @@ export default function MosquesMap() {
                 <SelectContent>
                   <SelectItem value="all">جميع المدن</SelectItem>
                   {cities.map(city => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                    <SelectItem key={city as string} value={city as string}>{city}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -200,15 +136,15 @@ export default function MosquesMap() {
           <Card className="overflow-hidden">
             <CardContent className="p-0">
               <div className="relative">
-                <MapView
+                <LeafletMap
                   className="h-[600px]"
+                  markers={mapMarkers}
                   initialCenter={{ lat: 24.7136, lng: 46.6753 }} // الرياض
                   initialZoom={6}
-                  onMapReady={handleMapReady}
                 />
 
                 {/* عداد المساجد */}
-                <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2">
+                <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-[1000]">
                   <p className="text-sm">
                     <span className="font-bold text-primary">{mosques.length}</span> مسجد
                   </p>
