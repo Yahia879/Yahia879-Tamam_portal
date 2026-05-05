@@ -394,14 +394,26 @@ export const requestsRouter = router({
       const results = await query.orderBy(desc(mosqueRequests.createdAt)).limit(input.limit).offset(offset);
       console.log('[search] Results count:', results.length);
 
-      // الحصول على العدد الإجمالي
+      // الحصول على العدد الإجمالي والإحصائيات
       let countQuery = db.select({ count: sql<number>`count(*)` }).from(mosqueRequests);
       if (conditions.length > 0) {
         countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
       }
       const countResult = await countQuery;
       const total = countResult[0]?.count || 0;
-      console.log('[search] Total count:', total, 'Conditions:', conditions.length);
+
+      // الحصول على الإحصائيات حسب الحالة للنتائج المفلترة
+      let statsQuery = db.select({ 
+        status: mosqueRequests.status, 
+        count: sql<number>`count(*)` 
+      }).from(mosqueRequests);
+      if (conditions.length > 0) {
+        statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
+      }
+      const statsResult = await statsQuery.groupBy(mosqueRequests.status);
+      const stats = Object.fromEntries(statsResult.map(s => [s.status || 'unknown', s.count]));
+
+      console.log('[search] Total count:', total, 'Stats:', stats);
 
       return {
         requests: results.map(r => ({
@@ -411,6 +423,7 @@ export const requestsRouter = router({
           requesterName: r.requesterName,
         })),
         total,
+        stats,
       };
       } catch (error) {
         console.error('[search] Error:', error);

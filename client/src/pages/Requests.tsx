@@ -111,9 +111,9 @@ export default function Requests({
 
   const stats = {
     total: requestsData?.total || 0,
-    pending: requests.filter((r: any) => r.status === "pending").length,
-    inProgress: requests.filter((r: any) => r.status === "in_progress").length,
-    completed: requests.filter((r: any) => r.status === "completed").length,
+    pending: (requestsData?.stats?.pending || 0) + (requestsData?.stats?.under_review || 0),
+    inProgress: requestsData?.stats?.in_progress || 0,
+    completed: requestsData?.stats?.completed || 0,
   };
 
   const handlePageChange = (newPage: number) => {
@@ -156,7 +156,7 @@ export default function Requests({
               iconBg: "bg-primary/10 text-primary",
             },
             {
-              label: "قيد الانتظار",
+              label: "قيد المراجعة",
               value: stats.pending,
               icon: <Clock className="w-5 h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",

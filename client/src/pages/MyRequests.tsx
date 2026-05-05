@@ -93,7 +93,7 @@ export default function MyRequests() {
     if (!myRequests) return { total: 0, pending: 0, inProgress: 0, completed: 0 };
     return {
       total: myRequests.length,
-      pending: myRequests.filter(r => r.status === "pending").length,
+      pending: myRequests.filter(r => r.status === "pending" || r.status === "under_review").length,
       inProgress: myRequests.filter(r => r.status === "in_progress").length,
       completed: myRequests.filter(r => r.status === "completed").length,
     };
@@ -188,7 +188,7 @@ export default function MyRequests() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+                  <p className="text-xs text-muted-foreground">قيد المراجعة</p>
                   <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
@@ -247,7 +247,7 @@ export default function MyRequests() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">قيد الانتظار</SelectItem>
+                  <SelectItem value="pending">قيد المراجعة</SelectItem>
                   <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
                   <SelectItem value="completed">مكتمل</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
