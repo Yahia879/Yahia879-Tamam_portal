@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -16,6 +16,7 @@ import { WORKFLOW_STEPS, PROGRAM_LABELS, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPT
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
+import { getAllFieldsForProgram } from "@/lib/programFields";
 
 export default function RequestDetailsNew() {
   const { id } = useParams();
@@ -29,6 +30,7 @@ export default function RequestDetailsNew() {
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [boqOpen, setBoqOpen] = useState(false);
+  const [showReviewInfo, setShowReviewInfo] = useState(false);
   
   // States for add dialogs
   const [addCommentOpen, setAddCommentOpen] = useState(false);
@@ -378,6 +380,126 @@ export default function RequestDetailsNew() {
 
       {/* Main Content */}
       <div className="container py-8">
+        {/* زر مراجعة المعلومات والمرفقات الجديد - يظهر للجميع */}
+        <div className="mb-8">
+          <Button 
+            variant="outline" 
+            className="w-full flex items-center justify-between p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900"
+            onClick={() => setShowReviewInfo(!showReviewInfo)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-base">مراجعة المعلومات والمرفقات</p>
+                <p className="text-sm text-muted-foreground">عرض تفاصيل الطلب والملفات المرفوعة</p>
+              </div>
+            </div>
+            {showReviewInfo ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </Button>
+
+          {showReviewInfo && (
+            <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+              {/* تفاصيل الطلب */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
+                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  تفاصيل الطلب
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* معلومات أساسية ثابته */}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">البرنامج</p>
+                    <p className="font-semibold">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">تاريخ التقديم</p>
+                    <p className="font-semibold">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
+                  </div>
+                  {request.mosque && (
+                    <>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">المسجد</p>
+                        <p className="font-semibold">{request.mosque.name}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">الموقع</p>
+                        <p className="font-semibold">{request.mosque.city || "غير محدد"}</p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* معلومات الحقول الديناميكية */}
+                  {(() => {
+                    const allFields = getAllFieldsForProgram(request.programType);
+                    let programData: Record<string, any> = {};
+                    
+                    try {
+                      if (typeof request.programData === 'string') {
+                        programData = JSON.parse(request.programData);
+                      } else {
+                        programData = (request.programData as Record<string, any>) || {};
+                      }
+                    } catch (e) {
+                      console.error("Error parsing programData:", e);
+                      programData = {};
+                    }
+                    
+                    return allFields
+                      .filter(field => field.name !== 'mosqueId' && programData[field.name] !== undefined)
+                      .map(field => {
+                        let displayValue = programData[field.name];
+                        
+                        // معالجة القيم الخاصة (مثل نعم/لا)
+                        if (field.type === 'radio' || field.type === 'select') {
+                          const option = field.options?.find(opt => opt.value === displayValue);
+                          if (option) displayValue = option.label;
+                          else if (displayValue === 'yes') displayValue = 'نعم';
+                          else if (displayValue === 'no') displayValue = 'لا';
+                        }
+
+                        return (
+                          <div key={field.name} className="space-y-1 col-span-full md:col-span-1">
+                            <p className="text-sm text-muted-foreground">{field.label}</p>
+                            <p className="font-semibold whitespace-pre-wrap break-words">{String(displayValue)}</p>
+                          </div>
+                        );
+                      });
+                  })()}
+                </div>
+              </div>
+
+              {/* المرفقات */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
+                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+                  <Paperclip className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  المرفقات المرفوعة
+                </h4>
+                {request?.attachments && request.attachments.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {request.attachments.map((attachment: any, index: number) => (
+                      <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 border-orange-500 flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-orange-700 dark:text-orange-300 truncate">{attachment.fileName}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1">{attachment.fileType}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" asChild className="shrink-0">
+                          <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">لم يتم إرفاق أي ملفات</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* بانر المشروع - يظهر عند وجود مشروع مرتبط */}
         {linkedProject && (
           <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
@@ -803,7 +925,7 @@ export default function RequestDetailsNew() {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">لا توجد مرفقات بعد</p>
+            <p className="text-muted-foreground text-center py-8">لم يتم إرفاق أي ملفات</p>
           )}
           <Button className="w-full bg-orange-600 hover:bg-orange-700">
             <Paperclip className="w-4 h-4 ml-2" />
