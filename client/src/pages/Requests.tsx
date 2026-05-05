@@ -52,11 +52,21 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Reac
   },
 };
 
-export default function Requests() {
+import { useAuth } from "@/_core/hooks/useAuth";
+
+export default function Requests({ 
+  initialStage,
+  initialAssignedToMe
+}: { 
+  initialStage?: string;
+  initialAssignedToMe?: boolean;
+}) {
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -64,6 +74,8 @@ export default function Requests() {
     search: search || undefined,
     programType: programFilter !== "all" ? programFilter as any : undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    currentStage: stageFilter !== "all" ? stageFilter as any : undefined,
+    assignedTo: initialAssignedToMe ? user?.id : undefined,
     page,
     limit,
   }, {
@@ -92,9 +104,13 @@ export default function Requests() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة الطلبات</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {initialStage === "field_visit" ? "الزيارات الميدانية" : 
+               initialAssignedToMe ? "طلباتي" : "إدارة الطلبات"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              عرض ومتابعة جميع طلبات الخدمة
+              {initialStage === "field_visit" ? "عرض ومتابعة الطلبات في مرحلة الزيارة الميدانية" :
+               initialAssignedToMe ? "عرض ومتابعة الطلبات المسندة إليك" : "عرض ومتابعة جميع طلبات الخدمة"}
             </p>
           </div>
           <PermissionGuard permission="requests.create">

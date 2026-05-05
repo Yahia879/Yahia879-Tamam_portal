@@ -157,7 +157,17 @@ function Router() {
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
-      <Route path="/my-requests">{() => <RequesterRoute component={MyRequests} />}</Route>
+      <Route path="/my-requests">
+        {() => (
+          <ProtectedRoute allowedRoles={["service_requester", "field_team", "quick_response", "projects_office", "super_admin", "system_admin"]}>
+            {() => {
+              const { user } = useAuth();
+              if (user?.role === "service_requester") return <MyRequests />;
+              return <Requests initialAssignedToMe={true} />;
+            }}
+          </ProtectedRoute>
+        )}
+      </Route>
       
       {/* المساجد - الصفحات الإدارية */}
       <Route path="/mosques">{() => <AdminRoute component={Mosques} />}</Route>
@@ -177,10 +187,12 @@ function Router() {
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
+      <Route path="/field-visits">{() => <AdminRoute component={() => <Requests initialStage="field_visit" />} />}</Route>
       <Route path="/field-visits/calendar">{() => <AdminRoute component={FieldVisitsCalendar} />}</Route>
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
-      <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
+      <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
+      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
