@@ -486,7 +486,7 @@ export default function RequestDetailsNew() {
                 (request.currentStage === 'handover' || request.currentStage === 'closed') && latestFinalReport
                   ? [{
                       label: "عرض التقرير النهائي",
-                      onClick: () => setLocation(`/final-report/${latestFinalReport.id}`),
+                      onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
                     }]
                   : []
               }

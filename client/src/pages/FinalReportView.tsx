@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,10 @@ const STAGE_LABELS: Record<string, string> = {
 export default function FinalReportView() {
   const params = useParams<{ reportId: string }>();
   const reportId = parseInt(params.reportId || "0");
-  const [, navigate] = useLocation();
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search);
+  const qRequestId = searchParams.get("requestId");
+  const [, setLocation] = useLocation();
 
   const { data, isLoading, error } = trpc.finalReports.getWithDetails.useQuery(
     { reportId },
@@ -43,6 +46,16 @@ export default function FinalReportView() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleBack = () => {
+    if (qRequestId) {
+      setLocation(`/requests/${qRequestId}`);
+    } else if (data?.request?.id) {
+      setLocation(`/requests/${data.request.id}`);
+    } else {
+      window.history.back();
+    }
   };
 
   if (isLoading) {
@@ -62,7 +75,7 @@ export default function FinalReportView() {
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">لم يتم العثور على التقرير</p>
-          <Button variant="outline" onClick={() => navigate(-1 as any)} className="mt-4">
+          <Button variant="outline" onClick={handleBack} className="mt-4">
             العودة
           </Button>
         </div>
@@ -97,7 +110,7 @@ export default function FinalReportView() {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate(-1 as any)}
+            onClick={handleBack}
             className="flex items-center gap-2 text-gray-600"
           >
             <ArrowRight className="w-4 h-4" />
