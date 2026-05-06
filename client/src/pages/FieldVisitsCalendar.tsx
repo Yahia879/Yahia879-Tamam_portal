@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { ArrowRight, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, User, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, Calendar as CalendarIcon, AlertTriangle, Clock, MapPin, User, ChevronLeft, ChevronRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { PROGRAM_LABELS } from "../../../shared/constants";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, isPast, isToday as isDateToday } from "date-fns";
 import { ar } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
-import { AddVisitModal } from "@/components/AddVisitModal";
 
 const PROGRAM_COLORS: Record<string, string> = {
   bunyan: "bg-blue-600",
@@ -52,7 +51,6 @@ const PROGRAM_TEXT_COLORS: Record<string, string> = {
 function FieldVisitsCalendarContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   const currentMonthStart = startOfMonth(currentMonthDate);
   const monthEnd = endOfMonth(currentMonthDate);
@@ -125,10 +123,6 @@ function FieldVisitsCalendarContent() {
           <Button onClick={goToToday} variant="outline" className="gap-2">
             اليوم
           </Button>
-          <Button onClick={() => setIsAddModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4" />
-            جدولة زيارة
-          </Button>
         </div>
       </div>
 
@@ -191,13 +185,7 @@ function FieldVisitsCalendarContent() {
                 return (
                   <button
                     key={day.toISOString()}
-                    onClick={() => {
-                      if (isSelected) {
-                        setIsAddModalOpen(true);
-                      } else {
-                        setSelectedDate(day);
-                      }
-                    }}
+                    onClick={() => setSelectedDate(day)}
                     className={`
                       relative p-2 rounded-xl border-2 transition-all duration-200 min-h-[60px] flex flex-col items-center justify-start gap-1
                       ${isSelected 
@@ -247,23 +235,11 @@ function FieldVisitsCalendarContent() {
             <CardTitle className="text-lg">
               زيارات {format(selectedDate, 'dd MMMM', { locale: ar })}
             </CardTitle>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-primary"
-              onClick={() => setIsAddModalOpen(true)}
-              title="إضافة زيارة لهذا اليوم"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
           </CardHeader>
           <CardContent className="flex-1 overflow-auto max-h-[500px]">
             {selectedDateVisits.length === 0 ? (
               <div className="text-center py-8 space-y-4">
                 <p className="text-muted-foreground">لا توجد زيارات مجدولة في هذا اليوم</p>
-                <Button variant="outline" size="sm" onClick={() => setIsAddModalOpen(true)}>
-                  جدولة زيارة الآن
-                </Button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -359,13 +335,6 @@ function FieldVisitsCalendarContent() {
           )}
         </CardContent>
       </Card>
-
-      <AddVisitModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        selectedDate={selectedDate}
-        onSuccess={refetch}
-      />
     </div>
   );
 }

@@ -90,6 +90,20 @@ export default function RequestDetailsNew() {
   );
   const latestFinalReport = finalReports?.[0] || null;
 
+  // Fetch BOQ data for validation
+  const { data: boqResult } = trpc.projects.getBOQ.useQuery(
+    { requestId },
+    { enabled: request?.currentStage === 'boq_preparation' }
+  );
+  const hasBoqItems = boqResult?.items && boqResult.items.length > 0;
+
+  // Fetch Quotations for validation
+  const { data: quotationsResult } = trpc.projects.getQuotationsByRequest.useQuery(
+    { requestId },
+    { enabled: request?.currentStage === 'financial_eval_and_approval' }
+  );
+  const hasApprovedQuotation = quotationsResult?.quotations?.some((q: any) => q.status === 'accepted' || q.status === 'approved');
+
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -168,6 +182,15 @@ export default function RequestDetailsNew() {
       return;
     }
     
+    // إذا كان الطلب في مرحلة التقييم المالي، تحقق من اعتماد عرض سعر قبل الانتقال للتعاقد
+    if (request.currentStage === 'financial_eval_and_approval') {
+      const nextStage = getNextStage(request.currentStage);
+      if (nextStage === 'contracting' && !hasApprovedQuotation) {
+        toast.error("لا يمكن الانتقال إلى مرحلة التعاقد قبل اعتماد عرض سعر");
+        return;
+      }
+    }
+
     // إذا كان هناك redirectUrl، انتقل إلى الصفحة المحددة
     if (activeAction.actionButton?.redirectUrl) {
       const url = activeAction.actionButton.redirectUrl
@@ -371,8 +394,15 @@ export default function RequestDetailsNew() {
                 request.currentStage === 'boq_preparation' && activeAction.canPerformAction
                   ? {
                       label: "الانتقال إلى التقييم المالي",
-                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any }),
+                      onClick: () => {
+                        if (!hasBoqItems) {
+                          toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
+                          return;
+                        }
+                        updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
+                      },
                       variant: 'default' as const,
+                      disabled: !hasBoqItems || updateStageMutation.isPending,
                     }
                 : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction
                   ? {

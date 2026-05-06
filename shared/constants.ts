@@ -853,7 +853,7 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
   ],
   
   // من إعداد جدول الكميات إلى التقييم المالي
-  boq_preparation_to_financial_eval: [
+  boq_preparation_to_financial_eval_and_approval: [
     {
       type: 'boq_created',
       name: 'جدول الكميات',
@@ -876,8 +876,8 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
     },
   ],
   
-  // من اعتماد العرض إلى التعاقد
-  quotation_approval_to_contracting: [
+  // من التقييم المالي إلى التعاقد
+  financial_eval_and_approval_to_contracting: [
     {
       type: 'supplier_selected',
       name: 'اختيار المورد',
@@ -985,9 +985,9 @@ export const PREREQUISITE_ERROR_MESSAGES: Record<PrerequisiteType, string> = {
   field_inspection_report: 'يجب رفع تقرير المعاينة الميدانية قبل الانتقال للمرحلة التالية',
   quick_response_report: 'يجب رفع تقرير الاستجابة السريعة قبل إغلاق الطلب',
   technical_eval_decision: 'يجب اتخاذ قرار التقييم الفني (أحد الخيارات الأربعة)',
-  boq_created: 'يجب إعداد جدول الكميات قبل الانتقال للتنفيذ',
+  boq_created: 'لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات',
   quotes_received: 'يجب استلام عروض الأسعار من الموردين',
-  supplier_selected: 'يجب اختيار المورد المناسب من العروض المقدمة',
+  supplier_selected: 'لا يمكن الانتقال إلى مرحلة التعاقد قبل اعتماد عرض سعر',
   contract_signed: 'يجب توقيع العقد مع المورد قبل إغلاق المشروع',
   final_report: 'يجب رفع التقرير الختامي للمشروع',
   satisfaction_survey: 'يجب إكمال استبيان رضا المستفيد',

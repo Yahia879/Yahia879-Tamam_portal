@@ -565,9 +565,13 @@ export const requestsRouter = router({
         }
 
         if (missingPrerequisites.length > 0) {
+          const errorMessage = missingPrerequisites.length === 1 
+            ? missingPrerequisites[0] 
+            : `لا يمكن الانتقال للمرحلة التالية. الشروط المطلوبة:\n- ${missingPrerequisites.join('\n- ')}`;
+            
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: `لا يمكن الانتقال للمرحلة التالية. الشروط المطلوبة:\n- ${missingPrerequisites.join('\n- ')}`,
+            message: errorMessage,
           });
         }
       }
