@@ -89,7 +89,7 @@ export const usersRouter = router({
       const passwordHash = `${salt}:${hashedPwd}`;
 
       // إنشاء المستخدم
-      const result = await db.insert(users).values({
+      const [result] = await db.insert(users).values({
         name: input.name,
         email: input.email,
         passwordHash,
@@ -99,14 +99,21 @@ export const usersRouter = router({
         loginMethod: "local",
       });
 
-      const newUserId = (result as any).insertId as number;
+      const newUserId = Number(result.insertId);
 
-      // إنشاء سجل موظف إذا كانت هناك بيانات وظيفية
-      if (input.department || input.position) {
+      // إنشاء سجل موظف إذا كان المستخدم من الموظفين أو تم إدخال بيانات وظيفية
+      const isStaff = STAFF_ROLES.includes(input.role as any);
+      if (isStaff || input.department || input.position) {
+        // توليد رقم وظيفي: EMP-YYYY-ID
+        const currentYear = new Date().getFullYear();
+        const employeeNumber = `EMP-${currentYear}-${String(newUserId).padStart(4, "0")}`;
+
         await db.insert(employees).values({
           userId: newUserId,
-          department: input.department || null,
-          position: input.position || null,
+          employeeNumber,
+          department: input.department || "الإدارة",
+          position: input.position || "موظف",
+          hireDate: new Date(),
         });
       }
 
