@@ -1141,6 +1141,7 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
     actionButton: {
       label: "عرض التقرير النهائي",
       nextStage: "closed", // يبقى في نفس المرحلة
+      redirectUrl: "/final-report/:reportId",
     },
     allowedRoles: ["super_admin", "system_admin", "projects_office"],
   },

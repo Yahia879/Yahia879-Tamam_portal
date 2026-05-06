@@ -206,7 +206,8 @@ export default function RequestDetailsNew() {
     if (activeAction.actionButton?.redirectUrl) {
       const url = activeAction.actionButton.redirectUrl
         .replace(':requestId', requestId.toString())
-        .replace(':projectId', request.project?.id?.toString() || '');
+        .replace(':projectId', request.project?.id?.toString() || '')
+        .replace(':reportId', latestFinalReport?.id?.toString() || '');
       setLocation(url);
       return;
     }
@@ -481,7 +482,14 @@ export default function RequestDetailsNew() {
                     }
                   : undefined
               }
-              additionalActions={[]}
+              additionalActions={
+                (request.currentStage === 'handover' || request.currentStage === 'closed') && latestFinalReport
+                  ? [{
+                      label: "عرض التقرير النهائي",
+                      onClick: () => setLocation(`/final-report/${latestFinalReport.id}`),
+                    }]
+                  : []
+              }
             />
             
             {/* زر الرجوع للمرحلة السابقة - يظهر أسفل بطاقة الإجراء النشط */}
@@ -681,8 +689,8 @@ export default function RequestDetailsNew() {
               </div>
             )}
             
-            {/* قسم التقرير الختامي - يظهر في مرحلة الاستلام والمغلق */}
-            {(request.currentStage === 'handover' || request.currentStage === 'closed') && (
+            {/* قسم التقرير الختامي - تم إخفاؤه بطلب المستخدم لأن الزر العلوي أصبح هو الأساس */}
+            {false && (request.currentStage === 'handover' || request.currentStage === 'closed') && (
               <div className="mt-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg border-2 border-emerald-200">
                 <div className="flex items-center gap-3 mb-4">
                   <FileText className="w-6 h-6 text-emerald-600" />
