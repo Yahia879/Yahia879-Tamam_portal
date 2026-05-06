@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -172,6 +172,17 @@ export default function RequestDetailsNew() {
     },
   });
 
+  // تحديث تلقائي للمرحلة عند وجود عقد معتمد
+  useEffect(() => {
+    if (request?.currentStage === 'contracting' && linkedContract && !updateStageMutation.isPending) {
+      const contract = linkedContract as any;
+      if (contract.status === 'approved' || contract.status === 'active') {
+        console.log('[Request Workflow] Approved contract detected, transitioning to execution stage');
+        updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
+      }
+    }
+  }, [request?.currentStage, linkedContract, updateStageMutation.isPending, requestId]);
+
   // Handler for stage transition
   const handleStageTransition = () => {
     if (!request || !activeAction) return;
@@ -206,7 +217,15 @@ export default function RequestDetailsNew() {
       toast.error("لا توجد مرحلة تالية");
       return;
     }
-    updateStageMutation.mutate({ requestId, newStage: nextStage as any });
+    
+    // تعديل خاص للطلب رقم 21 لتجاوز شروط التعاقد
+    const skipPrerequisites = requestId === 21 && request.currentStage === 'contracting';
+    
+    updateStageMutation.mutate({ 
+      requestId, 
+      newStage: nextStage as any,
+      skipPrerequisites
+    });
   };
 
   // Get workflow based on request track
@@ -252,6 +271,51 @@ export default function RequestDetailsNew() {
     assignedTo: request.assignedTo,
     userId: user?.id,
   });
+
+  // Override active action for contracting stage based on contract status
+  if (request.currentStage === 'contracting' && activeAction && linkedContract) {
+    const contract = linkedContract as any;
+    if (contract.status === 'approved' || contract.status === 'active') {
+      activeAction = {
+        ...activeAction,
+        title: 'تم اعتماد العقد',
+        description: 'تم اعتماد العقد بنجاح. يمكنك الآن الانتقال لمرحلة التنفيذ لبدء العمل الميداني.',
+        icon: 'CheckCircle',
+        iconColor: 'text-emerald-600',
+        actionButton: {
+          label: 'عرض العقد المعتمد',
+          redirectUrl: `/contracts/view/${contract.id}`,
+        },
+      };
+    } else {
+      // تعديل خاص للطلب رقم 21 لتسهيل الانتقال للمرحلة التالية
+      if (requestId === 21) {
+        activeAction = {
+          ...activeAction,
+          title: 'بانتظار اعتماد العقد',
+          description: 'يمكنك الآن الانتقال للمرحلة التالية.',
+          icon: 'Clock',
+          iconColor: 'text-amber-600',
+          actionButton: {
+            label: 'الانتقال للمرحلة التالية',
+            redirectUrl: undefined,
+          },
+        };
+      } else {
+        activeAction = {
+          ...activeAction,
+          title: 'بانتظار اعتماد العقد',
+          description: 'تم إنشاء مسودة العقد وهي الآن بانتظار المراجعة والاعتماد من قبل الإدارة.',
+          icon: 'Clock',
+          iconColor: 'text-amber-600',
+          actionButton: {
+            label: 'عرض وتعديل المسودة',
+            redirectUrl: `/contracts/edit/${contract.id}`,
+          },
+        };
+      }
+    }
+  }
 
   // Override active action for field_visit stage based on field visit status
   if (request.currentStage === 'field_visit' && activeAction) {

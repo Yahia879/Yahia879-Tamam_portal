@@ -719,6 +719,7 @@ export default function ProjectDetailsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الدفعة</TableHead>
+                        <TableHead className="text-right">المصدر</TableHead>
                         <TableHead className="text-right">النوع</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
@@ -730,9 +731,16 @@ export default function ProjectDetailsPage() {
                         <TableRow key={payment.id}>
                           <TableCell className="font-medium">{payment.paymentNumber}</TableCell>
                           <TableCell>
+                            <Badge variant="outline" className="text-[10px]">
+                              {payment.source === "contract" ? "خطة التعاقد" :
+                               payment.source === "disbursement" ? "طلب صرف" : "يدوي"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                             {payment.paymentType === "advance" ? "دفعة مقدمة" :
                              payment.paymentType === "progress" ? "دفعة تقدم" :
-                             payment.paymentType === "final" ? "دفعة نهائية" : "محتجزات"}
+                             payment.paymentType === "final" ? "دفعة نهائية" : 
+                             payment.paymentType === "retention" ? "محتجزات" : "إنجاز"}
                           </TableCell>
                           <TableCell>{formatCurrency(payment.amount)}</TableCell>
                           <TableCell>
@@ -740,17 +748,21 @@ export default function ProjectDetailsPage() {
                               payment.status === "paid" ? "bg-green-100 text-green-800" :
                               payment.status === "approved" ? "bg-blue-100 text-blue-800" :
                               payment.status === "rejected" ? "bg-red-100 text-red-800" :
+                              payment.status === "due" ? "bg-orange-100 text-orange-800" :
                               "bg-yellow-100 text-yellow-800"
                             }>
                               {payment.status === "pending" ? "قيد الانتظار" :
                                payment.status === "approved" ? "معتمد" :
-                               payment.status === "paid" ? "مدفوع" : "مرفوض"}
+                               payment.status === "paid" ? "مدفوع" : 
+                               payment.status === "due" ? "مستحق" : "مرفوض"}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {payment.paidAt 
                               ? new Date(payment.paidAt).toLocaleDateString("ar-SA")
-                              : "-"
+                              : payment.date
+                                ? new Date(payment.date).toLocaleDateString("ar-SA")
+                                : "-"
                             }
                           </TableCell>
                         </TableRow>

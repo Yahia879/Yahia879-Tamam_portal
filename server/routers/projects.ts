@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -156,12 +156,81 @@ export const projectsRouter = router({
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.projectId, input.id));
 
-      // جلب الدفعات
-      const projectPayments = await db
+      const contractIds = projectContracts.map(c => c.id);
+
+      // جلب دفعات العقود
+      const allContractPayments = contractIds.length > 0 
+        ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+        : [];
+
+      // جلب طلبات الصرف
+      const projectDisbursements = await db
+        .select()
+        .from(disbursementRequests)
+        .where(eq(disbursementRequests.projectId, input.id))
+        .orderBy(desc(disbursementRequests.createdAt));
+
+      // جلب الدفعات اليدوية
+      const manualPayments = await db
         .select()
         .from(payments)
         .where(eq(payments.projectId, input.id))
         .orderBy(desc(payments.createdAt));
+
+      // توحيد الدفعات
+      const unifiedPayments: any[] = [];
+
+      // 1. إضافة طلبات الصرف كأولوية (لأنها تمثل العملية المالية الفعلية)
+      projectDisbursements.forEach(d => {
+        unifiedPayments.push({
+          id: `disb-${d.id}`,
+          paymentNumber: d.requestNumber,
+          paymentType: d.paymentType,
+          amount: d.amount,
+          status: d.status,
+          description: d.title || d.description,
+          date: d.createdAt,
+          paidAt: d.status === "paid" ? d.updatedAt : null,
+          source: "disbursement",
+          contractPaymentId: d.contractPaymentId,
+        });
+      });
+
+      // 2. إضافة دفعات العقود التي لم يُنشأ لها طلب صرف بعد
+      allContractPayments.forEach(cp => {
+        const hasDisbursement = projectDisbursements.find(d => d.contractPaymentId === cp.id);
+        if (!hasDisbursement) {
+          unifiedPayments.push({
+            id: `cp-${cp.id}`,
+            paymentNumber: `PLAN-${cp.id}`,
+            paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
+            amount: cp.amount,
+            status: cp.status === "paid" ? "paid" : "pending",
+            description: cp.phaseName,
+            date: cp.dueDate || cp.createdAt,
+            paidAt: cp.paidAt,
+            source: "contract",
+          });
+        }
+      });
+
+      // 3. إضافة الدفعات اليدوية التي ليست مرتبطة بطلب صرف (لتجنب التكرار)
+      manualPayments.forEach(p => {
+        // إذا كانت الدفعة اليدوية مرتبطة بعقد، قد تكون مكررة مع طلبات الصرف
+        // لكن حالياً لا يوجد ربط صريح بين payments و disbursementRequests في الشيمّا
+        // سنضيفها فقط إذا لم تكن هناك دفعات أخرى بنفس الرقم (إن وجد)
+        unifiedPayments.push({
+          id: `manual-${p.id}`,
+          paymentNumber: p.paymentNumber,
+          paymentType: p.paymentType,
+          amount: p.amount,
+          status: p.status,
+          description: p.description,
+          date: p.createdAt,
+          paidAt: p.paidAt,
+          source: "manual",
+        });
+      });
 
       // جلب جداول الكميات
       const boq = await db
@@ -189,7 +258,7 @@ export const projectsRouter = router({
         request,
         phases,
         contracts: projectContracts,
-        payments: projectPayments,
+        payments: unifiedPayments,
         boq,
         quotations: projectQuotations,
       };
@@ -572,6 +641,22 @@ export const projectsRouter = router({
       }
       if (input.status === "paid") {
         updateValues.paidAt = new Date();
+        
+        // جلب بيانات الدفعة لمعرفة المشروع والمبلغ
+        const [payment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, input.id));
+
+        if (payment && payment.projectId) {
+          await db
+            .update(projects)
+            .set({
+              actualCost: sql`CAST(COALESCE(${projects.actualCost}, 0) + ${payment.amount} AS DECIMAL(15,2))`,
+              updatedAt: new Date(),
+            })
+            .where(eq(projects.id, payment.projectId));
+        }
       }
 
       await db
@@ -662,6 +747,7 @@ export const projectsRouter = router({
           status: quotations.status,
           validUntil: quotations.validUntil,
           notes: quotations.notes,
+          supplierId: quotations.supplierId,
           supplierName: suppliers.name,
           createdAt: quotations.createdAt,
         })

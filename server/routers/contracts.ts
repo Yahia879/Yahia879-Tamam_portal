@@ -594,14 +594,14 @@ export const contractsRouter = router({
           approvedAt: new Date(),
         })
         .where(eq(contractsEnhanced.id, input.id));
-      
-      // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد
+      // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد وتحديث الميزانية
       console.log('[Contract Approve] Starting stage update - projectId:', contract.projectId, 'requestId:', contract.requestId);
       if (contract.projectId) {
         await db
           .update(projects)
           .set({
             status: "in_progress",
+            budget: contract.contractAmount,
             updatedAt: new Date(),
           })
           .where(eq(projects.id, contract.projectId));

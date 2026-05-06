@@ -756,6 +756,16 @@ export const disbursementsRouter = router({
           .where(eq(contractPayments.id, request.contractPaymentId));
       }
 
+      // تحديث التكلفة الفعلية للمشروع
+      if (request?.projectId) {
+        await db
+          .update(projects)
+          .set({
+            actualCost: sql`CAST(COALESCE(${projects.actualCost}, 0) + ${request.amount} AS DECIMAL(15,2))`,
+            updatedAt: new Date(),
+          })
+          .where(eq(projects.id, request.projectId));
+      }
       return { success: true, message: "تم تنفيذ أمر الصرف بنجاح" };
     }),
 
@@ -895,45 +905,98 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // إجمالي المصروفات حسب المشروع
+      // إجمالي المصروفات حسب المشروع (طلبات الصرف + الدفعات اليدوية)
+      const projectRequests = db
+        .select({
+          projectId: disbursementRequests.projectId,
+          amount: disbursementRequests.amount,
+          status: disbursementRequests.status,
+        })
+        .from(disbursementRequests);
+
+      const projectManualPayments = db
+        .select({
+          projectId: payments.projectId,
+          amount: payments.amount,
+          status: payments.status,
+        })
+        .from(payments);
+
+      const allProjectFinancials = sql`(${projectRequests} UNION ALL ${projectManualPayments})`;
+
       const byProject = await db
         .select({
           projectId: projects.id,
           projectName: projects.name,
           projectNumber: projects.projectNumber,
-          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
-          approvedCount: sql<number>`SUM(CASE WHEN ${disbursementRequests.status} IN ('approved', 'paid') THEN 1 ELSE 0 END)`,
-          paidCount: sql<number>`SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN 1 ELSE 0 END)`,
-          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+          totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
+          approvedCount: sql<number>`SUM(CASE WHEN f.status IN ('approved', 'paid') THEN 1 ELSE 0 END)`,
+          paidCount: sql<number>`SUM(CASE WHEN f.status = 'paid' THEN 1 ELSE 0 END)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
         })
-        .from(disbursementRequests)
-        .innerJoin(projects, eq(disbursementRequests.projectId, projects.id))
+        .from(projects)
+        .leftJoin(sql`${allProjectFinancials} as f`, eq(projects.id, sql`f.projectId`))
         .groupBy(projects.id, projects.name, projects.projectNumber)
         .orderBy(desc(sql`totalRequested`));
 
       // إجمالي المصروفات حسب الشهر
+      const monthRequests = db
+        .select({
+          month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+          amount: disbursementRequests.amount,
+          status: disbursementRequests.status,
+        })
+        .from(disbursementRequests);
+
+      const monthManual = db
+        .select({
+          month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+          amount: payments.amount,
+          status: payments.status,
+        })
+        .from(payments);
+
+      const allMonthlyFinancials = sql`(${monthRequests} UNION ALL ${monthManual})`;
+
       const byMonth = await db
         .select({
-          month: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m')`,
-          monthName: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%M %Y')`,
-          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          month: sql`f.month`,
+          totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
           requestCount: sql<number>`COUNT(*)`,
-          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
         })
-        .from(disbursementRequests)
-        .groupBy(sql`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m')`)
-        .orderBy(desc(sql`month`));
+        .from(sql`${allMonthlyFinancials} as f`)
+        .groupBy(sql`f.month`)
+        .orderBy(desc(sql`f.month`));
 
       // إجمالي المصروفات حسب نوع الدفعة
+      const typeRequests = db
+        .select({
+          paymentType: disbursementRequests.paymentType,
+          amount: disbursementRequests.amount,
+          status: disbursementRequests.status,
+        })
+        .from(disbursementRequests);
+
+      const typeManual = db
+        .select({
+          paymentType: payments.paymentType,
+          amount: payments.amount,
+          status: payments.status,
+        })
+        .from(payments);
+
+      const allTypeFinancials = sql`(${typeRequests} UNION ALL ${typeManual})`;
+
       const byFundingSource = await db
         .select({
-          fundingSource: disbursementRequests.paymentType,
-          totalRequested: sql<number>`COALESCE(SUM(${disbursementRequests.amount}), 0)`,
+          fundingSource: sql`f.paymentType`,
+          totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
           requestCount: sql<number>`COUNT(*)`,
-          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
+          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
         })
-        .from(disbursementRequests)
-        .groupBy(disbursementRequests.paymentType)
+        .from(sql`${allTypeFinancials} as f`)
+        .groupBy(sql`f.paymentType`)
         .orderBy(desc(sql`totalRequested`));
 
       // إجمالي أوامر الصرف حسب الحالة
@@ -955,6 +1018,12 @@ export const disbursementsRouter = router({
           pendingAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} IN ('pending', 'approved') THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
         })
         .from(disbursementRequests);
+
+      const [manualTotals] = await db
+        .select({
+          totalPaidAmount: sql<number>`COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0)`,
+        })
+        .from(payments);
 
       const [orderTotals] = await db
         .select({
@@ -991,15 +1060,24 @@ export const disbursementsRouter = router({
       // حساب المصروف لكل عقد
       const contractsWithDisbursements = await Promise.all(
         contractsSummary.map(async (contract) => {
-          const [paid] = await db
+          const [paidDisb] = await db
             .select({ total: sql<number>`COALESCE(SUM(CAST(${disbursementRequests.amount} AS DECIMAL(15,2))), 0)` })
             .from(disbursementRequests)
             .where(and(
               eq(disbursementRequests.contractId, contract.contractId),
               eq(disbursementRequests.status, "paid")
             ));
+
+          const [paidManual] = await db
+            .select({ total: sql<number>`COALESCE(SUM(CAST(amount AS DECIMAL(15,2))), 0)` })
+            .from(payments)
+            .where(and(
+              eq(payments.contractId, contract.contractId),
+              eq(payments.status, "paid")
+            ));
+
           const contractAmount = Number(contract.contractAmount || 0);
-          const totalPaid = Number(paid?.total || 0);
+          const totalPaid = Number(paidDisb?.total || 0) + Number(paidManual?.total || 0);
           return {
             ...contract,
             contractAmount,
@@ -1018,7 +1096,7 @@ export const disbursementsRouter = router({
         summary: {
           totalRequests: totals?.totalRequests || 0,
           totalRequestedAmount: Number(totals?.totalRequestedAmount || 0),
-          totalPaidAmount: Number(totals?.totalPaidAmount || 0),
+          totalPaidAmount: Number(totals?.totalPaidAmount || 0) + Number(manualTotals?.totalPaidAmount || 0),
           pendingAmount: Number(totals?.pendingAmount || 0),
           totalOrders: orderTotals?.totalOrders || 0,
           totalOrderAmount: Number(orderTotals?.totalOrderAmount || 0),
@@ -1050,16 +1128,21 @@ export const disbursementsRouter = router({
       .from(disbursementOrders)
       .where(eq(disbursementOrders.status, "pending"));
 
-    const [totalPaid] = await db
+    const [totalPaidDisb] = await db
       .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
       .from(disbursementRequests)
       .where(eq(disbursementRequests.status, "paid"));
+
+    const [totalPaidManual] = await db
+      .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+      .from(payments)
+      .where(eq(payments.status, "paid"));
 
     return {
       pendingRequests: pendingRequests?.count || 0,
       approvedRequests: approvedRequests?.count || 0,
       pendingOrders: pendingOrders?.count || 0,
-      totalPaid: totalPaid?.total || 0,
+      totalPaid: Number(totalPaidDisb?.total || 0) + Number(totalPaidManual?.total || 0),
     };
   }),
 
@@ -1088,18 +1171,28 @@ export const disbursementsRouter = router({
 
       const totalApproved = Number(totalApprovedResult?.total || 0);
 
-      // إجمالي المبلغ المصروف
+      // إجمالي المبلغ المصروف (طلبات الصرف + الدفعات اليدوية)
       const paidConditions = [
         eq(disbursementRequests.status, "paid"),
         projectId ? eq(disbursementRequests.projectId, projectId) : undefined,
       ].filter(Boolean);
 
-      const [totalPaidResult] = await db
+      const [totalPaidDisbursements] = await db
         .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
         .from(disbursementRequests)
         .where(paidConditions.length > 0 ? and(...paidConditions) : undefined);
 
-      const totalPaid = Number(totalPaidResult?.total || 0);
+      const manualPaidConditions = [
+        eq(payments.status, "paid"),
+        projectId ? eq(payments.projectId, projectId) : undefined,
+      ].filter(Boolean);
+
+      const [totalPaidManual] = await db
+        .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+        .from(payments)
+        .where(manualPaidConditions.length > 0 ? and(...manualPaidConditions) : undefined);
+
+      const totalPaid = Number(totalPaidDisbursements?.total || 0) + Number(totalPaidManual?.total || 0);
 
       // إجمالي المبلغ المتبقي
       const totalRemaining = totalApproved - totalPaid;
@@ -1126,6 +1219,7 @@ export const disbursementsRouter = router({
       const paymentBreakdown: Record<string, number> = {};
 
       for (const type of paymentTypes) {
+        // دفعات طلبات الصرف
         const typeConditions = [
           eq(disbursementRequests.status, "paid"),
           eq(disbursementRequests.paymentType, type),
@@ -1137,7 +1231,19 @@ export const disbursementsRouter = router({
           .from(disbursementRequests)
           .where(typeConditions.length > 0 ? and(...typeConditions) : undefined);
 
-        paymentBreakdown[type] = Number(typeResult?.total || 0);
+        // الدفعات اليدوية
+        const manualTypeConditions = [
+          eq(payments.status, "paid"),
+          eq(payments.paymentType, type),
+          projectId ? eq(payments.projectId, projectId) : undefined,
+        ].filter(Boolean);
+
+        const [manualTypeResult] = await db
+          .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+          .from(payments)
+          .where(manualTypeConditions.length > 0 ? and(...manualTypeConditions) : undefined);
+
+        paymentBreakdown[type] = Number(typeResult?.total || 0) + Number(manualTypeResult?.total || 0);
       }
 
       return {

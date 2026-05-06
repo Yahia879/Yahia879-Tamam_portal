@@ -154,16 +154,10 @@ export default function ContractForm() {
   // جلب قائمة المفوضين
   const { data: signatoriesData } = trpc.organization.getSignatories.useQuery();
 
-  // جلب تفاصيل المورد المختار
-  const { data: selectedSupplier } = trpc.suppliers.getById.useQuery(
-    { id: contractData.supplierId! },
-    { enabled: !!contractData.supplierId }
-  );
-
   // جلب العرض المعتمد للطلب (إن وجد)
   const { data: approvedQuotation } = trpc.projects.getQuotationsByRequest.useQuery(
-    { requestId: contractData.requestId! },
-    { enabled: !!contractData.requestId }
+    { requestId: requestId! },
+    { enabled: !!requestId }
   );
 
   // جلب تفاصيل الطلب للحصول على المشروع المرتبط
@@ -171,6 +165,18 @@ export default function ContractForm() {
     { id: requestId! },
     { enabled: !!requestId }
   );
+
+  // جلب تفاصيل المورد المختار
+  const { data: selectedSupplier } = trpc.suppliers.getById.useQuery(
+    { id: contractData.supplierId! },
+    { enabled: !!contractData.supplierId }
+  );
+
+  // تحديد ما إذا كان هناك عرض سعر معتمد (لتثبيت المورد)
+  const approvedSupplierQuotation = Array.isArray((approvedQuotation as any)?.quotations)
+    ? (approvedQuotation as any).quotations.find((q: any) => q.status === "accepted" || q.status === "approved")
+    : null;
+  const hasApprovedSupplier = !!approvedSupplierQuotation;
 
   // Mutation لإنشاء العقد
   const createMutation = trpc.contracts.create.useMutation({
@@ -202,45 +208,39 @@ export default function ContractForm() {
     }
   }, [templateClauses]);
 
-  // تحديث القيمة من العرض المعتمد
+  // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
-    if (approvedQuotation) {
-      const quotations = (approvedQuotation as any).quotations || approvedQuotation;
-      if (Array.isArray(quotations)) {
-        const accepted = quotations.find((q: any) => q.status === "accepted" || q.status === "approved");
-        if (accepted) {
-          // المبلغ الأصلي من المورد
-          const originalAmount = parseFloat(accepted.totalAmount) || 0;
-          
-          // المبلغ بعد التفاوض (إن وجد)
-          const negotiatedAmount = accepted.negotiatedAmount 
-            ? parseFloat(accepted.negotiatedAmount) 
-            : null;
-          
-          // المبلغ المعتمد (إن وجد)
-          const approvedAmount = accepted.approvedAmount 
-            ? parseFloat(accepted.approvedAmount) 
-            : null;
-          
-          // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
-          const finalAmount = approvedAmount ?? negotiatedAmount ?? originalAmount;
-          
-          // حساب النسبة إذا كانت مخزنة في العرض
-          const managementPercentage = accepted.managementPercentage 
-            ? parseFloat(accepted.managementPercentage) 
-            : 0;
-          
-          setContractData(prev => ({
-            ...prev,
-            supplierId: accepted.supplierId,
-            baseValue: originalAmount, // المبلغ الأصلي للمرجع
-            managementPercentage: managementPercentage,
-            totalValue: finalAmount, // القيمة النهائية (بعد التفاوض أو المعتمدة)
-          }));
-        }
-      }
+    if (approvedSupplierQuotation) {
+      // المبلغ الأصلي من المورد
+      const originalAmount = parseFloat(approvedSupplierQuotation.totalAmount) || 0;
+      
+      // المبلغ بعد التفاوض (إن وجد)
+      const negotiatedAmount = approvedSupplierQuotation.negotiatedAmount 
+        ? parseFloat(approvedSupplierQuotation.negotiatedAmount) 
+        : null;
+      
+      // المبلغ المعتمد (إن وجد)
+      const approvedAmount = approvedSupplierQuotation.approvedAmount 
+        ? parseFloat(approvedSupplierQuotation.approvedAmount) 
+        : null;
+      
+      // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
+      const finalAmount = approvedAmount ?? negotiatedAmount ?? originalAmount;
+      
+      // حساب النسبة إذا كانت مخزنة في العرض
+      const managementPercentage = approvedSupplierQuotation.managementPercentage 
+        ? parseFloat(approvedSupplierQuotation.managementPercentage) 
+        : 0;
+      
+      setContractData(prev => ({
+        ...prev,
+        supplierId: approvedSupplierQuotation.supplierId,
+        baseValue: originalAmount, // المبلغ الأصلي للمرجع
+        managementPercentage: managementPercentage,
+        totalValue: finalAmount, // القيمة النهائية (بعد التفاوض أو المعتمدة)
+      }));
     }
-  }, [approvedQuotation]);
+  }, [approvedSupplierQuotation]);
 
   // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
@@ -743,6 +743,16 @@ export default function ContractForm() {
             {/* الخطوة 2: الطرف الثاني */}
             {currentStep === 2 && (
               <div className="space-y-6">
+                {hasApprovedSupplier && (
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Check className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800">تم اختيار المورد تلقائياً</AlertTitle>
+                    <AlertDescription className="text-blue-700">
+                      تم تحديد المورد "{approvedSupplierQuotation.supplierName}" بناءً على عرض السعر المعتمد في المرحلة المالية.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2">
                   <Label>المورد (الطرف الثاني) *</Label>
                   {suppliersLoading ? (
@@ -756,6 +766,7 @@ export default function ContractForm() {
                         ...contractData, 
                         supplierId: parseInt(value) 
                       })}
+                      disabled={hasApprovedSupplier}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المورد" />
@@ -768,6 +779,11 @@ export default function ContractForm() {
                         ))}
                       </SelectContent>
                     </Select>
+                  )}
+                  {hasApprovedSupplier && (
+                    <p className="text-xs text-blue-600 font-medium">
+                      لا يمكن تغيير المورد لوجود عرض سعر معتمد مرتب بهذا الطلب.
+                    </p>
                   )}
                 </div>
 
