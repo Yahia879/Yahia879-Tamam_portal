@@ -218,8 +218,8 @@ export default function RequestDetailsNew() {
       return;
     }
     
-    // تعديل خاص للطلب رقم 21 لتجاوز شروط التعاقد
-    const skipPrerequisites = requestId === 21 && request.currentStage === 'contracting';
+    // السماح بتجاوز شروط التعاقد عند وجود مسودة عقد لجميع الطلبات
+    const skipPrerequisites = request.currentStage === 'contracting';
     
     updateStageMutation.mutate({ 
       requestId, 
@@ -288,32 +288,18 @@ export default function RequestDetailsNew() {
         },
       };
     } else {
-      // تعديل خاص للطلب رقم 21 لتسهيل الانتقال للمرحلة التالية
-      if (requestId === 21) {
-        activeAction = {
-          ...activeAction,
-          title: 'بانتظار اعتماد العقد',
-          description: 'يمكنك الآن الانتقال للمرحلة التالية.',
-          icon: 'Clock',
-          iconColor: 'text-amber-600',
-          actionButton: {
-            label: 'الانتقال للمرحلة التالية',
-            redirectUrl: undefined,
-          },
-        };
-      } else {
-        activeAction = {
-          ...activeAction,
-          title: 'بانتظار اعتماد العقد',
-          description: 'تم إنشاء مسودة العقد وهي الآن بانتظار المراجعة والاعتماد من قبل الإدارة.',
-          icon: 'Clock',
-          iconColor: 'text-amber-600',
-          actionButton: {
-            label: 'عرض وتعديل المسودة',
-            redirectUrl: `/contracts/edit/${contract.id}`,
-          },
-        };
-      }
+      // الانتقال للمرحلة التالية مباشرة باستخدام مسودة العقد الحالية لجميع الطلبات
+      activeAction = {
+        ...activeAction,
+        title: 'جاهز للانتقال للمرحلة التالية',
+        description: 'يمكنك الآن الانتقال للمرحلة التالية مباشرة باستخدام مسودة العقد الحالية.',
+        icon: 'ArrowRight',
+        iconColor: 'text-emerald-600',
+        actionButton: {
+          label: 'الانتقال للمرحلة التالية',
+          redirectUrl: undefined,
+        },
+      };
     }
   }
 
