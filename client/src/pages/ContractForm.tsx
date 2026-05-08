@@ -81,10 +81,13 @@ export default function ContractForm() {
   // قراءة requestId من query parameters
   const searchParams = new URLSearchParams(search || '');
   const requestIdFromQuery = searchParams.get('requestId');
+  const projectIdFromQuery = searchParams.get('projectId');
+  
   const requestId = requestIdFromQuery ? parseInt(requestIdFromQuery) : 
                    (params.requestId ? parseInt(params.requestId) : undefined);
   
-  const projectId = params.projectId ? parseInt(params.projectId) : undefined;
+  const projectId = projectIdFromQuery ? parseInt(projectIdFromQuery) :
+                   (params.projectId ? parseInt(params.projectId) : undefined);
   
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);

@@ -641,7 +641,10 @@ export default function ProjectDetailsPage() {
                   <CardTitle className="text-lg">العقود</CardTitle>
                   <CardDescription>عقود المقاولين والموردين</CardDescription>
                 </div>
-                <Button className="gradient-primary text-white" onClick={() => toast.info("قريباً - إضافة عقد جديد")}>
+                <Button 
+                  className="gradient-primary text-white" 
+                  onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
+                >
                   <Plus className="w-4 h-4 ml-2" />
                   إضافة عقد
                 </Button>
@@ -708,7 +711,10 @@ export default function ProjectDetailsPage() {
                   <CardTitle className="text-lg">الدفعات</CardTitle>
                   <CardDescription>سجل الدفعات المالية للمشروع</CardDescription>
                 </div>
-                <Button className="gradient-primary text-white" onClick={() => toast.info("قريباً - إضافة دفعة جديدة")}>
+                <Button 
+                  className="gradient-primary text-white" 
+                  onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                >
                   <Plus className="w-4 h-4 ml-2" />
                   إضافة دفعة
                 </Button>
