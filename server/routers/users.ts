@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments } from "../../drizzle/schema";
-import { eq, count, and, notInArray, desc, like, or } from "drizzle-orm";
+import { eq, count, and, notInArray, desc, like, or, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -30,7 +30,7 @@ export const usersRouter = router({
       limit: z.number().default(20),
       search: z.string().optional(),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
@@ -76,7 +76,14 @@ export const usersRouter = router({
         .select()
         .from(users)
         .where(whereClause)
-        .orderBy(desc(users.createdAt))
+        .orderBy(
+          sql`CASE 
+            WHEN ${users.role} = 'system_admin' THEN 0 
+            WHEN ${users.id} = ${ctx.user.id} THEN 1 
+            ELSE 2 
+          END ASC`,
+          desc(users.createdAt)
+        )
         .limit(limit)
         .offset(offset);
 
