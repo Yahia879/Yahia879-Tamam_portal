@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,15 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
+import {
   Search,
   MoreVertical,
   Shield,
@@ -48,6 +57,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -79,6 +90,8 @@ export interface UsersTabProps {
 
 export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const limit = 20;
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -92,9 +105,24 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     roleIds: [] as string[],
   });
 
-  const { data: users, isLoading, refetch } = trpc.users.getAll.useQuery();
+  const { data: usersData, isLoading, isPlaceholderData, refetch } = trpc.users.getAll.useQuery({
+    page,
+    limit,
+    search: searchQuery,
+  }, {
+    placeholderData: (previousData) => previousData,
+  });
+
+  const users = usersData?.items || [];
+  const totalCount = usersData?.totalCount || 0;
+  const totalPages = usersData?.totalPages || 1;
+
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
   const { data: jobPositions } = trpc.jobPositions.getActive.useQuery();
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: () => {
@@ -192,20 +220,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     }));
   };
 
-  const staffUsers =
-    users?.filter(
-      (u: any) =>
-        u.role !== "service_requester" &&
-        u.role !== "imam" &&
-        u.role !== "muezzin"
-    ) || [];
-
-  const filteredStaff = staffUsers.filter(
-    (u: any) =>
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
       super_admin: { label: "مدير النظام", variant: "default" },
@@ -237,10 +251,13 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     );
   };
 
-  if (isLoading) {
+
+
+  if (isLoading && !isPlaceholderData) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">جاري تحميل قائمة الموظفين...</p>
       </div>
     );
   }
@@ -250,18 +267,19 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6">
-          <div className="text-2xl font-bold">{staffUsers.length}</div>
+          <div className="text-2xl font-bold">{totalCount}</div>
           <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
         </Card>
         <Card className="p-6">
           <div className="text-2xl font-bold text-green-600">
-            {staffUsers.filter((u: any) => u.status === "active").length}
+            {/* ملاحظة: هذا العدد يجب أن يأتي من الخلفية أيضاً ليكون دقيقاً مع التقسيم */}
+            {usersData?.activeCount ?? "..."}
           </div>
           <div className="text-sm text-muted-foreground">الحسابات النشطة</div>
         </Card>
         <Card className="p-6">
           <div className="text-2xl font-bold text-red-600">
-            {staffUsers.filter((u: any) => u.status === "suspended").length}
+            {usersData?.suspendedCount ?? "..."}
           </div>
           <div className="text-sm text-muted-foreground">الحسابات الموقوفة</div>
         </Card>
@@ -279,7 +297,12 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       </div>
 
       {/* Users Table */}
-      <Card>
+      <Card className="relative overflow-hidden">
+        {isLoading && isPlaceholderData && (
+          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -292,14 +315,14 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredStaff.length === 0 ? (
+            {users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   {searchQuery ? "لا توجد نتائج للبحث" : "لا يوجد موظفون مسجلون بعد"}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredStaff.map((user: any) => (
+              users.map((user: any) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
                     <Link href={`/users/${user.id}`} className="hover:text-primary hover:underline cursor-pointer">
@@ -354,6 +377,63 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination UI */}
+        {totalPages > 1 && (
+          <div className="py-4 border-t">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="gap-1"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                    السابق
+                  </Button>
+                </PaginationItem>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                  // إظهار الصفحات القريبة من الصفحة الحالية فقط إذا كان العدد كبيراً
+                  if (totalPages > 7) {
+                    if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
+                      if (p === 2 || p === totalPages - 1) return <PaginationItem key={p}><PaginationEllipsis /></PaginationItem>;
+                      return null;
+                    }
+                  }
+                  
+                  return (
+                    <PaginationItem key={p}>
+                      <PaginationLink
+                        onClick={() => setPage(p)}
+                        isActive={page === p}
+                        className="cursor-pointer"
+                      >
+                        {p}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="gap-1"
+                  >
+                    التالي
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </Card>
 
       {/* Add User Dialog */}

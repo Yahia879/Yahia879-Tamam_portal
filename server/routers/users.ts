@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, count, and, notInArray, desc, like, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -17,17 +17,77 @@ const STAFF_ROLES = [
   "field_team",
   "quick_response",
   "financial",
+  "financial_manager",
   "project_manager",
   "corporate_comm",
 ] as const;
 
 export const usersRouter = router({
-  // Get all users
-  getAll: protectedProcedure.query(async () => {
-    const db = await getDb();
-    if (!db) throw new Error("Database connection failed");
-    return db.select().from(users).orderBy(users.createdAt);
-  }),
+  // Get paginated users (staff only)
+  getAll: protectedProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      limit: z.number().default(20),
+      search: z.string().optional(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      const { page, limit, search } = input;
+      const offset = (page - 1) * limit;
+
+      // تصفية المستخدمين لاستبعاد أدوار طالب الخدمة
+      const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
+      
+      let whereClause = notInArray(users.role, excludedRoles);
+      
+      if (search) {
+        whereClause = and(
+          whereClause,
+          or(
+            like(users.name, `%${search}%`),
+            like(users.email, `%${search}%`)
+          )
+        ) as any;
+      }
+
+      // جلب العدد الإجمالي
+      const [countResult] = await db
+        .select({ value: count() })
+        .from(users)
+        .where(whereClause);
+      
+      // جلب عدد الحسابات النشطة والموقوفة للإحصائيات
+      const [activeResult] = await db
+        .select({ value: count() })
+        .from(users)
+        .where(and(whereClause, eq(users.status, "active")));
+
+      const [suspendedResult] = await db
+        .select({ value: count() })
+        .from(users)
+        .where(and(whereClause, eq(users.status, "suspended")));
+      
+      const totalCount = countResult.value;
+
+      // جلب البيانات مع الترتيب والتقسيم
+      const items = await db
+        .select()
+        .from(users)
+        .where(whereClause)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return {
+        items,
+        totalCount,
+        activeCount: activeResult.value,
+        suspendedCount: suspendedResult.value,
+        totalPages: Math.ceil(totalCount / limit),
+      };
+    }),
 
   // Get user by ID
   getById: protectedProcedure
