@@ -69,17 +69,26 @@ export default function StaffManagement() {
         </div>
 
         {/* نظام التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 w-full md:w-auto overflow-x-auto justify-start">
-            <TabsTrigger value="users" className="gap-2 px-4 py-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
+          <TabsList className="bg-muted/60 p-1.5 w-full md:w-auto overflow-x-auto justify-start h-auto border shadow-sm">
+            <TabsTrigger 
+              value="users" 
+              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
+            >
               <Users className="h-4 w-4" />
               المستخدمين
             </TabsTrigger>
-            <TabsTrigger value="roles" className="gap-2 px-4 py-2">
+            <TabsTrigger 
+              value="roles" 
+              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
+            >
               <Shield className="h-4 w-4" />
               الأدوار والصلاحيات
             </TabsTrigger>
-            <TabsTrigger value="job-positions" className="gap-2 px-4 py-2">
+            <TabsTrigger 
+              value="job-positions" 
+              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
+            >
               <Briefcase className="h-4 w-4" />
               الأدوار الوظيفية
             </TabsTrigger>
