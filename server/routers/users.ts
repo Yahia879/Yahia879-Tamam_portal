@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments } from "../../drizzle/schema";
-import { eq, count, and, notInArray, desc, like, or, sql } from "drizzle-orm";
+import { eq, count, and, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -37,10 +37,13 @@ export const usersRouter = router({
       const { page, limit, search } = input;
       const offset = (page - 1) * limit;
 
-      // تصفية المستخدمين لاستبعاد أدوار طالب الخدمة
+      // تصفية المستخدمين لاستبعاد أدوار طالب الخدمة والمستخدمين المحذوفين
       const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
       
-      let whereClause = notInArray(users.role, excludedRoles);
+      let whereClause = and(
+        notInArray(users.role, excludedRoles),
+        isNull(users.deletedAt)
+      );
       
       if (search) {
         whereClause = and(
@@ -78,9 +81,10 @@ export const usersRouter = router({
         .where(whereClause)
         .orderBy(
           sql`CASE 
-            WHEN ${users.role} = 'system_admin' THEN 0 
-            WHEN ${users.id} = ${ctx.user.id} THEN 1 
-            ELSE 2 
+            WHEN ${users.role} = 'super_admin' THEN 0
+            WHEN ${users.role} = 'system_admin' THEN 1
+            WHEN ${users.id} = ${ctx.user.id} THEN 2 
+            ELSE 3 
           END ASC`,
           desc(users.createdAt)
         )
@@ -105,7 +109,7 @@ export const usersRouter = router({
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, input.id))
+        .where(and(eq(users.id, input.id), isNull(users.deletedAt)))
         .limit(1);
       return user;
     }),
@@ -116,7 +120,7 @@ export const usersRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
-      const [user] = await db.select().from(users).where(eq(users.id, input.id)).limit(1);
+      const [user] = await db.select().from(users).where(and(eq(users.id, input.id), isNull(users.deletedAt))).limit(1);
       if (!user) return null;
       const [emp] = await db.select().from(employees).where(eq(employees.userId, input.id)).limit(1);
       return { ...user, employee: emp || null };
@@ -206,7 +210,10 @@ export const usersRouter = router({
         status: z.enum(["active", "pending", "suspended", "blocked"]),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل حالة المستخدمين" });
+      }
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       await db
@@ -280,10 +287,29 @@ export const usersRouter = router({
   // Delete user
   delete: protectedProcedure
     .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف المستخدمين" });
+      }
+
+      if (input.userId === ctx.user.id) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "لا يمكنك حذف حسابك الخاص" 
+        });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
-      await db.delete(users).where(eq(users.id, input.userId));
+      
+      // تنفيذ الحذف الناعم
+      await db.update(users)
+        .set({ 
+          deletedAt: new Date(),
+          status: 'suspended'
+        })
+        .where(eq(users.id, input.userId));
+        
       return { success: true };
     }),
 
@@ -300,7 +326,7 @@ export const usersRouter = router({
         status: users.status,
       })
       .from(users)
-      .where(eq(users.status, "active"));
+      .where(and(eq(users.status, "active"), isNull(users.deletedAt)));
     return staffUsers.filter(user => user.role !== "service_requester");
   }),
 });

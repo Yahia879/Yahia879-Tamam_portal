@@ -13,7 +13,7 @@ import {
   users,
   notifications,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 // توليد رقم طلب صرف
@@ -234,7 +234,7 @@ export const disbursementsRouter = router({
       const financialUsers = await db
         .select({ id: users.id })
         .from(users)
-        .where(eq(users.role, "financial"));
+        .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
 
       for (const user of financialUsers) {
         await db.insert(notifications).values({
@@ -310,7 +310,7 @@ export const disbursementsRouter = router({
       const financialUsers = await db
         .select({ id: users.id })
         .from(users)
-        .where(eq(users.role, "financial"));
+        .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
 
       // جلب بيانات المشروع
       const [project] = await db
@@ -606,7 +606,10 @@ export const disbursementsRouter = router({
       const managers = await db
         .select({ id: users.id })
         .from(users)
-        .where(sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager')`);
+        .where(and(
+          sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager')`,
+          isNull(users.deletedAt)
+        ));
 
       // جلب بيانات المشروع
       const [project] = await db

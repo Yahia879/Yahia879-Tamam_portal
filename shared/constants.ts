@@ -1,6 +1,7 @@
 // ==================== الأدوار ====================
 export const USER_ROLES = {
   super_admin: { key: 'super_admin', label: 'المدير العام', labelEn: 'Super Admin' },
+  system_admin: { key: 'system_admin', label: 'مدير نظام', labelEn: 'System Admin' },
   financial_manager: { key: 'financial_manager', label: 'المدير المالي', labelEn: 'Financial Manager' },
   projects_office: { key: 'projects_office', label: 'مكتب المشاريع', labelEn: 'Projects Office' },
   field_team: { key: 'field_team', label: 'الفريق الميداني', labelEn: 'Field Team' },
@@ -13,6 +14,7 @@ export const USER_ROLES = {
 
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: 'المدير العام',
+  system_admin: 'مدير نظام',
   financial_manager: 'المدير المالي',
   projects_office: 'مكتب المشاريع',
   field_team: 'الفريق الميداني',
@@ -26,6 +28,7 @@ export const ROLE_LABELS: Record<string, string> = {
 // الأدوار الداخلية (الموظفين)
 export const INTERNAL_ROLES = [
   'super_admin',
+  'system_admin',
   'financial_manager',
   'projects_office',
   'field_team',

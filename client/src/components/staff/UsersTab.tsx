@@ -61,9 +61,10 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
-  { value: "super_admin", label: "مدير النظام" },
+  { value: "system_admin", label: "مدير نظام" },
   { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
   { value: "field_team", label: "فريق ميداني" },
@@ -89,6 +90,7 @@ export interface UsersTabProps {
 }
 
 export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProps) {
+  const { user: currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -222,7 +224,8 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
 
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-      super_admin: { label: "مدير النظام", variant: "default" },
+      super_admin: { label: "المدير العام", variant: "default" },
+      system_admin: { label: "مدير نظام", variant: "default" },
       financial_manager: { label: "المدير المالي", variant: "default" },
       projects_office: { label: "مكتب المشاريع", variant: "secondary" },
       field_team: { label: "فريق ميداني", variant: "secondary" },
@@ -362,13 +365,15 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                             <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
                           )}
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(user.id, user.name)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="ml-2 h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
+                        {user.id !== currentUser?.id && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(user.id, user.name)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="ml-2 h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

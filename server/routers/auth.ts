@@ -3,7 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { users, employees, auditLogs, InsertUser } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { COOKIE_NAME } from "../../shared/const";
@@ -128,10 +128,10 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // البحث عن المستخدم (بالبريد أو الجوال)
+      // البحث عن المستخدم (بالبريد أو الجوال) مع استبعاد المحذوفين
       const userResult = input.email 
-        ? await db.select().from(users).where(eq(users.email, input.email)).limit(1)
-        : await db.select().from(users).where(eq(users.phone, input.phone!)).limit(1);
+        ? await db.select().from(users).where(and(eq(users.email, input.email), isNull(users.deletedAt))).limit(1)
+        : await db.select().from(users).where(and(eq(users.phone, input.phone!), isNull(users.deletedAt))).limit(1);
       if (userResult.length === 0) {
         const identifier = input.email ? "البريد الإلكتروني" : "رقم الجوال";
         throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
@@ -424,7 +424,7 @@ export const authRouter = router({
     const db = await getDb();
     if (!db) return [];
 
-    return await db.select().from(users).where(eq(users.status, "pending"));
+    return await db.select().from(users).where(and(eq(users.status, "pending"), isNull(users.deletedAt)));
   }),
 
   // الحصول على جميع المستخدمين
@@ -441,7 +441,7 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) return [];
 
-      let query = db.select().from(users);
+      let query = db.select().from(users).where(isNull(users.deletedAt));
       
       // يمكن إضافة فلاتر هنا حسب الحاجة
       return await query;
@@ -461,7 +461,7 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'قاعدة البيانات غير متاحة' });
 
-      const userResult = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      const userResult = await db.select().from(users).where(and(eq(users.id, input.userId), isNull(users.deletedAt))).limit(1);
       if (userResult.length === 0) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'المستخدم غير موجود' });
       }
