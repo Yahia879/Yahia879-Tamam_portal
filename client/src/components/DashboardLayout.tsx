@@ -164,11 +164,9 @@ const getMenuGroups = (role: string): MenuGroup[] => {
   // إدارة المستخدمين (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
-      label: "إدارة المستخدمين",
+      label: "إدارة الكادر",
       items: [
-        { icon: Users, label: "المستخدمون", path: "/users" },
-        { icon: Shield, label: "الأدوار والصلاحيات", path: "/roles" },
-        { icon: Briefcase, label: "الأدوار الوظيفية", path: "/job-positions" },
+        { icon: Users, label: "إدارة الكادر", path: "/staff" },
       ],
     });
   }

@@ -28,9 +28,12 @@ export default function RoleEdit() {
     { enabled: !isNew && !!roleId }
   );
 
+  const utils = trpc.useUtils();
+
   const createRole = trpc.permissions.createRole.useMutation({
     onSuccess: () => {
       toast.success("تم إنشاء الدور بنجاح");
+      utils.permissions.getRoles.invalidate();
       setLocation("/roles");
     },
     onError: (error) => {
@@ -41,6 +44,7 @@ export default function RoleEdit() {
   const updatePermissions = trpc.permissions.updateRolePermissions.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الصلاحيات بنجاح");
+      utils.permissions.getRoles.invalidate();
       setLocation("/roles");
     },
     onError: (error) => {

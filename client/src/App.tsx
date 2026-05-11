@@ -91,6 +91,7 @@ import RoleEdit from "./pages/RoleEdit";
 import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import JobPositions from "./pages/JobPositions";
+import StaffManagement from "./pages/StaffManagement";
 import ProgramCustomization from "./pages/ProgramCustomization";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
@@ -197,8 +198,11 @@ function Router() {
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />      
-      {/* المستخدمون - إدارية */}
-      <Route path="/users">{() => <AdminRoute component={UsersManagement} />}</Route>
+      {/* إدارة الكادر (المستخدمين والأدوار) - واجهة موحدة */}
+      <Route path="/staff">{() => <AdminRoute component={StaffManagement} />}</Route>
+      <Route path="/users">{() => <AdminRoute component={StaffManagement} />}</Route>
+      <Route path="/roles">{() => <AdminRoute component={StaffManagement} />}</Route>
+      <Route path="/job-positions">{() => <AdminRoute component={StaffManagement} />}</Route>
       <Route path="/requester-approvals">{() => <AdminRoute component={RequesterApprovals} />}</Route>
       <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
       <Route path="/users/:id/edit">{() => <AdminRoute component={UserEdit} />}</Route>

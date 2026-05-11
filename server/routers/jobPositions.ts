@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { jobPositions } from "../../drizzle/schema";
+import { jobPositions, employees } from "../../drizzle/schema";
 import { eq, asc } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 
 export const jobPositionsRouter = router({
   // جلب جميع الأدوار الوظيفية
@@ -78,6 +79,26 @@ export const jobPositionsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
+      
+      // الحصول على بيانات الدور أولاً
+      const [pos] = await db.select().from(jobPositions).where(eq(jobPositions.id, input.id)).limit(1);
+      if (!pos) throw new TRPCError({ code: "NOT_FOUND", message: "الدور الوظيفي غير موجود" });
+
+      // التحقق مما إذا كان هناك موظفون يشغلون هذا الدور
+      // ملاحظة: الحقل position في جدول employees هو نص (varchar) يخزن اسم الدور (nameAr)
+      const [assignedEmployee] = await db
+        .select({ id: employees.id })
+        .from(employees)
+        .where(eq(employees.position, pos.nameAr))
+        .limit(1);
+
+      if (assignedEmployee) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "لا يمكن حذف هذا الدور الوظيفي لأنه مرتبط بموظفين حاليين. يرجى تغيير أدوارهم الوظيفية أولاً."
+        });
+      }
+
       await db.delete(jobPositions).where(eq(jobPositions.id, input.id));
       return { success: true };
     }),

@@ -1,5 +1,13 @@
 import "dotenv/config";
 import express from "express";
+
+// Ensure NODE_ENV is set, default to development unless running from dist
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = import.meta.url.includes("/dist/")
+    ? "production"
+    : "development";
+}
+
 import { createServer } from "http";
 import net from "net";
 import path from "path";
