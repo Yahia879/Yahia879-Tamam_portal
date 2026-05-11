@@ -161,7 +161,7 @@ export const analyticsRouter = router({
   getMonthlyGrowth: protectedProcedure
     .query(async ({ ctx }) => {
       // التأكد من أن المستخدم لديه الصلاحية
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      if (!["super_admin", "system_admin", "projects_office", "financial_manager"].includes(ctx.user.role)) {
         return null;
       }
       

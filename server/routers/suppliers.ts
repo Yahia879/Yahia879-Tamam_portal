@@ -380,7 +380,7 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية المستخدم (يجب أن يكون admin)
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin") {
+      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد الموردين" });
       }
 
@@ -423,7 +423,7 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية المستخدم
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin") {
+      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض الموردين" });
       }
 
@@ -459,7 +459,7 @@ export const suppliersRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin") {
+      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإيقاف الموردين" });
       }
 

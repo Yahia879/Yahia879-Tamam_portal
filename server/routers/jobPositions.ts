@@ -109,7 +109,7 @@ export const jobPositionsRouter = router({
     if (!db) throw new Error("Database connection failed");
     const defaults = [
       { nameAr: "مدير النظام", nameEn: "System Manager", sortOrder: 1 },
-      { nameAr: "مدير تقني", nameEn: "Technical Manager", sortOrder: 2 },
+      { nameAr: "المدير المالي", nameEn: "Financial Manager", sortOrder: 2 },
       { nameAr: "مكتب المشاريع", nameEn: "Projects Office", sortOrder: 3 },
       { nameAr: "فريق ميداني", nameEn: "Field Team", sortOrder: 4 },
       { nameAr: "استجابة سريعة", nameEn: "Quick Response", sortOrder: 5 },

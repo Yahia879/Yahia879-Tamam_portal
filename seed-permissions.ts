@@ -36,10 +36,10 @@ const DEFAULT_ROLES = [
     isSystem: true
   },
   {
-    id: 'system_admin',
-    nameAr: 'مدير النظام',
-    nameEn: 'System Admin',
-    description: 'إدارة النظام والمستخدمين والصلاحيات',
+    id: 'financial_manager',
+    nameAr: 'المدير المالي',
+    nameEn: 'Financial Manager',
+    description: 'إدارة العمليات المالية والموردين والتقارير',
     isSystem: true
   },
   {
@@ -96,12 +96,14 @@ const DEFAULT_ROLES = [
 // صلاحيات كل دور
 const ROLE_PERMISSIONS_MAP: Record<string, string[]> = {
   super_admin: ['*'], // جميع الصلاحيات
-  system_admin: [
-    'users.*',
-    'permissions.*',
-    'settings.*',
-    'reports.view',
-    'reports.export'
+  financial_manager: [
+    'suppliers.*',
+    'financial.*',
+    'requests.approve',
+    'requests.view',
+    'contracts.view',
+    'projects.view',
+    'reports.*'
   ],
   projects_office: [
     'requests.*',

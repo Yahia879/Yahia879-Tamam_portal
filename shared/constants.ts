@@ -1,7 +1,7 @@
 // ==================== الأدوار ====================
 export const USER_ROLES = {
   super_admin: { key: 'super_admin', label: 'المدير العام', labelEn: 'Super Admin' },
-  system_admin: { key: 'system_admin', label: 'مدير النظام', labelEn: 'System Admin' },
+  financial_manager: { key: 'financial_manager', label: 'المدير المالي', labelEn: 'Financial Manager' },
   projects_office: { key: 'projects_office', label: 'مكتب المشاريع', labelEn: 'Projects Office' },
   field_team: { key: 'field_team', label: 'الفريق الميداني', labelEn: 'Field Team' },
   quick_response: { key: 'quick_response', label: 'فريق الاستجابة السريعة', labelEn: 'Quick Response Team' },
@@ -13,7 +13,7 @@ export const USER_ROLES = {
 
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: 'المدير العام',
-  system_admin: 'مدير النظام',
+  financial_manager: 'المدير المالي',
   projects_office: 'مكتب المشاريع',
   field_team: 'الفريق الميداني',
   quick_response: 'فريق الاستجابة السريعة',
@@ -26,7 +26,7 @@ export const ROLE_LABELS: Record<string, string> = {
 // الأدوار الداخلية (الموظفين)
 export const INTERNAL_ROLES = [
   'super_admin',
-  'system_admin',
+  'financial_manager',
   'projects_office',
   'field_team',
   'quick_response',
@@ -447,18 +447,18 @@ export const ROLE_PERMISSIONS = {
     canManagePartners: true,
     canManageBranding: true,
   },
-  system_admin: {
-    canManageUsers: true,
-    canManageRoles: true,
-    canManageSettings: true,
+  financial_manager: {
+    canManageUsers: false,
+    canManageRoles: false,
+    canManageSettings: false,
     canViewAllRequests: true,
-    canApproveRequests: false,
+    canApproveRequests: true,
     canManageProjects: false,
-    canManageFinance: false,
+    canManageFinance: true,
     canViewReports: true,
-    canManageMosques: true,
-    canManagePartners: true,
-    canManageBranding: true,
+    canManageMosques: false,
+    canManagePartners: false,
+    canManageBranding: false,
   },
   projects_office: {
     canManageUsers: false,
@@ -577,16 +577,16 @@ export const STAGE_TRANSITION_PERMISSIONS: Record<string, string[]> = {
   boq_preparation: ['super_admin', 'system_admin', 'projects_office'],
   
   // من التقييم المالي إلى اعتماد العرض
-  financial_eval: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  financial_eval: ['super_admin', 'system_admin', 'projects_office', 'financial', 'financial_manager'],
   
   // من التقييم المالي واعتماد العرض إلى التعاقد (المرحلة الموحدة)
-  financial_eval_and_approval: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  financial_eval_and_approval: ['super_admin', 'system_admin', 'projects_office', 'financial', 'financial_manager'],
   
   // من اعتماد العرض إلى التعاقد
-  quotation_approval: ['super_admin', 'system_admin', 'financial'],
+  quotation_approval: ['super_admin', 'system_admin', 'financial', 'financial_manager'],
   
   // من التعاقد إلى التنفيذ
-  contracting: ['super_admin', 'system_admin', 'projects_office', 'financial'],
+  contracting: ['super_admin', 'system_admin', 'projects_office', 'financial', 'financial_manager'],
   
   // من التنفيذ إلى الاستلام
   execution: ['super_admin', 'system_admin', 'projects_office', 'project_manager', 'quick_response'],
@@ -601,13 +601,13 @@ export const STAGE_TRANSITION_PERMISSIONS: Record<string, string[]> = {
 // صلاحيات اعتماد/رفض الطلبات
 export const STATUS_CHANGE_PERMISSIONS: Record<string, string[]> = {
   // اعتماد الطلب
-  approve: ['super_admin', 'system_admin', 'projects_office'],
+  approve: ['super_admin', 'system_admin', 'projects_office', 'financial_manager'],
   
   // رفض الطلب
-  reject: ['super_admin', 'system_admin', 'projects_office'],
+  reject: ['super_admin', 'system_admin', 'projects_office', 'financial_manager'],
   
   // تعليق الطلب
-  suspend: ['super_admin', 'system_admin', 'projects_office'],
+  suspend: ['super_admin', 'system_admin', 'projects_office', 'financial_manager'],
 };
 
 // دالة للتحقق من صلاحية تحويل المرحلة

@@ -201,7 +201,7 @@ export const requestsRouter = router({
       // التحقق من الصلاحية
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
-      const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "project_manager"].includes(ctx.user.role);
+      const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager"].includes(ctx.user.role);
 
       if (!isOwner && !isAssigned && !isInternal) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
@@ -314,7 +314,7 @@ export const requestsRouter = router({
       const conditions = [];
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
-      const adminRoles = ["super_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
+      const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
       
       // طالب الخدمة يرى فقط طلباته
       if (ctx.user.role === "service_requester") {
@@ -1421,7 +1421,7 @@ export const requestsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
-      if (!["financial", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      if (!["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاختيار عرض السعر الفائز" });
       }
 
@@ -1478,7 +1478,7 @@ export const requestsRouter = router({
     }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
-      if (!["financial", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      if (!["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية للاعتماد المالي" });
       }
 

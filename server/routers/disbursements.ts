@@ -268,7 +268,7 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial"];
+      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف" });
       }
@@ -344,7 +344,7 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial"];
+      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض طلب الصرف" });
       }
@@ -559,7 +559,7 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "financial"];
+      const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء أمر صرف" });
       }
@@ -705,7 +705,7 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedRoles = ["super_admin", "system_admin", "financial"];
+      const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تنفيذ أمر الصرف" });
       }

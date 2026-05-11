@@ -55,7 +55,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 
 const ROLE_OPTIONS = [
   { value: "super_admin", label: "مدير النظام" },
-  { value: "system_admin", label: "مدير تقني" },
+  { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
   { value: "field_team", label: "فريق ميداني" },
   { value: "quick_response", label: "استجابة سريعة" },
@@ -211,7 +211,7 @@ export default function UsersManagement() {
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
       super_admin: { label: "مدير النظام", variant: "default" },
-      system_admin: { label: "مدير تقني", variant: "default" },
+      financial_manager: { label: "المدير المالي", variant: "default" },
       projects_office: { label: "مكتب المشاريع", variant: "secondary" },
       field_team: { label: "فريق ميداني", variant: "secondary" },
       quick_response: { label: "استجابة سريعة", variant: "secondary" },
@@ -288,10 +288,10 @@ export default function UsersManagement() {
             <div className="text-sm text-muted-foreground">الحسابات النشطة</div>
           </Card>
           <Card className="p-6">
-            <div className="text-2xl font-bold text-yellow-600">
-              {staffUsers.filter((u: any) => u.status === "pending").length}
+            <div className="text-2xl font-bold text-red-600">
+              {staffUsers.filter((u: any) => u.status === "suspended").length}
             </div>
-            <div className="text-sm text-muted-foreground">قيد المراجعة</div>
+            <div className="text-sm text-muted-foreground">الحسابات الموقوفة</div>
           </Card>
         </div>
 
