@@ -358,13 +358,15 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                             تعديل البيانات
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                          {user.status === "active" ? (
-                            <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                          ) : (
-                            <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                          )}
-                        </DropdownMenuItem>
+                        {user.id !== currentUser?.id && (
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                            {user.status === "active" ? (
+                              <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                            ) : (
+                              <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                            )}
+                          </DropdownMenuItem>
+                        )}
                         {user.id !== currentUser?.id && (
                           <DropdownMenuItem
                             onClick={() => handleDelete(user.id, user.name)}

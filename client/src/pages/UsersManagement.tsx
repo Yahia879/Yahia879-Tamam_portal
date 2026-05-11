@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
   { value: "super_admin", label: "مدير النظام" },
@@ -362,20 +363,24 @@ export default function UsersManagement() {
                               تعديل البيانات
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                            {user.status === "active" ? (
-                              <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                            ) : (
-                              <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(user.id, user.name)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="ml-2 h-4 w-4" />
-                            حذف
-                          </DropdownMenuItem>
+                          {user.id !== currentUser?.id && (
+                            <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                              {user.status === "active" ? (
+                                <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                              ) : (
+                                <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+                          {user.id !== currentUser?.id && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(user.id, user.name)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="ml-2 h-4 w-4" />
+                              حذف
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

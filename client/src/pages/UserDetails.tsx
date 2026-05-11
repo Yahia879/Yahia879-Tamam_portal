@@ -193,31 +193,35 @@ export default function UserDetails() {
                 تعديل
               </Button>
             </Link>
-            <Button 
-              variant="outline"
-              onClick={handleToggleStatus}
-              disabled={toggleStatus.isPending}
-            >
-              {user?.status === "active" ? (
-                <>
-                  <UserX className="w-4 h-4 ml-2" />
-                  إيقاف
-                </>
-              ) : (
-                <>
-                  <UserCheck className="w-4 h-4 ml-2" />
-                  تنشيط
-                </>
-              )}
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteUser.isPending}
-            >
-              <Trash2 className="w-4 h-4 ml-2" />
-              حذف
-            </Button>
+            {userId !== currentUser?.id && (
+              <Button 
+                variant="outline"
+                onClick={handleToggleStatus}
+                disabled={toggleStatus.isPending}
+              >
+                {user?.status === "active" ? (
+                  <>
+                    <UserX className="w-4 h-4 ml-2" />
+                    إيقاف
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="w-4 h-4 ml-2" />
+                    تنشيط
+                  </>
+                )}
+              </Button>
+            )}
+            {userId !== currentUser?.id && (
+              <Button 
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteUser.isPending}
+              >
+                <Trash2 className="w-4 h-4 ml-2" />
+                حذف
+              </Button>
+            )}
           </div>
         </div>
 
@@ -274,13 +278,6 @@ export default function UserDetails() {
                   <div>
                     <p className="text-sm text-muted-foreground">رقم الجوال</p>
                     <p className="font-medium">{user.phone || "-"}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <MapPin className="w-5 h-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">المدينة</p>
-                    <p className="font-medium">{user.city || "-"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
@@ -349,22 +346,6 @@ export default function UserDetails() {
             </CardContent>
           </Card>
         )}
-
-        {/* طلبات المستخدم */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              طلبات المستخدم
-            </CardTitle>
-            <CardDescription>الطلبات المقدمة من هذا المستخدم</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              لا توجد طلبات لهذا المستخدم حالياً
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Dialog منح الاستثناء */}

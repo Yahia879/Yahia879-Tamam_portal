@@ -214,6 +214,14 @@ export const usersRouter = router({
       if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل حالة المستخدمين" });
       }
+
+      if (input.userId === ctx.user.id) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "لا يمكنك تغيير حالة حسابك الخاص من هنا" 
+        });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       await db
