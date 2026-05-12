@@ -24,9 +24,7 @@ const ROLE_OPTIONS = [
 
 const STATUS_OPTIONS = [
   { value: "active", label: "نشط" },
-  { value: "pending", label: "قيد المراجعة" },
-  { value: "suspended", label: "معطل" },
-  { value: "blocked", label: "محظور" },
+  { value: "suspended", label: "موقوف" },
 ];
 
 export default function UserEdit() {

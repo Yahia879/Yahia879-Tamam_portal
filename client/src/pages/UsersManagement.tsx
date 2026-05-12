@@ -94,6 +94,7 @@ export default function UsersManagement() {
   const { data: users, isLoading, refetch } = trpc.users.getAll.useQuery();
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
   const { data: jobPositions } = trpc.jobPositions.getActive.useQuery();
+  const { user: currentUser } = useAuth();
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: () => {
@@ -511,7 +512,6 @@ export default function UsersManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">نشط</SelectItem>
-                        <SelectItem value="pending">قيد المراجعة</SelectItem>
                         <SelectItem value="suspended">موقوف</SelectItem>
                       </SelectContent>
                     </Select>
