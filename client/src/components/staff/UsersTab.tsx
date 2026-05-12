@@ -48,7 +48,6 @@ import {
 import {
   Search,
   MoreVertical,
-  Shield,
   UserCheck,
   UserX,
   Edit,
@@ -329,12 +328,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/users/${user.id}/permissions`}>
-                            <Shield className="ml-2 h-4 w-4" />
-                            إدارة الصلاحيات
-                          </Link>
-                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={`/users/${user.id}/edit`}>
                             <Edit className="ml-2 h-4 w-4" />

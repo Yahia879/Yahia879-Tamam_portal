@@ -88,6 +88,7 @@ import StageSettings from "./pages/StageSettings";
 import ActionSettings from "./pages/ActionSettings";
 import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
+import RolePermissions from "./pages/RolePermissions";
 import UserPermissions from "./pages/UserPermissions";
 import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import JobPositions from "./pages/JobPositions";
@@ -278,6 +279,7 @@ function Router() {
       {/* إدارة الأدوار والصلاحيات - إدارية */}
       <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
+      <Route path="/staff/roles/:id">{() => <AdminRoute component={RolePermissions} />}</Route>
       <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>

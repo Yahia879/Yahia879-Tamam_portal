@@ -160,7 +160,14 @@ export default function Roles() {
               {roles && roles.length > 0 ? (
                 roles.map((role) => (
                   <TableRow key={role.id}>
-                    <TableCell className="font-medium">{role.nameAr}</TableCell>
+                    <TableCell className="font-medium text-right">
+                      <Link 
+                        href={`/staff/roles/${role.id}`}
+                        className="hover:text-primary hover:underline cursor-pointer transition-colors"
+                      >
+                        {role.nameAr}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {role.description || "-"}
                     </TableCell>
