@@ -152,7 +152,7 @@ export const users = mysqlTable("users", {
 // جدول الموظفين (بيانات إضافية للموظفين)
 export const employees = mysqlTable("employees", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   employeeNumber: varchar("employeeNumber", { length: 50 }),
   department: varchar("department", { length: 100 }),
   position: varchar("position", { length: 100 }),
@@ -164,7 +164,7 @@ export const employees = mysqlTable("employees", {
 // جدول رموز إعادة تعيين كلمة المرور
 export const passwordResetTokens = mysqlTable("password_reset_tokens", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   token: varchar("token", { length: 255 }).notNull().unique(),
   expiresAt: datetime("expiresAt").notNull(),
   used: boolean("used").default(false),
@@ -191,8 +191,8 @@ export const mosques = mysqlTable("mosques", {
   imamName: varchar("imamName", { length: 255 }),
   imamPhone: varchar("imamPhone", { length: 20 }),
   imamEmail: varchar("imamEmail", { length: 320 }),
-  registeredBy: int("registeredBy").references(() => users.id),
-  approvedBy: int("approvedBy").references(() => users.id),
+  registeredBy: int("registeredBy").references(() => users.id, { onDelete: "set null" }),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvalStatus: mysqlEnum("approvalStatus", ["pending", "approved", "rejected"]).default("pending"),
   approvalDate: datetime("approvalDate"),
   notes: text("notes"),
@@ -217,13 +217,13 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   id: int("id").autoincrement().primaryKey(),
   requestNumber: varchar("requestNumber", { length: 50 }).notNull().unique(),
   mosqueId: int("mosqueId").references(() => mosques.id), // nullable لبرنامج بنيان
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   programType: mysqlEnum("programType", programTypes).notNull(),
   currentStage: mysqlEnum("currentStage", requestStages).default("submitted").notNull(),
   status: mysqlEnum("status", requestStatuses).default("pending").notNull(),
   priority: mysqlEnum("priority", ["urgent", "medium", "normal"]).default("normal"),
-  assignedTo: int("assignedTo").references(() => users.id),
-  currentResponsible: int("currentResponsible").references(() => users.id), // المسؤول الحالي عن الطلب
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }),
+  currentResponsible: int("currentResponsible").references(() => users.id, { onDelete: "set null" }), // المسؤول الحالي عن الطلب
   currentResponsibleDepartment: varchar("currentResponsibleDepartment", { length: 100 }), // الإدارة المسؤولة الحالية
   
   // بيانات المراجعة الأولية
@@ -231,7 +231,7 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   reviewNotes: text("reviewNotes"), // ملاحظات المراجعة الأولية
   
   // بيانات الزيارة الميدانية
-  fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id), // الموظف المسند إليه الزيارة
+  fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id, { onDelete: "set null" }), // الموظف المسند إليه الزيارة
   fieldVisitScheduledDate: datetime("fieldVisitScheduledDate"), // تاريخ الزيارة المجدولة
   fieldVisitScheduledTime: varchar("fieldVisitScheduledTime", { length: 10 }), // وقت الزيارة المجدولة
   fieldVisitNotes: text("fieldVisitNotes"), // ملاحظات الزيارة
@@ -274,7 +274,7 @@ export const requestAttachments = mysqlTable("request_attachments", {
   fileUrl: varchar("fileUrl", { length: 500 }).notNull(),
   fileType: varchar("fileType", { length: 50 }), // image, document, report
   fileSize: int("fileSize"),
-  uploadedBy: int("uploadedBy").references(() => users.id),
+  uploadedBy: int("uploadedBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -282,7 +282,7 @@ export const requestAttachments = mysqlTable("request_attachments", {
 export const requestComments = mysqlTable("request_comments", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   comment: text("comment").notNull(),
   isInternal: boolean("isInternal").default(false), // تعليق داخلي للموظفين فقط
   isRead: boolean("isRead").default(false), // هل تم قراءة التعليق
@@ -293,7 +293,7 @@ export const requestComments = mysqlTable("request_comments", {
 export const requestHistory = mysqlTable("request_history", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   fromStage: varchar("fromStage", { length: 50 }),
   toStage: varchar("toStage", { length: 50 }),
   fromStatus: varchar("fromStatus", { length: 50 }),
@@ -309,7 +309,7 @@ export const requestHistory = mysqlTable("request_history", {
 export const fieldVisitReports = mysqlTable("field_visit_reports", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
-  visitedBy: int("visitedBy").notNull().references(() => users.id),
+  visitedBy: int("visitedBy").references(() => users.id, { onDelete: "set null" }),
   visitDate: datetime("visitDate").notNull(),
   
   // التقييم الفني
@@ -352,7 +352,7 @@ export const fieldVisitReports = mysqlTable("field_visit_reports", {
 export const quickResponseReports = mysqlTable("quick_response_reports", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
-  respondedBy: int("respondedBy").notNull().references(() => users.id),
+  respondedBy: int("respondedBy").references(() => users.id, { onDelete: "set null" }),
   responseDate: datetime("responseDate").notNull(),
   
   // التقييم الفني
@@ -380,7 +380,7 @@ export const finalReports = mysqlTable("final_reports", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().unique().references(() => mosqueRequests.id),
   projectId: int("projectId").references(() => projects.id),
-  preparedBy: int("preparedBy").notNull().references(() => users.id),
+  preparedBy: int("preparedBy").references(() => users.id, { onDelete: "set null" }),
   summary: text("summary"),
   achievements: text("achievements"),
   challenges: text("challenges"),
@@ -400,7 +400,7 @@ export const projects = mysqlTable("projects", {
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  managerId: int("managerId").references(() => users.id),
+  managerId: int("managerId").references(() => users.id, { onDelete: "set null" }),
   status: mysqlEnum("status", ["planning", "in_progress", "on_hold", "completed", "cancelled"]).default("planning"),
   budget: decimal("budget", { precision: 15, scale: 2 }),
   actualCost: decimal("actualCost", { precision: 15, scale: 2 }),
@@ -454,7 +454,7 @@ export const payments = mysqlTable("payments", {
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   paymentType: mysqlEnum("paymentType", ["advance", "progress", "final", "retention"]).default("progress"),
   status: mysqlEnum("status", ["pending", "approved", "paid", "rejected"]).default("pending"),
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   paidAt: datetime("paidAt"),
   description: text("description"),
   documentUrl: varchar("documentUrl", { length: 500 }),
@@ -574,7 +574,7 @@ export const suppliers = mysqlTable("suppliers", {
   
   // ==================== بيانات الاعتماد ====================
   approvalStatus: mysqlEnum("approvalStatus", supplierApprovalStatuses).default("pending"),
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   rejectionReason: text("rejectionReason"),
   
@@ -584,7 +584,7 @@ export const suppliers = mysqlTable("suppliers", {
   notes: text("notes"),
   
   // ==================== المنشئ والتواريخ ====================
-  createdBy: int("createdBy").references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -625,7 +625,7 @@ export const quotations = mysqlTable("quotations", {
   // بيانات التفاوض
   negotiatedAmount: decimal("negotiatedAmount", { precision: 15, scale: 2 }), // المبلغ بعد التفاوض
   negotiationNotes: text("negotiationNotes"), // ملاحظات التفاوض
-  negotiatedBy: int("negotiatedBy").references(() => users.id), // من قام بالتفاوض
+  negotiatedBy: int("negotiatedBy").references(() => users.id, { onDelete: "set null" }), // من قام بالتفاوض
   negotiatedAt: datetime("negotiatedAt"), // تاريخ التفاوض
   
   // المبلغ المعتمد (إما المبلغ بعد التفاوض أو الأصلي)
@@ -678,7 +678,7 @@ export const boqItems = mysqlTable("boq_items", {
 
 export const notifications = mysqlTable("notifications", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   title: varchar("title", { length: 255 }).notNull(),
   message: text("message").notNull(),
   type: mysqlEnum("type", ["info", "success", "warning", "error", "request_update", "system", "mosque", "request"]).default("info"),  relatedType: varchar("relatedType", { length: 50 }), // request, project, user
@@ -720,7 +720,7 @@ export const brandSettings = mysqlTable("brand_settings", {
   settingValue: text("settingValue"),
   settingType: varchar("settingType", { length: 50 }), // text, color, image, json
   description: varchar("description", { length: 255 }),
-  updatedBy: int("updatedBy").references(() => users.id),
+  updatedBy: int("updatedBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -761,7 +761,7 @@ export const homepageCustomization = mysqlTable("homepage_customization", {
   iconName: varchar("iconName", { length: 100 }),
   sortOrder: int("sortOrder").default(0),
   isVisible: boolean("isVisible").default(true),
-  updatedBy: int("updatedBy").references(() => users.id),
+  updatedBy: int("updatedBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -830,7 +830,7 @@ export const organizationSettings = mysqlTable("organization_settings", {
   signatoryTitle: varchar("signatoryTitle", { length: 100 }),
   signatoryPhone: varchar("signatoryPhone", { length: 20 }),
   signatoryEmail: varchar("signatoryEmail", { length: 320 }),
-  updatedBy: int("updatedBy").references(() => users.id),
+  updatedBy: int("updatedBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -847,7 +847,7 @@ export const signatories = mysqlTable("signatories", {
   isDefault: boolean("isDefault").default(false), // هل هو المفوض الافتراضي
   isActive: boolean("isActive").default(true),
   sortOrder: int("sortOrder").default(0),
-  createdBy: int("createdBy").references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -947,11 +947,11 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   signedDocumentUrl: varchar("signedDocumentUrl", { length: 500 }),
   
   // الاعتماد
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   
   // المنشئ
-  createdBy: int("createdBy").references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -966,7 +966,7 @@ export const contractPayments = mysqlTable("contract_payments", {
   dueDate: datetime("dueDate"),
   status: mysqlEnum("status", ["pending", "due", "paid"]).default("pending"),
   paidAt: datetime("paidAt"),
-  paidBy: int("paidBy").references(() => users.id),
+  paidBy: int("paidBy").references(() => users.id, { onDelete: "set null" }),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1012,16 +1012,16 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   status: mysqlEnum("status", disbursementRequestStatuses).default("draft"),
   
   // مقدم الطلب
-  requestedBy: int("requestedBy").notNull().references(() => users.id),
+  requestedBy: int("requestedBy").references(() => users.id, { onDelete: "set null" }),
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   
   // الاعتماد
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   approvalNotes: text("approvalNotes"),
   
   // الرفض
-  rejectedBy: int("rejectedBy").references(() => users.id),
+  rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
   
@@ -1049,20 +1049,20 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   status: mysqlEnum("status", disbursementOrderStatuses).default("draft"),
   
   // منشئ الأمر
-  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   
   // الاعتماد
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   approvalNotes: text("approvalNotes"),
   
   // التنفيذ
-  executedBy: int("executedBy").references(() => users.id),
+  executedBy: int("executedBy").references(() => users.id, { onDelete: "set null" }),
   executedAt: datetime("executedAt"),
   transactionReference: varchar("transactionReference", { length: 255 }),
   
   // الرفض
-  rejectedBy: int("rejectedBy").references(() => users.id),
+  rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
   
@@ -1108,8 +1108,8 @@ export const progressReports = mysqlTable("progress_reports", {
   status: mysqlEnum("status", ["draft", "submitted", "reviewed", "approved"]).default("draft"),
   
   // المنشئ والمراجع
-  createdBy: int("createdBy").notNull().references(() => users.id),
-  reviewedBy: int("reviewedBy").references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
+  reviewedBy: int("reviewedBy").references(() => users.id, { onDelete: "set null" }),
   reviewedAt: datetime("reviewedAt"),
   reviewNotes: text("reviewNotes"),
   
@@ -1151,7 +1151,7 @@ export const requestStageTracking = mysqlTable("request_stage_tracking", {
   isDelayed: boolean("isDelayed").default(false), // هل متأخر
   delayDays: int("delayDays").default(0), // عدد أيام التأخير
   escalationLevel: int("escalationLevel").default(0), // مستوى التصعيد (0=لا, 1=مدير مباشر, 2=مدير تنفيذي)
-  assignedTo: int("assignedTo").references(() => users.id), // الموظف المسؤول
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }), // الموظف المسؤول
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1168,8 +1168,8 @@ export const requestSubStageTracking = mysqlTable("request_sub_stage_tracking", 
   completedAt: datetime("completedAt"),
   isDelayed: boolean("isDelayed").default(false),
   delayDays: int("delayDays").default(0),
-  assignedTo: int("assignedTo").references(() => users.id),
-  completedBy: int("completedBy").references(() => users.id),
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }),
+  completedBy: int("completedBy").references(() => users.id, { onDelete: "set null" }),
   notes: text("notes"),
   actionData: text("actionData"), // بيانات الإجراء (JSON)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1182,13 +1182,13 @@ export const escalationLogs = mysqlTable("escalation_logs", {
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   stageCode: varchar("stageCode", { length: 50 }).notNull(),
   escalationLevel: int("escalationLevel").notNull(), // 1=مدير مباشر, 2=مدير تنفيذي
-  escalatedTo: int("escalatedTo").notNull().references(() => users.id), // المسؤول الذي تم التصعيد إليه
-  escalatedFrom: int("escalatedFrom").references(() => users.id), // الموظف المتأخر
+  escalatedTo: int("escalatedTo").references(() => users.id, { onDelete: "set null" }), // المسؤول الذي تم التصعيد إليه
+  escalatedFrom: int("escalatedFrom").references(() => users.id, { onDelete: "set null" }), // الموظف المتأخر
   reason: text("reason"), // سبب التصعيد
   delayDays: int("delayDays").notNull(), // عدد أيام التأخير
   isResolved: boolean("isResolved").default(false), // هل تم حل المشكلة
   resolvedAt: datetime("resolvedAt"),
-  resolvedBy: int("resolvedBy").references(() => users.id),
+  resolvedBy: int("resolvedBy").references(() => users.id, { onDelete: "set null" }),
   resolution: text("resolution"), // كيف تم الحل
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
@@ -1219,7 +1219,7 @@ export const contractNumberSequence = mysqlTable("contract_number_sequence", {
 
 export const auditLogs = mysqlTable("audit_logs", {
   id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").references(() => users.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   action: varchar("action", { length: 100 }).notNull(),
   entityType: varchar("entityType", { length: 50 }).notNull(), // user, mosque, request, project
   entityId: int("entityId"),
@@ -1349,7 +1349,7 @@ export const contractTemplates = mysqlTable("contract_templates", {
   signatureTemplate: text("signatureTemplate"), // قسم التوقيعات
   isActive: boolean("isActive").default(true),
   isDefault: boolean("isDefault").default(false), // القالب الافتراضي لهذا النوع
-  createdBy: int("createdBy").references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1490,7 +1490,7 @@ export const handovers = mysqlTable("handovers", {
   status: mysqlEnum("status", handoverStatuses).default("pending").notNull(),
   
   // معلومات المعتمد
-  approvedBy: int("approvedBy").references(() => users.id),
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   approvalNotes: text("approvalNotes"),
   
@@ -1499,7 +1499,7 @@ export const handovers = mysqlTable("handovers", {
   warrantyEndDate: date("warrantyEndDate"),
   warrantyDurationMonths: int("warrantyDurationMonths"),
   
-  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1547,7 +1547,7 @@ export const satisfactionSurveys = mysqlTable("satisfaction_surveys", {
   // رابط الاستبيان (للمستفيدين)
   surveyUrl: varchar("surveyUrl", { length: 500 }),
   
-  createdBy: int("createdBy").notNull().references(() => users.id),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -1735,9 +1735,9 @@ export const rolePermissions = mysqlTable("role_permissions", {
 // ربط المستخدمين بالمسميات (User Roles)
 export const userRoleAssignments = mysqlTable("user_roles", {
   id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: int("user_id").references(() => users.id, { onDelete: "set null" }),
   roleId: varchar("role_id", { length: 50 }).notNull().references(() => roles.id, { onDelete: "cascade" }),
-  assignedBy: int("assigned_by").references(() => users.id),
+  assignedBy: int("assigned_by").references(() => users.id, { onDelete: "set null" }),
   assignedAt: timestamp("assigned_at").defaultNow().notNull(),
   expiresAt: datetime("expires_at"),
 }, (table) => ({
@@ -1747,10 +1747,10 @@ export const userRoleAssignments = mysqlTable("user_roles", {
 // الصلاحيات الفردية (User Permissions)
 export const userPermissions = mysqlTable("user_permissions", {
   id: int("id").primaryKey().autoincrement(),
-  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: int("user_id").references(() => users.id, { onDelete: "set null" }),
   permissionId: varchar("permission_id", { length: 100 }).notNull().references(() => permissions.id, { onDelete: "cascade" }),
   granted: boolean("granted").notNull(), // true = منح، false = سحب
-  grantedBy: int("granted_by").notNull().references(() => users.id),
+  grantedBy: int("granted_by").references(() => users.id, { onDelete: "set null" }),
   reason: text("reason"),
   expiresAt: datetime("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1760,10 +1760,10 @@ export const userPermissions = mysqlTable("user_permissions", {
 export const permissionsAuditLog = mysqlTable("permissions_audit_log", {
   id: int("id").primaryKey().autoincrement(),
   actionType: varchar("action_type", { length: 50 }).notNull(), // grant_permission, revoke_permission, assign_role, remove_role
-  targetUserId: int("target_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  targetUserId: int("target_user_id").references(() => users.id, { onDelete: "set null" }),
   targetRoleId: varchar("target_role_id", { length: 50 }).references(() => roles.id, { onDelete: "set null" }),
   permissionId: varchar("permission_id", { length: 100 }).references(() => permissions.id, { onDelete: "set null" }),
-  performedBy: int("performed_by").notNull().references(() => users.id),
+  performedBy: int("performed_by").references(() => users.id, { onDelete: "set null" }),
   reason: text("reason"),
   oldValue: text("old_value"),
   newValue: text("new_value"),
@@ -1777,21 +1777,21 @@ export const fieldVisits = mysqlTable("field_visits", {
   // بيانات الجدولة
   scheduledDate: datetime("scheduledDate"),
   scheduledTime: varchar("scheduledTime", { length: 10 }),
-  assignedTo: int("assignedTo").references(() => users.id),
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }),
   teamMembers: text("teamMembers"),
   scheduleNotes: text("scheduleNotes"),
-  scheduledBy: int("scheduledBy").references(() => users.id),
+  scheduledBy: int("scheduledBy").references(() => users.id, { onDelete: "set null" }),
   scheduledAt: datetime("scheduledAt"),
   // بيانات التنفيذ
   executionDate: datetime("executionDate"),
   executionTime: varchar("executionTime", { length: 10 }),
   attendees: text("attendees"),
   executionNotes: text("executionNotes"),
-  executedBy: int("executedBy").references(() => users.id),
+  executedBy: int("executedBy").references(() => users.id, { onDelete: "set null" }),
   executedAt: datetime("executedAt"),
   // بيانات التقرير
   reportSubmitted: boolean("reportSubmitted").default(false),
-  reportSubmittedBy: int("reportSubmittedBy").references(() => users.id),
+  reportSubmittedBy: int("reportSubmittedBy").references(() => users.id, { onDelete: "set null" }),
   reportSubmittedAt: datetime("reportSubmittedAt"),
   // الحالة العامة
   status: mysqlEnum("status", ["scheduled", "executed", "reported", "completed"]).default("scheduled"),

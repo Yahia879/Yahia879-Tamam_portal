@@ -121,7 +121,7 @@ export default function UserDetails() {
 
   const handleDelete = () => {
     if (confirm(`هل أنت متأكد من حذف المستخدم "${user?.name}"؟`)) {
-      deleteUser.mutate({ userId });
+      deleteUser.mutate({ id: userId });
     }
   };
 

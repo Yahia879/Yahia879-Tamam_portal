@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { users, employees, userRoleAssignments } from "../../drizzle/schema";
+import { users, employees, userRoleAssignments, passwordResetTokens } from "../../drizzle/schema";
 import { eq, count, and, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
@@ -41,8 +41,7 @@ export const usersRouter = router({
       const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
       
       let whereClause = and(
-        notInArray(users.role, excludedRoles),
-        isNull(users.deletedAt)
+        notInArray(users.role, excludedRoles)
       );
       
       if (search) {
@@ -109,7 +108,7 @@ export const usersRouter = router({
       const [user] = await db
         .select()
         .from(users)
-        .where(and(eq(users.id, input.id), isNull(users.deletedAt)))
+        .where(eq(users.id, input.id))
         .limit(1);
       return user;
     }),
@@ -120,7 +119,7 @@ export const usersRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
-      const [user] = await db.select().from(users).where(and(eq(users.id, input.id), isNull(users.deletedAt))).limit(1);
+      const [user] = await db.select().from(users).where(eq(users.id, input.id)).limit(1);
       if (!user) return null;
       const [emp] = await db.select().from(employees).where(eq(employees.userId, input.id)).limit(1);
       return { ...user, employee: emp || null };
@@ -294,13 +293,13 @@ export const usersRouter = router({
 
   // Delete user
   delete: protectedProcedure
-    .input(z.object({ userId: z.number() }))
+    .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف المستخدمين" });
       }
 
-      if (input.userId === ctx.user.id) {
+      if (input.id === ctx.user.id) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 
           message: "لا يمكنك حذف حسابك الخاص" 
@@ -310,14 +309,10 @@ export const usersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       
-      // تنفيذ الحذف الناعم
-      await db.update(users)
-        .set({ 
-          deletedAt: new Date(),
-          status: 'suspended'
-        })
-        .where(eq(users.id, input.userId));
-        
+      // تنفيذ الحذف النهائي (Hard Delete)
+      // بفضل قيود SET NULL في قاعدة البيانات، سيتم تصفير حقول المستخدم في السجلات المرتبطة تلقائياً
+      await db.delete(users).where(eq(users.id, input.id));
+      
       return { success: true };
     }),
 
@@ -334,7 +329,7 @@ export const usersRouter = router({
         status: users.status,
       })
       .from(users)
-      .where(and(eq(users.status, "active"), isNull(users.deletedAt)));
+      .where(eq(users.status, "active"));
     return staffUsers.filter(user => user.role !== "service_requester");
   }),
 });

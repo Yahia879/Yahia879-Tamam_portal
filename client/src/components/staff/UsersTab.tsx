@@ -74,16 +74,6 @@ const ROLE_OPTIONS = [
   { value: "corporate_comm", label: "علاقات مؤسسية" },
 ];
 
-const DEPARTMENTS = [
-  "إدارة المشاريع",
-  "الإدارة المالية",
-  "الفريق الميداني",
-  "العلاقات المؤسسية",
-  "الإدارة التقنية",
-  "إدارة الجودة",
-  "الاستجابة السريعة",
-];
-
 export interface UsersTabProps {
   openAddModal: boolean;
   setOpenAddModal: (open: boolean) => void;
@@ -102,8 +92,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     phone: "",
     role: "projects_office",
     status: "active",
-    department: "",
-    position: "",
     roleIds: [] as string[],
   });
 
@@ -120,7 +108,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   const totalPages = usersData?.totalPages || 1;
 
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
-  const { data: jobPositions } = trpc.jobPositions.getActive.useQuery();
 
   useEffect(() => {
     setPage(1);
@@ -177,8 +164,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       phone: "",
       role: "projects_office",
       status: "active",
-      department: "",
-      position: "",
       roleIds: [],
     });
     setShowPassword(false);
@@ -196,8 +181,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       phone: formData.phone || undefined,
       role: formData.role as any,
       status: formData.status as any,
-      department: formData.department || undefined,
-      position: formData.position || undefined,
       roleIds: formData.roleIds.length > 0 ? formData.roleIds : undefined,
     });
   };
@@ -209,7 +192,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
 
   const handleDelete = (userId: number, userName: string) => {
     if (confirm(`هل أنت متأكد من حذف المستخدم "${userName}"؟`)) {
-      deleteUser.mutate({ userId });
+      deleteUser.mutate({ id: userId });
     }
   };
 
@@ -466,7 +449,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
             {/* Basic Info */}
             <div>
               <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                البيانات الأساسية
+                البيانات الأساسية والصلاحيات
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -525,15 +508,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                     onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Role and Status */}
-            <div>
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                الدور الوظيفي والحالة
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>الدور الوظيفي</Label>
                   <Select
@@ -566,60 +540,6 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       <SelectItem value="suspended">موقوف</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Organization */}
-            <div>
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                الهيكل التنظيمي
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>الإدارة / القسم</Label>
-                  <Select
-                    value={formData.department}
-                    onValueChange={(v) => setFormData((p) => ({ ...p, department: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الإدارة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DEPARTMENTS.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="new-position">المسمى الوظيفي</Label>
-                  {jobPositions && jobPositions.length > 0 ? (
-                    <Select
-                      value={formData.position}
-                      onValueChange={(v) => setFormData((p) => ({ ...p, position: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المسمى الوظيفي" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {jobPositions.map((jp: any) => (
-                          <SelectItem key={jp.id} value={jp.nameAr}>
-                            {jp.nameAr}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id="new-position"
-                      placeholder="مثال: مشرف مشاريع"
-                      value={formData.position}
-                      onChange={(e) => setFormData((p) => ({ ...p, position: e.target.value }))}
-                    />
-                  )}
                 </div>
               </div>
             </div>
