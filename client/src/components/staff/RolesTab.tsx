@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Plus, Edit, Trash2, Users, Loader2 } from "lucide-react";
-import { PermissionGuard } from "@/components/PermissionGuard";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { Shield, Plus, Users, Loader2 } from "lucide-react";
 
 export interface RolesTabProps {
   openAddModal: boolean;
@@ -32,25 +20,12 @@ export interface RolesTabProps {
 }
 
 export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
-  const { data: allRoles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
+  const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
   
-  // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة إدارة الموظفين
-  const roles = allRoles?.filter(role => role.id !== 'service_requester');
-
-  const deleteRole = trpc.permissions.deleteRole.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف الدور بنجاح");
-      refetch();
-      setDeleteDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error(error.message || "فشل حذف الدور");
-    },
-  });
+  // تصفية الأدوار لإخفاء "طالب الخدمة" ولإظهار الأدوار الافتراضية فقط
+  const roles = allRoles?.filter(role => role.id !== 'service_requester' && role.isSystem);
 
   useEffect(() => {
     if (openAddModal) {
@@ -58,17 +33,6 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
       setOpenAddModal(false);
     }
   }, [openAddModal, setLocation, setOpenAddModal]);
-
-  const handleDelete = (roleId: string) => {
-    setSelectedRole(roleId);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedRole) {
-      deleteRole.mutate({ roleId: selectedRole });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -81,7 +45,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -107,20 +71,6 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
             </div>
           </div>
         </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <Shield className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">الأدوار الافتراضية</p>
-              <p className="text-2xl font-bold">
-                {roles?.filter((r) => r.isSystem).length || 0}
-              </p>
-            </div>
-          </div>
-        </Card>
       </div>
 
       {/* Roles Table */}
@@ -132,8 +82,6 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
               <TableHead className="text-right">الوصف</TableHead>
               <TableHead className="text-right">النوع</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-              <TableHead className="text-left">إجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,46 +115,14 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                       <Badge variant="secondary">غير نشط</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {new Date(role.createdAt).toLocaleDateString("ar-SA")}
-                  </TableCell>
-                  <TableCell className="text-left">
-                    <div className="flex items-center gap-2">
-                      <PermissionGuard permission="permissions.edit">
-                        <Link href={`/roles/${role.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                      </PermissionGuard>
-
-                      <PermissionGuard permission="permissions.delete">
-                        {!role.isSystem && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(role.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </PermissionGuard>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={4} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <Shield className="h-12 w-12 text-muted-foreground/50" />
                     <p className="text-muted-foreground">لا توجد أدوار</p>
-                    <Link href="/roles/new">
-                      <Button variant="outline" size="sm" className="mt-2 gap-1">
-                        <Plus className="h-4 w-4" />
-                        إنشاء أول دور
-                      </Button>
-                    </Link>
                   </div>
                 </TableCell>
               </TableRow>
@@ -214,28 +130,6 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
           </TableBody>
         </Table>
       </Card>
-
-      {/* Delete Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-            <AlertDialogDescription>
-              هل أنت متأكد من حذف هذا الدور؟ سيتم إزالة جميع الصلاحيات المرتبطة به من
-              المستخدمين.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

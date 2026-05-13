@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "../lib/trpc";
 import { Button } from "../components/ui/button";
@@ -12,51 +11,15 @@ import {
   TableRow,
 } from "../components/ui/table";
 import { Badge } from "../components/ui/badge";
-import { Shield, Plus, Edit, Trash2, Users, ArrowRight } from "lucide-react";
+import { Shield, Plus, Users, ArrowRight } from "lucide-react";
 import { PermissionGuard } from "../components/PermissionGuard";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "../components/ui/alert-dialog";
-import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
 
 export default function Roles() {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
-
-  const { data: allRoles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
+  const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
   
   // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة الإدارة
   const roles = allRoles?.filter(role => role.id !== 'service_requester');
-
-  const deleteRole = trpc.permissions.deleteRole.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف الدور بنجاح");
-      refetch();
-      setDeleteDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error(error.message || "فشل حذف الدور");
-    },
-  });
-
-  const handleDelete = (roleId: string) => {
-    setSelectedRole(roleId);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (selectedRole) {
-      deleteRole.mutate({ roleId: selectedRole });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -156,8 +119,6 @@ export default function Roles() {
                 <TableHead>الوصف</TableHead>
                 <TableHead>النوع</TableHead>
                 <TableHead>الحالة</TableHead>
-                <TableHead>تاريخ الإنشاء</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,37 +152,11 @@ export default function Roles() {
                         <Badge variant="secondary">غير نشط</Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {new Date(role.createdAt).toLocaleDateString("ar-SA")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <PermissionGuard permission="permissions.edit">
-                          <Link href={`/roles/${role.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </PermissionGuard>
-
-                        <PermissionGuard permission="permissions.delete">
-                          {!role.isSystem && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(role.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                        </PermissionGuard>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <Shield className="h-12 w-12 text-muted-foreground/50" />
                       <p className="text-muted-foreground">لا توجد أدوار</p>
@@ -238,28 +173,6 @@ export default function Roles() {
             </TableBody>
           </Table>
         </Card>
-
-        {/* Delete Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
-              <AlertDialogDescription>
-                هل أنت متأكد من حذف هذا الدور؟ سيتم إزالة جميع الصلاحيات المرتبطة به من
-                المستخدمين.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                حذف
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </DashboardLayout>
   );

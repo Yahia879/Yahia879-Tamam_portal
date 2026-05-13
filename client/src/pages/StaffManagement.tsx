@@ -59,13 +59,15 @@ export default function StaffManagement() {
             </div>
           </div>
 
-          <Button 
-            className="gradient-primary text-white gap-2 h-11 px-6 shadow-md hover:shadow-lg transition-all"
-            onClick={handleAddClick}
-          >
-            <Plus className="h-5 w-5" />
-            {getAddButtonLabel()}
-          </Button>
+          {activeTab !== "roles" && (
+            <Button 
+              className="gradient-primary text-white gap-2 h-11 px-6 shadow-md hover:shadow-lg transition-all"
+              onClick={handleAddClick}
+            >
+              <Plus className="h-5 w-5" />
+              {getAddButtonLabel()}
+            </Button>
+          )}
         </div>
 
         {/* نظام التبويبات */}
