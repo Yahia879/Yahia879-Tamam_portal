@@ -67,7 +67,6 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
           <TableHeader>
             <TableRow>
               <TableHead className="text-right">الدور المخصص</TableHead>
-              <TableHead className="text-right">الوصف</TableHead>
               <TableHead className="text-right">النوع</TableHead>
               <TableHead className="text-right">الحالة</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
@@ -83,9 +82,6 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                 >
                   <TableCell className="font-medium text-right">
                     {role.nameAr}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-right">
-                    {role.description || "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge variant="outline">مخصص</Badge>
@@ -123,7 +119,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-16">
+                <TableCell colSpan={4} className="text-center py-16">
                   <div className="flex flex-col items-center justify-center gap-4">
                     <div className="p-4 bg-muted/30 rounded-full">
                       <Shield className="h-12 w-12 text-muted-foreground/40" />

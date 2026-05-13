@@ -423,8 +423,85 @@ export default function RolePermissions() {
     return mapping[moduleId]?.[action] || action;
   };
 
+  const isCustomRole = roleId?.startsWith("custom_role_") || (!isCorporateComm && !isFieldTeam && !isFinance && !isProjectsOffice && !isQuickResponse && !isSuperAdmin && !role.isSystem);
+
+  // الهيكل الثابت للأدوار المخصصة (نفس المستخدم في صفحة الإنشاء)
+  const customRoleStructure = [
+    {
+      title: "المساجد والطلبات",
+      subsections: [
+        { id: "mosques", nameAr: "المساجد" },
+        { id: "mosques_map", nameAr: "خريطة المساجد" },
+        { id: "requests", nameAr: "الطلبات" },
+        { id: "appointments_calendar", nameAr: "تقويم المواعيد" },
+        { id: "projects", nameAr: "المشاريع" },
+        { id: "service_requester_accounts", nameAr: "حسابات طالبي الخدمة" },
+      ],
+    },
+    {
+      title: "المالية والعقود",
+      subsections: [
+        { id: "suppliers", nameAr: "الموردون" },
+        { id: "quotations", nameAr: "عروض الأسعار" },
+        { id: "financial_approval", nameAr: "الاعتماد المالي" },
+        { id: "contracts", nameAr: "العقود" },
+        { id: "disbursement_requests", nameAr: "طلبات الصرف" },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف" },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز" },
+        { id: "financial_report", nameAr: "التقرير المالي" },
+      ],
+    },
+    {
+      title: "إدارة الكادر",
+      subsections: [
+        { id: "staff_management", nameAr: "إدارة الكادر" },
+      ],
+    },
+    {
+      title: "الإعدادات",
+      subsections: [
+        { id: "settings_center", nameAr: "مركز الإعدادات" },
+        { id: "programs_services", nameAr: "البرامج والخدمات" },
+      ],
+    },
+  ];
+
+  // بناء displayGroups للأدوار المخصصة: تصفية الأقسام بحسب الصلاحيات المخزنة
+  // استخراج الصلاحيات المخزنة في حقل الوصف للأدوار المخصصة
+  let customPermissionIds: string[] = [];
+  if (isCustomRole && role.description) {
+    try {
+      const parsed = JSON.parse(role.description);
+      if (Array.isArray(parsed)) {
+        customPermissionIds = parsed;
+      }
+    } catch {
+      customPermissionIds = [];
+    }
+  }
+
+  // بناء displayGroups للأدوار المخصصة: تصفية الأقسام بحسب الصلاحيات المخزنة
+  const customRoleGroups = isCustomRole ? customRoleStructure
+    .map(section => {
+      const grantedSubs = section.subsections.filter(sub => customPermissionIds.includes(sub.id));
+      if (grantedSubs.length === 0) return null;
+      return {
+        title: section.title,
+        modules: grantedSubs.map(sub => ({
+          id: sub.id,
+          nameAr: sub.nameAr,
+          icon: Shield,
+          permissions: [{ id: sub.id, nameAr: sub.nameAr }]
+        }))
+      };
+    })
+    .filter(Boolean) as { title: string; modules: any[] }[]
+  : [];
+
   // تحديد المجموعات المراد عرضها بناءً على الدور
-  const displayGroups = isSuperAdmin 
+  const displayGroups = isCustomRole
+    ? customRoleGroups
+    : isSuperAdmin 
     ? superAdminGroups.map(group => ({
         title: group.title,
         modules: group.modules.map(m => ({
@@ -469,7 +546,7 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string, moduleId: string) => {
-    if (isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) return true;
+    if (isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) return true;
     return rolePermissions?.includes(permId);
   };
 
@@ -497,15 +574,17 @@ export default function RolePermissions() {
           </div>
         </div>
 
-        {(isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) && (
+        {(isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) && (
           <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
             <div className="p-2 rounded-lg bg-primary/10">
               <CheckCircle2 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold mb-1">{isSuperAdmin ? "صلاحيات الوصول المطلق (Master Access)" : "تم ضبط النطاق المهني النهائي"}</p>
+              <p className="font-semibold mb-1">{isSuperAdmin ? "صلاحيات الوصول المطلق (Master Access)" : isCustomRole ? `الصلاحيات المخصصة لدور: ${role.nameAr}` : "تم ضبط النطاق المهني النهائي"}</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                {isCorporateComm 
+                {isCustomRole
+                  ? "يعرض هذا القسم الأقسام والوحدات التي تم منح هذا الدور المخصص صلاحية الوصول إليها فقط."
+                  : isCorporateComm 
                   ? "تم تحديد الوحدات الأساسية لقسم الاتصال المؤسسي مع منح كامل الصلاحيات لضمان الفعالية في إدارة الشركاء والهوية البصرية والتقارير."
                   : isFieldTeam
                   ? "تم تحديد الوحدات الأساسية للفريق الميداني مع منح الصلاحيات التشغيلية اللازمة لإدارة الزيارات والمواعيد ومتابعة الطلبات."

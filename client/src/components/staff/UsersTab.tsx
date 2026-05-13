@@ -196,13 +196,22 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   };
 
   const toggleRoleId = (roleId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      roleIds: prev.roleIds.includes(roleId)
+    setFormData((prev) => {
+      const newRoleIds = prev.roleIds.includes(roleId)
         ? prev.roleIds.filter((id) => id !== roleId)
-        : [...prev.roleIds, roleId],
-    }));
+        : [roleId]; // دور مخصص واحد فقط
+      return {
+        ...prev,
+        role: newRoleIds.length > 0 ? "" : prev.role, // إلغاء الدور الأساسي عند اختيار مخصص
+        roleIds: newRoleIds,
+      };
+    });
   };
+
+  // تصفية الأدوار المخصصة فقط (غير النظامية)
+  const filteredCustomRoles = customRoles?.filter(
+    (r: any) => !r.isSystem && r.id !== 'service_requester'
+  ) || [];
 
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
@@ -505,9 +514,10 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                   <Label>الدور الوظيفي</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(v) => setFormData((p) => ({ ...p, role: v }))}
+                    onValueChange={(v) => setFormData((p) => ({ ...p, role: v, roleIds: [] }))}
+                    disabled={formData.roleIds.length > 0}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={formData.roleIds.length > 0 ? "opacity-40" : ""}>
                       <SelectValue placeholder="اختر الدور" />
                     </SelectTrigger>
                     <SelectContent>
@@ -518,6 +528,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       ))}
                     </SelectContent>
                   </Select>
+                  {formData.roleIds.length > 0 && (
+                    <p className="text-xs text-amber-600">تم تعطيل هذا الحقل لأنه تم اختيار دور مخصص</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>حالة الحساب</Label>
@@ -538,30 +551,36 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
             </div>
 
             {/* Custom Roles */}
-            {customRoles && customRoles.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                  الأدوار المخصصة (اختياري)
-                </h3>
+            {filteredCustomRoles.length > 0 && (
+              <div className={formData.role ? "opacity-50" : ""}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                    أو اختر دوراً مخصصاً
+                  </h3>
+                  {formData.role && (
+                    <p className="text-xs text-amber-600">أزِل الدور الأساسي أولاً لتفعيل هذا القسم</p>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border rounded-lg p-3 bg-muted/30">
-                  {customRoles.map((role: any) => (
-                    <div
+                  {filteredCustomRoles.map((role: any) => (
+                    <label
                       key={role.id}
-                      className="flex items-start gap-2 p-2 rounded hover:bg-muted/50 cursor-pointer"
-                      onClick={() => toggleRoleId(role.id)}
+                      htmlFor={`custom-role-${role.id}`}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all select-none ${
+                        formData.roleIds.includes(role.id)
+                          ? "bg-primary/5 border-primary/30"
+                          : "bg-background hover:bg-muted/50 border-transparent"
+                      } ${formData.role ? "pointer-events-none" : ""}`}
                     >
                       <Checkbox
+                        id={`custom-role-${role.id}`}
                         checked={formData.roleIds.includes(role.id)}
                         onCheckedChange={() => toggleRoleId(role.id)}
-                        className="mt-0.5"
+                        disabled={!!formData.role}
+                        className="pointer-events-none"
                       />
-                      <div>
-                        <p className="text-sm font-medium">{role.nameAr}</p>
-                        {role.description && (
-                          <p className="text-xs text-muted-foreground">{role.description}</p>
-                        )}
-                      </div>
-                    </div>
+                      <span className="text-sm font-medium truncate">{role.nameAr}</span>
+                    </label>
                   ))}
                 </div>
               </div>

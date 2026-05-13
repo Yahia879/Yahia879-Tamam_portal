@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,15 @@ const CustomRolesTab = lazy(() => import("@/components/staff/CustomRolesTab"));
 
 export default function StaffManagement() {
   const [activeTab, setActiveTab] = useState("users");
+
+  // قراءة التبويب من رابط URL عند التحميل
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && ["users", "roles", "custom-roles"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
   
   // حالات للتحكم في فتح نوافذ الإضافة من المكون الأب
   const [openUsersAdd, setOpenUsersAdd] = useState(false);

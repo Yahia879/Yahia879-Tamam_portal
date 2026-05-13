@@ -250,23 +250,29 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // إنشاء الدور
+      // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
       await db.insert(roles).values({
         id: input.id,
         nameAr: input.nameAr,
         nameEn: input.nameEn,
-        description: input.description,
+        description: JSON.stringify(input.permissions),
         isSystem: false
       });
 
-      // إضافة الصلاحيات
+      // التحقق من الصلاحيات الموجودة فعلياً في قاعدة البيانات قبل الربط
       if (input.permissions.length > 0) {
-        await db.insert(rolePermissions).values(
-          input.permissions.map(permId => ({
-            roleId: input.id,
-            permissionId: permId
-          }))
-        );
+        const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+          .where(inArray(permissions.id, input.permissions));
+        const validPermIds = existingPerms.map(p => p.id);
+
+        if (validPermIds.length > 0) {
+          await db.insert(rolePermissions).values(
+            validPermIds.map(permId => ({
+              roleId: input.id,
+              permissionId: permId
+            }))
+          );
+        }
       }
 
       await logAudit({
