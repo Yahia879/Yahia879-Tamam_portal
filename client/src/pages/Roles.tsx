@@ -18,8 +18,25 @@ import DashboardLayout from "../components/DashboardLayout";
 export default function Roles() {
   const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
   
-  // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة الإدارة
-  const roles = allRoles?.filter(role => role.id !== 'service_requester');
+  // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة الإدارة مع تطبيق ترتيب مخصص للأدوار الأساسية
+  const rolePriority: Record<string, number> = {
+    system_admin: 1,
+    super_admin: 2,
+    projects_office: 3,
+    project_manager: 4,
+    financial: 5,
+    field_team: 6,
+    quick_response: 7,
+    corporate_comm: 8,
+  };
+
+  const roles = allRoles
+    ?.filter(role => role.id !== 'service_requester')
+    .sort((a, b) => {
+      const priorityA = rolePriority[a.id] || 99;
+      const priorityB = rolePriority[b.id] || 99;
+      return priorityA - priorityB;
+    });
 
   if (isLoading) {
     return (

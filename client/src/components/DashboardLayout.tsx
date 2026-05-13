@@ -64,16 +64,13 @@ type MenuGroup = { label: string; items: MenuItem[] };
 const getMenuGroups = (role: string): MenuGroup[] => {
   const groups: MenuGroup[] = [];
 
-  // الرئيسية
-  if (role !== "service_requester") {
+  // الرئيسية - متاحة فقط للإدارة العليا
+  if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
       label: "الرئيسية",
       items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
     });
   }
-
-  // إدارة المستخدمين والأدوار تمت نقلها إلى مركز الإعدادات (/settings)
-  // تم حذفها من القائمة الجانبية بناءً على طلب المستخدم
 
   // المساجد والطلبات
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
@@ -184,6 +181,53 @@ const getMenuGroups = (role: string): MenuGroup[] => {
   return groups;
 };
 
+// بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
+// معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
+const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
+  const has = (p: string) => permissions.includes(p);
+  const groups: MenuGroup[] = [];
+
+  // لوحة التحكم محصورة على الإدارة العليا فقط — لا تظهر للأدوار المخصصة
+
+  // المساجد والطلبات
+  const mosqueItems: MenuItem[] = [];
+  if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
+  if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
+  if (has("requests"))                     mosqueItems.push({ icon: FileText,      label: "الطلبات",               path: "/requests" });
+  if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
+  if (has("projects"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
+  if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
+  if (mosqueItems.length > 0) groups.push({ label: "المساجد والطلبات", items: mosqueItems });
+
+  // المالية والعقود
+  const finItems: MenuItem[] = [];
+  if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
+  if (has("quotations"))          finItems.push({ icon: Receipt,     label: "عروض الأسعار",    path: "/quotations" });
+  if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" });
+  if (has("contracts"))           finItems.push({ icon: FileText,    label: "العقود",          path: "/contracts" });
+  if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
+  if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
+  if (has("progress_reports"))    finItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
+  if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
+  if (finItems.length > 0) groups.push({ label: "المالية والعقود", items: finItems });
+
+  // إدارة الكادر
+  if (has("staff_management")) {
+    groups.push({
+      label: "إدارة الكادر",
+      items: [{ icon: Users, label: "إدارة الكادر", path: "/staff" }],
+    });
+  }
+
+  // الإعدادات
+  const settingsItems: MenuItem[] = [];
+  if (has("settings_center"))    settingsItems.push({ icon: Settings, label: "مركز الإعدادات",   path: "/settings" });
+  if (has("programs_services"))  settingsItems.push({ icon: Layers,   label: "البرامج والخدمات", path: "/program-customization" });
+  if (settingsItems.length > 0) groups.push({ label: "الإعدادات", items: settingsItems });
+
+  return groups;
+};
+
 // دالة مساعدة لاستخراج جميع العناصر بالترتيب
 const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
@@ -290,9 +334,18 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const menuGroups = getMenuGroups(user?.role || "");
-  const menuItems = getMenuItems(user?.role || "");
+  // إذا كان للمستخدم دور مخصص، نبني القائمة من صلاحياته الفعلية فقط
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasCustomRole = !!(user as any)?.customRole;
+  const menuGroups = hasCustomRole
+    ? getMenuGroupsFromPermissions(userPermissions)
+    : getMenuGroups(user?.role || "");
+  const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);
+  // عنوان الدور المعروض في تذييل القائمة
+  const roleDisplayLabel = hasCustomRole
+    ? (user as any).customRole.nameAr
+    : (ROLE_LABELS[user?.role || ""] || user?.role);
   const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات
@@ -415,7 +468,7 @@ function DashboardLayoutContent({
                       {user?.name || "-"}
                     </p>
                     <p className="text-xs text-sidebar-foreground/50 truncate mt-1">
-                      {ROLE_LABELS[user?.role || ""] || user?.role}
+                      {roleDisplayLabel}
                     </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden" />

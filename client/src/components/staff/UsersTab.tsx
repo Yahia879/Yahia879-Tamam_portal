@@ -64,12 +64,11 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
   { value: "system_admin", label: "مدير نظام" },
-  { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
+  { value: "project_manager", label: "مدير المشاريع" },
+  { value: "financial", label: "الإدارة المالية" },
   { value: "field_team", label: "فريق ميداني" },
   { value: "quick_response", label: "استجابة سريعة" },
-  { value: "financial", label: "مالية" },
-  { value: "project_manager", label: "مدير مشروع" },
   { value: "corporate_comm", label: "علاقات مؤسسية" },
 ];
 
@@ -89,7 +88,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     email: "",
     password: "",
     phone: "",
-    role: "projects_office",
+    role: "",
     status: "active",
     roleIds: [] as string[],
   });
@@ -161,7 +160,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       email: "",
       password: "",
       phone: "",
-      role: "projects_office",
+      role: "",
       status: "active",
       roleIds: [],
     });
@@ -173,12 +172,17 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       toast.error("يرجى تعبئة الحقول المطلوبة (الاسم، البريد، كلمة المرور)");
       return;
     }
+    if (!formData.role && formData.roleIds.length === 0) {
+      toast.error("يرجى اختيار الدور الوظيفي أو دور مخصص");
+      return;
+    }
     createUser.mutate({
       name: formData.name,
       email: formData.email,
       password: formData.password,
       phone: formData.phone || undefined,
-      role: formData.role as any,
+      // only send role if one is explicitly selected; omit it when using custom roles only
+      ...(formData.role ? { role: formData.role as any } : {}),
       status: formData.status as any,
       roleIds: formData.roleIds.length > 0 ? formData.roleIds : undefined,
     });
@@ -213,21 +217,41 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
     (r: any) => !r.isSystem && r.id !== 'service_requester'
   ) || [];
 
-  const getRoleBadge = (role: string) => {
-    const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-      super_admin: { label: "المدير العام", variant: "default" },
-      system_admin: { label: "مدير نظام", variant: "default" },
-      financial_manager: { label: "المدير المالي", variant: "default" },
-      projects_office: { label: "مكتب المشاريع", variant: "secondary" },
-      field_team: { label: "فريق ميداني", variant: "secondary" },
-      quick_response: { label: "استجابة سريعة", variant: "secondary" },
-      financial: { label: "مالية", variant: "secondary" },
-      project_manager: { label: "مدير مشروع", variant: "secondary" },
-      corporate_comm: { label: "علاقات مؤسسية", variant: "secondary" },
-      service_requester: { label: "طالب خدمة", variant: "outline" },
+  const getRoleBadge = (user: { role: string; customRole?: { id: string; nameAr: string } | null }) => {
+    // إذا كان للمستخدم دور مخصص موجود، نستخدم التنسيق الرمادي الفاتح المطور
+    if (user.customRole) {
+      return (
+        <Badge 
+          variant="outline" 
+          className="bg-[#f9fafb] text-gray-600 border-gray-200 px-3 py-0.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors"
+        >
+          {user.customRole.nameAr}
+        </Badge>
+      );
+    }
+
+    // الأدوار الأساسية الثابتة - تستخدم التنسيق الزمردي الناعم (Soft Emerald)
+    const roleMap: Record<string, string> = {
+      system_admin: "مدير نظام",
+      super_admin: "المدير العام",
+      projects_office: "مكتب المشاريع",
+      project_manager: "مدير المشاريع",
+      financial: "الإدارة المالية",
+      field_team: "فريق ميداني",
+      quick_response: "فريق الاستجابة السريعة",
+      corporate_comm: "الاتصال المؤسسي",
+      service_requester: "طالب خدمة",
     };
-    const config = roleMap[role] || { label: role, variant: "outline" as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const roleLabel = roleMap[user.role] || user.role;
+
+    return (
+      <Badge 
+        variant="outline" 
+        className="bg-[#e6f4f1] text-[#007055] border-emerald-100 px-3 py-0.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors"
+      >
+        {roleLabel}
+      </Badge>
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -324,7 +348,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                     </Link>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getRoleBadge(user)}</TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
                   <TableCell>
                     {new Date(user.createdAt).toLocaleDateString("ar-SA")}
@@ -513,12 +537,12 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                 <div className="space-y-1.5">
                   <Label>الدور الوظيفي</Label>
                   <Select
-                    value={formData.role}
+                    value={formData.role || undefined}
                     onValueChange={(v) => setFormData((p) => ({ ...p, role: v, roleIds: [] }))}
                     disabled={formData.roleIds.length > 0}
                   >
                     <SelectTrigger className={formData.roleIds.length > 0 ? "opacity-40" : ""}>
-                      <SelectValue placeholder="اختر الدور" />
+                      <SelectValue placeholder="اختر الدور الوظيفي" />
                     </SelectTrigger>
                     <SelectContent>
                       {ROLE_OPTIONS.map((opt) => (

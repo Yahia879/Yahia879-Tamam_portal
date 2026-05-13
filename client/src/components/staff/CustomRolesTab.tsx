@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Shield, Loader2, Power, MoreVertical, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Shield, Loader2, Power, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export interface CustomRolesTabProps {
   openAddModal: boolean;
@@ -27,6 +38,7 @@ export interface CustomRolesTabProps {
 
 export default function CustomRolesTab({ openAddModal, setOpenAddModal }: CustomRolesTabProps) {
   const [, setLocation] = useLocation();
+  const [roleToDelete, setRoleToDelete] = useState<{ id: string; nameAr: string } | null>(null);
 
   const utils = trpc.useContext();
   const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
@@ -34,11 +46,33 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
   const toggleMutation = trpc.permissions.toggleRoleStatus.useMutation({
     onSuccess: () => {
       utils.permissions.getRoles.invalidate();
+      toast.success("تم تحديث حالة الدور بنجاح");
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل تحديث حالة الدور");
+    }
+  });
+
+  const deleteMutation = trpc.permissions.deleteRole.useMutation({
+    onSuccess: () => {
+      utils.permissions.getRoles.invalidate();
+      toast.success("تم حذف الدور بنجاح");
+      setRoleToDelete(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "فشل حذف الدور");
+      setRoleToDelete(null);
     }
   });
 
   const handleToggleStatus = (roleId: string, isActive: boolean) => {
     toggleMutation.mutate({ roleId, isActive });
+  };
+
+  const handleDeleteRole = () => {
+    if (roleToDelete) {
+      deleteMutation.mutate({ roleId: roleToDelete.id });
+    }
   };
   
   // تصفية الأدوار لإظهار الأدوار المخصصة فقط (isSystem === false)
@@ -112,6 +146,13 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                           <Power className="h-4 w-4 ml-2" />
                           {role.isActive ? "إيقاف الدور" : "تفعيل الدور"}
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
+                          className="text-destructive focus:text-destructive cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4 ml-2" />
+                          حذف الدور
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -144,6 +185,35 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
           </TableBody>
         </Table>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              هل أنت متأكد من حذف دور "<strong>{roleToDelete?.nameAr}</strong>" بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction
+              onClick={handleDeleteRole}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحذف...
+                </>
+              ) : (
+                "حذف الدور"
+              )}
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

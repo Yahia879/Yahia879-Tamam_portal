@@ -91,16 +91,40 @@ export const internalProcedure = t.procedure.use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
-    if (!ctx.user || !internalRoles.includes(ctx.user.role as UserRole)) {
+    if (!ctx.user) {
       throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح للموظفين فقط" });
     }
 
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user,
-      },
-    });
+    // السماح لحاملي الأدوار الأساسية مباشرة
+    if (internalRoles.includes(ctx.user.role as UserRole)) {
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }
+
+    // السماح لأي مستخدم لديه دور مخصص نشط في جدول user_roles
+    const { getDb } = await import("../db");
+    const { userRoleAssignments, roles } = await import("../../drizzle/schema");
+    const { eq, and, sql } = await import("drizzle-orm");
+    const db = await getDb();
+    if (db) {
+      const [customRole] = await db
+        .select({ roleId: userRoleAssignments.roleId })
+        .from(userRoleAssignments)
+        .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+        .where(
+          and(
+            eq(userRoleAssignments.userId, ctx.user.id),
+            eq(roles.isActive, true),
+            sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+          )
+        )
+        .limit(1);
+
+      if (customRole) {
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      }
+    }
+
+    throw new TRPCError({ code: "FORBIDDEN", message: "هذا الإجراء متاح للموظفين فقط" });
   }),
 );
 

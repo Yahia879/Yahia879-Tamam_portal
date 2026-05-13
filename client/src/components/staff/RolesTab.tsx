@@ -41,8 +41,21 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
     toggleMutation.mutate({ roleId, isActive });
   };
   
-  // تصفية الأدوار لإخفاء "طالب الخدمة" ولإظهار الأدوار الافتراضية فقط
-  const roles = allRoles?.filter(role => role.id !== 'service_requester' && role.isSystem);
+  // تصفية الأدوار لإخفاء "طالب الخدمة" ولإظهار الأدوار الافتراضية فقط مع ترتيب مخصص
+  const rolePriority: Record<string, number> = {
+    system_admin: 1,
+    super_admin: 2,
+    projects_office: 3,
+    project_manager: 4,
+    financial: 5,
+    field_team: 6,
+    quick_response: 7,
+    corporate_comm: 8,
+  };
+
+  const roles = allRoles
+    ?.filter(role => role.id !== 'service_requester' && role.isSystem)
+    .sort((a, b) => (rolePriority[a.id] || 99) - (rolePriority[b.id] || 99));
 
   useEffect(() => {
     if (openAddModal) {

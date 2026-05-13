@@ -2,8 +2,8 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { users, employees, auditLogs, InsertUser } from "../../drizzle/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions } from "../../drizzle/schema";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { COOKIE_NAME } from "../../shared/const";
@@ -237,9 +237,72 @@ export const authRouter = router({
     return { success: true };
   }),
 
-  // الحصول على بيانات المستخدم الحالي
+  // الحصول على بيانات المستخدم الحالي (مع حقن الدور المخصص والصلاحيات)
   me: publicProcedure.query(async ({ ctx }) => {
-    return ctx.user;
+    if (!ctx.user) return null;
+
+    const db = await getDb();
+    if (!db) return ctx.user;
+
+    // هل للمستخدم دور مخصص في جدول user_roles؟
+    const [customRoleAssignment] = await db
+      .select({
+        roleId: roles.id,
+        roleNameAr: roles.nameAr,
+        roleNameEn: roles.nameEn,
+        isActive: roles.isActive,
+        roleDescription: roles.description,
+      })
+      .from(userRoleAssignments)
+      .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+      .where(
+        and(
+          eq(userRoleAssignments.userId, ctx.user.id),
+          sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+        )
+      )
+      .limit(1);
+
+    // إذا لم يكن للمستخدم دور مخصص، أعد البيانات العادية
+    if (!customRoleAssignment) {
+      return { ...ctx.user, customRole: null, permissions: [] };
+    }
+
+    // جلب الصلاحيات: الأولوية لحقل description (حيث يخزّن createRole الصلاحيات كـ JSON)
+    // ثم rolePermissions كمصدر احتياطي
+    let permissions: string[] = [];
+
+    // 1. محاولة قراءة الصلاحيات من حقل description (المصدر الأساسي)
+    if (customRoleAssignment.roleDescription) {
+      try {
+        const parsed = JSON.parse(customRoleAssignment.roleDescription);
+        if (Array.isArray(parsed)) {
+          permissions = parsed;
+        }
+      } catch {
+        // ليس JSON صالح، نتجاهل ونجرب rolePermissions
+      }
+    }
+
+    // 2. إذا لم نجد صلاحيات في description، نجرب جدول rolePermissions
+    if (permissions.length === 0) {
+      const rolePermsData = await db
+        .select({ permissionId: rolePermissions.permissionId })
+        .from(rolePermissions)
+        .where(eq(rolePermissions.roleId, customRoleAssignment.roleId));
+      permissions = rolePermsData.map((rp) => rp.permissionId);
+    }
+
+    return {
+      ...ctx.user,
+      customRole: {
+        id: customRoleAssignment.roleId,
+        nameAr: customRoleAssignment.roleNameAr,
+        nameEn: customRoleAssignment.roleNameEn,
+        isActive: customRoleAssignment.isActive,
+      },
+      permissions,
+    };
   }),
 
   // إنشاء موظف جديد (للمدراء فقط)

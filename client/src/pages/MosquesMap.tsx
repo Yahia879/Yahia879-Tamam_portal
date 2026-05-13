@@ -79,7 +79,7 @@ export default function MosquesMap() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">خريطة المساجد</h1>
-            <p className="text-muted-foreground">عرض جميع المساجد المسجلة على الخريطة (OpenStreetMap)</p>
+            <p className="text-muted-foreground">عرض جميع المساجد المسجلة على الخريطة مع إمكانية عرض صور الأقمار الصناعية</p>
           </div>
 
           <div className="flex items-center gap-2">

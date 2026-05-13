@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { users, employees, userRoleAssignments, passwordResetTokens } from "../../drizzle/schema";
+import { users, employees, userRoleAssignments, passwordResetTokens, roles } from "../../drizzle/schema";
 import { eq, count, and, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
@@ -90,8 +90,38 @@ export const usersRouter = router({
         .limit(limit)
         .offset(offset);
 
+      // جلب الأدوار المخصصة لكل مستخدم (من جدول user_roles مربوطاً بجدول roles)
+      const userIds = items.map((u) => u.id);
+      let customRoleMap: Record<number, { id: string; nameAr: string }> = {};
+
+      if (userIds.length > 0) {
+        const assignments = await db
+          .select({
+            userId: userRoleAssignments.userId,
+            roleId: roles.id,
+            roleNameAr: roles.nameAr,
+          })
+          .from(userRoleAssignments)
+          .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+          .where(
+            sql`${userRoleAssignments.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`
+          );
+
+        for (const a of assignments) {
+          if (a.userId !== null) {
+            customRoleMap[a.userId] = { id: a.roleId, nameAr: a.roleNameAr };
+          }
+        }
+      }
+
+      // إثراء كل مستخدم ببيانات الدور المخصص إن وُجد
+      const enrichedItems = items.map((user) => ({
+        ...user,
+        customRole: customRoleMap[user.id] ?? null,
+      }));
+
       return {
-        items,
+        items: enrichedItems,
         totalCount,
         activeCount: activeResult.value,
         suspendedCount: suspendedResult.value,
@@ -133,12 +163,16 @@ export const usersRouter = router({
         email: z.string().email("البريد الإلكتروني غير صحيح"),
         password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
         phone: z.string().optional(),
-        role: z.enum([...STAFF_ROLES, "service_requester"]).default("projects_office"),
+        // role is optional when the user is assigned exclusively via a custom role (roleIds)
+        role: z.enum([...STAFF_ROLES, "service_requester"]).optional(),
         status: z.enum(["active", "pending", "suspended"]).default("active"),
         department: z.string().optional(),
         position: z.string().optional(),
         roleIds: z.array(z.string()).optional(), // أدوار مخصصة لتعيينها فوراً
-      })
+      }).refine(
+        (data) => !!data.role || (data.roleIds && data.roleIds.length > 0),
+        { message: "يجب تحديد الدور الوظيفي أو دور مخصص على الأقل" }
+      )
     )
     .mutation(async ({ input, ctx }) => {
       if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
@@ -158,21 +192,25 @@ export const usersRouter = router({
       const hashedPwd = hashPassword(input.password, salt);
       const passwordHash = `${salt}:${hashedPwd}`;
 
+      // عند اختيار دور مخصص فقط (بدون دور أساسي)، نستخدم "projects_office" كقيمة محايدة
+      // للحقل role في جدول users (المطلوب من DB)، ويُعدّ الدور الفعلي هو roleIds
+      const effectiveRole = input.role ?? "projects_office";
+
       // إنشاء المستخدم
       const [result] = await db.insert(users).values({
         name: input.name,
         email: input.email,
         passwordHash,
         phone: input.phone || null,
-        role: input.role as any,
+        role: effectiveRole as any,
         status: input.status as any,
         loginMethod: "local",
       });
 
       const newUserId = Number(result.insertId);
 
-      // إنشاء سجل موظف إذا كان المستخدم من الموظفين أو تم إدخال بيانات وظيفية
-      const isStaff = STAFF_ROLES.includes(input.role as any);
+      // إنشاء سجل موظف دائماً للكادر (بغض النظر عن نوع الدور)
+      const isStaff = input.role ? STAFF_ROLES.includes(input.role as any) : true;
       if (isStaff || input.department || input.position) {
         // توليد رقم وظيفي: EMP-YYYY-ID
         const currentYear = new Date().getFullYear();

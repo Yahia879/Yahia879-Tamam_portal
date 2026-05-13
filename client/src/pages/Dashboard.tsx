@@ -32,12 +32,33 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
-  // توجيه طالب الخدمة إلى لوحة تحكمه الخاصة
+  // حماية الصفحة: متاحة فقط للمدير العام ومدير النظام
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+
   useEffect(() => {
-    if (user && user.role === "service_requester") {
+    if (!user) return;
+
+    // توجيه طالب الخدمة إلى لوحة تحكمه الخاصة
+    if (user.role === "service_requester") {
       navigate("/requester/dashboard");
+      return;
     }
-  }, [user, navigate]);
+
+    // توجيه أي مستخدم غير إداري إلى صفحته الوظيفية
+    if (!isAdmin) {
+      // تحديد وجهة مناسبة حسب الدور
+      const redirectMap: Record<string, string> = {
+        projects_office: "/mosques",
+        field_team: "/field-visits",
+        quick_response: "/requests",
+        financial: "/suppliers",
+        financial_manager: "/suppliers",
+        project_manager: "/projects",
+        corporate_comm: "/profile",
+      };
+      navigate(redirectMap[user.role] || "/profile");
+    }
+  }, [user, navigate, isAdmin]);
   
   // جلب الإحصائيات
   const { data: requestStats } = trpc.requests.getStats.useQuery();
@@ -48,6 +69,11 @@ export default function Dashboard() {
   const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery(undefined, {
     enabled: ["super_admin", "system_admin", "projects_office"].includes(user?.role || ""),
   });
+
+  // اسم الدور المعروض في الواجهة: يعطي الأولوية للدور المخصص إن وُجد
+  const roleLabel = (user as any)?.customRole?.nameAr
+    || ROLE_LABELS[user?.role || ""]
+    || user?.role;
 
   // بطاقات الإحصائيات الرئيسية
   const mainStats = [
@@ -157,8 +183,9 @@ export default function Dashboard() {
               <h1 className="text-xl font-bold">
                 مرحباً، {user?.name || "المستخدم"}
               </h1>
-              <span className="text-white/70 text-sm hidden sm:inline">
-                {ROLE_LABELS[user?.role || ""] || user?.role}
+              <div className="w-px h-4 bg-white/40" />
+              <span className="text-white/80 text-sm font-medium bg-white/15 rounded-full px-3 py-0.5 hidden sm:inline">
+                {roleLabel}
               </span>
             </div>
             <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1">

@@ -17,6 +17,33 @@ import { z } from "zod";
 // ==================== دوال مساعدة ====================
 
 /**
+ * خريطة توسيع الصلاحيات: تربط معرّفات الصلاحيات البسيطة (من RoleEdit)
+ * بالصلاحيات الدقيقة المستخدمة في permissionProcedure
+ */
+const PERMISSION_EXPANSION: Record<string, string[]> = {
+  staff_management: [
+    "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
+    "users.view", "users.edit", "users.create", "users.delete",
+  ],
+  mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete"],
+  mosques_map: ["mosques.view"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete"],
+  appointments_calendar: ["requests.view", "field_visits.view"],
+  projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
+  service_requester_accounts: ["users.view", "users.edit"],
+  suppliers: ["suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete"],
+  quotations: ["quotations.view", "quotations.create", "quotations.edit"],
+  financial_approval: ["financial.view", "financial.approve"],
+  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.delete"],
+  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit"],
+  disbursement_orders: ["disbursements.view", "disbursements.create"],
+  progress_reports: ["reports.view", "reports.create"],
+  financial_report: ["reports.view"],
+  settings_center: ["settings.view", "settings.edit"],
+  programs_services: ["settings.view", "settings.edit"],
+};
+
+/**
  * حساب الصلاحيات النهائية للمستخدم
  * تدمج صلاحيات الأدوار + الصلاحيات الفردية
  */
@@ -34,12 +61,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إذا كان المستخدم super_admin، نمنحه جميع الصلاحيات مباشرة
   if (userData?.role === 'super_admin') {
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
-    return allPerms.map(p => p.id);
+    // super_admin يحصل أيضاً على جميع الصلاحيات الموسعة
+    const expandedSet = new Set(allPerms.map(p => p.id));
+    Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => expandedSet.add(s)));
+    return Array.from(expandedSet);
   }
 
   // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
   const userRolesData = await db
-    .select({ roleId: userRoleAssignments.roleId })
+    .select({
+      roleId: userRoleAssignments.roleId,
+    })
     .from(userRoleAssignments)
     .where(
       and(
@@ -55,15 +87,35 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   
   let rolePermissionsData: string[] = [];
   if (roleIds.length > 0) {
+    // جلب صلاحيات من جدول rolePermissions (المصدر التقليدي)
     const rolePermsResult = await db
       .select({ permissionId: rolePermissions.permissionId })
       .from(rolePermissions)
       .where(inArray(rolePermissions.roleId, roleIds));
     
     rolePermissionsData = rolePermsResult.map(rp => rp.permissionId);
+
+    // جلب صلاحيات من حقل description في جدول roles (المصدر للأدوار المخصصة)
+    const rolesData = await db
+      .select({ id: roles.id, description: roles.description })
+      .from(roles)
+      .where(inArray(roles.id, roleIds));
+
+    for (const role of rolesData) {
+      if (role.description) {
+        try {
+          const parsed = JSON.parse(role.description);
+          if (Array.isArray(parsed)) {
+            rolePermissionsData.push(...parsed);
+          }
+        } catch {
+          // ليس JSON صالح، نتجاهل
+        }
+      }
+    }
   }
 
-  // 2. جمع الصلاحيات الفردية
+  // 3. جمع الصلاحيات الفردية
   const userPermsData = await db
     .select({
       permissionId: userPermissions.permissionId,
@@ -77,10 +129,18 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       )
     );
 
-  // 3. دمج الصلاحيات
+  // 4. دمج الصلاحيات
   const allPermissions = new Set(rolePermissionsData);
 
-  // 4. تطبيق الصلاحيات الفردية (منح أو سحب)
+  // 5. توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة
+  for (const perm of rolePermissionsData) {
+    const expanded = PERMISSION_EXPANSION[perm];
+    if (expanded) {
+      expanded.forEach(sub => allPermissions.add(sub));
+    }
+  }
+
+  // 6. تطبيق الصلاحيات الفردية (منح أو سحب)
   userPermsData.forEach(perm => {
     if (perm.granted) {
       allPermissions.add(perm.permissionId);
