@@ -83,6 +83,17 @@ export default function RolePermissions() {
   // مصفوفة الصلاحيات المخصصة لـ الاتصال المؤسسي
   const corporateCommModules = [
     {
+      id: "partners",
+      nameAr: "الشركاء",
+      icon: Handshake,
+      permissions: [
+        { id: "partners.view", nameAr: "عرض الشركاء" },
+        { id: "partners.add", nameAr: "إضافة شريك جديد" },
+        { id: "partners.edit", nameAr: "تعديل بيانات شريك" },
+        { id: "partners.delete", nameAr: "حذف شريك" },
+      ]
+    },
+    {
       id: "reports",
       nameAr: "التقارير",
       icon: FileText,
@@ -92,21 +103,6 @@ export default function RolePermissions() {
         { id: "reports.edit", nameAr: "تعديل التقارير" },
         { id: "reports.delete", nameAr: "حذف التقارير" },
         { id: "reports.approve", nameAr: "اعتماد التقارير" },
-        { id: "reports.export", nameAr: "تصدير التقارير" },
-        { id: "reports.print", nameAr: "طباعة التقارير" },
-      ]
-    },
-    {
-      id: "partners",
-      nameAr: "الشركاء",
-      icon: Handshake,
-      permissions: [
-        { id: "partners.view", nameAr: "عرض الشركاء" },
-        { id: "partners.add", nameAr: "إضافة شريك جديد" },
-        { id: "partners.edit", nameAr: "تعديل بيانات شريك" },
-        { id: "partners.delete", nameAr: "حذف شريك" },
-        { id: "partners.reports", nameAr: "عرض تقارير الشركاء" },
-        { id: "partners.agreements", nameAr: "إدارة الاتفاقيات" },
       ]
     },
     {
@@ -131,8 +127,6 @@ export default function RolePermissions() {
       icon: MapPin,
       permissions: [
         { id: "field_visits.view", nameAr: "عرض الزيارات الميدانية" },
-        { id: "field_visits.create", nameAr: "إنشاء زيارة ميدانية" },
-        { id: "field_visits.edit", nameAr: "تعديل بيانات الزيارة" },
         { id: "field_visits.report", nameAr: "رفع التقارير الفنية" },
       ]
     },
@@ -142,9 +136,6 @@ export default function RolePermissions() {
       icon: CalendarDays,
       permissions: [
         { id: "appointments.view", nameAr: "عرض تقويم المواعيد" },
-        { id: "appointments.add", nameAr: "إضافة موعد جديد" },
-        { id: "appointments.edit", nameAr: "تعديل موعد" },
-        { id: "appointments.delete", nameAr: "حذف موعد" },
       ]
     },
     {
@@ -153,7 +144,6 @@ export default function RolePermissions() {
       icon: ClipboardList,
       permissions: [
         { id: "my_requests.view", nameAr: "عرض طلباتي" },
-        { id: "my_requests.create", nameAr: "إنشاء طلب جديد" },
         { id: "my_requests.track", nameAr: "متابعة حالة الطلب" },
       ]
     }
@@ -296,49 +286,186 @@ export default function RolePermissions() {
     },
     {
       title: "الإدارة (Administration)",
-      isHighlighted: true,
       modules: [
-        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_roles", "audit"] },
-        { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "edit_branding", "edit_organization", "edit_stages"] },
+        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] },
+        { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
     }
   ];
 
-  // تحويل الهيكل المصنف لمدير النظام إلى مصفوفة مستوية للعرض المتوافق مع الكود الحالي
-  const superAdminModulesFlat = superAdminGroups.flatMap(group => 
-    group.modules.map(m => ({
-      id: m.id,
-      nameAr: m.nameAr,
-      icon: m.icon,
-      isHighlightedGroup: group.isHighlighted,
-      groupTitle: group.title,
-      permissions: m.perms.map(p => ({
-        id: `${m.id}.${p}`,
-        nameAr: p === "view" ? "عرض" : p === "create" || p === "add" ? "إضافة" : p === "edit" || p === "update" ? "تعديل" : p === "delete" ? "حذف" : p === "approve" ? "اعتماد" : p === "export" ? "تصدير" : p === "print" ? "طباعة" : p === "follow_up" ? "متابعة" : p === "suspend" ? "تعليق" : p === "sign" ? "توقيع" : p === "execute" ? "تنفيذ" : p === "cancel" ? "إلغاء" : p === "analytics" ? "تحليلات" : p === "manage_roles" ? "إدارة الأدوار" : p === "audit" ? "سجل التدقيق" : p,
-      }))
-    }))
-  );
+  // هيكل المجموعات لـ الاتصال المؤسسي
+  const corporateCommGroups = [
+    {
+      title: "إدارة الاتصال والشركاء",
+      modules: corporateCommModules
+    }
+  ];
 
-  // تحديد البيانات المراد عرضها
-  const displayStructure = isCorporateComm 
-    ? corporateCommModules 
-    : isFieldTeam
-    ? fieldTeamModules
-    : isFinance
-    ? financeModules
-    : isProjectsOffice
-    ? projectsOfficeModules
-    : isQuickResponse
-    ? quickResponseModules
-    : isSuperAdmin
-    ? superAdminModulesFlat
-    : structure?.map(m => ({
-        id: m.id,
-        nameAr: m.nameAr,
-        icon: Shield, // أيقونة افتراضية
-        permissions: m.permissions.map(p => ({ id: p.id, nameAr: p.nameAr, description: p.description }))
-      }));
+  // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
+  const getDescriptiveLabel = (moduleId: string, action: string) => {
+    const mapping: Record<string, Record<string, string>> = {
+      mosques: {
+        view: "عرض قائمة المساجد",
+        create: "إضافة مسجد جديد",
+        add: "إضافة مسجد جديد",
+        edit: "تعديل بيانات مسجد",
+        update: "تعديل بيانات مسجد",
+        delete: "حذف مسجد",
+        approve: "اعتماد المساجد المضافة"
+      },
+      requests: {
+        view: "عرض قائمة الطلبات",
+        create: "إنشاء طلب جديد",
+        add: "إنشاء طلب جديد",
+        edit: "تعديل بيانات الطلب",
+        update: "تعديل بيانات الطلب",
+        delete: "حذف الطلب",
+        approve: "اعتماد الطلب",
+        follow_up: "متابعة حالة الطلبات"
+      },
+      projects: {
+        view: "عرض سجل المشاريع",
+        create: "إضافة مشروع جديد",
+        add: "إضافة مشروع جديد",
+        edit: "تعديل بيانات المشروع",
+        update: "تعديل بيانات المشروع",
+        delete: "حذف مشروع",
+        export: "تصدير سجل المشاريع"
+      },
+      requesters: {
+        view: "عرض بيانات المستخدمين",
+        edit: "تعديل بيانات الحساب",
+        delete: "حذف الحساب",
+        suspend: "تعليق حساب مستخدم"
+      },
+      suppliers: {
+        view: "عرض قائمة الموردين",
+        add: "إضافة مورد جديد",
+        edit: "تعديل بيانات مورد",
+        delete: "حذف مورد",
+        approve: "اعتماد الموردين"
+      },
+      quotations: {
+        view: "عرض عروض الأسعار",
+        add: "إضافة عرض سعر",
+        edit: "تعديل عرض سعر",
+        delete: "حذف عرض سعر",
+        approve: "اعتماد عروض الأسعار"
+      },
+      financial_approval: {
+        view: "عرض طلبات الاعتماد",
+        approve: "منح الاعتماد المالي",
+        reject: "مقارنة عروض الأسعار"
+      },
+      contracts: {
+        view: "عرض سجل العقود",
+        create: "إنشاء عقد جديد",
+        edit: "تعديل بيانات العقد",
+        delete: "حذف عقد",
+        sign: "توقيع العقد"
+      },
+      disbursements: {
+        view: "عرض طلبات الصرف",
+        add: "إنشاء طلب صرف",
+        edit: "تعديل طلب الصرف",
+        delete: "حذف طلب صرف",
+        approve: "اعتماد طلبات الصرف"
+      },
+      disbursement_orders: {
+        view: "عرض أوامر الصرف",
+        create: "إنشاء أمر صرف",
+        execute: "تنفيذ أمر الصرف",
+        cancel: "إلغاء أمر الصرف"
+      },
+      progress_reports: {
+        view: "عرض تقارير الإنجاز",
+        add: "إضافة تقرير إنجاز",
+        edit: "تعديل التقرير",
+        approve: "اعتماد التقارير"
+      },
+      financial_reports: {
+        view: "عرض التقارير المالية",
+        export: "تصدير البيانات المالية",
+        analytics: "تحليل مؤشرات الأداء"
+      },
+      staff: {
+        view: "عرض الكادر الإداري",
+        add: "إضافة موظف جديد",
+        edit: "تعديل بيانات موظف",
+        delete: "حذف موظف",
+        manage_users: "إدارة المستخدمين",
+        manage_custom_roles: "إدارة الأدوار المخصصة"
+      },
+      settings: {
+        view: "عرض الإعدادات العامة",
+        add: "إضافة إعداد جديد",
+        edit: "تعديل الإعدادات",
+        delete: "حذف إعداد"
+      },
+      services: {
+        view: "عرض البرامج والخدمات",
+        add: "إضافة خدمة جديدة",
+        edit: "تعديل بيانات الخدمة",
+        delete: "حذف خدمة"
+      },
+      mosque_map: {
+        view: "عرض الخريطة التفاعلية"
+      },
+      appointments: {
+        view: "عرض تقويم المواعيد",
+        add: "إضافة موعد جديد",
+        edit: "تعديل موعد",
+        delete: "حذف موعد"
+      }
+    };
+
+    return mapping[moduleId]?.[action] || action;
+  };
+
+  // تحديد المجموعات المراد عرضها بناءً على الدور
+  const displayGroups = isSuperAdmin 
+    ? superAdminGroups.map(group => ({
+        title: group.title,
+        modules: group.modules.map(m => ({
+          id: m.id,
+          nameAr: m.nameAr,
+          icon: m.icon,
+          permissions: m.perms.map(p => ({
+            id: `${m.id}.${p}`,
+            nameAr: getDescriptiveLabel(m.id, p),
+          }))
+        }))
+      }))
+    : isCorporateComm
+    ? corporateCommGroups
+    : [
+        {
+          title: isFieldTeam 
+            ? "مهام الفريق الميداني"
+            : isFinance
+            ? "العمليات المالية"
+            : isProjectsOffice
+            ? "إدارة المشاريع"
+            : isQuickResponse
+            ? "الاستجابة السريعة"
+            : "",
+          modules: isFieldTeam
+            ? fieldTeamModules
+            : isFinance
+            ? financeModules
+            : isProjectsOffice
+            ? projectsOfficeModules
+            : isQuickResponse
+            ? quickResponseModules
+            : structure?.map(m => ({
+                id: m.id,
+                nameAr: m.nameAr,
+                icon: Shield,
+                permissions: m.permissions.map(p => ({ id: p.id, nameAr: p.nameAr, description: p.description }))
+              })) || []
+        }
+      ];
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string, moduleId: string) => {
@@ -394,58 +521,68 @@ export default function RolePermissions() {
           </div>
         )}
 
-        {/* Standard Grid for all roles */}
-        <div className={`grid gap-8 ${isQuickResponse ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 md:grid-cols-2"}`}>
-          {displayStructure && displayStructure.length > 0 ? (
-            displayStructure.map((module) => {
-              const Icon = module.icon;
-              const modulePerms = module.permissions || [];
-              const grantedCount = modulePerms.length; 
+        {/* Grouped Rendering */}
+        <div className="space-y-12">
+          {displayGroups && displayGroups.length > 0 ? (
+            displayGroups.map((group, groupIdx) => (
+              <div key={groupIdx} className="space-y-6">
+                {group.title && (
+                  <div className="flex items-center gap-3 px-2">
+                    <div className="w-1.5 h-8 rounded-full bg-primary" />
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{group.title}</h2>
+                  </div>
+                )}
+                
+                <div className={`grid gap-8 ${isQuickResponse ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 md:grid-cols-2"}`}>
+                  {group.modules.map((module) => {
+                    const Icon = (module as any).icon || Shield;
+                    const modulePerms = module.permissions || [];
+                    const grantedCount = modulePerms.length; 
 
-              return (
-                <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
-                  <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
-                          <Icon className="h-5 w-5 text-primary" />
-                        </div>
-                        <CardTitle className="text-xl font-bold">{module.nameAr}</CardTitle>
-                      </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
-                        <span>{grantedCount}</span>
-                        <span className="opacity-50">/</span>
-                        <span>{modulePerms.length}</span>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-1 gap-3">
-                      {modulePerms.map((perm) => (
-                        <div 
-                          key={perm.id} 
-                          className="flex items-center justify-between p-3.5 rounded-xl border border-green-100 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 transition-all hover:bg-green-50/60"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-green-900 dark:text-green-400">
-                              {perm.nameAr}
-                            </span>
-                            {(perm as any).description && (
-                              <span className="text-xs text-muted-foreground mt-0.5">{(perm as any).description}</span>
-                            )}
+                    return (
+                      <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
+                        <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                                <Icon className="h-5 w-5 text-primary" />
+                              </div>
+                              <CardTitle className="text-xl font-bold">{module.nameAr}</CardTitle>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
+                              <span>{grantedCount}</span>
+                              <span className="opacity-50">/</span>
+                              <span>{modulePerms.length}</span>
+                            </div>
                           </div>
-                          <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0" />
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="flex flex-wrap gap-3">
+                            {modulePerms.map((perm) => (
+                              <div 
+                                key={perm.id} 
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-green-100 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 transition-all hover:bg-green-50/60"
+                              >
+                                <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-bold text-green-900 dark:text-green-400">
+                                    {perm.nameAr}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
           ) : (
-            <div className="col-span-full py-20 text-center">
+            <div className="py-20 text-center">
               <Shield className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
               <p className="text-muted-foreground text-lg">لا توجد وحدات متاحة للعرض حالياً.</p>
             </div>
