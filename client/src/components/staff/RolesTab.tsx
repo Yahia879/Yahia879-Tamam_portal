@@ -36,8 +36,11 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [, setLocation] = useLocation();
 
-  const { data: roles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
+  const { data: allRoles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
   
+  // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة إدارة الموظفين
+  const roles = allRoles?.filter(role => role.id !== 'service_requester');
+
   const deleteRole = trpc.permissions.deleteRole.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الدور بنجاح");

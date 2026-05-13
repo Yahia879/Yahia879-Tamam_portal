@@ -31,7 +31,11 @@ export default function Roles() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
-  const { data: roles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
+  const { data: allRoles, isLoading, refetch } = trpc.permissions.getRoles.useQuery();
+  
+  // تصفية الأدوار لإخفاء "طالب الخدمة" من واجهة الإدارة
+  const roles = allRoles?.filter(role => role.id !== 'service_requester');
+
   const deleteRole = trpc.permissions.deleteRole.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الدور بنجاح");
