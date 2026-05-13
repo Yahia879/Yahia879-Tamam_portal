@@ -215,7 +215,7 @@ export const permissionsRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-    return await db.select().from(roles).where(eq(roles.isActive, true));
+    return await db.select().from(roles);
   }),
 
   /**
@@ -275,6 +275,46 @@ export const permissionsRouter = router({
         targetRoleId: input.id,
         performedBy: ctx.user.id,
         newValue: JSON.stringify(input)
+      });
+
+      return { success: true };
+    }),
+
+  /**
+   * تفعيل / إيقاف دور
+   */
+  toggleRoleStatus: permissionProcedure("permissions.edit")
+    .input(z.object({
+      roleId: z.string(),
+      isActive: z.boolean()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من الصلاحية: فقط المدير العام أو مدير النظام
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل حالة الأدوار" });
+      }
+
+      // منع إيقاف أدوار الإدارة العليا (حماية النظام)
+      if ((input.roleId === 'super_admin' || input.roleId === 'system_admin') && !input.isActive) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "لا يمكن إيقاف هذا الدور الإداري الأساسي (حماية النظام)" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!role) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+
+      await db.update(roles).set({ isActive: input.isActive }).where(eq(roles.id, input.roleId));
+
+      await logAudit({
+        actionType: "toggle_role_status",
+        targetUserId: ctx.user.id,
+        targetRoleId: input.roleId,
+        performedBy: ctx.user.id,
+        reason: input.isActive ? "تفعيل الدور" : "إيقاف الدور (Kill Switch)"
       });
 
       return { success: true };

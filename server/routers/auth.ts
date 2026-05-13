@@ -164,6 +164,15 @@ export const authRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
 
+      // التحقق من حالة الدور
+      if (user.role) {
+        const { roles } = await import("../../drizzle/schema");
+        const roleData = await db.select({ isActive: roles.isActive }).from(roles).where(eq(roles.id, user.role)).limit(1);
+        if (roleData.length > 0 && !roleData[0].isActive) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+        }
+      }
+
       // تحديث آخر تسجيل دخول
       await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
 

@@ -18,6 +18,21 @@ const requireUser = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
+  // التحقق من حالة الدور (إبطال الجلسات النشطة للأدوار الموقوفة)
+  if (ctx.user.role) {
+    const { getDb } = await import("../db");
+    const { roles } = await import("../../drizzle/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await getDb();
+    if (db) {
+      const [roleData] = await db.select({ isActive: roles.isActive }).from(roles).where(eq(roles.id, ctx.user.role)).limit(1);
+      if (roleData && !roleData.isActive) {
+        // إرجاع خطأ غير مصرح به ليقوم الواجهة الأمامية بتسجيل الخروج تلقائياً
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+      }
+    }
+  }
+
   return next({
     ctx: {
       ...ctx,
