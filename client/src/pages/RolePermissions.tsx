@@ -29,7 +29,8 @@ import {
   Building2,
   FileSignature,
   Settings,
-  Briefcase
+  Briefcase,
+  Layers
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -78,7 +79,41 @@ export default function RolePermissions() {
   const isFinance = roleId === "financial";
   const isProjectsOffice = roleId === "projects_office";
   const isQuickResponse = roleId === "quick_response";
+  const isProjectManager = roleId === "project_manager";
   const isSuperAdmin = roleId === "super_admin" || roleId === "system_admin";
+
+  // مصفوفة الصلاحيات المخصصة لـ مدير المشاريع
+  const projectManagerGroups = [
+    {
+      title: "المساجد والطلبات",
+      modules: [
+        {
+          id: "projects",
+          nameAr: "المشاريع",
+          icon: LayoutGrid,
+          permissions: [
+            { id: "projects.view", nameAr: "عرض سجل المشاريع" },
+            { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
+            { id: "projects.delete", nameAr: "حذف مشروع" },
+            { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
+          ]
+        },
+        {
+          id: "reports",
+          nameAr: "التقارير",
+          icon: FileText,
+          permissions: [
+            { id: "reports.view", nameAr: "عرض التقارير" },
+            { id: "reports.add", nameAr: "إضافة تقارير جديدة" },
+            { id: "reports.edit", nameAr: "تعديل التقارير" },
+            { id: "reports.delete", nameAr: "حذف التقارير" },
+            { id: "reports.approve", nameAr: "اعتماد التقارير" },
+          ]
+        }
+      ]
+    }
+  ];
 
   // مصفوفة الصلاحيات المخصصة لـ الاتصال المؤسسي
   const corporateCommModules = [
@@ -120,125 +155,269 @@ export default function RolePermissions() {
   ];
 
   // مصفوفة الصلاحيات المخصصة لـ الفريق الميداني
-  const fieldTeamModules = [
+  const fieldTeamGroups = [
     {
-      id: "field_visits",
-      nameAr: "الزيارات الميدانية",
-      icon: MapPin,
-      permissions: [
-        { id: "field_visits.view", nameAr: "عرض الزيارات الميدانية" },
-        { id: "field_visits.report", nameAr: "رفع التقارير الفنية" },
-      ]
-    },
-    {
-      id: "appointments",
-      nameAr: "تقويم المواعيد",
-      icon: CalendarDays,
-      permissions: [
-        { id: "appointments.view", nameAr: "عرض تقويم المواعيد" },
-      ]
-    },
-    {
-      id: "my_requests",
-      nameAr: "طلباتي",
-      icon: ClipboardList,
-      permissions: [
-        { id: "my_requests.view", nameAr: "عرض طلباتي" },
-        { id: "my_requests.track", nameAr: "متابعة حالة الطلب" },
+      title: "المساجد والطلبات",
+      modules: [
+        {
+          id: "mosques",
+          nameAr: "الزيارات الميدانية",
+          icon: MapPin,
+          permissions: [
+            { id: "mosques.view", nameAr: "عرض الزيارات الميدانية" },
+          ]
+        },
+        {
+          id: "mosque_map",
+          nameAr: "التقويم",
+          icon: Calendar,
+          permissions: [
+            { id: "mosque_map.schedule", nameAr: "معرفة موعد الزيارة الميدانية" },
+            { id: "mosque_map.today", nameAr: "عرض الزيارات اليوم" },
+          ]
+        },
+        {
+          id: "requests",
+          nameAr: "طلباتي",
+          icon: ClipboardList,
+          permissions: [
+            { id: "requests.assigned", nameAr: "عرض الطلبات الموكلة لكم" },
+            { id: "requests.follow_up", nameAr: "متابعة حالة الطلب" },
+            { id: "requests.view", nameAr: "عرض قائمة الطلبات" },
+          ]
+        }
       ]
     }
   ];
 
   // مصفوفة الصلاحيات المخصصة لـ الإدارة المالية
-  const financeModules = [
+  const financeGroups = [
     {
-      id: "suppliers",
-      nameAr: "الموردون",
-      icon: Users,
-      permissions: [
-        { id: "suppliers.view", nameAr: "عرض الموردين" },
-        { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
-        { id: "suppliers.edit", nameAr: "تعديل بيانات مورد" },
-        { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
-      ]
-    },
-    {
-      id: "quotations",
-      nameAr: "عروض الأسعار",
-      icon: Receipt,
-      permissions: [
-        { id: "quotations.view", nameAr: "عرض عروض الأسعار" },
-        { id: "quotations.add", nameAr: "إضافة عرض سعر" },
-        { id: "quotations.edit", nameAr: "تعديل عرض سعر" },
-        { id: "quotations.approve", nameAr: "اعتماد عروض الأسعار" },
-      ]
-    },
-    {
-      id: "financial_approval",
-      nameAr: "الاعتماد المالي",
-      icon: CheckSquare,
-      permissions: [
-        { id: "financial_approval.view", nameAr: "عرض طلبات الاعتماد" },
-        { id: "financial_approval.approve", nameAr: "منح الاعتماد المالي" },
-        { id: "financial_approval.reject", nameAr: "رفض الاعتماد المالي" },
-      ]
-    },
-    {
-      id: "disbursement_requests",
-      nameAr: "طلبات الصرف",
-      icon: Wallet,
-      permissions: [
-        { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
-        { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
-        { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
-      ]
-    },
-    {
-      id: "disbursement_orders",
-      nameAr: "أوامر الصرف",
-      icon: Banknote,
-      permissions: [
-        { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
-        { id: "disbursement_orders.create", nameAr: "إنشاء أمر صرف" },
-        { id: "disbursement_orders.execute", nameAr: "تنفيذ أمر الصرف" },
-      ]
-    },
-    {
-      id: "financial_report",
-      nameAr: "التقرير المالي",
-      icon: FileBarChart,
-      permissions: [
-        { id: "financial_report.view", nameAr: "عرض التقرير المالي" },
-        { id: "financial_report.export", nameAr: "تصدير البيانات المالية" },
-        { id: "financial_report.analytics", nameAr: "تحليل مؤشرات الأداء المالي" },
+      title: "المالية والعقود",
+      modules: [
+        {
+          id: "suppliers",
+          nameAr: "الموردون",
+          icon: Users,
+          permissions: [
+            { id: "suppliers.view", nameAr: "عرض الموردين" },
+            { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
+            { id: "suppliers.edit", nameAr: "تعديل بيانات مورد" },
+            { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
+          ]
+        },
+        {
+          id: "quotations",
+          nameAr: "عروض الأسعار",
+          icon: Receipt,
+          permissions: [
+            { id: "quotations.view", nameAr: "عرض عروض الأسعار" },
+            { id: "quotations.add", nameAr: "إضافة عرض سعر" },
+            { id: "quotations.edit", nameAr: "تعديل عرض سعر" },
+            { id: "quotations.approve", nameAr: "اعتماد عروض الأسعار" },
+          ]
+        },
+        {
+          id: "financial_approval",
+          nameAr: "الاعتماد المالي",
+          icon: CheckSquare,
+          permissions: [
+            { id: "financial_approval.view", nameAr: "عرض طلبات الاعتماد" },
+            { id: "financial_approval.approve", nameAr: "منح الاعتماد المالي" },
+            { id: "financial_approval.reject", nameAr: "رفض الاعتماد المالي" },
+          ]
+        },
+        {
+          id: "contracts",
+          nameAr: "العقود",
+          icon: FileSignature,
+          permissions: [
+            { id: "contracts.view", nameAr: "عرض سجل العقود" },
+            { id: "contracts.create", nameAr: "إنشاء عقد جديد" },
+            { id: "contracts.edit", nameAr: "تعديل بيانات العقد" },
+            { id: "contracts.sign", nameAr: "توقيع واعتماد العقد" },
+          ]
+        },
+        {
+          id: "disbursement_requests",
+          nameAr: "طلبات الصرف",
+          icon: Wallet,
+          permissions: [
+            { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
+            { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
+            { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
+          ]
+        },
+        {
+          id: "disbursement_orders",
+          nameAr: "أوامر الصرف",
+          icon: Banknote,
+          permissions: [
+            { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
+            { id: "disbursement_orders.create", nameAr: "إنشاء أمر صرف" },
+            { id: "disbursement_orders.execute", nameAr: "تنفيذ أمر الصرف" },
+          ]
+        },
+        {
+          id: "financial_report",
+          nameAr: "التقرير المالي",
+          icon: FileBarChart,
+          permissions: [
+            { id: "financial_report.view", nameAr: "عرض التقرير المالي" },
+            { id: "financial_report.export", nameAr: "تصدير البيانات المالية" },
+            { id: "financial_report.analytics", nameAr: "تحليل مؤشرات الأداء المالي" },
+          ]
+        }
       ]
     }
   ];
 
-  // مصفوفة الصلاحيات المخصصة لـ مكتب المشاريع
-  const projectsOfficeModules = [
+  // مصفوفة الصلاحيات المخصصة لـ مكتب المشاريع - الهيكل التنظيمي الجديد
+  const projectsOfficeGroups = [
     {
-      id: "projects",
-      nameAr: "المشاريع",
-      icon: LayoutGrid,
-      permissions: [
-        { id: "projects.view", nameAr: "عرض المشاريع" },
-        { id: "projects.create", nameAr: "إنشاء مشروع جديد" },
-        { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
-        { id: "projects.delete", nameAr: "حذف مشروع" },
-        { id: "projects.export", nameAr: "تصدير بيانات المشاريع" },
+      title: "المساجد والطلبات",
+      modules: [
+        {
+          id: "mosques",
+          nameAr: "المساجد",
+          icon: Building2,
+          permissions: [
+            { id: "mosques.view", nameAr: "عرض قائمة المساجد" },
+            { id: "mosques.create", nameAr: "إضافة مسجد جديد" },
+            { id: "mosques.edit", nameAr: "تعديل بيانات مسجد" },
+            { id: "mosques.approve", nameAr: "اعتماد المساجد" },
+          ]
+        },
+        {
+          id: "mosque_map",
+          nameAr: "خريطة المساجد",
+          icon: Map,
+          permissions: [
+            { id: "mosque_map.view", nameAr: "عرض الخريطة التفاعلية" },
+          ]
+        },
+        {
+          id: "requests",
+          nameAr: "الطلبات",
+          icon: Zap,
+          permissions: [
+            { id: "requests.view", nameAr: "عرض قائمة الطلبات" },
+            { id: "requests.create", nameAr: "إنشاء طلب جديد" },
+            { id: "requests.edit", nameAr: "تعديل بيانات الطلب" },
+            { id: "requests.follow_up", nameAr: "متابعة حالة الطلبات" },
+          ]
+        },
+        {
+          id: "appointments",
+          nameAr: "تقويم المواعيد",
+          icon: Calendar,
+          permissions: [
+            { id: "appointments.view", nameAr: "عرض تقويم المواعيد" },
+            { id: "appointments.add", nameAr: "إضافة موعد جديد" },
+            { id: "appointments.edit", nameAr: "تعديل موعد" },
+          ]
+        },
+        {
+          id: "projects",
+          nameAr: "المشاريع",
+          icon: LayoutGrid,
+          permissions: [
+            { id: "projects.view", nameAr: "عرض سجل المشاريع" },
+            { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
+            { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
+          ]
+        }
       ]
     },
     {
-      id: "reports",
-      nameAr: "التقارير",
-      icon: FileBarChart,
-      permissions: [
-        { id: "reports.view", nameAr: "عرض التقارير" },
-        { id: "reports.add", nameAr: "إضافة تقارير جديدة" },
-        { id: "reports.edit", nameAr: "تعديل التقارير" },
-        { id: "reports.delete", nameAr: "حذف التقارير" },
-        { id: "reports.export", nameAr: "تصدير التقارير" },
+      title: "المالية والعقود",
+      modules: [
+        {
+          id: "suppliers",
+          nameAr: "الموردون",
+          icon: Users,
+          permissions: [
+            { id: "suppliers.view", nameAr: "عرض قائمة الموردين" },
+            { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
+            { id: "suppliers.edit", nameAr: "تعديل بيانات مورد" },
+            { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
+          ]
+        },
+        {
+          id: "quotations",
+          nameAr: "عروض الأسعار",
+          icon: Receipt,
+          permissions: [
+            { id: "quotations.view", nameAr: "عرض عروض الأسعار" },
+            { id: "quotations.add", nameAr: "إضافة عرض سعر" },
+            { id: "quotations.edit", nameAr: "تعديل عرض سعر" },
+            { id: "quotations.approve", nameAr: "اعتماد عروض الأسعار" },
+          ]
+        },
+        {
+          id: "financial_approval",
+          nameAr: "الاعتماد المالي",
+          icon: CheckSquare,
+          permissions: [
+            { id: "financial_approval.view", nameAr: "عرض طلبات الاعتماد" },
+            { id: "financial_approval.approve", nameAr: "منح الاعتماد المالي" },
+            { id: "financial_approval.reject", nameAr: "رفض الاعتماد المالي" },
+          ]
+        },
+        {
+          id: "contracts",
+          nameAr: "العقود",
+          icon: FileSignature,
+          permissions: [
+            { id: "contracts.view", nameAr: "عرض سجل العقود" },
+            { id: "contracts.create", nameAr: "إنشاء عقد جديد" },
+            { id: "contracts.edit", nameAr: "تعديل بيانات العقد" },
+            { id: "contracts.sign", nameAr: "توقيع واعتماد العقد" },
+          ]
+        },
+        {
+          id: "disbursements",
+          nameAr: "طلبات الصرف",
+          icon: Wallet,
+          permissions: [
+            { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
+            { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
+            { id: "disbursements.edit", nameAr: "تعديل طلب الصرف" },
+            { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
+          ]
+        },
+        {
+          id: "disbursement_orders",
+          nameAr: "أوامر الصرف",
+          icon: Banknote,
+          permissions: [
+            { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
+            { id: "disbursement_orders.create", nameAr: "إنشاء أمر صرف" },
+            { id: "disbursement_orders.execute", nameAr: "تنفيذ أمر الصرف" },
+          ]
+        },
+        {
+          id: "progress_reports",
+          nameAr: "تقارير الإنجاز",
+          icon: ClipboardCheck,
+          permissions: [
+            { id: "progress_reports.view", nameAr: "عرض تقارير الإنجاز" },
+            { id: "progress_reports.add", nameAr: "إضافة تقرير متابعة" },
+            { id: "progress_reports.edit", nameAr: "تعديل تقرير الإنجاز" },
+            { id: "progress_reports.approve", nameAr: "اعتماد تقارير التنفيذ" },
+          ]
+        },
+        {
+          id: "financial_reports",
+          nameAr: "التقرير المالي",
+          icon: FileBarChart,
+          permissions: [
+            { id: "financial_reports.view", nameAr: "عرض التقارير المالية" },
+            { id: "financial_reports.export", nameAr: "تصدير البيانات المالية" },
+            { id: "financial_reports.analytics", nameAr: "تحليل مؤشرات الأداء" },
+          ]
+        }
       ]
     }
   ];
@@ -258,21 +437,20 @@ export default function RolePermissions() {
     }
   ];
 
-  // هيكل الصلاحيات الكامل لـ المدير العام (Categorized)
-  const superAdminGroups = [
+  // هيكل الصلاحيات الكامل لـ مدير النظام (System Admin) - الهيكل العالمي الجديد
+  const systemAdminGroups = [
     {
-      title: "العمليات (Operations)",
+      title: "المساجد والطلبات",
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
-        { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "edit", "delete", "suspend"] },
       ]
     },
     {
-      title: "المالية والعقود (Finance & Contracts)",
+      title: "المالية والعقود",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
@@ -285,9 +463,55 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "الإدارة (Administration)",
+      title: "إدارة الكادر",
       modules: [
-        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] },
+        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users"] }
+      ]
+    },
+    {
+      title: "الإعدادات",
+      modules: [
+        { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "add", "edit", "delete"] },
+        { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
+      ]
+    }
+  ];
+
+  // هيكل الصلاحيات الكامل لـ المدير العام (Categorized)
+  const superAdminGroups = [
+    {
+      title: "المساجد والطلبات",
+      modules: [
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
+        { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "edit", "delete", "suspend"] },
+      ]
+    },
+    {
+      title: "المالية والعقود",
+      modules: [
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve", "reject"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
+      ]
+    },
+    {
+      title: "إدارة الكادر",
+      modules: [
+        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] }
+      ]
+    },
+    {
+      title: "الإعدادات",
+      modules: [
         { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
@@ -397,6 +621,16 @@ export default function RolePermissions() {
         manage_users: "إدارة المستخدمين",
         manage_custom_roles: "إدارة الأدوار المخصصة"
       },
+      roles: {
+        view: "عرض قائمة الأدوار",
+        create: "إنشاء دور جديد",
+        edit: "تعديل صلاحيات الدور",
+        delete: "حذف دور"
+      },
+      logs: {
+        view: "عرض سجل العمليات",
+        export: "تصدير سجل العمليات"
+      },
       settings: {
         view: "عرض الإعدادات العامة",
         add: "إضافة إعداد جديد",
@@ -404,10 +638,10 @@ export default function RolePermissions() {
         delete: "حذف إعداد"
       },
       services: {
-        view: "عرض البرامج والخدمات",
-        add: "إضافة خدمة جديدة",
-        edit: "تعديل بيانات الخدمة",
-        delete: "حذف خدمة"
+        view: "عرض البرامج",
+        add: "إضافة برنامج جديد",
+        edit: "تعديل بيانات البرنامج",
+        delete: "حذف البرامج"
       },
       mosque_map: {
         view: "عرض الخريطة التفاعلية"
@@ -498,9 +732,24 @@ export default function RolePermissions() {
     .filter(Boolean) as { title: string; modules: any[] }[]
   : [];
 
+  const isSystemAdmin = roleId === "system_admin";
+
   // تحديد المجموعات المراد عرضها بناءً على الدور
   const displayGroups = isCustomRole
     ? customRoleGroups
+    : isSystemAdmin
+    ? systemAdminGroups.map(group => ({
+        title: group.title,
+        modules: group.modules.map(m => ({
+          id: m.id,
+          nameAr: m.nameAr,
+          icon: m.icon,
+          permissions: m.perms.map(p => ({
+            id: `${m.id}.${p}`,
+            nameAr: getDescriptiveLabel(m.id, p),
+          }))
+        }))
+      }))
     : isSuperAdmin 
     ? superAdminGroups.map(group => ({
         title: group.title,
@@ -518,22 +767,10 @@ export default function RolePermissions() {
     ? corporateCommGroups
     : [
         {
-          title: isFieldTeam 
-            ? "مهام الفريق الميداني"
-            : isFinance
-            ? "العمليات المالية"
-            : isProjectsOffice
-            ? "إدارة المشاريع"
-            : isQuickResponse
-            ? "الاستجابة السريعة"
+          title: isQuickResponse
+            ? "المساجد والطلبات"
             : "",
-          modules: isFieldTeam
-            ? fieldTeamModules
-            : isFinance
-            ? financeModules
-            : isProjectsOffice
-            ? projectsOfficeModules
-            : isQuickResponse
+          modules: isQuickResponse
             ? quickResponseModules
             : structure?.map(m => ({
                 id: m.id,
@@ -544,9 +781,20 @@ export default function RolePermissions() {
         }
       ];
 
+  // Adjust displayGroups for roles with group-based structure
+  const finalDisplayGroups = isProjectsOffice
+    ? projectsOfficeGroups
+    : isProjectManager
+    ? projectManagerGroups
+    : isFinance
+    ? financeGroups
+    : isFieldTeam
+    ? fieldTeamGroups
+    : displayGroups;
+
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string, moduleId: string) => {
-    if (isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) return true;
+    if (isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin || isSystemAdmin || isProjectManager) return true;
     return rolePermissions?.includes(permId);
   };
 
@@ -574,26 +822,28 @@ export default function RolePermissions() {
           </div>
         </div>
 
-        {(isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin) && (
+        {(isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin || isProjectManager) && (
           <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
             <div className="p-2 rounded-lg bg-primary/10">
               <CheckCircle2 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold mb-1">{isSuperAdmin ? "صلاحيات الوصول المطلق (Master Access)" : isCustomRole ? `الصلاحيات المخصصة لدور: ${role.nameAr}` : "تم ضبط النطاق المهني النهائي"}</p>
+              <p className="font-semibold mb-1">{isSuperAdmin ? "صلاحيات الوصول المطلق" : isCustomRole ? `الصلاحيات المخصصة لدور: ${role.nameAr}` : "تم ضبط النطاق المهني النهائي"}</p>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {isCustomRole
                   ? "يعرض هذا القسم الأقسام والوحدات التي تم منح هذا الدور المخصص صلاحية الوصول إليها فقط."
                   : isCorporateComm 
                   ? "تم تحديد الوحدات الأساسية لقسم الاتصال المؤسسي مع منح كامل الصلاحيات لضمان الفعالية في إدارة الشركاء والهوية البصرية والتقارير."
                   : isFieldTeam
-                  ? "تم تحديد الوحدات الأساسية للفريق الميداني مع منح الصلاحيات التشغيلية اللازمة لإدارة الزيارات والمواعيد ومتابعة الطلبات."
+                  ? "تم تحديد الوحدات التشغيلية للفريق الميداني للتركيز على إدارة المساجد ومعالجة الطلبات الميدانية وتوثيق الإنجاز."
                   : isFinance
                   ? "تم تحديد الوحدات المالية الشاملة للإدارة المالية مع منح كامل صلاحيات المراجعة والاعتماد والتنفيذ المالي لضمان الانضباط والموثوقية."
                   : isProjectsOffice
                   ? "تم تحديد الوحدات الأساسية لمكتب المشاريع مع منح كامل الصلاحيات التشغيلية لإدارة دورة حياة المشاريع وتحليل الأداء العام."
                   : isQuickResponse
                   ? "تم تحديد وحدة الطلبات كمركز ثقل لعمل فريق الاستجابة السريعة، مع منح كامل الصلاحيات التشغيلية لضمان سرعة المعالجة والمتابعة."
+                  : isProjectManager
+                  ? "تم تحديد النطاق العملي لمدير المشاريع للتركيز حصرياً على إدارة المشاريع ومتابعة تقارير الإنجاز لضمان كفاءة التنفيذ."
                   : "يتمتع هذا الدور بصلاحيات كاملة وشاملة عبر كافة الأنظمة التشغيلية والمالية والإدارية، بما في ذلك التحكم المطلق في إعدادات النظام وإدارة الكادر."}
               </p>
             </div>
@@ -602,8 +852,8 @@ export default function RolePermissions() {
 
         {/* Grouped Rendering */}
         <div className="space-y-12">
-          {displayGroups && displayGroups.length > 0 ? (
-            displayGroups.map((group, groupIdx) => (
+          {finalDisplayGroups && finalDisplayGroups.length > 0 ? (
+            finalDisplayGroups.map((group, groupIdx) => (
               <div key={groupIdx} className="space-y-6">
                 {group.title && (
                   <div className="flex items-center gap-3 px-2">
@@ -636,7 +886,7 @@ export default function RolePermissions() {
                           </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                          <div className="flex flex-wrap gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {modulePerms.map((perm) => (
                               <div 
                                 key={perm.id} 
