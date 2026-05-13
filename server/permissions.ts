@@ -1,4 +1,4 @@
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, isNull } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   modules,
@@ -458,11 +458,17 @@ export const permissionsRouter = router({
         });
       }
 
-      // التحقق مما إذا كان هناك مستخدمون مسند إليهم هذا الدور
+      // التحقق مما إذا كان هناك مستخدمون نشطون مسند إليهم هذا الدور
       const [assignedUser] = await db
         .select({ id: userRoleAssignments.id })
         .from(userRoleAssignments)
-        .where(eq(userRoleAssignments.roleId, input.roleId))
+        .innerJoin(users, eq(userRoleAssignments.userId, users.id))
+        .where(
+          and(
+            eq(userRoleAssignments.roleId, input.roleId),
+            isNull(users.deletedAt)
+          )
+        )
         .limit(1);
 
       if (assignedUser) {
