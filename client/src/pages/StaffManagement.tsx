@@ -9,7 +9,7 @@ import { Link } from "wouter";
 // استخدام الاستدعاء الكسول (Lazy Loading) لتحسين الأداء
 const UsersTab = lazy(() => import("@/components/staff/UsersTab"));
 const RolesTab = lazy(() => import("@/components/staff/RolesTab"));
-const JobPositionsTab = lazy(() => import("@/components/staff/JobPositionsTab"));
+const CustomRolesTab = lazy(() => import("@/components/staff/CustomRolesTab"));
 
 export default function StaffManagement() {
   const [activeTab, setActiveTab] = useState("users");
@@ -17,14 +17,14 @@ export default function StaffManagement() {
   // حالات للتحكم في فتح نوافذ الإضافة من المكون الأب
   const [openUsersAdd, setOpenUsersAdd] = useState(false);
   const [openRolesAdd, setOpenRolesAdd] = useState(false);
-  const [openJobPositionsAdd, setOpenJobPositionsAdd] = useState(false);
+  const [openCustomRolesAdd, setOpenCustomRolesAdd] = useState(false);
 
   // تحديد نص زر الإضافة بناءً على التبويب النشط
   const getAddButtonLabel = () => {
     switch (activeTab) {
       case "users": return "إضافة مستخدم";
       case "roles": return "إنشاء دور مخصص";
-      case "job-positions": return "إضافة دور وظيفي";
+      case "custom-roles": return "إضافة دور مخصص";
       default: return "إضافة";
     }
   };
@@ -34,7 +34,7 @@ export default function StaffManagement() {
     switch (activeTab) {
       case "users": setOpenUsersAdd(true); break;
       case "roles": setOpenRolesAdd(true); break;
-      case "job-positions": setOpenJobPositionsAdd(true); break;
+      case "custom-roles": setOpenCustomRolesAdd(true); break;
     }
   };
 
@@ -88,11 +88,11 @@ export default function StaffManagement() {
               الأدوار والصلاحيات
             </TabsTrigger>
             <TabsTrigger 
-              value="job-positions" 
+              value="custom-roles" 
               className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
             >
               <Briefcase className="h-4 w-4" />
-              الأدوار الوظيفية
+              الأدوار المخصصة
             </TabsTrigger>
           </TabsList>
 
@@ -110,8 +110,8 @@ export default function StaffManagement() {
               <TabsContent value="roles" className="mt-0 outline-none">
                 <RolesTab openAddModal={openRolesAdd} setOpenAddModal={setOpenRolesAdd} />
               </TabsContent>
-              <TabsContent value="job-positions" className="mt-0 outline-none">
-                <JobPositionsTab openAddModal={openJobPositionsAdd} setOpenAddModal={setOpenJobPositionsAdd} />
+              <TabsContent value="custom-roles" className="mt-0 outline-none">
+                <CustomRolesTab openAddModal={openCustomRolesAdd} setOpenAddModal={setOpenCustomRolesAdd} />
               </TabsContent>
             </Suspense>
           </div>
