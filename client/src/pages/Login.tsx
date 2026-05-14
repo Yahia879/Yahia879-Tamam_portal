@@ -84,19 +84,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-500 via-teal-600 to-blue-600 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 bg-white/95">
+    <div className="min-h-screen bg-gradient-to-br from-teal-500 via-teal-600 to-blue-600 flex items-center justify-center p-4 sm:p-6">
+      <Card className="w-full max-w-md p-6 sm:p-8 bg-white/95 shadow-xl">
         {/* الشعار */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <img 
             src="/logo.svg" 
             alt="شعار بوابة تمام" 
-            className="h-20 mx-auto mb-4"
+            className="h-16 sm:h-20 mx-auto mb-4"
           />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             تسجيل دخول المستفيدين
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             سجل دخولك للوصول إلى حسابك وطلباتك
           </p>
         </div>
