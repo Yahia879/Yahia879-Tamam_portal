@@ -63,14 +63,14 @@ export default function LandingPage() {
             </div>
 
             {/* أزرار الدخول */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground px-2 sm:px-4 text-[10px] xs:text-xs sm:text-sm">
                   دخول المستفيدين
                 </Button>
               </Link>
               <Link href="/admin/login">
-                <Button size="sm" className="gradient-primary text-white shadow-sm">
+                <Button size="sm" className="gradient-primary text-white shadow-sm px-2 sm:px-4 text-[10px] xs:text-xs sm:text-sm">
                   دخول الموظفين
                 </Button>
               </Link>
@@ -84,34 +84,34 @@ export default function LandingPage() {
         className="relative overflow-hidden islamic-pattern"
         style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
       >
-        <div className="container mx-auto px-6 py-20 md:py-28">
+        <div className="container mx-auto px-4 xs:px-6 py-12 md:py-28">
           <div className="max-w-3xl mx-auto text-center">
             {/* الشعار الكبير */}
-            <div className="flex justify-center mb-8">
-              <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
-                <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-16 h-16" />
+            <div className="flex justify-center mb-6 md:mb-8">
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
+                <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16" />
               </div>
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
               بوابة تمام
-              <span className="block text-white/80 text-2xl md:text-3xl font-medium mt-2">
+              <span className="block text-white/80 text-xl sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
                 للعناية بالمساجد
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-white/85 mb-10 leading-relaxed max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-white/85 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto">
               منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله
             </p>
 
             {/* الأزرار الرئيسية */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
               <Link href="/register">
                 <Button
                   size="lg"
-                  className="bg-white text-primary hover:bg-white/90 font-bold px-8 py-6 text-base shadow-lg hover:shadow-xl transition-all"
+                  className="bg-white text-primary hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
                 >
-                  <FileText className="w-5 h-5 ml-2" />
+                  <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
                   طلب خدمة جديدة
                 </Button>
               </Link>
@@ -119,10 +119,10 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-8 py-6 text-base backdrop-blur transition-all"
+                  className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto"
                 >
                   لديك حساب؟ سجّل دخولك
-                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                 </Button>
               </Link>
             </div>
@@ -130,25 +130,25 @@ export default function LandingPage() {
         </div>
 
         {/* موجة فاصلة */}
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-background" style={{
+        <div className="absolute bottom-0 left-0 right-0 h-8 md:h-12 bg-background" style={{
           clipPath: "ellipse(55% 100% at 50% 100%)"
         }} />
       </section>
 
       {/* ═══════════════ الإحصائيات ═══════════════ */}
-      <section className="py-14 bg-background">
+      <section className="py-10 md:py-14 bg-background">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="text-center p-6 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
+                className="text-center p-4 md:p-6 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-3 md:mb-4">
+                  <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
-                <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
+                <div className="text-2xl md:text-3xl font-bold text-primary mb-1">{stat.value}</div>
+                <div className="text-xs md:text-sm text-muted-foreground font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -156,24 +156,24 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════ البرامج ═══════════════ */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-12 md:py-16 bg-muted/30">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-3">برامج الجمعية</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+          <div className="text-center mb-10 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">برامج الجمعية</h2>
+            <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
               تسعة برامج متخصصة تغطي جميع احتياجات المساجد من البناء حتى التشغيل
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
             {programs.map((program) => (
               <div
                 key={program.name}
-                className={`bg-gradient-to-br ${program.color} rounded-2xl p-5 text-white text-center
+                className={`bg-gradient-to-br ${program.color} rounded-2xl p-4 md:p-5 text-white text-center
                            hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default`}
               >
-                <div className="text-xl font-bold mb-1">{program.name}</div>
-                <div className="text-white/80 text-xs leading-relaxed">{program.desc}</div>
+                <div className="text-lg md:text-xl font-bold mb-1">{program.name}</div>
+                <div className="text-white/80 text-[10px] md:text-xs leading-relaxed">{program.desc}</div>
               </div>
             ))}
           </div>
@@ -181,9 +181,9 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════ دعوة للعمل ═══════════════ */}
-      <section className="py-16 bg-background">
+      <section className="py-12 md:py-16 bg-background">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
             {/* بطاقة المستفيد */}
             <div className="bg-card rounded-2xl border border-border p-8 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5">
               <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6">
