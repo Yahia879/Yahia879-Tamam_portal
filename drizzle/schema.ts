@@ -571,6 +571,8 @@ export const suppliers = mysqlTable("suppliers", {
   commercialRegisterDoc: longtext("commercialRegisterDoc"), // إرفاق السجل التجاري (Base64)
   vatCertificateDoc: longtext("vatCertificateDoc"), // شهادة ضريبة القيمة المضافة (Base64)
   nationalAddressDoc: longtext("nationalAddressDoc"), // العنوان الوطني (Base64)
+  bankCertificateDoc: longtext("bankCertificateDoc"), // الشهادة البنكية (Base64)
+  otherAttachments: json("otherAttachments").$type<{ name: string; fileData: string }[]>(), // مرفقات أخرى
   
   // ==================== بيانات الاعتماد ====================
   approvalStatus: mysqlEnum("approvalStatus", supplierApprovalStatuses).default("pending"),

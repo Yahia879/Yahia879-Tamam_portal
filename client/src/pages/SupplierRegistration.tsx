@@ -18,7 +18,9 @@ import {
   FileText, 
   Loader2,
   MapPin,
-  Send
+  Send,
+  Plus,
+  Trash2
 } from "lucide-react";
 
 // مجالات العمل المتاحة
@@ -100,6 +102,8 @@ export default function SupplierRegistration() {
   const [commercialRegisterDoc, setCommercialRegisterDoc] = useState("");
   const [vatCertificateDoc, setVatCertificateDoc] = useState("");
   const [nationalAddressDoc, setNationalAddressDoc] = useState("");
+  const [bankCertificateDoc, setBankCertificateDoc] = useState("");
+  const [otherAttachments, setOtherAttachments] = useState<{ name: string; fileData: string }[]>([]);
 
   // Mutation لتسجيل المورد
   const registerMutation = trpc.suppliers.register.useMutation({
@@ -153,9 +157,17 @@ export default function SupplierRegistration() {
     }
 
     // التحقق من المرفقات
-    if (!commercialRegisterDoc || !vatCertificateDoc || !nationalAddressDoc) {
-      toast.error("يرجى رفع جميع المرفقات المطلوبة");
+    if (!commercialRegisterDoc || !vatCertificateDoc || !nationalAddressDoc || !bankCertificateDoc) {
+      toast.error("يرجى رفع جميع المرفقات المطلوبة (بما في ذلك الشهادة البنكية)");
       return false;
+    }
+
+    // التحقق من المرفقات الإضافية
+    for (const attr of otherAttachments) {
+      if (attr.fileData && !attr.name) {
+        toast.error("يرجى إدخال اسم المرفق لكل ملف مرفوع في المرفقات الإضافية");
+        return false;
+      }
     }
 
     return true;
@@ -166,10 +178,16 @@ export default function SupplierRegistration() {
     if (!validateForm()) return;
     
     // التحقق من حجم البيانات الإجمالي قبل الإرسال
-    const totalPayloadSize = (commercialRegisterDoc.length + vatCertificateDoc.length + nationalAddressDoc.length);
+    let totalPayloadSize = (commercialRegisterDoc.length + vatCertificateDoc.length + nationalAddressDoc.length + bankCertificateDoc.length);
+    
+    // إضافة حجم المرفقات الإضافية
+    otherAttachments.forEach(attr => {
+      totalPayloadSize += attr.fileData.length;
+    });
+
     const totalPayloadMB = (totalPayloadSize * 3 / 4) / (1024 * 1024); // تحويل Base64 إلى ميجابايت تقريبي
     
-    if (totalPayloadMB > 40) {
+    if (totalPayloadMB > 45) {
       toast.error(`حجم المرفقات الإجمالي كبير جداً (${totalPayloadMB.toFixed(1)} ميجابايت). يرجى استخدام ملفات أصغر حجماً أو صور مضغوطة.`);
       return;
     }
@@ -197,6 +215,8 @@ export default function SupplierRegistration() {
       commercialRegisterDoc,
       vatCertificateDoc,
       nationalAddressDoc,
+      bankCertificateDoc,
+      otherAttachments,
     });
   };
 
@@ -508,7 +528,7 @@ export default function SupplierRegistration() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>إرفاق السجل التجاري *</Label>
                   <FileUpload
@@ -550,6 +570,90 @@ export default function SupplierRegistration() {
                     description="ارفع صورة العنوان الوطني"
                   />
                   {nationalAddressDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>الشهادة البنكية *</Label>
+                  <FileUpload
+                    onFilesSelected={(files) => {
+                      if (files.length > 0) {
+                        setBankCertificateDoc(files[0].fileData);
+                      }
+                    }}
+                    maxFiles={1}
+                    label="الشهادة البنكية"
+                    description="ارفع صورة الشهادة البنكية"
+                  />
+                  {bankCertificateDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                </div>
+              </div>
+
+              {/* المرفقات الإضافية */}
+              <div className="pt-6 border-t mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <Label className="text-lg font-semibold">مرفقات أخرى (اختياري)</Label>
+                    <p className="text-sm text-muted-foreground mt-1">يمكنك إضافة أي مستندات إضافية تدعم طلبك</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOtherAttachments([...otherAttachments, { name: "", fileData: "" }])}
+                  >
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة مرفق آخر
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  {otherAttachments.map((attr, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg bg-gray-50 items-center">
+                      <div className="md:col-span-5 space-y-2">
+                        <Label>اسم المرفق</Label>
+                        <Input
+                          value={attr.name}
+                          onChange={(e) => {
+                            const newAttrs = [...otherAttachments];
+                            newAttrs[index].name = e.target.value;
+                            setOtherAttachments(newAttrs);
+                          }}
+                          placeholder="مثال: شهادة تصنيف، سيرة ذاتية..."
+                        />
+                      </div>
+                      <div className="md:col-span-6 space-y-2">
+                        <Label>الملف</Label>
+                        <FileUpload
+                          onFilesSelected={(files) => {
+                            if (files.length > 0) {
+                              const newAttrs = [...otherAttachments];
+                              newAttrs[index].fileData = files[0].fileData;
+                              setOtherAttachments(newAttrs);
+                            }
+                          }}
+                          maxFiles={1}
+                          label="اختر ملفاً"
+                        />
+                        {attr.fileData && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                      </div>
+                      <div className="md:col-span-1 flex justify-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setOtherAttachments(otherAttachments.filter((_, i) => i !== index))}
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {otherAttachments.length === 0 && (
+                    <div className="text-center py-8 border-2 border-dashed rounded-lg bg-gray-50/50">
+                      <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">لا توجد مرفقات إضافية حالياً</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

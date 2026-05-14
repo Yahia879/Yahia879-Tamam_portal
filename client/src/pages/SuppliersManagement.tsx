@@ -542,7 +542,7 @@ export default function SuppliersManagement() {
                   <FileText className="h-5 w-5 text-primary" />
                   المرفقات
                 </h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {selectedSupplier.commercialRegisterDoc && (
                     <a
                       href={selectedSupplier.commercialRegisterDoc}
@@ -579,7 +579,43 @@ export default function SuppliersManagement() {
                       <ExternalLink className="h-3 w-3 mr-auto" />
                     </a>
                   )}
+                  {selectedSupplier.bankCertificateDoc && (
+                    <a
+                      href={selectedSupplier.bankCertificateDoc}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-primary" />
+                      <span className="text-sm">الشهادة البنكية</span>
+                      <ExternalLink className="h-3 w-3 mr-auto" />
+                    </a>
+                  )}
                 </div>
+
+                {/* المرفقات الإضافية */}
+                {selectedSupplier.otherAttachments && Array.isArray(selectedSupplier.otherAttachments) && selectedSupplier.otherAttachments.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3 font-semibold">مرفقات إضافية:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {selectedSupplier.otherAttachments.map((attr: any, index: number) => (
+                        <a
+                          key={index}
+                          href={attr.fileData}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors group"
+                        >
+                          <FileText className="h-5 w-5 text-primary" />
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-medium truncate">{attr.name || `مرفق ${index + 1}`}</span>
+                          </div>
+                          <ExternalLink className="h-3 w-3 mr-auto opacity-50 group-hover:opacity-100" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* سبب الرفض (إذا كان مرفوضاً) */}

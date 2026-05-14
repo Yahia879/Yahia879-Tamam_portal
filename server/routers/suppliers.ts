@@ -49,6 +49,11 @@ const attachmentsSchema = z.object({
   commercialRegisterDoc: z.string().min(1, "إرفاق السجل التجاري مطلوب"),
   vatCertificateDoc: z.string().min(1, "إرفاق شهادة ضريبة القيمة المضافة مطلوب"),
   nationalAddressDoc: z.string().min(1, "إرفاق العنوان الوطني مطلوب"),
+  bankCertificateDoc: z.string().min(1, "إرفاق الشهادة البنكية مطلوب"),
+  otherAttachments: z.array(z.object({
+    name: z.string(),
+    fileData: z.string(),
+  })).optional(),
 });
 
 // المخطط الكامل لتسجيل المورد
@@ -105,6 +110,8 @@ export const suppliersRouter = router({
         commercialRegisterDoc: input.commercialRegisterDoc,
         vatCertificateDoc: input.vatCertificateDoc,
         nationalAddressDoc: input.nationalAddressDoc,
+        bankCertificateDoc: input.bankCertificateDoc,
+        otherAttachments: input.otherAttachments || [],
         approvalStatus: "pending",
         createdBy: ctx.user.id,
       });
@@ -512,6 +519,11 @@ export const suppliersRouter = router({
         commercialRegisterDoc: z.string().optional(),
         vatCertificateDoc: z.string().optional(),
         nationalAddressDoc: z.string().optional(),
+        bankCertificateDoc: z.string().optional(),
+        otherAttachments: z.array(z.object({
+          name: z.string(),
+          fileData: z.string(),
+        })).optional(),
       })
     )
     .mutation(async ({ input }) => {

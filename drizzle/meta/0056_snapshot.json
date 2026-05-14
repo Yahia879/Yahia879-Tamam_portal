@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "4e925cfd-6db0-494e-a431-dcff0737a7f1",
-  "prevId": "ecbde6cc-b5fc-4bfb-bfb5-7dbadcccc21d",
+  "id": "8f414d27-e712-4641-8f60-0f5e64ff84e8",
+  "prevId": "95ae2dba-e731-4d9b-b68a-d069067db0dc",
   "tables": {
     "action_settings": {
       "name": "action_settings",
@@ -5999,7 +5999,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "permissions_audit_log_target_role_id_roles_id_fk": {
@@ -6012,7 +6012,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "permissions_audit_log_permission_id_permissions_id_fk": {
@@ -6025,7 +6025,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "permissions_audit_log_performed_by_users_id_fk": {
