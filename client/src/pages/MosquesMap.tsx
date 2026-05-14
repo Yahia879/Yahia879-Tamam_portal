@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users } from "lucide-react";
+import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MosquesMap() {
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [searchQuery, setSearchQuery] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
 
   // جلب المساجد
   const { data: mosquesData, isLoading } = trpc.mosques.search.useQuery({
@@ -23,6 +25,14 @@ export default function MosquesMap() {
   });
 
   const mosques = mosquesData?.mosques || [];
+
+  // حساب الإحصائيات الحالية
+  const stats = {
+    total: mosques.length,
+    approved: mosques.filter(m => m.approvalStatus === 'approved').length,
+    pending: mosques.filter(m => m.approvalStatus === 'pending').length,
+    rejected: mosques.filter(m => m.approvalStatus === 'rejected').length,
+  };
 
   // جلب قائمة المدن الفريدة
   const cities = Array.from(new Set(mosques.map(m => m.city).filter(Boolean)));
@@ -42,9 +52,20 @@ export default function MosquesMap() {
         lng: parseFloat(mosque.longitude!) 
       },
       title: mosque.name,
+      status: mosque.approvalStatus || 'pending', // نمرر الحالة هنا
       content: (
         <div style={{ direction: 'rtl', minWidth: '200px' }}>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 'bold' }}>{mosque.name}</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>{mosque.name}</h3>
+            <Badge className={
+              mosque.approvalStatus === 'approved' ? 'bg-green-100 text-green-800' :
+              mosque.approvalStatus === 'pending' ? 'bg-orange-100 text-orange-800' :
+              'bg-red-100 text-red-800'
+            }>
+              {mosque.approvalStatus === 'approved' ? 'معتمد' :
+               mosque.approvalStatus === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+            </Badge>
+          </div>
           <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>
             <strong>المدينة:</strong> {mosque.city}
           </p>
@@ -143,11 +164,59 @@ export default function MosquesMap() {
                   initialZoom={6}
                 />
 
-                {/* عداد المساجد */}
-                <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg px-4 py-2 z-[1000]">
-                  <p className="text-sm">
-                    <span className="font-bold text-primary">{mosques.length}</span> مسجد
-                  </p>
+                {/* مفتاح الخريطة التفاعلي */}
+                <div className="absolute top-4 right-4 z-[1000] min-w-[200px]">
+                  <motion.div 
+                    initial={false}
+                    className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border overflow-hidden cursor-pointer"
+                    onClick={() => setIsLegendExpanded(!isLegendExpanded)}
+                  >
+                    <div className="p-3 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors">
+                      <p className="text-sm font-medium text-gray-700">
+                        إجمالي المساجد: <span className="font-bold text-primary">{stats.total}</span>
+                      </p>
+                      {isLegendExpanded ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+
+                    <AnimatePresence>
+                      {isLegendExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="p-3 pt-0 space-y-2 border-t border-gray-100 mt-1">
+                            <div className="flex items-center justify-between text-xs py-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
+                                <span className="text-muted-foreground">معتمد</span>
+                              </div>
+                              <span className="font-bold text-gray-700">{stats.approved}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs py-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+                                <span className="text-muted-foreground">قيد المراجعة</span>
+                              </div>
+                              <span className="font-bold text-gray-700">{stats.pending}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs py-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                                <span className="text-muted-foreground">مرفوض</span>
+                              </div>
+                              <span className="font-bold text-gray-700">{stats.rejected}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 </div>
               </div>
             </CardContent>

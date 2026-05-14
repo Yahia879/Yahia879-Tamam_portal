@@ -26,9 +26,33 @@ interface LeafletMapProps {
     position: { lat: number; lng: number };
     title: string;
     content?: React.ReactNode;
+    status?: string; // أضفنا الحالة هنا
   }>;
   fitBounds?: boolean;
 }
+
+// دالة لإنشاء أيقونة ملونة بناءً على الحالة
+const createStatusIcon = (status?: string) => {
+  let color = '#3b82f6'; // الأزرق الافتراضي
+  
+  if (status === 'approved') color = '#22c55e'; // أخضر للمعتمد
+  else if (status === 'pending') color = '#f59e0b'; // برتقالي لقيد المراجعة
+  else if (status === 'rejected') color = '#ef4444'; // أحمر للمرفوض
+
+  const svgIcon = `
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2C11.03 2 7 6.03 7 11C7 18.75 16 30 16 30C16 30 25 18.75 25 11C25 6.03 20.97 2 16 2ZM16 15C13.79 15 12 13.21 12 11C12 8.79 13.79 7 16 7C18.21 7 20 8.79 20 11C20 13.21 18.21 15 16 15Z" fill="${color}" stroke="white" stroke-width="1.5"/>
+    </svg>
+  `;
+
+  return L.divIcon({
+    className: 'custom-status-marker',
+    html: svgIcon,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
 
 function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
@@ -82,7 +106,11 @@ export function LeafletMap({
       {fitBounds && <FitBounds markers={markers} />}
       
       {markers.map((marker) => (
-        <Marker key={marker.id} position={[marker.position.lat, marker.position.lng]}>
+        <Marker 
+          key={marker.id} 
+          position={[marker.position.lat, marker.position.lng]}
+          icon={createStatusIcon(marker.status)}
+        >
           {marker.content && (
             <Popup>
               <div className="rtl font-tajawal text-right">
