@@ -19,16 +19,44 @@ const requireUser = t.middleware(async opts => {
   }
 
   // التحقق من حالة الدور (إبطال الجلسات النشطة للأدوار الموقوفة)
-  if (ctx.user.role) {
+  if (ctx.user.id) {
     const { getDb } = await import("../db");
-    const { roles } = await import("../../drizzle/schema");
-    const { eq } = await import("drizzle-orm");
+    const { roles, userRoleAssignments } = await import("../../drizzle/schema");
+    const { eq, or, and, sql } = await import("drizzle-orm");
     const db = await getDb();
     if (db) {
-      const [roleData] = await db.select({ isActive: roles.isActive }).from(roles).where(eq(roles.id, ctx.user.role)).limit(1);
-      if (roleData && !roleData.isActive) {
-        // إرجاع خطأ غير مصرح به ليقوم الواجهة الأمامية بتسجيل الخروج تلقائياً
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+      // جلب جميع الأدوار المرتبطة بالمستخدم (الأساسي والمخصص)
+      const userRoles = await db
+        .select({ 
+          id: roles.id, 
+          isActive: roles.isActive 
+        })
+        .from(roles)
+        .leftJoin(userRoleAssignments, eq(roles.id, userRoleAssignments.roleId))
+        .where(
+          or(
+            eq(roles.id, ctx.user.role || ""),
+            and(
+              eq(userRoleAssignments.userId, ctx.user.id),
+              sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+            )
+          )
+        );
+
+      // إذا كان هناك أي دور موقوف، والمستخدم لا يملك أي دور نشط آخر
+      // ملاحظة: الأدوار غير الموجودة في جدول roles تُعتبر نشطة تلقائياً (مثل super_admin الافتراضي)
+      const hasSuspendedRole = userRoles.some(r => !r.isActive);
+      const hasActiveRole = userRoles.some(r => r.isActive);
+      
+      // إذا كان الدور الأساسي موجوداً في الجدول وموقوفاً، ولم يكن هناك دور مخصص نشط
+      if (hasSuspendedRole && !hasActiveRole) {
+         // نتحقق مما إذا كان هناك دور أساسي "نشط" (غير موجود في الجدول أو موجود ونشط)
+         const primaryRoleInTable = userRoles.find(r => r.id === ctx.user.role);
+         const isPrimaryActive = !primaryRoleInTable || primaryRoleInTable.isActive;
+         
+         if (!isPrimaryActive && !hasActiveRole) {
+           throw new TRPCError({ code: "UNAUTHORIZED", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+         }
       }
     }
   }

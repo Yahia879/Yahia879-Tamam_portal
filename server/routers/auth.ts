@@ -3,7 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions } from "../../drizzle/schema";
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, or } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { COOKIE_NAME } from "../../shared/const";
@@ -165,12 +165,38 @@ export const authRouter = router({
       }
 
       // التحقق من حالة الدور
-      if (user.role) {
-        const { roles } = await import("../../drizzle/schema");
-        const roleData = await db.select({ isActive: roles.isActive }).from(roles).where(eq(roles.id, user.role)).limit(1);
-        if (roleData.length > 0 && !roleData[0].isActive) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
-        }
+      const { roles, userRoleAssignments } = await import("../../drizzle/schema");
+      
+      // جلب جميع الأدوار المرتبطة بالمستخدم (الأساسي والمخصص)
+      const userRoles = await db
+        .select({ 
+          id: roles.id, 
+          isActive: roles.isActive 
+        })
+        .from(roles)
+        .leftJoin(userRoleAssignments, eq(roles.id, userRoleAssignments.roleId))
+        .where(
+          or(
+            eq(roles.id, user.role || ""),
+            and(
+              eq(userRoleAssignments.userId, user.id),
+              sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+            )
+          )
+        );
+
+      // إذا كان هناك أي دور موقوف، والمستخدم لا يملك أي دور نشط آخر
+      const hasSuspendedRole = userRoles.some(r => !r.isActive);
+      const hasActiveRole = userRoles.some(r => r.isActive);
+      
+      if (hasSuspendedRole && !hasActiveRole) {
+         // نتحقق مما إذا كان هناك دور أساسي "نشط" (غير موجود في الجدول أو موجود ونشط)
+         const primaryRoleInTable = userRoles.find(r => r.id === user.role);
+         const isPrimaryActive = !primaryRoleInTable || primaryRoleInTable.isActive;
+         
+         if (!isPrimaryActive && !hasActiveRole) {
+           throw new TRPCError({ code: "FORBIDDEN", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+         }
       }
 
       // تحديث آخر تسجيل دخول
