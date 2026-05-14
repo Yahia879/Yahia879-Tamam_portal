@@ -146,14 +146,6 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                           تعديل الدور
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleToggleStatus(role.id, !role.isActive)}
-                          disabled={toggleMutation.isPending}
-                          className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer" : "text-green-600 focus:text-green-600 cursor-pointer"}
-                        >
-                          <Power className="h-4 w-4 ml-2" />
-                          {role.isActive ? "إيقاف الدور" : "تفعيل الدور"}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
                           onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
                           className="text-destructive focus:text-destructive cursor-pointer"
                         >

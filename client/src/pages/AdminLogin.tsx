@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -15,11 +16,20 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
+
+  useEffect(() => {
+    // التحقق من وجود رسالة إيقاف في الرابط
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("error") === "suspended") {
+      setIsSuspended(true);
+    }
+  }, []);
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      const path = user?.role === "service_requester" ? "/requester" : "/dashboard";
+      const path = user?.role === "service_requester" ? "/requester" : "/";
       setLocation(path, { replace: true });
     }
   }, [isAuthenticated, authLoading, user, setLocation]);
@@ -30,10 +40,14 @@ export default function AdminLogin() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
       toast.success("تم تسجيل الدخول بنجاح");
-      setLocation("/dashboard", { replace: true });
+      setLocation("/", { replace: true });
     },
     onError: (error) => {
-      toast.error(error.message || "فشل تسجيل الدخول");
+      if (error.message?.includes("ROLE_SUSPENDED") || error.message?.includes("موقوف") || error.message?.includes("مراجعة الإدارة")) {
+        setIsSuspended(true);
+      } else {
+        toast.error(error.message || "فشل تسجيل الدخول");
+      }
     },
   });
 
@@ -47,6 +61,7 @@ export default function AdminLogin() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSuspended(false);
     
     if (!email || !password) {
       toast.error("يرجى إدخال البريد الإلكتروني وكلمة المرور");
@@ -96,6 +111,16 @@ export default function AdminLogin() {
             تسجيل دخول للموظفين والمسؤولين
           </p>
         </div>
+
+        {isSuspended && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>عذراً، لا يمكن تسجيل الدخول</AlertTitle>
+            <AlertDescription>
+              هذا الدور موقوف حالياً، يرجى مراجعة الإدارة
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* البريد الإلكتروني */}

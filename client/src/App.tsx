@@ -103,6 +103,8 @@ import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "./_core/hooks/useAuth";
+import { consumeSuspensionMessage } from "@/lib/authGuard";
+import { toast } from "sonner";
 
 // مكوّن يطبّق ألوان الهوية البصرية على متغيرات CSS عند تحميل التطبيق
 function BrandColorApplier() {
@@ -121,6 +123,26 @@ function BrandColorApplier() {
     // تطبيق اللون الرئيسي الأول على --sidebar-background
     if (s.colorPrimary1) root.style.setProperty("--sidebar-background", s.colorPrimary1);
   }, [orgSettings]);
+  return null;
+}
+
+/**
+ * مكوّن يعرض تنبيه الإيقاف عند وصول المستخدم بعد تعليق دوره.
+ * يقرأ الرسالة من sessionStorage (مرة واحدة) ويعرضها كـ Toast.
+ */
+function SuspensionNotifier() {
+  useEffect(() => {
+    const msg = consumeSuspensionMessage();
+    if (msg) {
+      // تأخير بسيط لضمان أن Toaster جاهز للعرض
+      setTimeout(() => {
+        toast.error(msg, {
+          duration: 8000,
+          description: "تم تسجيل خروجك تلقائياً",
+        });
+      }, 300);
+    }
+  }, []);
   return null;
 }
 
@@ -306,6 +328,7 @@ function App() {
       <ThemeProvider defaultTheme="light" switchable={true}>
         <TooltipProvider>
           <BrandColorApplier />
+          <SuspensionNotifier />
           <Toaster />
           <Router />
         </TooltipProvider>

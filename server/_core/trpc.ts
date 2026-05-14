@@ -1,4 +1,6 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
+import { COOKIE_NAME } from "../../shared/const";
+import { getSessionCookieOptions } from "./cookies";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -25,7 +27,7 @@ const requireUser = t.middleware(async opts => {
     const { eq, or, and, sql } = await import("drizzle-orm");
     const db = await getDb();
     if (db) {
-      // جلب جميع الأدوار المرتبطة بالمستخدم (الأساسي والمخصص)
+      // التحقق من حالة الدور (Kill Switch - إبطال الجلسات النشطة للأدوار الموقوفة)
       const userRoles = await db
         .select({ 
           id: roles.id, 
@@ -43,20 +45,14 @@ const requireUser = t.middleware(async opts => {
           )
         );
 
-      // إذا كان هناك أي دور موقوف، والمستخدم لا يملك أي دور نشط آخر
-      // ملاحظة: الأدوار غير الموجودة في جدول roles تُعتبر نشطة تلقائياً (مثل super_admin الافتراضي)
-      const hasSuspendedRole = userRoles.some(r => !r.isActive);
-      const hasActiveRole = userRoles.some(r => r.isActive);
-      
-      // إذا كان الدور الأساسي موجوداً في الجدول وموقوفاً، ولم يكن هناك دور مخصص نشط
-      if (hasSuspendedRole && !hasActiveRole) {
-         // نتحقق مما إذا كان هناك دور أساسي "نشط" (غير موجود في الجدول أو موجود ونشط)
-         const primaryRoleInTable = userRoles.find(r => r.id === ctx.user.role);
-         const isPrimaryActive = !primaryRoleInTable || primaryRoleInTable.isActive;
-         
-         if (!isPrimaryActive && !hasActiveRole) {
-           throw new TRPCError({ code: "UNAUTHORIZED", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
-         }
+      // إذا كان للمستخدم أي أدوار مسجلة في جدول الأدوار، يجب أن يكون أحدها على الأقل نشطاً
+      if (userRoles.length > 0) {
+        const hasActiveRole = userRoles.some(r => r.isActive);
+        if (!hasActiveRole) {
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+        }
       }
     }
   }

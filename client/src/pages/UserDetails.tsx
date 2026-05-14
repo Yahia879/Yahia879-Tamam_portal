@@ -181,12 +181,6 @@ export default function UserDetails() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href={`/users/${userId}/permissions`}>
-              <Button variant="outline">
-                <Shield className="w-4 h-4 ml-2" />
-                إدارة الصلاحيات
-              </Button>
-            </Link>
             <Link href={`/users/${userId}/edit`}>
               <Button variant="outline">
                 <Edit className="w-4 h-4 ml-2" />

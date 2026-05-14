@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Eye, EyeOff, Phone, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Phone, Lock, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -15,6 +16,15 @@ export default function Login() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
+
+  useEffect(() => {
+    // التحقق من وجود رسالة إيقاف في الرابط
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("error") === "suspended") {
+      setIsSuspended(true);
+    }
+  }, []);
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
@@ -35,7 +45,12 @@ export default function Login() {
       }
     },
     onError: (error) => {
-      toast.error(error.message || "فشل تسجيل الدخول");
+      if (error.message?.includes("ROLE_SUSPENDED") || error.message?.includes("موقوف") || error.message?.includes("مراجعة الإدارة")) {
+        setIsSuspended(true);
+        toast.error("هذا الدور موقوف حالياً، يرجى مراجعة الإدارة");
+      } else {
+        toast.error(error.message || "فشل تسجيل الدخول");
+      }
     },
   });
 
@@ -49,6 +64,7 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSuspended(false);
     
     if (!phone || !password) {
       toast.error("يرجى إدخال رقم الجوال وكلمة المرور");
@@ -84,6 +100,16 @@ export default function Login() {
             سجل دخولك للوصول إلى حسابك وطلباتك
           </p>
         </div>
+
+        {isSuspended && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>عذراً، لا يمكن تسجيل الدخول</AlertTitle>
+            <AlertDescription>
+              هذا الدور موقوف حالياً، يرجى مراجعة الإدارة
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* رقم الجوال */}

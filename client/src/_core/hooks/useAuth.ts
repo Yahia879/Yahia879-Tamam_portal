@@ -1,7 +1,7 @@
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { isAuthRedirecting } from "@/lib/authGuard";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -13,12 +13,31 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const utils = trpc.useUtils();
   
-  const effectiveRedirectPath = redirectPath ?? getLoginUrl();
+  const effectiveRedirectPath = redirectPath ?? "/login";
+
+  // Track if we've already detected a suspension error to prevent re-renders from re-fetching
+  const suspendedRef = useRef(false);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    // Disable the query entirely if we're in the middle of an auth redirect
+    // or if we've already detected that the role is suspended
+    enabled: !isAuthRedirecting() && !suspendedRef.current,
   });
+
+  // Detect suspension/unauthorized errors and mark as suspended to stop further queries
+  useEffect(() => {
+    if (meQuery.error instanceof TRPCClientError) {
+      const code = meQuery.error.data?.code;
+      const msg = meQuery.error.message || "";
+      const isSuspended = msg.includes("ROLE_SUSPENDED") || msg.includes("موقوف") || msg.includes("مراجعة الإدارة");
+      const isUnauthorized = code === "UNAUTHORIZED" || code === "FORBIDDEN";
+      if (isSuspended || isUnauthorized) {
+        suspendedRef.current = true;
+      }
+    }
+  }, [meQuery.error]);
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
@@ -46,6 +65,17 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
+    // If we're redirecting due to auth failure, return logged-out state immediately
+    if (isAuthRedirecting() || suspendedRef.current) {
+      localStorage.removeItem("manus-runtime-user-info");
+      return {
+        user: null,
+        loading: false,
+        error: meQuery.error ?? null,
+        isAuthenticated: false,
+      };
+    }
+
     localStorage.setItem(
       "manus-runtime-user-info",
       JSON.stringify(meQuery.data)
@@ -70,6 +100,8 @@ export function useAuth(options?: UseAuthOptions) {
     if (state.user) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === effectiveRedirectPath) return;
+    // Don't redirect if the circuit breaker already handled it
+    if (isAuthRedirecting()) return;
 
     window.location.href = effectiveRedirectPath;
   }, [

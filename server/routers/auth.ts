@@ -144,7 +144,7 @@ export const authRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "حسابك قيد المراجعة. يرجى انتظار الاعتماد." });
       }
       if (user.status === "suspended") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "حسابك معلق. يرجى التواصل مع الإدارة." });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
       }
       if (user.status === "blocked") {
         throw new TRPCError({ code: "FORBIDDEN", message: "حسابك محظور." });
@@ -164,10 +164,7 @@ export const authRouter = router({
         throw new TRPCError({ code: "UNAUTHORIZED", message: `${identifier} أو كلمة المرور غير صحيحة` });
       }
 
-      // التحقق من حالة الدور
-      const { roles, userRoleAssignments } = await import("../../drizzle/schema");
-      
-      // جلب جميع الأدوار المرتبطة بالمستخدم (الأساسي والمخصص)
+      // التحقق من حالة الدور (Kill Switch)
       const userRoles = await db
         .select({ 
           id: roles.id, 
@@ -185,18 +182,12 @@ export const authRouter = router({
           )
         );
 
-      // إذا كان هناك أي دور موقوف، والمستخدم لا يملك أي دور نشط آخر
-      const hasSuspendedRole = userRoles.some(r => !r.isActive);
-      const hasActiveRole = userRoles.some(r => r.isActive);
-      
-      if (hasSuspendedRole && !hasActiveRole) {
-         // نتحقق مما إذا كان هناك دور أساسي "نشط" (غير موجود في الجدول أو موجود ونشط)
-         const primaryRoleInTable = userRoles.find(r => r.id === user.role);
-         const isPrimaryActive = !primaryRoleInTable || primaryRoleInTable.isActive;
-         
-         if (!isPrimaryActive && !hasActiveRole) {
-           throw new TRPCError({ code: "FORBIDDEN", message: "هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
-         }
+      // إذا كان للمستخدم أي أدوار مسجلة في جدول الأدوار، يجب أن يكون أحدها على الأقل نشطاً
+      if (userRoles.length > 0) {
+        const hasActiveRole = userRoles.some(r => r.isActive);
+        if (!hasActiveRole) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+        }
       }
 
       // تحديث آخر تسجيل دخول
@@ -270,6 +261,36 @@ export const authRouter = router({
     const db = await getDb();
     if (!db) return ctx.user;
 
+    // التحقق من حالة الدور (Kill Switch - إبطال الجلسات النشطة للأدوار الموقوفة)
+    const userRoles = await db
+      .select({ 
+        id: roles.id, 
+        isActive: roles.isActive 
+      })
+      .from(roles)
+      .leftJoin(userRoleAssignments, eq(roles.id, userRoleAssignments.roleId))
+      .where(
+        or(
+          eq(roles.id, ctx.user.role || ""),
+          and(
+            eq(userRoleAssignments.userId, ctx.user.id),
+            sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+          )
+        )
+      );
+
+    if (userRoles.length > 0) {
+      const hasActiveRole = userRoles.some(r => r.isActive);
+      if (!hasActiveRole) {
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+        throw new TRPCError({ 
+          code: "UNAUTHORIZED", 
+          message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" 
+        });
+      }
+    }
+
     // هل للمستخدم دور مخصص في جدول user_roles؟
     const [customRoleAssignment] = await db
       .select({
@@ -292,6 +313,14 @@ export const authRouter = router({
     // إذا لم يكن للمستخدم دور مخصص، أعد البيانات العادية
     if (!customRoleAssignment) {
       return { ...ctx.user, customRole: null, permissions: [] };
+    }
+
+    // ملاحظة: تم التحقق من isActive أعلاه في الـ Kill Switch الشامل
+    // لكننا نبقي هذا كطبقة حماية إضافية للبيانات
+    if (!customRoleAssignment.isActive) {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      throw new TRPCError({ code: "UNAUTHORIZED", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
     }
 
     // جلب الصلاحيات: الأولوية لحقل description (حيث يخزّن createRole الصلاحيات كـ JSON)

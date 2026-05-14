@@ -355,12 +355,6 @@ export default function UsersManagement() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/users/${user.id}/permissions`}>
-                              <Shield className="ml-2 h-4 w-4" />
-                              إدارة الصلاحيات
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
                             <Link href={`/users/${user.id}/edit`}>
                               <Edit className="ml-2 h-4 w-4" />
                               تعديل البيانات
