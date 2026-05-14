@@ -127,6 +127,7 @@ export const SHARED_FIELDS: Record<string, FormField> = {
     name: 'willingToVolunteer',
     type: 'radio',
     label: 'هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟',
+    required: true,
     options: [
       { value: 'yes', label: 'نعم' },
       { value: 'no', label: 'لا' },
@@ -438,6 +439,11 @@ export function validateField(field: FormField, value: any): string | null {
   // التحقق من الحقول المطلوبة
   if (field.required && !value) {
     return `${field.label} مطلوب`;
+  }
+
+  // التحقق الخاص بحقل الفريق التطوعي
+  if (field.name === 'willingToVolunteer' && value === 'no') {
+    return "عذراً، لا يمكن إكمال إنشاء الطلب دون وجود فريق تطوعي. يرجى تأمين الفريق للمتابعة.";
   }
 
   // إذا كان الحقل فارغاً والتحقق من الحقول المطلوبة فقط

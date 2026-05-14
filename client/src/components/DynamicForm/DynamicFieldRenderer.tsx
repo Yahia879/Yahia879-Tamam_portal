@@ -115,16 +115,26 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
       case 'radio':
         return (
-          <RadioGroup value={value || ''} onValueChange={onChange} disabled={disabled}>
-            {field.options?.map((option) => (
-              <div key={option.value} className="flex items-center gap-2">
-                <RadioGroupItem value={option.value} id={`${field.name}-${option.value}`} disabled={disabled} />
-                <Label htmlFor={`${field.name}-${option.value}`} className="cursor-pointer">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
+          <div className="space-y-4">
+            <RadioGroup value={value || ''} onValueChange={onChange} disabled={disabled}>
+              {field.options?.map((option) => (
+                <div key={option.value} className="flex items-center gap-2">
+                  <RadioGroupItem value={option.value} id={`${field.name}-${option.value}`} disabled={disabled} />
+                  <Label htmlFor={`${field.name}-${option.value}`} className="cursor-pointer">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+            {field.name === 'willingToVolunteer' && value === 'no' && (
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-800 font-medium">
+                  عذراً، لا يمكن إكمال إنشاء الطلب دون وجود فريق تطوعي. يرجى تأمين الفريق للمتابعة.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
         );
 
       default:
@@ -140,7 +150,9 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
       </Label>
       {renderField()}
       {field.help && <p className="text-sm text-gray-500">{field.help}</p>}
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && (field.name !== 'willingToVolunteer' || value !== 'no') && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
     </div>
   );
 };

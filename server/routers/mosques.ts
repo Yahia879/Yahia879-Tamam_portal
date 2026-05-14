@@ -147,9 +147,9 @@ export const mosquesRouter = router({
     }),
 
   // الحصول على مسجد بالمعرف
-  getById: publicProcedure
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -158,10 +158,20 @@ export const mosquesRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
       }
 
+      const mosque = result[0];
+
+      // تحقق من العزل لطلاب الخدمة
+      if (ctx.user.role === "service_requester" && mosque.registeredBy !== ctx.user.id) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "ليس لديك صلاحية للوصول إلى بيانات هذا المسجد" 
+        });
+      }
+
       // الحصول على صور المسجد
       const images = await db.select().from(mosqueImages).where(eq(mosqueImages.mosqueId, input.id));
 
-      return { ...result[0], images };
+      return { ...mosque, images };
     }),
 
   // البحث والفلترة في المساجد
@@ -173,11 +183,9 @@ export const mosquesRouter = router({
 
       const conditions = [];
 
-      // طالب الخدمة يرى فقط المساجد المعتمدة أو التي سجلها
+      // طالب الخدمة يرى فقط المساجد التي سجلها (عزل تام)
       if (ctx.user.role === "service_requester") {
-        conditions.push(
-          sql`(${mosques.approvalStatus} = 'approved' OR ${mosques.registeredBy} = ${ctx.user.id})`
-        );
+        conditions.push(eq(mosques.registeredBy, ctx.user.id));
       }
 
       if (input.search) {
@@ -440,23 +448,43 @@ export const mosquesRouter = router({
     const db = await getDb();
     if (!db) return { total: 0, byCity: {}, byGovernorate: {}, byApprovalStatus: {} };
 
-    const total = await db.select({ count: sql<number>`count(*)` }).from(mosques);
+    const conditions = [];
+    if (ctx.user.role === "service_requester") {
+      conditions.push(eq(mosques.registeredBy, ctx.user.id));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const total = await db.select({ count: sql<number>`count(*)` })
+      .from(mosques)
+      .where(whereClause);
 
     const byCity = await db.select({
       city: mosques.city,
       count: sql<number>`count(*)`,
-    }).from(mosques).groupBy(mosques.city).limit(10);
+    })
+      .from(mosques)
+      .where(whereClause)
+      .groupBy(mosques.city)
+      .limit(10);
 
     const byGovernorate = await db.select({
       governorate: mosques.governorate,
       count: sql<number>`count(*)`,
-    }).from(mosques).groupBy(mosques.governorate).limit(10);
+    })
+      .from(mosques)
+      .where(whereClause)
+      .groupBy(mosques.governorate)
+      .limit(10);
 
     // إحصائيات حسب حالة الاعتماد
     const byApprovalStatus = await db.select({
       status: mosques.approvalStatus,
       count: sql<number>`count(*)`,
-    }).from(mosques).groupBy(mosques.approvalStatus);
+    })
+      .from(mosques)
+      .where(whereClause)
+      .groupBy(mosques.approvalStatus);
 
     return {
       total: total[0]?.count || 0,
