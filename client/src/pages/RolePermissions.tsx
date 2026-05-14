@@ -463,9 +463,9 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "إدارة الكادر",
+      title: "إدارة المستخدمين",
       modules: [
-        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users"] }
+        { id: "staff", nameAr: "إدارة المستخدمين", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users"] }
       ]
     },
     {
@@ -504,9 +504,9 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "إدارة الكادر",
+      title: "إدارة المستخدمين",
       modules: [
-        { id: "staff", nameAr: "إدارة الكادر", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] }
+        { id: "staff", nameAr: "إدارة المستخدمين", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] }
       ]
     },
     {
@@ -686,9 +686,9 @@ export default function RolePermissions() {
       ],
     },
     {
-      title: "إدارة الكادر",
+      title: "إدارة المستخدمين",
       subsections: [
-        { id: "staff_management", nameAr: "إدارة الكادر" },
+        { id: "staff_management", nameAr: "إدارة المستخدمين" },
       ],
     },
     {
@@ -844,7 +844,7 @@ export default function RolePermissions() {
                   ? "تم تحديد وحدة الطلبات كمركز ثقل لعمل فريق الاستجابة السريعة، مع منح كامل الصلاحيات التشغيلية لضمان سرعة المعالجة والمتابعة."
                   : isProjectManager
                   ? "تم تحديد النطاق العملي لمدير المشاريع للتركيز حصرياً على إدارة المشاريع ومتابعة تقارير الإنجاز لضمان كفاءة التنفيذ."
-                  : "يتمتع هذا الدور بصلاحيات كاملة وشاملة عبر كافة الأنظمة التشغيلية والمالية والإدارية، بما في ذلك التحكم المطلق في إعدادات النظام وإدارة الكادر."}
+                  : "يتمتع هذا الدور بصلاحيات كاملة وشاملة عبر كافة الأنظمة التشغيلية والمالية والإدارية، بما في ذلك التحكم المطلق في إعدادات النظام وإدارة المستخدمين."}
               </p>
             </div>
           </div>

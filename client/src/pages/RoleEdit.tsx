@@ -39,10 +39,10 @@ const PERMISSIONS_STRUCTURE = [
     ],
   },
   {
-    title: "إدارة الكادر",
+    title: "إدارة المستخدمين",
     icon: "👥",
     subsections: [
-      { id: "staff_management", nameAr: "إدارة الكادر" },
+      { id: "staff_management", nameAr: "إدارة المستخدمين" },
     ],
   },
   {

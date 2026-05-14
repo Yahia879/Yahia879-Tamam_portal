@@ -57,7 +57,7 @@ export default function StaffManagement() {
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">إدارة الكادر</h1>
+              <h1 className="text-3xl font-bold">إدارة المستخدمين</h1>
               <p className="text-muted-foreground">واجهة موحدة لإدارة المستخدمين والأدوار والهيكل التنظيمي</p>
             </div>
           </div>

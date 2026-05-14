@@ -227,7 +227,7 @@ function Router() {
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic" component={DynamicServiceRequestForm} />      
-      {/* إدارة الكادر (المستخدمين والأدوار) - واجهة موحدة */}
+      {/* إدارة المستخدمين (المستخدمين والأدوار) - واجهة موحدة */}
       <Route path="/staff">{() => <AdminRoute component={StaffManagement} />}</Route>
       <Route path="/users">{() => <AdminRoute component={StaffManagement} />}</Route>
       <Route path="/roles">{() => <AdminRoute component={StaffManagement} />}</Route>

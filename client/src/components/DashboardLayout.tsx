@@ -162,9 +162,9 @@ const getMenuGroups = (role: string): MenuGroup[] => {
   // إدارة المستخدمين (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
-      label: "إدارة الكادر",
+      label: "إدارة المستخدمين",
       items: [
-        { icon: Users, label: "إدارة الكادر", path: "/staff" },
+        { icon: Users, label: "إدارة المستخدمين", path: "/staff" },
       ],
     });
   }
@@ -212,11 +212,11 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
   if (finItems.length > 0) groups.push({ label: "المالية والعقود", items: finItems });
 
-  // إدارة الكادر
+  // إدارة المستخدمين
   if (has("staff_management")) {
     groups.push({
-      label: "إدارة الكادر",
-      items: [{ icon: Users, label: "إدارة الكادر", path: "/staff" }],
+      label: "إدارة المستخدمين",
+      items: [{ icon: Users, label: "إدارة المستخدمين", path: "/staff" }],
     });
   }
 

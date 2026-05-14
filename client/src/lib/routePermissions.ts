@@ -98,7 +98,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/projects": "projects",
   "/project-management": "projects",
 
-  // ── إدارة الكادر ──
+  // ── إدارة المستخدمين ──
   "/staff": "staff_management",
   "/users": "staff_management",
   "/roles": "staff_management",
