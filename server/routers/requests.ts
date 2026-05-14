@@ -201,7 +201,7 @@ export const requestsRouter = router({
       // التحقق من الصلاحية
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
-      const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager"].includes(ctx.user.role);
+      const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm"].includes(ctx.user.role);
 
       if (!isOwner && !isAssigned && !isInternal) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
@@ -314,7 +314,7 @@ export const requestsRouter = router({
       const conditions = [];
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
-      const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
+      const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
       
       // طالب الخدمة يرى فقط طلباته
       if (ctx.user.role === "service_requester") {

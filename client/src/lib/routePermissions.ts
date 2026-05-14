@@ -1,0 +1,310 @@
+/**
+ * خريطة صلاحيات المسارات (Route-Permission Map)
+ * 
+ * تربط كل مسار محمي بالصلاحية المطلوبة للوصول إليه.
+ * يتم استخدام هذه الخريطة في PermissionRouteGuard لمنع الوصول غير المصرح.
+ * 
+ * المفاتيح هي "معرّفات الصلاحيات البسيطة" (نفسها المستخدمة في RoleEdit وDashboardLayout).
+ * يتم التحقق منها مقابل مصفوفة permissions[] المُحقنة في الجلسة أو مقابل الصلاحيات الموسعة.
+ * 
+ * الأدوار الأساسية (Base Roles) لها صلاحيات محددة مسبقاً.
+ * الأدوار المخصصة (Custom Roles) تأخذ صلاحياتها من checkboxes عند إنشائها.
+ */
+
+// ─────────────────────────────────────────
+// الأدوار الأساسية ← الصلاحيات المرتبطة بها
+// ─────────────────────────────────────────
+// هذه الخريطة تحدد الصلاحيات المتاحة لكل دور أساسي (غير مخصص)
+// تُستخدم عندما لا يملك المستخدم دوراً مخصصاً
+export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
+  super_admin: ["*"], // كل الصلاحيات
+  system_admin: ["*"], // كل الصلاحيات
+
+  projects_office: [
+    "mosques", "mosques_map", "requests", "appointments_calendar",
+    "projects", "service_requester_accounts",
+    "suppliers", "quotations", "financial_approval", "contracts",
+    "disbursement_requests", "disbursement_orders",
+    "progress_reports", "financial_report",
+  ],
+
+  field_team: [
+    "requests", "appointments_calendar",
+  ],
+
+  quick_response: [
+    "requests",
+  ],
+
+  financial: [
+    "suppliers", "quotations", "financial_approval",
+    "disbursement_requests", "disbursement_orders", "financial_report",
+    "contracts",
+  ],
+
+  financial_manager: [
+    "suppliers", "quotations", "financial_approval",
+    "disbursement_requests", "disbursement_orders", "financial_report",
+    "contracts", "requests",
+  ],
+
+  project_manager: [
+    "projects", "progress_reports", "requests",
+  ],
+
+  corporate_comm: [
+    "requests", "settings_center", "financial_report",
+  ],
+
+  service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
+};
+
+// ─────────────────────────────────────────
+// خريطة المسارات ← الصلاحيات المطلوبة
+// ─────────────────────────────────────────
+export interface RoutePermission {
+  /** الصلاحية المطلوبة (أحد معرّفات الصلاحيات البسيطة) */
+  requiredPermission: string;
+  /** إذا كان true، تتطلب وجود أي صلاحية من القائمة (OR) بدلاً من كلها (AND) */
+  anyOf?: string[];
+}
+
+/**
+ * خريطة المسارات إلى الصلاحيات
+ * 
+ * القيمة يمكن أن تكون:
+ * - string: صلاحية واحدة مطلوبة
+ * - string[]: يجب أن يملك أي صلاحية منها (OR logic)
+ * 
+ * المسارات غير الموجودة هنا تعتبر عامة أو محمية فقط بالتسجيل (لا تحتاج صلاحية إضافية).
+ */
+export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
+  // ── المساجد ──
+  "/mosques": "mosques",
+  "/mosques/map": "mosques_map",
+  "/mosques/new": "mosques",
+  // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
+
+  // ── الطلبات ──
+  "/requests": "requests",
+  "/requests/new": "requests",
+  "/field-visits": "requests",
+  "/field-visits/calendar": "appointments_calendar",
+
+  // ── المشاريع ──
+  "/projects": "projects",
+  "/project-management": "projects",
+
+  // ── إدارة الكادر ──
+  "/staff": "staff_management",
+  "/users": "staff_management",
+  "/roles": "staff_management",
+  "/job-positions": "staff_management",
+  "/requester-approvals": ["staff_management", "service_requester_accounts"],
+  "/permissions-audit": "staff_management",
+
+  // ── الموردون ──
+  "/suppliers": "suppliers",
+
+  // ── عروض الأسعار ──
+  "/quotations": "quotations",
+
+  // ── الاعتماد المالي ──
+  "/financial-approval": "financial_approval",
+
+  // ── العقود ──
+  "/contracts": "contracts",
+  "/contracts/new": "contracts",
+  "/contract-templates": "contracts",
+
+  // ── طلبات وأوامر الصرف ──
+  "/financial-dashboard": ["disbursement_requests", "financial_report"],
+  "/disbursements": "disbursement_requests",
+  "/disbursement-requests": "disbursement_requests",
+  "/disbursement-orders": "disbursement_orders",
+
+  // ── تقارير الإنجاز ──
+  "/progress-reports": "progress_reports",
+
+  // ── الاستلامات ──
+  "/handovers": ["projects", "contracts"],
+
+  // ── مؤشرات الأداء ──
+  "/kpi-dashboard": ["projects", "requests"],
+
+  // ── التقارير ──
+  "/reports": ["progress_reports", "financial_report", "requests"],
+  "/financial-report": "financial_report",
+
+  // ── الإعدادات ──
+  "/settings": "settings_center",
+  "/branding": "settings_center",
+  "/organization-settings": "settings_center",
+  "/stage-settings": "settings_center",
+  "/action-settings": "settings_center",
+  "/categories": "settings_center",
+  "/program-customization": "programs_services",
+  "/partners": "settings_center",
+};
+
+/**
+ * أنماط المسارات الديناميكية (تتضمن بارامترات مثل :id)
+ * تُستخدم للمطابقة بـ regex
+ */
+export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
+  pattern: RegExp;
+  permission: string | string[];
+}> = [
+  // المساجد
+  { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques" },
+  { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques" },
+  { pattern: /^\/mosques\/\d+$/, permission: "mosques" },
+
+  // الطلبات
+  { pattern: /^\/requests\/\d+\/edit$/, permission: "requests" },
+  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: "requests" },
+  { pattern: /^\/requests\/\d+\/quick-response$/, permission: "requests" },
+  { pattern: /^\/requests\/\d+$/, permission: "requests" },
+
+  // الزيارات الميدانية
+  { pattern: /^\/field-visits\/schedule\/\d+$/, permission: "appointments_calendar" },
+  { pattern: /^\/field-visits\/report\/\d+$/, permission: "requests" },
+
+  // المشاريع
+  { pattern: /^\/projects\/\d+$/, permission: "projects" },
+
+  // المستخدمين
+  { pattern: /^\/users\/\d+\/edit$/, permission: "staff_management" },
+  { pattern: /^\/users\/\d+\/permissions$/, permission: "staff_management" },
+  { pattern: /^\/users\/\d+$/, permission: "staff_management" },
+
+  // الأدوار
+  { pattern: /^\/staff\/roles\/[^/]+$/, permission: "staff_management" },
+  { pattern: /^\/roles\/[^/]+\/edit$/, permission: "staff_management" },
+  { pattern: /^\/roles\/[^/]+$/, permission: "staff_management" },
+
+  // العقود
+  { pattern: /^\/contracts\/new\/\d+$/, permission: "contracts" },
+  { pattern: /^\/contracts\/new\/request\/\d+$/, permission: "contracts" },
+  { pattern: /^\/contracts\/\d+\/preview$/, permission: "contracts" },
+  { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
+
+  // BOQ
+  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests"] },
+
+  // طلبات الصرف
+  { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/new\/\d+$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: "disbursement_requests" },
+
+  // أوامر الصرف
+  { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursement-orders\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: "disbursement_orders" },
+
+  // التقارير الختامية
+  { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests"] },
+];
+
+/**
+ * مسارات مُعفاة من التحقق (عامة أو محمية فقط بالتسجيل)
+ */
+export const EXEMPT_ROUTES = new Set([
+  "/",
+  "/login",
+  "/admin/login",
+  "/register",
+  "/track",
+  "/service-request",
+  "/debug-user",
+  "/profile",
+  "/notifications",
+  "/404",
+  "/403",
+  "/supplier/register",
+  "/supplier/dashboard",
+  "/request-form-dynamic",
+  "/final-report/new",
+]);
+
+/**
+ * مسارات طالب الخدمة فقط
+ */
+export const REQUESTER_ROUTES = new Set([
+  "/requester",
+  "/requester/dashboard",
+  "/my-mosques",
+  "/requester/mosques/new",
+  "/my-requests",
+]);
+
+/**
+ * تحديد الصلاحية المطلوبة لمسار معين
+ */
+export function getRequiredPermission(pathname: string): string | string[] | null {
+  // المسارات المُعفاة
+  if (EXEMPT_ROUTES.has(pathname)) return null;
+  
+  // مسارات طالب الخدمة
+  if (REQUESTER_ROUTES.has(pathname)) return null;
+
+  // المسارات الثابتة
+  if (ROUTE_PERMISSION_MAP[pathname]) {
+    return ROUTE_PERMISSION_MAP[pathname];
+  }
+
+  // المسارات الديناميكية
+  for (const { pattern, permission } of DYNAMIC_ROUTE_PERMISSIONS) {
+    if (pattern.test(pathname)) {
+      return permission;
+    }
+  }
+
+  // مسار /requester/* prefixed routes
+  if (pathname.startsWith("/requester/")) return null;
+
+  // لم يُعثر على تطابق — المسار غير محدد، نترك الحماية العامة (AdminGuard) تعمل
+  return null;
+}
+
+/**
+ * التحقق مما إذا كان المستخدم يملك صلاحية الوصول لمسار معين
+ */
+export function hasRouteAccess(
+  pathname: string,
+  userRole: string,
+  userPermissions: string[],
+  hasCustomRole: boolean,
+): boolean {
+  const required = getRequiredPermission(pathname);
+
+  // لا توجد قيود صلاحية خاصة على هذا المسار
+  if (required === null) return true;
+
+  // super_admin و system_admin لهما كل الصلاحيات
+  if (userRole === "super_admin" || userRole === "system_admin") return true;
+
+  // ─── مستخدم بدور مخصص ───
+  if (hasCustomRole) {
+    if (Array.isArray(required)) {
+      // OR logic: يجب أن يملك أي صلاحية منها
+      return required.some(p => userPermissions.includes(p));
+    }
+    return userPermissions.includes(required);
+  }
+
+  // ─── مستخدم بدور أساسي ───
+  const basePerms = BASE_ROLE_PERMISSIONS[userRole];
+  if (!basePerms) return false;
+
+  // الأدوار ذات الصلاحيات الكاملة
+  if (basePerms.includes("*")) return true;
+
+  if (Array.isArray(required)) {
+    return required.some(p => basePerms.includes(p));
+  }
+  return basePerms.includes(required);
+}

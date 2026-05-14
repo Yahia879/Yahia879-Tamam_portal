@@ -97,6 +97,8 @@ import ProgramCustomization from "./pages/ProgramCustomization";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PermissionRouteGuard from "./components/PermissionRouteGuard";
+import Unauthorized from "./pages/Unauthorized";
 import DebugUser from "./pages/DebugUser";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -152,7 +154,11 @@ const MyRequestsWrapper = () => {
 
 function Router() {
   return (
+    <PermissionRouteGuard>
     <Switch>
+      {/* صفحة 403 - غير مصرح */}
+      <Route path="/403" component={Unauthorized} />
+      
       {/* الصفحات العامة */}
       <Route path="/" component={LandingPage} />
       <Route path="/login">{() => <GuestRoute component={Login} />}</Route>
@@ -290,6 +296,7 @@ function Router() {
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
+    </PermissionRouteGuard>
   );
 }
 

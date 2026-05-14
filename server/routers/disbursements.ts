@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import {
   disbursementRequests,
@@ -40,7 +41,7 @@ export const disbursementsRouter = router({
   // ==================== طلبات الصرف ====================
 
   // جلب قائمة طلبات الصرف
-  listRequests: protectedProcedure
+  listRequests: permissionProcedure("disbursements.view")
     .input(
       z.object({
         projectId: z.number().optional(),
@@ -94,7 +95,7 @@ export const disbursementsRouter = router({
     }),
 
   // جلب طلب صرف بالتفصيل
-  getRequestById: protectedProcedure
+  getRequestById: permissionProcedure("disbursements.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -167,7 +168,7 @@ export const disbursementsRouter = router({
     }),
 
   // إنشاء طلب صرف جديد
-  createRequest: protectedProcedure
+  createRequest: permissionProcedure("disbursements.create")
     .input(
       z.object({
         projectId: z.number(),
@@ -256,7 +257,7 @@ export const disbursementsRouter = router({
     }),
 
   // اعتماد طلب صرف
-  approveRequest: protectedProcedure
+  approveRequest: permissionProcedure("financial.approve")
     .input(
       z.object({
         id: z.number(),
@@ -333,7 +334,7 @@ export const disbursementsRouter = router({
     }),
 
   // رفض طلب صرف
-  rejectRequest: protectedProcedure
+  rejectRequest: permissionProcedure("financial.approve")
     .input(
       z.object({
         id: z.number(),
@@ -384,7 +385,7 @@ export const disbursementsRouter = router({
   // ==================== أوامر الصرف ====================
 
   // جلب قائمة أوامر الصرف
-  listOrders: protectedProcedure
+  listOrders: permissionProcedure("disbursements.view")
     .input(
       z.object({
         status: z.enum(disbursementOrderStatuses).optional(),
@@ -502,7 +503,7 @@ export const disbursementsRouter = router({
     }),
 
   // جلب أمر صرف بالتفصيل
-  getOrderById: protectedProcedure
+  getOrderById: permissionProcedure("disbursements.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -541,7 +542,7 @@ export const disbursementsRouter = router({
     }),
 
   // إنشاء أمر صرف
-  createOrder: protectedProcedure
+  createOrder: permissionProcedure("disbursements.create")
     .input(
       z.object({
         disbursementRequestId: z.number(),
@@ -637,7 +638,7 @@ export const disbursementsRouter = router({
     }),
 
   // اعتماد أمر صرف
-  approveOrder: protectedProcedure
+  approveOrder: permissionProcedure("financial.approve")
     .input(
       z.object({
         id: z.number(),
@@ -697,7 +698,7 @@ export const disbursementsRouter = router({
     }),
 
   // تنفيذ أمر صرف (الدفع الفعلي)
-  executeOrder: protectedProcedure
+  executeOrder: permissionProcedure("disbursements.create")
     .input(
       z.object({
         id: z.number(),
@@ -773,7 +774,7 @@ export const disbursementsRouter = router({
     }),
 
   // رفض أمر صرف
-  rejectOrder: protectedProcedure
+  rejectOrder: permissionProcedure("financial.approve")
     .input(
       z.object({
         id: z.number(),
@@ -803,7 +804,7 @@ export const disbursementsRouter = router({
     }),
 
   // جلب طلبات الصرف للمشروع
-  getRequestsByProject: protectedProcedure
+  getRequestsByProject: permissionProcedure("disbursements.view")
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -828,7 +829,7 @@ export const disbursementsRouter = router({
     }),
 
   // جلب المشاريع مع بيانات العقد والمورد لنموذج طلب الصرف
-  getProjectsWithContractDetails: protectedProcedure.query(async () => {
+  getProjectsWithContractDetails: permissionProcedure("disbursements.view").query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -895,7 +896,7 @@ export const disbursementsRouter = router({
   }),
 
   // التقرير المالي الشامل
-  getFinancialReport: protectedProcedure
+  getFinancialReport: permissionProcedure("reports.view")
     .input(
       z.object({
         startDate: z.string().optional(),
@@ -1112,7 +1113,7 @@ export const disbursementsRouter = router({
     }),
 
   // إحصائيات طلبات الصرف
-  getStats: protectedProcedure.query(async () => {
+  getStats: permissionProcedure("disbursements.view").query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -1150,7 +1151,7 @@ export const disbursementsRouter = router({
   }),
 
   // الحصول على ملخص الحركة المالية
-  getFinancialSummary: protectedProcedure
+  getFinancialSummary: permissionProcedure("disbursements.view")
     .input(
       z.object({
         projectId: z.number().optional(),

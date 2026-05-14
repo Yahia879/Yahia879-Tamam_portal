@@ -41,6 +41,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   financial_report: ["reports.view"],
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
+  corporate_comm: ["requests.view", "reports.view", "settings.view"],
 };
 
 /**

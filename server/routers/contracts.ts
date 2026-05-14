@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import {
   organizationSettings,
@@ -187,7 +188,7 @@ export const contractsRouter = router({
   // ==================== العقود ====================
   
   // جلب قائمة العقود
-  list: protectedProcedure
+  list: permissionProcedure("contracts.view")
     .input(
       z.object({
         status: z.enum(contractStatuses).optional(),
@@ -232,7 +233,7 @@ export const contractsRouter = router({
     }),
   
   // جلب عقد بواسطة requestId
-  getByRequestId: protectedProcedure
+  getByRequestId: permissionProcedure("contracts.view")
     .input(z.object({ requestId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -248,7 +249,7 @@ export const contractsRouter = router({
     }),
 
   // جلب عقد بالتفصيل
-  getById: protectedProcedure
+  getById: permissionProcedure("contracts.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -281,7 +282,7 @@ export const contractsRouter = router({
     }),
   
   // إنشاء عقد جديد
-  create: protectedProcedure
+  create: permissionProcedure("contracts.create")
     .input(
       z.object({
         contractType: z.enum(contractTypes),
@@ -483,7 +484,7 @@ export const contractsRouter = router({
     }),
   
   // تحديث عقد
-  update: protectedProcedure
+  update: permissionProcedure("contracts.edit")
     .input(
       z.object({
         id: z.number(),
@@ -549,7 +550,7 @@ export const contractsRouter = router({
     }),
   
   // اعتماد العقد
-  approve: protectedProcedure
+  approve: permissionProcedure("contracts.edit")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();

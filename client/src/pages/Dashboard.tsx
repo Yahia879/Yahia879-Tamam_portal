@@ -54,7 +54,7 @@ export default function Dashboard() {
         financial: "/suppliers",
         financial_manager: "/suppliers",
         project_manager: "/projects",
-        corporate_comm: "/profile",
+        corporate_comm: "/reports",
       };
       navigate(redirectMap[user.role] || "/profile");
     }

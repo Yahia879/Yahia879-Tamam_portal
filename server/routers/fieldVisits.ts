@@ -1,4 +1,5 @@
 import { router, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { z } from "zod";
 import { getDb } from "../db";
 import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
@@ -7,7 +8,7 @@ import { TRPCError } from "@trpc/server";
 
 export const fieldVisitsRouter = router({
   // جدولة الزيارة الميدانية
-  scheduleVisit: protectedProcedure
+  scheduleVisit: permissionProcedure("field_visits.view")
     .input(
       z.object({
         requestId: z.number(),
@@ -91,7 +92,7 @@ export const fieldVisitsRouter = router({
     }),
 
   // تأكيد تنفيذ الزيارة
-  executeVisit: protectedProcedure
+  executeVisit: permissionProcedure("field_visits.view")
     .input(
       z.object({
         requestId: z.number(),
@@ -135,7 +136,7 @@ export const fieldVisitsRouter = router({
     }),
 
   // تأكيد رفع التقرير
-  submitReport: protectedProcedure
+  submitReport: permissionProcedure("field_visits.view")
     .input(
       z.object({
         requestId: z.number(),
@@ -172,7 +173,7 @@ export const fieldVisitsRouter = router({
     }),
 
   // جلب بيانات الزيارة
-  getVisit: protectedProcedure
+  getVisit: permissionProcedure("field_visits.view")
     .input(
       z.object({
         requestId: z.number(),

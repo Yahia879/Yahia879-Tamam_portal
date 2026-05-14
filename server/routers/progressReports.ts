@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import { progressReports, projects, users } from "../../drizzle/schema";
 
 export const progressReportsRouter = router({
   // قائمة تقارير الإنجاز
-  list: protectedProcedure
+  list: permissionProcedure("reports.view")
     .input(
       z.object({
         projectId: z.number().optional(),
@@ -56,7 +57,7 @@ export const progressReportsRouter = router({
     }),
 
   // تفاصيل تقرير
-  getById: protectedProcedure
+  getById: permissionProcedure("reports.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -98,7 +99,7 @@ export const progressReportsRouter = router({
     }),
 
   // إنشاء تقرير جديد
-  create: protectedProcedure
+  create: permissionProcedure("reports.create")
     .input(
       z.object({
         projectId: z.number(),
@@ -159,7 +160,7 @@ export const progressReportsRouter = router({
     }),
 
   // تحديث تقرير
-  update: protectedProcedure
+  update: permissionProcedure("reports.create")
     .input(
       z.object({
         id: z.number(),
@@ -208,7 +209,7 @@ export const progressReportsRouter = router({
     }),
 
   // تقديم التقرير للمراجعة
-  submit: protectedProcedure
+  submit: permissionProcedure("reports.create")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -223,7 +224,7 @@ export const progressReportsRouter = router({
     }),
 
   // مراجعة التقرير
-  review: protectedProcedure
+  review: permissionProcedure("reports.view")
     .input(
       z.object({
         id: z.number(),
@@ -249,7 +250,7 @@ export const progressReportsRouter = router({
     }),
 
   // إحصائيات التقارير
-  getStats: protectedProcedure
+  getStats: permissionProcedure("reports.view")
     .input(z.object({ projectId: z.number().optional() }).optional())
     .query(async ({ input }) => {
       const db = await getDb();

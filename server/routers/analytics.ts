@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { eq, and, gte, lte, count, avg, sum, desc, isNotNull, sql } from "drizzle-orm";
 import { router, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import {
   mosqueRequests,
@@ -13,7 +14,7 @@ import {
 
 export const analyticsRouter = router({
   // مؤشرات الأداء الرئيسية KPI
-  getKPIs: protectedProcedure
+  getKPIs: permissionProcedure("reports.view")
     .input(
       z.object({
         fromDate: z.string().optional(),
@@ -158,10 +159,10 @@ export const analyticsRouter = router({
   /**
    * حساب نسبة النمو الشهري للمقاييس الرئيسية
    */
-  getMonthlyGrowth: protectedProcedure
+  getMonthlyGrowth: permissionProcedure("reports.view")
     .query(async ({ ctx }) => {
       // التأكد من أن المستخدم لديه الصلاحية
-      if (!["super_admin", "system_admin", "projects_office", "financial_manager"].includes(ctx.user.role)) {
+      if (!["super_admin", "system_admin", "projects_office", "financial_manager", "corporate_comm"].includes(ctx.user.role)) {
         return null;
       }
       
