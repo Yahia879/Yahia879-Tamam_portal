@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments, passwordResetTokens, roles } from "../../drizzle/schema";
 import { eq, count, and, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
@@ -24,7 +25,7 @@ const STAFF_ROLES = [
 
 export const usersRouter = router({
   // Get paginated users (staff only)
-  getAll: protectedProcedure
+  getAll: permissionProcedure("users.view")
     .input(z.object({
       page: z.number().default(1),
       limit: z.number().default(20),
@@ -130,7 +131,7 @@ export const usersRouter = router({
     }),
 
   // Get user by ID
-  getById: protectedProcedure
+  getById: permissionProcedure("users.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -144,7 +145,7 @@ export const usersRouter = router({
     }),
 
   // Get user with employee info
-  getWithEmployee: protectedProcedure
+  getWithEmployee: permissionProcedure("users.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -156,7 +157,7 @@ export const usersRouter = router({
     }),
 
   // Create new user (staff)
-  create: protectedProcedure
+  create: permissionProcedure("users.create")
     .input(
       z.object({
         name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف"),
@@ -175,9 +176,6 @@ export const usersRouter = router({
       )
     )
     .mutation(async ({ input, ctx }) => {
-      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة مستخدمين" });
-      }
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
@@ -240,7 +238,7 @@ export const usersRouter = router({
     }),
 
   // Toggle user status
-  toggleStatus: protectedProcedure
+  toggleStatus: permissionProcedure("users.edit")
     .input(
       z.object({
         userId: z.number(),
@@ -248,10 +246,6 @@ export const usersRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل حالة المستخدمين" });
-      }
-
       if (input.userId === ctx.user.id) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 
@@ -269,7 +263,7 @@ export const usersRouter = router({
     }),
 
   // Update user basic info (including role and status)
-  update: protectedProcedure
+  update: permissionProcedure("users.edit")
     .input(
       z.object({
         id: z.number(),
@@ -283,9 +277,6 @@ export const usersRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل المستخدمين" });
-      }
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       const { id, department, position, ...updateData } = input;
@@ -312,7 +303,7 @@ export const usersRouter = router({
     }),
 
   // Update user role
-  updateRole: protectedProcedure
+  updateRole: permissionProcedure("users.edit")
     .input(
       z.object({
         userId: z.number(),
@@ -320,9 +311,6 @@ export const usersRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتغيير الأدوار" });
-      }
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
       await db.update(users).set({ role: input.role as any }).where(eq(users.id, input.userId));
@@ -330,13 +318,9 @@ export const usersRouter = router({
     }),
 
   // Delete user
-  delete: protectedProcedure
+  delete: permissionProcedure("users.delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      if (!(["super_admin", "system_admin"] as string[]).includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف المستخدمين" });
-      }
-
       if (input.id === ctx.user.id) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 

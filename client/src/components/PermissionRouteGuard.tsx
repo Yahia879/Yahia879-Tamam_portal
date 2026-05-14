@@ -22,16 +22,24 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
   const [location, navigate] = useLocation();
 
   const accessResult = useMemo(() => {
-    if (loading || !user) return { allowed: true, reason: "loading" };
+    // أثناء التحميل، لا نحكم بعد
+    if (loading) return { allowed: false, reason: "loading", pending: true };
+
+    // إذا لم يوجد مستخدم: المسارات العامة مسموحة، الباقي يتركه للمكونات الأخرى (مثل GuestGuard)
+    if (!user) {
+      if (EXEMPT_ROUTES.has(location)) return { allowed: true, reason: "exempt-no-user", pending: false };
+      // مسارات تسجيل الدخول وأمثالها
+      return { allowed: true, reason: "no-user-public", pending: false };
+    }
 
     // المسارات العامة لا تحتاج تحقق
-    if (EXEMPT_ROUTES.has(location)) return { allowed: true, reason: "exempt" };
+    if (EXEMPT_ROUTES.has(location)) return { allowed: true, reason: "exempt", pending: false };
 
     // مسارات طالب الخدمة
     if (REQUESTER_ROUTES.has(location)) {
-      if (user.role === "service_requester") return { allowed: true, reason: "requester" };
+      if (user.role === "service_requester") return { allowed: true, reason: "requester", pending: false };
       // المستخدمين الإداريين يمكنهم أيضاً الوصول إلى /my-requests
-      if (location === "/my-requests") return { allowed: true, reason: "my-requests" };
+      if (location === "/my-requests") return { allowed: true, reason: "my-requests", pending: false };
     }
 
     // طالب الخدمة يحاول الوصول لصفحة إدارية
@@ -39,21 +47,21 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
       // نسمح بالوصول لبعض الصفحات المشتركة
       const sharedPaths = ["/profile", "/notifications"];
       if (sharedPaths.includes(location) || location.startsWith("/requester/")) {
-        return { allowed: true, reason: "shared" };
+        return { allowed: true, reason: "shared", pending: false };
       }
-      return { allowed: false, reason: "requester-blocked" };
+      return { allowed: false, reason: "requester-blocked", pending: false };
     }
 
-    // التحقق من الصلاحيات
+    // التحقق من الصلاحيات — يشمل الأدوار الأساسية والمخصصة
     const userPerms: string[] = (user as any)?.permissions ?? [];
     const hasCustom = !!(user as any)?.customRole;
 
     const allowed = hasRouteAccess(location, user.role, userPerms, hasCustom);
-    return { allowed, reason: allowed ? "permission-ok" : "permission-denied" };
+    return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };
   }, [user, loading, location]);
 
   useEffect(() => {
-    if (loading) return;
+    if (accessResult.pending) return;
 
     if (!accessResult.allowed) {
       console.warn(
@@ -61,11 +69,13 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
       );
       navigate("/403", { replace: true });
     }
-  }, [accessResult.allowed, accessResult.reason, loading, location, navigate, user?.role]);
+  }, [accessResult.allowed, accessResult.reason, accessResult.pending, location, navigate, user?.role]);
 
-  // أثناء التحميل أو عند منع الوصول، لا نعرض المحتوى
+  // أثناء التحميل، لا نعرض المحتوى (تجنب الوميض)
   if (loading) return null;
-  if (!accessResult.allowed) return null;
+
+  // عند منع الوصول (غير المعلّق)، لا نعرض المحتوى
+  if (!accessResult.pending && !accessResult.allowed) return null;
 
   return <>{children}</>;
 }

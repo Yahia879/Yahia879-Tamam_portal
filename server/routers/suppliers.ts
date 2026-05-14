@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
@@ -60,7 +61,7 @@ export const suppliersRouter = router({
   // ==================== تسجيل الموردين ====================
 
   // تسجيل مورد جديد (النموذج الكامل)
-  register: protectedProcedure
+  register: permissionProcedure("suppliers.create")
     .input(fullSupplierSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -112,7 +113,7 @@ export const suppliersRouter = router({
     }),
 
   // إضافة مورد جديد بواسطة المسؤول (نموذج مبسط)
-  create: protectedProcedure
+  create: permissionProcedure("suppliers.create")
     .input(z.object({
       name: z.string().min(1, "اسم المورد مطلوب"),
       commercialRegister: z.string().min(1, "رقم السجل التجاري مطلوب"),
@@ -130,10 +131,7 @@ export const suppliersRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من الصلاحيات
-      if (ctx.user.role === "service_requester") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة مورد" });
-      }
+      // التحقق من الصلاحيات (يتم عبر permissionProcedure أعلاه)
 
       // التحقق من تكرار السجل التجاري
       const existing = await db
@@ -173,7 +171,7 @@ export const suppliersRouter = router({
   // ==================== إدارة الموردين ====================
 
   // جلب قائمة الموردين
-  list: protectedProcedure
+  list: permissionProcedure("suppliers.view")
     .input(
       z.object({
         approvalStatus: z.enum(supplierApprovalStatuses).optional(),
@@ -247,7 +245,7 @@ export const suppliersRouter = router({
     }),
 
   // جلب مورد بالتفصيل
-  getById: protectedProcedure
+  getById: permissionProcedure("suppliers.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -276,7 +274,7 @@ export const suppliersRouter = router({
     }),
 
   // جلب الموردين المعتمدين فقط (للاستخدام في العقود)
-  getApproved: protectedProcedure
+  getApproved: permissionProcedure("suppliers.view")
     .input(
       z.object({
         workField: z.enum(workFields).optional(),
@@ -315,7 +313,7 @@ export const suppliersRouter = router({
     }),
 
   // جلب جميع الموردين النشطين (لعروض الأسعار)
-  getActiveSuppliers: protectedProcedure
+  getActiveSuppliers: permissionProcedure("suppliers.view")
     .input(
       z.object({
         workField: z.enum(workFields).optional(),
@@ -373,7 +371,7 @@ export const suppliersRouter = router({
   // ==================== اعتماد الموردين ====================
 
   // اعتماد مورد
-  approve: protectedProcedure
+  approve: permissionProcedure("suppliers.edit")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -411,7 +409,7 @@ export const suppliersRouter = router({
     }),
 
   // رفض مورد
-  reject: protectedProcedure
+  reject: permissionProcedure("suppliers.edit")
     .input(
       z.object({
         id: z.number(),
@@ -448,7 +446,7 @@ export const suppliersRouter = router({
     }),
 
   // إيقاف مورد
-  suspend: protectedProcedure
+  suspend: permissionProcedure("suppliers.edit")
     .input(
       z.object({
         id: z.number(),
@@ -477,7 +475,7 @@ export const suppliersRouter = router({
   // ==================== تحديث بيانات المورد ====================
 
   // تحديث بيانات المورد
-  update: protectedProcedure
+  update: permissionProcedure("suppliers.edit")
     .input(
       z.object({
         id: z.number(),

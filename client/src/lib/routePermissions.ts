@@ -79,6 +79,9 @@ export interface RoutePermission {
  * المسارات غير الموجودة هنا تعتبر عامة أو محمية فقط بالتسجيل (لا تحتاج صلاحية إضافية).
  */
 export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
+  // ── لوحة التحكم ──
+  "/dashboard": ["mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
+
   // ── المساجد ──
   "/mosques": "mosques",
   "/mosques/map": "mosques_map",
@@ -105,6 +108,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الموردون ──
   "/suppliers": "suppliers",
+  "/suppliers/new": "suppliers",
 
   // ── عروض الأسعار ──
   "/quotations": "quotations",
@@ -128,6 +132,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
+  "/final-report/new": ["projects", "requests"],
 
   // ── مؤشرات الأداء ──
   "/kpi-dashboard": ["projects", "requests"],
@@ -227,7 +232,6 @@ export const EXEMPT_ROUTES = new Set([
   "/supplier/register",
   "/supplier/dashboard",
   "/request-form-dynamic",
-  "/final-report/new",
 ]);
 
 /**
@@ -266,8 +270,12 @@ export function getRequiredPermission(pathname: string): string | string[] | nul
   // مسار /requester/* prefixed routes
   if (pathname.startsWith("/requester/")) return null;
 
-  // لم يُعثر على تطابق — المسار غير محدد، نترك الحماية العامة (AdminGuard) تعمل
-  return null;
+  // ── مسار غير محدد في الخريطة ──
+  // لأسباب أمنية، أي مسار إداري غير مُعرّف صراحةً يتطلب صلاحية كاملة.
+  // هذا يمنع الوصول غير المصرح عبر URL مباشر لأي صفحة جديدة لم يتم تعريفها بعد.
+  // الصلاحية "__unknown_route__" لن تتطابق مع أي صلاحية فعلية = حظر تلقائي
+  // ما عدا super_admin و system_admin اللذان لديهما "*"
+  return "__unknown_route__";
 }
 
 /**
@@ -279,16 +287,19 @@ export function hasRouteAccess(
   userPermissions: string[],
   hasCustomRole: boolean,
 ): boolean {
+  // super_admin و system_admin لهما كل الصلاحيات دائماً
+  if (userRole === "super_admin" || userRole === "system_admin") return true;
+
   const required = getRequiredPermission(pathname);
 
-  // لا توجد قيود صلاحية خاصة على هذا المسار
+  // لا توجد قيود صلاحية خاصة على هذا المسار (معفى أو مسار طالب خدمة)
   if (required === null) return true;
-
-  // super_admin و system_admin لهما كل الصلاحيات
-  if (userRole === "super_admin" || userRole === "system_admin") return true;
 
   // ─── مستخدم بدور مخصص ───
   if (hasCustomRole) {
+    // دعم الصلاحية الكاملة للأدوار المخصصة أيضاً
+    if (userPermissions.includes("*")) return true;
+
     if (Array.isArray(required)) {
       // OR logic: يجب أن يملك أي صلاحية منها
       return required.some(p => userPermissions.includes(p));

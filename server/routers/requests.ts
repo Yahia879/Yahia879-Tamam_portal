@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
+import { permissionProcedure } from "../permissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { 
@@ -117,7 +118,7 @@ const searchRequestsSchema = z.object({
 
 export const requestsRouter = router({
   // إنشاء طلب جديد
-  create: protectedProcedure
+  create: permissionProcedure("requests.create")
     .input(createRequestSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();

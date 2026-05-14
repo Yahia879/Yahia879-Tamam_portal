@@ -121,7 +121,7 @@ export const contractsRouter = router({
   // ==================== إعدادات الجمعية ====================
   
   // جلب إعدادات الجمعية
-  getOrganizationSettings: protectedProcedure.query(async () => {
+  getOrganizationSettings: permissionProcedure("contracts.view").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const [settings] = await db.select().from(organizationSettings).limit(1);
@@ -129,7 +129,7 @@ export const contractsRouter = router({
   }),
   
   // حفظ/تحديث إعدادات الجمعية
-  saveOrganizationSettings: protectedProcedure
+  saveOrganizationSettings: permissionProcedure("settings.edit")
     .input(
       z.object({
         organizationName: z.string().min(1, "اسم الجمعية مطلوب"),
@@ -640,7 +640,7 @@ export const contractsRouter = router({
     }),
   
   // تفعيل العقد
-  activate: protectedProcedure
+  activate: permissionProcedure("contracts.edit")
     .input(
       z.object({
         id: z.number(),
@@ -694,7 +694,7 @@ export const contractsRouter = router({
     }),
   
   // تحويل العقد إلى مشروع
-  convertToProject: protectedProcedure
+  convertToProject: permissionProcedure("contracts.edit")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -745,7 +745,7 @@ export const contractsRouter = router({
   // ==================== دفعات العقد ====================
   
   // تحديث دفعات العقد
-  updatePayments: protectedProcedure
+  updatePayments: permissionProcedure("contracts.edit")
     .input(
       z.object({
         contractId: z.number(),
@@ -787,7 +787,7 @@ export const contractsRouter = router({
     }),
   
   // تسجيل دفعة
-  recordPayment: protectedProcedure
+  recordPayment: permissionProcedure("financial.approve")
     .input(
       z.object({
         paymentId: z.number(),
@@ -812,7 +812,7 @@ export const contractsRouter = router({
   // ==================== الموردين ====================
   
   // جلب قائمة الموردين
-  getSuppliers: protectedProcedure.query(async () => {
+  getSuppliers: permissionProcedure("suppliers.view").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const suppliersList = await db
@@ -827,7 +827,7 @@ export const contractsRouter = router({
   // ==================== قوالب العقود ====================
 
   // الحصول على جميع قوالب العقود
-  getTemplates: protectedProcedure.query(async () => {
+  getTemplates: permissionProcedure("contracts.view").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const templates = await db
@@ -838,7 +838,7 @@ export const contractsRouter = router({
   }),
 
   // الحصول على قالب واحد مع بنوده
-  getTemplate: protectedProcedure
+  getTemplate: permissionProcedure("contracts.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -863,7 +863,7 @@ export const contractsRouter = router({
     }),
 
   // إنشاء قالب جديد
-  createTemplate: protectedProcedure
+  createTemplate: permissionProcedure("contracts.create")
     .input(
       z.object({
         name: z.string().min(1),
@@ -899,7 +899,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث قالب
-  updateTemplate: protectedProcedure
+  updateTemplate: permissionProcedure("contracts.edit")
     .input(
       z.object({
         id: z.number(),
@@ -937,7 +937,7 @@ export const contractsRouter = router({
     }),
 
   // حذف قالب
-  deleteTemplate: protectedProcedure
+  deleteTemplate: permissionProcedure("contracts.delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -959,7 +959,7 @@ export const contractsRouter = router({
   // ==================== بنود العقود ====================
 
   // الحصول على بنود قالب معين
-  getTemplateClauses: protectedProcedure
+  getTemplateClauses: permissionProcedure("contracts.view")
     .input(z.object({ templateId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -973,7 +973,7 @@ export const contractsRouter = router({
     }),
 
   // الحصول على البنود العامة (غير مرتبطة بقالب)
-  getGlobalClauses: protectedProcedure.query(async () => {
+  getGlobalClauses: permissionProcedure("contracts.view").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const clauses = await db
@@ -985,7 +985,7 @@ export const contractsRouter = router({
   }),
 
   // إضافة بند جديد
-  createClause: protectedProcedure
+  createClause: permissionProcedure("contracts.create")
     .input(
       z.object({
         templateId: z.number().optional(),
@@ -1007,7 +1007,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث بند
-  updateClause: protectedProcedure
+  updateClause: permissionProcedure("contracts.edit")
     .input(
       z.object({
         id: z.number(),
@@ -1029,7 +1029,7 @@ export const contractsRouter = router({
     }),
 
   // حذف بند
-  deleteClause: protectedProcedure
+  deleteClause: permissionProcedure("contracts.delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1039,7 +1039,7 @@ export const contractsRouter = router({
     }),
 
   // إعادة ترتيب البنود
-  reorderClauses: protectedProcedure
+  reorderClauses: permissionProcedure("contracts.edit")
     .input(
       z.object({
         templateId: z.number(),
@@ -1061,7 +1061,7 @@ export const contractsRouter = router({
   // ==================== المفوضين بالتوقيع ====================
 
   // الحصول على جميع المفوضين
-  getSignatories: protectedProcedure.query(async () => {
+  getSignatories: permissionProcedure("contracts.view").query(async () => {
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const signatories = await db
@@ -1072,7 +1072,7 @@ export const contractsRouter = router({
   }),
 
   // إضافة مفوض جديد
-  createSignatory: protectedProcedure
+  createSignatory: permissionProcedure("contracts.create")
     .input(
       z.object({
         name: z.string().min(1),
@@ -1102,7 +1102,7 @@ export const contractsRouter = router({
     }),
 
   // تحديث مفوض
-  updateSignatory: protectedProcedure
+  updateSignatory: permissionProcedure("contracts.edit")
     .input(
       z.object({
         id: z.number(),
@@ -1135,7 +1135,7 @@ export const contractsRouter = router({
     }),
 
   // حذف مفوض
-  deleteSignatory: protectedProcedure
+  deleteSignatory: permissionProcedure("contracts.delete")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1147,7 +1147,7 @@ export const contractsRouter = router({
     }),
 
   // الحصول على القوالب النشطة حسب النوع
-  getActiveTemplatesByType: protectedProcedure
+  getActiveTemplatesByType: permissionProcedure("contracts.view")
     .input(z.object({ type: z.string() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1169,7 +1169,7 @@ export const contractsRouter = router({
   // ==================== تكرار العقد ====================
 
   // تكرار عقد موجود
-  duplicate: protectedProcedure
+  duplicate: permissionProcedure("contracts.create")
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1269,7 +1269,7 @@ export const contractsRouter = router({
     }),
 
   // الحصول على عرض السعر المعتمد للطلب
-  getApprovedQuotationForRequest: protectedProcedure
+  getApprovedQuotationForRequest: permissionProcedure("contracts.view")
     .input(z.object({ requestId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1299,7 +1299,7 @@ export const contractsRouter = router({
   // ==================== طلبات تعديل العقود ====================
 
   // التحقق من إمكانية تعديل العقد
-  canModifyContract: protectedProcedure
+  canModifyContract: permissionProcedure("contracts.view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1347,7 +1347,7 @@ export const contractsRouter = router({
     }),
 
   // إنشاء طلب تعديل
-  requestModification: protectedProcedure
+  requestModification: permissionProcedure("contracts.edit")
     .input(
       z.object({
         contractId: z.number(),
@@ -1402,7 +1402,7 @@ export const contractsRouter = router({
     }),
 
   // الموافقة على طلب التعديل
-  approveModification: protectedProcedure
+  approveModification: permissionProcedure("contracts.edit")
     .input(
       z.object({
         requestId: z.number(),
@@ -1428,7 +1428,7 @@ export const contractsRouter = router({
     }),
 
   // رفض طلب التعديل
-  rejectModification: protectedProcedure
+  rejectModification: permissionProcedure("contracts.edit")
     .input(
       z.object({
         requestId: z.number(),
@@ -1453,7 +1453,7 @@ export const contractsRouter = router({
     }),
 
   // جلب طلبات التعديل لعقد معين
-  getModificationRequests: protectedProcedure
+  getModificationRequests: permissionProcedure("contracts.view")
     .input(z.object({ contractId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -1469,7 +1469,7 @@ export const contractsRouter = router({
     }),
 
   // جلب سجل تعديلات العقد
-  getModificationLogs: protectedProcedure
+  getModificationLogs: permissionProcedure("contracts.view")
     .input(z.object({ contractId: z.number() }))
     .query(async ({ input }) => {
       const db = await getDb();
