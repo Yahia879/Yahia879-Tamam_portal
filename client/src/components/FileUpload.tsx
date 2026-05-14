@@ -55,6 +55,56 @@ export function FileUpload({
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
+  const compressImage = (base64: string, mimeType: string): Promise<{ base64: string; size: number }> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 1200;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // ضغط متدرج: نبدأ بجودة 0.7، ثم نقلل إذا كان الحجم لا يزال كبيراً
+        const qualitySteps = [0.7, 0.5, 0.3];
+        let bestBase64 = "";
+        let bestSize = Infinity;
+
+        for (const quality of qualitySteps) {
+          const compressedBase64 = canvas.toDataURL("image/webp", quality);
+          const justBase64 = compressedBase64.split(",")[1];
+          const approxSize = Math.round((justBase64.length * 3) / 4);
+          
+          bestBase64 = justBase64;
+          bestSize = approxSize;
+
+          // إذا كان الحجم أقل من 2 ميجابايت، نتوقف (حجم آمن للتخزين)
+          if (approxSize < 2 * 1024 * 1024) {
+            break;
+          }
+        }
+        
+        resolve({ base64: bestBase64, size: bestSize });
+      };
+      img.src = base64;
+    });
+  };
+
+
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     // التحقق من نوع الملف
     if (!acceptedTypes.includes(file.type)) {
@@ -68,7 +118,7 @@ export function FileUpload({
       };
     }
 
-    // التحقق من حجم الملف
+    // التحقق من حجم الملف (قبل الضغط)
     if (file.size > maxSizeBytes) {
       return {
         fileName: file.name,
@@ -82,15 +132,30 @@ export function FileUpload({
 
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const preview = file.type.startsWith("image/") ? reader.result as string : undefined;
+      reader.onload = async () => {
+        const originalBase64 = reader.result as string;
+        let fileData = originalBase64.split(",")[1];
+        let size = file.size;
+        let mimeType = file.type;
+
+        // ضغط الصور فقط
+        if (file.type.startsWith("image/") && file.type !== "image/gif") {
+          const compressed = await compressImage(originalBase64, file.type);
+          fileData = compressed.base64;
+          size = compressed.size;
+          mimeType = "image/webp"; // نغير النوع إلى webp بعد الضغط
+        }
+
+        const preview = mimeType.startsWith("image/") 
+          ? `data:${mimeType};base64,${fileData}` 
+          : undefined;
+
         resolve({
-          fileName: file.name,
-          fileData: base64,
-          mimeType: file.type,
+          fileName: file.name.replace(/\.[^/.]+$/, "") + (file.type.startsWith("image/") ? ".webp" : ""),
+          fileData: fileData,
+          mimeType: mimeType,
           preview,
-          size: file.size,
+          size: size,
           status: "pending",
         });
       };

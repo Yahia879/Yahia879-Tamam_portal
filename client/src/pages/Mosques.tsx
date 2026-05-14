@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building2, 
-  Plus, 
-  Search, 
+import {
+  Building2,
+  Plus,
+  Search,
   MapPin,
   Filter,
   MoreVertical,
@@ -200,9 +200,9 @@ export default function Mosques() {
                   </div>
                 </div>
                 {pendingCount > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="mt-3 w-full text-yellow-600 border-yellow-300 hover:bg-yellow-50"
                     onClick={() => setStatusFilter("pending")}
                   >
@@ -310,7 +310,7 @@ export default function Mosques() {
                     {mosques.map((mosque: any) => {
                       const status = APPROVAL_STATUS[mosque.approvalStatus as keyof typeof APPROVAL_STATUS] || APPROVAL_STATUS.pending;
                       const StatusIcon = status.icon;
-                      
+
                       return (
                         <TableRow key={mosque.id} className={mosque.approvalStatus === "pending" ? "bg-yellow-50/50" : ""}>
                           <TableCell>
@@ -388,8 +388,8 @@ export default function Mosques() {
                                     </DropdownMenuItem>
                                   </Link>
                                   <DropdownMenuSeparator />
-                                  {user?.role === "super_admin" && (
-                                    <DropdownMenuItem 
+                                  {(user?.role === "super_admin" || user?.role === "system_admin") && (
+                                    <DropdownMenuItem
                                       className="cursor-pointer text-destructive focus:text-destructive"
                                       onClick={() => openDeleteDialog(mosque.id)}
                                     >
@@ -443,8 +443,8 @@ export default function Mosques() {
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
               إلغاء
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleReject}
               disabled={rejectMutation.isPending}
             >
@@ -470,8 +470,8 @@ export default function Mosques() {
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               إلغاء
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >

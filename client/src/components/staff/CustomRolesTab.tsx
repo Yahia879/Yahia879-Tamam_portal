@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, Loader2, Power, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { Shield, Loader2, Power, MoreVertical, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export interface CustomRolesTabProps {
@@ -138,6 +138,13 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => setLocation(`/roles/${role.id}/edit`)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4 ml-2" />
+                          تعديل الدور
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleToggleStatus(role.id, !role.isActive)}
                           disabled={toggleMutation.isPending}

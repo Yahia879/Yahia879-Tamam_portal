@@ -25,7 +25,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
   ],
-  mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete"],
+  mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosques.view"],
   requests: ["requests.view", "requests.create", "requests.edit", "requests.delete"],
   appointments_calendar: ["requests.view", "field_visits.view"],
@@ -58,10 +58,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     .where(eq(users.id, userId))
     .limit(1);
 
-  // إذا كان المستخدم super_admin، نمنحه جميع الصلاحيات مباشرة
-  if (userData?.role === 'super_admin') {
+  // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات مباشرة
+  if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
-    // super_admin يحصل أيضاً على جميع الصلاحيات الموسعة
+    // يحصلان أيضاً على جميع الصلاحيات الموسعة
     const expandedSet = new Set(allPerms.map(p => p.id));
     Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => expandedSet.add(s)));
     return Array.from(expandedSet);
@@ -296,6 +296,22 @@ export const permissionsRouter = router({
     }),
 
   /**
+   * عرض دور محدد
+   */
+  getRole: protectedProcedure
+    .input(z.object({ roleId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!role) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+      return role;
+    }),
+
+  /**
    * إنشاء دور جديد
    */
   createRole: permissionProcedure("permissions.create")
@@ -387,36 +403,59 @@ export const permissionsRouter = router({
     }),
 
   /**
-   * تحديث صلاحيات دور
+   * تحديث دور مخصص (الاسم والصلاحيات)
    */
-  updateRolePermissions: permissionProcedure("permissions.edit")
+  updateRole: permissionProcedure("permissions.edit")
     .input(z.object({
       roleId: z.string(),
-      permissions: z.array(z.string())
+      nameAr: z.string().optional(),
+      permissions: z.array(z.string()).optional()
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      // حذف الصلاحيات القديمة
-      await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
+      const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!existingRole) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
 
-      // إضافة الصلاحيات الجديدة
-      if (input.permissions.length > 0) {
-        await db.insert(rolePermissions).values(
-          input.permissions.map(permId => ({
-            roleId: input.roleId,
-            permissionId: permId
-          }))
-        );
+      // تحديث بيانات الدور (الاسم والوصف)
+      const updateData: any = {};
+      if (input.nameAr) updateData.nameAr = input.nameAr;
+      if (input.permissions) updateData.description = JSON.stringify(input.permissions);
+
+      if (Object.keys(updateData).length > 0) {
+        await db.update(roles).set(updateData).where(eq(roles.id, input.roleId));
+      }
+
+      // تحديث الصلاحيات في الجدول التبادلي
+      if (input.permissions) {
+        await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
+
+        if (input.permissions.length > 0) {
+          // التحقق من الصلاحيات الموجودة فعلياً
+          const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+            .where(inArray(permissions.id, input.permissions));
+          const validPermIds = existingPerms.map(p => p.id);
+
+          if (validPermIds.length > 0) {
+            await db.insert(rolePermissions).values(
+              validPermIds.map(permId => ({
+                roleId: input.roleId,
+                permissionId: permId
+              }))
+            );
+          }
+        }
       }
 
       await logAudit({
-        actionType: "update_role_permissions",
+        actionType: "update_role",
         targetUserId: ctx.user.id,
         targetRoleId: input.roleId,
         performedBy: ctx.user.id,
-        newValue: JSON.stringify(input.permissions)
+        newValue: JSON.stringify(input)
       });
 
       return { success: true };

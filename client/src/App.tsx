@@ -280,7 +280,8 @@ function Router() {
       <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
       <Route path="/staff/roles/:id">{() => <AdminRoute component={RolePermissions} />}</Route>
-      <Route path="/roles/:id">{() => <AdminRoute component={RoleEdit} />}</Route>
+      <Route path="/roles/:id" component={RoleEdit} />
+      <Route path="/roles/:id/edit" component={RoleEdit} />
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>

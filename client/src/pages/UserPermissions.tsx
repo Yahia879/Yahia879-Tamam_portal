@@ -178,8 +178,8 @@ export default function UserPermissions() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {module.permissions.map((permission) => {
-                    // الصلاحية ممنوحة إذا كانت في القائمة النهائية أو إذا كان المستخدم مدير عام
-                    const isGranted = finalPermissions?.includes(permission.id) || userRole === 'super_admin';
+                    // الصلاحية ممنوحة إذا كانت في القائمة النهائية أو إذا كان المستخدم مدير عام أو مدير نظام
+                    const isGranted = finalPermissions?.includes(permission.id) || userRole === 'super_admin' || userRole === 'system_admin';
 
                     return (
                       <div

@@ -165,6 +165,15 @@ export default function SupplierRegistration() {
   const handleSubmit = async () => {
     if (!validateForm()) return;
     
+    // التحقق من حجم البيانات الإجمالي قبل الإرسال
+    const totalPayloadSize = (commercialRegisterDoc.length + vatCertificateDoc.length + nationalAddressDoc.length);
+    const totalPayloadMB = (totalPayloadSize * 3 / 4) / (1024 * 1024); // تحويل Base64 إلى ميجابايت تقريبي
+    
+    if (totalPayloadMB > 40) {
+      toast.error(`حجم المرفقات الإجمالي كبير جداً (${totalPayloadMB.toFixed(1)} ميجابايت). يرجى استخدام ملفات أصغر حجماً أو صور مضغوطة.`);
+      return;
+    }
+
     setIsSubmitting(true);
     
     registerMutation.mutate({

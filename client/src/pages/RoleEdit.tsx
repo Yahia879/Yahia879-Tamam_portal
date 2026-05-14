@@ -59,15 +59,17 @@ const PERMISSIONS_STRUCTURE = [
 const ALL_PERMISSION_IDS = PERMISSIONS_STRUCTURE.flatMap(s => s.subsections.map(sub => sub.id));
 
 export default function RoleEdit() {
-  const [, params] = useRoute("/roles/:id");
+  const [match, params] = useRoute("/roles/:id/:action?");
   const [, setLocation] = useLocation();
   const roleId = params?.id;
   const isNew = roleId === "new";
+  const action = params?.action;
 
   const [nameAr, setNameAr] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
 
-  const { data: rolePermissions } = trpc.permissions.getRolePermissions.useQuery(
+  // جلب بيانات الدور (الاسم والصلاحيات المخزنة كـ JSON)
+  const { data: roleData } = trpc.permissions.getRole.useQuery(
     { roleId: roleId! },
     { enabled: !isNew && !!roleId }
   );
@@ -85,22 +87,35 @@ export default function RoleEdit() {
     },
   });
 
-  const updatePermissions = trpc.permissions.updateRolePermissions.useMutation({
+  const updateRole = trpc.permissions.updateRole.useMutation({
     onSuccess: () => {
-      toast.success("تم تحديث الصلاحيات بنجاح");
+      toast.success("تم تحديث الدور بنجاح");
       utils.permissions.getRoles.invalidate();
-      setLocation("/staff");
+      setLocation("/staff?tab=custom-roles");
     },
     onError: (error) => {
-      toast.error(error.message || "فشل تحديث الصلاحيات");
+      toast.error(error.message || "فشل تحديث الدور");
     },
   });
 
   useEffect(() => {
-    if (rolePermissions) {
-      setSelectedPermissions(rolePermissions);
+    if (roleData) {
+      setNameAr(roleData.nameAr);
+      
+      // للأدوار المخصصة، يتم تخزين معرّفات الصلاحيات (UI IDs) في حقل الوصف كـ JSON
+      if (roleData.description) {
+        try {
+          const parsed = JSON.parse(roleData.description);
+          if (Array.isArray(parsed)) {
+            setSelectedPermissions(parsed);
+          }
+        } catch (e) {
+          // قد يكون وصفاً نصياً عادياً للأدوار الأساسية
+          console.debug("Role description is not a JSON array, skipping permission hydration from description");
+        }
+      }
     }
-  }, [rolePermissions]);
+  }, [roleData]);
 
   const handlePermissionToggle = (permissionId: string) => {
     setSelectedPermissions((prev) =>
@@ -114,7 +129,7 @@ export default function RoleEdit() {
     e.preventDefault();
 
     // التحقق من صحة البيانات
-    if (isNew && !nameAr.trim()) {
+    if (!nameAr.trim()) {
       toast.error("يرجى إدخال اسم الدور المخصص");
       return;
     }
@@ -133,8 +148,9 @@ export default function RoleEdit() {
         permissions: selectedPermissions,
       });
     } else if (roleId) {
-      updatePermissions.mutate({
+      updateRole.mutate({
         roleId,
+        nameAr: nameAr.trim(),
         permissions: selectedPermissions,
       });
     }
@@ -189,29 +205,27 @@ export default function RoleEdit() {
           <p className="text-muted-foreground">
             {isNew
               ? "حدد اسم الدور والصلاحيات المطلوبة"
-              : "عدّل صلاحيات الدور"}
+              : "عدّل اسم وصلاحيات الدور"}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info - Name Only */}
-        {isNew && (
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">المعلومات الأساسية</h2>
-            <div>
-              <Label htmlFor="nameAr" className="pb-2 block">اسم الدور المخصص *</Label>
-              <Input
-                id="nameAr"
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-                required
-                placeholder="مثال: مسؤول المشاريع"
-                className="text-lg py-6"
-              />
-            </div>
-          </Card>
-        )}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">المعلومات الأساسية</h2>
+          <div>
+            <Label htmlFor="nameAr" className="pb-2 block">اسم الدور المخصص *</Label>
+            <Input
+              id="nameAr"
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              required
+              placeholder="مثال: مسؤول المشاريع"
+              className="text-lg py-6"
+            />
+          </div>
+        </Card>
 
         {/* Permissions Tree - Hardcoded Structure */}
         <Card className="p-6">
@@ -308,7 +322,7 @@ export default function RoleEdit() {
           >
             إلغاء
           </Button>
-          <Button type="submit" disabled={createRole.isPending || updatePermissions.isPending}>
+          <Button type="submit" disabled={createRole.isPending || updateRole.isPending}>
             <Save className="h-4 w-4 ml-2" />
             {isNew ? "إنشاء الدور" : "حفظ التغييرات"}
           </Button>
