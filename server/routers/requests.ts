@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { 
@@ -118,11 +118,23 @@ const searchRequestsSchema = z.object({
 
 export const requestsRouter = router({
   // إنشاء طلب جديد
-  create: permissionProcedure("requests.create")
+  create: protectedProcedure
     .input(createRequestSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحية إنشاء الطلب
+      // يُسمح لكل من: الموظفين الحاصلين على صلاحية requests.create، وطالبي الخدمة (service_requester)
+      const hasPermission = await checkPermission(ctx.user.id, "requests.create");
+      const isRequester = ctx.user.role === "service_requester";
+
+      if (!hasPermission && !isRequester) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "ليس لديك صلاحية لإنشاء طلبات جديدة" 
+        });
+      }
 
       // التحقق من وجود المسجد (برنامج بنيان لا يتطلب مسجد)
       let mosqueData = null;

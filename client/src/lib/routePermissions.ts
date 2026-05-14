@@ -297,7 +297,7 @@ export function hasRouteAccess(
 
   // ─── مستخدم بدور مخصص ───
   if (hasCustomRole) {
-    // دعم الصلاحية الكاملة للأدوار المخصصة أيضاً
+    // دعم الصلاحية الكاملة للأدوار المخصصة أيضاً (إذا كانت موجودة في مصفوفة الصلاحيات)
     if (userPermissions.includes("*")) return true;
 
     if (Array.isArray(required)) {

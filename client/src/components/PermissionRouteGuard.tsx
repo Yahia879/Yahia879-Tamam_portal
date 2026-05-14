@@ -54,7 +54,9 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
 
     // التحقق من الصلاحيات — يشمل الأدوار الأساسية والمخصصة
     const userPerms: string[] = (user as any)?.permissions ?? [];
-    const hasCustom = !!(user as any)?.customRole;
+    // يعتبر المستخدم لديه دور مخصص إذا كان لديه كائن customRole أو إذا كان دوره غير موجود في الأدوار الأساسية المعروفة
+    const isBaseRole = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
+    const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
     const allowed = hasRouteAccess(location, user.role, userPerms, hasCustom);
     return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };

@@ -87,6 +87,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   
   let rolePermissionsData: string[] = [];
+
+  // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
+  if (userData?.role === "service_requester") {
+    rolePermissionsData.push("requests.create", "requests.view");
+  }
+
   if (roleIds.length > 0) {
     // جلب صلاحيات من جدول rolePermissions (المصدر التقليدي)
     const rolePermsResult = await db

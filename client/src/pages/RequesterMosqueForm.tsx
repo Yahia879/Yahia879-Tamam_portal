@@ -27,6 +27,57 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
+// مدن ومراكز منطقة عسير (47 موقع)
+const asirLocations = [
+  "أبها",
+  "خميس مشيط",
+  "بيشة",
+  "محايل عسير",
+  "النماص",
+  "تثليث",
+  "ظهران الجنوب",
+  "سراة عبيدة",
+  "رجال ألمع",
+  "بلقرن",
+  "أحد رفيدة",
+  "تنومة",
+  "بارق",
+  "المجاردة",
+  "طريب",
+  "البرك",
+  "الحرجة",
+  "الأمواه",
+  "السودة",
+  "بللحمر",
+  "بللسمر",
+  "طبب",
+  "مربة",
+  "القحمة",
+  "وادي بن هشبل",
+  "تمنية",
+  "ثلوث المنظر",
+  "بحر أبو سكينة",
+  "خاط",
+  "ثربان",
+  "البشائر",
+  "خثعم",
+  "باشوت",
+  "الجوة",
+  "الفرشة",
+  "وادي الحيا",
+  "المضة",
+  "الصبيخة",
+  "العرين",
+  "الخنقة",
+  "ذهبان",
+  "العمائر",
+  "علب",
+  "منصبة",
+  "الحمضة",
+  "جاش",
+  "الزرق",
+];
+
 // ترجمة صفة طالب الخدمة
 const getRequesterTypeLabel = (type: string | null | undefined) => {
   const types: Record<string, string> = {
@@ -88,15 +139,22 @@ export default function RequesterMosqueForm() {
   };
 
   const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string; district?: string }) => {
+    const detectedCity = location.city || "";
+    const cityExists = asirLocations.includes(detectedCity);
+
     setFormData((prev) => ({
       ...prev,
       latitude: location.lat.toString(),
       longitude: location.lng.toString(),
       address: location.address || prev.address,
       governorate: location.region || prev.governorate,
-      city: location.city || prev.city,
+      city: cityExists ? detectedCity : prev.city,
       district: location.district || prev.district,
     }));
+
+    if (detectedCity && !cityExists) {
+      toast.warning(`الموقع المحدد يتبع لـ "${detectedCity}"، وهي ليست ضمن القائمة المتاحة. يرجى اختيار المدينة يدوياً.`);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -119,7 +177,7 @@ export default function RequesterMosqueForm() {
       governorate: formData.governorate || undefined,
       center: formData.center || undefined,
       district: formData.district || undefined,
-      area: formData.area ? parseInt(formData.area) : undefined,
+      area: formData.area ? parseFloat(formData.area) : undefined,
       address: formData.address || undefined,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
@@ -399,7 +457,18 @@ export default function RequesterMosqueForm() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="city">المدينة أو المركز *</Label>
-                    <Input id="city" value={formData.city} disabled className="bg-muted" placeholder="سيتم تحديده من الخريطة" />
+                    <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
+                      <SelectTrigger id="city">
+                        <SelectValue placeholder="اختر المدينة أو المركز" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {asirLocations.map((location) => (
+                          <SelectItem key={location} value={location}>
+                            {location}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="governorate">المنطقة</Label>
