@@ -49,7 +49,10 @@ export default function RequesterApprovals() {
     action: "active" | "suspended";
   } | null>(null);
 
-  const { data: allUsers, isLoading, refetch } = trpc.users.getAll.useQuery();
+  const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
+    role: "service_requester",
+    limit: 100, // جلب كمية كافية للمراجعة
+  });
   const toggleStatus = trpc.users.toggleStatus.useMutation({
     onSuccess: () => {
       toast.success(
@@ -65,10 +68,10 @@ export default function RequesterApprovals() {
     },
   });
 
-  // فلترة طالبي الخدمة فقط
-  const requesters = (allUsers ?? []).filter(u => u.role === "service_requester");
+  // فلترة طالبي الخدمة فقط من النتائج
+  const requesters = usersResponse?.items || [];
 
-  // تطبيق الفلاتر
+  // تطبيق الفلاتر المحلية (للبحث والحالة)
   const filtered = requesters.filter(u => {
     const matchSearch =
       !search ||

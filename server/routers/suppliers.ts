@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import {
@@ -371,14 +371,19 @@ export const suppliersRouter = router({
   // ==================== اعتماد الموردين ====================
 
   // اعتماد مورد
-  approve: permissionProcedure("suppliers.edit")
+  approve: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية المستخدم (يجب أن يكون admin)
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
+      // التحقق من صلاحية المستخدم
+      // يُسمح للمدير العام، مدير النظام، الإدارة المالية، أو أي دور مخصص لديه صلاحية suppliers.view أو suppliers.edit
+      const isAuthorizedRole = ["super_admin", "system_admin", "financial", "financial_manager"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "suppliers.edit") || 
+                            await checkPermission(ctx.user.id, "suppliers.view");
+
+      if (!isAuthorizedRole && !hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد الموردين" });
       }
 
@@ -409,7 +414,7 @@ export const suppliersRouter = router({
     }),
 
   // رفض مورد
-  reject: permissionProcedure("suppliers.edit")
+  reject: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -421,7 +426,11 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية المستخدم
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
+      const isAuthorizedRole = ["super_admin", "system_admin", "financial", "financial_manager"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "suppliers.edit") || 
+                            await checkPermission(ctx.user.id, "suppliers.view");
+
+      if (!isAuthorizedRole && !hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض الموردين" });
       }
 
@@ -446,7 +455,7 @@ export const suppliersRouter = router({
     }),
 
   // إيقاف مورد
-  suspend: permissionProcedure("suppliers.edit")
+  suspend: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -457,7 +466,12 @@ export const suppliersRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.role !== "super_admin" && ctx.user.role !== "system_admin" && ctx.user.role !== "financial_manager") {
+      // التحقق من صلاحية المستخدم
+      const isAuthorizedRole = ["super_admin", "system_admin", "financial", "financial_manager"].includes(ctx.user.role);
+      const hasPermission = await checkPermission(ctx.user.id, "suppliers.edit") || 
+                            await checkPermission(ctx.user.id, "suppliers.view");
+
+      if (!isAuthorizedRole && !hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإيقاف الموردين" });
       }
 

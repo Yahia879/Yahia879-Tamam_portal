@@ -24,35 +24,39 @@ const STAFF_ROLES = [
 ] as const;
 
 export const usersRouter = router({
-  // Get paginated users (staff only)
+  // Get paginated users (staff only by default)
   getAll: permissionProcedure("users.view")
     .input(z.object({
       page: z.number().default(1),
       limit: z.number().default(20),
       search: z.string().optional(),
-    }))
+      role: z.string().optional(),
+      includeAll: z.boolean().default(false),
+    }).optional().default({}))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
-      const { page, limit, search } = input;
+      const { page, limit, search, role, includeAll } = input;
       const offset = (page - 1) * limit;
 
-      // تصفية المستخدمين لاستبعاد أدوار طالب الخدمة والمستخدمين المحذوفين
-      const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
+      // تصفية المستخدمين
+      let whereClause: any = undefined;
       
-      let whereClause = and(
-        notInArray(users.role, excludedRoles)
-      );
+      if (role) {
+        whereClause = eq(users.role, role as any);
+      } else if (!includeAll) {
+        // الافتراضي هو استبعاد أدوار طالبي الخدمة من القائمة العامة للموظفين
+        const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
+        whereClause = notInArray(users.role, excludedRoles);
+      }
       
       if (search) {
-        whereClause = and(
-          whereClause,
-          or(
-            like(users.name, `%${search}%`),
-            like(users.email, `%${search}%`)
-          )
-        ) as any;
+        const searchClause = or(
+          like(users.name, `%${search}%`),
+          like(users.email, `%${search}%`)
+        );
+        whereClause = whereClause ? and(whereClause, searchClause) : searchClause;
       }
 
       // جلب العدد الإجمالي
@@ -61,16 +65,23 @@ export const usersRouter = router({
         .from(users)
         .where(whereClause);
       
-      // جلب عدد الحسابات النشطة والموقوفة للإحصائيات
-      const [activeResult] = await db
-        .select({ value: count() })
-        .from(users)
-        .where(and(whereClause, eq(users.status, "active")));
+      // جلب عدد الحسابات النشطة والموقوفة للإحصائيات (فقط إذا لم نكن نبحث عن دور معين)
+      let activeCount = 0;
+      let suspendedCount = 0;
+      
+      if (!role) {
+        const [activeResult] = await db
+          .select({ value: count() })
+          .from(users)
+          .where(and(whereClause, eq(users.status, "active")));
+        activeCount = activeResult.value;
 
-      const [suspendedResult] = await db
-        .select({ value: count() })
-        .from(users)
-        .where(and(whereClause, eq(users.status, "suspended")));
+        const [suspendedResult] = await db
+          .select({ value: count() })
+          .from(users)
+          .where(and(whereClause, eq(users.status, "suspended")));
+        suspendedCount = suspendedResult.value;
+      }
       
       const totalCount = countResult.value;
 
@@ -124,8 +135,8 @@ export const usersRouter = router({
       return {
         items: enrichedItems,
         totalCount,
-        activeCount: activeResult.value,
-        suspendedCount: suspendedResult.value,
+        activeCount,
+        suspendedCount,
         totalPages: Math.ceil(totalCount / limit),
       };
     }),

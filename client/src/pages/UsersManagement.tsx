@@ -91,10 +91,12 @@ export default function UsersManagement() {
     roleIds: [] as string[],
   });
 
-  const { data: users, isLoading, refetch } = trpc.users.getAll.useQuery();
+  const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({});
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
   const { data: jobPositions } = trpc.jobPositions.getActive.useQuery();
   const { user: currentUser } = useAuth();
+  
+  const users = usersResponse?.items || [];
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: () => {

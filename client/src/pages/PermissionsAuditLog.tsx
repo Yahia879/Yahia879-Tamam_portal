@@ -40,10 +40,10 @@ export default function PermissionsAuditLog() {
     limit: 100,
   });
 
-  const { data: users } = trpc.users.getAll.useQuery();
+  const { data: usersResponse } = trpc.users.getAll.useQuery({});
 
   const logs = auditLogs || [];
-  const usersList = users || [];
+  const usersList = usersResponse?.items || [];
 
   // فلترة محلية للسجلات
   const filteredLogs = logs.filter((log: any) => {

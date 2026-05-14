@@ -53,12 +53,6 @@ export default function StaffManagement() {
         {/* رأس الصفحة مع زر الإضافة الديناميكي */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-             <Link href="/settings">
-              <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
-                <ArrowRight className="h-4 w-4" />
-                رجوع
-              </Button>
-            </Link>
             <div className="p-2 bg-primary/10 rounded-lg">
               <Users className="h-6 w-6 text-primary" />
             </div>
