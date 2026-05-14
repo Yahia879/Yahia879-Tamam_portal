@@ -87,7 +87,7 @@ export function LeafletMap({
       className={cn("w-full h-[500px]", className)}
       style={{ zIndex: 0 }}
     >
-      <LayersControl position="topright">
+      <LayersControl position="topleft">
         <LayersControl.BaseLayer checked name="خريطة الشوارع">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
