@@ -1,8 +1,9 @@
-import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayerGroup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { cn } from "@/lib/utils";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Map as MapIcon, Globe } from 'lucide-react';
 
 // Fix for default marker icons in React
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -26,7 +27,7 @@ interface LeafletMapProps {
     position: { lat: number; lng: number };
     title: string;
     content?: React.ReactNode;
-    status?: string; // أضفنا الحالة هنا
+    status?: string;
   }>;
   fitBounds?: boolean;
 }
@@ -80,46 +81,72 @@ export function LeafletMap({
   markers = [],
   fitBounds = true,
 }: LeafletMapProps) {
+  const [mapType, setMapType] = useState<'street' | 'satellite'>('street');
+
   return (
-    <MapContainer
-      center={[initialCenter.lat, initialCenter.lng]}
-      zoom={initialZoom}
-      className={cn("w-full h-[500px]", className)}
-      style={{ zIndex: 0 }}
-    >
-      <LayersControl position="topleft">
-        <LayersControl.BaseLayer checked name="خريطة الشوارع">
+    <div className={cn("relative w-full h-[500px]", className)}>
+      <MapContainer
+        center={[initialCenter.lat, initialCenter.lng]}
+        zoom={initialZoom}
+        className="w-full h-full"
+        style={{ zIndex: 0 }}
+      >
+        {mapType === 'street' ? (
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="صور الأقمار الصناعية">
-          <TileLayer
-            attribution='&copy; <a href="https://www.esri.com/">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-          />
-        </LayersControl.BaseLayer>
-      </LayersControl>
+        ) : (
+          <LayerGroup>
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              zIndex={1000}
+            />
+          </LayerGroup>
+        )}
 
-      <ChangeView center={[initialCenter.lat, initialCenter.lng]} zoom={initialZoom} />
-      {fitBounds && <FitBounds markers={markers} />}
-      
-      {markers.map((marker) => (
-        <Marker 
-          key={marker.id} 
-          position={[marker.position.lat, marker.position.lng]}
-          icon={createStatusIcon(marker.status)}
-        >
-          {marker.content && (
-            <Popup>
-              <div className="rtl font-tajawal text-right">
-                {marker.content}
-              </div>
-            </Popup>
+        <ChangeView center={[initialCenter.lat, initialCenter.lng]} zoom={initialZoom} />
+        {fitBounds && <FitBounds markers={markers} />}
+        
+        {markers.map((marker) => (
+          <Marker 
+            key={marker.id} 
+            position={[marker.position.lat, marker.position.lng]}
+            icon={createStatusIcon(marker.status)}
+          >
+            {marker.content && (
+              <Popup>
+                <div className="rtl font-tajawal text-right">
+                  {marker.content}
+                </div>
+              </Popup>
+            )}
+          </Marker>
+        ))}
+      </MapContainer>
+
+      {/* زر تبديل نوع الخريطة المباشر - متموضع أسفل أدوات التكبير */}
+      <div className="absolute top-[82px] left-[10px] z-[1000]">
+        <button
+          onClick={() => setMapType(mapType === 'street' ? 'satellite' : 'street')}
+          className={cn(
+            "h-[34px] w-[34px] bg-white rounded-[2px] shadow-sm border border-gray-300 transition-all hover:bg-gray-50 flex items-center justify-center",
+            mapType === 'satellite' ? "text-primary border-primary bg-primary/5" : "text-gray-600"
           )}
-        </Marker>
-      ))}
-    </MapContainer>
+          title={mapType === 'street' ? "التبديل إلى صور الأقمار الصناعية" : "التبديل إلى خريطة الشوارع"}
+        >
+          {mapType === 'street' ? (
+            <Globe className="h-[18px] w-[18px]" />
+          ) : (
+            <MapIcon className="h-[18px] w-[18px]" />
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
