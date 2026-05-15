@@ -831,34 +831,34 @@ export default function Quotations() {
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogContent className="!max-w-[98vw] !w-[98vw] max-h-[95vh] overflow-y-auto">
-            <DialogHeader className="pb-4 border-b">
-              <DialogTitle className="text-2xl flex items-center gap-3">
+          <DialogContent className="!max-w-[98vw] !w-[98vw] max-h-[95vh] overflow-y-auto" dir="rtl">
+            <DialogHeader className="pb-4 border-b text-right">
+              <DialogTitle className="text-2xl flex items-center gap-3 justify-start">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Receipt className="h-7 w-7 text-primary" />
                 </div>
                 إضافة عرض سعر جديد
               </DialogTitle>
-              <DialogDescription className="text-base">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
+              <DialogDescription className="text-base text-right">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 py-4">
+            <div className="space-y-6 py-4 text-right">
               {/* معلومات المورد - في الأعلى */}
               <div className="p-5 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20">
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-4 justify-start">
                   <Building2 className="h-6 w-6 text-primary" />
                   <h3 className="text-lg font-bold text-primary">بيانات المورد</h3>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <Label className="text-base font-semibold mb-2 block">اسم المورد *</Label>
+                  <div className="text-right">
+                    <Label className="text-base font-semibold mb-2 block text-right">اسم المورد *</Label>
                     <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                      <SelectTrigger className="h-12 text-base bg-white">
+                      <SelectTrigger className="h-12 text-base bg-white text-right" dir="rtl">
                         <SelectValue placeholder="اختر المورد..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {suppliers?.map((supplier: any) => (
-                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                            <div className="flex items-center gap-2">
+                          <SelectItem key={supplier.id} value={supplier.id.toString()} className="text-right">
+                            <div className="flex items-center gap-2 justify-start">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               <span className="font-medium">{supplier.name}</span>
                               {supplier.approvalStatus !== "approved" && (
@@ -869,19 +869,19 @@ export default function Quotations() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <div className="flex items-center gap-2 mt-3">
+                    <div className="flex items-center gap-2 mt-3 justify-start">
                       <Checkbox
                         id="includeUnapproved"
                         checked={includeUnapproved}
                         onCheckedChange={(checked) => setIncludeUnapproved(checked as boolean)}
                       />
-                      <label htmlFor="includeUnapproved" className="text-sm text-muted-foreground">
+                      <label htmlFor="includeUnapproved" className="text-sm text-muted-foreground cursor-pointer">
                         إظهار الموردين غير المعتمدين
                       </label>
                     </div>
                   </div>
-                  <div>
-                    <Label className="text-base font-semibold mb-2 flex items-center gap-2">
+                  <div className="text-right">
+                    <Label className="text-base font-semibold mb-2 flex items-center gap-2 justify-start">
                       <Calendar className="h-5 w-5 text-orange-500" />
                       تاريخ انتهاء صلاحية العرض
                     </Label>
@@ -889,11 +889,12 @@ export default function Quotations() {
                       type="date"
                       value={formData.validUntil}
                       onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                      className="h-12 text-base bg-white border-orange-200 focus:border-orange-400"
+                      className="h-12 text-base bg-white border-orange-200 focus:border-orange-400 text-right"
+                      dir="rtl"
                     />
                     {formData.validUntil && (
                       <div className="mt-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
-                        <p className="text-sm text-orange-700 font-medium flex items-center gap-2">
+                        <p className="text-sm text-orange-700 font-medium flex items-center gap-2 justify-start">
                           <Calendar className="h-4 w-4" />
                           ينتهي في: {new Date(formData.validUntil).toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
@@ -906,9 +907,9 @@ export default function Quotations() {
               {/* جدول تسعير البنود */}
               {quotationItems.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Label className="text-lg font-semibold flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                    <div className="flex items-center gap-3 flex-row-reverse">
+                      <Label className="text-lg font-semibold flex items-center gap-2 flex-row-reverse">
                         <ClipboardList className="h-5 w-5 text-primary" />
                         تسعير البنود ({quotationItems.length} بند)
                       </Label>
@@ -916,7 +917,7 @@ export default function Quotations() {
                         المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-row-reverse">
                       {/* زر تحميل قالب Excel */}
                       <Button
                         variant="outline"
