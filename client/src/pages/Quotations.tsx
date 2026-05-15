@@ -565,11 +565,11 @@ export default function Quotations() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>رقم الطلب</TableHead>
-                    <TableHead>المسجد</TableHead>
-                    <TableHead>البرنامج</TableHead>
-                    <TableHead>تاريخ التقديم</TableHead>
-                    <TableHead>الإجراءات</TableHead>
+                    <TableHead className="text-right">رقم الطلب</TableHead>
+                    <TableHead className="text-right">المسجد</TableHead>
+                    <TableHead className="text-right">البرنامج</TableHead>
+                    <TableHead className="text-right">تاريخ التقديم</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -579,9 +579,9 @@ export default function Quotations() {
                       className={selectedRequestId === request.id.toString() ? "bg-primary/10" : "cursor-pointer hover:bg-muted/50"}
                       onClick={() => setSelectedRequestId(request.id.toString())}
                     >
-                      <TableCell className="font-mono text-sm">{request.requestNumber}</TableCell>
-                      <TableCell className="font-medium">{request.mosqueName || "غير محدد"}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-mono text-sm text-right">{request.requestNumber}</TableCell>
+                      <TableCell className="font-medium text-right">{request.mosqueName || "غير محدد"}</TableCell>
+                      <TableCell className="text-right">
                         <Badge variant="outline">
                           {request.programType === 'construction' ? 'بناء' :
                            request.programType === 'renovation' ? 'ترميم' :
@@ -589,9 +589,9 @@ export default function Quotations() {
                            request.programType === 'maintenance' ? 'صيانة' : request.programType}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+                      <TableCell className="text-right">{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
                           <Button
                             variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
                             size="sm"
@@ -659,7 +659,7 @@ export default function Quotations() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-12">#</TableHead>
+                        <TableHead className="w-12 text-center">#</TableHead>
                         <TableHead>البند</TableHead>
                         <TableHead>الوصف</TableHead>
                         <TableHead>الوحدة</TableHead>
@@ -671,7 +671,7 @@ export default function Quotations() {
                     <TableBody>
                       {boqData.items.map((item: any, index: number) => (
                         <TableRow key={item.id}>
-                          <TableCell>{index + 1}</TableCell>
+                          <TableCell className="text-center">{index + 1}</TableCell>
                           <TableCell className="font-medium">{item.itemName}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {item.itemDescription || "-"}
@@ -738,7 +738,7 @@ export default function Quotations() {
                       <TableHead>بعد التفاوض</TableHead>
                       <TableHead>صالح حتى</TableHead>
                       <TableHead>الحالة</TableHead>
-                      <TableHead>الإجراءات</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -775,7 +775,7 @@ export default function Quotations() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 justify-end">
                               {/* حالة قيد المراجعة أو التفاوض */}
                               {(quotation.status === "pending" || quotation.status === "negotiating") && (
                                 <>
