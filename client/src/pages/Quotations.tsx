@@ -735,80 +735,100 @@ export default function Quotations() {
                       <TableHead>المورد</TableHead>
                       <TableHead>المبلغ الأصلي</TableHead>
                       <TableHead>المبلغ النهائي</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead className="text-left">الإجراءات</TableHead>
+                      <TableHead>تاريخ الصلاحية</TableHead>
+                      <TableHead className="text-right">الحالة</TableHead>
+                      <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {quotationsData.quotations.map((quotation: any) => {
-                      const statusConfig = QUOTATION_STATUS[quotation.status as keyof typeof QUOTATION_STATUS] || QUOTATION_STATUS.pending;
-                      return (
-                        <TableRow key={quotation.id}>
-                          <TableCell className="font-medium">{quotation.quotationNumber}</TableCell>
-                          <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
-                          <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
-                          <TableCell className="font-medium text-primary">
-                            {parseFloat(quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={statusConfig.color}>
-                              {statusConfig.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2 justify-end">
-                              {/* حالة قيد المراجعة أو التفاوض */}
-                              {(quotation.status === "pending" || quotation.status === "negotiating") && (
-                                <>
+                    {(() => {
+                      const hasAcceptedQuotation = quotationsData.quotations.some((q: any) => q.status === "accepted");
+                      
+                      return quotationsData.quotations.map((quotation: any) => {
+                        const statusConfig = QUOTATION_STATUS[quotation.status as keyof typeof QUOTATION_STATUS] || QUOTATION_STATUS.pending;
+                        return (
+                          <TableRow key={quotation.id}>
+                            <TableCell className="font-medium">{quotation.quotationNumber}</TableCell>
+                            <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
+                            <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
+                            <TableCell className="font-medium text-primary">
+                              {parseFloat(quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
+                            </TableCell>
+                            <TableCell>
+                              {quotation.validUntil ? (
+                                <div className="flex flex-col">
+                                  <span>{new Date(quotation.validUntil).toLocaleDateString("ar-SA")}</span>
+                                  {new Date(quotation.validUntil) < new Date() && (
+                                    <span className="text-xs text-red-500 font-medium">منتهي</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Badge className={statusConfig.color}>
+                                {statusConfig.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2 justify-start">
+                                {/* حالة قيد المراجعة أو التفاوض */}
+                                {(quotation.status === "pending" || quotation.status === "negotiating") && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-green-600"
+                                      onClick={() => openApproveDialog(quotation)}
+                                      disabled={hasAcceptedQuotation}
+                                    >
+                                      <CheckCircle2 className="h-4 w-4 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-600"
+                                      onClick={() => handleRejectQuotation(quotation.id)}
+                                      disabled={hasAcceptedQuotation}
+                                    >
+                                      <XCircle className="h-4 w-4 ml-1" />
+                                      رفض
+                                    </Button>
+                                  </>
+                                )}
+                                {/* حالة معتمد */}
+                                {quotation.status === "accepted" && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-green-600"
-                                    onClick={() => openApproveDialog(quotation)}
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 ml-1" />
-                                    اعتماد
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600"
-                                    onClick={() => handleRejectQuotation(quotation.id)}
+                                    className="text-orange-600"
+                                    onClick={() => handleCancelApproval(quotation.id)}
                                   >
                                     <XCircle className="h-4 w-4 ml-1" />
-                                    رفض
+                                    إلغاء الاعتماد
                                   </Button>
-                                </>
-                              )}
-                              {/* حالة معتمد */}
-                              {quotation.status === "accepted" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-orange-600"
-                                  onClick={() => handleCancelApproval(quotation.id)}
-                                >
-                                  <XCircle className="h-4 w-4 ml-1" />
-                                  إلغاء الاعتماد
-                                </Button>
-                              )}
-                              {/* حالة مرفوض */}
-                              {quotation.status === "rejected" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600"
-                                  onClick={() => handleReactivateQuotation(quotation.id)}
-                                >
-                                  <Clock className="h-4 w-4 ml-1" />
-                                  إعادة للمراجعة
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                                )}
+                                {/* حالة مرفوض */}
+                                {quotation.status === "rejected" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-600"
+                                    onClick={() => handleReactivateQuotation(quotation.id)}
+                                    disabled={hasAcceptedQuotation}
+                                  >
+                                    <Clock className="h-4 w-4 ml-1" />
+                                    إعادة للمراجعة
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })()}
                   </TableBody>
                 </Table>
               ) : (
@@ -832,14 +852,14 @@ export default function Quotations() {
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogContent className="!max-w-[98vw] !w-[98vw] max-h-[95vh] overflow-y-auto" dir="rtl">
-            <DialogHeader className="pb-4 border-b text-right">
+            <DialogHeader className="pb-4 border-b text-right sm:text-right">
               <DialogTitle className="text-2xl flex items-center gap-3 justify-start">
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <Receipt className="h-7 w-7 text-primary" />
                 </div>
                 إضافة عرض سعر جديد
               </DialogTitle>
-              <DialogDescription className="text-base text-right">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
+              <DialogDescription className="text-base text-right sm:text-right">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4 text-right">
               {/* معلومات المورد - في الأعلى */}
@@ -907,9 +927,9 @@ export default function Quotations() {
               {/* جدول تسعير البنود */}
               {quotationItems.length > 0 ? (
                 <div>
-                  <div className="flex items-center justify-between mb-4 flex-row-reverse">
-                    <div className="flex items-center gap-3 flex-row-reverse">
-                      <Label className="text-lg font-semibold flex items-center gap-2 flex-row-reverse">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Label className="text-lg font-semibold flex items-center gap-2">
                         <ClipboardList className="h-5 w-5 text-primary" />
                         تسعير البنود ({quotationItems.length} بند)
                       </Label>
@@ -917,96 +937,7 @@ export default function Quotations() {
                         المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2 flex-row-reverse">
-                      {/* زر تحميل قالب Excel */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // إنشاء قالب Excel للتحميل
-                          const headers = ["رقم البند", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"];
-                          const rows = quotationItems.map((item, idx) => [
-                            idx + 1,
-                            item.itemName,
-                            item.unit,
-                            item.quantity,
-                            ""
-                          ]);
-                          const csvContent = [headers, ...rows]
-                            .map(row => row.join("\t"))
-                            .join("\n");
-                          const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-                          const url = URL.createObjectURL(blob);
-                          const link = document.createElement("a");
-                          link.href = url;
-                          link.download = "قالب_تسعير_البنود.csv";
-                          link.click();
-                          URL.revokeObjectURL(url);
-                          toast.success("تم تحميل القالب - أدخل الأسعار في عمود 'سعر الوحدة' ثم ارفع الملف");
-                        }}
-                        className="gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        تحميل قالب
-                      </Button>
-                      {/* زر استيراد من Excel */}
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept=".csv,.xlsx,.xls"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              try {
-                                const text = event.target?.result as string;
-                                const lines = text.split("\n").filter(line => line.trim());
-                                if (lines.length < 2) {
-                                  toast.error("الملف فارغ أو لا يحتوي على بيانات");
-                                  return;
-                                }
-                                
-                                // تخطي السطر الأول (العناوين)
-                                const dataLines = lines.slice(1);
-                                let updatedCount = 0;
-                                
-                                setQuotationItems(prev => {
-                                  const updated = [...prev];
-                                  dataLines.forEach((line, idx) => {
-                                    const cols = line.split(/[\t,]/);
-                                    const priceCol = cols[4]?.trim(); // عمود سعر الوحدة
-                                    if (priceCol && idx < updated.length) {
-                                      const price = parseFloat(priceCol.replace(/[^\d.]/g, ""));
-                                      if (!isNaN(price) && price > 0) {
-                                        updated[idx] = {
-                                          ...updated[idx],
-                                          unitPrice: price.toString(),
-                                          totalPrice: price * updated[idx].quantity
-                                        };
-                                        updatedCount++;
-                                      }
-                                    }
-                                  });
-                                  return updated;
-                                });
-                                
-                                toast.success(`تم استيراد ${updatedCount} سعر بنجاح`);
-                              } catch (err) {
-                                toast.error("حدث خطأ أثناء قراءة الملف");
-                              }
-                            };
-                            reader.readAsText(file);
-                            e.target.value = ""; // إعادة تعيين الحقل
-                          }}
-                        />
-                        <Button variant="default" size="sm" className="gap-2">
-                          <Upload className="h-4 w-4" />
-                          استيراد من Excel
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-2">
                     </div>
                   </div>
                   <div className="border rounded-lg overflow-hidden shadow-sm">
@@ -1238,12 +1169,12 @@ export default function Quotations() {
         {/* Dialog التفاوض */}
         <Dialog open={showNegotiationDialog} onOpenChange={setShowNegotiationDialog}>
           <DialogContent className="max-w-md" dir="rtl">
-            <DialogHeader className="text-right">
+            <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="flex items-center gap-2 justify-start text-right w-full">
                 <Handshake className="h-5 w-5 text-blue-600" />
                 <span>التفاوض على عرض السعر</span>
               </DialogTitle>
-              <DialogDescription className="text-right">
+              <DialogDescription className="text-right sm:text-right">
                 أدخل المبلغ المتفق عليه بعد التفاوض مع المورد
               </DialogDescription>
             </DialogHeader>
@@ -1320,9 +1251,9 @@ export default function Quotations() {
         {/* Dialog اعتماد عرض السعر المتقدمة */}
         <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
           <DialogContent className="max-w-md" dir="rtl">
-            <DialogHeader className="text-right">
+            <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="text-right">اعتماد عرض السعر</DialogTitle>
-              <DialogDescription className="text-right">
+              <DialogDescription className="text-right sm:text-right">
                 يمكنك تعديل المبلغ المعتمد بعد التفاوض مع المورد
               </DialogDescription>
             </DialogHeader>
