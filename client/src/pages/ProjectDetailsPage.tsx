@@ -213,21 +213,21 @@ export default function ProjectDetailsPage() {
     );
   }
 
-  if (!project) {
-    return (
-      <DashboardLayout>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-12 text-center">
-            <FolderOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">المشروع غير موجود</h3>
-            <Link href="/project-management">
-              <Button variant="outline">العودة للمشاريع</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </DashboardLayout>
-    );
-  }
+  // تحديد تسمية الحالة بناءً على المرحلة النشطة
+  const getStatusLabel = () => {
+    if (project.status === "completed") return "مكتمل";
+    if (project.status === "cancelled") return "ملغي";
+    if (project.status === "on_hold") return "متوقف";
+    
+    // البحث عن أول مرحلة غير مكتملة
+    const activePhase = project.phases?.find(p => p.status !== "completed");
+    if (activePhase) {
+      // إزالة مقدمة "المرحلة X : " للحصول على المسمى فقط إذا رغبت، أو استخدامه كما هو
+      return activePhase.phaseName.replace(/^المرحلة .* : /, "");
+    }
+    
+    return statusLabels[project.status || "planning"];
+  };
 
   return (
     <DashboardLayout>
@@ -251,7 +251,7 @@ export default function ProjectDetailsPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold text-foreground">{project.projectNumber}</h1>
               <Badge variant="outline" className={statusColors[project.status || "planning"]}>
-                {statusLabels[project.status || "planning"]}
+                {getStatusLabel()}
               </Badge>
             </div>
             <p className="text-muted-foreground">{project.name}</p>
@@ -648,7 +648,7 @@ export default function ProjectDetailsPage() {
                         ))}
                       </TableBody>
                     </Table>
-                    <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center justify-between flex-row-reverse">
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center justify-between">
                       <span className="font-medium">الإجمالي الكلي</span>
                       <span className="text-xl font-bold text-primary">{formatCurrency(boqData.total.toString())}</span>
                     </div>

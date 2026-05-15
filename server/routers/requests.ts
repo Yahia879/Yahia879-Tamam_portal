@@ -617,6 +617,26 @@ export const requestsRouter = router({
         currentResponsibleDepartment: currentResponsibleDepartment,
       }).where(eq(mosqueRequests.id, input.requestId));
 
+      // تحديث تقدم المشروع المرتبط عند الانتقال للتقييم المالي
+      if (input.newStage === 'financial_eval_and_approval') {
+        const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+        if (project) {
+          // تحديث نسبة إنجاز المشروع إلى 33% (2/6)
+          await db.update(projects)
+            .set({ completionPercentage: 33 })
+            .where(eq(projects.id, project.id));
+
+          // تحديث المراحل: إكمال المرحلة الثانية وبدء المرحلة الثالثة
+          await db.update(projectPhases)
+            .set({ status: 'completed', completionPercentage: 100 })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 2)));
+          
+          await db.update(projectPhases)
+            .set({ status: 'in_progress' })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 3)));
+        }
+      }
+
       // إضافة سجل في تاريخ الطلب
       const newStageName = STAGE_LABELS[input.newStage] || input.newStage;
       await db.insert(requestHistory).values({
