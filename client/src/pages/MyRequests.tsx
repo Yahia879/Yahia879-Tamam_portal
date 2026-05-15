@@ -154,73 +154,73 @@ export default function MyRequests() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         {/* العنوان والتنقل */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6">
           <Link href="/requester">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="flex-shrink-0">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">طلباتي</h1>
-            <p className="text-muted-foreground">متابعة جميع الطلبات المقدمة</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلباتي</h1>
+            <p className="text-sm sm:text-base text-muted-foreground truncate">متابعة جميع الطلبات المقدمة</p>
           </div>
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter("all")}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">إجمالي الطلبات</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">إجمالي الطلبات</p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-primary" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter("pending")}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">قيد المراجعة</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">قيد المراجعة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.pending}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-yellow-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter("in_progress")}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">قيد التنفيذ</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{stats.inProgress}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-blue-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setStatusFilter("completed")}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">مكتملة</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">مكتملة</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.completed}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -230,41 +230,43 @@ export default function MyRequests() {
         {/* أدوات البحث والتصفية */}
         <Card className="border-0 shadow-sm mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث برقم الطلب أو اسم المسجد..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-10"
                 />
               </div>
               
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="حالة الطلب" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">قيد المراجعة</SelectItem>
-                  <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                  <SelectItem value="completed">مكتمل</SelectItem>
-                  <SelectItem value="rejected">مرفوض</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-row gap-3">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="flex-1 md:w-[160px] h-10">
+                    <SelectValue placeholder="حالة الطلب" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">قيد المراجعة</SelectItem>
+                    <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                    <SelectItem value="completed">مكتمل</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              <Select value={programFilter} onValueChange={setProgramFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="البرنامج" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع البرامج</SelectItem>
-                  {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select value={programFilter} onValueChange={setProgramFilter}>
+                  <SelectTrigger className="flex-1 md:w-[160px] h-10">
+                    <SelectValue placeholder="البرنامج" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع البرامج</SelectItem>
+                    {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -281,50 +283,50 @@ export default function MyRequests() {
             ))}
           </div>
         ) : filteredRequests.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {filteredRequests.map((request) => {
               const currentStageIndex = getCurrentStageIndex(request.currentStage);
               
               return (
                 <Link key={request.id} href={`/requests/${request.id}`}>
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  <Card className="border-0 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
                         {/* معلومات الطلب */}
-                        <div className="flex items-start gap-4 flex-1">
-                          <ProgramIcon program={request.programType} size="xl" showBackground />
+                        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                          <ProgramIcon program={request.programType} size="lg" className="sm:size-xl flex-shrink-0" showBackground />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-foreground">{request.requestNumber}</h3>
-                              <Badge variant="outline" className={statusColors[request.status]}>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h3 className="font-bold text-foreground text-sm sm:text-base">{request.requestNumber}</h3>
+                              <Badge variant="outline" className={`${statusColors[request.status]} text-[10px] sm:text-xs py-0 h-5`}>
                                 {STATUS_LABELS[request.status]}
                               </Badge>
                             </div>
-                            <p className="text-muted-foreground mt-1">
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate mb-2">
                               {PROGRAM_LABELS[request.programType]} - {request.mosqueName || "مسجد غير محدد"}
                             </p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
+                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                 {new Date(request.createdAt).toLocaleDateString("ar-SA")}
                               </span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
+                                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                                 {STAGE_LABELS[request.currentStage]}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* شريط المراحل المصغر */}
-                        <div className="flex items-center gap-1 lg:w-auto w-full overflow-x-auto pb-2 lg:pb-0">
+                        {/* شريط المراحل المصغر - مخفي على الموبايل الصغير جداً، ومعروض بتمرير على الموبايل */}
+                        <div className="flex items-center gap-1 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 scrollbar-hide py-2 sm:py-0 border-t sm:border-t-0 mt-1 sm:mt-0">
                           {stageSteps.map((stage, index) => {
                             const isCompleted = index < currentStageIndex;
                             const isCurrent = index === currentStageIndex;
                             return (
-                              <div key={stage.key} className="flex items-center">
+                              <div key={stage.key} className="flex items-center flex-shrink-0">
                                 <div 
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 ${
+                                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs shrink-0 transition-colors ${
                                     isCompleted ? "bg-green-500 text-white" :
                                     isCurrent ? "bg-primary text-white" :
                                     "bg-muted text-muted-foreground"
@@ -334,7 +336,7 @@ export default function MyRequests() {
                                   {isCompleted ? "✓" : index + 1}
                                 </div>
                                 {index < stageSteps.length - 1 && (
-                                  <div className={`w-4 h-0.5 ${
+                                  <div className={`w-3 sm:w-4 h-0.5 ${
                                     isCompleted ? "bg-green-500" : "bg-muted"
                                   }`} />
                                 )}
@@ -344,9 +346,11 @@ export default function MyRequests() {
                         </div>
 
                         {/* زر العرض */}
-                        <Button variant="ghost" size="icon" className="shrink-0">
-                          <ChevronLeft className="w-5 h-5" />
-                        </Button>
+                        <div className="hidden lg:block">
+                          <Button variant="ghost" size="icon" className="shrink-0">
+                            <ChevronLeft className="w-5 h-5" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
