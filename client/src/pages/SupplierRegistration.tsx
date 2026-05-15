@@ -257,44 +257,45 @@ export default function SupplierRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8" dir="rtl">
+      <div className="container max-w-4xl mx-auto px-2 sm:px-4">
         {/* العنوان */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">تسجيل مورد جديد</h1>
-          <p className="text-gray-600 mt-2">قم بتعبئة البيانات المطلوبة للتسجيل كمورد معتمد</p>
+        <div className="text-center mb-6 sm:mb-8 px-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">تسجيل مورد جديد</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">قم بتعبئة البيانات المطلوبة للتسجيل كمورد معتمد</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* قسم معلومات الكيان */}
-          <Card>
-            <CardHeader className="bg-gradient-to-l from-teal-500 to-teal-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-0 sm:border shadow-md">
+            <CardHeader className="bg-gradient-to-l from-teal-500 to-teal-600 text-white rounded-t-lg p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Building2 className="h-5 w-5" />
                 معلومات الكيان
               </CardTitle>
-              <CardDescription className="text-teal-100">
+              <CardDescription className="text-teal-100 text-xs sm:text-sm">
                 البيانات الأساسية للتعريف بالمنشأة المتقدمة
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="entityName">اسم الكيان *</Label>
+                  <Label htmlFor="entityName" className="text-sm sm:text-base">اسم الكيان *</Label>
                   <Input
                     id="entityName"
                     value={entityName}
                     onChange={(e) => setEntityName(e.target.value)}
                     placeholder="اسم الشركة أو المؤسسة"
+                    className="h-10 sm:h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="entityType">نوع الكيان *</Label>
+                  <Label htmlFor="entityType" className="text-sm sm:text-base">نوع الكيان *</Label>
                   <Select
                     value={entityType}
                     onValueChange={(value: "company" | "establishment") => setEntityType(value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10 sm:h-11">
                       <SelectValue placeholder="اختر نوع الكيان" />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,42 +306,45 @@ export default function SupplierRegistration() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="commercialRegister">رقم السجل التجاري *</Label>
+                  <Label htmlFor="commercialRegister" className="text-sm sm:text-base">رقم السجل التجاري *</Label>
                   <Input
                     id="commercialRegister"
                     value={commercialRegister}
                     onChange={(e) => setCommercialRegister(e.target.value)}
                     placeholder="أدخل رقم السجل التجاري"
+                    className="h-10 sm:h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="yearsOfExperience">عدد سنوات الخبرة في النشاط *</Label>
+                  <Label htmlFor="yearsOfExperience" className="text-sm sm:text-base">عدد سنوات الخبرة في النشاط *</Label>
                   <Input
                     id="yearsOfExperience"
                     type="number"
                     min="0"
                     value={yearsOfExperience}
                     onChange={(e) => setYearsOfExperience(parseInt(e.target.value) || 0)}
+                    className="h-10 sm:h-11"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="commercialActivity">النشاط حسب السجل التجاري *</Label>
+                <Label htmlFor="commercialActivity" className="text-sm sm:text-base">النشاط حسب السجل التجاري *</Label>
                 <Textarea
                   id="commercialActivity"
                   value={commercialActivity}
                   onChange={(e) => setCommercialActivity(e.target.value)}
                   placeholder="أدخل النشاط كما هو مسجل في السجل التجاري"
                   rows={2}
+                  className="min-h-[80px]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>مجالات العمل التي ينفذها الكيان *</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-4 border rounded-lg bg-gray-50">
+                <Label className="text-sm sm:text-base">مجالات العمل التي ينفذها الكيان *</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 sm:p-4 border rounded-lg bg-gray-50">
                   {WORK_FIELDS.map((field) => (
                     <div key={field.key} className="flex items-center space-x-2 space-x-reverse">
                       <Checkbox
@@ -348,7 +352,7 @@ export default function SupplierRegistration() {
                         checked={workFields.includes(field.key)}
                         onCheckedChange={() => toggleWorkField(field.key)}
                       />
-                      <Label htmlFor={field.key} className="text-sm cursor-pointer">
+                      <Label htmlFor={field.key} className="text-xs sm:text-sm cursor-pointer leading-tight">
                         {field.label}
                       </Label>
                     </div>
@@ -359,93 +363,102 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* قسم معلومات التواصل */}
-          <Card>
-            <CardHeader className="bg-gradient-to-l from-blue-500 to-blue-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-0 sm:border shadow-md">
+            <CardHeader className="bg-gradient-to-l from-blue-500 to-blue-600 text-white rounded-t-lg p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Phone className="h-5 w-5" />
                 معلومات التواصل
               </CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardDescription className="text-blue-100 text-xs sm:text-sm">
                 بيانات الاتصال والموقع الجغرافي للكيان
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address">عنوان الكيان *</Label>
+                <Label htmlFor="address" className="text-sm sm:text-base">عنوان الكيان *</Label>
                 <Textarea
                   id="address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="أدخل العنوان التفصيلي"
                   rows={2}
+                  className="min-h-[80px]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="googleMapsUrl">موقع الكيان على خرائط Google *</Label>
+                <Label htmlFor="googleMapsUrl" className="text-sm sm:text-base">موقع الكيان على خرائط Google *</Label>
                 <div className="flex gap-2">
                   <Input
                     id="googleMapsUrl"
                     value={googleMapsUrl}
                     onChange={(e) => setGoogleMapsUrl(e.target.value)}
                     placeholder="https://maps.google.com/..."
-                    className="flex-1"
+                    className="flex-1 h-10 sm:h-11"
                   />
-                  <Button variant="outline" size="icon" type="button">
+                  <Button variant="outline" size="icon" type="button" className="shrink-0 h-10 w-10 sm:h-11 sm:w-11">
                     <MapPin className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني *</Label>
+                  <Label htmlFor="email" className="text-sm sm:text-base">البريد الإلكتروني *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@company.com"
+                    className="h-10 sm:h-11 text-left"
+                    dir="ltr"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">رقم التواصل *</Label>
+                  <Label htmlFor="phone" className="text-sm sm:text-base">رقم التواصل *</Label>
                   <Input
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="05XXXXXXXX"
+                    className="h-10 sm:h-11 text-left"
+                    dir="ltr"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phoneSecondary">رقم تواصل آخر</Label>
+                <Label htmlFor="phoneSecondary" className="text-sm sm:text-base">رقم تواصل آخر</Label>
                 <Input
                   id="phoneSecondary"
                   value={phoneSecondary}
                   onChange={(e) => setPhoneSecondary(e.target.value)}
                   placeholder="رقم هاتف إضافي (اختياري)"
+                  className="h-10 sm:h-11 text-left"
+                  dir="ltr"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contactPerson">اسم مسؤول التواصل *</Label>
+                  <Label htmlFor="contactPerson" className="text-sm sm:text-base">اسم مسؤول التواصل *</Label>
                   <Input
                     id="contactPerson"
                     value={contactPerson}
                     onChange={(e) => setContactPerson(e.target.value)}
                     placeholder="اسم الشخص المسؤول"
+                    className="h-10 sm:h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="contactPersonTitle">وظيفته في الكيان *</Label>
+                  <Label htmlFor="contactPersonTitle" className="text-sm sm:text-base">وظيفته في الكيان *</Label>
                   <Input
                     id="contactPersonTitle"
                     value={contactPersonTitle}
                     onChange={(e) => setContactPersonTitle(e.target.value)}
                     placeholder="المسمى الوظيفي"
+                    className="h-10 sm:h-11"
                   />
                 </div>
               </div>
@@ -453,31 +466,32 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* قسم معلومات الحساب البنكي */}
-          <Card>
-            <CardHeader className="bg-gradient-to-l from-purple-500 to-purple-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-0 sm:border shadow-md">
+            <CardHeader className="bg-gradient-to-l from-purple-500 to-purple-600 text-white rounded-t-lg p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <CreditCard className="h-5 w-5" />
                 معلومات الحساب البنكي
               </CardTitle>
-              <CardDescription className="text-purple-100">
+              <CardDescription className="text-purple-100 text-xs sm:text-sm">
                 البيانات المالية الخاصة بالتحويلات
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bankAccountName">اسم الحساب *</Label>
+                  <Label htmlFor="bankAccountName" className="text-sm sm:text-base">اسم الحساب *</Label>
                   <Input
                     id="bankAccountName"
                     value={bankAccountName}
                     onChange={(e) => setBankAccountName(e.target.value)}
                     placeholder="اسم صاحب الحساب"
+                    className="h-10 sm:h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bankName">اسم البنك *</Label>
+                  <Label htmlFor="bankName" className="text-sm sm:text-base">اسم البنك *</Label>
                   <Select value={bankName} onValueChange={setBankName}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-10 sm:h-11">
                       <SelectValue placeholder="اختر البنك" />
                     </SelectTrigger>
                     <SelectContent>
@@ -491,25 +505,27 @@ export default function SupplierRegistration() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="iban">رقم الآيبان (IBAN) *</Label>
+                  <Label htmlFor="iban" className="text-sm sm:text-base">رقم الآيبان (IBAN) *</Label>
                   <Input
                     id="iban"
                     value={iban}
                     onChange={(e) => setIban(e.target.value.toUpperCase())}
                     placeholder="SA0000000000000000000000"
+                    className="h-10 sm:h-11 text-left"
                     dir="ltr"
                   />
-                  <p className="text-xs text-gray-500">يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="taxNumber">الرقم الضريبي *</Label>
+                  <Label htmlFor="taxNumber" className="text-sm sm:text-base">الرقم الضريبي *</Label>
                   <Input
                     id="taxNumber"
                     value={taxNumber}
                     onChange={(e) => setTaxNumber(e.target.value)}
                     placeholder="أدخل الرقم الضريبي"
+                    className="h-10 sm:h-11"
                   />
                 </div>
               </div>
@@ -517,20 +533,20 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* قسم المرفقات */}
-          <Card>
-            <CardHeader className="bg-gradient-to-l from-orange-500 to-orange-600 text-white rounded-t-lg">
-              <CardTitle className="flex items-center gap-2">
+          <Card className="border-0 sm:border shadow-md">
+            <CardHeader className="bg-gradient-to-l from-orange-500 to-orange-600 text-white rounded-t-lg p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <FileText className="h-5 w-5" />
                 المرفقات
               </CardTitle>
-              <CardDescription className="text-orange-100">
+              <CardDescription className="text-orange-100 text-xs sm:text-sm">
                 المستندات الرسمية الداعمة لطلب التسجيل (سارية المفعول)
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label>إرفاق السجل التجاري *</Label>
+                  <Label className="text-xs sm:text-sm font-medium">إرفاق السجل التجاري *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
                       if (files.length > 0) {
@@ -541,10 +557,10 @@ export default function SupplierRegistration() {
                     label="السجل التجاري"
                     description="ارفع صورة السجل التجاري"
                   />
-                  {commercialRegisterDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                  {commercialRegisterDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>إرفاق شهادة ضريبة القيمة المضافة *</Label>
+                  <Label className="text-xs sm:text-sm font-medium">إرفاق شهادة الضريبة *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
                       if (files.length > 0) {
@@ -555,10 +571,10 @@ export default function SupplierRegistration() {
                     label="شهادة الضريبة"
                     description="ارفع شهادة ضريبة القيمة المضافة"
                   />
-                  {vatCertificateDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                  {vatCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>العنوان الوطني *</Label>
+                  <Label className="text-xs sm:text-sm font-medium">العنوان الوطني *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
                       if (files.length > 0) {
@@ -569,10 +585,10 @@ export default function SupplierRegistration() {
                     label="العنوان الوطني"
                     description="ارفع صورة العنوان الوطني"
                   />
-                  {nationalAddressDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                  {nationalAddressDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>الشهادة البنكية *</Label>
+                  <Label className="text-xs sm:text-sm font-medium">الشهادة البنكية *</Label>
                   <FileUpload
                     onFilesSelected={(files) => {
                       if (files.length > 0) {
@@ -583,22 +599,23 @@ export default function SupplierRegistration() {
                     label="الشهادة البنكية"
                     description="ارفع صورة الشهادة البنكية"
                   />
-                  {bankCertificateDoc && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                  {bankCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
               </div>
 
               {/* المرفقات الإضافية */}
-              <div className="pt-6 border-t mt-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <div>
-                    <Label className="text-lg font-semibold">مرفقات أخرى (اختياري)</Label>
-                    <p className="text-sm text-muted-foreground mt-1">يمكنك إضافة أي مستندات إضافية تدعم طلبك</p>
+                    <Label className="text-base sm:text-lg font-semibold">مرفقات أخرى (اختياري)</Label>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">يمكنك إضافة أي مستندات إضافية تدعم طلبك</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setOtherAttachments([...otherAttachments, { name: "", fileData: "" }])}
+                    className="self-start sm:self-center h-9"
                   >
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة مرفق آخر
@@ -607,9 +624,9 @@ export default function SupplierRegistration() {
                 
                 <div className="space-y-4">
                   {otherAttachments.map((attr, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 border rounded-lg bg-gray-50 items-center">
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 border rounded-xl bg-gray-50 items-start sm:items-center shadow-sm">
                       <div className="md:col-span-5 space-y-2">
-                        <Label>اسم المرفق</Label>
+                        <Label className="text-xs sm:text-sm font-medium">اسم المرفق</Label>
                         <Input
                           value={attr.name}
                           onChange={(e) => {
@@ -618,10 +635,11 @@ export default function SupplierRegistration() {
                             setOtherAttachments(newAttrs);
                           }}
                           placeholder="مثال: شهادة تصنيف، سيرة ذاتية..."
+                          className="h-9 sm:h-10"
                         />
                       </div>
                       <div className="md:col-span-6 space-y-2">
-                        <Label>الملف</Label>
+                        <Label className="text-xs sm:text-sm font-medium">الملف</Label>
                         <FileUpload
                           onFilesSelected={(files) => {
                             if (files.length > 0) {
@@ -633,25 +651,25 @@ export default function SupplierRegistration() {
                           maxFiles={1}
                           label="اختر ملفاً"
                         />
-                        {attr.fileData && <p className="text-xs text-green-600">✓ تم رفع الملف</p>}
+                        {attr.fileData && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                       </div>
-                      <div className="md:col-span-1 flex justify-center">
+                      <div className="md:col-span-1 flex justify-end sm:justify-center">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 sm:h-10 sm:w-10"
                           onClick={() => setOtherAttachments(otherAttachments.filter((_, i) => i !== index))}
                         >
-                          <Trash2 className="h-5 w-5" />
+                          <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                       </div>
                     </div>
                   ))}
                   {otherAttachments.length === 0 && (
-                    <div className="text-center py-8 border-2 border-dashed rounded-lg bg-gray-50/50">
-                      <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">لا توجد مرفقات إضافية حالياً</p>
+                    <div className="text-center py-6 sm:py-8 border-2 border-dashed rounded-xl bg-gray-50/50">
+                      <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-xs sm:text-sm text-gray-500">لا توجد مرفقات إضافية حالياً</p>
                     </div>
                   )}
                 </div>
@@ -660,12 +678,12 @@ export default function SupplierRegistration() {
           </Card>
 
           {/* زر الإرسال */}
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-center pt-4 sm:pt-6 pb-4 sm:pb-8">
             <Button
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || registerMutation.isPending}
-              className="px-12 py-6 text-lg gap-2"
+              className="w-full sm:w-auto px-12 py-5 sm:py-6 text-base sm:text-lg gap-2 rounded-xl shadow-lg"
             >
               {isSubmitting || registerMutation.isPending ? (
                 <>
