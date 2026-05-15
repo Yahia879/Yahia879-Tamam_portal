@@ -355,62 +355,61 @@ export default function RequestDetailsNew() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-card border-b">
-        <div className="container py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <div className="bg-card border-b sticky top-0 z-10 sm:relative">
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <Link href="/requests">
-                <Button variant="ghost" size="sm">
-                  ← رجوع
+                <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3">
+                  <ArrowRight className="w-4 h-4 sm:ml-2" />
+                  <span className="hidden sm:inline">رجوع</span>
                 </Button>
               </Link>
-              <div className="flex items-center gap-3">
-                <ProgramIcon program={request.programType} className="w-10 h-10" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold text-muted-foreground font-mono">{request.requestNumber}</h1>
+              <div className="flex items-start sm:items-center gap-3 min-w-0">
+                <ProgramIcon program={request.programType} className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <h1 className="text-base sm:text-xl font-bold text-muted-foreground font-mono truncate">{request.requestNumber}</h1>
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
-                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
-                          <Building2 className="w-4 h-4 ml-1" />
-                          محول إلى مشروع ({linkedProject.projectNumber})
+                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-7 text-[10px] sm:text-xs px-2 truncate max-w-full">
+                          <Building2 className="w-3 h-3 sm:w-4 sm:h-4 ml-1 flex-shrink-0" />
+                          <span className="truncate">محول إلى مشروع ({linkedProject.projectNumber})</span>
                         </Button>
                       </Link>
                     )}
                   </div>
-                  <p className="text-lg font-bold text-foreground">
+                  <p className="text-base sm:text-lg font-bold text-foreground truncate">
                     {request.mosque?.name || "مسجد غير محدد"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}
                   </p>
                 </div>
               </div>
             </div>
-
-            {/* تم إزالة أزرار التصدير والإجراءات الإضافية من الهيدر لتبسيط الواجهة */}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {/* بانر المشروع - يظهر عند وجود مشروع مرتبط */}
         {linkedProject && (
-          <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
+          <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0">
                   <Building2 className="w-5 h-5 text-emerald-600" />
                 </div>
-                <div>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">مشروع مرتبط بهذا الطلب</p>
-                  <p className="font-bold text-emerald-800 dark:text-emerald-200">{linkedProject.name || 'مشروع غير محدد'}</p>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-mono">{linkedProject.projectNumber}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">مشروع مرتبط بهذا الطلب</p>
+                  <p className="font-bold text-sm sm:text-base text-emerald-800 dark:text-emerald-200 truncate">{linkedProject.name || 'مشروع غير محدد'}</p>
+                  <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-mono">{linkedProject.projectNumber}</p>
                 </div>
               </div>
-              <Link href={`/projects/${linkedProject.id}`}>
-                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50">
+              <Link href={`/projects/${linkedProject.id}`} className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50 w-full">
                   <Building2 className="w-4 h-4 ml-2" />
                   عرض صفحة المشروع
                 </Button>
@@ -420,15 +419,19 @@ export default function RequestDetailsNew() {
         )}
 
         {/* Progress Stepper */}
-        <ProgressStepper
-          steps={workflow.map((s) => ({ ...s, label: s.label }))}
-          currentStep={request.currentStage}
-          completedSteps={completedSteps}
-        />
+        <div className="overflow-x-auto pb-4 mb-2 -mx-4 px-4 scrollbar-hide">
+          <div className="min-w-[600px] sm:min-w-0">
+            <ProgressStepper
+              steps={workflow.map((s) => ({ ...s, label: s.label }))}
+              currentStep={request.currentStage}
+              completedSteps={completedSteps}
+            />
+          </div>
+        </div>
 
         {/* Active Action Card */}
         {activeAction && (
-          <div>
+          <div className="space-y-6">
             <ActiveActionCard
               title={activeAction.title}
               description={activeAction.description}
@@ -501,13 +504,13 @@ export default function RequestDetailsNew() {
             
             {/* قسم المراجعة الأولية */}
             {request.currentStage === 'initial_review' && (
-              <div className="mt-6 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border-2 border-blue-200">
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
                 <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-6 h-6 text-blue-600" />
-                  <h4 className="font-bold text-blue-800 text-lg">المراجعة الأولية</h4>
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                  <h4 className="font-bold text-blue-800 text-base sm:text-lg">المراجعة الأولية</h4>
                 </div>
-                <p className="text-sm text-blue-600 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
-                <div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                <p className="text-xs sm:text-sm text-blue-600 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border">
                   <input
                     type="checkbox"
                     id="review-completed"
@@ -530,11 +533,11 @@ export default function RequestDetailsNew() {
             
             {/* مؤشرات إجراءات الزيارة الميدانية */}
             {request.currentStage === 'field_visit' && (
-              <div className="mt-6 p-4 bg-card rounded-lg border">
-                <h3 className="text-lg font-semibold mb-4">حالة إجراءات الزيارة الميدانية</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-card rounded-lg border">
+                <h3 className="text-base sm:text-lg font-semibold mb-4">حالة إجراءات الزيارة الميدانية</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* جدولة الزيارة */}
-                  <div className={`p-4 rounded-lg border-2 ${
+                  <div className={`p-3 sm:p-4 rounded-lg border-2 ${
                     fieldVisit?.scheduledDate 
                       ? 'bg-green-50 border-green-200' 
                       : 'bg-gray-50 border-gray-200'
@@ -545,11 +548,11 @@ export default function RequestDetailsNew() {
                       ) : (
                         <Clock className="w-5 h-5 text-gray-400" />
                       )}
-                      <h4 className={`font-semibold ${
+                      <h4 className={`font-semibold text-sm sm:text-base ${
                         fieldVisit?.scheduledDate ? 'text-green-800' : 'text-gray-600'
                       }`}>جدولة الزيارة</h4>
                     </div>
-                    <p className={`text-sm ${
+                    <p className={`text-xs sm:text-sm ${
                       fieldVisit?.scheduledDate ? 'text-green-600' : 'text-gray-500'
                     }`}>
                       {fieldVisit?.scheduledDate 
@@ -561,7 +564,7 @@ export default function RequestDetailsNew() {
 
 
                   {/* رفع التقرير */}
-                  <div className={`p-4 rounded-lg border-2 ${
+                  <div className={`p-3 sm:p-4 rounded-lg border-2 ${
                     fieldVisit?.reportSubmitted
                       ? 'bg-green-50 border-green-200'
                       : fieldVisit?.executionDate
@@ -576,7 +579,7 @@ export default function RequestDetailsNew() {
                       ) : (
                         <Clock className="w-5 h-5 text-gray-400" />
                       )}
-                      <h4 className={`font-semibold ${
+                      <h4 className={`font-semibold text-sm sm:text-base ${
                         fieldVisit?.reportSubmitted
                           ? 'text-green-800'
                           : fieldVisit?.executionDate
@@ -584,7 +587,7 @@ export default function RequestDetailsNew() {
                           : 'text-gray-600'
                       }`}>رفع التقرير</h4>
                     </div>
-                    <p className={`text-sm ${
+                    <p className={`text-xs sm:text-sm ${
                       fieldVisit?.reportSubmitted
                         ? 'text-green-600'
                         : fieldVisit?.executionDate
@@ -605,7 +608,7 @@ export default function RequestDetailsNew() {
             
             {/* خيارات التقييم الفني */}
             {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* التحويل إلى مشروع */}
                 <button 
                   className="group p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50"
@@ -616,10 +619,10 @@ export default function RequestDetailsNew() {
                   disabled={technicalEvalMutation.isPending}
                 >
                   <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
                     <div>
-                      <h5 className="font-bold text-green-800 text-base">التحويل إلى مشروع</h5>
-                      <p className="text-sm text-green-600">إكمال الطلب والانتقال للتقييم المالي</p>
+                      <h5 className="font-bold text-green-800 text-sm sm:text-base">التحويل إلى مشروع</h5>
+                      <p className="text-[10px] sm:text-sm text-green-600">إكمال الطلب والانتقال للتقييم المالي</p>
                     </div>
                   </div>
                 </button>
@@ -634,10 +637,10 @@ export default function RequestDetailsNew() {
                   disabled={technicalEvalMutation.isPending}
                 >
                   <div className="flex items-center gap-3">
-                    <Zap className="w-6 h-6 text-purple-600" />
+                    <Zap className="w-6 h-6 text-purple-600 flex-shrink-0" />
                     <div>
-                      <h5 className="font-bold text-purple-800 text-base">الاستجابة السريعة</h5>
-                      <p className="text-sm text-purple-600">تحويل للحالات البسيطة التي تحتاج تدخل مباشر</p>
+                      <h5 className="font-bold text-purple-800 text-sm sm:text-base">الاستجابة السريعة</h5>
+                      <p className="text-[10px] sm:text-sm text-purple-600">تحويل للحالات البسيطة التي تحتاج تدخل مباشر</p>
                     </div>
                   </div>
                 </button>
@@ -652,10 +655,10 @@ export default function RequestDetailsNew() {
                   disabled={technicalEvalMutation.isPending}
                 >
                   <div className="flex items-center gap-3">
-                    <PauseCircle className="w-6 h-6 text-amber-600" />
+                    <PauseCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
                     <div>
-                      <h5 className="font-bold text-amber-800 text-base">التعليق</h5>
-                      <p className="text-sm text-amber-600">تعليق الطلب مؤقتاً لحين توفر متطلبات</p>
+                      <h5 className="font-bold text-amber-800 text-sm sm:text-base">التعليق</h5>
+                      <p className="text-[10px] sm:text-sm text-amber-600">تعليق الطلب مؤقتاً لحين توفر متطلبات</p>
                     </div>
                   </div>
                 </button>
@@ -670,64 +673,15 @@ export default function RequestDetailsNew() {
                   disabled={technicalEvalMutation.isPending}
                 >
                   <div className="flex items-center gap-3">
-                    <XCircle className="w-6 h-6 text-red-600" />
+                    <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
                     <div>
-                      <h5 className="font-bold text-red-800 text-base">الاعتذار</h5>
-                      <p className="text-sm text-red-600">رفض الطلب نهائياً</p>
+                      <h5 className="font-bold text-red-800 text-sm sm:text-base">الاعتذار</h5>
+                      <p className="text-[10px] sm:text-sm text-red-600">رفض الطلب نهائياً</p>
                     </div>
                   </div>
                 </button>
               </div>
             )}
-            
-            {/* قسم التقرير الختامي - تم إخفاؤه بطلب المستخدم لأن الزر العلوي أصبح هو الأساس */}
-            {false && (request.currentStage === 'handover' || request.currentStage === 'closed') && (
-              <div className="mt-6 bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg border-2 border-emerald-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-6 h-6 text-emerald-600" />
-                  <h4 className="font-bold text-emerald-800 text-lg">التقرير الختامي</h4>
-                </div>
-                {latestFinalReport ? (
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-emerald-200">
-                      <p className="text-sm text-emerald-700 font-medium mb-1">ملخص المشروع</p>
-                      <p className="text-gray-700 text-sm line-clamp-3">{latestFinalReport.summary}</p>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Calendar className="w-4 h-4" />
-                        <span>تاريخ التقرير: {new Date(latestFinalReport.createdAt).toLocaleDateString('ar-SA')}</span>
-                      </div>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => setLocation(`/final-report/${latestFinalReport.id}`)}
-                      >
-                        <FileText className="w-4 h-4 ml-1" />
-                        عرض التقرير الكامل
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-emerald-600 text-sm mb-3">لم يتم رفع التقرير الختامي بعد</p>
-                    {request.currentStage === 'handover' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
-                        onClick={() => setLocation(`/final-report/new?requestId=${requestId}`)}
-                      >
-                        رفع التقرير الختامي
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* قسم جدول الكميات - يُفتح من النافذة المنبثقة فقط */}
           </div>
         )}
 
@@ -735,48 +689,48 @@ export default function RequestDetailsNew() {
         <div className="mt-6">
           <Button 
             variant="outline" 
-            className="w-full flex items-center justify-between p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900"
+            className="w-full flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900"
             onClick={() => setShowReviewInfo(!showReviewInfo)}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-right">
-                <p className="font-bold text-base">مراجعة المعلومات والمرفقات</p>
-                <p className="text-sm text-muted-foreground">عرض تفاصيل الطلب والملفات المرفوعة</p>
+              <div className="text-right min-w-0">
+                <p className="font-bold text-sm sm:text-base truncate">مراجعة المعلومات والمرفقات</p>
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">عرض تفاصيل الطلب والملفات المرفوعة</p>
               </div>
             </div>
-            {showReviewInfo ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {showReviewInfo ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />}
           </Button>
 
           {showReviewInfo && (
             <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
               {/* تفاصيل الطلب */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
+                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   تفاصيل الطلب
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {/* معلومات أساسية ثابته */}
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">البرنامج</p>
-                    <p className="font-semibold">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
+                    <p className="text-[10px] sm:text-sm text-muted-foreground">البرنامج</p>
+                    <p className="text-sm sm:text-base font-semibold">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">تاريخ التقديم</p>
-                    <p className="font-semibold">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
+                    <p className="text-[10px] sm:text-sm text-muted-foreground">تاريخ التقديم</p>
+                    <p className="text-sm sm:text-base font-semibold">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
                   </div>
                   {request.mosque && (
                     <>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">المسجد</p>
-                        <p className="font-semibold">{request.mosque.name}</p>
+                        <p className="text-[10px] sm:text-sm text-muted-foreground">المسجد</p>
+                        <p className="text-sm sm:text-base font-semibold">{request.mosque.name}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">الموقع</p>
-                        <p className="font-semibold">{request.mosque.city || "غير محدد"}</p>
+                        <p className="text-[10px] sm:text-sm text-muted-foreground">الموقع</p>
+                        <p className="text-sm sm:text-base font-semibold">{request.mosque.city || "غير محدد"}</p>
                       </div>
                     </>
                   )}
@@ -812,8 +766,8 @@ export default function RequestDetailsNew() {
 
                         return (
                           <div key={field.name} className="space-y-1 col-span-full md:col-span-1">
-                            <p className="text-sm text-muted-foreground">{field.label}</p>
-                            <p className="font-semibold whitespace-pre-wrap break-words">{String(displayValue)}</p>
+                            <p className="text-[10px] sm:text-sm text-muted-foreground">{field.label}</p>
+                            <p className="text-sm sm:text-base font-semibold whitespace-pre-wrap break-words">{String(displayValue)}</p>
                           </div>
                         );
                       });
@@ -822,20 +776,20 @@ export default function RequestDetailsNew() {
               </div>
 
               {/* المرفقات */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
+                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
                   <Paperclip className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   المرفقات المرفوعة
                 </h4>
                 {request?.attachments && request.attachments.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {request.attachments.map((attachment: any, index: number) => (
-                      <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border-r-4 border-orange-500 flex items-center justify-between">
+                      <div key={index} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border-r-4 border-orange-500 flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-orange-700 dark:text-orange-300 truncate">{attachment.fileName}</p>
+                          <p className="font-semibold text-xs sm:text-sm text-orange-700 dark:text-orange-300 truncate">{attachment.fileName}</p>
                           <p className="text-[10px] text-muted-foreground mt-1">{attachment.fileType}</p>
                         </div>
-                        <Button variant="ghost" size="sm" asChild className="shrink-0">
+                        <Button variant="ghost" size="sm" asChild className="shrink-0 h-8 w-8 p-0">
                           <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="w-4 h-4" />
                           </a>
@@ -844,7 +798,7 @@ export default function RequestDetailsNew() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-4">لم يتم إرفاق أي ملفات</p>
+                  <p className="text-muted-foreground text-center py-4 text-xs sm:text-sm">لم يتم إرفاق أي ملفات</p>
                 )}
               </div>
             </div>
