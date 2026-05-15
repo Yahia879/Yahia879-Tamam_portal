@@ -133,6 +133,7 @@ export function LeafletMap({
       {/* زر تبديل نوع الخريطة المباشر - متموضع أسفل أدوات التكبير */}
       <div className="absolute top-[82px] left-[10px] z-[1000]">
         <button
+          type="button"
           onClick={() => setMapType(mapType === 'street' ? 'satellite' : 'street')}
           className={cn(
             "h-[34px] w-[34px] bg-white rounded-[2px] shadow-sm border border-gray-300 transition-all hover:bg-gray-50 flex items-center justify-center",

@@ -183,11 +183,6 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
               )}
             </MapView>
 
-            {/* تعليمات */}
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-muted-foreground z-[1000]">
-              <MapPin className="w-3 h-3 inline-block ml-1" />
-              انقر على الخريطة أو اسحب العلامة لتحديد الموقع
-            </div>
           </div>
 
           {/* عرض الإحداثيات والعنوان */}
