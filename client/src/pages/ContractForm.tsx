@@ -256,18 +256,22 @@ export default function ContractForm() {
       }
       
       // ملء موضوع العقد تلقائياً إذا كان فارغاً
-      if (!contractData.subject && requestDetails.mosque?.name) {
-        const programName = requestDetails.programType === 'bunyan' ? 'بناء' :
-                           requestDetails.programType === 'daaem' ? 'استكمال' :
-                           requestDetails.programType === 'enaya' ? 'صيانة وترميم' :
-                           requestDetails.programType === 'emdad' ? 'تجهيزات' :
-                           requestDetails.programType === 'ethraa' ? 'سداد فواتير' :
-                           requestDetails.programType === 'sedana' ? 'نظافة' :
-                           requestDetails.programType === 'taqa' ? 'طاقة شمسية' :
-                           requestDetails.programType === 'miyah' ? 'أنظمة مياه' :
-                           requestDetails.programType === 'suqya' ? 'ماء شرب' : 'خدمة';
-        
-        updates.subject = `عقد ${programName} لمسجد ${requestDetails.mosque.name}`;
+      if (!contractData.subject) {
+        if (requestDetails.project?.name) {
+          updates.subject = requestDetails.project.name;
+        } else if (requestDetails.mosque?.name) {
+          const programName = requestDetails.programType === 'bunyan' ? 'بناء' :
+                             requestDetails.programType === 'daaem' ? 'استكمال' :
+                             requestDetails.programType === 'enaya' ? 'صيانة وترميم' :
+                             requestDetails.programType === 'emdad' ? 'تجهيزات' :
+                             requestDetails.programType === 'ethraa' ? 'سداد فواتير' :
+                             requestDetails.programType === 'sedana' ? 'نظافة' :
+                             requestDetails.programType === 'taqa' ? 'طاقة شمسية' :
+                             requestDetails.programType === 'miyah' ? 'أنظمة مياه' :
+                             requestDetails.programType === 'suqya' ? 'ماء شرب' : 'خدمة';
+          
+          updates.subject = `عقد ${programName} لمسجد ${requestDetails.mosque.name}`;
+        }
       }
       
       // تعيين تاريخ البدء إلى اليوم إذا كان فارغاً
@@ -358,6 +362,10 @@ export default function ContractForm() {
       case 1:
         if (!contractData.templateId) {
           toast.error("يرجى اختيار قالب العقد");
+          return false;
+        }
+        if (!contractData.signatoryId) {
+          toast.error("يرجى اختيار مفوض التوقيع (الطرف الأول)");
           return false;
         }
         return true;
