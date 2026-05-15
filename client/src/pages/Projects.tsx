@@ -81,10 +81,6 @@ export default function Projects() {
             <h1 className="text-2xl font-bold text-foreground">إدارة المشاريع</h1>
             <p className="text-muted-foreground">متابعة وإدارة مشاريع المساجد</p>
           </div>
-          <Button className="gradient-primary text-white" onClick={() => toast.info("يتم إنشاء المشاريع تلقائياً من الطلبات المعتمدة")}>
-            <Plus className="w-4 h-4 ml-2" />
-            مشروع جديد
-          </Button>
         </div>
 
         {/* بطاقات الإحصائيات */}

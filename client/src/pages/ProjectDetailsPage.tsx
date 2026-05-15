@@ -494,24 +494,6 @@ export default function ProjectDetailsPage() {
                             <span className="text-sm text-muted-foreground">{phase.completionPercentage || 0}%</span>
                           </div>
                         </div>
-                        <Select
-                          value={phase.status || "pending"}
-                          onValueChange={(value) => {
-                            updatePhaseMutation.mutate({
-                              id: phase.id,
-                              status: value as "pending" | "in_progress" | "completed",
-                            });
-                          }}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">قيد الانتظار</SelectItem>
-                            <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                            <SelectItem value="completed">مكتمل</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                     ))}
                   </div>
