@@ -55,7 +55,7 @@ export default function Unauthorized() {
           >
             <Button
               onClick={handleGoBack}
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-11 sm:h-auto px-6 py-2.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg font-bold"
+              className="w-full sm:w-auto gradient-primary text-white h-11 sm:h-auto px-6 py-2.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg font-bold border-0"
             >
               <ArrowRight className="w-4 h-4 ml-2" />
               العودة للوحة التحكم
