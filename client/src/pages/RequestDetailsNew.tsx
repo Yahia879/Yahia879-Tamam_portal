@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -51,6 +58,7 @@ export default function RequestDetailsNew() {
   const [selectedDecision, setSelectedDecision] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   // States for revert stage
   const [showRevertDialog, setShowRevertDialog] = useState(false);
   const [revertReason, setRevertReason] = useState("");
@@ -59,6 +67,15 @@ export default function RequestDetailsNew() {
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
   const utils = trpc.useUtils();
+
+  // Fetch managers for project creation
+  const { data: managersResult } = trpc.users.getAll.useQuery({
+    roles: ['super_admin', 'system_admin', 'projects_office', 'project_manager'],
+    limit: 100,
+  }, {
+    enabled: selectedDecision === 'convert_to_project',
+  });
+  const managers = managersResult?.items || [];
 
   // Fetch unread comments count
   const { data: unreadData } = trpc.requests.getUnreadCommentsCount.useQuery({ requestId });
@@ -154,6 +171,7 @@ export default function RequestDetailsNew() {
       setSelectedDecision(null);
       setJustification("");
       setProjectName("");
+      setSelectedManagerId(null);
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
@@ -1001,17 +1019,41 @@ export default function RequestDetailsNew() {
 
             {/* حقل اسم المشروع (مطلوب عند التحويل لمشروع) */}
             {selectedDecision === 'convert_to_project' && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  اسم المشروع <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  placeholder="أدخل اسماً واضحاً للمشروع..."
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
+              <div className="space-y-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">
+                    اسم المشروع <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    placeholder="أدخل اسماً واضحاً للمشروع..."
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">
+                    مدير المشروع <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={selectedManagerId || ""}
+                    onValueChange={setSelectedManagerId}
+                  >
+                    <SelectTrigger className="w-full flex-row-reverse">
+                      <SelectValue placeholder="اختر مديراً للمشروع..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {managers.map((manager) => (
+                        <SelectItem key={manager.id} value={manager.id.toString()}>
+                          {manager.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">سيتم إسناد المشروع لهذا المدير فور إنشائه</p>
+                </div>
               </div>
             )}
             {/* ملاحظات إضافية (اختياري) */}
@@ -1034,6 +1076,8 @@ export default function RequestDetailsNew() {
                   setShowTechnicalEvalDialog(false);
                   setSelectedDecision(null);
                   setJustification("");
+                  setProjectName("");
+                  setSelectedManagerId(null);
                 }}
               >
                 إلغاء
@@ -1044,17 +1088,22 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
+                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
+                    toast.error("يجب اختيار مدير للمشروع");
+                    return;
+                  }
                   technicalEvalMutation.mutate({
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
+                    managerId: selectedDecision === 'convert_to_project' ? (selectedManagerId ? parseInt(selectedManagerId) : undefined) : undefined,
                     justification: justification || undefined,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && !projectName.trim())
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :

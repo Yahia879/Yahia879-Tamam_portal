@@ -1022,6 +1022,7 @@ export const requestsRouter = router({
       justification: z.string().optional(),
       notes: z.string().optional(),
       projectName: z.string().optional(), // اسم المشروع عند التحويل
+      managerId: z.number().optional(), // مدير المشروع عند التحويل
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1171,6 +1172,7 @@ export const requestsRouter = router({
             projectNumber,
             requestId: input.requestId,
             name: projectNameToUse,
+            managerId: input.managerId,
             status: 'planning',
           });
           // إنشاء المراحل الافتراضية

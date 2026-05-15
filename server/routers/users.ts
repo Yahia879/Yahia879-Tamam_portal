@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments, passwordResetTokens, roles } from "../../drizzle/schema";
-import { eq, count, and, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
+import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -31,13 +31,14 @@ export const usersRouter = router({
       limit: z.number().default(20),
       search: z.string().optional(),
       role: z.string().optional(),
+      roles: z.array(z.string()).optional(),
       includeAll: z.boolean().default(false),
     }).optional().default({}))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
-      const { page, limit, search, role, includeAll } = input;
+      const { page, limit, search, role, roles: inputRoles, includeAll } = input;
       const offset = (page - 1) * limit;
 
       // تصفية المستخدمين
@@ -45,6 +46,8 @@ export const usersRouter = router({
       
       if (role) {
         whereClause = eq(users.role, role as any);
+      } else if (inputRoles && inputRoles.length > 0) {
+        whereClause = inArray(users.role, inputRoles as any[]);
       } else if (!includeAll) {
         // الافتراضي هو استبعاد أدوار طالبي الخدمة من القائمة العامة للموظفين
         const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
