@@ -205,6 +205,11 @@ export default function ProjectDetailsPage() {
     p.phaseOrder === 3 && p.status === "completed"
   );
 
+  // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
+  const isPaymentsLocked = !project?.phases?.some(p => 
+    p.phaseOrder === 3 && p.status === "completed"
+  );
+
   const handleApproveBOQ = async () => {
     if (!project?.phases || project.phases.length === 0) return;
     
@@ -872,13 +877,15 @@ export default function ProjectDetailsPage() {
                   <CardTitle className="text-lg">الدفعات</CardTitle>
                   <CardDescription>سجل الدفعات المالية للمشروع</CardDescription>
                 </div>
-                <Button 
-                  className="gradient-primary text-white" 
-                  onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                >
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة دفعة
-                </Button>
+                {!isPaymentsLocked && (
+                  <Button 
+                    className="gradient-primary text-white" 
+                    onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة دفعة
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {project.payments && project.payments.length > 0 ? (
@@ -938,8 +945,20 @@ export default function ProjectDetailsPage() {
                   </Table>
                 ) : (
                   <div className="text-center py-8">
-                    <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد دفعات مسجلة</p>
+                    {isPaymentsLocked ? (
+                      <div className="bg-amber-50/50 p-6 rounded-lg border border-amber-100 max-w-md mx-auto">
+                        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-amber-900 mb-2">إضافة المدفوعات غير متاحة حالياً</h3>
+                        <p className="text-amber-700">
+                          سيتم تفعيل إمكانية إضافة المدفوعات بعد اعتماد عرض السعر المناسب (إكمال المرحلة الثالثة).
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">لا توجد دفعات مسجلة</p>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
