@@ -569,7 +569,7 @@ export default function Quotations() {
                     <TableHead className="text-right">المسجد</TableHead>
                     <TableHead className="text-right">البرنامج</TableHead>
                     <TableHead className="text-right">تاريخ التقديم</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    <TableHead className="text-right">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -591,7 +591,7 @@ export default function Quotations() {
                       </TableCell>
                       <TableCell className="text-right">{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex gap-2 justify-start">
                           <Button
                             variant={selectedRequestId === request.id.toString() ? "default" : "outline"}
                             size="sm"
@@ -735,8 +735,6 @@ export default function Quotations() {
                       <TableHead>المورد</TableHead>
                       <TableHead>المبلغ الأصلي</TableHead>
                       <TableHead>المبلغ النهائي</TableHead>
-                      <TableHead>بعد التفاوض</TableHead>
-                      <TableHead>صالح حتى</TableHead>
                       <TableHead>الحالة</TableHead>
                       <TableHead className="text-left">الإجراءات</TableHead>
                     </TableRow>
@@ -751,23 +749,6 @@ export default function Quotations() {
                           <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
                           <TableCell className="font-medium text-primary">
                             {parseFloat(quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
-                          </TableCell>
-                          <TableCell>
-                            {quotation.negotiatedAmount ? (
-                              <div className="flex flex-col">
-                                <span className="font-medium text-green-600">
-                                  {parseFloat(quotation.negotiatedAmount).toLocaleString("ar-SA")} ريال
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  وفر {((1 - parseFloat(quotation.negotiatedAmount) / parseFloat(quotation.totalAmount)) * 100).toFixed(1)}%
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString("ar-SA") : "-"}
                           </TableCell>
                           <TableCell>
                             <Badge className={statusConfig.color}>
