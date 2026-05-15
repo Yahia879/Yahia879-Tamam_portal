@@ -77,25 +77,25 @@ export default function RequesterDashboard() {
       {/* شريط التنقل */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img 
                 src="/logo.svg" 
                 alt="شعار بوابة تمام" 
-                className="h-10 w-auto"
+                className="h-8 w-8 sm:h-10 sm:w-auto shrink-0"
               />
-              <div>
-                <h1 className="font-bold text-lg text-foreground">بوابة تمام</h1>
-                <p className="text-xs text-muted-foreground">للعناية بالمساجد</p>
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm sm:text-lg text-foreground truncate">بوابة تمام</h1>
+                <p className="hidden sm:block text-[10px] text-muted-foreground truncate">للعناية بالمساجد</p>
               </div>
             </Link>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <Link href="/notifications">
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white text-xs rounded-full flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-destructive text-white text-[10px] rounded-full flex items-center justify-center">
                       {unreadNotifications.length}
                     </span>
                   )}
@@ -104,17 +104,17 @@ export default function RequesterDashboard() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 hover:bg-muted rounded-lg px-2 py-1 transition-colors">
-                    <Avatar className="h-8 w-8 border">
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                  <button className="flex items-center gap-1.5 sm:gap-2 hover:bg-muted rounded-lg px-1.5 py-1 transition-colors min-w-0">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border shrink-0">
+                      <AvatarFallback className="text-[10px] sm:text-xs bg-primary/10 text-primary">
                         {user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium hidden sm:block truncate max-w-[150px]">{user?.name}</span>
+                    <span className="text-xs sm:text-sm font-medium hidden sm:block truncate max-w-[120px] lg:max-w-[180px]">{user?.name}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setLocation("/profile")}>
                     <User className="ml-2 h-4 w-4" />
                     <span className="truncate">{user?.name || 'الملف الشخصي'}</span>
                   </DropdownMenuItem>
