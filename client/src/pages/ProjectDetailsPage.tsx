@@ -231,9 +231,9 @@ export default function ProjectDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         {/* العنوان */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 text-right">
           <Link href="/project-management">
             <Button variant="ghost" size="icon">
               <ArrowRight className="w-5 h-5" />
@@ -253,7 +253,7 @@ export default function ProjectDetailsPage() {
         {/* بطاقات المعلومات الرئيسية */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-right">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-primary" />
@@ -267,7 +267,7 @@ export default function ProjectDetailsPage() {
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-right">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <CreditCard className="w-5 h-5 text-emerald-600" />
@@ -281,7 +281,7 @@ export default function ProjectDetailsPage() {
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-right">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -295,7 +295,7 @@ export default function ProjectDetailsPage() {
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4">
+            <CardContent className="p-4 text-right">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                   <Users className="w-5 h-5 text-purple-600" />
@@ -311,7 +311,7 @@ export default function ProjectDetailsPage() {
 
         {/* شريط التقدم */}
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
+          <CardContent className="p-4 text-right">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">تقدم المشروع</span>
               <span className="text-sm text-muted-foreground">{project.completionPercentage || 0}%</span>
@@ -334,10 +334,10 @@ export default function ProjectDetailsPage() {
           <TabsContent value="overview" className="space-y-4">
             <div className="grid lg:grid-cols-2 gap-4">
               <Card className="border-0 shadow-sm">
-                <CardHeader>
+                <CardHeader className="text-right">
                   <CardTitle className="text-lg">معلومات المشروع</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 text-right">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">رقم المشروع</p>
@@ -379,10 +379,10 @@ export default function ProjectDetailsPage() {
 
               {project.request && (
                 <Card className="border-0 shadow-sm">
-                  <CardHeader>
+                  <CardHeader className="text-right">
                     <CardTitle className="text-lg">الطلب المرتبط</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 text-right">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-sm text-muted-foreground">رقم الطلب</p>
@@ -408,11 +408,10 @@ export default function ProjectDetailsPage() {
               )}
             </div>
 
-            {/* ملاحظات التقييم الفني */}
             {(project as any).evaluations && (project as any).evaluations.length > 0 && (
-              <Card className="border-0 shadow-sm mt-6" dir="rtl">
+              <Card className="border-0 shadow-sm mt-6">
                 <CardHeader className="text-right">
-                  <CardTitle className="text-lg flex items-center gap-2">
+                  <CardTitle className="text-lg flex items-center gap-2" dir="rtl">
                     <FileText className="w-5 h-5 text-primary" />
                     ملاحظات التقييم الفني
                   </CardTitle>
@@ -420,8 +419,8 @@ export default function ProjectDetailsPage() {
                 <CardContent>
                   <div className="space-y-4">
                     {(project as any).evaluations.map((evalNote: any) => (
-                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-lg space-y-2 border border-muted/50 text-right">
-                        <div className="flex justify-between items-center">
+                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-lg space-y-2 border border-muted/50 text-right" dir="rtl">
+                        <div className="flex justify-between items-center w-full">
                           <span className="font-semibold text-primary">{evalNote.userName || "موظف التقييم"}</span>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             {new Date(evalNote.createdAt).toLocaleString("ar-SA")}
@@ -452,11 +451,11 @@ export default function ProjectDetailsPage() {
           {/* المراحل */}
           <TabsContent value="phases" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader>
+              <CardHeader className="text-right">
                 <CardTitle className="text-lg">مراحل المشروع</CardTitle>
                 <CardDescription>متابعة تقدم مراحل المشروع</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="text-right">
                 {project.phases && project.phases.length > 0 ? (
                   <div className="space-y-4">
                     {project.phases.map((phase, index) => (
@@ -521,8 +520,8 @@ export default function ProjectDetailsPage() {
           {/* جدول الكميات */}
           <TabsContent value="boq" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="flex flex-row items-center justify-between text-right">
+                <div className="flex-1">
                   <CardTitle className="text-lg">جدول الكميات (BOQ)</CardTitle>
                   <CardDescription>قائمة البنود والكميات المطلوبة للمشروع</CardDescription>
                 </div>
@@ -533,18 +532,19 @@ export default function ProjectDetailsPage() {
                       إضافة بند
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
+                  <DialogContent dir="rtl">
+                    <DialogHeader className="text-right">
                       <DialogTitle>إضافة بند جديد</DialogTitle>
                       <DialogDescription>أضف بند جديد إلى جدول الكميات</DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-4 text-right">
                       <div>
                         <Label>اسم البند *</Label>
                         <Input
                           value={boqForm.itemName}
                           onChange={(e) => setBOQForm({ ...boqForm, itemName: e.target.value })}
                           placeholder="مثال: أعمال الخرسانة"
+                          className="text-right"
                         />
                       </div>
                       <div>
@@ -553,6 +553,7 @@ export default function ProjectDetailsPage() {
                           value={boqForm.itemDescription}
                           onChange={(e) => setBOQForm({ ...boqForm, itemDescription: e.target.value })}
                           placeholder="وصف تفصيلي للبند"
+                          className="text-right"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -562,6 +563,7 @@ export default function ProjectDetailsPage() {
                             value={boqForm.unit}
                             onChange={(e) => setBOQForm({ ...boqForm, unit: e.target.value })}
                             placeholder="مثال: م³"
+                            className="text-right"
                           />
                         </div>
                         <div>
@@ -571,6 +573,7 @@ export default function ProjectDetailsPage() {
                             value={boqForm.quantity}
                             onChange={(e) => setBOQForm({ ...boqForm, quantity: e.target.value })}
                             placeholder="0"
+                            className="text-right"
                           />
                         </div>
                       </div>
@@ -582,6 +585,7 @@ export default function ProjectDetailsPage() {
                             value={boqForm.unitPrice}
                             onChange={(e) => setBOQForm({ ...boqForm, unitPrice: e.target.value })}
                             placeholder="0"
+                            className="text-right"
                           />
                         </div>
                         <div>
@@ -590,11 +594,12 @@ export default function ProjectDetailsPage() {
                             value={boqForm.category}
                             onChange={(e) => setBOQForm({ ...boqForm, category: e.target.value })}
                             placeholder="مثال: أعمال إنشائية"
+                            className="text-right"
                           />
                         </div>
                       </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex-row-reverse gap-2">
                       <Button variant="outline" onClick={() => setShowAddBOQDialog(false)}>
                         إلغاء
                       </Button>
@@ -623,7 +628,7 @@ export default function ProjectDetailsPage() {
                       <TableBody>
                         {boqData.items.map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell>
+                            <TableCell className="text-right">
                               <div>
                                 <p className="font-medium">{item.itemName}</p>
                                 {item.itemDescription && (
@@ -631,12 +636,12 @@ export default function ProjectDetailsPage() {
                                 )}
                               </div>
                             </TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                            <TableCell>{item.quantity}</TableCell>
-                            <TableCell>{item.unitPrice ? formatCurrency(item.unitPrice) : "-"}</TableCell>
-                            <TableCell>{item.totalPrice ? formatCurrency(item.totalPrice) : "-"}</TableCell>
-                            <TableCell>{item.category || "-"}</TableCell>
-                            <TableCell>
+                            <TableCell className="text-right">{item.unit}</TableCell>
+                            <TableCell className="text-right">{item.quantity}</TableCell>
+                            <TableCell className="text-right">{item.unitPrice ? formatCurrency(item.unitPrice) : "-"}</TableCell>
+                            <TableCell className="text-right">{item.totalPrice ? formatCurrency(item.totalPrice) : "-"}</TableCell>
+                            <TableCell className="text-right">{item.category || "-"}</TableCell>
+                            <TableCell className="text-right">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -650,7 +655,7 @@ export default function ProjectDetailsPage() {
                         ))}
                       </TableBody>
                     </Table>
-                    <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center justify-between">
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg flex items-center justify-between flex-row-reverse">
                       <span className="font-medium">الإجمالي الكلي</span>
                       <span className="text-xl font-bold text-primary">{formatCurrency(boqData.total.toString())}</span>
                     </div>
@@ -676,8 +681,8 @@ export default function ProjectDetailsPage() {
           {/* العقود */}
           <TabsContent value="contracts" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="flex flex-row items-center justify-between text-right">
+                <div className="flex-1">
                   <CardTitle className="text-lg">العقود</CardTitle>
                   <CardDescription>عقود المقاولين والموردين</CardDescription>
                 </div>
@@ -705,19 +710,19 @@ export default function ProjectDetailsPage() {
                     <TableBody>
                       {project.contracts.map((contract) => (
                         <TableRow key={contract.id}>
-                          <TableCell className="font-medium">{contract.contractNumber}</TableCell>
-                          <TableCell>{contract.supplierName || "غير محدد"}</TableCell>
-                          <TableCell>{contract.contractType || "-"}</TableCell>
-                          <TableCell>{formatCurrency(contract.amount)}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium text-right">{contract.contractNumber}</TableCell>
+                          <TableCell className="text-right">{contract.supplierName || "غير محدد"}</TableCell>
+                          <TableCell className="text-right">{contract.contractType || "-"}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(contract.amount)}</TableCell>
+                          <TableCell className="text-right">
                             <Badge variant="outline">
                               {contract.status === "draft" ? "مسودة" :
                                contract.status === "active" ? "نشط" :
                                contract.status === "completed" ? "مكتمل" : "منتهي"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
+                          <TableCell className="text-right">
+                            <div className="flex items-center gap-2 justify-end">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -726,7 +731,6 @@ export default function ProjectDetailsPage() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-
                             </div>
                           </TableCell>
                         </TableRow>
@@ -746,8 +750,8 @@ export default function ProjectDetailsPage() {
           {/* الدفعات */}
           <TabsContent value="payments" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
+              <CardHeader className="flex flex-row items-center justify-between text-right">
+                <div className="flex-1">
                   <CardTitle className="text-lg">الدفعات</CardTitle>
                   <CardDescription>سجل الدفعات المالية للمشروع</CardDescription>
                 </div>
@@ -775,21 +779,21 @@ export default function ProjectDetailsPage() {
                     <TableBody>
                       {project.payments.map((payment) => (
                         <TableRow key={payment.id}>
-                          <TableCell className="font-medium">{payment.paymentNumber}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium text-right">{payment.paymentNumber}</TableCell>
+                          <TableCell className="text-right">
                             <Badge variant="outline" className="text-[10px]">
                               {payment.source === "contract" ? "خطة التعاقد" :
                                payment.source === "disbursement" ? "طلب صرف" : "يدوي"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-right">
                             {payment.paymentType === "advance" ? "دفعة مقدمة" :
                              payment.paymentType === "progress" ? "دفعة تقدم" :
                              payment.paymentType === "final" ? "دفعة نهائية" : 
                              payment.paymentType === "retention" ? "محتجزات" : "إنجاز"}
                           </TableCell>
-                          <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                          <TableCell>
+                          <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
+                          <TableCell className="text-right">
                             <Badge variant="outline" className={
                               payment.status === "paid" ? "bg-green-100 text-green-800" :
                               payment.status === "approved" ? "bg-blue-100 text-blue-800" :
@@ -803,7 +807,7 @@ export default function ProjectDetailsPage() {
                                payment.status === "due" ? "مستحق" : "مرفوض"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-right">
                             {payment.paidAt 
                               ? new Date(payment.paidAt).toLocaleDateString("ar-SA")
                               : payment.date
