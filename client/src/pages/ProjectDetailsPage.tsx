@@ -510,7 +510,7 @@ export default function ProjectDetailsPage() {
           {/* جدول الكميات */}
           <TabsContent value="boq" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between text-right">
+              <CardHeader className="flex flex-row-reverse items-center justify-between text-right">
                 <div className="flex-1">
                   <CardTitle className="text-lg">جدول الكميات (BOQ)</CardTitle>
                   <CardDescription>قائمة البنود والكميات المطلوبة للمشروع</CardDescription>
@@ -671,7 +671,7 @@ export default function ProjectDetailsPage() {
           {/* العقود */}
           <TabsContent value="contracts" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between text-right">
+              <CardHeader className="flex flex-row-reverse items-center justify-between text-right">
                 <div className="flex-1">
                   <CardTitle className="text-lg">العقود</CardTitle>
                   <CardDescription>عقود المقاولين والموردين</CardDescription>
@@ -740,7 +740,7 @@ export default function ProjectDetailsPage() {
           {/* الدفعات */}
           <TabsContent value="payments" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between text-right">
+              <CardHeader className="flex flex-row-reverse items-center justify-between text-right">
                 <div className="flex-1">
                   <CardTitle className="text-lg">الدفعات</CardTitle>
                   <CardDescription>سجل الدفعات المالية للمشروع</CardDescription>
