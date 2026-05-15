@@ -1308,48 +1308,48 @@ export default function Quotations() {
 
         {/* Dialog التفاوض */}
         <Dialog open={showNegotiationDialog} onOpenChange={setShowNegotiationDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+          <DialogContent className="max-w-md" dir="rtl">
+            <DialogHeader className="text-right">
+              <DialogTitle className="flex items-center gap-2 justify-start text-right w-full">
                 <Handshake className="h-5 w-5 text-blue-600" />
-                التفاوض على عرض السعر
+                <span>التفاوض على عرض السعر</span>
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-right">
                 أدخل المبلغ المتفق عليه بعد التفاوض مع المورد
               </DialogDescription>
             </DialogHeader>
             {selectedQuotationForNegotiation && (
               <div className="space-y-4">
                 {/* معلومات العرض */}
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">رقم العرض:</span>
-                    <span className="font-medium">{selectedQuotationForNegotiation.quotationNumber}</span>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-right">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">رقم العرض:</span>
+                    <span className="font-medium text-left">{selectedQuotationForNegotiation.quotationNumber}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">المورد:</span>
-                    <span className="font-medium">{selectedQuotationForNegotiation.supplierName}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">المورد:</span>
+                    <span className="font-medium text-left">{selectedQuotationForNegotiation.supplierName}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">المبلغ الأصلي:</span>
-                    <span className="font-bold text-primary">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
+                    <span className="font-bold text-primary text-left">
                       {parseFloat(selectedQuotationForNegotiation.totalAmount || 0).toLocaleString("ar-SA")} ريال
                     </span>
                   </div>
                 </div>
 
                 {/* المبلغ بعد التفاوض */}
-                <div>
-                  <Label>المبلغ بعد التفاوض (ريال) *</Label>
+                <div className="text-right">
+                  <Label className="block mb-2">المبلغ بعد التفاوض (ريال) *</Label>
                   <Input
                     type="number"
                     value={negotiatedAmount}
                     onChange={(e) => setNegotiatedAmount(e.target.value)}
                     placeholder="أدخل المبلغ بعد التفاوض..."
-                    className="mt-1"
+                    className="mt-1 text-right"
                   />
                   {negotiatedAmount && parseFloat(negotiatedAmount) < parseFloat(selectedQuotationForNegotiation.totalAmount || 0) && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800 text-sm flex items-center gap-2">
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800 text-sm flex items-center gap-2 justify-start">
                       <CheckCircle2 className="h-4 w-4" />
                       <span>
                         وفر: {(parseFloat(selectedQuotationForNegotiation.totalAmount || 0) - parseFloat(negotiatedAmount)).toLocaleString("ar-SA")} ريال
@@ -1360,22 +1360,19 @@ export default function Quotations() {
                 </div>
 
                 {/* ملاحظات التفاوض */}
-                <div>
-                  <Label>ملاحظات التفاوض</Label>
+                <div className="text-right">
+                  <Label className="block mb-2">ملاحظات التفاوض</Label>
                   <Textarea
                     value={negotiationNotes}
                     onChange={(e) => setNegotiationNotes(e.target.value)}
                     placeholder="مثال: تم الاتفاق على تخفيض السعر مقابل..."
-                    className="mt-1"
+                    className="mt-1 text-right"
                     rows={3}
                   />
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNegotiationDialog(false)}>
-                إلغاء
-              </Button>
+            <DialogFooter className="flex gap-2 justify-start">
               <Button 
                 onClick={handleSaveNegotiation}
                 disabled={!negotiatedAmount || saveNegotiationMutation.isPending}
@@ -1384,74 +1381,62 @@ export default function Quotations() {
                 {saveNegotiationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 حفظ نتيجة التفاوض
               </Button>
+              <Button variant="outline" onClick={() => setShowNegotiationDialog(false)}>
+                إلغاء
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Dialog اعتماد عرض السعر المتقدمة */}
         <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>اعتماد عرض السعر</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="max-w-md" dir="rtl">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-right">اعتماد عرض السعر</DialogTitle>
+              <DialogDescription className="text-right">
                 يمكنك تعديل المبلغ المعتمد بعد التفاوض مع المورد
               </DialogDescription>
             </DialogHeader>
             {selectedQuotationForApproval && (
               <div className="space-y-4">
                 {/* معلومات العرض */}
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">رقم العرض:</span>
-                    <span className="font-medium">{selectedQuotationForApproval.quotationNumber}</span>
+                <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-right">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">رقم العرض:</span>
+                    <span className="font-medium text-left">{selectedQuotationForApproval.quotationNumber}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">المورد:</span>
-                    <span className="font-medium">{selectedQuotationForApproval.supplierName}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">المورد:</span>
+                    <span className="font-medium text-left">{selectedQuotationForApproval.supplierName}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">المبلغ الأصلي:</span>
-                    <span className="font-bold text-primary">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
+                    <span className="font-bold text-primary text-left">
                       {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
                     </span>
                   </div>
                 </div>
 
                 {/* المبلغ المعتمد */}
-                <div>
-                  <Label>المبلغ المعتمد (ريال) *</Label>
+                <div className="text-right">
+                  <Label className="block mb-2">المبلغ المعتمد (ريال) *</Label>
                   <Input
                     type="number"
                     value={approvedAmount}
                     onChange={(e) => setApprovedAmount(e.target.value)}
                     placeholder="أدخل المبلغ المعتمد..."
-                    className="mt-1"
+                    className="mt-1 text-right"
                   />
                   {approvedAmount && parseFloat(approvedAmount) !== parseFloat(selectedQuotationForApproval.totalAmount || 0) && (
-                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center gap-2">
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center gap-2 justify-start">
                       <AlertCircle className="h-4 w-4" />
                       <span>سيتم اعتماد مبلغ مختلف عن العرض الأصلي</span>
                     </div>
                   )}
                 </div>
-
-                {/* المبرر/الملاحظات */}
-                <div>
-                  <Label>مبرر الاعتماد / ملاحظات</Label>
-                  <Textarea
-                    value={approvalNotes}
-                    onChange={(e) => setApprovalNotes(e.target.value)}
-                    placeholder="مثال: تم التفاوض مع المورد للوصول إلى هذا المبلغ..."
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
-                إلغاء
-              </Button>
+            <DialogFooter className="flex gap-2 justify-start">
               <Button 
                 onClick={handleConfirmApproval}
                 disabled={!approvedAmount || approveQuotationMutation.isPending}
@@ -1459,6 +1444,9 @@ export default function Quotations() {
               >
                 {approveQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 اعتماد العرض
+              </Button>
+              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>
