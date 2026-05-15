@@ -177,7 +177,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
           <div className="flex items-center justify-between min-w-[360px] sm:min-w-0">
             {STEPS.map((step, index) => (
               <React.Fragment key={step.key}>
-                <div className={`flex flex-col items-center shrink-0 ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
+                <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[72px] sm:min-h-[88px] ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
                   <div
                     className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 ${
                       index < currentStepIndex
