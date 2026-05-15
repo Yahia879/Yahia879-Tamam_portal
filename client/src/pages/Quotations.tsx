@@ -776,18 +776,9 @@ export default function Quotations() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              {/* حالة قيد المراجعة */}
-                              {quotation.status === "pending" && (
+                              {/* حالة قيد المراجعة أو التفاوض */}
+                              {(quotation.status === "pending" || quotation.status === "negotiating") && (
                                 <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => handleStartNegotiation(quotation)}
-                                  >
-                                    <Handshake className="h-4 w-4 ml-1" />
-                                    تفاوض
-                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -797,40 +788,6 @@ export default function Quotations() {
                                     <CheckCircle2 className="h-4 w-4 ml-1" />
                                     اعتماد
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600"
-                                    onClick={() => handleRejectQuotation(quotation.id)}
-                                  >
-                                    <XCircle className="h-4 w-4 ml-1" />
-                                    رفض
-                                  </Button>
-                                </>
-                              )}
-                              {/* حالة قيد التفاوض */}
-                              {quotation.status === "negotiating" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => openNegotiationDialog(quotation)}
-                                  >
-                                    <Handshake className="h-4 w-4 ml-1" />
-                                    تسجيل النتيجة
-                                  </Button>
-                                  {quotation.negotiatedAmount && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-green-600"
-                                      onClick={() => handleApproveAfterNegotiation(quotation, true)}
-                                    >
-                                      <CheckCircle2 className="h-4 w-4 ml-1" />
-                                      اعتماد
-                                    </Button>
-                                  )}
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -866,16 +823,6 @@ export default function Quotations() {
                                   إعادة للمراجعة
                                 </Button>
                               )}
-                              {/* زر تصدير PDF */}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-purple-600"
-                                onClick={() => handleExportPDF(quotation)}
-                              >
-                                <FileDown className="h-4 w-4 ml-1" />
-                                PDF
-                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
