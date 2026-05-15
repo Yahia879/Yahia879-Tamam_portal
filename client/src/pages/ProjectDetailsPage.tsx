@@ -29,12 +29,14 @@ import {
   Building,
   Copy,
   Eye,
+  HelpCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -350,63 +352,104 @@ export default function ProjectDetailsPage() {
         </div>
 
         {/* بطاقات المعلومات الرئيسية */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">الميزانية</p>
-                  <p className="font-bold text-foreground">{formatCurrency(project.budget)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TooltipProvider delayDuration={300}>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-4 text-right">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>الميزانية هي قيمة مرتبطة بمجموع بنود جدول الكميات وتظهر بعد اعتماد جدول الكميات</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="font-bold text-foreground">{formatCurrency(project.budget)}</p>
+                  </div>
+                  </div>
+                  </CardContent>
+                  </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">التكلفة الفعلية</p>
-                  <p className="font-bold text-foreground">{formatCurrency(project.actualCost)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  <Card className="border-0 shadow-sm">
+                  <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground font-bold">التكلفة الفعلية</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>هي التكلفة النهائية المتفقة عليها في العقد والتي تشمل نسبة الجمعية</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="font-bold text-foreground">{formatCurrency(project.actualCost)}</p>
+                  </div>
+                  </div>
+                  </CardContent>
+                  </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">نسبة الإنجاز</p>
-                  <p className="font-bold text-foreground">{project.completionPercentage || 0}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  <Card className="border-0 shadow-sm">
+                  <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground font-bold">نسبة الإنجاز</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>النسبة تزداد بشكل تلقائي اعتماداً على اكتمال مراحل المشروع</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="font-bold text-foreground">{project.completionPercentage || 0}%</p>
+                  </div>
+                  </div>
+                  </CardContent>
+                  </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-right">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">مدير المشروع</p>
-                  <p className="font-bold text-foreground">{project.managerName || "غير محدد"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  <Card className="border-0 shadow-sm">
+                  <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground font-bold">مدير المشروع</p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>هو المسؤول عن إدارة المشروع</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <p className="font-bold text-foreground">{project.managerName || "غير محدد"}</p>
+                  </div>
+                  </div>
+                  </CardContent>
+                  </Card>          </div>
+        </TooltipProvider>
 
         {/* شريط التقدم */}
         <Card className="border-0 shadow-sm">
