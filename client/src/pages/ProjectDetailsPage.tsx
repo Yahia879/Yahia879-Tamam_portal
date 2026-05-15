@@ -784,13 +784,15 @@ export default function ProjectDetailsPage() {
                   <CardTitle className="text-lg">العقود</CardTitle>
                   <CardDescription>عقود المقاولين والموردين</CardDescription>
                 </div>
-                <Button 
-                  className="gradient-primary text-white" 
-                  onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
-                >
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة عقد
-                </Button>
+                {(!project.contracts || project.contracts.length === 0) && (
+                  <Button 
+                    className="gradient-primary text-white" 
+                    onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة عقد
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {project.contracts && project.contracts.length > 0 ? (
@@ -802,7 +804,7 @@ export default function ProjectDetailsPage() {
                         <TableHead className="text-right">نوع العقد</TableHead>
                         <TableHead className="text-right">القيمة</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-right">الإجراءات</TableHead>
+                        <TableHead className="text-center">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -819,8 +821,8 @@ export default function ProjectDetailsPage() {
                                contract.status === "completed" ? "مكتمل" : "منتهي"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center gap-2 justify-end">
+                          <TableCell className="text-center">
+                            <div className="flex items-center gap-2 justify-center">
                               <Button
                                 variant="ghost"
                                 size="icon"
