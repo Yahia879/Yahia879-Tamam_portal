@@ -147,7 +147,7 @@ export default function ProjectDetailsPage() {
     },
   });
 
-  // تحديث مرحلة
+  // تحديث مرحلة المشروع
   const updatePhaseMutation = trpc.projects.updatePhase.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث المرحلة بنجاح");
@@ -155,6 +155,16 @@ export default function ProjectDetailsPage() {
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث المرحلة");
+    },
+  });
+
+  // تحديث مرحلة الطلب
+  const updateRequestStageMutation = trpc.requests.updateStage.useMutation({
+    onSuccess: () => {
+      console.log('[Sync] Request stage updated to financial_eval_and_approval');
+    },
+    onError: (error) => {
+      console.error('[Sync] Error updating request stage:', error);
     },
   });
 
@@ -214,6 +224,13 @@ export default function ProjectDetailsPage() {
           id: phase3.id,
           status: "in_progress",
           completionPercentage: 0,
+        });
+      }
+
+      if (project?.requestId) {
+        await updateRequestStageMutation.mutateAsync({
+          requestId: project.requestId,
+          newStage: 'financial_eval_and_approval' as any,
         });
       }
       
