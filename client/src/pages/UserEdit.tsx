@@ -134,71 +134,71 @@ export default function UserEdit() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-2xl mx-auto py-8">
+      <div className="container max-w-2xl mx-auto px-4 py-6 sm:py-8">
         {/* رأس الصفحة */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6">
           <Link href={`/users/${userId}`}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="shrink-0">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">تعديل بيانات المستخدم</h1>
-            <p className="text-muted-foreground text-sm">{user.name}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">تعديل بيانات المستخدم</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm truncate">{user.name}</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle>البيانات الأساسية</CardTitle>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-base sm:text-lg">البيانات الأساسية</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="name">الاسم الكامل</Label>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs sm:text-sm">الاسم الكامل</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="أدخل الاسم الكامل"
-                  className="mt-1"
+                  className="h-9 sm:h-10 text-xs sm:text-sm mt-1"
                   required
                   maxLength={60}
                 />
               </div>
 
-              <div>
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs sm:text-sm">البريد الإلكتروني</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="example@domain.com"
-                  className="mt-1"
+                  className="h-9 sm:h-10 text-xs sm:text-sm mt-1"
                   required
                 />
               </div>
 
-              <div>
-                <Label htmlFor="phone">رقم الجوال</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-xs sm:text-sm">رقم الجوال</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="05xxxxxxxx"
-                  className="mt-1"
+                  className="h-9 sm:h-10 text-xs sm:text-sm mt-1"
                   dir="ltr"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="role">الدور الوظيفي</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="role" className="text-xs sm:text-sm">الدور الوظيفي</Label>
                 <Select
                   value={formData.role}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm mt-1">
                     <SelectValue placeholder="اختر الدور" />
                   </SelectTrigger>
                   <SelectContent>
@@ -211,13 +211,13 @@ export default function UserEdit() {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="status">حالة الحساب</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="status" className="text-xs sm:text-sm">حالة الحساب</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm mt-1">
                     <SelectValue placeholder="اختر الحالة" />
                   </SelectTrigger>
                   <SelectContent>
@@ -232,10 +232,10 @@ export default function UserEdit() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               type="submit"
-              className="gradient-primary text-white"
+              className="gradient-primary text-white w-full sm:w-auto h-10 order-first sm:order-none"
               disabled={updateMutation.isPending}
             >
               {updateMutation.isPending ? (
@@ -245,8 +245,8 @@ export default function UserEdit() {
               )}
               حفظ التغييرات
             </Button>
-            <Link href={`/users/${userId}`}>
-              <Button type="button" variant="outline">إلغاء</Button>
+            <Link href={`/users/${userId}`} className="w-full sm:w-auto">
+              <Button type="button" variant="outline" className="w-full h-10">إلغاء</Button>
             </Link>
           </div>
         </form>
