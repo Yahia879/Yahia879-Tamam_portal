@@ -157,25 +157,25 @@ export default function Register() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-muted/30">
-        <Card className="w-full max-w-md border-0 shadow-lg">
-          <CardContent className="pt-8 pb-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-muted/30">
+        <Card className="w-full max-w-[95%] sm:max-w-md border-0 shadow-lg rounded-2xl sm:rounded-3xl transition-all duration-300">
+          <CardContent className="pt-8 pb-8 px-5 sm:px-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 shadow-sm">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">تم التسجيل بنجاح!</h2>
-            <p className="text-muted-foreground mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">تم التسجيل بنجاح!</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mb-6">
               تم إنشاء حسابك بنجاح. يرجى انتظار اعتماد حسابك من قبل الإدارة.
               سيتم إشعارك عبر البريد الإلكتروني عند تفعيل حسابك.
             </p>
             <div className="space-y-3">
               <Link href="/login">
-                <Button className="w-full gradient-primary text-white">
+                <Button className="w-full gradient-primary text-white font-semibold">
                   الذهاب لتسجيل الدخول
                 </Button>
               </Link>
               <Link href="/">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full font-medium">
                   العودة للصفحة الرئيسية
                 </Button>
               </Link>
@@ -187,50 +187,51 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-2 sm:p-4 md:p-8">
       {/* النموذج في الوسط */}
-      <div className="w-full max-w-lg p-8">
+      <div className="w-full max-w-lg">
         <div className="w-full">
           {/* الشعار */}
-          <Link href="/" className="flex flex-col items-center mb-8">
+          <Link href="/" className="flex flex-col items-center mb-6 sm:mb-8">
             <img
               src="/logo.svg"
               alt="شعار بوابة تمام"
-              className="h-20 mb-3"
+              className="h-16 sm:h-20 mb-3 object-contain"
             />
             <div className="text-center">
-              <h1 className="font-bold text-xl text-foreground">بوابة تمام</h1>
-              <p className="text-sm text-muted-foreground">للعناية بالمساجد</p>
+              <h1 className="font-bold text-lg sm:text-xl text-foreground">بوابة تمام</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">للعناية بالمساجد</p>
             </div>
           </Link>
 
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-2xl">إنشاء حساب جديد</CardTitle>
-              <CardDescription>
+          <Card className="border-0 shadow-xl rounded-2xl sm:rounded-3xl transition-all duration-300">
+            <CardHeader className="space-y-1 pb-4 px-5 sm:px-8 pt-6 sm:pt-8">
+              <CardTitle className="text-xl sm:text-2xl font-bold">إنشاء حساب جديد</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
                 سجل كطالب خدمة للاستفادة من خدمات البوابة
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-5 sm:px-8 pb-6 sm:pb-8">
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* الاسم الكامل */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">الاسم الكامل <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
                   <Input
                     id="name"
                     placeholder="أدخل اسمك الكامل"
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     required
+                    className="h-10 sm:h-11"
                   />
                   {formData.name.trim().length > 60 && (
-                    <p className="text-xs text-destructive">الاسم يجب ألا يتجاوز 60 حرف</p>
+                    <p className="text-[10px] sm:text-xs text-destructive">الاسم يجب ألا يتجاوز 60 حرف</p>
                   )}
                 </div>
 
                 {/* البريد الإلكتروني */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني <span className="text-destructive">*</span></Label>
                   <Input
                     id="email"
                     type="email"
@@ -238,15 +239,15 @@ export default function Register() {
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                     required
-                    className="text-left"
+                    className="text-left h-10 sm:h-11"
                     dir="ltr"
                   />
                 </div>
 
                 {/* رقم الجوال ورقم الهوية */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">رقم الجوال <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">رقم الجوال <span className="text-destructive">*</span></Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -256,15 +257,15 @@ export default function Register() {
                       required
                       pattern="05[0-9]{8}"
                       maxLength={10}
-                      className="text-left"
+                      className="text-left h-10 sm:h-11"
                       dir="ltr"
                     />
                     {formData.phone && !/^05[0-9]{8}$/.test(formData.phone) && (
-                      <p className="text-xs text-destructive">يجب أن يكون الرقم بصيغة 05XXXXXXXX (10 أرقام)</p>
+                      <p className="text-[10px] sm:text-xs text-destructive">يجب أن يكون الرقم بصيغة 05XXXXXXXX (10 أرقام)</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="nationalId">رقم الهوية</Label>
+                    <Label htmlFor="nationalId" className="text-sm font-medium">رقم الهوية</Label>
                     <Input
                       id="nationalId"
                       placeholder="رقم الهوية الوطنية"
@@ -272,18 +273,18 @@ export default function Register() {
                       onChange={(e) => handleChange("nationalId", e.target.value)}
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      className="text-left"
+                      className="text-left h-10 sm:h-11"
                       dir="ltr"
                     />
                   </div>
                 </div>
 
                 {/* المدينة وصفة طالب الخدمة */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city">المدينة</Label>
+                    <Label htmlFor="city" className="text-sm font-medium">المدينة</Label>
                     <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 sm:h-11">
                         <SelectValue placeholder="اختر المدينة" />
                       </SelectTrigger>
                       <SelectContent>
@@ -294,9 +295,9 @@ export default function Register() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="requesterType">صفة طالب الخدمة <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="requesterType" className="text-sm font-medium">صفة طالب الخدمة <span className="text-destructive">*</span></Label>
                     <Select value={formData.requesterType} onValueChange={(value) => handleChange("requesterType", value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-10 sm:h-11">
                         <SelectValue placeholder="اختر الصفة" />
                       </SelectTrigger>
                       <SelectContent>
@@ -311,12 +312,13 @@ export default function Register() {
                 {/* حقل الصفة الأخرى */}
                 {formData.requesterType === "other" && (
                   <div className="space-y-2">
-                    <Label htmlFor="otherType">حدد صفتك <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="otherType" className="text-sm font-medium">حدد صفتك <span className="text-destructive">*</span></Label>
                     <Input
                       id="otherType"
                       placeholder="أدخل صفتك"
                       value={formData.otherType}
                       onChange={(e) => handleChange("otherType", e.target.value)}
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 )}
@@ -324,8 +326,8 @@ export default function Register() {
                 {/* حقل رفع المرفق للإمام والمؤذن */}
                 {["imam", "muezzin"].includes(formData.requesterType) && (
                   <div className="space-y-2">
-                    <Label htmlFor="proofFile">رفع مرفق يثبت الصفة <span className="text-destructive">*</span></Label>
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors">
+                    <Label htmlFor="proofFile" className="text-sm font-medium">رفع مرفق يثبت الصفة <span className="text-destructive">*</span></Label>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-4 sm:p-6 text-center cursor-pointer hover:border-primary/50 transition-colors bg-muted/10">
                       <input
                         id="proofFile"
                         type="file"
@@ -336,13 +338,14 @@ export default function Register() {
                       <label htmlFor="proofFile" className="cursor-pointer block">
                         <div className="text-sm text-muted-foreground">
                           {formData.proofFile ? (
-                            <div className="text-green-600 font-medium">
-                              ✓ {formData.proofFile.name}
+                            <div className="text-green-600 font-medium flex items-center justify-center gap-2">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span className="truncate max-w-[200px]">{formData.proofFile.name}</span>
                             </div>
                           ) : (
                             <>
-                              <p className="mb-1">اضغط لاختيار ملف أو اسحبه هنا</p>
-                              <p className="text-xs">PDF، صور، أو مستندات</p>
+                              <p className="mb-1 font-medium">اضغط لاختيار ملف أو اسحبه هنا</p>
+                              <p className="text-[10px] sm:text-xs">PDF، صور، أو مستندات</p>
                             </>
                           )}
                         </div>
@@ -353,7 +356,7 @@ export default function Register() {
 
                 {/* كلمة المرور */}
                 <div className="space-y-2">
-                  <Label htmlFor="password">كلمة المرور <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="password" title="8 أحرف على الأقل" className="text-sm font-medium">كلمة المرور <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -363,12 +366,12 @@ export default function Register() {
                       onChange={(e) => handleChange("password", e.target.value)}
                       required
                       minLength={8}
-                      className="pl-10"
+                      className="pl-10 h-10 sm:h-11"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -377,7 +380,7 @@ export default function Register() {
 
                 {/* تأكيد كلمة المرور */}
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">تأكيد كلمة المرور <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="confirmPassword" title="أعد إدخال كلمة المرور" className="text-sm font-medium">تأكيد كلمة المرور <span className="text-destructive">*</span></Label>
                   <div className="relative">
                     <Input
                       id="confirmPassword"
@@ -386,12 +389,12 @@ export default function Register() {
                       value={formData.confirmPassword}
                       onChange={(e) => handleChange("confirmPassword", e.target.value)}
                       required
-                      className="pl-10"
+                      className="pl-10 h-10 sm:h-11"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -400,7 +403,7 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  className="w-full gradient-primary text-white"
+                  className="w-full gradient-primary text-white h-10 sm:h-11 font-bold shadow-md hover:shadow-lg transition-all"
                   disabled={registerMutation.isPending}
                 >
                   {registerMutation.isPending ? (
@@ -417,7 +420,7 @@ export default function Register() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   لديك حساب بالفعل؟{" "}
-                  <Link href="/login" className="text-primary hover:underline font-medium">
+                  <Link href="/login" className="text-primary hover:underline font-bold">
                     تسجيل الدخول
                   </Link>
                 </p>
@@ -425,7 +428,7 @@ export default function Register() {
             </CardContent>
           </Card>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-[10px] sm:text-xs text-muted-foreground px-4">
             بإنشاء حساب، أنت توافق على{" "}
             <a href="#" className="text-primary hover:underline">شروط الاستخدام</a>
             {" "}و{" "}
