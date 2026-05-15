@@ -61,10 +61,6 @@ export default function RequestDetailsNew() {
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
-  // States for revert stage
-  const [showRevertDialog, setShowRevertDialog] = useState(false);
-  const [revertReason, setRevertReason] = useState("");
-
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
@@ -176,17 +172,6 @@ export default function RequestDetailsNew() {
       setSelectedManagerId(null);
       setStartDate("");
       setExpectedEndDate("");
-      utils.requests.getById.invalidate({ id: requestId });
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-  const revertStageMutation = trpc.requests.revertStage.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.message);
-      setShowRevertDialog(false);
-      setRevertReason("");
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
@@ -514,22 +499,6 @@ export default function RequestDetailsNew() {
               }
             />
             
-            {/* زر الرجوع للمرحلة السابقة - يظهر أسفل بطاقة الإجراء النشط */}
-            {['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '') &&
-              !['submitted', 'closed'].includes(request.currentStage) && (
-              <div className="mt-3 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRevertDialog(true)}
-                  className="text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                >
-                  <RotateCcw className="w-4 h-4 ml-2" />
-                  رجوع للمرحلة السابقة
-                </Button>
-              </div>
-            )}
-
             {/* قسم المراجعة الأولية */}
             {request.currentStage === 'initial_review' && (
               <div className="mt-6 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border-2 border-blue-200">
@@ -1285,64 +1254,6 @@ export default function RequestDetailsNew() {
         <BoqTab requestId={requestId} />
       </ColoredDialog>
 
-      {/* نافذة الرجوع للمرحلة السابقة */}
-      {showRevertDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                <RotateCcw className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">الرجوع للمرحلة السابقة</h3>
-                <p className="text-sm text-muted-foreground">تصحيح خطأ في المرحلة الحالية</p>
-              </div>
-            </div>
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                ⚠️ سيتم الرجوع من المرحلة الحالية إلى المرحلة السابقة. هذا الإجراء يُسجَّل في سجل الطلب.
-              </p>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">
-                سبب الرجوع <span className="text-red-500">*</span>
-              </label>
-              <Textarea
-                value={revertReason}
-                onChange={(e) => setRevertReason(e.target.value)}
-                placeholder="اذكر سبب الرجوع للمرحلة السابقة..."
-                rows={3}
-                className="w-full"
-              />
-            </div>
-            <div className="flex gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowRevertDialog(false);
-                  setRevertReason("");
-                }}
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={() => {
-                  if (!revertReason.trim() || revertReason.trim().length < 5) {
-                    toast.error("يجب ذكر سبب الرجوع (5 أحرف على الأقل)");
-                    return;
-                  }
-                  revertStageMutation.mutate({ requestId, reason: revertReason });
-                }}
-                disabled={revertStageMutation.isPending}
-                className="bg-amber-500 hover:bg-amber-600 text-white"
-              >
-                <RotateCcw className="w-4 h-4 ml-2" />
-                {revertStageMutation.isPending ? 'جاري...' : 'تأكيد الرجوع'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
