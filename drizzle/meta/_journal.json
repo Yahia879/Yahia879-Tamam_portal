@@ -407,6 +407,13 @@
       "when": 1778794573366,
       "tag": "0057_sparkling_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "5",
+      "when": 1778833798519,
+      "tag": "0058_nebulous_black_queen",
+      "breakpoints": true
     }
   ]
 }

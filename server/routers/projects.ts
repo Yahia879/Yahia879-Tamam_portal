@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -141,6 +141,21 @@ export const projectsRouter = router({
         .where(eq(projectPhases.projectId, input.id))
         .orderBy(projectPhases.phaseOrder);
 
+      // جلب ملاحظات التقييم الفني من الطلب المرتبط
+      const evaluations = project.requestId ? await db
+        .select({
+          id: requestEvaluations.id,
+          decision: requestEvaluations.decision,
+          justification: requestEvaluations.justification,
+          notes: requestEvaluations.notes,
+          createdAt: requestEvaluations.createdAt,
+          userName: users.name,
+        })
+        .from(requestEvaluations)
+        .leftJoin(users, eq(requestEvaluations.userId, users.id))
+        .where(eq(requestEvaluations.requestId, project.requestId))
+        .orderBy(desc(requestEvaluations.createdAt)) : [];
+
       // جلب العقود (من جدول contracts_enhanced)
       const projectContracts = await db
         .select({
@@ -257,6 +272,7 @@ export const projectsRouter = router({
         ...project,
         request,
         phases,
+        evaluations,
         contracts: projectContracts,
         payments: unifiedPayments,
         boq,

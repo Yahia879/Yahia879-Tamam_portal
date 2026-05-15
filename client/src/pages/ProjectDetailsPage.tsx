@@ -407,6 +407,46 @@ export default function ProjectDetailsPage() {
                 </Card>
               )}
             </div>
+
+            {/* ملاحظات التقييم الفني */}
+            {(project as any).evaluations && (project as any).evaluations.length > 0 && (
+              <Card className="border-0 shadow-sm mt-6" dir="rtl">
+                <CardHeader className="text-right">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    ملاحظات التقييم الفني
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {(project as any).evaluations.map((evalNote: any) => (
+                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-lg space-y-2 border border-muted/50 text-right">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-primary">{evalNote.userName || "موظف التقييم"}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            {new Date(evalNote.createdAt).toLocaleString("ar-SA")}
+                          </span>
+                        </div>
+                        <div className="text-sm space-y-2">
+                          {evalNote.justification && (
+                            <div>
+                              <span className="text-muted-foreground block text-xs mb-1">المبررات:</span>
+                              <p className="whitespace-pre-wrap text-foreground font-medium leading-relaxed">{evalNote.justification}</p>
+                            </div>
+                          )}
+                          {evalNote.notes && (
+                            <div>
+                              <span className="text-muted-foreground block text-xs mb-1">ملاحظات إضافية:</span>
+                              <p className="whitespace-pre-wrap text-foreground leading-relaxed">{evalNote.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* المراحل */}

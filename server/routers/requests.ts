@@ -8,6 +8,7 @@ import {
   requestAttachments, 
   requestComments, 
   requestHistory,
+  requestEvaluations,
   mosques,
   users,
   auditLogs,
@@ -1060,6 +1061,8 @@ export const requestsRouter = router({
       // تحديث الطلب حسب القرار
       const updateData: any = {
         status: option.resultStatus,
+        technicalEvalDecision: input.decision,
+        technicalEvalJustification: input.justification || input.notes,
       };
 
       // تحديد المرحلة التالية
@@ -1078,6 +1081,15 @@ export const requestsRouter = router({
       }
 
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      // إضافة سجل في جدول التقييمات الفنية
+      await db.insert(requestEvaluations).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        decision: input.decision,
+        justification: input.justification || null,
+        notes: input.notes || null,
+      });
 
       // إضافة سجل في تاريخ الطلب
       const actionNote = input.justification 

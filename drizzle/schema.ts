@@ -303,6 +303,16 @@ export const requestHistory = mysqlTable("request_history", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const requestEvaluations = mysqlTable("request_evaluations", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }),
+  decision: varchar("decision", { length: 50 }),
+  justification: text("justification"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 // ==================== جداول التقارير ====================
 
 // تقارير الزيارات الميدانية (نموذج المعاينة الميدانية)
