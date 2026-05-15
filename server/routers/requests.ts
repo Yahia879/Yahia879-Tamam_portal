@@ -657,6 +657,26 @@ export const requestsRouter = router({
         }
       }
 
+      // تحديث تقدم المشروع المرتبط عند الانتقال لمرحلة التنفيذ
+      if (input.newStage === 'execution') {
+        const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+        if (project) {
+          // تحديث نسبة إنجاز المشروع إلى 67% (4/6) وتحديث الحالة
+          await db.update(projects)
+            .set({ completionPercentage: 67, status: 'in_progress' })
+            .where(eq(projects.id, project.id));
+
+          // تحديث المراحل: إكمال المرحلة الرابعة (التعاقد) وبدء المرحلة الخامسة (صرف المدفوعات)
+          await db.update(projectPhases)
+            .set({ status: 'completed', completionPercentage: 100 })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 4)));
+          
+          await db.update(projectPhases)
+            .set({ status: 'in_progress' })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 5)));
+        }
+      }
+
       // إضافة سجل في تاريخ الطلب
       const newStageName = STAGE_LABELS[input.newStage] || input.newStage;
       await db.insert(requestHistory).values({
