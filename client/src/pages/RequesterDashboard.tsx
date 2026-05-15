@@ -139,13 +139,13 @@ export default function RequesterDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         {/* رسالة الترحيب */}
-        <div className="mb-8 text-center max-w-full overflow-hidden px-4">
-          <h1 className="text-3xl font-bold text-foreground mb-2 break-words line-clamp-2" title={user?.name}>
+        <div className="mb-8 text-center max-w-full overflow-hidden px-2 sm:px-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 break-words line-clamp-2" title={user?.name}>
             مرحباً، {user?.name}
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-base sm:text-lg">
             نسعد بخدمتك في بوابة تمام للعناية بالمساجد
           </p>
         </div>
@@ -154,74 +154,74 @@ export default function RequesterDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
           <Link href="/request-form-dynamic">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group bg-gradient-to-br from-primary to-primary/80 text-white">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Plus className="w-8 h-8" />
+              <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                  <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg">تقديم طلب جديد</h3>
-                  <p className="text-white/80 text-sm">اطلب خدمة لمسجدك</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-base sm:text-lg truncate">تقديم طلب جديد</h3>
+                  <p className="text-white/80 text-xs sm:text-sm truncate">اطلب خدمة لمسجدك</p>
                 </div>
-                <ArrowLeft className="w-5 h-5 mr-auto opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all" />
+                <ArrowLeft className="w-5 h-5 mr-auto opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all flex-shrink-0" />
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/requester/mosques/new">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all cursor-pointer group">
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Building2 className="w-8 h-8 text-primary" />
+              <CardContent className="p-4 sm:p-6 flex items-center gap-3 sm:gap-4">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                  <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg text-foreground">تسجيل مسجد</h3>
-                  <p className="text-muted-foreground text-sm">أضف مسجداً جديداً</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-base sm:text-lg text-foreground truncate">تسجيل مسجد</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm truncate">أضف مسجداً جديداً</p>
                 </div>
-                <ArrowLeft className="w-5 h-5 mr-auto text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all" />
+                <ArrowLeft className="w-5 h-5 mr-auto text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:-translate-x-1 transition-all flex-shrink-0" />
               </CardContent>
             </Card>
           </Link>
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <FileText className="w-5 h-5 text-primary" />
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{myRequests?.length || 0}</p>
-              <p className="text-xs text-muted-foreground">إجمالي الطلبات</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{myRequests?.length || 0}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">إجمالي الطلبات</p>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-2">
-                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{pendingRequests.length}</p>
-              <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{pendingRequests.length}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">قيد الانتظار</p>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-2">
-                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-2">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{inProgressRequests.length}</p>
-              <p className="text-xs text-muted-foreground">قيد التنفيذ</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{inProgressRequests.length}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">قيد التنفيذ</p>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <CardContent className="p-3 sm:p-4 text-center">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
               </div>
-              <p className="text-2xl font-bold text-foreground">{completedRequests.length}</p>
-              <p className="text-xs text-muted-foreground">مكتملة</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground">{completedRequests.length}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">مكتملة</p>
             </CardContent>
           </Card>
         </div>
@@ -229,24 +229,24 @@ export default function RequesterDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* طلباتي مع نسبة التقدم */}
           <Card className="lg:col-span-2 border-0 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <FileText className="w-5 h-5 text-primary" />
                     طلباتي
                   </CardTitle>
-                  <CardDescription>متابعة تقدم طلباتك</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">متابعة تقدم طلباتك</CardDescription>
                 </div>
                 <Link href="/my-requests">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                     عرض الكل
                     <ChevronLeft className="w-4 h-4 mr-1" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               {isLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
@@ -254,32 +254,32 @@ export default function RequesterDashboard() {
                   ))}
                 </div>
               ) : myRequests && myRequests.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {myRequests.slice(0, 5).map((request) => {
                     const progress = getProgressPercentage(request.currentStage);
                     return (
                       <Link key={request.id} href={`/requests/${request.id}`}>
-                        <div className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
+                        <div className="p-3 sm:p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
                           <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <ProgramIcon program={request.programType} size="lg" showBackground />
-                              <div>
-                                <p className="font-medium text-foreground">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                              <ProgramIcon program={request.programType} size="md" showBackground />
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm sm:text-base text-foreground truncate">
                                   {PROGRAM_LABELS[request.programType]}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                   {request.requestNumber}
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Percent className="w-4 h-4 text-primary" />
-                              <span className="text-lg font-bold text-primary">{progress}%</span>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                              <Percent className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                              <span className="text-base sm:text-lg font-bold text-primary">{progress}%</span>
                             </div>
                           </div>
                           <div className="space-y-1">
-                            <Progress value={progress} className="h-2" />
-                            <p className="text-xs text-muted-foreground text-left">
+                            <Progress value={progress} className="h-1.5 sm:h-2" />
+                            <p className="text-[10px] sm:text-xs text-muted-foreground text-left">
                               {progress === 100 ? "مكتمل" : "جاري المعالجة..."}
                             </p>
                           </div>
@@ -289,13 +289,13 @@ export default function RequesterDashboard() {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-muted-foreground" />
+                <div className="text-center py-8 sm:py-12">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                   </div>
-                  <p className="text-muted-foreground mb-4">لا توجد طلبات حتى الآن</p>
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4">لا توجد طلبات حتى الآن</p>
                   <Link href="/request-form-dynamic">
-                    <Button className="gradient-primary text-white">
+                    <Button className="gradient-primary text-white w-full sm:w-auto">
                       <Plus className="w-4 h-4 ml-2" />
                       تقديم طلب جديد
                     </Button>
@@ -307,24 +307,24 @@ export default function RequesterDashboard() {
 
           {/* الإشعارات */}
           <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <Bell className="w-5 h-5 text-primary" />
                     الإشعارات
                   </CardTitle>
-                  <CardDescription>آخر التحديثات</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">آخر التحديثات</CardDescription>
                 </div>
                 <Link href="/notifications">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                     عرض الكل
                     <ChevronLeft className="w-4 h-4 mr-1" />
                   </Button>
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               {notifications?.notifications && notifications.notifications.length > 0 ? (
                 <div className="space-y-3">
                   {notifications.notifications.slice(0, 5).map((notification: any) => (
@@ -341,7 +341,7 @@ export default function RequesterDashboard() {
                         {notification.message}
                       </p>
                       {!notification.isRead && (
-                        <Badge variant="secondary" className="mt-2 text-xs">
+                        <Badge variant="secondary" className="mt-2 text-[10px] h-5">
                           جديد
                         </Badge>
                       )}
@@ -349,11 +349,11 @@ export default function RequesterDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                    <Bell className="w-6 h-6 text-muted-foreground" />
+                <div className="text-center py-6 sm:py-8">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                    <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground">لا توجد إشعارات</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">لا توجد إشعارات</p>
                 </div>
               )}
             </CardContent>
@@ -362,37 +362,37 @@ export default function RequesterDashboard() {
 
         {/* مساجدي */}
         <Card className="mt-6 border-0 shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <Building2 className="w-5 h-5 text-primary" />
                   مساجدي
                 </CardTitle>
-                <CardDescription>المساجد المسجلة باسمك</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">المساجد المسجلة باسمك</CardDescription>
               </div>
               <Link href="/my-mosques">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" className="w-full sm:w-auto">
                   عرض الكل
                   <ChevronLeft className="w-4 h-4 mr-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             {myMosques && myMosques.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {myMosques.slice(0, 4).map((mosque) => (
                   <Link key={mosque.id} href={`/mosques/${mosque.id}`}>
-                    <div className="p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-                        <Building2 className="w-6 h-6 text-primary" />
+                    <div className="p-3 sm:p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                        <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                       </div>
-                      <p className="font-medium text-foreground truncate">{mosque.name}</p>
-                      <p className="text-sm text-muted-foreground truncate">{mosque.city}</p>
+                      <p className="font-medium text-sm sm:text-base text-foreground truncate">{mosque.name}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{mosque.city}</p>
                       <Badge 
                         variant={mosque.approvalStatus === 'approved' ? 'default' : 'secondary'} 
-                        className="mt-2 text-xs"
+                        className="mt-2 text-[10px] h-5"
                       >
                         {mosque.approvalStatus === 'approved' ? 'معتمد' : 
                          mosque.approvalStatus === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
@@ -402,13 +402,13 @@ export default function RequesterDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                  <Building2 className="w-6 h-6 text-muted-foreground" />
+              <div className="text-center py-6 sm:py-8">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">لا توجد مساجد مسجلة</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">لا توجد مساجد مسجلة</p>
                 <Link href="/requester/mosques/new">
-                  <Button variant="outline">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 ml-2" />
                     تسجيل مسجد
                   </Button>
