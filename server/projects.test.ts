@@ -159,9 +159,9 @@ describe("Projects Router", () => {
       }
 
       const defaultPhases = [
-        { phaseName: "التخطيط والتصميم", phaseOrder: 1 },
-        { phaseName: "التعاقد", phaseOrder: 2 },
-        { phaseName: "التنفيذ", phaseOrder: 3 },
+        { phaseName: "المرحلة الأولى : التخطيط والتسليم", phaseOrder: 1 },
+        { phaseName: "المرحلة الثانية : إعداد جدول الكميات", phaseOrder: 2 },
+        { phaseName: "المرحلة الثالثة : اعتماد عرض السعر المناسب", phaseOrder: 3 },
       ];
 
       for (const phase of defaultPhases) {
@@ -176,10 +176,11 @@ describe("Projects Router", () => {
       const phases = await db
         .select()
         .from(projectPhases)
-        .where(eq(projectPhases.projectId, testProjectId));
+        .where(eq(projectPhases.projectId, testProjectId))
+        .orderBy(projectPhases.phaseOrder);
 
       expect(phases.length).toBeGreaterThanOrEqual(3);
-      expect(phases[0].phaseName).toBe("التخطيط والتصميم");
+      expect(phases[0].phaseName).toBe("المرحلة الأولى : التخطيط والتسليم");
       expect(phases[0].status).toBe("in_progress");
     });
 

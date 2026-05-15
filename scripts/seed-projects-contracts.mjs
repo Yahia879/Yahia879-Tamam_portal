@@ -99,11 +99,12 @@ for (const request of requests) {
 
   // 3. إنشاء مراحل المشروع
   const phases = [
-    { name: 'التخطيط والتصميم', order: 1, progress: request.id === 6 ? 100 : 0 },
-    { name: 'الأعمال التحضيرية', order: 2, progress: request.id === 6 ? 100 : 0 },
-    { name: 'الأعمال الإنشائية', order: 3, progress: request.id === 6 ? 50 : 0 },
-    { name: 'التشطيبات', order: 4, progress: 0 },
-    { name: 'التسليم', order: 5, progress: 0 },
+    { name: 'المرحلة الأولى : التخطيط والتسليم', order: 1, progress: request.id === 6 ? 100 : 0 },
+    { name: 'المرحلة الثانية : إعداد جدول الكميات', order: 2, progress: request.id === 6 ? 100 : 0 },
+    { name: 'المرحلة الثالثة : اعتماد عرض السعر المناسب', order: 3, progress: request.id === 6 ? 50 : 0 },
+    { name: 'المرحلة الرابعة : التعاقد', order: 4, progress: 0 },
+    { name: 'المرحلة الخامسة : صرف المدفوعات', order: 5, progress: 0 },
+    { name: 'المرحلة السادسة : المراجعة والإغلاق', order: 6, progress: 0 },
   ];
 
   for (const phase of phases) {

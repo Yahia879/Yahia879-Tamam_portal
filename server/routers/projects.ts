@@ -327,11 +327,12 @@ export const projectsRouter = router({
 
       // إنشاء المراحل الافتراضية
       const defaultPhases = [
-        { phaseName: "التخطيط والتصميم", phaseOrder: 1 },
-        { phaseName: "التعاقد", phaseOrder: 2 },
-        { phaseName: "التنفيذ", phaseOrder: 3 },
-        { phaseName: "المراجعة والاستلام", phaseOrder: 4 },
-        { phaseName: "الإغلاق", phaseOrder: 5 },
+        { phaseName: "المرحلة الأولى : التخطيط والتسليم", phaseOrder: 1 },
+        { phaseName: "المرحلة الثانية : إعداد جدول الكميات", phaseOrder: 2 },
+        { phaseName: "المرحلة الثالثة : اعتماد عرض السعر المناسب", phaseOrder: 3 },
+        { phaseName: "المرحلة الرابعة : التعاقد", phaseOrder: 4 },
+        { phaseName: "المرحلة الخامسة : صرف المدفوعات", phaseOrder: 5 },
+        { phaseName: "المرحلة السادسة : المراجعة والإغلاق", phaseOrder: 6 },
       ];
 
       for (const phase of defaultPhases) {

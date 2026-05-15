@@ -329,7 +329,7 @@ export default function ProjectDetailsPage() {
         </Card>
 
         {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="phases">المراحل</TabsTrigger>
