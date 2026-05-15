@@ -59,6 +59,8 @@ export default function RequestDetailsNew() {
   const [justification, setJustification] = useState("");
   const [projectName, setProjectName] = useState("");
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [expectedEndDate, setExpectedEndDate] = useState("");
   // States for revert stage
   const [showRevertDialog, setShowRevertDialog] = useState(false);
   const [revertReason, setRevertReason] = useState("");
@@ -172,6 +174,8 @@ export default function RequestDetailsNew() {
       setJustification("");
       setProjectName("");
       setSelectedManagerId(null);
+      setStartDate("");
+      setExpectedEndDate("");
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
@@ -1054,6 +1058,32 @@ export default function RequestDetailsNew() {
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">سيتم إسناد المشروع لهذا المدير فور إنشائه</p>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">
+                      تاريخ البدء <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">
+                      الانتهاء المتوقع <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={expectedEndDate}
+                      onChange={(e) => setExpectedEndDate(e.target.value)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
               </div>
             )}
             {/* ملاحظات إضافية (اختياري) */}
@@ -1078,6 +1108,8 @@ export default function RequestDetailsNew() {
                   setJustification("");
                   setProjectName("");
                   setSelectedManagerId(null);
+                  setStartDate("");
+                  setExpectedEndDate("");
                 }}
               >
                 إلغاء
@@ -1092,18 +1124,24 @@ export default function RequestDetailsNew() {
                     toast.error("يجب اختيار مدير للمشروع");
                     return;
                   }
+                  if (selectedDecision === 'convert_to_project' && (!startDate || !expectedEndDate)) {
+                    toast.error("يجب إدخال تاريخ البدء وتاريخ الانتهاء المتوقع");
+                    return;
+                  }
                   technicalEvalMutation.mutate({
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
                     managerId: selectedDecision === 'convert_to_project' ? (selectedManagerId ? parseInt(selectedManagerId) : undefined) : undefined,
+                    startDate: selectedDecision === 'convert_to_project' ? startDate : undefined,
+                    endDate: selectedDecision === 'convert_to_project' ? expectedEndDate : undefined,
                     justification: justification || undefined,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId))
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId || !startDate || !expectedEndDate))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :

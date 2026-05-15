@@ -1023,6 +1023,8 @@ export const requestsRouter = router({
       notes: z.string().optional(),
       projectName: z.string().optional(), // اسم المشروع عند التحويل
       managerId: z.number().optional(), // مدير المشروع عند التحويل
+      startDate: z.string().optional(), // تاريخ البدء
+      endDate: z.string().optional(), // تاريخ الانتهاء المتوقع
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1175,6 +1177,8 @@ export const requestsRouter = router({
             managerId: input.managerId,
             status: 'planning',
             completionPercentage: 17, // 1/6 تقريبا
+            startDate: input.startDate ? new Date(input.startDate) : undefined,
+            expectedEndDate: input.endDate ? new Date(input.endDate) : undefined,
           });
           // إنشاء المراحل الافتراضية
           const defaultPhases = [
