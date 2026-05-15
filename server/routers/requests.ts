@@ -295,6 +295,7 @@ export const requestsRouter = router({
         projectNumber: projects.projectNumber,
         name: projects.name,
         status: projects.status,
+        budget: projects.budget,
       }).from(projects).where(eq(projects.requestId, input.id)).limit(1);
       const project = projectResult[0] || null;
 

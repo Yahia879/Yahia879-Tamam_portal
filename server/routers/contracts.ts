@@ -24,6 +24,30 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, asc, ne } from "drizzle-orm";
 
+// دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
+async function syncProjectActualCost(db: any, projectId: number) {
+  try {
+    const [result] = await db
+      .select({ total: sql<string>`SUM(CAST(contractAmount AS DECIMAL(15,2)))` })
+      .from(contractsEnhanced)
+      .where(eq(contractsEnhanced.projectId, projectId));
+    
+    const total = parseFloat(result?.total || "0");
+    
+    await db
+      .update(projects)
+      .set({ 
+        actualCost: total.toString(),
+        updatedAt: new Date()
+      })
+      .where(eq(projects.id, projectId));
+    
+    console.log(`[Sync] Updated project ${projectId} actualCost to ${total}`);
+  } catch (e) {
+    console.error(`[Sync] Error updating project ${projectId} actualCost:`, e);
+  }
+}
+
 // دالة تحويل الرقم إلى نص عربي
 function numberToArabicText(num: number): string {
   const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
@@ -415,6 +439,11 @@ export const contractsRouter = router({
       
       const contractId = result.insertId;
       
+      // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
+      if (input.projectId) {
+        await syncProjectActualCost(db, input.projectId);
+      }
+      
       // إضافة الدفعات من paymentSchedule JSON
       if (input.paymentSchedule) {
         try {
@@ -546,6 +575,11 @@ export const contractsRouter = router({
         .set(updates)
         .where(eq(contractsEnhanced.id, id));
       
+      // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
+      if (contract.projectId) {
+        await syncProjectActualCost(db, contract.projectId);
+      }
+      
       return { success: true };
     }),
   
@@ -606,7 +640,10 @@ export const contractsRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(projects.id, contract.projectId));
-        console.log('[Contract Approve] Project status updated to in_progress');
+        
+        await syncProjectActualCost(db, contract.projectId);
+        
+        console.log('[Contract Approve] Project status updated to in_progress and actualCost synced');
         
         // تحديث مرحلة الطلب إلى "execution" عند اعتماد العقد
         if (contract.requestId) {
@@ -1228,6 +1265,11 @@ export const contractsRouter = router({
       });
 
       const newContractId = result.insertId;
+
+      // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع (رغم أنه في التكرار يكون projectId غالباً null)
+      if (originalContract.projectId) {
+        await syncProjectActualCost(db, originalContract.projectId);
+      }
 
       // نسخ جدول الدفعات
       const originalPayments = await db
