@@ -184,7 +184,51 @@ export default function ProjectDetailsPage() {
     }).format(parseFloat(amount));
   };
 
+  // التحقق مما إذا كان جدول الكميات مقفلاً (إذا اكتملت المرحلة الثانية أو بدأت مراحل بعدها)
+  const isBOQLocked = project?.phases?.some(p => 
+    (p.phaseOrder === 2 && p.status === "completed") || 
+    (p.phaseOrder > 2 && (p.status === "in_progress" || p.status === "completed"))
+  );
+
+  const handleApproveBOQ = async () => {
+    if (!project?.phases || project.phases.length === 0) return;
+    
+    if (!confirm("هل أنت متأكد من اعتماد جدول الكميات؟")) {
+      return;
+    }
+
+    const phase2 = project.phases.find(p => p.phaseOrder === 2);
+    const phase3 = project.phases.find(p => p.phaseOrder === 3);
+
+    try {
+      if (phase2) {
+        await updatePhaseMutation.mutateAsync({
+          id: phase2.id,
+          status: "completed",
+          completionPercentage: 100,
+        });
+      }
+
+      if (phase3) {
+        await updatePhaseMutation.mutateAsync({
+          id: phase3.id,
+          status: "in_progress",
+          completionPercentage: 0,
+        });
+      }
+      
+      toast.success("تم اعتماد جدول الكميات بنجاح");
+      refetch();
+    } catch (error) {
+      console.error("Error updating phases:", error);
+    }
+  };
+
   const handleAddBOQItem = () => {
+    if (isBOQLocked) {
+      toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+      return;
+    }
     if (!boqForm.itemName || !boqForm.unit || !boqForm.quantity) {
       toast.error("يرجى ملء الحقول المطلوبة");
       return;
@@ -208,6 +252,20 @@ export default function ProjectDetailsPage() {
         <div className="space-y-6">
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-64 bg-muted animate-pulse rounded-lg" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!project) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-bold">المشروع غير موجود</h2>
+          <Button className="mt-4" onClick={() => navigate("/project-management")}>
+            العودة للمشاريع
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -253,6 +311,12 @@ export default function ProjectDetailsPage() {
               <Badge variant="outline" className={statusColors[project.status || "planning"]}>
                 {getStatusLabel()}
               </Badge>
+              {isBOQLocked && (
+                <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
+                  <Clock className="w-3 h-3 ml-1" />
+                  جدول الكميات مقفل
+                </Badge>
+              )}
             </div>
             <p className="text-muted-foreground">{project.name}</p>
           </div>
@@ -516,92 +580,99 @@ export default function ProjectDetailsPage() {
               <CardHeader className="flex items-center justify-between text-right">
                 <div className="flex-1">
                   <CardTitle className="text-lg">جدول الكميات (BOQ)</CardTitle>
-                  <CardDescription>قائمة البنود والكميات المطلوبة للمشروع</CardDescription>
+                  <CardDescription>
+                    {isBOQLocked 
+                      ? "جدول الكميات مقفل ولا يمكن تعديله في هذه المرحلة" 
+                      : "قائمة البنود والكميات المطلوبة للمشروع"
+                    }
+                  </CardDescription>
                 </div>
-                <Dialog open={showAddBOQDialog} onOpenChange={setShowAddBOQDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="gradient-primary text-white">
-                      <Plus className="w-4 h-4 ml-2" />
-                      إضافة بند
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent dir="rtl">
-                    <DialogHeader className="text-right">
-                      <DialogTitle>إضافة بند جديد</DialogTitle>
-                      <DialogDescription>أضف بند جديد إلى جدول الكميات</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 text-right">
-                      <div>
-                        <Label>اسم البند *</Label>
-                        <Input
-                          value={boqForm.itemName}
-                          onChange={(e) => setBOQForm({ ...boqForm, itemName: e.target.value })}
-                          placeholder="مثال: أعمال الخرسانة"
-                          className="text-right"
-                        />
-                      </div>
-                      <div>
-                        <Label>الوصف</Label>
-                        <Textarea
-                          value={boqForm.itemDescription}
-                          onChange={(e) => setBOQForm({ ...boqForm, itemDescription: e.target.value })}
-                          placeholder="وصف تفصيلي للبند"
-                          className="text-right"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>الوحدة *</Label>
-                          <Input
-                            value={boqForm.unit}
-                            onChange={(e) => setBOQForm({ ...boqForm, unit: e.target.value })}
-                            placeholder="مثال: م³"
-                            className="text-right"
-                          />
-                        </div>
-                        <div>
-                          <Label>الكمية *</Label>
-                          <Input
-                            type="number"
-                            value={boqForm.quantity}
-                            onChange={(e) => setBOQForm({ ...boqForm, quantity: e.target.value })}
-                            placeholder="0"
-                            className="text-right"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>سعر الوحدة</Label>
-                          <Input
-                            type="number"
-                            value={boqForm.unitPrice}
-                            onChange={(e) => setBOQForm({ ...boqForm, unitPrice: e.target.value })}
-                            placeholder="0"
-                            className="text-right"
-                          />
-                        </div>
-                        <div>
-                          <Label>التصنيف</Label>
-                          <Input
-                            value={boqForm.category}
-                            onChange={(e) => setBOQForm({ ...boqForm, category: e.target.value })}
-                            placeholder="مثال: أعمال إنشائية"
-                            className="text-right"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <DialogFooter className="flex-row-reverse gap-2">
-                      <Button variant="outline" onClick={() => setShowAddBOQDialog(false)}>
-                        إلغاء
+                {!isBOQLocked && (
+                  <Dialog open={showAddBOQDialog} onOpenChange={setShowAddBOQDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="gradient-primary text-white">
+                        <Plus className="w-4 h-4 ml-2" />
+                        إضافة بند
                       </Button>
-                      <Button onClick={handleAddBOQItem} disabled={addBOQMutation.isPending}>
-                        {addBOQMutation.isPending ? "جاري الإضافة..." : "إضافة"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent dir="rtl">
+                      <DialogHeader className="text-right">
+                        <DialogTitle>إضافة بند جديد</DialogTitle>
+                        <DialogDescription>أضف بند جديد إلى جدول الكميات</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 text-right">
+                        <div>
+                          <Label>اسم البند *</Label>
+                          <Input
+                            value={boqForm.itemName}
+                            onChange={(e) => setBOQForm({ ...boqForm, itemName: e.target.value })}
+                            placeholder="مثال: أعمال الخرسانة"
+                            className="text-right"
+                          />
+                        </div>
+                        <div>
+                          <Label>الوصف</Label>
+                          <Textarea
+                            value={boqForm.itemDescription}
+                            onChange={(e) => setBOQForm({ ...boqForm, itemDescription: e.target.value })}
+                            placeholder="وصف تفصيلي للبند"
+                            className="text-right"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>الوحدة *</Label>
+                            <Input
+                              value={boqForm.unit}
+                              onChange={(e) => setBOQForm({ ...boqForm, unit: e.target.value })}
+                              placeholder="مثال: م³"
+                              className="text-right"
+                            />
+                          </div>
+                          <div>
+                            <Label>الكمية *</Label>
+                            <Input
+                              type="number"
+                              value={boqForm.quantity}
+                              onChange={(e) => setBOQForm({ ...boqForm, quantity: e.target.value })}
+                              placeholder="0"
+                              className="text-right"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>سعر الوحدة</Label>
+                            <Input
+                              type="number"
+                              value={boqForm.unitPrice}
+                              onChange={(e) => setBOQForm({ ...boqForm, unitPrice: e.target.value })}
+                              placeholder="0"
+                              className="text-right"
+                            />
+                          </div>
+                          <div>
+                            <Label>التصنيف</Label>
+                            <Input
+                              value={boqForm.category}
+                              onChange={(e) => setBOQForm({ ...boqForm, category: e.target.value })}
+                              placeholder="مثال: أعمال إنشائية"
+                              className="text-right"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter className="flex-row-reverse gap-2">
+                        <Button variant="outline" onClick={() => setShowAddBOQDialog(false)}>
+                          إلغاء
+                        </Button>
+                        <Button onClick={handleAddBOQItem} disabled={addBOQMutation.isPending}>
+                          {addBOQMutation.isPending ? "جاري الإضافة..." : "إضافة"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </CardHeader>
               <CardContent>
                 {boqData && boqData.items.length > 0 ? (
@@ -615,7 +686,7 @@ export default function ProjectDetailsPage() {
                           <TableHead className="text-right">سعر الوحدة</TableHead>
                           <TableHead className="text-right">الإجمالي</TableHead>
                           <TableHead className="text-right">التصنيف</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
+                          {!isBOQLocked && <TableHead className="w-[50px]"></TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -634,16 +705,18 @@ export default function ProjectDetailsPage() {
                             <TableCell className="text-right">{item.unitPrice ? formatCurrency(item.unitPrice) : "-"}</TableCell>
                             <TableCell className="text-right">{item.totalPrice ? formatCurrency(item.totalPrice) : "-"}</TableCell>
                             <TableCell className="text-right">{item.category || "-"}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => deleteBOQMutation.mutate({ id: item.id })}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
+                            {!isBOQLocked && (
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => deleteBOQMutation.mutate({ id: item.id })}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
@@ -652,19 +725,34 @@ export default function ProjectDetailsPage() {
                       <span className="font-medium">الإجمالي الكلي</span>
                       <span className="text-xl font-bold text-primary">{formatCurrency(boqData.total.toString())}</span>
                     </div>
+
+                    {!isBOQLocked && boqData.items.length > 0 && (
+                      <div className="mt-6 flex justify-center">
+                        <Button 
+                          className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                          onClick={handleApproveBOQ}
+                          disabled={updatePhaseMutation.isPending}
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          الاعتماد والانتقال إلى مرحلة التقييم المالي
+                        </Button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-center py-8">
                     <ClipboardList className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">لا توجد بنود في جدول الكميات</p>
-                    <Button 
-                      variant="outline" 
-                      className="mt-4"
-                      onClick={() => setShowAddBOQDialog(true)}
-                    >
-                      <Plus className="w-4 h-4 ml-2" />
-                      إضافة بند
-                    </Button>
+                    {!isBOQLocked && (
+                      <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => setShowAddBOQDialog(true)}
+                      >
+                        <Plus className="w-4 h-4 ml-2" />
+                        إضافة بند
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

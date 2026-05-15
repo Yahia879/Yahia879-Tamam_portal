@@ -20,8 +20,10 @@ import {
   Trash2,
   Loader2,
   FileText,
+  Clock,
 } from "lucide-react";
 import BoqFormDialog from "./BoqFormDialog";
+import { getStageOrder } from "../../../shared/constants";
 
 interface BoqTabProps {
   requestId: number;
@@ -32,6 +34,9 @@ export default function BoqTab({ requestId }: BoqTabProps) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
+  // جلب تفاصيل الطلب للتحقق من المرحلة
+  const { data: request } = trpc.requests.getById.useQuery({ id: requestId });
+
   // جلب جداول الكميات المرتبطة بالطلب
   const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
     { requestId },
@@ -39,6 +44,9 @@ export default function BoqTab({ requestId }: BoqTabProps) {
   );
   const boqData = boqResult?.items || [];
   const totalAmount = boqResult?.total || 0;
+
+  // التحقق مما إذا كان الجدول مقفلاً (إذا تجاوز مرحلة إعداد جدول الكميات)
+  const isLocked = request?.currentStage && getStageOrder(request.currentStage) > getStageOrder('boq_preparation');
 
   // حذف بند
   const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
@@ -52,12 +60,20 @@ export default function BoqTab({ requestId }: BoqTabProps) {
   });
 
   const handleDeleteItem = (id: number) => {
+    if (isLocked) {
+      toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+      return;
+    }
     if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
       deleteItemMutation.mutate({ id });
     }
   };
 
   const openEditDialog = (item: any) => {
+    if (isLocked) {
+      toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+      return;
+    }
     setSelectedItem(item);
     setShowEditDialog(true);
   };
@@ -110,16 +126,27 @@ export default function BoqTab({ requestId }: BoqTabProps) {
             جداول الكميات (BOQ)
           </h2>
           <p className="text-muted-foreground mt-1">
-            إدارة جداول الكميات المرتبطة بهذا الطلب
+            {isLocked 
+              ? "جدول الكميات مقفل للعرض فقط في هذه المرحلة" 
+              : "إدارة جداول الكميات المرتبطة بهذا الطلب"
+            }
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          إضافة بند جديد
-        </Button>
+        {!isLocked && (
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            إضافة بند جديد
+          </Button>
+        )}
+        {isLocked && (
+          <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 p-2">
+            <Clock className="h-4 w-4" />
+            جدول الكميات مقفل
+          </Badge>
+        )}
       </div>
 
       {/* ملخص الإجمالي */}
@@ -163,7 +190,7 @@ export default function BoqTab({ requestId }: BoqTabProps) {
             <div className="text-center text-muted-foreground">
               <Calculator className="h-16 w-16 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">لا توجد بنود في جدول الكميات</p>
-              <p className="text-sm mt-2">ابدأ بإضافة بنود جديدة باستخدام الزر أعلاه</p>
+              {!isLocked && <p className="text-sm mt-2">ابدأ بإضافة بنود جديدة باستخدام الزر أعلاه</p>}
             </div>
           </CardContent>
         </Card>
@@ -190,7 +217,7 @@ export default function BoqTab({ requestId }: BoqTabProps) {
                     <TableHead>الكمية</TableHead>
                     <TableHead>سعر الوحدة</TableHead>
                     <TableHead>الإجمالي</TableHead>
-                    <TableHead>الإجراءات</TableHead>
+                    {!isLocked && <TableHead>الإجراءات</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -208,24 +235,26 @@ export default function BoqTab({ requestId }: BoqTabProps) {
                       <TableCell className="font-bold text-teal-600">
                         {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditDialog(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {!isLocked && (
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditDialog(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteItem(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
