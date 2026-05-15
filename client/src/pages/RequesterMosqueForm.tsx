@@ -190,26 +190,26 @@ export default function RequesterMosqueForm() {
 
   if (hasExistingMosque && !canRegisterMore) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-muted/30">
         {/* شريط التنقل */}
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border shadow-sm">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
+              <Link href="/" className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg gradient-primary flex items-center justify-center">
+                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <span className="font-bold text-lg text-foreground">بوابة تمام</span>
+                <span className="font-bold text-base sm:text-lg text-foreground">بوابة تمام</span>
               </Link>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+                    <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-4">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                       </div>
-                      <span className="text-sm font-medium">{user?.name}</span>
+                      <span className="text-xs sm:text-sm font-medium truncate max-w-[80px] sm:max-w-none">{user?.name}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
@@ -228,33 +228,33 @@ export default function RequesterMosqueForm() {
           </div>
         </header>
 
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-6 sm:py-8">
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Link href="/requester">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="flex-shrink-0">
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">إضافة مسجد جديد</h1>
-                <p className="text-muted-foreground">أدخل بيانات المسجد المراد إضافته</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">إضافة مسجد جديد</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">أدخل بيانات المسجد المراد إضافته</p>
               </div>
             </div>
 
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>لا يمكن تقديم طلب جديد</AlertTitle>
-              <AlertDescription>
+              <AlertTitle className="text-base sm:text-lg">لا يمكن تقديم طلب جديد</AlertTitle>
+              <AlertDescription className="text-xs sm:text-sm leading-relaxed">
                 لديك طلب تسجيل مسجد سابق. لا يمكنك تقديم أكثر من طلب واحد إلا بعد الحصول على استثناء من الإدارة.
-                <br />
+                <br className="hidden sm:block" />
                 يرجى التواصل مع الإدارة إذا كنت بحاجة لتسجيل مسجد إضافي.
               </AlertDescription>
             </Alert>
 
             <div className="flex justify-end">
-              <Link href="/requester">
-                <Button variant="outline">العودة للوحة التحكم</Button>
+              <Link href="/requester" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto h-10">العودة للوحة التحكم</Button>
               </Link>
             </div>
           </div>
@@ -264,26 +264,26 @@ export default function RequesterMosqueForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-muted/30">
       {/* شريط التنقل */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
+            <Link href="/" className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg gradient-primary flex items-center justify-center">
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <span className="font-bold text-lg text-foreground">بوابة تمام</span>
+              <span className="font-bold text-base sm:text-lg text-foreground">بوابة تمام</span>
             </Link>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                  <Button variant="ghost" className="flex items-center gap-2 px-2 sm:px-4">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                     </div>
-                    <span className="text-sm font-medium">{user?.name}</span>
+                    <span className="text-xs sm:text-sm font-medium truncate max-w-[80px] sm:max-w-none">{user?.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -302,78 +302,79 @@ export default function RequesterMosqueForm() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* العنوان */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link href="/requester">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="flex-shrink-0">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">إضافة مسجد جديد</h1>
-              <p className="text-muted-foreground">أدخل بيانات المسجد المراد إضافته</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">إضافة مسجد جديد</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">أدخل بيانات المسجد المراد إضافته</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* بيانات مقدم الطلب - للقراءة فقط */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <User className="w-5 h-5 text-primary" />
                   بيانات مقدم الطلب
                 </CardTitle>
-                <CardDescription>البيانات التالية مأخوذة من حسابك</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">البيانات التالية مأخوذة من حسابك</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>الاسم الكامل</Label>
-                    <Input value={user?.name || ""} disabled className="bg-muted" />
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm">الاسم الكامل</Label>
+                    <Input value={user?.name || ""} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm" />
                   </div>
-                  <div>
-                    <Label>البريد الإلكتروني</Label>
-                    <Input value={user?.email || ""} disabled className="bg-muted" />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm">البريد الإلكتروني</Label>
+                    <Input value={user?.email || ""} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm" />
                   </div>
-                  <div>
-                    <Label>رقم الجوال</Label>
-                    <Input value={user?.phone || ""} disabled className="bg-muted" />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm">رقم الجوال</Label>
+                    <Input value={user?.phone || ""} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm" />
                   </div>
-                  <div>
-                    <Label>الصفة</Label>
-                    <Input value={getRequesterTypeLabel((user as any)?.capacity)} disabled className="bg-muted" />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm">الصفة</Label>
+                    <Input value={getRequesterTypeLabel((user as any)?.capacity)} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* المعلومات الأساسية */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5" />
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Building2 className="w-5 h-5 text-primary" />
                   المعلومات الأساسية
                 </CardTitle>
-                <CardDescription>أدخل البيانات الأساسية للمسجد</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">أدخل البيانات الأساسية للمسجد</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="name">اسم المسجد *</Label>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs sm:text-sm">اسم المسجد *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     placeholder="مثال: مسجد الرحمة"
+                    className="h-9 sm:h-10 text-xs sm:text-sm"
                     required
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="mosqueType">نوع المسجد *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="mosqueType" className="text-xs sm:text-sm">نوع المسجد *</Label>
                   <Select value={formData.mosqueType} onValueChange={(value) => handleChange("mosqueType", value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="اختر النوع" />
                     </SelectTrigger>
                     <SelectContent>
@@ -386,46 +387,49 @@ export default function RequesterMosqueForm() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="area">المساحة (م²)</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="area" className="text-xs sm:text-sm">المساحة (م²)</Label>
                     <Input
                       id="area"
                       type="number"
                       value={formData.area}
                       onChange={(e) => handleChange("area", e.target.value)}
                       placeholder="مثال: 500"
+                      className="h-9 sm:h-10 text-xs sm:text-sm"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="capacity">السعة (مصلي)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="capacity" className="text-xs sm:text-sm">السعة (مصلي)</Label>
                     <Input
                       id="capacity"
                       type="number"
                       value={formData.capacity}
                       onChange={(e) => handleChange("capacity", e.target.value)}
                       placeholder="مثال: 300"
+                      className="h-9 sm:h-10 text-xs sm:text-sm"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="mosqueAge">عمر المسجد (سنة)</Label>
+                  <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                    <Label htmlFor="mosqueAge" className="text-xs sm:text-sm">عمر المسجد (سنة)</Label>
                     <Input
                       id="mosqueAge"
                       type="number"
                       value={formData.mosqueAge}
                       onChange={(e) => handleChange("mosqueAge", e.target.value)}
                       placeholder="مثال: 15"
+                      className="h-9 sm:h-10 text-xs sm:text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 py-2">
                   <Checkbox
                     id="hasPrayerHall"
                     checked={formData.hasPrayerHall}
                     onCheckedChange={(checked) => handleChange("hasPrayerHall", checked as boolean)}
                   />
-                  <Label htmlFor="hasPrayerHall" className="cursor-pointer">
+                  <Label htmlFor="hasPrayerHall" className="cursor-pointer text-xs sm:text-sm">
                     هل يوجد مصلى نساء؟
                   </Label>
                 </div>
@@ -433,32 +437,34 @@ export default function RequesterMosqueForm() {
             </Card>
 
             {/* الموقع الجغرافي */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <MapPin className="w-5 h-5 text-primary" />
                   الموقع الجغرافي
                 </CardTitle>
-                <CardDescription>حدد موقع المسجد على الخريطة</CardDescription>
+                <CardDescription className="text-xs sm:text-sm">حدد موقع المسجد على الخريطة</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <LocationPicker
-                  onChange={handleLocationChange}
-                  value={
-                    formData.latitude && formData.longitude
-                      ? {
-                          lat: parseFloat(formData.latitude),
-                          lng: parseFloat(formData.longitude),
-                        }
-                      : undefined
-                  }
-                />
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">
+                <div className="rounded-lg overflow-hidden border">
+                  <LocationPicker
+                    onChange={handleLocationChange}
+                    value={
+                      formData.latitude && formData.longitude
+                        ? {
+                            lat: parseFloat(formData.latitude),
+                            lng: parseFloat(formData.longitude),
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">المدينة أو المركز *</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="city" className="text-xs sm:text-sm">المدينة أو المركز *</Label>
                     <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                      <SelectTrigger id="city">
+                      <SelectTrigger id="city" className="h-9 sm:h-10 text-xs sm:text-sm">
                         <SelectValue placeholder="اختر المدينة أو المركز" />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px]">
@@ -470,60 +476,63 @@ export default function RequesterMosqueForm() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="governorate">المنطقة</Label>
-                    <Input id="governorate" value={formData.governorate} disabled className="bg-muted" />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="governorate" className="text-xs sm:text-sm">المنطقة</Label>
+                    <Input id="governorate" value={formData.governorate} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm" />
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="district">الحي</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="district" className="text-xs sm:text-sm">الحي</Label>
                   <Input
                     id="district"
                     value={formData.district}
                     onChange={(e) => handleChange("district", e.target.value)}
                     placeholder="مثال: النسيم"
+                    className="h-9 sm:h-10 text-xs sm:text-sm"
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="address">العنوان التفصيلي</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="address" className="text-xs sm:text-sm">العنوان التفصيلي</Label>
                   <Textarea
                     id="address"
                     value={formData.address}
                     onChange={(e) => handleChange("address", e.target.value)}
                     placeholder="العنوان التفصيلي للمسجد..."
                     rows={3}
+                    className="text-xs sm:text-sm"
                   />
                 </div>
               </CardContent>
             </Card>
 
             {/* ملاحظات إضافية */}
-            <Card>
-              <CardHeader>
-                <CardTitle>ملاحظات إضافية</CardTitle>
-                <CardDescription>أي معلومات إضافية عن المسجد</CardDescription>
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                <CardTitle className="text-base sm:text-lg">ملاحظات إضافية</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">أي معلومات إضافية عن المسجد</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => handleChange("description", e.target.value)}
                   placeholder="أضف أي ملاحظات أو معلومات إضافية..."
                   rows={4}
+                  className="text-xs sm:text-sm"
                 />
               </CardContent>
             </Card>
 
             {/* الأزرار */}
-            <div className="flex gap-4 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 justify-end">
               <Link href="/requester">
-                <Button type="button" variant="outline">
+                <Button type="button" variant="outline" className="w-full sm:w-auto h-10">
                   إلغاء
                 </Button>
               </Link>
-              <Button type="submit" disabled={createMutation.isPending} className="gap-2">
+              <Button type="submit" disabled={createMutation.isPending} className="gap-2 w-full sm:w-auto h-10">
                 <Save className="w-4 h-4" />
                 {createMutation.isPending ? "جاري الحفظ..." : "حفظ المسجد"}
               </Button>
