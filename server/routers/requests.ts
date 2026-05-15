@@ -621,9 +621,9 @@ export const requestsRouter = router({
       if (input.newStage === 'financial_eval_and_approval') {
         const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
         if (project) {
-          // تحديث نسبة إنجاز المشروع إلى 33% (2/6)
+          // تحديث نسبة إنجاز المشروع إلى 33% (2/6) وتحديث الحالة
           await db.update(projects)
-            .set({ completionPercentage: 33 })
+            .set({ completionPercentage: 33, status: 'in_progress' })
             .where(eq(projects.id, project.id));
 
           // تحديث المراحل: إكمال المرحلة الثانية وبدء المرحلة الثالثة
@@ -641,9 +641,9 @@ export const requestsRouter = router({
       if (input.newStage === 'contracting') {
         const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
         if (project) {
-          // تحديث نسبة إنجاز المشروع إلى 50% (3/6)
+          // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة
           await db.update(projects)
-            .set({ completionPercentage: 50 })
+            .set({ completionPercentage: 50, status: 'in_progress' })
             .where(eq(projects.id, project.id));
 
           // تحديث المراحل: إكمال المرحلة الثالثة وبدء المرحلة الرابعة
@@ -1599,9 +1599,9 @@ export const requestsRouter = router({
       // تحديث تقدم المشروع المرتبط: 3/6 مراحل مكتملة
       const [linkedProject] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
       if (linkedProject) {
-        // تحديث نسبة إنجاز المشروع إلى 50% (3/6)
+        // تحديث نسبة إنجاز المشروع إلى 50% (3/6) وتحديث الحالة
         await db.update(projects)
-          .set({ completionPercentage: 50 })
+          .set({ completionPercentage: 50, status: 'in_progress' })
           .where(eq(projects.id, linkedProject.id));
 
         // تحديث المراحل: إكمال المرحلة الثالثة (اعتماد عرض السعر المناسب) وبدء المرحلة الرابعة (التعاقد)

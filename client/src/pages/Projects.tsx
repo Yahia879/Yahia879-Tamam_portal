@@ -214,7 +214,7 @@ export default function Projects() {
                         </TableCell>
                         <TableCell>
                           <Badge className={statusColors[project.status || "planning"]}>
-                            {statusLabels[project.status || "planning"]}
+                            {project.currentPhaseName || statusLabels[project.status || "planning"]}
                           </Badge>
                         </TableCell>
                         <TableCell>

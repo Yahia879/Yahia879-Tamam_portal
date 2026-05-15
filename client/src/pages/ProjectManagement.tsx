@@ -246,7 +246,7 @@ export default function ProjectManagement() {
                             <h3 className="font-bold text-foreground">{project.projectNumber}</h3>
                             <Badge variant="outline" className={statusColors[project.status || "planning"]}>
                               {statusIcons[project.status || "planning"]}
-                              <span className="mr-1">{statusLabels[project.status || "planning"]}</span>
+                              <span className="mr-1">{project.currentPhaseName || statusLabels[project.status || "planning"]}</span>
                             </Badge>
                           </div>
                           <p className="text-muted-foreground mt-1 truncate">{project.name}</p>

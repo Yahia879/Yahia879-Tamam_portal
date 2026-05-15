@@ -354,7 +354,7 @@ export default function ProjectDetailsPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">الحالة</p>
                       <Badge variant="outline" className={statusColors[project.status || "planning"]}>
-                        {statusLabels[project.status || "planning"]}
+                        {getStatusLabel()}
                       </Badge>
                     </div>
                     <div>

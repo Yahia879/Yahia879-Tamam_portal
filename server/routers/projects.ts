@@ -85,7 +85,34 @@ export const projectsRouter = router({
         .limit(input?.limit || 50)
         .offset(input?.offset || 0);
 
-      return projectsList;
+      // جلب المرحلة النشطة لكل مشروع (أول مرحلة غير مكتملة)
+      const projectIds = projectsList.map(p => p.id);
+      let phasesMap: Record<number, string> = {};
+      if (projectIds.length > 0) {
+        const allPhases = await db
+          .select({
+            projectId: projectPhases.projectId,
+            phaseName: projectPhases.phaseName,
+            status: projectPhases.status,
+            phaseOrder: projectPhases.phaseOrder,
+          })
+          .from(projectPhases)
+          .where(inArray(projectPhases.projectId, projectIds))
+          .orderBy(projectPhases.phaseOrder);
+
+        // لكل مشروع، نجد أول مرحلة غير مكتملة
+        for (const phase of allPhases) {
+          if (!phasesMap[phase.projectId] && phase.status !== 'completed') {
+            // إزالة مقدمة "المرحلة X : " للحصول على المسمى فقط
+            phasesMap[phase.projectId] = phase.phaseName.replace(/^المرحلة .* : /, "");
+          }
+        }
+      }
+
+      return projectsList.map(p => ({
+        ...p,
+        currentPhaseName: phasesMap[p.id] || null,
+      }));
     }),
 
   // الحصول على مشروع بالتفاصيل
