@@ -83,31 +83,31 @@ export default function AdminLogin() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4"
+      className="min-h-screen flex items-center justify-center p-2 sm:p-4 md:p-6"
       style={{
         background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
       }}
     >
-      <Card className="w-full max-w-md p-8 bg-white/95 shadow-2xl">
+      <Card className="w-full max-w-[95%] sm:max-w-md p-5 sm:p-8 bg-white/95 shadow-2xl rounded-2xl sm:rounded-3xl transition-all duration-300">
         {/* الشعار */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div 
-            className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center overflow-hidden"
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl mx-auto mb-3 sm:mb-4 flex items-center justify-center overflow-hidden shadow-lg"
             style={{ backgroundColor: primaryColor }}
           >
             <img 
               src={logoSrc}
               alt="شعار بوابة تمام" 
-              className="h-14 w-14 object-contain"
+              className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/logo.svg";
               }}
             />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 sm:mb-2">
             دخول الموظفين
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             تسجيل دخول للموظفين والمسؤولين
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function AdminLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="text-right pr-10"
+                className="text-right pl-10"
               />
               <button
                 type="button"
