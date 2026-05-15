@@ -14,69 +14,70 @@ export default function Profile() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-4 sm:space-y-6 max-w-3xl">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">الملف الشخصي</h1>
-          <p className="text-muted-foreground">إدارة معلوماتك الشخصية</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">الملف الشخصي</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">إدارة معلوماتك الشخصية</p>
         </div>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20 border-2">
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 text-center sm:text-right">
+              <Avatar className="h-16 w-16 sm:h-20 sm:w-20 border-2 shrink-0">
+                <AvatarFallback className="text-xl sm:text-2xl bg-primary/10 text-primary">
                   {user?.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <CardTitle className="text-xl">{user?.name}</CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-1">
-                  <Shield className="w-4 h-4" />
-                  {ROLE_LABELS[user?.role || ""] || user?.role}
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg sm:text-xl truncate" title={user?.name}>{user?.name}</CardTitle>
+                <CardDescription className="flex items-center justify-center sm:justify-start gap-2 mt-1 text-xs sm:text-sm truncate">
+                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">{ROLE_LABELS[user?.role || ""] || user?.role}</span>
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   الاسم الكامل
                 </Label>
-                <Input defaultValue={user?.name || ""} maxLength={60} />
+                <Input defaultValue={user?.name || ""} maxLength={60} className="h-9 sm:h-10 text-xs sm:text-sm" />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   البريد الإلكتروني
                 </Label>
-                <Input type="email" defaultValue={user?.email || ""} disabled />
+                <Input type="email" defaultValue={user?.email || ""} disabled className="bg-muted h-9 sm:h-10 text-xs sm:text-sm opacity-80" />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   رقم الجوال
                 </Label>
-                <Input defaultValue="" placeholder="05xxxxxxxx" />
+                <Input defaultValue="" placeholder="05xxxxxxxx" className="h-9 sm:h-10 text-xs sm:text-sm" />
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   تاريخ التسجيل
                 </Label>
                 <Input 
                   value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "-"} 
                   disabled 
+                  className="bg-muted h-9 sm:h-10 text-xs sm:text-sm opacity-80"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button onClick={() => toast.success("تم حفظ التغييرات")}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4 border-t">
+              <Button onClick={() => toast.success("تم حفظ التغييرات")} className="h-9 sm:h-10 text-sm">
                 حفظ التغييرات
               </Button>
-              <Button variant="outline" onClick={() => toast.info("قريباً")}>
+              <Button variant="outline" onClick={() => toast.info("قريباً")} className="h-9 sm:h-10 text-sm">
                 تغيير كلمة المرور
               </Button>
             </div>
