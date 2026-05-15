@@ -265,13 +265,6 @@ export default function MyRequests() {
                   ))}
                 </SelectContent>
               </Select>
-
-              <Link href="/service-request">
-                <Button className="gradient-primary text-white w-full md:w-auto">
-                  <Plus className="w-4 h-4 ml-2" />
-                  طلب جديد
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>
@@ -372,12 +365,6 @@ export default function MyRequests() {
                   : "لم تقم بتقديم أي طلبات بعد"
                 }
               </p>
-              <Link href="/service-request">
-                <Button className="gradient-primary text-white">
-                  <Plus className="w-4 h-4 ml-2" />
-                  تقديم طلب جديد
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         )}

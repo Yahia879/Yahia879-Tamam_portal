@@ -141,14 +141,16 @@ export default function Requests({
                initialAssignedToMe ? "عرض ومتابعة الطلبات المسندة إليك" : "عرض ومتابعة جميع طلبات الخدمة"}
             </p>
           </div>
-          <PermissionGuard permission="requests.create">
-            <Link href="/service-request">
-              <Button className="gradient-primary text-white gap-2">
-                <Plus className="w-4 h-4" />
-                طلب جديد
-              </Button>
-            </Link>
-          </PermissionGuard>
+          {!initialAssignedToMe && (
+            <PermissionGuard permission="requests.create">
+              <Link href="/service-request">
+                <Button className="gradient-primary text-white gap-2">
+                  <Plus className="w-4 h-4" />
+                  طلب جديد
+                </Button>
+              </Link>
+            </PermissionGuard>
+          )}
         </div>
 
         {/* Stats Row */}
@@ -423,14 +425,16 @@ export default function Requests({
                   ? "لا توجد نتائج تطابق معايير البحث"
                   : "لم يتم تقديم أي طلبات بعد"}
               </p>
-              <PermissionGuard permission="requests.create">
-                <Link href="/service-request">
-                  <Button className="gradient-primary text-white gap-2">
-                    <Plus className="w-4 h-4" />
-                    تقديم طلب جديد
-                  </Button>
-                </Link>
-              </PermissionGuard>
+              {!initialAssignedToMe && (
+                <PermissionGuard permission="requests.create">
+                  <Link href="/service-request">
+                    <Button className="gradient-primary text-white gap-2">
+                      <Plus className="w-4 h-4" />
+                      تقديم طلب جديد
+                    </Button>
+                  </Link>
+                </PermissionGuard>
+              )}
             </div>
           )}
         </Card>

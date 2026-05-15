@@ -637,6 +637,26 @@ export const requestsRouter = router({
         }
       }
 
+      // تحديث تقدم المشروع المرتبط عند الانتقال لمرحلة التعاقد
+      if (input.newStage === 'contracting') {
+        const [project] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+        if (project) {
+          // تحديث نسبة إنجاز المشروع إلى 50% (3/6)
+          await db.update(projects)
+            .set({ completionPercentage: 50 })
+            .where(eq(projects.id, project.id));
+
+          // تحديث المراحل: إكمال المرحلة الثالثة وبدء المرحلة الرابعة
+          await db.update(projectPhases)
+            .set({ status: 'completed', completionPercentage: 100 })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 3)));
+          
+          await db.update(projectPhases)
+            .set({ status: 'in_progress' })
+            .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 4)));
+        }
+      }
+
       // إضافة سجل في تاريخ الطلب
       const newStageName = STAGE_LABELS[input.newStage] || input.newStage;
       await db.insert(requestHistory).values({
@@ -1575,6 +1595,24 @@ export const requestsRouter = router({
       await db.update(quotations).set({
         status: "accepted",
       }).where(eq(quotations.quotationNumber, request[0].selectedQuotationId));
+
+      // تحديث تقدم المشروع المرتبط: 3/6 مراحل مكتملة
+      const [linkedProject] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+      if (linkedProject) {
+        // تحديث نسبة إنجاز المشروع إلى 50% (3/6)
+        await db.update(projects)
+          .set({ completionPercentage: 50 })
+          .where(eq(projects.id, linkedProject.id));
+
+        // تحديث المراحل: إكمال المرحلة الثالثة (اعتماد عرض السعر المناسب) وبدء المرحلة الرابعة (التعاقد)
+        await db.update(projectPhases)
+          .set({ status: 'completed', completionPercentage: 100 })
+          .where(and(eq(projectPhases.projectId, linkedProject.id), eq(projectPhases.phaseOrder, 3)));
+        
+        await db.update(projectPhases)
+          .set({ status: 'in_progress' })
+          .where(and(eq(projectPhases.projectId, linkedProject.id), eq(projectPhases.phaseOrder, 4)));
+      }
 
       // إضافة سجل في تاريخ الطلب
       const notes = input.approvalNotes 
