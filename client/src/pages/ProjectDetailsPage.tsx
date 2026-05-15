@@ -72,7 +72,7 @@ const statusColors: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
-  planning: "تخطيط",
+  planning: "إعداد جدول الكميات",
   in_progress: "قيد التنفيذ",
   on_hold: "متوقف",
   completed: "مكتمل",

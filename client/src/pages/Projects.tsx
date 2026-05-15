@@ -38,7 +38,7 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 
 const statusLabels: Record<string, string> = {
-  planning: "التخطيط",
+  planning: "إعداد جدول الكميات",
   in_progress: "قيد التنفيذ",
   completed: "مكتمل",
   on_hold: "متوقف",
