@@ -234,11 +234,19 @@ export default function ProjectDetailsPage() {
       <div className="space-y-6" dir="rtl">
         {/* العنوان */}
         <div className="flex items-center gap-4 text-right">
-          <Link href="/project-management">
-            <Button variant="ghost" size="icon">
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate("/project-management");
+              }
+            }}
+          >
+            <ArrowRight className="w-5 h-5" />
+          </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold text-foreground">{project.projectNumber}</h1>
