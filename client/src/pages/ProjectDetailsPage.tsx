@@ -489,10 +489,13 @@ export default function ProjectDetailsPage() {
                           {phase.description && (
                             <p className="text-sm text-muted-foreground mt-1">{phase.description}</p>
                           )}
-                          <div className="flex items-center gap-4 mt-2">
-                            <Progress value={phase.completionPercentage || 0} className="flex-1 h-2" />
-                            <span className="text-sm text-muted-foreground">{phase.completionPercentage || 0}%</span>
-                          </div>
+                            <div className="flex items-center gap-4 mt-2">
+                              <Progress value={phase.completionPercentage || 0} className="flex-1 h-2" />
+                              <span className="text-sm text-muted-foreground font-medium">
+                                {phase.completionPercentage || 0}%
+                                {phase.completionPercentage === 100 && " (مكتمل)"}
+                              </span>
+                            </div>
                         </div>
                       </div>
                     ))}

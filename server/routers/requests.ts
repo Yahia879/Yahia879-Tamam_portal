@@ -1174,10 +1174,11 @@ export const requestsRouter = router({
             name: projectNameToUse,
             managerId: input.managerId,
             status: 'planning',
+            completionPercentage: 17, // 1/6 تقريبا
           });
           // إنشاء المراحل الافتراضية
           const defaultPhases = [
-            { phaseName: 'المرحلة الأولى : التخطيط والتسليم', phaseOrder: 1 },
+            { phaseName: 'المرحلة الأولى : الإنشاء والتخطيط', phaseOrder: 1 },
             { phaseName: 'المرحلة الثانية : إعداد جدول الكميات', phaseOrder: 2 },
             { phaseName: 'المرحلة الثالثة : اعتماد عرض السعر المناسب', phaseOrder: 3 },
             { phaseName: 'المرحلة الرابعة : التعاقد', phaseOrder: 4 },
@@ -1189,7 +1190,8 @@ export const requestsRouter = router({
               projectId: newProject.insertId,
               phaseName: phase.phaseName,
               phaseOrder: phase.phaseOrder,
-              status: phase.phaseOrder === 1 ? 'in_progress' : 'pending',
+              completionPercentage: phase.phaseOrder === 1 ? 100 : 0,
+              status: phase.phaseOrder === 1 ? 'completed' : (phase.phaseOrder === 2 ? 'in_progress' : 'pending'),
             });
           }
         }

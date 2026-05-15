@@ -159,7 +159,7 @@ describe("Projects Router", () => {
       }
 
       const defaultPhases = [
-        { phaseName: "المرحلة الأولى : التخطيط والتسليم", phaseOrder: 1 },
+        { phaseName: "المرحلة الأولى : الإنشاء والتخطيط", phaseOrder: 1 },
         { phaseName: "المرحلة الثانية : إعداد جدول الكميات", phaseOrder: 2 },
         { phaseName: "المرحلة الثالثة : اعتماد عرض السعر المناسب", phaseOrder: 3 },
       ];
@@ -180,7 +180,7 @@ describe("Projects Router", () => {
         .orderBy(projectPhases.phaseOrder);
 
       expect(phases.length).toBeGreaterThanOrEqual(3);
-      expect(phases[0].phaseName).toBe("المرحلة الأولى : التخطيط والتسليم");
+      expect(phases[0].phaseName).toBe("المرحلة الأولى : الإنشاء والتخطيط");
       expect(phases[0].status).toBe("in_progress");
     });
 
