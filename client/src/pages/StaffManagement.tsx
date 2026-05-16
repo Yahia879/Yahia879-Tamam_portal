@@ -75,29 +75,31 @@ export default function StaffManagement() {
 
         {/* نظام التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
-          <TabsList className="bg-muted/60 p-1.5 w-full md:w-auto overflow-x-auto justify-start h-auto border shadow-sm">
-            <TabsTrigger 
-              value="users" 
-              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
-            >
-              <Users className="h-4 w-4" />
-              المستخدمين
-            </TabsTrigger>
-            <TabsTrigger 
-              value="roles" 
-              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
-            >
-              <Shield className="h-4 w-4" />
-              الأدوار والصلاحيات
-            </TabsTrigger>
-            <TabsTrigger 
-              value="custom-roles" 
-              className="gap-2 px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md"
-            >
-              <Briefcase className="h-4 w-4" />
-              الأدوار المخصصة
-            </TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
+            <TabsList className="bg-muted/60 p-1.5 inline-flex md:flex w-auto md:w-auto min-w-full md:min-w-0 justify-start h-auto border shadow-sm whitespace-nowrap">
+              <TabsTrigger 
+                value="users" 
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+              >
+                <Users className="h-4 w-4" />
+                المستخدمين
+              </TabsTrigger>
+              <TabsTrigger 
+                value="roles" 
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+              >
+                <Shield className="h-4 w-4" />
+                الأدوار والصلاحيات
+              </TabsTrigger>
+              <TabsTrigger 
+                value="custom-roles" 
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+              >
+                <Briefcase className="h-4 w-4" />
+                الأدوار المخصصة
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* محتوى التبويبات مع Lazy Loading و Suspense */}
           <div className="mt-6">

@@ -283,20 +283,19 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-6">
-          <div className="text-2xl font-bold">{totalCount}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="p-4 sm:p-6 transition-all hover:shadow-md">
+          <div className="text-xl sm:text-2xl font-bold">{totalCount}</div>
           <div className="text-sm text-muted-foreground">إجمالي الموظفين</div>
         </Card>
-        <Card className="p-6">
-          <div className="text-2xl font-bold text-green-600">
-            {/* ملاحظة: هذا العدد يجب أن يأتي من الخلفية أيضاً ليكون دقيقاً مع التقسيم */}
+        <Card className="p-4 sm:p-6 transition-all hover:shadow-md">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">
             {usersData?.activeCount ?? "..."}
           </div>
           <div className="text-sm text-muted-foreground">الحسابات النشطة</div>
         </Card>
-        <Card className="p-6">
-          <div className="text-2xl font-bold text-red-600">
+        <Card className="p-4 sm:p-6 transition-all hover:shadow-md sm:col-span-2 lg:col-span-1">
+          <div className="text-xl sm:text-2xl font-bold text-red-600">
             {usersData?.suspendedCount ?? "..."}
           </div>
           <div className="text-sm text-muted-foreground">الحسابات الموقوفة</div>
@@ -304,135 +303,227 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      <div className="relative group">
+        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 transition-colors group-focus-within:text-primary" />
         <Input
           placeholder="ابحث عن مستخدم بالاسم أو البريد..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pr-10"
+          className="pr-10 h-11"
         />
       </div>
 
-      {/* Users Table */}
-      <Card className="relative overflow-hidden">
-        {isLoading && isPlaceholderData && (
-          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          </div>
-        )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-right">الاسم</TableHead>
-              <TableHead className="text-right">البريد الإلكتروني</TableHead>
-              <TableHead className="text-right">الدور</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-              <TableHead className="text-left">إجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
-                  {searchQuery ? "لا توجد نتائج للبحث" : "لا يوجد موظفون مسجلون بعد"}
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user: any) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <Link href={`/users/${user.id}`} className="hover:text-primary hover:underline cursor-pointer">
-                      {user.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user)}</TableCell>
-                  <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString("ar-SA")}
-                  </TableCell>
-                  <TableCell className="text-left">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/users/${user.id}/edit`}>
-                            <Edit className="ml-2 h-4 w-4" />
-                            تعديل البيانات
-                          </Link>
-                        </DropdownMenuItem>
-                        {user.id !== currentUser?.id && (
-                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                            {user.status === "active" ? (
-                              <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                            ) : (
-                              <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                            )}
-                          </DropdownMenuItem>
-                        )}
-                        {user.id !== currentUser?.id && (
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(user.id, user.name)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="ml-2 h-4 w-4" />
-                            حذف
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+      {/* Users View (Table for desktop, Cards for mobile) */}
+      <div className="space-y-4">
+        {/* Desktop Table */}
+        <Card className="hidden md:block relative overflow-hidden border-sidebar-border/10">
+          {isLoading && isPlaceholderData && (
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow>
+                  <TableHead className="text-right">الاسم</TableHead>
+                  <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                  <TableHead className="text-right">الدور</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">تاريخ الإنشاء</TableHead>
+                  <TableHead className="text-left">إجراءات</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      {searchQuery ? "لا توجد نتائج للبحث" : "لا يوجد موظفون مسجلون بعد"}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user: any) => (
+                    <TableRow key={user.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="font-medium">
+                        <Link href={`/users/${user.id}`} className="hover:text-primary hover:underline cursor-pointer flex items-center gap-2">
+                          <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                            {user.name.charAt(0)}
+                          </span>
+                          {user.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{getRoleBadge(user)}</TableCell>
+                      <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        {new Date(user.createdAt).toLocaleDateString("ar-SA")}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/users/${user.id}/edit`}>
+                                <Edit className="ml-2 h-4 w-4" />
+                                تعديل البيانات
+                              </Link>
+                            </DropdownMenuItem>
+                            {user.id !== currentUser?.id && (
+                              <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                                {user.status === "active" ? (
+                                  <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                                ) : (
+                                  <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                                )}
+                              </DropdownMenuItem>
+                            )}
+                            {user.id !== currentUser?.id && (
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(user.id, user.name)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden space-y-4">
+          {users.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground border-dashed">
+              {searchQuery ? "لا توجد نتائج للبحث" : "لا يوجد موظفون مسجلون بعد"}
+            </Card>
+          ) : (
+            users.map((user: any) => (
+              <Card key={user.id} className="p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {user.name.charAt(0)}
+                    </div>
+                    <div>
+                      <Link href={`/users/${user.id}`} className="font-bold hover:text-primary transition-colors">
+                        {user.name}
+                      </Link>
+                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/users/${user.id}/edit`}>
+                          <Edit className="ml-2 h-4 w-4" />
+                          تعديل البيانات
+                        </Link>
+                      </DropdownMenuItem>
+                      {user.id !== currentUser?.id && (
+                        <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                          {user.status === "active" ? (
+                            <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                          ) : (
+                            <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                          )}
+                        </DropdownMenuItem>
+                      )}
+                      {user.id !== currentUser?.id && (
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(user.id, user.name)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="ml-2 h-4 w-4" />
+                          حذف
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 py-2 border-y border-dashed">
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-muted-foreground uppercase">الدور</div>
+                    <div>{getRoleBadge(user)}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] text-muted-foreground uppercase">الحالة</div>
+                    <div>{getStatusBadge(user.status)}</div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <div className="text-xs text-muted-foreground">
+                    تاريخ الإنشاء: {new Date(user.createdAt).toLocaleDateString("ar-SA")}
+                  </div>
+                  <Link href={`/users/${user.id}`} className="text-xs text-primary font-medium flex items-center gap-1">
+                    عرض التفاصيل
+                    <ChevronLeft className="h-3 w-3" />
+                  </Link>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
 
         {/* Pagination UI */}
         {totalPages > 1 && (
-          <div className="py-4 border-t">
-            <Pagination>
-              <PaginationContent>
+          <div className="py-6 flex justify-center overflow-x-auto">
+            <Pagination className="w-auto">
+              <PaginationContent className="flex-nowrap gap-1 sm:gap-2">
                 <PaginationItem>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="gap-1"
+                    className="gap-1 h-9 px-2 sm:px-4"
                   >
                     <ChevronRight className="h-4 w-4" />
-                    السابق
+                    <span className="hidden sm:inline">السابق</span>
                   </Button>
                 </PaginationItem>
                 
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                  // إظهار الصفحات القريبة من الصفحة الحالية فقط إذا كان العدد كبيراً
-                  if (totalPages > 7) {
-                    if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
-                      if (p === 2 || p === totalPages - 1) return <PaginationItem key={p}><PaginationEllipsis /></PaginationItem>;
-                      return null;
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    // إظهار الصفحات القريبة من الصفحة الحالية فقط إذا كان العدد كبيراً
+                    if (totalPages > 5) {
+                      if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
+                        if (p === 2 && page > 3) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
+                        if (p === totalPages - 1 && page < totalPages - 2) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
+                        return null;
+                      }
                     }
-                  }
-                  
-                  return (
-                    <PaginationItem key={p}>
-                      <PaginationLink
-                        onClick={() => setPage(p)}
-                        isActive={page === p}
-                        className="cursor-pointer"
-                      >
-                        {p}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
+                    
+                    return (
+                      <PaginationItem key={p}>
+                        <PaginationLink
+                          onClick={() => setPage(p)}
+                          isActive={page === p}
+                          className="cursor-pointer w-8 h-8 sm:w-9 sm:h-9 text-xs sm:text-sm p-0 flex items-center justify-center"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                </div>
 
                 <PaginationItem>
                   <Button
@@ -440,9 +531,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                     size="sm"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="gap-1"
+                    className="gap-1 h-9 px-2 sm:px-4"
                   >
-                    التالي
+                    <span className="hidden sm:inline">التالي</span>
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                 </PaginationItem>
@@ -450,7 +541,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
             </Pagination>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Add User Dialog */}
       <Dialog
