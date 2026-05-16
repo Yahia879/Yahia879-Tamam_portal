@@ -93,8 +93,8 @@ async function seed() {
       projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursement_requests"],
       field_team: ["mosques.view", "requests.view"],
       quick_response: ["requests.view"],
-      financial: ["finance", "quotations.view", "disbursement_orders"],
-      financial_manager: ["finance", "quotations", "disbursement_requests", "disbursement_orders"],
+      financial: ["finance", "quotations.view", "disbursement_orders", "suppliers"],
+      financial_manager: ["finance", "quotations", "disbursement_requests", "disbursement_orders", "suppliers"],
       project_manager: ["projects.view", "projects.edit", "reports.create", "disbursement_requests"],
       corporate_comm: ["requests.view", "reports.view", "settings.view"],
       service_requester: ["requests.view", "requests.create"]
