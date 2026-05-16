@@ -42,6 +42,16 @@ const statusLabels: Record<string, string> = {
   cancelled: "ملغي",
 };
 
+const filterOptions = [
+  { value: "all", label: "جميع الحالات" },
+  { value: "إعداد جدول الكميات", label: "إعداد جدول الكميات" },
+  { value: "اعتماد عرض السعر المناسب", label: "اعتماد عرض السعر المناسب" },
+  { value: "التعاقد", label: "التعاقد" },
+  { value: "صرف المدفوعات", label: "صرف المدفوعات" },
+  { value: "المراجعة والإغلاق", label: "المراجعة والإغلاق" },
+  { value: "completed", label: "مكتمل" },
+];
+
 const statusColors: Record<string, string> = {
   planning: "bg-yellow-100 text-yellow-800",
   in_progress: "bg-yellow-100 text-yellow-800",
@@ -176,9 +186,8 @@ export default function Projects() {
                   <SelectValue placeholder="الحالة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  {Object.entries(statusLabels).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  {filterOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

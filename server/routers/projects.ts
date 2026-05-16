@@ -119,7 +119,7 @@ export const projectsRouter = router({
   search: protectedProcedure
     .input(z.object({
       search: z.string().optional(),
-      status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
+      status: z.string().optional(),
       page: z.number().default(1),
       limit: z.number().default(20),
     }))
@@ -128,8 +128,23 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const conditions = [];
-      if (input.status) {
-        conditions.push(eq(projects.status, input.status));
+      if (input.status && input.status !== "all") {
+        if (["planning", "in_progress", "on_hold", "completed", "cancelled"].includes(input.status)) {
+          conditions.push(eq(projects.status, input.status as any));
+        } else {
+          // فلترة حسب المرحلة الحالية للمشروع
+          const phaseName = input.status;
+          conditions.push(sql`EXISTS (
+            SELECT 1 FROM project_phases 
+            WHERE projectId = ${projects.id} 
+            AND status != 'completed' 
+            AND phaseName LIKE ${`%${phaseName}%`}
+            AND phaseOrder = (
+              SELECT MIN(phaseOrder) FROM project_phases 
+              WHERE projectId = ${projects.id} AND status != 'completed'
+            )
+          )`);
+        }
       }
       if (input.search) {
         conditions.push(
