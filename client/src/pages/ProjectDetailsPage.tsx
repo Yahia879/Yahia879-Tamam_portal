@@ -250,9 +250,9 @@ export default function ProjectDetailsPage() {
   // شرط ظهور زر اعتماد العقد: في مرحلة التعاقد ويوجد عقد واحد فقط بانتظار الاعتماد
   const showApproveContractButton = isContractingPhase && project.contracts?.length === 1 && (project.contracts[0].status === "draft" || project.contracts[0].status === "pending_approval");
 
-  // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
+  // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الرابعة بعد)
   const isPaymentsLocked = !project?.phases?.some(p => 
-    p.phaseOrder === 3 && p.status === "completed"
+    p.phaseOrder === 4 && p.status === "completed"
   );
 
   const handleApproveBOQ = async () => {
@@ -1054,6 +1054,8 @@ export default function ProjectDetailsPage() {
                   <Button 
                     className="gradient-primary text-white" 
                     onClick={() => navigate(`/disbursements/new/${project.id}`)}
+                    disabled={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0}
+                    title={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0 ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
                   >
                     <Plus className="w-4 h-4 ml-2" />
                     إضافة دفعة
@@ -1123,7 +1125,7 @@ export default function ProjectDetailsPage() {
                         <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-amber-900 mb-2">إضافة المدفوعات غير متاحة حالياً</h3>
                         <p className="text-amber-700">
-                          سيتم تفعيل إمكانية إضافة المدفوعات بعد اعتماد عرض السعر المناسب (إكمال المرحلة الثالثة).
+                          سيتم تفعيل إمكانية إضافة المدفوعات بعد اعتماد العقد.
                         </p>
                       </div>
                     ) : (

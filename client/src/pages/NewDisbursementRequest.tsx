@@ -238,6 +238,7 @@ export default function NewDisbursementRequest() {
       description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
+      dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
     });
   };

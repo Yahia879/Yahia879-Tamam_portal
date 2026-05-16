@@ -353,7 +353,7 @@ export const projectsRouter = router({
           amount: d.amount,
           status: d.status,
           description: d.title || d.description,
-          date: d.createdAt,
+          date: d.dateMiladi || d.createdAt,
           paidAt: d.status === "paid" ? d.updatedAt : null,
           source: "disbursement",
           contractPaymentId: d.contractPaymentId,
