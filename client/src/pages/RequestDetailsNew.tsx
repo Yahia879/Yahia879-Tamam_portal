@@ -393,7 +393,7 @@ export default function RequestDetailsNew() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         {/* بانر المشروع - يظهر عند وجود مشروع مرتبط */}
         {linkedProject && (
           <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-3 sm:p-4">
@@ -409,8 +409,8 @@ export default function RequestDetailsNew() {
                 </div>
               </div>
               <Link href={`/projects/${linkedProject.id}`} className="w-full sm:w-auto">
-                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50 w-full">
-                  <Building2 className="w-4 h-4 ml-2" />
+                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50 w-full font-bold">
+                  <Building2 className="w-4 h-4 ml-2 shrink-0" />
                   عرض صفحة المشروع
                 </Button>
               </Link>
@@ -419,15 +419,11 @@ export default function RequestDetailsNew() {
         )}
 
         {/* Progress Stepper */}
-        <div className="overflow-x-auto pb-4 mb-2 -mx-4 px-4 scrollbar-hide">
-          <div className="min-w-[600px] sm:min-w-0">
-            <ProgressStepper
-              steps={workflow.map((s) => ({ ...s, label: s.label }))}
-              currentStep={request.currentStage}
-              completedSteps={completedSteps}
-            />
-          </div>
-        </div>
+        <ProgressStepper
+          steps={workflow.map((s) => ({ ...s, label: s.label }))}
+          currentStep={request.currentStage}
+          completedSteps={completedSteps}
+        />
 
         {/* Active Action Card */}
         {activeAction && (
@@ -504,13 +500,13 @@ export default function RequestDetailsNew() {
             
             {/* قسم المراجعة الأولية */}
             {request.currentStage === 'initial_review' && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-lg border-2 border-blue-200">
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3 mb-4">
                   <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                  <h4 className="font-bold text-blue-800 text-base sm:text-lg">المراجعة الأولية</h4>
+                  <h4 className="font-bold text-blue-800 dark:text-blue-200 text-base sm:text-lg">المراجعة الأولية</h4>
                 </div>
-                <p className="text-xs sm:text-sm text-blue-600 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
-                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border">
+                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
+                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
                   <input
                     type="checkbox"
                     id="review-completed"
@@ -522,10 +518,10 @@ export default function RequestDetailsNew() {
                       });
                     }}
                     disabled={updateReviewCompletedMutation.isPending}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
                   />
-                  <label htmlFor="review-completed" className="text-sm font-medium cursor-pointer">
-                    إتمام المراجعة الأولية
+                  <label htmlFor="review-completed" className="text-sm font-bold cursor-pointer">
+                    إتمام المراجعة الأولية للطلب
                   </label>
                 </div>
               </div>
@@ -533,14 +529,14 @@ export default function RequestDetailsNew() {
             
             {/* مؤشرات إجراءات الزيارة الميدانية */}
             {request.currentStage === 'field_visit' && (
-              <div className="p-4 bg-card rounded-lg border">
-                <h3 className="text-base sm:text-lg font-semibold mb-4">حالة إجراءات الزيارة الميدانية</h3>
+              <div className="p-4 sm:p-6 bg-card rounded-xl border-2 shadow-sm">
+                <h3 className="text-base sm:text-lg font-bold mb-4">حالة إجراءات الزيارة الميدانية</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* جدولة الزيارة */}
-                  <div className={`p-3 sm:p-4 rounded-lg border-2 ${
+                  <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
                     fieldVisit?.scheduledDate 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' 
+                      : 'bg-gray-50 border-gray-200 dark:bg-gray-900/10 dark:border-gray-800'
                   }`}>
                     <div className="flex items-center gap-3 mb-2">
                       {fieldVisit?.scheduledDate ? (
@@ -548,28 +544,27 @@ export default function RequestDetailsNew() {
                       ) : (
                         <Clock className="w-5 h-5 text-gray-400" />
                       )}
-                      <h4 className={`font-semibold text-sm sm:text-base ${
-                        fieldVisit?.scheduledDate ? 'text-green-800' : 'text-gray-600'
+                      <h4 className={`font-bold text-sm sm:text-base ${
+                        fieldVisit?.scheduledDate ? 'text-green-800 dark:text-green-200' : 'text-gray-600 dark:text-gray-400'
                       }`}>جدولة الزيارة</h4>
                     </div>
-                    <p className={`text-xs sm:text-sm ${
-                      fieldVisit?.scheduledDate ? 'text-green-600' : 'text-gray-500'
+                    <p className={`text-[11px] sm:text-sm font-medium ${
+                      fieldVisit?.scheduledDate ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
                     }`}>
                       {fieldVisit?.scheduledDate 
                         ? `مجدولة: ${new Date(fieldVisit?.scheduledDate).toLocaleDateString('ar-SA')}`
-                        : 'معلقة'
+                        : 'معلقة (لم يتم التحديد)'
                       }
                     </p>
                   </div>
 
-
                   {/* رفع التقرير */}
-                  <div className={`p-3 sm:p-4 rounded-lg border-2 ${
+                  <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
                     fieldVisit?.reportSubmitted
-                      ? 'bg-green-50 border-green-200'
+                      ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800'
                       : fieldVisit?.executionDate
-                      ? 'bg-amber-50 border-amber-200'
-                      : 'bg-gray-50 border-gray-200'
+                      ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800'
+                      : 'bg-gray-50 border-gray-200 dark:bg-gray-900/10 dark:border-gray-800'
                   }`}>
                     <div className="flex items-center gap-3 mb-2">
                       {fieldVisit?.reportSubmitted ? (
@@ -579,26 +574,26 @@ export default function RequestDetailsNew() {
                       ) : (
                         <Clock className="w-5 h-5 text-gray-400" />
                       )}
-                      <h4 className={`font-semibold text-sm sm:text-base ${
+                      <h4 className={`font-bold text-sm sm:text-base ${
                         fieldVisit?.reportSubmitted
-                          ? 'text-green-800'
+                          ? 'text-green-800 dark:text-green-200'
                           : fieldVisit?.executionDate
-                          ? 'text-amber-800'
-                          : 'text-gray-600'
+                          ? 'text-amber-800 dark:text-amber-200'
+                          : 'text-gray-600 dark:text-gray-400'
                       }`}>رفع التقرير</h4>
                     </div>
-                    <p className={`text-xs sm:text-sm ${
+                    <p className={`text-[11px] sm:text-sm font-medium ${
                       fieldVisit?.reportSubmitted
-                        ? 'text-green-600'
+                        ? 'text-green-600 dark:text-green-400'
                         : fieldVisit?.executionDate
-                        ? 'text-amber-600'
+                        ? 'text-amber-600 dark:text-amber-400'
                         : 'text-gray-500'
                     }`}>
                       {fieldVisit?.reportSubmitted
-                        ? 'مكتمل'
+                        ? 'تم رفع التقرير بنجاح'
                         : fieldVisit?.executionDate
-                        ? 'قيد الرفع'
-                        : 'معلق'
+                        ? 'قيد الرفع (تمت الزيارة)'
+                        : 'معلق (بانتظار الزيارة)'
                       }
                     </p>
                   </div>
@@ -611,72 +606,80 @@ export default function RequestDetailsNew() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* التحويل إلى مشروع */}
                 <button 
-                  className="group p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50"
+                  className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
                   onClick={() => {
                     setSelectedDecision('convert_to_project');
                     setShowTechnicalEvalDialog(true);
                   }}
                   disabled={technicalEvalMutation.isPending}
                 >
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <div>
-                      <h5 className="font-bold text-green-800 text-sm sm:text-base">التحويل إلى مشروع</h5>
-                      <p className="text-[10px] sm:text-sm text-green-600">إكمال الطلب والانتقال للتقييم المالي</p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
+                      <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
                     </div>
                   </div>
                 </button>
 
                 {/* الاستجابة السريعة */}
                 <button 
-                  className="group p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50"
+                  className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
                   onClick={() => {
                     setSelectedDecision('quick_response');
                     setShowTechnicalEvalDialog(true);
                   }}
                   disabled={technicalEvalMutation.isPending}
                 >
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-6 h-6 text-purple-600 flex-shrink-0" />
-                    <div>
-                      <h5 className="font-bold text-purple-800 text-sm sm:text-base">الاستجابة السريعة</h5>
-                      <p className="text-[10px] sm:text-sm text-purple-600">تحويل للحالات البسيطة التي تحتاج تدخل مباشر</p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
+                      <Zap className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
+                      <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
                     </div>
                   </div>
                 </button>
 
                 {/* التعليق */}
                 <button 
-                  className="group p-4 rounded-lg border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50"
+                  className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
                   onClick={() => {
                     setSelectedDecision('suspend');
                     setShowTechnicalEvalDialog(true);
                   }}
                   disabled={technicalEvalMutation.isPending}
                 >
-                  <div className="flex items-center gap-3">
-                    <PauseCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
-                    <div>
-                      <h5 className="font-bold text-amber-800 text-sm sm:text-base">التعليق</h5>
-                      <p className="text-[10px] sm:text-sm text-amber-600">تعليق الطلب مؤقتاً لحين توفر متطلبات</p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
+                      <PauseCircle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
+                      <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
                     </div>
                   </div>
                 </button>
 
                 {/* الاعتذار */}
                 <button 
-                  className="group p-4 rounded-lg border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50"
+                  className="group p-4 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
                   onClick={() => {
                     setSelectedDecision('apologize');
                     setShowTechnicalEvalDialog(true);
                   }}
                   disabled={technicalEvalMutation.isPending}
                 >
-                  <div className="flex items-center gap-3">
-                    <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                    <div>
-                      <h5 className="font-bold text-red-800 text-sm sm:text-base">الاعتذار</h5>
-                      <p className="text-[10px] sm:text-sm text-red-600">رفض الطلب نهائياً</p>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
+                      <XCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-bold text-red-800 dark:text-red-200 text-sm sm:text-base mb-1">الاعتذار (الرفض)</h5>
+                      <p className="text-[11px] sm:text-sm text-red-600 dark:text-red-400 leading-tight">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
                     </div>
                   </div>
                 </button>
@@ -689,48 +692,48 @@ export default function RequestDetailsNew() {
         <div className="mt-6">
           <Button 
             variant="outline" 
-            className="w-full flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900"
+            className="w-full flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900 shadow-sm rounded-xl"
             onClick={() => setShowReviewInfo(!showReviewInfo)}
           >
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-right min-w-0">
-                <p className="font-bold text-sm sm:text-base truncate">مراجعة المعلومات والمرفقات</p>
+                <p className="font-bold text-sm sm:text-lg truncate">مراجعة المعلومات والمرفقات</p>
                 <p className="text-[10px] sm:text-sm text-muted-foreground truncate">عرض تفاصيل الطلب والملفات المرفوعة</p>
               </div>
             </div>
-            {showReviewInfo ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {showReviewInfo ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
           </Button>
 
           {showReviewInfo && (
             <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
               {/* تفاصيل الطلب */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  تفاصيل الطلب
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm">
+                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200 border-b pb-3 border-slate-200 dark:border-slate-800">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                  تفاصيل الطلب الأساسية
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* معلومات أساسية ثابته */}
-                  <div className="space-y-1">
-                    <p className="text-[10px] sm:text-sm text-muted-foreground">البرنامج</p>
-                    <p className="text-sm sm:text-base font-semibold">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
+                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">البرنامج</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] sm:text-sm text-muted-foreground">تاريخ التقديم</p>
-                    <p className="text-sm sm:text-base font-semibold">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
+                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ التقديم</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
                   </div>
                   {request.mosque && (
                     <>
-                      <div className="space-y-1">
-                        <p className="text-[10px] sm:text-sm text-muted-foreground">المسجد</p>
-                        <p className="text-sm sm:text-base font-semibold">{request.mosque.name}</p>
+                      <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">المسجد</p>
+                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 truncate">{request.mosque.name}</p>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] sm:text-sm text-muted-foreground">الموقع</p>
-                        <p className="text-sm sm:text-base font-semibold">{request.mosque.city || "غير محدد"}</p>
+                      <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">الموقع</p>
+                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{request.mosque.city || "غير محدد"}</p>
                       </div>
                     </>
                   )}
@@ -765,9 +768,9 @@ export default function RequestDetailsNew() {
                         }
 
                         return (
-                          <div key={field.name} className="space-y-1 col-span-full md:col-span-1">
-                            <p className="text-[10px] sm:text-sm text-muted-foreground">{field.label}</p>
-                            <p className="text-sm sm:text-base font-semibold whitespace-pre-wrap break-words">{String(displayValue)}</p>
+                          <div key={field.name} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{field.label}</p>
+                            <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{String(displayValue)}</p>
                           </div>
                         );
                       });
@@ -776,20 +779,20 @@ export default function RequestDetailsNew() {
               </div>
 
               {/* المرفقات */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800">
-                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
-                  <Paperclip className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                  المرفقات المرفوعة
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm">
+                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200 border-b pb-3 border-slate-200 dark:border-slate-800">
+                  <Paperclip className="w-5 h-5 text-orange-600" />
+                  المرفقات المرفوعة مع الطلب
                 </h4>
                 {request?.attachments && request.attachments.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {request.attachments.map((attachment: any, index: number) => (
-                      <div key={index} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow-sm border-r-4 border-orange-500 flex items-center justify-between gap-2">
+                      <div key={index} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-300 transition-all flex items-center justify-between gap-3 group">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs sm:text-sm text-orange-700 dark:text-orange-300 truncate">{attachment.fileName}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1">{attachment.fileType}</p>
+                          <p className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate">{attachment.fileName}</p>
+                          <p className="text-[10px] text-muted-foreground mt-1 font-medium bg-slate-50 dark:bg-slate-900/50 px-2 py-0.5 rounded-full inline-block">{attachment.fileType}</p>
                         </div>
-                        <Button variant="ghost" size="sm" asChild className="shrink-0 h-8 w-8 p-0">
+                        <Button variant="ghost" size="sm" asChild className="shrink-0 h-9 w-9 rounded-full bg-slate-50 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
                           <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="w-4 h-4" />
                           </a>
@@ -798,7 +801,10 @@ export default function RequestDetailsNew() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-4 text-xs sm:text-sm">لم يتم إرفاق أي ملفات</p>
+                  <div className="text-center py-10 bg-white dark:bg-slate-800/50 rounded-lg border-2 border-dashed">
+                    <Paperclip className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                    <p className="text-muted-foreground font-medium text-xs sm:text-sm">لم يتم إرفاق أي ملفات بهذا الطلب</p>
+                  </div>
                 )}
               </div>
             </div>

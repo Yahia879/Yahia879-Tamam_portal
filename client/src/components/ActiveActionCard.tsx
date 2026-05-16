@@ -52,25 +52,25 @@ export function ActiveActionCard({
         }}
         className="w-full max-w-2xl"
       >
-        <Card className="p-8 shadow-lg">
+        <Card className="p-4 sm:p-6 md:p-8 shadow-lg">
           {/* Header with Icon */}
           <motion.div 
-            className="flex items-center gap-4 mb-6"
+            className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-3 sm:gap-4 mb-4 sm:mb-6"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1, duration: 0.3 }}
           >
             <motion.div 
-              className={`p-3 rounded-lg bg-primary/10 ${iconColor}`}
+              className={`p-2 sm:p-3 rounded-lg bg-primary/10 ${iconColor} shrink-0`}
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-              <Icon className="w-8 h-8" />
+              <Icon className="w-6 h-6 sm:w-8 sm:h-8" />
             </motion.div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground break-words">{title}</h2>
               {progress && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                   المرحلة {progress.current} من {progress.total} • {progress.percentage}% مكتمل
                 </p>
               )}
@@ -80,14 +80,14 @@ export function ActiveActionCard({
           {/* Progress Bar */}
           {progress && (
             <motion.div 
-              className="mb-6"
+              className="mb-4 sm:mb-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.3 }}
             >
-              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-secondary rounded-full h-1.5 sm:h-2 overflow-hidden">
                 <motion.div
-                  className="bg-primary h-2 rounded-full"
+                  className="bg-primary h-full rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress.percentage}%` }}
                   transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
@@ -98,7 +98,7 @@ export function ActiveActionCard({
 
           {/* Description */}
           <motion.p 
-            className="text-muted-foreground mb-8 text-lg leading-relaxed"
+            className="text-muted-foreground mb-6 sm:mb-8 text-sm sm:text-lg leading-relaxed text-center sm:text-right"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.3 }}
@@ -108,22 +108,22 @@ export function ActiveActionCard({
 
           {/* Action Buttons */}
           <motion.div 
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2 sm:gap-3"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.3 }}
           >
             {actionButton && (
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
                 <Button
                   size="lg"
                   variant={actionButton.variant || "default"}
                   onClick={actionButton.onClick}
                   disabled={actionButton.disabled}
-                  className="w-full text-lg py-6"
+                  className="w-full text-base sm:text-lg py-5 sm:py-6"
                 >
                   {actionButton.label}
                 </Button>
@@ -132,14 +132,14 @@ export function ActiveActionCard({
 
             {secondaryButton && (
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
                 <Button
                   size="lg"
                   variant={secondaryButton.variant || "outline"}
                   onClick={secondaryButton.onClick}
-                  className="w-full"
+                  className="w-full h-11 sm:h-12 text-sm sm:text-base"
                 >
                   {secondaryButton.label}
                 </Button>
@@ -150,15 +150,15 @@ export function ActiveActionCard({
           {/* Additional Actions */}
           {additionalActions && additionalActions.length > 0 && (
             <motion.div 
-              className="mt-6 pt-6 border-t"
+              className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.3 }}
             >
-              <p className="text-sm font-medium text-muted-foreground mb-3">
+              <p className="text-[11px] sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3">
                 ⚙️ إجراءات إضافية:
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                 {additionalActions.map((action, index) => (
                   <motion.div
                     key={index}
@@ -169,7 +169,7 @@ export function ActiveActionCard({
                       size="sm"
                       variant="ghost"
                       onClick={action.onClick}
-                      className="text-sm"
+                      className="text-[11px] sm:text-sm h-8 px-2"
                     >
                       {action.label}
                     </Button>

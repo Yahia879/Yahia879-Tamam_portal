@@ -213,75 +213,75 @@ export default function FieldInspectionForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8" dir="rtl">
-      <div className="container max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir="rtl">
+      <div className="container max-w-4xl mx-auto px-4 overflow-x-hidden">
         {/* العنوان */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">نموذج المعاينة الميدانية</h1>
-          <p className="text-gray-600">توثيق حالة المسجد فنياً وتحديد الاحتياجات</p>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">نموذج المعاينة الميدانية</h1>
+          <p className="text-sm md:text-base text-gray-600">توثيق حالة المسجد فنياً وتحديد الاحتياجات</p>
         </div>
 
         {/* البيانات الأساسية */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <FileText className="w-5 h-5 text-primary" />
               البيانات الأساسية
             </CardTitle>
-            <CardDescription>معلومات الطلب وصاحب الطلب والمسجد (مستوردة تلقائياً)</CardDescription>
+            <CardDescription className="text-xs md:text-sm">معلومات الطلب وصاحب الطلب والمسجد (مستوردة تلقائياً)</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Alert className="bg-blue-50 border-blue-200 mb-6">
+          <CardContent className="p-4 md:p-6">
+            <Alert className="bg-blue-50 border-blue-200 mb-6 p-3">
               <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+              <AlertDescription className="text-[11px] md:text-sm text-blue-800">
                 البيانات التالية مستوردة من نموذج الطلب المقدم ولا يمكن تعديلها
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <FileText className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">رقم الطلب</p>
-                  <p className="font-medium">{requestData.requestNumber}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <FileText className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">رقم الطلب</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.requestNumber}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <User className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">اسم مقدم الطلب</p>
-                  <p className="font-medium">{requestData.requester?.name || "غير محدد"}</p>
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <User className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">اسم مقدم الطلب</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.requester?.name || "غير محدد"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <Phone className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">رقم التواصل</p>
-                  <p className="font-medium">{requestData.requester?.phone || "غير محدد"}</p>
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <Phone className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">رقم التواصل</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.requester?.phone || "غير محدد"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <Building2 className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">اسم المسجد</p>
-                  <p className="font-medium">{requestData.mosque?.name || "غير محدد"}</p>
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <Building2 className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">اسم المسجد</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.mosque?.name || "غير محدد"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg md:col-span-2">
-                <MapPin className="w-5 h-5 text-gray-500" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500">موقع المسجد</p>
-                  <p className="font-medium">{requestData.mosque?.address || "غير محدد"}</p>
+              <div className="flex items-start gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:col-span-2">
+                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">موقع المسجد</p>
+                  <p className="font-bold text-sm md:text-base break-words">{requestData.mosque?.address || "غير محدد"}</p>
                   {requestData.mosque?.latitude && requestData.mosque?.longitude && (
                     <a 
-                      href={requestData.mosque?.latitude && requestData.mosque?.longitude ? `https://maps.google.com/?q=${requestData.mosque.latitude},${requestData.mosque.longitude}` : "#"} 
+                      href={`https://maps.google.com/?q=${requestData.mosque.latitude},${requestData.mosque.longitude}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline"
+                      className="text-xs md:text-sm text-primary hover:underline mt-2 inline-block font-medium"
                     >
                       عرض على خرائط Google
                     </a>
@@ -293,42 +293,42 @@ export default function FieldInspectionForm() {
         </Card>
 
         {/* التقييم الفني */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <ClipboardList className="w-5 h-5 text-primary" />
               التقييم الفني
             </CardTitle>
-            <CardDescription>توصيف حالة المسجد والمساحات الداخلية</CardDescription>
+            <CardDescription className="text-xs md:text-sm">توصيف حالة المسجد والمساحات الداخلية</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 md:p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>حالة المسجد <span className="text-red-500">*</span></Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-bold">حالة المسجد <span className="text-red-500">*</span></Label>
                 <Select
                   value={formData.conditionRating}
                   onValueChange={(value) => handleInputChange("conditionRating", value)}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="h-10 md:h-11">
                     <SelectValue placeholder="اختر حالة المسجد" />
                   </SelectTrigger>
                   <SelectContent>
                     {MOSQUE_CONDITIONS.map((condition) => (
                       <SelectItem key={condition.value} value={condition.value}>
-                        <span className={condition.color}>{condition.label}</span>
+                        <span className={`${condition.color} font-medium`}>{condition.label}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div>
-                <Label>توصيف الحالة</Label>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-bold">توصيف الحالة</Label>
                 <Input
                   value={formData.mosqueCondition}
                   onChange={(e) => handleInputChange("mosqueCondition", e.target.value)}
                   placeholder="وصف مختصر لحالة المسجد"
-                  className="mt-1"
+                  className="h-10 md:h-11"
                 />
               </div>
             </div>
@@ -336,156 +336,156 @@ export default function FieldInspectionForm() {
             <Separator />
 
             {/* مساحة مصلى الرجال */}
-            <div>
-              <h4 className="font-medium mb-3 flex items-center gap-2">
-                <Ruler className="w-4 h-4" />
+            <div className="space-y-4">
+              <h4 className="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
+                <Ruler className="w-4 h-4 text-primary" />
                 مساحة مصلى الرجال
               </h4>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label>الطول (متر)</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] md:text-xs">الطول (متر)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={formData.menPrayerLength}
                     onChange={(e) => handleInputChange("menPrayerLength", e.target.value)}
                     placeholder="0.00"
-                    className="mt-1"
+                    className="h-10"
                   />
                 </div>
-                <div>
-                  <Label>العرض (متر)</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] md:text-xs">العرض (متر)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={formData.menPrayerWidth}
                     onChange={(e) => handleInputChange("menPrayerWidth", e.target.value)}
                     placeholder="0.00"
-                    className="mt-1"
+                    className="h-10"
                   />
                 </div>
-                <div>
-                  <Label>الارتفاع (متر)</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] md:text-xs">الارتفاع (متر)</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={formData.menPrayerHeight}
                     onChange={(e) => handleInputChange("menPrayerHeight", e.target.value)}
                     placeholder="0.00"
-                    className="mt-1"
+                    className="h-10"
                   />
                 </div>
               </div>
               {formData.menPrayerLength && formData.menPrayerWidth && (
-                <p className="text-sm text-gray-500 mt-2">
-                  المساحة: {(parseFloat(formData.menPrayerLength) * parseFloat(formData.menPrayerWidth)).toFixed(2)} م²
-                </p>
+                <div className="inline-block px-3 py-1 bg-primary/5 text-primary rounded-full text-[11px] md:text-xs font-bold border border-primary/10">
+                  المساحة الكلية: {(parseFloat(formData.menPrayerLength) * parseFloat(formData.menPrayerWidth)).toFixed(2)} م²
+                </div>
               )}
             </div>
 
             <Separator />
 
             {/* مساحة مصلى النساء */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
                 <Checkbox
                   id="womenPrayerExists"
                   checked={womenPrayerExists}
                   onCheckedChange={(checked) => setWomenPrayerExists(checked === true)}
+                  className="h-5 w-5"
                 />
-                <Label htmlFor="womenPrayerExists" className="cursor-pointer font-medium flex items-center gap-2">
-                  <Ruler className="w-4 h-4" />
+                <Label htmlFor="womenPrayerExists" className="cursor-pointer font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
                   يوجد مصلى للنساء
                 </Label>
               </div>
               
               {womenPrayerExists && (
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>الطول (متر)</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] md:text-xs">الطول (متر)</Label>
                     <Input
                       type="number"
                       step="0.01"
                       value={formData.womenPrayerLength}
                       onChange={(e) => handleInputChange("womenPrayerLength", e.target.value)}
                       placeholder="0.00"
-                      className="mt-1"
+                      className="h-10"
                     />
                   </div>
-                  <div>
-                    <Label>العرض (متر)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] md:text-xs">العرض (متر)</Label>
                     <Input
                       type="number"
                       step="0.01"
                       value={formData.womenPrayerWidth}
                       onChange={(e) => handleInputChange("womenPrayerWidth", e.target.value)}
                       placeholder="0.00"
-                      className="mt-1"
+                      className="h-10"
                     />
                   </div>
-                  <div>
-                    <Label>الارتفاع (متر)</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] md:text-xs">الارتفاع (متر)</Label>
                     <Input
                       type="number"
                       step="0.01"
                       value={formData.womenPrayerHeight}
                       onChange={(e) => handleInputChange("womenPrayerHeight", e.target.value)}
                       placeholder="0.00"
-                      className="mt-1"
+                      className="h-10"
                     />
                   </div>
                 </div>
               )}
               {womenPrayerExists && formData.womenPrayerLength && formData.womenPrayerWidth && (
-                <p className="text-sm text-gray-500 mt-2">
-                  المساحة: {(parseFloat(formData.womenPrayerLength) * parseFloat(formData.womenPrayerWidth)).toFixed(2)} م²
-                </p>
+                <div className="inline-block px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-[11px] md:text-xs font-bold border border-teal-100">
+                  مساحة مصلى النساء: {(parseFloat(formData.womenPrayerLength) * parseFloat(formData.womenPrayerWidth)).toFixed(2)} م²
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* الاحتياج والتوصيف */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <ClipboardList className="w-5 h-5 text-primary" />
               الاحتياج والتوصيف
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>الاحتياج المطلوب</Label>
+          <CardContent className="p-4 md:p-6 space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">الاحتياج المطلوب</Label>
               <Textarea
                 value={formData.requiredNeeds}
                 onChange={(e) => handleInputChange("requiredNeeds", e.target.value)}
                 placeholder="وصف الاحتياجات المطلوبة للمسجد..."
-                className="mt-1 min-h-[100px]"
+                className="min-h-[100px] text-sm md:text-base leading-relaxed"
               />
             </div>
 
-            <div>
-              <Label>الوصف العام للحالة</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">الوصف العام للحالة</Label>
               <Textarea
                 value={formData.generalDescription}
                 onChange={(e) => handleInputChange("generalDescription", e.target.value)}
                 placeholder="وصف عام لحالة المسجد والملاحظات..."
-                className="mt-1 min-h-[100px]"
+                className="min-h-[100px] text-sm md:text-base leading-relaxed"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* المرفقات */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Camera className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <Camera className="w-5 h-5 text-primary" />
               المرفقات (التوثيق بالصور)
             </CardTitle>
-            <CardDescription>إرفاق صور توثيقية لحالة المسجد</CardDescription>
+            <CardDescription className="text-xs md:text-sm">إرفاق صور توثيقية لحالة المسجد</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             <FileUpload
               onFilesSelected={setAttachments}
               maxFiles={10}
@@ -496,66 +496,66 @@ export default function FieldInspectionForm() {
               category="site_photo"
             />
             {attachments.length > 0 && (
-              <p className="text-sm text-gray-500 mt-2">
-                تم إرفاق {attachments.length} صورة
+              <p className="text-xs md:text-sm text-primary font-bold mt-3 bg-primary/5 px-3 py-1.5 rounded-lg inline-block">
+                تم إرفاق {attachments.length} صورة توثيقية
               </p>
             )}
           </CardContent>
         </Card>
 
         {/* فريق المعاينة */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <Users className="w-5 h-5 text-primary" />
               فريق المعاينة
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>عضو 1 <span className="text-red-500">*</span></Label>
+          <CardContent className="p-4 md:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">عضو الفريق الأول <span className="text-red-500">*</span></Label>
                 <Input
                   value={formData.teamMember1}
                   onChange={(e) => handleInputChange("teamMember1", e.target.value)}
-                  placeholder="اسم العضو الأول"
-                  className="mt-1"
+                  placeholder="الاسم الثلاثي"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <Label>عضو 2</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">عضو الفريق الثاني</Label>
                 <Input
                   value={formData.teamMember2}
                   onChange={(e) => handleInputChange("teamMember2", e.target.value)}
-                  placeholder="اسم العضو الثاني"
-                  className="mt-1"
+                  placeholder="الاسم الثلاثي"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <Label>عضو 3</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">عضو الفريق الثالث</Label>
                 <Input
                   value={formData.teamMember3}
                   onChange={(e) => handleInputChange("teamMember3", e.target.value)}
-                  placeholder="اسم العضو الثالث"
-                  className="mt-1"
+                  placeholder="الاسم الثلاثي"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <Label>عضو 4</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">عضو الفريق الرابع</Label>
                 <Input
                   value={formData.teamMember4}
                   onChange={(e) => handleInputChange("teamMember4", e.target.value)}
-                  placeholder="اسم العضو الرابع"
-                  className="mt-1"
+                  placeholder="الاسم الثلاثي"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <Label>عضو 5</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">عضو الفريق الخامس</Label>
                 <Input
                   value={formData.teamMember5}
                   onChange={(e) => handleInputChange("teamMember5", e.target.value)}
-                  placeholder="اسم العضو الخامس"
-                  className="mt-1"
+                  placeholder="الاسم الثلاثي"
+                  className="h-10"
                 />
               </div>
             </div>
@@ -563,28 +563,30 @@ export default function FieldInspectionForm() {
         </Card>
 
         {/* أزرار التحكم */}
-        <div className="flex justify-between">
+        <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-8 pb-10">
           <Button
             variant="outline"
+            className="w-full sm:w-auto h-11 border-2 font-bold"
             onClick={() => navigate(`/requests/${requestId}`)}
           >
             <ArrowRight className="w-4 h-4 ml-2" />
-            إلغاء
+            إلغاء وإغلاق
           </Button>
           
           <Button
+            className="w-full sm:w-auto h-11 gradient-primary text-white font-bold shadow-lg"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                جاري الحفظ...
+                جاري المعالجة...
               </>
             ) : (
               <>
                 <Save className="w-4 h-4 ml-2" />
-                حفظ التقرير
+                اعتماد وحفظ تقرير المعاينة
               </>
             )}
           </Button>
