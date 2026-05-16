@@ -461,6 +461,31 @@ export default function ContractForm() {
         }
         return true;
       case 4:
+        // التحقق من صحة جدول الدفعات
+        if (paymentSchedule.length > 0) {
+          const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
+          
+          if (totalPayments > contractData.totalValue) {
+            toast.error("لا يمكن أن يتجاوز إجمالي مبالغ الدفعات قيمة العقد");
+            return false;
+          }
+
+          for (let i = 0; i < paymentSchedule.length; i++) {
+            const p = paymentSchedule[i];
+            if (!p.dueDate) {
+              toast.error(`يرجى تحديد تاريخ الاستحقاق للدفعة ${i + 1}`);
+              return false;
+            }
+            if (!p.name) {
+              toast.error(`يرجى إدخال عنوان للدفعة ${i + 1}`);
+              return false;
+            }
+            if (!p.amount || p.amount <= 0) {
+              toast.error(`يرجى إدخال مبلغ صحيح للدفعة ${i + 1}`);
+              return false;
+            }
+          }
+        }
         return true;
       default:
         return true;
@@ -1104,6 +1129,7 @@ export default function ContractForm() {
                               <Input
                                 type="date"
                                 value={payment.dueDate}
+                                required
                                 onChange={(e) => {
                                   const selectedDate = e.target.value;
                                   // التحقق من أن التاريخ ضمن فترة العقد
@@ -1151,6 +1177,7 @@ export default function ContractForm() {
                               <Label className="text-xs">عنوان طلب الصرف</Label>
                               <Input
                                 value={payment.name}
+                                required
                                 onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
                                 placeholder="عنوان الطلب"
                               />
@@ -1160,6 +1187,7 @@ export default function ContractForm() {
                               <Input
                                 type="number"
                                 value={payment.amount || ""}
+                                required
                                 onChange={(e) => updatePayment(payment.id, "amount", parseFloat(e.target.value) || 0)}
                                 placeholder="0.00"
                               />
@@ -1180,10 +1208,28 @@ export default function ContractForm() {
                     {/* ملخص الدفعات */}
                     <Card className="bg-muted/50 p-4">
                       <div className="flex items-center justify-between">
-                        <span>إجمالي المبالغ:</span>
-                        <span className="font-bold">
-                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span>إجمالي المبالغ:</span>
+                          <span className={`font-bold ${paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue ? "text-destructive" : "text-primary"}`}>
+                            {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
+                          </span>
+                          <span className="text-muted-foreground mr-1">من قيمة العقد:</span>
+                          <span className="font-bold">
+                            {contractData.totalValue.toLocaleString()} ريال
+                          </span>
+                        </div>
+                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue && (
+                          <div className="flex items-center gap-1 text-destructive text-xs font-medium">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                          </div>
+                        )}
+                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
+                          <div className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                            <Check className="h-3 w-3" />
+                            <span>تمت تغطية كامل قيمة العقد</span>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   </div>
