@@ -110,17 +110,16 @@ function FieldVisitsCalendarContent() {
       </div>
     );
   }
-
-  return (
-    <div className="space-y-6">
+return (
+  <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">جدول الزيارات الميدانية</h1>
-          <p className="text-muted-foreground">عرض تقويمي للزيارات المجدولة مع كشف التعارضات</p>
+          <h1 className="text-xl md:text-3xl font-bold">جدول الزيارات الميدانية</h1>
+          <p className="text-xs md:text-base text-muted-foreground mt-1">عرض تقويمي للزيارات المجدولة مع كشف التعارضات</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={goToToday} variant="outline" className="gap-2">
+          <Button onClick={goToToday} variant="outline" className="gap-2 w-full sm:w-auto h-9 text-sm">
             اليوم
           </Button>
         </div>
@@ -128,13 +127,13 @@ function FieldVisitsCalendarContent() {
 
       {/* Conflicts Alert */}
       {hasConflicts && (
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
-          <CardContent className="pt-6">
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 shadow-sm">
+          <CardContent className="p-4 md:pt-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
               <div>
-                <h3 className="font-semibold text-red-900 dark:text-red-100">تنبيه: تعارض في المواعيد</h3>
-                <p className="text-sm text-red-700 dark:text-red-200 mt-1">
+                <h3 className="font-semibold text-red-900 dark:text-red-100 text-sm md:text-base">تنبيه: تعارض في المواعيد</h3>
+                <p className="text-xs md:text-sm text-red-700 dark:text-red-200 mt-1">
                   يوجد {conflicts.length} زيارة متداخلة في نفس الوقت. يرجى مراجعة الجدول وتعديل المواعيد.
                 </p>
               </div>
@@ -145,35 +144,36 @@ function FieldVisitsCalendarContent() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <Card className="lg:col-span-2 border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              <span className="min-w-[150px]">
+              <CalendarIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+              <span className="text-sm md:text-base font-bold min-w-[120px] md:min-w-[150px]">
                 {format(currentMonthDate, 'MMMM yyyy', { locale: ar })}
               </span>
             </CardTitle>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" onClick={prevMonth} className="h-8 w-8 text-primary hover:bg-primary/10">
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
               <Button variant="ghost" size="icon" onClick={nextMonth} className="h-8 w-8 text-primary hover:bg-primary/10">
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 md:px-6 pb-6">
             {/* Days of week */}
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'].map((day) => (
-                <div key={day} className="text-center text-sm font-medium text-muted-foreground p-2">
-                  {day}
+            <div className="grid grid-cols-7 gap-1 md:gap-2 mb-2">
+              {['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'].map((day) => (
+                <div key={day} className="text-center text-[10px] md:text-sm font-bold text-muted-foreground p-1 md:p-2">
+                  <span className="hidden sm:inline">{day === 'إثنين' ? 'الإثنين' : day === 'ثلاثاء' ? 'الثلاثاء' : day === 'أربعاء' ? 'الأربعاء' : day === 'خميس' ? 'الخميس' : day === 'جمعة' ? 'الجمعة' : day === 'سبت' ? 'السبت' : 'الأحد'}</span>
+                  <span className="sm:hidden">{day.charAt(0)}</span>
                 </div>
               ))}
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-7 gap-1 md:gap-1.5">
               {daysInMonth.map((day) => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayVisits = visitsByDate[dateKey] || [];
@@ -187,9 +187,9 @@ function FieldVisitsCalendarContent() {
                     key={day.toISOString()}
                     onClick={() => setSelectedDate(day)}
                     className={`
-                      relative p-2 rounded-xl border-2 transition-all duration-200 min-h-[60px] flex flex-col items-center justify-start gap-1
+                      relative p-1 md:p-2 rounded-lg md:rounded-xl border-2 transition-all duration-200 min-h-[50px] md:min-h-[60px] flex flex-col items-center justify-start gap-0.5 md:gap-1
                       ${isSelected 
-                        ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105' 
+                        ? 'bg-primary text-primary-foreground border-primary shadow-md scale-105 z-10' 
                         : isToday
                           ? 'border-primary/50 bg-primary/5 hover:bg-primary/10'
                           : hasVisits 
@@ -198,28 +198,26 @@ function FieldVisitsCalendarContent() {
                       }
                     `}
                   >
-                    <div className={`text-sm font-semibold w-7 h-7 flex items-center justify-center rounded-full
+                    <div className={`text-[11px] md:text-sm font-semibold w-5 h-5 md:w-7 md:h-7 flex items-center justify-center rounded-full
                       ${isSelected ? 'text-primary-foreground' : isToday ? 'bg-primary text-primary-foreground' : ''}
                     `}>
                       {format(day, 'd')}
                     </div>
                     {hasVisits && (
-                      <div className="flex flex-col items-center gap-0.5 w-full">
+                      <div className="flex flex-col items-center gap-0.5 w-full overflow-hidden">
                         <div className="flex justify-center gap-0.5 flex-wrap">
-                          {dayVisits.slice(0, 4).map((visit: any, i: number) => (
+                          {dayVisits.slice(0, 3).map((visit: any, i: number) => (
                             <div
                               key={i}
-                              className={`w-2 h-2 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'} ${isSelected ? 'opacity-80' : ''}`}
+                              className={`w-1 h-1 md:w-2 md:h-2 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'} ${isSelected ? 'opacity-80' : ''}`}
                             />
                           ))}
                         </div>
-                        {visitCount > 0 && (
-                          <span className={`text-[9px] font-bold leading-none
-                            ${isSelected ? 'text-primary-foreground/80' : 'text-teal-600 dark:text-teal-400'}
-                          `}>
-                            {visitCount > 4 ? `+${visitCount}` : visitCount === 1 ? '1 زيارة' : `${visitCount}`}
-                          </span>
-                        )}
+                        <span className={`text-[8px] md:text-[9px] font-bold leading-none truncate
+                          ${isSelected ? 'text-primary-foreground/80' : 'text-teal-600 dark:text-teal-400'}
+                        `}>
+                          {visitCount}
+                        </span>
                       </div>
                     )}
                   </button>
@@ -230,44 +228,44 @@ function FieldVisitsCalendarContent() {
         </Card>
 
         {/* Selected Date Visits */}
-        <Card className="flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-lg">
+        <Card className="flex flex-col border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-4 md:p-6">
+            <CardTitle className="text-base md:text-lg">
               زيارات {format(selectedDate, 'dd MMMM', { locale: ar })}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-auto max-h-[500px]">
+          <CardContent className="flex-1 overflow-auto max-h-[400px] md:max-h-[500px] px-4 pb-6">
             {selectedDateVisits.length === 0 ? (
               <div className="text-center py-8 space-y-4">
-                <p className="text-muted-foreground">لا توجد زيارات مجدولة في هذا اليوم</p>
+                <p className="text-sm text-muted-foreground">لا توجد زيارات مجدولة في هذا اليوم</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {selectedDateVisits.map((visit: any) => (
                   <Link key={visit.id} href={`/requests/${visit.id}`}>
                     <Card className={`hover:shadow-md transition-all cursor-pointer border-2 ${PROGRAM_BG_COLORS[visit.programType] || 'border-border'}`}>
-                      <CardContent className="p-4 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
-                            <span className={`text-sm font-semibold ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
+                      <CardContent className="p-3 md:p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full shrink-0 ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
+                            <span className={`text-xs md:text-sm font-semibold truncate ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
                               {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground font-mono bg-muted px-2 py-0.5 rounded">{visit.requestNumber}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded shrink-0">{visit.requestNumber}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Clock className={`h-4 w-4 ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-muted-foreground'}`} />
+                        <div className="flex items-center gap-2 text-xs md:text-sm font-medium">
+                          <Clock className={`h-3 w-3 md:h-4 md:w-4 shrink-0 ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-muted-foreground'}`} />
                           <span>{visit.scheduledTime}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{visit.mosqueName} - {visit.mosqueCity}</span>
+                        <div className="flex items-center gap-2 text-xs md:text-sm">
+                          <MapPin className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground shrink-0" />
+                          <span className="truncate">{visit.mosqueName} - {visit.mosqueCity}</span>
                         </div>
                         {visit.assignedToName && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span>{visit.assignedToName}</span>
+                          <div className="flex items-center gap-2 text-xs md:text-sm">
+                            <User className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground shrink-0" />
+                            <span className="truncate">{visit.assignedToName}</span>
                           </div>
                         )}
                       </CardContent>
@@ -281,15 +279,15 @@ function FieldVisitsCalendarContent() {
       </div>
 
       {/* All Visits List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>جميع الزيارات المجدولة ({visits.length})</CardTitle>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="px-4 py-4 md:p-6">
+          <CardTitle className="text-base md:text-lg">جميع الزيارات المجدولة ({visits.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 pb-6">
           {visits.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">لا توجد زيارات مجدولة</p>
+            <p className="text-center text-sm text-muted-foreground py-8">لا توجد زيارات مجدولة</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {visits.map((visit: any) => {
                 const isConflict = conflicts.some((c: any) => c.id === visit.id);
                 const bgColor = isConflict 
@@ -298,30 +296,34 @@ function FieldVisitsCalendarContent() {
                 return (
                   <Link key={visit.id} href={`/requests/${visit.id}`}>
                     <Card className={`hover:shadow-md transition-all cursor-pointer border-2 ${bgColor}`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {isConflict && <AlertTriangle className="h-5 w-5 text-red-600" />}
-                            <div className={`w-3 h-3 rounded-full shrink-0 ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
-                            <span className={`text-sm font-semibold ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
-                              {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
-                            </span>
-                            <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{visit.requestNumber}</span>
-                            <span className="text-sm font-medium">{visit.mosqueName}</span>
+                      <CardContent className="p-3 md:p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {isConflict && <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-red-600 shrink-0" />}
+                            <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full shrink-0 ${PROGRAM_COLORS[visit.programType] || 'bg-gray-400'}`} />
+                            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3 min-w-0">
+                              <span className={`text-xs md:text-sm font-semibold truncate ${PROGRAM_TEXT_COLORS[visit.programType] || 'text-foreground'}`}>
+                                {PROGRAM_LABELS[visit.programType as keyof typeof PROGRAM_LABELS]}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded shrink-0">{visit.requestNumber}</span>
+                                <span className="text-xs md:text-sm font-medium truncate">{visit.mosqueName}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-4 text-[10px] md:text-sm text-muted-foreground border-t md:border-t-0 pt-2 md:pt-0">
                             <div className="flex items-center gap-1">
-                              <CalendarIcon className="h-4 w-4" />
-                              {visit.scheduledDate && format(new Date(visit.scheduledDate), 'dd/MM/yyyy')}
+                              <CalendarIcon className="h-3 w-3 md:h-4 md:w-4 shrink-0" />
+                              <span className="truncate">{visit.scheduledDate && format(new Date(visit.scheduledDate), 'dd/MM/yyyy')}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {visit.scheduledTime}
+                              <Clock className="h-3 w-3 md:h-4 md:w-4 shrink-0" />
+                              <span>{visit.scheduledTime}</span>
                             </div>
                             {visit.assignedToName && (
-                              <div className="flex items-center gap-1">
-                                <User className="h-4 w-4" />
-                                {visit.assignedToName}
+                              <div className="flex items-center gap-1 col-span-2 md:col-span-1">
+                                <User className="h-3 w-3 md:h-4 md:w-4 shrink-0" />
+                                <span className="truncate">{visit.assignedToName}</span>
                               </div>
                             )}
                           </div>
