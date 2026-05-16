@@ -892,12 +892,6 @@ export default function ProjectDetailsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg">العقود</CardTitle>
-                    {isExecutionStarted && (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 animate-pulse">
-                        <PauseCircle className="w-3 h-3" />
-                        مقفل للعرض فقط (مرحلة التنفيذ)
-                      </Badge>
-                    )}
                   </div>
                   <CardDescription>
                     {isExecutionStarted 

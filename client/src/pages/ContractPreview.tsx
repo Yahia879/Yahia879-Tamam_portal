@@ -353,20 +353,6 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex gap-2">
-            {(contract.status === "draft" || contract.status === "pending_approval") && (
-              <Button
-                onClick={() => approveMutation.mutate({ id: contractId! })}
-                disabled={approveMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {approveMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                ) : (
-                  <Check className="h-4 w-4 ml-2" />
-                )}
-                اعتماد العقد
-              </Button>
-            )}
             {/* زر طلب التعديل */}
             {(() => {
               const modStatus = canRequestModification(contract, payments || []);
@@ -465,11 +451,6 @@ export default function ContractPreview() {
                 طلب صرف
               </Button>
             )}
-
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 ml-2" />
-              طباعة
-            </Button>
           </div>
         </div>
 
