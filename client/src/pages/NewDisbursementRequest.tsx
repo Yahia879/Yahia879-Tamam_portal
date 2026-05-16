@@ -209,11 +209,23 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى اختيار المشروع");
       return;
     }
+    if (!formData.dateMiladi) {
+      toast.error("يرجى تحديد التاريخ الميلادي");
+      return;
+    }
+    if (!formData.title) {
+      toast.error("يرجى إدخال عنوان طلب الصرف");
+      return;
+    }
+    if (totalAmount <= 0) {
+      toast.error("يرجى إدخال مبلغ صحيح");
+      return;
+    }
     
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
-      title: formData.title || `طلب صرف - ${projectDetails?.name || ""}`,
+      title: formData.title,
       description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
@@ -227,15 +239,27 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى اختيار المشروع");
       return;
     }
-    if (suppliers.some(s => !s.name || !s.amount)) {
-      toast.error("يرجى إكمال بيانات الموردين");
+    if (!formData.dateMiladi) {
+      toast.error("يرجى تحديد التاريخ الميلادي");
+      return;
+    }
+    if (!formData.title) {
+      toast.error("يرجى إدخال عنوان طلب الصرف");
+      return;
+    }
+    if (totalAmount <= 0) {
+      toast.error("يرجى إدخال مبلغ صحيح");
+      return;
+    }
+    if (suppliers.some(s => !s.name)) {
+      toast.error("يرجى اختيار المورد المستفيد");
       return;
     }
     
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
-      title: formData.title || `طلب صرف - ${projectDetails?.name || ""}`,
+      title: formData.title,
       description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
@@ -284,11 +308,12 @@ export default function NewDisbursementRequest() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>التاريخ الميلادي</Label>
+                  <Label>التاريخ الميلادي *</Label>
                   <Input
                     type="date"
                     value={formData.dateMiladi}
                     onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                    required
                   />
                 </div>
                 
@@ -336,11 +361,12 @@ export default function NewDisbursementRequest() {
                 )}
                 
                 <div className="space-y-2">
-                  <Label>عنوان طلب الصرف</Label>
+                  <Label>عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="مثال: صرف الدفعة الأولى لمشروع ترميم مسجد..."
+                    required
                   />
                 </div>
                 
@@ -374,14 +400,10 @@ export default function NewDisbursementRequest() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Building2 className="h-5 w-5" />
-                      الموردون / المقاولون
+                      معلومات المورد المستفيد
                     </CardTitle>
-                    <CardDescription>بيانات المستفيدين من الصرف</CardDescription>
+                    <CardDescription>بيانات المستفيد من الصرف</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={addSupplier}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة مورد
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -390,10 +412,9 @@ export default function NewDisbursementRequest() {
                     <TableRow>
                       <TableHead>اسم المورد</TableHead>
                       <TableHead>الأعمال</TableHead>
-                      <TableHead>المبلغ</TableHead>
+                      <TableHead>المبلغ *</TableHead>
                       <TableHead>البنك</TableHead>
                       <TableHead>الآيبان</TableHead>
-                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -403,6 +424,7 @@ export default function NewDisbursementRequest() {
                           <Select
                             value={supplier.name}
                             onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
+                            disabled={formData.contractId > 0}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="اسم المورد" />
@@ -421,6 +443,8 @@ export default function NewDisbursementRequest() {
                             value={supplier.work}
                             onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
                             placeholder="وصف الأعمال"
+                            readOnly
+                            className="bg-muted"
                           />
                         </TableCell>
                         <TableCell>
@@ -435,6 +459,8 @@ export default function NewDisbursementRequest() {
                             value={supplier.bank}
                             onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
                             placeholder="اسم البنك"
+                            readOnly
+                            className="bg-muted"
                           />
                         </TableCell>
                         <TableCell>
@@ -443,29 +469,14 @@ export default function NewDisbursementRequest() {
                             onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
                             placeholder="SA..."
                             dir="ltr"
+                            readOnly
+                            className="bg-muted"
                           />
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeSupplier(supplier.id)}
-                            disabled={suppliers.length === 1}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-                
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">إجمالي مبالغ الموردين:</span>
-                    <span className="font-bold text-lg">{totalAmount.toLocaleString()} ريال</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -511,7 +522,7 @@ export default function NewDisbursementRequest() {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="font-medium">الإجمالي:</span>
+                    <span className="font-medium">إجمالي الدفعة:</span>
                     <span className="font-bold text-lg text-primary">{totalAmount.toLocaleString()} ريال</span>
                   </div>
                 </div>
