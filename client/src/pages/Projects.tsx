@@ -10,7 +10,6 @@ import {
   Search, 
   MoreVertical,
   Eye,
-  Edit,
   Calendar,
   DollarSign,
   Building2,
@@ -252,10 +251,6 @@ export default function Projects() {
                                   عرض التفاصيل
                                 </DropdownMenuItem>
                               </Link>
-                              <DropdownMenuItem onClick={() => toast.info("قريباً")}>
-                                <Edit className="w-4 h-4 ml-2" />
-                                تعديل
-                              </DropdownMenuItem>
                               {project.requestId && (
                                 <Link href={`/requests/${project.requestId}`}>
                                   <DropdownMenuItem>
