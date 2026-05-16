@@ -153,12 +153,17 @@ export default function NewDisbursementRequest() {
         bank: contractDetails.contract.secondPartyBankName || "",
       };
       setSuppliers([supplierFromContract]);
-      setFormData(prev => ({
-        ...prev,
-        actualCost: parseFloat(String(contractDetails.contract.contractAmount || "0")),
-      }));
     }
   }, [contractDetails]);
+
+  // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
+  useEffect(() => {
+    if (projectContracts && projectContracts.contracts && projectContracts.contracts.length === 1) {
+      if (formData.contractId === 0) {
+        setFormData(prev => ({ ...prev, contractId: projectContracts.contracts[0].id }));
+      }
+    }
+  }, [projectContracts]);
   
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -270,10 +275,11 @@ export default function NewDisbursementRequest() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>المشروع *</Label>
+                  <Label>المشروع</Label>
                   <Select
                     value={formData.projectId.toString()}
                     onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
+                    disabled={formData.projectId > 0}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر المشروع" />
@@ -290,10 +296,11 @@ export default function NewDisbursementRequest() {
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
                   <div className="space-y-2">
-                    <Label>العقد (اختياري)</Label>
+                    <Label>العقد</Label>
                     <Select
                       value={formData.contractId.toString()}
                       onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
+                      disabled={formData.contractId > 0}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر العقد" />
