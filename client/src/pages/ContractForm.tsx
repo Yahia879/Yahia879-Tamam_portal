@@ -1098,35 +1098,9 @@ export default function ContractForm() {
                             <GripVertical className="h-5 w-5" />
                             <span className="font-medium">{index + 1}</span>
                           </div>
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-1">
-                              <Label className="text-xs">اسم الدفعة</Label>
-                              <Input
-                                value={payment.name}
-                                onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
-                                placeholder="اسم الدفعة"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">النوع</Label>
-                              <Select
-                                value={payment.type}
-                                onValueChange={(value) => updatePayment(payment.id, "type", value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {PAYMENT_TYPES.map((type) => (
-                                    <SelectItem key={type.value} value={type.value}>
-                                      {type.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">تاريخ الاستحقاق</Label>
+                              <Label className="text-xs">التاريخ الميلادي</Label>
                               <Input
                                 type="date"
                                 value={payment.dueDate}
@@ -1172,23 +1146,23 @@ export default function ContractForm() {
                                   return endDate.toISOString().split('T')[0];
                                 })()}
                               />
-                              {contractData.startDate && contractData.duration > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                  فترة العقد: {contractData.startDate} - {(() => {
-                                    const endDate = new Date(contractData.startDate);
-                                    if (contractData.durationUnit === "days") {
-                                      endDate.setDate(endDate.getDate() + contractData.duration);
-                                    } else if (contractData.durationUnit === "weeks") {
-                                      endDate.setDate(endDate.getDate() + (contractData.duration * 7));
-                                    } else if (contractData.durationUnit === "months") {
-                                      endDate.setMonth(endDate.getMonth() + contractData.duration);
-                                    } else if (contractData.durationUnit === "years") {
-                                      endDate.setFullYear(endDate.getFullYear() + contractData.duration);
-                                    }
-                                    return endDate.toISOString().split('T')[0];
-                                  })()}
-                                </p>
-                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">عنوان طلب الصرف</Label>
+                              <Input
+                                value={payment.name}
+                                onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
+                                placeholder="عنوان الطلب"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">المبلغ</Label>
+                              <Input
+                                type="number"
+                                value={payment.amount || ""}
+                                onChange={(e) => updatePayment(payment.id, "amount", parseFloat(e.target.value) || 0)}
+                                placeholder="0.00"
+                              />
                             </div>
                           </div>
                           <Button
@@ -1204,7 +1178,14 @@ export default function ContractForm() {
                     ))}
 
                     {/* ملخص الدفعات */}
-                    {/* تم إزالة ملخص المبالغ والنسب بناءً على طلب المستخدم */}
+                    <Card className="bg-muted/50 p-4">
+                      <div className="flex items-center justify-between">
+                        <span>إجمالي المبالغ:</span>
+                        <span className="font-bold">
+                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
+                        </span>
+                      </div>
+                    </Card>
                   </div>
                 )}
               </div>
@@ -1355,7 +1336,7 @@ export default function ContractForm() {
                         {paymentSchedule.map((payment, index) => (
                           <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span>{payment.name}</span>
-                            <span className="text-muted-foreground">{PAYMENT_TYPES.find(t => t.value === payment.type)?.label}</span>
+                            <span className="font-medium">{payment.amount.toLocaleString()} ريال</span>
                           </div>
                         ))}
                       </div>
