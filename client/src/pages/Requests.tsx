@@ -128,15 +128,15 @@ export default function Requests({
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-full overflow-x-hidden">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
               {initialStage === "field_visit" ? "الزيارات الميدانية" : 
                initialAssignedToMe ? "طلباتي" : "إدارة الطلبات"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs md:text-sm text-muted-foreground mt-1 break-words">
               {initialStage === "field_visit" ? "عرض ومتابعة الطلبات في مرحلة الزيارة الميدانية" :
                initialAssignedToMe ? "عرض ومتابعة الطلبات المسندة إليك" : "عرض ومتابعة جميع طلبات الخدمة"}
             </p>
@@ -144,7 +144,7 @@ export default function Requests({
           {!initialAssignedToMe && (
             <PermissionGuard permission="requests.create">
               <Link href="/service-request">
-                <Button className="gradient-primary text-white gap-2">
+                <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10">
                   <Plus className="w-4 h-4" />
                   طلب جديد
                 </Button>
@@ -154,42 +154,42 @@ export default function Requests({
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
             {
               label: "إجمالي الطلبات",
               value: stats.total,
-              icon: <FileText className="w-5 h-5" />,
+              icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-primary/10 text-primary",
             },
             {
               label: "قيد المراجعة",
               value: stats.underReview,
-              icon: <Clock className="w-5 h-5" />,
+              icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
             },
             {
               label: "قيد التنفيذ",
               value: stats.inProgress,
-              icon: <TrendingUp className="w-5 h-5" />,
+              icon: <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-blue-100 dark:bg-blue-950/40 text-blue-600",
             },
             {
               label: "مكتملة",
               value: stats.completed,
-              icon: <CheckCircle className="w-5 h-5" />,
+              icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
             },
           ].map((stat) => (
-            <Card key={stat.label} className="border shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+            <Card key={stat.label} className="border-0 shadow-sm overflow-hidden">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-lg md:text-xl font-bold text-foreground truncate">{stat.value}</p>
                   </div>
                 </div>
               </CardContent>
@@ -198,61 +198,69 @@ export default function Requests({
         </div>
 
         {/* Filters */}
-        <Card className="border shadow-sm">
+        <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground flex-shrink-0">
-                <Filter className="w-4 h-4" />
-                <span>تصفية:</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+              <div className="sm:col-span-2 relative">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
+                  <Search className="w-3 h-3" />
+                  البحث
+                </label>
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="رقم الطلب أو اسم المسجد..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                    className="pr-10 h-10 w-full"
+                  />
+                </div>
               </div>
-              <div className="flex-1 relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="البحث برقم الطلب أو اسم المسجد..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
+              <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
+                  <Select value={programFilter} onValueChange={(v) => {
+                    setProgramFilter(v);
                     setPage(1);
-                  }}
-                  className="pr-10 h-9"
-                />
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Select value={programFilter} onValueChange={(v) => {
-                  setProgramFilter(v);
-                  setPage(1);
-                }}>
-                  <SelectTrigger className="w-40 h-9 text-sm">
-                    <SelectValue placeholder="البرنامج" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع البرامج</SelectItem>
-                    {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={(v) => {
-                  setStatusFilter(v);
-                  setPage(1);
-                }}>
-                  <SelectTrigger className="w-36 h-9 text-sm">
-                    <SelectValue placeholder="الحالة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="under_review">قيد المراجعة</SelectItem>
-                    <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                    <SelectItem value="completed">مكتملة</SelectItem>
-                  </SelectContent>
-                </Select>
+                  }}>
+                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                      <SelectValue placeholder="البرنامج" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع البرامج</SelectItem>
+                      {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الحالة</label>
+                  <Select value={statusFilter} onValueChange={(v) => {
+                    setStatusFilter(v);
+                    setPage(1);
+                  }}>
+                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                      <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                      <SelectItem value="completed">مكتملة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Requests List */}
-        <Card className="border shadow-sm overflow-hidden">
+        <Card className="border-0 shadow-sm overflow-hidden">
           {isLoading ? (
             <div className="p-12 text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
@@ -260,8 +268,8 @@ export default function Requests({
             </div>
           ) : requests.length > 0 ? (
             <div>
-              {/* Table Header */}
-              <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              {/* Table Header (Desktop Only) */}
+              <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="w-8"></div>
                 <div>الطلب</div>
                 <div>المسجد</div>
@@ -270,7 +278,7 @@ export default function Requests({
                 <div className="w-20 text-center">عرض</div>
               </div>
 
-              {/* Rows */}
+              {/* Rows / Cards */}
               <div className="divide-y divide-border">
                 {requests.map((request: any) => {
                   const status = statusConfig[request.status] || statusConfig.pending;
@@ -280,69 +288,75 @@ export default function Requests({
                       className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors cursor-pointer items-center"
                       onClick={() => navigate(`/requests/${request.id}`)}
                     >
-                      {/* Program Icon */}
+                      {/* Desktop: Program Icon */}
                       <div className="hidden md:flex w-8 justify-center">
                         <ProgramIcon program={request.programType} size="md" />
                       </div>
 
-                      {/* Request Info */}
-                      <div className="flex items-center gap-3 md:block">
-                        <div className="md:hidden">
-                          <ProgramIcon program={request.programType} size="md" />
+                      {/* Request Info (Mobile & Desktop) */}
+                      <div className="flex items-start justify-between md:block gap-3">
+                        <div className="flex items-center gap-3 md:block min-w-0">
+                          <div className="md:hidden shrink-0">
+                            <ProgramIcon program={request.programType} size="md" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-foreground text-sm md:text-sm">{request.requestNumber}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate">
+                              {PROGRAM_LABELS[request.programType] || request.programType}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-foreground text-sm">{request.requestNumber}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {PROGRAM_LABELS[request.programType] || request.programType}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
+                        <div className="text-left md:text-right shrink-0">
+                           <p className="text-[10px] md:text-xs text-muted-foreground">
                             {new Date(request.createdAt).toLocaleDateString("ar-SA")}
                           </p>
                         </div>
                       </div>
 
-                      {/* Mosque */}
-                      <div className="hidden md:flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      {/* Mosque (Desktop & Tablet) */}
+                      <div className="hidden md:flex items-center gap-2 min-w-0">
+                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                         <span className="text-sm text-foreground truncate">{request.mosqueName || "—"}</span>
                       </div>
 
-                      {/* Stage */}
-                      <div className="hidden md:block">
-                        <Badge variant="outline" className="text-xs font-medium">
+                      {/* Stage (Desktop) */}
+                      <div className="hidden md:block min-w-0">
+                        <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
                           {STAGE_LABELS[request.currentStage] || request.currentStage}
                         </Badge>
                         {request.currentResponsibleDepartment && (
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                          <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
                             {request.currentResponsibleDepartment}
                           </p>
                         )}
                       </div>
 
-                      {/* Status */}
-                      <div className="hidden md:block">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${status.bg} ${status.color}`}>
+                      {/* Status (Desktop) */}
+                      <div className="hidden md:block shrink-0">
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                           {status.icon}
                           {STATUS_LABELS[request.status]}
                         </span>
                       </div>
 
-                      {/* Mobile: Stage + Status row */}
-                      <div className="md:hidden flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="text-xs">
-                          {STAGE_LABELS[request.currentStage] || request.currentStage}
-                        </Badge>
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
-                          {status.icon}
-                          {STATUS_LABELS[request.status]}
-                        </span>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
-                          {request.mosqueName || "—"}
-                        </span>
+                      {/* Mobile Card Row: Location + Stage + Status */}
+                      <div className="md:hidden flex flex-col gap-3">
+                        <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
+                          <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{request.mosqueName || "—"}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                           <Badge variant="outline" className="text-[10px] py-0.5">
+                            {STAGE_LABELS[request.currentStage] || request.currentStage}
+                          </Badge>
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                            {status.icon}
+                            {STATUS_LABELS[request.status]}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Action */}
+                      {/* Desktop Action */}
                       <div className="hidden md:flex justify-center" onClick={(e) => e.stopPropagation()}>
                         <Link href={`/requests/${request.id}`}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
@@ -356,17 +370,17 @@ export default function Requests({
               </div>
 
               {/* Footer with Pagination */}
-              <div className="px-4 py-3 bg-muted/20 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-xs text-muted-foreground">
+              <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
+                <div className="text-[11px] md:text-xs text-muted-foreground text-center">
                   يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} طلب
                 </div>
                 
                 {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 shrink-0"
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page === 1}
                     >
@@ -374,9 +388,8 @@ export default function Requests({
                     </Button>
                     
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                      // Logic to show a limited number of page buttons if there are many pages
                       if (
-                        totalPages <= 7 ||
+                        totalPages <= 5 ||
                         p === 1 ||
                         p === totalPages ||
                         (p >= page - 1 && p <= page + 1)
@@ -386,7 +399,7 @@ export default function Requests({
                             key={p}
                             variant={page === p ? "default" : "outline"}
                             size="sm"
-                            className={`h-8 w-8 text-xs ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                            className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
                             onClick={() => handlePageChange(p)}
                           >
                             {p}
@@ -396,7 +409,7 @@ export default function Requests({
                         (p === page - 2 && page > 3) ||
                         (p === page + 2 && page < totalPages - 2)
                       ) {
-                        return <span key={p} className="px-1 text-muted-foreground">...</span>;
+                        return <span key={p} className="px-0.5 text-muted-foreground">...</span>;
                       }
                       return null;
                     })}
@@ -404,7 +417,7 @@ export default function Requests({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 shrink-0"
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page === totalPages}
                     >
