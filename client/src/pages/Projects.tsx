@@ -60,6 +60,15 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-red-100 text-red-800",
 };
 
+// المراحل التي تظهر فيها الميزانية (من التقييم المالي واعتماد العرض وما بعدها)
+const BUDGET_VISIBLE_STAGES = [
+  "financial_eval_and_approval",
+  "contracting",
+  "execution",
+  "handover",
+  "closed",
+];
+
 export default function Projects() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -248,10 +257,14 @@ export default function Projects() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {project.budget ? (
-                              <span className="font-medium">{parseFloat(project.budget).toLocaleString()} ريال</span>
+                            {project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage) ? (
+                              project.budget ? (
+                                <span className="font-medium">{parseFloat(project.budget).toLocaleString()} ريال</span>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-muted-foreground text-xs">لم تُحدد بعد</span>
                             )}
                           </TableCell>
                           <TableCell>

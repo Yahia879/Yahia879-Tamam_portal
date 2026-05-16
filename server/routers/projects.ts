@@ -68,7 +68,7 @@ export const projectsRouter = router({
           name: projects.name,
           description: projects.description,
           status: projects.status,
-          budget: projects.budget,
+          budget: sql<string>`COALESCE(${projects.budget}, (SELECT SUM(CAST(totalPrice AS DECIMAL(15,2))) FROM quantity_schedules WHERE projectId = ${projects.id}))`.as('budget'),
           actualCost: projects.actualCost,
           startDate: projects.startDate,
           expectedEndDate: projects.expectedEndDate,
@@ -164,7 +164,7 @@ export const projectsRouter = router({
           name: projects.name,
           description: projects.description,
           status: projects.status,
-          budget: projects.budget,
+          budget: sql<string>`COALESCE(${projects.budget}, (SELECT SUM(CAST(totalPrice AS DECIMAL(15,2))) FROM quantity_schedules WHERE projectId = ${projects.id}))`.as('budget'),
           actualCost: projects.actualCost,
           startDate: projects.startDate,
           expectedEndDate: projects.expectedEndDate,
@@ -173,21 +173,25 @@ export const projectsRouter = router({
           requestId: projects.requestId,
           managerId: projects.managerId,
           managerName: users.name,
+          requestCurrentStage: mosqueRequests.currentStage,
         })
         .from(projects)
         .leftJoin(users, eq(projects.managerId, users.id))
+        .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(projects.createdAt))
         .limit(input.limit)
         .offset(offset);
 
       // الحصول على العدد الإجمالي والإحصائيات المفلترة
+      // إجمالي الميزانية يحسب فقط للمشاريع التي وصل طلبها لمرحلة التقييم المالي واعتماد العرض أو بعدها
       let statsQuery = db.select({ 
         total: sql<number>`count(*)`,
-        inProgress: sql<number>`SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END)`,
-        completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
-        totalBudget: sql<string>`SUM(CAST(budget AS DECIMAL(15,2)))`
-      }).from(projects);
+        inProgress: sql<number>`SUM(CASE WHEN ${projects.status} != 'completed' THEN 1 ELSE 0 END)`,
+        completed: sql<number>`SUM(CASE WHEN ${projects.status} = 'completed' THEN 1 ELSE 0 END)`,
+        totalBudget: sql<string>`SUM(CASE WHEN ${mosqueRequests.currentStage} IN ('financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed') THEN COALESCE(CAST(${projects.budget} AS DECIMAL(15,2)), (SELECT SUM(CAST(totalPrice AS DECIMAL(15,2))) FROM quantity_schedules WHERE projectId = ${projects.id})) ELSE 0 END)`
+      }).from(projects)
+       .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id));
 
       if (conditions.length > 0) {
         statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;

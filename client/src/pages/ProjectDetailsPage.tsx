@@ -169,6 +169,13 @@ export default function ProjectDetailsPage() {
     },
   });
 
+  // تحديث بيانات المشروع
+  const updateProjectMutation = trpc.projects.update.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
   // تحديث مرحلة الطلب
   const updateRequestStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -252,6 +259,14 @@ export default function ProjectDetailsPage() {
         await updateRequestStageMutation.mutateAsync({
           requestId: project.requestId,
           newStage: 'financial_eval_and_approval' as any,
+        });
+      }
+
+      // تحديث ميزانية المشروع بالإجمالي الكلي لجدول الكميات
+      if (boqData && boqData.total > 0) {
+        await updateProjectMutation.mutateAsync({
+          id: parseInt(id || "0"),
+          budget: boqData.total,
         });
       }
       
