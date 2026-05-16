@@ -263,7 +263,7 @@ export default function RequestDetailsNew() {
         <Card className="p-8 text-center">
           <h2 className="text-2xl font-bold mb-4">الطلب غير موجود</h2>
           <p className="text-muted-foreground mb-6">لم يتم العثور على الطلب المطلوب</p>
-          <Link href="/requests">
+          <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
             <Button>العودة إلى الطلبات</Button>
           </Link>
         </Card>
@@ -359,7 +359,7 @@ export default function RequestDetailsNew() {
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-              <Link href="/requests">
+              <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3">
                   <ArrowRight className="w-4 h-4 sm:ml-2" />
                   <span className="hidden sm:inline">رجوع</span>
