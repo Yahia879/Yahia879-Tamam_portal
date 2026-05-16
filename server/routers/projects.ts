@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 // توليد رقم مشروع بمنهجية سنوية
@@ -45,7 +45,7 @@ function generateQuotationNumber(): string {
 }
 
 export const projectsRouter = router({
-  // الحصول على جميع المشاريع
+  // الحصول على جميع المشاريع (للتوافق مع الكود القديم)
   getAll: protectedProcedure
     .input(z.object({
       status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
@@ -113,6 +113,95 @@ export const projectsRouter = router({
         ...p,
         currentPhaseName: phasesMap[p.id] || null,
       }));
+    }),
+
+  // البحث والفلترة في المشاريع مع Pagination
+  search: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
+      page: z.number().default(1),
+      limit: z.number().default(20),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const conditions = [];
+      if (input.status) {
+        conditions.push(eq(projects.status, input.status));
+      }
+      if (input.search) {
+        conditions.push(
+          or(
+            sql`${projects.name} LIKE ${`%${input.search}%`}`,
+            sql`${projects.projectNumber} LIKE ${`%${input.search}%`}`
+          )!
+        );
+      }
+
+      const offset = (input.page - 1) * input.limit;
+
+      const projectsList = await db
+        .select({
+          id: projects.id,
+          projectNumber: projects.projectNumber,
+          name: projects.name,
+          description: projects.description,
+          status: projects.status,
+          budget: projects.budget,
+          actualCost: projects.actualCost,
+          startDate: projects.startDate,
+          expectedEndDate: projects.expectedEndDate,
+          completionPercentage: projects.completionPercentage,
+          createdAt: projects.createdAt,
+          requestId: projects.requestId,
+          managerId: projects.managerId,
+          managerName: users.name,
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.managerId, users.id))
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(projects.createdAt))
+        .limit(input.limit)
+        .offset(offset);
+
+      // الحصول على العدد الإجمالي
+      let countQuery = db.select({ count: sql<number>`count(*)` }).from(projects);
+      if (conditions.length > 0) {
+        countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
+      }
+      const countResult = await countQuery;
+      const total = countResult[0]?.count || 0;
+
+      // جلب المرحلة النشطة لكل مشروع
+      const projectIds = projectsList.map(p => p.id);
+      let phasesMap: Record<number, string> = {};
+      if (projectIds.length > 0) {
+        const allPhases = await db
+          .select({
+            projectId: projectPhases.projectId,
+            phaseName: projectPhases.phaseName,
+            status: projectPhases.status,
+          })
+          .from(projectPhases)
+          .where(inArray(projectPhases.projectId, projectIds))
+          .orderBy(projectPhases.phaseOrder);
+
+        for (const phase of allPhases) {
+          if (!phasesMap[phase.projectId] && phase.status !== 'completed') {
+            phasesMap[phase.projectId] = phase.phaseName.replace(/^المرحلة .* : /, "");
+          }
+        }
+      }
+
+      return {
+        projects: projectsList.map(p => ({
+          ...p,
+          currentPhaseName: phasesMap[p.id] || null,
+        })),
+        total,
+      };
     }),
 
   // الحصول على مشروع بالتفاصيل
