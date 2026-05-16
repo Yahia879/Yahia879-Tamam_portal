@@ -166,13 +166,25 @@ export const projectsRouter = router({
         .limit(input.limit)
         .offset(offset);
 
-      // الحصول على العدد الإجمالي
-      let countQuery = db.select({ count: sql<number>`count(*)` }).from(projects);
+      // الحصول على العدد الإجمالي والإحصائيات المفلترة
+      let statsQuery = db.select({ 
+        total: sql<number>`count(*)`,
+        inProgress: sql<number>`SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END)`,
+        completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
+        totalBudget: sql<string>`SUM(CAST(budget AS DECIMAL(15,2)))`
+      }).from(projects);
+
       if (conditions.length > 0) {
-        countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
+        statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
       }
-      const countResult = await countQuery;
-      const total = countResult[0]?.count || 0;
+      const [statsResult] = await statsQuery;
+      const total = statsResult?.total || 0;
+      const filteredStats = {
+        total: statsResult?.total || 0,
+        inProgress: statsResult?.inProgress || 0,
+        completed: statsResult?.completed || 0,
+        totalBudget: statsResult?.totalBudget || "0",
+      };
 
       // جلب المرحلة النشطة لكل مشروع
       const projectIds = projectsList.map(p => p.id);
@@ -201,6 +213,7 @@ export const projectsRouter = router({
           currentPhaseName: phasesMap[p.id] || null,
         })),
         total,
+        stats: filteredStats,
       };
     }),
 
@@ -1146,11 +1159,11 @@ export const projectsRouter = router({
       .select({
         total: sql<number>`COUNT(*)`,
         planning: sql<number>`SUM(CASE WHEN status = 'planning' THEN 1 ELSE 0 END)`,
-        inProgress: sql<number>`SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END)`,
+        inProgress: sql<number>`SUM(CASE WHEN status != 'completed' THEN 1 ELSE 0 END)`,
         completed: sql<number>`SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)`,
         onHold: sql<number>`SUM(CASE WHEN status = 'on_hold' THEN 1 ELSE 0 END)`,
-        totalBudget: sql<number>`SUM(CAST(budget AS DECIMAL(15,2)))`,
-        totalActualCost: sql<number>`SUM(CAST(actualCost AS DECIMAL(15,2)))`,
+        totalBudget: sql<string>`SUM(CAST(budget AS DECIMAL(15,2)))`,
+        totalActualCost: sql<string>`SUM(CAST(actualCost AS DECIMAL(15,2)))`,
       })
       .from(projects);
 

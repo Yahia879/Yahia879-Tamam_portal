@@ -68,10 +68,8 @@ export default function Projects() {
 
   const projectsList = data?.projects || [];
   const total = data?.total || 0;
+  const filteredStats = data?.stats;
   const totalPages = Math.ceil(total / limit);
-
-  // جلب الإحصائيات (يمكن استخدام getAll القديم أو إحصائيات منفصلة)
-  const { data: stats } = trpc.projects.getStats.useQuery();
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -96,7 +94,7 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي المشاريع</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.total || 0}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{filteredStats?.total || 0}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-primary" />
@@ -110,7 +108,7 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">قيد التنفيذ</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.inProgress || 0}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{filteredStats?.inProgress || 0}</p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-yellow-600" />
@@ -124,7 +122,9 @@ export default function Projects() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">مكتملة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.completed || 0}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">
+                    {filteredStats?.completed || 0}
+                  </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
                   <FolderKanban className="w-6 h-6 text-green-600" />
@@ -139,7 +139,9 @@ export default function Projects() {
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي الميزانية</p>
                   <p className="text-2xl font-bold text-foreground mt-1">
-                    {stats?.totalBudget ? `${(parseFloat(stats.totalBudget.toString()) / 1000).toFixed(0)}K` : "0"}
+                    {filteredStats?.totalBudget 
+                      ? `${(parseFloat(filteredStats.totalBudget.toString()) / 1000).toFixed(0)}K` 
+                      : "0"}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
