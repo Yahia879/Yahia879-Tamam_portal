@@ -231,7 +231,7 @@ function Router() {
       <Route path="/staff">{() => <AdminRoute component={StaffManagement} />}</Route>
       <Route path="/users">{() => <AdminRoute component={StaffManagement} />}</Route>
       <Route path="/roles">{() => <AdminRoute component={StaffManagement} />}</Route>
-      <Route path="/job-positions">{() => <AdminRoute component={StaffManagement} />}</Route>
+      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
       <Route path="/requester-approvals">{() => <AdminRoute component={RequesterApprovals} />}</Route>
       <Route path="/users/:id">{() => <AdminRoute component={UserDetails} />}</Route>
       <Route path="/users/:id/edit">{() => <AdminRoute component={UserEdit} />}</Route>
@@ -305,8 +305,6 @@ function Router() {
       <Route path="/action-settings">{() => <AdminRoute component={ActionSettings} />}</Route>
       
       {/* إدارة الأدوار والصلاحيات - إدارية */}
-      <Route path="/job-positions">{() => <AdminRoute component={JobPositions} />}</Route>
-      <Route path="/roles">{() => <AdminRoute component={Roles} />}</Route>
       <Route path="/staff/roles/:id">{() => <AdminRoute component={RolePermissions} />}</Route>
       <Route path="/roles/:id" component={RoleEdit} />
       <Route path="/roles/:id/edit" component={RoleEdit} />
