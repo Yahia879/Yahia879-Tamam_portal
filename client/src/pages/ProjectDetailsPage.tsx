@@ -960,6 +960,17 @@ export default function ProjectDetailsPage() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center gap-2 justify-center">
+                              {/* زر التعديل - يظهر فقط إذا كان العقد مسودة ولم تبدأ مرحلة التنفيذ */}
+                              {contract.status === "draft" && !isExecutionStarted && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                                  title="تعديل العقد"
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"

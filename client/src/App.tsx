@@ -259,6 +259,7 @@ function Router() {
       <Route path="/contracts/new">{() => <AdminRoute component={ContractForm} />}</Route>
       <Route path="/contracts/new/:projectId">{() => <AdminRoute component={ContractForm} />}</Route>
       <Route path="/contracts/new/request/:requestId">{() => <AdminRoute component={ContractForm} />}</Route>
+      <Route path="/contracts/:id/edit">{() => <AdminRoute component={ContractForm} />}</Route>
       <Route path="/contracts/:id/preview">{() => <AdminRoute component={ContractPreview} />}</Route>
       <Route path="/contracts/:id">{() => <AdminRoute component={ContractPreview} />}</Route>
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>

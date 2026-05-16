@@ -83,6 +83,10 @@ export default function ContractForm() {
   const requestIdFromQuery = searchParams.get('requestId');
   const projectIdFromQuery = searchParams.get('projectId');
   
+  // كشف وضع التعديل من المسار
+  const isEditMode = window.location.pathname.includes('/edit');
+  const editContractId = isEditMode && params.id ? parseInt(params.id) : undefined;
+  
   const requestId = requestIdFromQuery ? parseInt(requestIdFromQuery) : 
                    (params.requestId ? parseInt(params.requestId) : undefined);
   
@@ -93,6 +97,7 @@ export default function ContractForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
+  const [editDataLoaded, setEditDataLoaded] = useState(false);
 
   // بيانات العقد
   const [contractData, setContractData] = useState({
@@ -192,6 +197,73 @@ export default function ContractForm() {
       setIsSubmitting(false);
     },
   });
+
+  // Mutation لتحديث العقد (وضع التعديل)
+  const updateMutation = trpc.contracts.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث العقد بنجاح");
+      navigate(`/contracts/${editContractId}/preview`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث العقد");
+      setIsSubmitting(false);
+    },
+  });
+
+  // جلب بيانات العقد الحالي (في وضع التعديل)
+  const { data: existingContract, isLoading: isLoadingContract } = trpc.contracts.getById.useQuery(
+    { id: editContractId! },
+    { enabled: !!editContractId }
+  );
+
+  // تعبئة النموذج ببيانات العقد الحالي عند فتح وضع التعديل
+  useEffect(() => {
+    if (isEditMode && existingContract?.contract && !editDataLoaded) {
+      const c = existingContract.contract;
+      setContractData({
+        templateId: c.templateId || null,
+        projectId: c.projectId || null,
+        requestId: c.requestId || null,
+        signatoryId: c.signatoryId || null,
+        supplierId: c.supplierId || null,
+        subject: c.contractTitle || "",
+        description: "",
+        duration: c.duration || 0,
+        durationUnit: c.durationUnit || "months",
+        startDate: c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : "",
+        totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
+        managementPercentage: 0,
+        baseValue: 0,
+        notes: c.customTerms || "",
+      });
+
+      // تحميل جدول الدفعات من العقد الحالي
+      if (c.paymentScheduleJson) {
+        try {
+          const schedule = JSON.parse(c.paymentScheduleJson);
+          if (Array.isArray(schedule)) {
+            setPaymentSchedule(schedule);
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل جدول الدفعات:", e);
+        }
+      }
+
+      // تحميل بنود العقد من العقد الحالي
+      if (c.clauseValuesJson) {
+        try {
+          const clauses = JSON.parse(c.clauseValuesJson);
+          if (Array.isArray(clauses)) {
+            setClauseValues(clauses);
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل بنود العقد:", e);
+        }
+      }
+
+      setEditDataLoaded(true);
+    }
+  }, [isEditMode, existingContract, editDataLoaded]);
 
   // تحديث بنود العقد عند تغيير القالب
   useEffect(() => {
@@ -426,6 +498,30 @@ export default function ContractForm() {
     
     setIsSubmitting(true);
     
+    // في وضع التعديل
+    if (isEditMode && editContractId) {
+      updateMutation.mutate({
+        id: editContractId,
+        contractTitle: contractData.subject,
+        secondPartyName: selectedSupplier?.name,
+        secondPartyCommercialRegister: selectedSupplier?.commercialRegister || undefined,
+        secondPartyRepresentative: selectedSupplier?.contactPerson || undefined,
+        secondPartyTitle: selectedSupplier?.contactPersonTitle || undefined,
+        secondPartyAddress: selectedSupplier?.address || undefined,
+        secondPartyPhone: selectedSupplier?.phone || undefined,
+        secondPartyEmail: selectedSupplier?.email || undefined,
+        secondPartyBankName: selectedSupplier?.bankName || undefined,
+        secondPartyIban: selectedSupplier?.iban || undefined,
+        secondPartyAccountName: selectedSupplier?.bankAccountName || undefined,
+        contractAmount: contractData.totalValue,
+        duration: contractData.duration,
+        durationUnit: contractData.durationUnit as any,
+        contractDate: contractData.startDate,
+        customTerms: contractData.notes || undefined,
+      });
+      return;
+    }
+    
     const supplier = selectedSupplier;
     if (!supplier) {
       toast.error("يرجى اختيار المورد");
@@ -488,9 +584,12 @@ export default function ContractForm() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* العنوان */}
         <div>
-          <h1 className="text-2xl font-bold">إنشاء عقد جديد</h1>
+         <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
           <p className="text-muted-foreground">
-            إنشاء عقد باستخدام قالب مع إمكانية التخصيص
+            {isEditMode 
+              ? "تعديل بيانات العقد الحالي" 
+              : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص"
+            }
           </p>
         </div>
 
@@ -546,19 +645,6 @@ export default function ContractForm() {
               )}
             </CardContent>
           </Card>
-        )}
-
-        {/* تحذير عندما لا يتم تمرير requestId */}
-        {!requestId && (
-          <Alert variant="destructive" className="border-orange-500 bg-orange-50 text-orange-900">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>تحذير هام</AlertTitle>
-            <AlertDescription>
-              لم يتم ربط هذا العقد بطلب. لن يتم تحديث مرحلة الطلب تلقائياً عند اعتماد العقد.
-              <br />
-              يفضل إنشاء العقد من صفحة تفاصيل الطلب لضمان الربط الصحيح.
-            </AlertDescription>
-          </Alert>
         )}
 
         {/* شريط الخطوات */}
@@ -703,24 +789,51 @@ export default function ContractForm() {
                 </div>
 
                 {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}
-                {requestId && requestDetails?.project?.id ? (
-                  // عند وجود طلب مرتبط بمشروع، نعرض المشروع كقيمة ثابتة
+                {(requestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
+                  // عند وجود طلب مرتبط بمشروع أو في وضع التعديل، نعرض المشروع كقيمة ثابتة
                   <div className="space-y-2">
-                    <Label>المشروع المرتبط</Label>
+                    <Label>{requestId ? "المشروع المرتبط" : "المشروع"}</Label>
                     <div className="p-3 bg-muted rounded-lg border">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-primary" />
-                        <span className="font-medium">
-                          {requestDetails.project.projectNumber}
-                        </span>
-                        <span className="text-muted-foreground">-</span>
-                        <span>
-                          {requestDetails.project.name}
-                        </span>
+                        {requestId && requestDetails?.project ? (
+                          <>
+                            <span className="font-medium">
+                              {requestDetails.project.projectNumber}
+                            </span>
+                            <span className="text-muted-foreground">-</span>
+                            <span>
+                              {requestDetails.project.name}
+                            </span>
+                          </>
+                        ) : (
+                          // في وضع التعديل، نبحث عن اسم المشروع من القائمة
+                          (() => {
+                            const project = projects.find((p: any) => p.id === contractData.projectId);
+                            return (
+                              <>
+                                <span className="font-medium">
+                                  {project?.projectNumber || "-"}
+                                </span>
+                                <span className="text-muted-foreground">-</span>
+                                <span>
+                                  {project?.projectName || project?.name || "-"}
+                                </span>
+                              </>
+                            );
+                          })()
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        هذا العقد مرتبط بالطلب رقم {requestDetails.requestNumber}
-                      </p>
+                      {requestId && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          هذا العقد مرتبط بالطلب رقم {requestDetails.requestNumber}
+                        </p>
+                      )}
+                      {isEditMode && !requestId && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          لا يمكن تغيير المشروع بعد إنشاء العقد.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ) : (
