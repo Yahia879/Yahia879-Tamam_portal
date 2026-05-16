@@ -50,8 +50,8 @@ import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   planning: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  in_progress: "bg-blue-100 text-blue-800 border-blue-200",
-  on_hold: "bg-orange-100 text-orange-800 border-orange-200",
+  in_progress: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  on_hold: "bg-yellow-100 text-yellow-800 border-yellow-200",
   completed: "bg-green-100 text-green-800 border-green-200",
   cancelled: "bg-red-100 text-red-800 border-red-200",
 };

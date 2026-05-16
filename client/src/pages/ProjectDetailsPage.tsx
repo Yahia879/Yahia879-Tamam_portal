@@ -340,12 +340,6 @@ export default function ProjectDetailsPage() {
               <Badge variant="outline" className={statusColors[project.status || "planning"]}>
                 {getStatusLabel()}
               </Badge>
-              {isBOQLocked && (
-                <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200">
-                  <Clock className="w-3 h-3 ml-1" />
-                  جدول الكميات مقفل
-                </Badge>
-              )}
             </div>
             <p className="text-muted-foreground">{project.name}</p>
           </div>
