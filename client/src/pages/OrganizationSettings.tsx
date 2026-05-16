@@ -148,101 +148,175 @@ function SignatoriesSection() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="border-0 shadow-sm overflow-hidden">
+      <CardHeader className="p-4 sm:p-6 pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="h-5 w-5 text-primary" />
               مفوضو التوقيع
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)}>
+          <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto gradient-primary text-white">
             <Plus className="h-4 w-4 ml-2" />
             إضافة مفوض
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 sm:p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : signatories && signatories.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الاسم</TableHead>
-                <TableHead>المنصب</TableHead>
-                <TableHead>رقم الهوية</TableHead>
-                <TableHead>الجوال</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="text-right">الاسم</TableHead>
+                    <TableHead className="text-right">المنصب</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">رقم الهوية</TableHead>
+                    <TableHead className="text-right">الجوال</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {signatories.map((signatory: any) => (
+                    <TableRow key={signatory.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="font-bold">{signatory.name}</TableCell>
+                      <TableCell>{signatory.title}</TableCell>
+                      <TableCell dir="ltr">{signatory.nationalId || "-"}</TableCell>
+                      <TableCell dir="ltr">{signatory.phone || "-"}</TableCell>
+                      <TableCell>
+                        {signatory.isDefault ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-bold border-0">
+                            <Star className="h-3 w-3 ml-1 fill-current" />
+                            افتراضي
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="font-medium">نشط</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-left">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                            onClick={() => openEditDialog(signatory)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          {!signatory.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                              onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                              title="تعيين كافتراضي"
+                            >
+                              <Star className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-500 hover:text-red-600"
+                            onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden divide-y divide-sidebar-border/10">
               {signatories.map((signatory: any) => (
-                <TableRow key={signatory.id}>
-                  <TableCell className="font-medium">{signatory.name}</TableCell>
-                  <TableCell>{signatory.title}</TableCell>
-                  <TableCell dir="ltr">{signatory.nationalId || "-"}</TableCell>
-                  <TableCell dir="ltr">{signatory.phone || "-"}</TableCell>
-                  <TableCell>
+                <div key={signatory.id} className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-foreground">{signatory.name}</h4>
+                      <p className="text-xs text-muted-foreground">{signatory.title}</p>
+                    </div>
                     {signatory.isDefault ? (
-                      <Badge className="bg-green-100 text-green-800">
-                        <Star className="h-3 w-3 ml-1" />
+                      <Badge className="bg-green-100 text-green-800 font-bold border-0 text-[10px] h-5 px-1.5">
+                        <Star className="h-2.5 w-2.5 ml-1 fill-current" />
                         افتراضي
                       </Badge>
                     ) : (
-                      <Badge variant="outline">نشط</Badge>
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">نشط</Badge>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(signatory)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {!signatory.isDefault && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
-                          title="تعيين كافتراضي"
-                        >
-                          <Star className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-600"
-                        onClick={() => deleteMutation.mutate({ id: signatory.id })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-[11px] py-2 border-y border-dashed">
+                    <div className="space-y-0.5">
+                      <p className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">رقم الهوية</p>
+                      <p className="font-mono">{signatory.nationalId || "—"}</p>
                     </div>
-                  </TableCell>
-                </TableRow>
+                    <div className="space-y-0.5">
+                      <p className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">الجوال</p>
+                      <p className="font-mono">{signatory.phone || "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 h-8 text-xs font-bold"
+                      onClick={() => openEditDialog(signatory)}
+                    >
+                      <Edit2 className="h-3.5 w-3.5 ml-1.5" />
+                      تعديل
+                    </Button>
+                    {!signatory.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 h-8 text-xs font-bold text-amber-600 border-amber-200 bg-amber-50/50"
+                        onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                      >
+                        <Star className="h-3.5 w-3.5 ml-1.5 fill-current" />
+                        افتراضي
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-10 text-red-500 border-red-200"
+                      onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>لا يوجد مفوضون مسجلون</p>
-            <p className="text-sm">اضغط على "إضافة مفوض" لإضافة مفوض جديد</p>
+          <div className="text-center py-12 px-6 text-muted-foreground">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <Users className="h-8 w-8 opacity-30" />
+            </div>
+            <p className="font-semibold text-foreground">لا يوجد مفوضون مسجلون</p>
+            <p className="text-xs sm:text-sm mt-1">اضغط على "إضافة مفوض" لإضافة مفوض جديد</p>
           </div>
         )}
 
-        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
+        <div className="m-4 sm:m-0 sm:mt-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/50 rounded-xl p-4 flex gap-3">
+          <Settings className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
             <strong>ملاحظة:</strong> المفوض الافتراضي سيظهر تلقائياً في العقود الجديدة. يمكنك اختيار مفوض مختلف عند إنشاء كل عقد.
           </p>
         </div>
@@ -256,75 +330,80 @@ function SignatoriesSection() {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md rounded-2xl p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-right">
               {editingSignatory ? "تعديل بيانات المفوض" : "إضافة مفوض جديد"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-right text-xs sm:text-sm">
               أدخل بيانات الشخص المفوض بالتوقيع على العقود
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-3">
             <div className="space-y-2">
-              <Label>اسم المفوض *</Label>
+              <Label className="text-xs sm:text-sm">اسم المفوض *</Label>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="الاسم الكامل"
+                className="h-10 sm:h-11 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label>المنصب *</Label>
+              <Label className="text-xs sm:text-sm">المنصب *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="مثال: رئيس مجلس الإدارة، المدير التنفيذي"
+                className="h-10 sm:h-11 text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label>رقم الهوية</Label>
+              <Label className="text-xs sm:text-sm">رقم الهوية</Label>
               <Input
                 value={formData.nationalId}
                 onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
                 placeholder="رقم الهوية الوطنية"
                 dir="ltr"
+                className="h-10 sm:h-11 text-sm font-mono"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>رقم الجوال</Label>
+                <Label className="text-xs sm:text-sm">رقم الجوال</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="05XXXXXXXX"
                   dir="ltr"
+                  className="h-10 sm:h-11 text-sm font-mono"
                 />
               </div>
               <div className="space-y-2">
-                <Label>البريد الإلكتروني</Label>
+                <Label className="text-xs sm:text-sm">البريد الإلكتروني</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="email@example.com"
                   dir="ltr"
+                  className="h-10 sm:h-11 text-sm font-mono"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 pt-2">
               <input
                 type="checkbox"
                 id="isDefault"
                 checked={formData.isDefault}
                 onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                className="h-4 w-4"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-all"
               />
-              <Label htmlFor="isDefault">تعيين كمفوض افتراضي</Label>
+              <Label htmlFor="isDefault" className="text-xs sm:text-sm font-bold cursor-pointer">تعيين كمفوض افتراضي</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => {
               setShowAddDialog(false);
               setEditingSignatory(null);
               resetForm();
@@ -332,13 +411,14 @@ function SignatoriesSection() {
               إلغاء
             </Button>
             <Button
+              className="w-full sm:w-auto gradient-primary text-white"
               onClick={handleSubmit}
               disabled={addMutation.isPending || updateMutation.isPending}
             >
               {(addMutation.isPending || updateMutation.isPending) && (
                 <Loader2 className="h-4 w-4 ml-2 animate-spin" />
               )}
-              {editingSignatory ? "حفظ التعديلات" : "إضافة"}
+              {editingSignatory ? "حفظ التعديلات" : "إضافة المفوض"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -462,8 +542,9 @@ export default function OrganizationSettings() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm animate-pulse">جاري تحميل الإعدادات...</p>
         </div>
       </DashboardLayout>
     );
@@ -471,16 +552,16 @@ export default function OrganizationSettings() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-6xl px-4 sm:px-0">
         {/* العنوان */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">إعدادات الجمعية</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">إعدادات الجمعية</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
               إدارة بيانات الجمعية الثابتة المستخدمة في العقود والمستندات الرسمية
             </p>
           </div>
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto gradient-primary text-white order-first sm:order-last">
             {updateMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin ml-2" />
             ) : (
@@ -491,80 +572,107 @@ export default function OrganizationSettings() {
         </div>
 
         <Tabs defaultValue="basic" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="basic">معلومات أساسية</TabsTrigger>
-            <TabsTrigger value="signatory">مفوض التوقيع</TabsTrigger>
-            <TabsTrigger value="bank">البيانات البنكية</TabsTrigger>
-            <TabsTrigger value="contracts">إعدادات العقود</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto overflow-y-hidden pb-3 scrollbar-thin">
+            <TabsList className="bg-muted/60 p-1 inline-flex md:grid w-auto md:w-full md:grid-cols-4 min-w-full md:min-w-0 border shadow-sm rounded-xl h-auto">
+              <TabsTrigger 
+                value="basic" 
+                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                معلومات أساسية
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signatory" 
+                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                مفوضو التوقيع
+              </TabsTrigger>
+              <TabsTrigger 
+                value="bank" 
+                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                البيانات البنكية
+              </TabsTrigger>
+              <TabsTrigger 
+                value="contracts" 
+                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              >
+                إعدادات العقود
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* معلومات الجمعية الأساسية */}
-          <TabsContent value="basic">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
+          <TabsContent value="basic" className="space-y-6">
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Building2 className="h-5 w-5 text-primary" />
                   معلومات الجمعية الأساسية
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   البيانات الأساسية للجمعية التي تظهر في العقود والمستندات الرسمية
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">اسم الجمعية</Label>
+                    <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
                     <Input
                       id="name"
                       value={orgSettings.name}
                       onChange={(e) => setOrgSettings({ ...orgSettings, name: e.target.value })}
                       placeholder="اسم الجمعية الرسمي"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="licenseNumber">رقم الترخيص</Label>
+                    <Label htmlFor="licenseNumber" className="text-xs sm:text-sm font-bold">رقم الترخيص</Label>
                     <Input
                       id="licenseNumber"
                       value={orgSettings.licenseNumber}
                       onChange={(e) => setOrgSettings({ ...orgSettings, licenseNumber: e.target.value })}
                       placeholder="رقم ترخيص الجمعية"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">العنوان</Label>
+                  <Label htmlFor="address" className="text-xs sm:text-sm font-bold">العنوان</Label>
                   <Textarea
                     id="address"
                     value={orgSettings.address}
                     onChange={(e) => setOrgSettings({ ...orgSettings, address: e.target.value })}
                     placeholder="العنوان التفصيلي للجمعية"
                     rows={2}
+                    className="resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="city">المدينة</Label>
+                    <Label htmlFor="city" className="text-xs sm:text-sm font-bold">المدينة</Label>
                     <Input
                       id="city"
                       value={orgSettings.city}
                       onChange={(e) => setOrgSettings({ ...orgSettings, city: e.target.value })}
                       placeholder="المدينة"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">رقم الهاتف</Label>
+                    <Label htmlFor="phone" className="text-xs sm:text-sm font-bold">رقم الهاتف</Label>
                     <Input
                       id="phone"
                       value={orgSettings.phone}
                       onChange={(e) => setOrgSettings({ ...orgSettings, phone: e.target.value })}
                       placeholder="رقم الهاتف"
                       dir="ltr"
+                      className="h-10 sm:h-11 font-mono"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                    <Label htmlFor="email" className="text-xs sm:text-sm font-bold">البريد الإلكتروني</Label>
                     <Input
                       id="email"
                       type="email"
@@ -572,75 +680,88 @@ export default function OrganizationSettings() {
                       onChange={(e) => setOrgSettings({ ...orgSettings, email: e.target.value })}
                       placeholder="البريد الإلكتروني"
                       dir="ltr"
+                      className="h-10 sm:h-11 font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="website">الموقع الإلكتروني</Label>
+                  <Label htmlFor="website" className="text-xs sm:text-sm font-bold">الموقع الإلكتروني</Label>
                   <Input
                     id="website"
                     value={orgSettings.website}
                     onChange={(e) => setOrgSettings({ ...orgSettings, website: e.target.value })}
                     placeholder="https://www.example.com"
                     dir="ltr"
+                    className="h-10 sm:h-11 font-mono"
                   />
                 </div>
 
                 {/* جهات الإشراف */}
-                <div className="border-t pt-4 mt-4">
-                  <h3 className="font-semibold mb-4">جهات الإشراف</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border-t border-dashed pt-6 mt-2">
+                  <h3 className="font-bold text-sm sm:text-base mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-primary rounded-full" />
+                    جهات الإشراف
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="administrativeSupervisor">جهة الإشراف الإداري</Label>
+                      <Label htmlFor="administrativeSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الإداري</Label>
                       <Input
                         id="administrativeSupervisor"
                         value={orgSettings.administrativeSupervisor}
                         onChange={(e) => setOrgSettings({ ...orgSettings, administrativeSupervisor: e.target.value })}
-                        placeholder="مثال: وزارة الموارد البشرية والتنمية الاجتماعية"
+                        placeholder="وزارة الموارد البشرية..."
+                        className="h-10 sm:h-11"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="technicalSupervisor">جهة الإشراف الفني</Label>
+                      <Label htmlFor="technicalSupervisor" className="text-xs sm:text-sm font-bold text-muted-foreground">جهة الإشراف الفني</Label>
                       <Input
                         id="technicalSupervisor"
                         value={orgSettings.technicalSupervisor}
                         onChange={(e) => setOrgSettings({ ...orgSettings, technicalSupervisor: e.target.value })}
-                        placeholder="مثال: وزارة الشؤون الإسلامية"
+                        placeholder="وزارة الشؤون الإسلامية..."
+                        className="h-10 sm:h-11"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* أسماء المسؤولين */}
-                <div className="border-t pt-4 mt-4">
-                  <h3 className="font-semibold mb-4">أسماء المسؤولين</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border-t border-dashed pt-6">
+                  <h3 className="font-bold text-sm sm:text-base mb-4 flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-primary rounded-full" />
+                    أسماء المسؤولين
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="boardChairmanName">رئيس مجلس الإدارة</Label>
+                      <Label htmlFor="boardChairmanName" className="text-xs sm:text-sm font-bold text-muted-foreground">رئيس مجلس الإدارة</Label>
                       <Input
                         id="boardChairmanName"
                         value={orgSettings.boardChairmanName}
                         onChange={(e) => setOrgSettings({ ...orgSettings, boardChairmanName: e.target.value })}
                         placeholder="اسم رئيس مجلس الإدارة"
+                        className="h-10 sm:h-11"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="executiveDirectorName">المدير التنفيذي</Label>
+                      <Label htmlFor="executiveDirectorName" className="text-xs sm:text-sm font-bold text-muted-foreground">المدير التنفيذي</Label>
                       <Input
                         id="executiveDirectorName"
                         value={orgSettings.executiveDirectorName}
                         onChange={(e) => setOrgSettings({ ...orgSettings, executiveDirectorName: e.target.value })}
                         placeholder="اسم المدير التنفيذي"
+                        className="h-10 sm:h-11"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="accountantName">المحاسب</Label>
+                      <Label htmlFor="accountantName" className="text-xs sm:text-sm font-bold text-muted-foreground">المحاسب</Label>
                       <Input
                         id="accountantName"
                         value={orgSettings.accountantName}
                         onChange={(e) => setOrgSettings({ ...orgSettings, accountantName: e.target.value })}
                         placeholder="اسم المحاسب"
+                        className="h-10 sm:h-11"
                       />
                     </div>
                   </div>
@@ -656,40 +777,42 @@ export default function OrganizationSettings() {
 
           {/* البيانات البنكية */}
           <TabsContent value="bank">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard className="h-5 w-5 text-primary" />
                   البيانات البنكية
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   معلومات الحساب البنكي للجمعية المستخدمة في العقود والتحويلات
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="bankName">اسم البنك</Label>
+                    <Label htmlFor="bankName" className="text-xs sm:text-sm font-bold">اسم البنك</Label>
                     <Input
                       id="bankName"
                       value={orgSettings.bankName}
                       onChange={(e) => setOrgSettings({ ...orgSettings, bankName: e.target.value })}
                       placeholder="اسم البنك"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bankAccountName">اسم الحساب</Label>
+                    <Label htmlFor="bankAccountName" className="text-xs sm:text-sm font-bold">اسم الحساب</Label>
                     <Input
                       id="bankAccountName"
                       value={orgSettings.bankAccountName}
                       onChange={(e) => setOrgSettings({ ...orgSettings, bankAccountName: e.target.value })}
                       placeholder="اسم صاحب الحساب"
+                      className="h-10 sm:h-11"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="iban">رقم الآيبان (IBAN)</Label>
+                  <Label htmlFor="iban" className="text-xs sm:text-sm font-bold">رقم الآيبان (IBAN)</Label>
                   <Input
                     id="iban"
                     value={orgSettings.iban}
@@ -704,59 +827,65 @@ export default function OrganizationSettings() {
                     placeholder="SA0000000000000000000000"
                     dir="ltr"
                     maxLength={24}
+                    className="h-10 sm:h-11 font-mono tracking-wider"
                   />
-                  <p className="text-xs text-muted-foreground">يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Star className="h-3 w-3 fill-current text-amber-500" />
+                    يجب أن يبدأ بـ SA متبوعاً بـ 22 رقم
+                  </p>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* إعدادات العقود */}
-          <TabsContent value="contracts">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
+          <TabsContent value="contracts" className="space-y-6">
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-primary" />
                   إعدادات العقود
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   تخصيص إعدادات العقود والنصوص الافتراضية
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="contractPrefix">بادئة رقم العقد</Label>
+              <CardContent className="p-4 sm:p-6 space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="contractPrefix" className="text-xs sm:text-sm font-bold">بادئة رقم العقد</Label>
                   <Input
                     id="contractPrefix"
                     value={orgSettings.contractPrefix}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractPrefix: e.target.value })}
                     placeholder="CON"
-                    className="max-w-xs"
+                    className="max-w-xs h-10 sm:h-11 font-mono"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    سيكون رقم العقد بالشكل: {orgSettings.contractPrefix}-2024-0001
+                  <p className="text-[10px] sm:text-xs text-muted-foreground bg-muted/50 p-2 rounded-lg border inline-block">
+                    مثال: <span className="font-bold text-foreground">{orgSettings.contractPrefix}-2024-0001</span>
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="contractFooterText">نص تذييل العقد</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="contractFooterText" className="text-xs sm:text-sm font-bold">نص تذييل العقد</Label>
                   <Textarea
                     id="contractFooterText"
                     value={orgSettings.contractFooterText}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractFooterText: e.target.value })}
                     placeholder="النص الذي يظهر في نهاية كل عقد..."
                     rows={3}
+                    className="resize-none"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="contractTermsAndConditions">الشروط والأحكام الافتراضية</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="contractTermsAndConditions" className="text-xs sm:text-sm font-bold">الشروط والأحكام الافتراضية</Label>
                   <Textarea
                     id="contractTermsAndConditions"
                     value={orgSettings.contractTermsAndConditions}
                     onChange={(e) => setOrgSettings({ ...orgSettings, contractTermsAndConditions: e.target.value })}
                     placeholder="الشروط والأحكام الافتراضية للعقود..."
-                    rows={6}
+                    rows={8}
+                    className="resize-none"
                   />
                 </div>
               </CardContent>

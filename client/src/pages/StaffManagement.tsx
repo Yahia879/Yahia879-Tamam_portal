@@ -75,25 +75,25 @@ export default function StaffManagement() {
 
         {/* نظام التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
-          <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
+          <div className="w-full overflow-x-auto overflow-y-hidden pb-3 scrollbar-thin">
             <TabsList className="bg-muted/60 p-1.5 inline-flex md:flex w-auto md:w-auto min-w-full md:min-w-0 justify-start h-auto border shadow-sm whitespace-nowrap">
               <TabsTrigger 
                 value="users" 
-                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Users className="h-4 w-4" />
                 المستخدمين
               </TabsTrigger>
               <TabsTrigger 
                 value="roles" 
-                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Shield className="h-4 w-4" />
                 الأدوار والصلاحيات
               </TabsTrigger>
               <TabsTrigger 
                 value="custom-roles" 
-                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0"
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all rounded-md flex-shrink-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
               >
                 <Briefcase className="h-4 w-4" />
                 الأدوار المخصصة
