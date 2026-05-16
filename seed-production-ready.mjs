@@ -85,7 +85,53 @@ async function seed() {
       });
     }
 
-    // 4. إعدادات الجمعية الافتراضية
+    // 4. حقن صلاحيات الأدوار (Role Permissions)
+    console.log("🔗 ربط الصلاحيات بالأدوار...");
+    const rolePermissionsMapping = {
+      super_admin: "*", // كل الصلاحيات
+      system_admin: "*", // كل الصلاحيات
+      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursement_requests"],
+      field_team: ["mosques.view", "requests.view"],
+      quick_response: ["requests.view"],
+      financial: ["finance", "quotations.view", "disbursement_orders"],
+      financial_manager: ["finance", "quotations", "disbursement_requests", "disbursement_orders"],
+      project_manager: ["projects.view", "projects.edit", "reports.create", "disbursement_requests"],
+      corporate_comm: ["requests.view", "reports.view", "settings.view"],
+      service_requester: ["requests.view", "requests.create"]
+    };
+
+    // جلب كل الصلاحيات المتاحة
+    const allPermissions = await db.select().from(schema.permissions);
+    const allPermIds = allPermissions.map(p => p.id);
+
+    const rolePermsToInsert = [];
+
+    for (const [roleId, permList] of Object.entries(rolePermissionsMapping)) {
+      if (permList === "*") {
+        allPermIds.forEach(pId => {
+          rolePermsToInsert.push({ roleId, permissionId: pId });
+        });
+      } else {
+        // البحث عن الصلاحيات الدقيقة التي تبدأ بالمفاتيح المذكورة
+        allPermIds.forEach(pId => {
+          const match = permList.some(key => pId === key || pId.startsWith(key + "."));
+          if (match) {
+            rolePermsToInsert.push({ roleId, permissionId: pId });
+          }
+        });
+      }
+    }
+
+    // تقسيم البيانات لمجموعات لتجنب حدود الاستعلام الكبيرة
+    const chunkSize = 100;
+    for (let i = 0; i < rolePermsToInsert.length; i += chunkSize) {
+      const chunk = rolePermsToInsert.slice(i, i + chunkSize);
+      await db.insert(schema.rolePermissions).values(chunk).onDuplicateKeyUpdate({
+        set: { roleId: sql`role_id` } // تحديث وهمي للحفاظ على الصلاحية
+      });
+    }
+
+    // 5. إعدادات الجمعية الافتراضية
     console.log("🏢 حقن إعدادات الجمعية...");
     const orgSettings = {
       organizationName: "جمعية تمام للعناية بالمساجد",
@@ -167,7 +213,7 @@ async function seed() {
     // 8. حساب المدير الافتراضي (Admin)
     console.log("🔑 إنشاء حساب المدير الافتراضي...");
     const adminEmail = "admin@tamam.sa";
-    const adminPassword = "admin123";
+    const adminPassword = "Admin@123456";
     const salt = generateSalt();
     const passwordHash = `${salt}:${hashPassword(adminPassword, salt)}`;
 
