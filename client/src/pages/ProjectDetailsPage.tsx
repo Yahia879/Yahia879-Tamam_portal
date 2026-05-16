@@ -223,6 +223,12 @@ export default function ProjectDetailsPage() {
     p.phaseOrder === 3 && p.status === "completed"
   );
 
+  // التحقق مما إذا كان قد بدأ التنفيذ (المرحلة الخامسة: صرف المدفوعات)
+  // إذا بدأت هذه المرحلة أو ما بعدها، يتم قفل التعديل على العقود
+  const isExecutionStarted = project?.phases?.some(p => 
+    p.phaseOrder >= 5 && (p.status === "in_progress" || p.status === "completed")
+  );
+
   // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
   const isPaymentsLocked = !project?.phases?.some(p => 
     p.phaseOrder === 3 && p.status === "completed"
@@ -882,12 +888,25 @@ export default function ProjectDetailsPage() {
           {/* العقود */}
           <TabsContent value="contracts" className="space-y-4">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="flex items-center justify-between text-right">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
                 <div className="flex-1">
-                  <CardTitle className="text-lg">العقود</CardTitle>
-                  <CardDescription>عقود المقاولين والموردين</CardDescription>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">العقود</CardTitle>
+                    {isExecutionStarted && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 animate-pulse">
+                        <PauseCircle className="w-3 h-3" />
+                        مقفل للعرض فقط (مرحلة التنفيذ)
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription>
+                    {isExecutionStarted 
+                      ? "تم قفل التعديل على العقود بسبب بدء مرحلة التنفيذ وصرف المدفوعات"
+                      : "عقود المقاولين والموردين"
+                    }
+                  </CardDescription>
                 </div>
-                {!isContractsLocked && (!project.contracts || project.contracts.length === 0) && (
+                {!isContractsLocked && !isExecutionStarted && (!project.contracts || project.contracts.length === 0) && (
                   <Button 
                     className="gradient-primary text-white" 
                     onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
