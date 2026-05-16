@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/table";
 import {
   ArrowRight,
-  Save,
   Send,
   Plus,
   Trash2,
@@ -203,36 +202,6 @@ export default function NewDisbursementRequest() {
     }
   };
   
-  // حفظ كمسودة
-  const handleSaveDraft = () => {
-    if (!formData.projectId) {
-      toast.error("يرجى اختيار المشروع");
-      return;
-    }
-    if (!formData.dateMiladi) {
-      toast.error("يرجى تحديد التاريخ الميلادي");
-      return;
-    }
-    if (!formData.title) {
-      toast.error("يرجى إدخال عنوان طلب الصرف");
-      return;
-    }
-    if (totalAmount <= 0) {
-      toast.error("يرجى إدخال مبلغ صحيح");
-      return;
-    }
-    
-    createMutation.mutate({
-      projectId: formData.projectId,
-      contractId: formData.contractId || undefined,
-      title: formData.title,
-      description: formData.description,
-      amount: totalAmount,
-      paymentType: "progress",
-      completionPercentage: formData.completionPercentage,
-    });
-  };
-  
   // إرسال للاعتماد
   const handleSubmit = () => {
     if (!formData.projectId) {
@@ -253,6 +222,12 @@ export default function NewDisbursementRequest() {
     }
     if (suppliers.some(s => !s.name)) {
       toast.error("يرجى اختيار المورد المستفيد");
+      return;
+    }
+
+    // التحقق من تجاوز قيمة العقد
+    if (contractDetails && totalAmount > parseFloat(String(contractDetails.contract.contractAmount || "0"))) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${parseFloat(String(contractDetails.contract.contractAmount || "0")).toLocaleString()} ريال)`);
       return;
     }
     
@@ -282,10 +257,6 @@ export default function NewDisbursementRequest() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSaveDraft} disabled={createMutation.isPending}>
-              <Save className="h-4 w-4 ml-2" />
-              حفظ كمسودة
-            </Button>
             <Button onClick={handleSubmit} disabled={createMutation.isPending}>
               <Send className="h-4 w-4 ml-2" />
               إرسال للاعتماد
@@ -523,7 +494,9 @@ export default function NewDisbursementRequest() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="font-medium">إجمالي الدفعة:</span>
-                    <span className="font-bold text-lg text-primary">{totalAmount.toLocaleString()} ريال</span>
+                    <span className={`font-bold text-lg ${contractDetails && totalAmount > parseFloat(String(contractDetails.contract.contractAmount || "0")) ? 'text-destructive' : 'text-primary'}`}>
+                      {totalAmount.toLocaleString()} ريال
+                    </span>
                   </div>
                 </div>
                 
