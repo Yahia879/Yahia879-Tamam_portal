@@ -1063,8 +1063,7 @@ export default function ProjectDetailsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الدفعة</TableHead>
-                        <TableHead className="text-right">المصدر</TableHead>
-                        <TableHead className="text-right">النوع</TableHead>
+                        <TableHead className="text-right">عنوان طلب الصرف</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>
@@ -1074,18 +1073,7 @@ export default function ProjectDetailsPage() {
                       {project.payments.map((payment) => (
                         <TableRow key={payment.id}>
                           <TableCell className="font-medium text-right">{payment.paymentNumber}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant="outline" className="text-[10px]">
-                              {payment.source === "contract" ? "خطة التعاقد" :
-                               payment.source === "disbursement" ? "طلب صرف" : "يدوي"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {payment.paymentType === "advance" ? "دفعة مقدمة" :
-                             payment.paymentType === "progress" ? "دفعة تقدم" :
-                             payment.paymentType === "final" ? "دفعة نهائية" : 
-                             payment.paymentType === "retention" ? "محتجزات" : "إنجاز"}
-                          </TableCell>
+                          <TableCell className="text-right">{payment.description || "-"}</TableCell>
                           <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline" className={

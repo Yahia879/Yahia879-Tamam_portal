@@ -136,7 +136,7 @@ export default function NewDisbursementRequest() {
   const createMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: (data) => {
       toast.success("تم إنشاء طلب الصرف بنجاح");
-      navigate(`/disbursements/${data.id}`);
+      navigate(`/projects/${formData.projectId}`);
     },
     onError: (error) => {
       toast.error(`خطأ: ${error.message}`);
