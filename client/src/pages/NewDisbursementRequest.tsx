@@ -170,6 +170,11 @@ export default function NewDisbursementRequest() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
+  // حساب المتبقي للصرف
+  const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
+  const remainingAmount = contractAmount - totalPaymentsSum;
+
   // إضافة مورد جديد
   const addSupplier = () => {
     setSuppliers([...suppliers, { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "" }]);
@@ -225,9 +230,14 @@ export default function NewDisbursementRequest() {
       return;
     }
 
-    // التحقق من تجاوز قيمة العقد
-    if (contractDetails && totalAmount > parseFloat(String(contractDetails.contract.contractAmount || "0"))) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${parseFloat(String(contractDetails.contract.contractAmount || "0")).toLocaleString()} ريال)`);
+    // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
+    if (contractDetails && totalAmount > contractAmount) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
+      return;
+    }
+
+    if (contractDetails && totalAmount > remainingAmount) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingAmount.toLocaleString()} ريال)`);
       return;
     }
     
@@ -486,6 +496,12 @@ export default function NewDisbursementRequest() {
                         <span className="text-muted-foreground">قيمة العقد:</span>
                         <span className="font-medium">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} ريال</span>
                       </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground font-medium">الإجمالي المتبقي للصرف:</span>
+                        <span className="font-bold text-emerald-600">
+                          {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} ريال
+                        </span>
+                      </div>
                     </div>
                   </>
                 )}
@@ -495,7 +511,7 @@ export default function NewDisbursementRequest() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="font-medium">إجمالي الدفعة:</span>
-                    <span className={`font-bold text-lg ${contractDetails && totalAmount > parseFloat(String(contractDetails.contract.contractAmount || "0")) ? 'text-destructive' : 'text-primary'}`}>
+                    <span className={`font-bold text-lg ${contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
                       {totalAmount.toLocaleString()} ريال
                     </span>
                   </div>

@@ -386,12 +386,7 @@ export default function ContractForm() {
   const updatePayment = (id: string, field: keyof PaymentScheduleItem, value: any) => {
     setPaymentSchedule(paymentSchedule.map(p => {
       if (p.id === id) {
-        const updated = { ...p, [field]: value };
-        // حساب المبلغ تلقائياً من النسبة
-        if (field === "percentage") {
-          updated.amount = (contractData.totalValue * value) / 100;
-        }
-        return updated;
+        return { ...p, [field]: value };
       }
       return p;
     }));
@@ -466,14 +461,6 @@ export default function ContractForm() {
         }
         return true;
       case 4:
-        // التحقق من أن مجموع الدفعات = 100%
-        if (paymentSchedule.length > 0) {
-          const totalPercentage = paymentSchedule.reduce((sum, p) => sum + p.percentage, 0);
-          if (Math.abs(totalPercentage - 100) > 0.01) {
-            toast.error(`مجموع نسب الدفعات يجب أن يساوي 100% (الحالي: ${totalPercentage}%)`);
-            return false;
-          }
-        }
         return true;
       default:
         return true;
@@ -1139,26 +1126,6 @@ export default function ContractForm() {
                               </Select>
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs">النسبة (%)</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={payment.percentage || ""}
-                                onChange={(e) => updatePayment(payment.id, "percentage", parseFloat(e.target.value) || 0)}
-                                placeholder="النسبة"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">المبلغ (ريال)</Label>
-                              <Input
-                                type="number"
-                                value={payment.amount.toFixed(2)}
-                                disabled
-                                className="bg-muted"
-                              />
-                            </div>
-                            <div className="space-y-1">
                               <Label className="text-xs">تاريخ الاستحقاق</Label>
                               <Input
                                 type="date"
@@ -1223,14 +1190,6 @@ export default function ContractForm() {
                                 </p>
                               )}
                             </div>
-                            <div className="md:col-span-3 space-y-1">
-                              <Label className="text-xs">الوصف</Label>
-                              <Input
-                                value={payment.description}
-                                onChange={(e) => updatePayment(payment.id, "description", e.target.value)}
-                                placeholder="وصف الدفعة..."
-                              />
-                            </div>
                           </div>
                           <Button
                             variant="ghost"
@@ -1245,24 +1204,7 @@ export default function ContractForm() {
                     ))}
 
                     {/* ملخص الدفعات */}
-                    <Card className="bg-muted/50 p-4">
-                      <div className="flex items-center justify-between">
-                        <span>إجمالي النسب:</span>
-                        <span className={`font-bold ${
-                          Math.abs(paymentSchedule.reduce((sum, p) => sum + p.percentage, 0) - 100) < 0.01
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}>
-                          {paymentSchedule.reduce((sum, p) => sum + p.percentage, 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span>إجمالي المبالغ:</span>
-                        <span className="font-bold">
-                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
-                        </span>
-                      </div>
-                    </Card>
+                    {/* تم إزالة ملخص المبالغ والنسب بناءً على طلب المستخدم */}
                   </div>
                 )}
               </div>
@@ -1413,7 +1355,7 @@ export default function ContractForm() {
                         {paymentSchedule.map((payment, index) => (
                           <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span>{payment.name}</span>
-                            <span className="font-medium">{payment.amount.toLocaleString()} ريال ({payment.percentage}%)</span>
+                            <span className="text-muted-foreground">{PAYMENT_TYPES.find(t => t.value === payment.type)?.label}</span>
                           </div>
                         ))}
                       </div>
