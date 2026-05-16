@@ -170,53 +170,53 @@ export default function QuickResponseReportForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8" dir="rtl">
-      <div className="container max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir="rtl">
+      <div className="container max-w-4xl mx-auto px-4 overflow-x-hidden">
         {/* العنوان */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">تقرير الاستجابة السريعة</h1>
-          <p className="text-gray-600">التقييم الفني والتوثيق بالصور بعد إنهاء أعمال الصيانة الطارئة</p>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">تقرير الاستجابة السريعة</h1>
+          <p className="text-sm md:text-base text-gray-600">التقييم الفني والتوثيق بالصور بعد إنهاء أعمال الصيانة الطارئة</p>
         </div>
 
         {/* البيانات الأساسية */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <FileText className="w-5 h-5 text-primary" />
               البيانات الأساسية
             </CardTitle>
-            <CardDescription>معلومات الطلب والمسجد (مستوردة تلقائياً)</CardDescription>
+            <CardDescription className="text-xs md:text-sm">معلومات الطلب والمسجد (مستوردة تلقائياً)</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Alert className="bg-blue-50 border-blue-200 mb-6">
+          <CardContent className="p-4 md:p-6">
+            <Alert className="bg-blue-50 border-blue-200 mb-6 p-3">
               <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
+              <AlertDescription className="text-[11px] md:text-sm text-blue-800">
                 البيانات التالية مستوردة من بيانات الطلب ولا يمكن تعديلها
               </AlertDescription>
             </Alert>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <FileText className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">رقم الطلب</p>
-                  <p className="font-medium">{requestData.requestNumber}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <FileText className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">رقم الطلب</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.requestNumber}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <Building2 className="w-5 h-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">اسم المسجد</p>
-                  <p className="font-medium">{requestData.mosque?.name || "غير محدد"}</p>
+              <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <Building2 className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">اسم المسجد</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.mosque?.name || "غير محدد"}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg md:col-span-2">
-                <MapPin className="w-5 h-5 text-gray-500" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500">موقع المسجد</p>
-                  <p className="font-medium">{requestData.mosque?.address || requestData.mosque?.city || "غير محدد"}</p>
+              <div className="flex items-start gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:col-span-2">
+                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] md:text-sm text-gray-500">موقع المسجد</p>
+                  <p className="font-bold text-sm md:text-base break-words">{requestData.mosque?.address || requestData.mosque?.city || "غير محدد"}</p>
                 </div>
               </div>
             </div>
@@ -224,32 +224,32 @@ export default function QuickResponseReportForm() {
         </Card>
 
         {/* التقييم الفني */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <ClipboardList className="w-5 h-5 text-primary" />
               التقييم الفني
             </CardTitle>
-            <CardDescription>التقييم العام للأعمال من الناحية الفنية</CardDescription>
+            <CardDescription className="text-xs md:text-sm">التقييم العام للأعمال من الناحية الفنية</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>التقييم الفني <span className="text-red-500">*</span></Label>
+          <CardContent className="p-4 md:p-6 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">التقييم الفني <span className="text-red-500">*</span></Label>
               <Textarea
                 value={formData.technicalEvaluation}
                 onChange={(e) => handleInputChange("technicalEvaluation", e.target.value)}
                 placeholder="وصف التقييم الفني للأعمال المنفذة..."
-                className="mt-1 min-h-[100px]"
+                className="min-h-[100px] text-sm md:text-base"
               />
             </div>
 
-            <div>
-              <Label>التقييم النهائي</Label>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">التقييم النهائي</Label>
               <Select
                 value={formData.finalEvaluation}
                 onValueChange={(value) => handleInputChange("finalEvaluation", value)}
               >
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="h-10 md:h-11">
                   <SelectValue placeholder="اختر التقييم النهائي" />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,37 +265,37 @@ export default function QuickResponseReportForm() {
         </Card>
 
         {/* الأعمال غير المنفذة */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <XCircle className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <XCircle className="w-5 h-5 text-primary" />
               الأعمال غير المنفذة
             </CardTitle>
-            <CardDescription>توثيق التعثر أو عدم التنفيذ</CardDescription>
+            <CardDescription className="text-xs md:text-sm">توثيق التعثر أو عدم التنفيذ</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div>
-              <Label>الأعمال غير المنفذة / أسباب عدم التنفيذ</Label>
+          <CardContent className="p-4 md:p-6">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">الأعمال غير المنفذة / أسباب عدم التنفيذ</Label>
               <Textarea
                 value={formData.unexecutedWorks}
                 onChange={(e) => handleInputChange("unexecutedWorks", e.target.value)}
                 placeholder="في حال وجود أعمال لم تُنفذ، يرجى ذكرها مع أسباب عدم التنفيذ..."
-                className="mt-1 min-h-[100px]"
+                className="min-h-[100px] text-sm md:text-base"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* المرفقات */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Camera className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <Camera className="w-5 h-5 text-primary" />
               المرفقات (التوثيق بالصور)
             </CardTitle>
-            <CardDescription>توثيق الحالة ميدانياً قبل/أثناء/بعد التنفيذ (حتى 10 صور)</CardDescription>
+            <CardDescription className="text-xs md:text-sm">توثيق الحالة ميدانياً قبل/أثناء/بعد التنفيذ (حتى 10 صور)</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             <FileUpload
               onFilesSelected={setAttachments}
               maxFiles={10}
@@ -306,80 +306,86 @@ export default function QuickResponseReportForm() {
               category="site_photo"
             />
             {attachments.length > 0 && (
-              <p className="text-sm text-gray-500 mt-2">
-                تم إرفاق {attachments.length} صورة
+              <p className="text-xs md:text-sm text-primary font-bold mt-3 bg-primary/5 px-3 py-1.5 rounded-lg inline-block">
+                تم إرفاق {attachments.length} صورة توثيقية
               </p>
             )}
           </CardContent>
         </Card>
 
         {/* بيانات الفريق الفني */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <User className="w-5 h-5 text-primary" />
               بيانات الفريق الفني
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div>
-              <Label>الفني المختص <span className="text-red-500">*</span></Label>
+          <CardContent className="p-4 md:p-6">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-bold">الفني المختص <span className="text-red-500">*</span></Label>
               <Input
                 value={formData.technicianName}
                 onChange={(e) => handleInputChange("technicianName", e.target.value)}
                 placeholder="اسم الفني المسؤول عن التنفيذ أو التقييم"
-                className="mt-1"
+                className="h-10 md:h-11"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* حالة الطلب */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
+        <Card className="mb-6 border-0 shadow-sm">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl">
+              <CheckCircle className="w-5 h-5 text-primary" />
               حالة الطلب
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-4 md:p-6 space-y-4">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.resolved}
-                  onChange={(e) => handleInputChange("resolved", e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <span>تم حل المشكلة بالكامل</span>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.resolved}
+                    onChange={(e) => handleInputChange("resolved", e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">تم حل المشكلة بالكامل</span>
               </label>
             </div>
             
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.requiresProject}
-                  onChange={(e) => handleInputChange("requiresProject", e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <span>يحتاج إلى مشروع متكامل</span>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.requiresProject}
+                    onChange={(e) => handleInputChange("requiresProject", e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">يحتاج إلى مشروع متكامل</span>
               </label>
             </div>
           </CardContent>
         </Card>
 
         {/* أزرار التحكم */}
-        <div className="flex justify-between">
+        <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-8 pb-10">
           <Button
             variant="outline"
+            className="w-full sm:w-auto h-11 border-2 font-bold"
             onClick={() => navigate(`/requests/${requestId}`)}
           >
             <ArrowRight className="w-4 h-4 ml-2" />
-            إلغاء
+            إلغاء وإغلاق
           </Button>
           
           <Button
+            className="w-full sm:w-auto h-11 gradient-primary text-white font-bold shadow-lg"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
@@ -391,7 +397,7 @@ export default function QuickResponseReportForm() {
             ) : (
               <>
                 <Save className="w-4 h-4 ml-2" />
-                حفظ التقرير
+                حفظ واعتماد التقرير
               </>
             )}
           </Button>
