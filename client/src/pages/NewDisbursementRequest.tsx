@@ -483,7 +483,7 @@ export default function NewDisbursementRequest() {
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">قيمة العقد:</span>
-                        <span className="font-medium">{parseFloat((contractDetails.contract as any).totalValue || "0").toLocaleString()} ريال</span>
+                        <span className="font-medium">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} ريال</span>
                       </div>
                     </div>
                   </>
@@ -501,36 +501,6 @@ export default function NewDisbursementRequest() {
                 <div className="p-3 bg-muted rounded-lg text-sm">
                   <p className="text-muted-foreground">{numberToArabicText(totalAmount)}</p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            {/* تنبيهات */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  تنبيهات
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {!formData.projectId && (
-                  <div className="flex items-start gap-2 text-sm text-amber-600">
-                    <AlertCircle className="h-4 w-4 mt-0.5" />
-                    <span>يرجى اختيار المشروع</span>
-                  </div>
-                )}
-                {suppliers.some(s => !s.name) && (
-                  <div className="flex items-start gap-2 text-sm text-amber-600">
-                    <AlertCircle className="h-4 w-4 mt-0.5" />
-                    <span>يرجى إدخال اسم المورد</span>
-                  </div>
-                )}
-                {formData.projectId > 0 && suppliers.every(s => s.name) && (
-                  <div className="flex items-start gap-2 text-sm text-green-600">
-                    <CheckCircle className="h-4 w-4 mt-0.5" />
-                    <span>جميع البيانات المطلوبة مكتملة</span>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
