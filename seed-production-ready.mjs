@@ -52,10 +52,16 @@ async function seed() {
       { id: "projects", nameAr: "المشاريع", nameEn: "Projects", icon: "FolderKanban", displayOrder: 3 },
       { id: "users", nameAr: "المستخدمين", nameEn: "Users", icon: "Users", displayOrder: 4 },
       { id: "permissions", nameAr: "الصلاحيات", nameEn: "Permissions", icon: "Shield", displayOrder: 5 },
-      { id: "finance", nameAr: "المالية", nameEn: "Finance", icon: "DollarSign", displayOrder: 6 },
-      { id: "settings", nameAr: "الإعدادات", nameEn: "Settings", icon: "Settings", displayOrder: 7 },
-      { id: "suppliers", nameAr: "الموردين", nameEn: "Suppliers", icon: "Truck", displayOrder: 8 },
-      { id: "reports", nameAr: "التقارير", nameEn: "Reports", icon: "BarChart", displayOrder: 9 },
+      { id: "financial", nameAr: "التقييم والاعتماد المالي", nameEn: "Financial Eval", icon: "DollarSign", displayOrder: 6 },
+      { id: "contracts", nameAr: "العقود", nameEn: "Contracts", icon: "FileSignature", displayOrder: 7 },
+      { id: "disbursements", nameAr: "الصرف المالي", nameEn: "Disbursements", icon: "Wallet", displayOrder: 8 },
+      { id: "suppliers", nameAr: "الموردين", nameEn: "Suppliers", icon: "Truck", displayOrder: 9 },
+      { id: "reports", nameAr: "التقارير", nameEn: "Reports", icon: "BarChart", displayOrder: 10 },
+      { id: "handovers", nameAr: "الاستلامات", nameEn: "Handovers", icon: "ClipboardCheck", displayOrder: 11 },
+      { id: "settings", nameAr: "الإعدادات", nameEn: "Settings", icon: "Settings", displayOrder: 12 },
+      { id: "field_visits", nameAr: "الزيارات الميدانية", nameEn: "Field Visits", icon: "MapPin", displayOrder: 13 },
+      { id: "quotations", nameAr: "عروض الأسعار", nameEn: "Quotations", icon: "FileSpreadsheet", displayOrder: 14 },
+      { id: "analytics", nameAr: "التحليلات", nameEn: "Analytics", icon: "PieChart", displayOrder: 15 },
     ];
 
     for (const m of modulesData) {
@@ -90,14 +96,14 @@ async function seed() {
     const rolePermissionsMapping = {
       super_admin: "*", // كل الصلاحيات
       system_admin: "*", // كل الصلاحيات
-      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursement_requests"],
-      field_team: ["mosques.view", "requests.view"],
-      quick_response: ["requests.view"],
-      financial: ["finance", "quotations.view", "disbursement_orders", "suppliers"],
-      financial_manager: ["finance", "quotations", "disbursement_requests", "disbursement_orders", "suppliers"],
-      project_manager: ["projects.view", "projects.edit", "reports.create", "disbursement_requests"],
-      corporate_comm: ["requests.view", "reports.view", "settings.view"],
-      service_requester: ["requests.view", "requests.create"]
+      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits"],
+      field_team: ["mosques.view", "requests.view", "field_visits"],
+      quick_response: ["requests.view", "field_visits.view", "reports.create"],
+      financial: ["financial", "quotations", "disbursements", "suppliers.view"],
+      financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view"],
+      project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "handovers"],
+      corporate_comm: ["requests.view", "reports.view", "settings.view", "analytics.view"],
+      service_requester: ["requests.view", "requests.create", "mosques.view"]
     };
 
     // جلب كل الصلاحيات المتاحة
