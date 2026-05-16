@@ -108,6 +108,9 @@ export default function NewDisbursementRequest() {
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
   
+  // جلب الموردين النشطين
+  const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
+
   // جلب التصنيفات
   const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
   const banks = banksData?.values;
@@ -183,6 +186,21 @@ export default function NewDisbursementRequest() {
   // تحديث بيانات المورد
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
     setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  // اختيار مورد من القائمة
+  const handleSelectSupplier = (id: string, supplierName: string) => {
+    const selectedSupplier = allSuppliers?.find(s => s.name === supplierName);
+    if (selectedSupplier) {
+      setSuppliers(suppliers.map(s => s.id === id ? { 
+        ...s, 
+        name: selectedSupplier.name,
+        iban: selectedSupplier.iban || s.iban,
+        bank: selectedSupplier.bankName || s.bank
+      } : s));
+    } else {
+      updateSupplier(id, "name", supplierName);
+    }
   };
   
   // حفظ كمسودة
@@ -382,11 +400,21 @@ export default function NewDisbursementRequest() {
                     {suppliers.map((supplier) => (
                       <TableRow key={supplier.id}>
                         <TableCell>
-                          <Input
+                          <Select
                             value={supplier.name}
-                            onChange={(e) => updateSupplier(supplier.id, "name", e.target.value)}
-                            placeholder="اسم المورد"
-                          />
+                            onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="اسم المورد" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allSuppliers?.map((s) => (
+                                <SelectItem key={s.id} value={s.name}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>
                           <Input
@@ -403,21 +431,11 @@ export default function NewDisbursementRequest() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Select
+                          <Input
                             value={supplier.bank}
-                            onValueChange={(value) => updateSupplier(supplier.id, "bank", value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="البنك" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {banks?.map((bank: { id: number; value: string; valueAr: string }) => (
-                                <SelectItem key={bank.id} value={bank.value}>
-                                  {bank.valueAr}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
+                            placeholder="اسم البنك"
+                          />
                         </TableCell>
                         <TableCell>
                           <Input

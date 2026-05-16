@@ -360,6 +360,8 @@ export const suppliersRouter = router({
           workFields: suppliers.workFields,
           approvalStatus: suppliers.approvalStatus,
           status: suppliers.status,
+          bankName: suppliers.bankName,
+          iban: suppliers.iban,
         })
         .from(suppliers)
         .where(and(...conditions))
