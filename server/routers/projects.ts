@@ -1149,9 +1149,33 @@ export const projectsRouter = router({
         .where(eq(projectPhases.id, id));
 
       // جلب معرف المشروع المرتبط بالمرحلة
-      const [phase] = await db.select({ projectId: projectPhases.projectId }).from(projectPhases).where(eq(projectPhases.id, id));
+      const [phase] = await db.select({ 
+        projectId: projectPhases.projectId,
+        phaseOrder: projectPhases.phaseOrder,
+        phaseName: projectPhases.phaseName
+      }).from(projectPhases).where(eq(projectPhases.id, id));
       
       if (phase && phase.projectId) {
+        // إذا تم إكمال المرحلة الرابعة (التعاقد)، نقوم باعتماد العقد تلقائياً
+        if (phase.phaseOrder === 4 && updateData.status === "completed") {
+          console.log(`[updatePhase] Phase 4 completed for project ${phase.projectId}. Approving contract...`);
+          await db.update(contractsEnhanced)
+            .set({
+              status: "approved",
+              approvedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(contractsEnhanced.projectId, phase.projectId),
+                or(
+                  eq(contractsEnhanced.status, "draft"),
+                  eq(contractsEnhanced.status, "pending_approval")
+                )
+              )
+            );
+        }
+
         // جلب جميع مراحل المشروع لحساب الإجمالي
         const phases = await db.select().from(projectPhases).where(eq(projectPhases.projectId, phase.projectId));
         

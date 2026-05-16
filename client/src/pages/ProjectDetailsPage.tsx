@@ -952,10 +952,22 @@ export default function ProjectDetailsPage() {
                           <TableCell className="text-right">{contract.contractType || "-"}</TableCell>
                           <TableCell className="text-right">{formatCurrency(contract.amount)}</TableCell>
                           <TableCell className="text-right">
-                            <Badge variant="outline">
+                            <Badge 
+                              variant="outline"
+                              className={
+                                contract.status === "approved" || contract.status === "active" ? "bg-green-100 text-green-800 border-green-200" :
+                                contract.status === "draft" ? "bg-gray-100 text-gray-800 border-gray-200" :
+                                contract.status === "pending_approval" ? "bg-blue-100 text-blue-800 border-blue-200" :
+                                "bg-gray-100 text-gray-800 border-gray-200"
+                              }
+                            >
                               {contract.status === "draft" ? "مسودة" :
+                               contract.status === "pending_approval" ? "بانتظار الاعتماد" :
+                               contract.status === "approved" ? "معتمد" :
                                contract.status === "active" ? "نشط" :
-                               contract.status === "completed" ? "مكتمل" : "منتهي"}
+                               contract.status === "completed" ? "مكتمل" : 
+                               contract.status === "terminated" ? "منتهي" : 
+                               contract.status === "cancelled" ? "ملغي" : "غير محدد"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">

@@ -31,26 +31,11 @@ import {
   Plus,
   Trash2,
   Building2,
-  Banknote,
   FileText,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-
-// دالة تحويل التاريخ الميلادي إلى هجري (تقريبي)
-function toHijriDate(date: Date): string {
-  const gregorianYear = date.getFullYear();
-  const gregorianMonth = date.getMonth() + 1;
-  const gregorianDay = date.getDate();
-  
-  // تحويل تقريبي
-  const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-  const hijriMonth = ((gregorianMonth + 9) % 12) + 1;
-  const hijriDay = gregorianDay;
-  
-  return `${hijriDay}/${hijriMonth}/${hijriYear}`;
-}
 
 // دالة تحويل الأرقام إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -111,13 +96,7 @@ export default function NewDisbursementRequest() {
     contractId: params.contractId ? parseInt(params.contractId) : 0,
     title: "",
     description: "",
-    fundingSourceType: "",
-    fundingSourceName: "",
-    projectOwnerDepartment: "",
-    actualCost: 0,
-    adminFees: 0,
     completionPercentage: 0,
-    dateHijri: toHijriDate(new Date()),
     dateMiladi: new Date().toISOString().split('T')[0],
   });
   
@@ -130,10 +109,6 @@ export default function NewDisbursementRequest() {
   const { data: projects } = trpc.projects.getAll.useQuery({});
   
   // جلب التصنيفات
-  const { data: fundingSourcesData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_sources" });
-  const fundingSources = fundingSourcesData?.values;
-  const { data: projectOwnersData } = trpc.categories.getCategoryByType.useQuery({ type: "project_owners" });
-  const projectOwners = projectOwnersData?.values;
   const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
   const banks = banksData?.values;
   
@@ -186,8 +161,7 @@ export default function NewDisbursementRequest() {
   }, [contractDetails]);
   
   // حساب الإجمالي
-  const totalSupplierAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const totalAmount = formData.actualCost + formData.adminFees;
+  const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
   // إضافة مورد جديد
   const addSupplier = () => {
@@ -221,7 +195,6 @@ export default function NewDisbursementRequest() {
       amount: totalAmount,
       paymentType: "progress",
       completionPercentage: formData.completionPercentage,
-      
     });
   };
   
@@ -229,14 +202,6 @@ export default function NewDisbursementRequest() {
   const handleSubmit = () => {
     if (!formData.projectId) {
       toast.error("يرجى اختيار المشروع");
-      return;
-    }
-    if (!formData.fundingSourceType) {
-      toast.error("يرجى اختيار مصدر الدعم");
-      return;
-    }
-    if (!formData.projectOwnerDepartment) {
-      toast.error("يرجى اختيار الجهة المالكة للمشروع");
       return;
     }
     if (suppliers.some(s => !s.name || !s.amount)) {
@@ -252,7 +217,6 @@ export default function NewDisbursementRequest() {
       amount: totalAmount,
       paymentType: "progress",
       completionPercentage: formData.completionPercentage,
-      
     });
   };
   
@@ -296,23 +260,13 @@ export default function NewDisbursementRequest() {
                 <CardDescription>معلومات أساسية عن طلب الصرف</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>التاريخ الهجري</Label>
-                    <Input
-                      value={formData.dateHijri}
-                      onChange={(e) => setFormData({ ...formData, dateHijri: e.target.value })}
-                      placeholder="1446/06/07"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>التاريخ الميلادي</Label>
-                    <Input
-                      type="date"
-                      value={formData.dateMiladi}
-                      onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>التاريخ الميلادي</Label>
+                  <Input
+                    type="date"
+                    value={formData.dateMiladi}
+                    onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                  />
                 </div>
                 
                 <div className="space-y-2">
@@ -384,106 +338,6 @@ export default function NewDisbursementRequest() {
                     value={formData.completionPercentage}
                     onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
                   />
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* مصدر الدعم */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Banknote className="h-5 w-5" />
-                  مصدر الدعم
-                </CardTitle>
-                <CardDescription>تحديد مصدر تمويل المشروع</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>نوع مصدر الدعم *</Label>
-                    <Select
-                      value={formData.fundingSourceType}
-                      onValueChange={(value) => setFormData({ ...formData, fundingSourceType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر مصدر الدعم" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fundingSources?.map((source: { id: number; value: string; valueAr: string }) => (
-                          <SelectItem key={source.id} value={source.value}>
-                            {source.valueAr}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>اسم الجهة الداعمة</Label>
-                    <Input
-                      value={formData.fundingSourceName}
-                      onChange={(e) => setFormData({ ...formData, fundingSourceName: e.target.value })}
-                      placeholder="اسم الجهة أو المتبرع..."
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>الجهة المالكة للمشروع *</Label>
-                  <Select
-                    value={formData.projectOwnerDepartment}
-                    onValueChange={(value) => setFormData({ ...formData, projectOwnerDepartment: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر الجهة المالكة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectOwners?.map((owner: { id: number; value: string; valueAr: string }) => (
-                        <SelectItem key={owner.id} value={owner.value}>
-                          {owner.valueAr}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* التكاليف */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  التكاليف
-                </CardTitle>
-                <CardDescription>تفاصيل تكاليف المشروع</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>تكلفة المشروع الفعلية</Label>
-                    <Input
-                      type="number"
-                      value={formData.actualCost}
-                      onChange={(e) => setFormData({ ...formData, actualCost: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>الأجور الإدارية</Label>
-                    <Input
-                      type="number"
-                      value={formData.adminFees}
-                      onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>الإجمالي</Label>
-                    <Input
-                      type="number"
-                      value={totalAmount}
-                      readOnly
-                      className="bg-muted font-bold"
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -584,7 +438,7 @@ export default function NewDisbursementRequest() {
                 <div className="mt-4 p-4 bg-muted rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">إجمالي مبالغ الموردين:</span>
-                    <span className="font-bold text-lg">{totalSupplierAmount.toLocaleString()} ريال</span>
+                    <span className="font-bold text-lg">{totalAmount.toLocaleString()} ريال</span>
                   </div>
                 </div>
               </CardContent>
@@ -631,15 +485,6 @@ export default function NewDisbursementRequest() {
                 <Separator />
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">تكلفة المشروع:</span>
-                    <span className="font-medium">{formData.actualCost.toLocaleString()} ريال</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">الأجور الإدارية:</span>
-                    <span className="font-medium">{formData.adminFees.toLocaleString()} ريال</span>
-                  </div>
-                  <Separator />
                   <div className="flex justify-between">
                     <span className="font-medium">الإجمالي:</span>
                     <span className="font-bold text-lg text-primary">{totalAmount.toLocaleString()} ريال</span>
@@ -667,25 +512,13 @@ export default function NewDisbursementRequest() {
                     <span>يرجى اختيار المشروع</span>
                   </div>
                 )}
-                {!formData.fundingSourceType && (
-                  <div className="flex items-start gap-2 text-sm text-amber-600">
-                    <AlertCircle className="h-4 w-4 mt-0.5" />
-                    <span>يرجى اختيار مصدر الدعم</span>
-                  </div>
-                )}
-                {!formData.projectOwnerDepartment && (
-                  <div className="flex items-start gap-2 text-sm text-amber-600">
-                    <AlertCircle className="h-4 w-4 mt-0.5" />
-                    <span>يرجى اختيار الجهة المالكة</span>
-                  </div>
-                )}
                 {suppliers.some(s => !s.name) && (
                   <div className="flex items-start gap-2 text-sm text-amber-600">
                     <AlertCircle className="h-4 w-4 mt-0.5" />
                     <span>يرجى إدخال اسم المورد</span>
                   </div>
                 )}
-                {formData.projectId > 0 && formData.fundingSourceType && formData.projectOwnerDepartment && suppliers.every(s => s.name) && (
+                {formData.projectId > 0 && suppliers.every(s => s.name) && (
                   <div className="flex items-start gap-2 text-sm text-green-600">
                     <CheckCircle className="h-4 w-4 mt-0.5" />
                     <span>جميع البيانات المطلوبة مكتملة</span>

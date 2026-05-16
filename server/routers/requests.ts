@@ -675,6 +675,24 @@ export const requestsRouter = router({
           await db.update(projectPhases)
             .set({ status: 'in_progress' })
             .where(and(eq(projectPhases.projectId, project.id), eq(projectPhases.phaseOrder, 5)));
+
+          // اعتماد العقد المرتبط بالمشروع تلقائياً عند الانتقال لمرحلة التنفيذ
+          await db.update(contractsEnhanced)
+            .set({
+              status: "approved",
+              approvedBy: ctx.user.id,
+              approvedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(contractsEnhanced.projectId, project.id),
+                or(
+                  eq(contractsEnhanced.status, "draft"),
+                  eq(contractsEnhanced.status, "pending_approval")
+                )
+              )
+            );
         }
       }
 
