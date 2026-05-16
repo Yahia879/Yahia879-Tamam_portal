@@ -30,6 +30,8 @@ import {
   Copy,
   Eye,
   HelpCircle,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -197,6 +199,17 @@ export default function ProjectDetailsPage() {
     },
   });
 
+  // اعتماد عقد
+  const approveContractMutation = trpc.contracts.approve.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد العقد بنجاح وتم تحويل المشروع لمرحلة التنفيذ");
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء اعتماد العقد");
+    },
+  });
+
   const handleDuplicateContract = (contractId: number) => {
     if (confirm("هل تريد تكرار هذا العقد؟ \nسيتم إنشاء نسخة جديدة برقم عقد مختلف.")) {
       duplicateContractMutation.mutate({ id: contractId });
@@ -228,6 +241,14 @@ export default function ProjectDetailsPage() {
   const isExecutionStarted = project?.phases?.some(p => 
     p.phaseOrder >= 5 && (p.status === "in_progress" || p.status === "completed")
   );
+
+  // التحقق من مرحلة التعاقد (المرحلة الرابعة)
+  const isContractingPhase = project?.phases?.some(p => 
+    p.phaseOrder === 4 && p.status === "in_progress"
+  );
+
+  // شرط ظهور زر اعتماد العقد: في مرحلة التعاقد ويوجد عقد واحد فقط بانتظار الاعتماد
+  const showApproveContractButton = isContractingPhase && project.contracts?.length === 1 && (project.contracts[0].status === "draft" || project.contracts[0].status === "pending_approval");
 
   // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
   const isPaymentsLocked = !project?.phases?.some(p => 
@@ -383,8 +404,8 @@ export default function ProjectDetailsPage() {
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4 text-right">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-amber-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -409,11 +430,11 @@ export default function ProjectDetailsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-0 shadow-sm bg-muted/30">
+              <Card className="border-0 shadow-sm">
                 <CardContent className="p-4 text-right">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-amber-600" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -971,7 +992,23 @@ export default function ProjectDetailsPage() {
                     )}
                   </div>
                 )}
-              </CardContent>
+
+                {showApproveContractButton && (
+                  <div className="mt-6 flex justify-center">
+                    <Button 
+                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                      onClick={() => approveContractMutation.mutate({ id: project.contracts![0].id })}
+                      disabled={approveContractMutation.isPending}
+                    >
+                      {approveContractMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      اعتماد العقد
+                      </Button>
+                      </div>
+                      )}              </CardContent>
             </Card>
           </TabsContent>
 

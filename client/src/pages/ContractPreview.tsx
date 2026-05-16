@@ -348,7 +348,16 @@ export default function ContractPreview() {
       <div className="space-y-4">
         {/* شريط الأدوات */}
         <div className="flex items-center justify-between print:hidden">
-          <Button variant="outline" onClick={() => navigate("/contracts")}>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate("/contracts");
+              }
+            }}
+          >
             <ArrowRight className="h-4 w-4 ml-2" />
             العودة
           </Button>
