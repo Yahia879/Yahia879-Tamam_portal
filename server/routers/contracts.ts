@@ -9,6 +9,7 @@ import {
   contractNumberSequence,
   suppliers,
   projects,
+  projectPhases,
   mosqueRequests,
   contractTypes,
   contractStatuses,
@@ -632,14 +633,37 @@ export const contractsRouter = router({
       // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد وتحديث الميزانية
       console.log('[Contract Approve] Starting stage update - projectId:', contract.projectId, 'requestId:', contract.requestId);
       if (contract.projectId) {
+        // 4 من 6 مراحل مكتملة = 67%
         await db
           .update(projects)
           .set({
             status: "in_progress",
             budget: contract.contractAmount,
+            completionPercentage: 67,
             updatedAt: new Date(),
           })
           .where(eq(projects.id, contract.projectId));
+        
+        // تحديث مراحل المشروع: المرحلة الرابعة (التعاقد) مكتملة، والمرحلة الخامسة (صرف المدفوعات) قيد التنفيذ
+        await db
+          .update(projectPhases)
+          .set({
+            status: "completed",
+            completionPercentage: 100,
+            endDate: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(projectPhases.projectId, contract.projectId), eq(projectPhases.phaseOrder, 4)));
+
+        await db
+          .update(projectPhases)
+          .set({
+            status: "in_progress",
+            completionPercentage: 0,
+            startDate: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(and(eq(projectPhases.projectId, contract.projectId), eq(projectPhases.phaseOrder, 5)));
         
         await syncProjectActualCost(db, contract.projectId);
         

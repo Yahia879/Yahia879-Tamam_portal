@@ -997,7 +997,11 @@ export default function ProjectDetailsPage() {
                   <div className="mt-6 flex justify-center">
                     <Button 
                       className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
-                      onClick={() => approveContractMutation.mutate({ id: project.contracts![0].id })}
+                      onClick={() => {
+                        if (confirm("هل أنت متأكد من اعتماد هذا العقد؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التنفيذ وصرف المدفوعات.")) {
+                          approveContractMutation.mutate({ id: project.contracts![0].id });
+                        }
+                      }}
                       disabled={approveContractMutation.isPending}
                     >
                       {approveContractMutation.isPending ? (
