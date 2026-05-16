@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Shield, Loader2, Power, MoreVertical, Plus, Trash2, Pencil } from "lucide-react";
+import { Shield, Loader2, Power, MoreVertical, Plus, Trash2, Pencil, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export interface CustomRolesTabProps {
@@ -95,49 +95,148 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
 
   return (
     <div className="space-y-6">
-      {/* Custom Roles Table */}
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-right">الدور المخصص</TableHead>
-              <TableHead className="text-right">النوع</TableHead>
-              <TableHead className="text-right">الحالة</TableHead>
-              <TableHead className="text-right">الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {roles && roles.length > 0 ? (
-              roles.map((role) => (
-                <TableRow 
-                  key={role.id}
-                  onClick={() => setLocation(`/staff/roles/${role.id}`)}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+      {/* Custom Roles View (Table for desktop, Cards for mobile) */}
+      <div className="space-y-4">
+        {/* Desktop Table */}
+        <Card className="hidden md:block overflow-hidden border-sidebar-border/10">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead className="text-right">الدور المخصص</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {roles && roles.length > 0 ? (
+                roles.map((role) => (
+                  <TableRow 
+                    key={role.id}
+                    onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  >
+                    <TableCell className="font-medium text-right">
+                      {role.nameAr}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline">مخصص</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {role.isActive ? (
+                        <Badge variant="default" className="bg-green-600">
+                          نشط
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">موقوف</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">فتح القائمة</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem
+                            onClick={() => setLocation(`/roles/${role.id}/edit`)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="h-4 w-4 ml-2" />
+                            تعديل الدور
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4 ml-2" />
+                            حذف الدور
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-16">
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      <div className="p-4 bg-muted/30 rounded-full">
+                        <Shield className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-medium text-lg">لا توجد أدوار مخصصة</h3>
+                        <p className="text-muted-foreground max-w-sm mx-auto">
+                          تُستخدم هذه المساحة لإدارة الأدوار التي تقوم بإنشائها خصيصاً لمنظمتك، وهي منفصلة عن الأدوار الأساسية للنظام.
+                        </p>
+                      </div>
+                      <Button 
+                        className="mt-4 gap-2"
+                        onClick={() => setLocation("/roles/new")}
+                      >
+                        <Plus className="h-4 w-4" />
+                        إضافة دور مخصص
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden space-y-4">
+          {!roles || roles.length === 0 ? (
+            <Card className="p-8 text-center text-muted-foreground border-dashed">
+              <div className="flex flex-col items-center justify-center gap-4">
+                <div className="p-4 bg-muted/30 rounded-full">
+                  <Shield className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-medium">لا توجد أدوار مخصصة</h3>
+                  <p className="text-xs text-muted-foreground max-w-[250px] mx-auto">
+                    إدارة الأدوار التي تقوم بإنشائها خصيصاً لمنظمتك.
+                  </p>
+                </div>
+                <Button 
+                  size="sm"
+                  className="mt-2 gap-2"
+                  onClick={() => setLocation("/roles/new")}
                 >
-                  <TableCell className="font-medium text-right">
-                    {role.nameAr}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant="outline">مخصص</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {role.isActive ? (
-                      <Badge variant="default" className="bg-green-600">
-                        نشط
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">موقوف</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <Plus className="h-4 w-4" />
+                  إضافة دور مخصص
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            roles.map((role) => (
+              <Card 
+                key={role.id} 
+                className="p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => setLocation(`/staff/roles/${role.id}`)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold">{role.nameAr}</h3>
+                      <div className="text-xs text-muted-foreground">دور مخصص</div>
+                    </div>
+                  </div>
+                  
+                  <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">فتح القائمة</span>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={() => setLocation(`/roles/${role.id}/edit`)}
                           className="cursor-pointer"
@@ -154,50 +253,42 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-16">
-                  <div className="flex flex-col items-center justify-center gap-4">
-                    <div className="p-4 bg-muted/30 rounded-full">
-                      <Shield className="h-12 w-12 text-muted-foreground/40" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-medium text-lg">لا توجد أدوار مخصصة</h3>
-                      <p className="text-muted-foreground max-w-sm mx-auto">
-                        تُستخدم هذه المساحة لإدارة الأدوار التي تقوم بإنشائها خصيصاً لمنظمتك، وهي منفصلة عن الأدوار الأساسية للنظام.
-                      </p>
-                    </div>
-                    <Button 
-                      className="mt-4 gap-2"
-                      onClick={() => setLocation("/roles/new")}
-                    >
-                      <Plus className="h-4 w-4" />
-                      إضافة دور مخصص
-                    </Button>
                   </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-dashed">
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="text-[10px] px-2 py-0">مخصص</Badge>
+                    {role.isActive ? (
+                      <Badge variant="default" className="bg-green-600 text-[10px] px-2 py-0">نشط</Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-[10px] px-2 py-0">موقوف</Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-primary font-medium flex items-center gap-1">
+                    عرض التفاصيل
+                    <ChevronLeft className="h-3 w-3" />
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={!!roleToDelete} onOpenChange={(open) => !open && setRoleToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[90vw] max-w-md rounded-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right">تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription className="text-right">
               هل أنت متأكد من حذف دور "<strong>{roleToDelete?.nameAr}</strong>" بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row-reverse gap-2">
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-4">
             <AlertDialogAction
               onClick={handleDeleteRole}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? (
@@ -209,7 +300,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                 "حذف الدور"
               )}
             </AlertDialogAction>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending} className="w-full sm:w-auto">إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
