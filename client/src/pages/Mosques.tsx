@@ -157,12 +157,12 @@ export default function Mosques() {
         {/* العنوان والإجراءات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">المساجد</h1>
-            <p className="text-muted-foreground">إدارة المساجد المسجلة في النظام</p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">المساجد</h1>
+            <p className="text-sm md:text-base text-muted-foreground">إدارة المساجد المسجلة في النظام</p>
           </div>
           <PermissionGuard permission="mosques.create">
             <Link href="/mosques/new">
-              <Button className="gradient-primary text-white">
+              <Button className="gradient-primary text-white w-full sm:w-auto">
                 <Plus className="w-4 h-4 ml-2" />
                 إضافة مسجد
               </Button>
@@ -173,14 +173,14 @@ export default function Mosques() {
         {/* بطاقات الإحصائيات */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">إجمالي المساجد</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{stats?.total || 0}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">إجمالي المساجد</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{stats?.total || 0}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-primary" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -189,21 +189,21 @@ export default function Mosques() {
           {/* بطاقة المساجد قيد المراجعة */}
           <PermissionGuard permission="mosques.approve">
             <Card className={`border-0 shadow-sm ${pendingCount > 0 ? 'ring-2 ring-yellow-400' : ''}`}>
-              <CardContent className="p-6">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">قيد المراجعة</p>
-                    <p className="text-2xl font-bold text-yellow-600 mt-1">{pendingCount}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">قيد المراجعة</p>
+                    <p className="text-xl md:text-2xl font-bold text-yellow-600 mt-1">{pendingCount}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-600" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-yellow-600" />
                   </div>
                 </div>
                 {pendingCount > 0 && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="mt-3 w-full text-yellow-600 border-yellow-300 hover:bg-yellow-50"
+                    className="mt-3 w-full text-xs md:text-sm text-yellow-600 border-yellow-300 hover:bg-yellow-50"
                     onClick={() => setStatusFilter("pending")}
                   >
                     عرض المساجد المعلقة
@@ -214,28 +214,28 @@ export default function Mosques() {
           </PermissionGuard>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">المدن</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{Object.keys(stats?.byCity || {}).length}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">المدن</p>
+                  <p className="text-xl md:text-2xl font-bold text-foreground mt-1">{Object.keys(stats?.byCity || {}).length}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">المعتمدة</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{stats?.byApprovalStatus?.approved || 0}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">المعتمدة</p>
+                  <p className="text-xl md:text-2xl font-bold text-green-600 mt-1">{stats?.byApprovalStatus?.approved || 0}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -245,18 +245,18 @@ export default function Mosques() {
         {/* فلاتر البحث */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث عن مسجد..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-10"
                 />
               </div>
               <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-full sm:w-48">
+                <SelectTrigger className="w-full h-10">
                   <SelectValue placeholder="المدينة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,7 +268,7 @@ export default function Mosques() {
               </Select>
               <PermissionGuard permission="mosques.approve">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger className="w-full h-10">
                     <SelectValue placeholder="حالة الاعتماد" />
                   </SelectTrigger>
                   <SelectContent>
@@ -283,8 +283,8 @@ export default function Mosques() {
           </CardContent>
         </Card>
 
-        {/* جدول المساجد */}
-        <Card className="border-0 shadow-sm">
+        {/* جدول المساجد / عرض الكروت للموبايل */}
+        <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-8 text-center">
@@ -292,121 +292,223 @@ export default function Mosques() {
                 <p className="text-muted-foreground mt-4">جاري التحميل...</p>
               </div>
             ) : mosques.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">اسم المسجد</TableHead>
-                      <TableHead className="text-right">المدينة</TableHead>
-                      <TableHead className="text-right">المحافظة</TableHead>
-                      <TableHead className="text-right">عدد المصلين</TableHead>
-                      <PermissionGuard permission="mosques.approve">
-                        <TableHead className="text-right">الحالة</TableHead>
-                      </PermissionGuard>
-                      <TableHead className="text-right">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mosques.map((mosque: any) => {
-                      const status = APPROVAL_STATUS[mosque.approvalStatus as keyof typeof APPROVAL_STATUS] || APPROVAL_STATUS.pending;
-                      const StatusIcon = status.icon;
+              <>
+                {/* عرض الجدول للشاشات الكبيرة */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">اسم المسجد</TableHead>
+                        <TableHead className="text-right">المدينة</TableHead>
+                        <TableHead className="text-right">المحافظة</TableHead>
+                        <TableHead className="text-right">عدد المصلين</TableHead>
+                        <PermissionGuard permission="mosques.approve">
+                          <TableHead className="text-right">الحالة</TableHead>
+                        </PermissionGuard>
+                        <TableHead className="text-right">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {mosques.map((mosque: any) => {
+                        const status = APPROVAL_STATUS[mosque.approvalStatus as keyof typeof APPROVAL_STATUS] || APPROVAL_STATUS.pending;
+                        const StatusIcon = status.icon;
 
-                      return (
-                        <TableRow key={mosque.id} className={mosque.approvalStatus === "pending" ? "bg-yellow-50/50" : ""}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-foreground">{mosque.name}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{mosque.city}</TableCell>
-                          <TableCell>{mosque.governorate || "-"}</TableCell>
-                          <TableCell>
-                            {mosque.capacity ? (
-                              <div className="flex items-center gap-1">
-                                <Users className="w-4 h-4 text-muted-foreground" />
-                                <span>{mosque.capacity}</span>
-                              </div>
-                            ) : "-"}
-                          </TableCell>
-                          <PermissionGuard permission="mosques.approve">
+                        return (
+                          <TableRow key={mosque.id} className={mosque.approvalStatus === "pending" ? "bg-yellow-50/50" : ""}>
                             <TableCell>
-                              <Badge className={`${status.color} flex items-center gap-1 w-fit`}>
-                                <StatusIcon className="w-3 h-3" />
-                                {status.label}
-                              </Badge>
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                  <Building2 className="w-5 h-5 text-primary" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground truncate">{mosque.name}</p>
+                                </div>
+                              </div>
                             </TableCell>
-                          </PermissionGuard>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {/* أزرار الاعتماد والرفض للمساجد قيد المراجعة */}
-                              {mosque.approvalStatus === "pending" && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-green-600 border-green-300 hover:bg-green-50"
-                                    onClick={() => handleApprove(mosque.id)}
-                                    disabled={approveMutation.isPending}
-                                  >
-                                    <CheckCircle className="w-4 h-4 ml-1" />
-                                    اعتماد
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-red-600 border-red-300 hover:bg-red-50"
-                                    onClick={() => openRejectDialog(mosque.id)}
-                                    disabled={rejectMutation.isPending}
-                                  >
-                                    <XCircle className="w-4 h-4 ml-1" />
-                                    رفض
-                                  </Button>
-                                </>
-                              )}
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <Link href={`/mosques/${mosque.id}`}>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                      <Eye className="w-4 h-4 ml-2" />
-                                      عرض التفاصيل
-                                    </DropdownMenuItem>
-                                  </Link>
-                                  <Link href={`/mosques/${mosque.id}/edit`}>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                      <Edit className="w-4 h-4 ml-2" />
-                                      تعديل
-                                    </DropdownMenuItem>
-                                  </Link>
-                                  <DropdownMenuSeparator />
-                                  {(user?.role === "super_admin" || user?.role === "system_admin") && (
-                                    <DropdownMenuItem
-                                      className="cursor-pointer text-destructive focus:text-destructive"
-                                      onClick={() => openDeleteDialog(mosque.id)}
+                            <TableCell>{mosque.city}</TableCell>
+                            <TableCell>{mosque.governorate || "-"}</TableCell>
+                            <TableCell>
+                              {mosque.capacity ? (
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-4 h-4 text-muted-foreground" />
+                                  <span>{mosque.capacity}</span>
+                                </div>
+                              ) : "-"}
+                            </TableCell>
+                            <PermissionGuard permission="mosques.approve">
+                              <TableCell>
+                                <Badge className={`${status.color} flex items-center gap-1 w-fit whitespace-nowrap`}>
+                                  <StatusIcon className="w-3 h-3" />
+                                  {status.label}
+                                </Badge>
+                              </TableCell>
+                            </PermissionGuard>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {mosque.approvalStatus === "pending" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-600 border-green-300 hover:bg-green-50"
+                                      onClick={() => handleApprove(mosque.id)}
+                                      disabled={approveMutation.isPending}
                                     >
-                                      <Trash2 className="w-4 h-4 ml-2" />
-                                      حذف
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                      <CheckCircle className="w-4 h-4 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-red-600 border-red-300 hover:bg-red-50"
+                                      onClick={() => openRejectDialog(mosque.id)}
+                                      disabled={rejectMutation.isPending}
+                                    >
+                                      <XCircle className="w-4 h-4 ml-1" />
+                                      رفض
+                                    </Button>
+                                  </>
+                                )}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <Link href={`/mosques/${mosque.id}`}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <Eye className="w-4 h-4 ml-2" />
+                                        عرض التفاصيل
+                                      </DropdownMenuItem>
+                                    </Link>
+                                    <Link href={`/mosques/${mosque.id}/edit`}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <Edit className="w-4 h-4 ml-2" />
+                                        تعديل
+                                      </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuSeparator />
+                                    {(user?.role === "super_admin" || user?.role === "system_admin") && (
+                                      <DropdownMenuItem
+                                        className="cursor-pointer text-destructive focus:text-destructive"
+                                        onClick={() => openDeleteDialog(mosque.id)}
+                                      >
+                                        <Trash2 className="w-4 h-4 ml-2" />
+                                        حذف
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* عرض الكروت للموبايل */}
+                <div className="md:hidden divide-y divide-border">
+                  {mosques.map((mosque: any) => {
+                    const status = APPROVAL_STATUS[mosque.approvalStatus as keyof typeof APPROVAL_STATUS] || APPROVAL_STATUS.pending;
+                    const StatusIcon = status.icon;
+
+                    return (
+                      <div key={mosque.id} className={`p-4 ${mosque.approvalStatus === "pending" ? "bg-yellow-50/30" : ""}`}>
+                        <div className="flex justify-between items-start gap-3 mb-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <Building2 className="w-5 h-5 text-primary" />
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-foreground truncate">{mosque.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {mosque.city}
+                                </span>
+                                {mosque.capacity && (
+                                  <span className="flex items-center gap-1">
+                                    <Users className="w-3 h-3" />
+                                    {mosque.capacity}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <Link href={`/mosques/${mosque.id}`}>
+                                <DropdownMenuItem className="cursor-pointer text-sm">
+                                  <Eye className="w-4 h-4 ml-2" />
+                                  عرض التفاصيل
+                                </DropdownMenuItem>
+                              </Link>
+                              <Link href={`/mosques/${mosque.id}/edit`}>
+                                <DropdownMenuItem className="cursor-pointer text-sm">
+                                  <Edit className="w-4 h-4 ml-2" />
+                                  تعديل
+                                </DropdownMenuItem>
+                              </Link>
+                              <DropdownMenuSeparator />
+                              {(user?.role === "super_admin" || user?.role === "system_admin") && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-destructive focus:text-destructive text-sm"
+                                  onClick={() => openDeleteDialog(mosque.id)}
+                                >
+                                  <Trash2 className="w-4 h-4 ml-2" />
+                                  حذف
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                          <PermissionGuard permission="mosques.approve">
+                            <Badge className={`${status.color} flex items-center gap-1 text-[10px] md:text-xs py-0.5 h-auto`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {status.label}
+                            </Badge>
+                          </PermissionGuard>
+
+                          {mosque.approvalStatus === "pending" && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-[11px] text-green-600 border-green-300 hover:bg-green-50 px-2"
+                                onClick={() => handleApprove(mosque.id)}
+                                disabled={approveMutation.isPending}
+                              >
+                                <CheckCircle className="w-3 h-3 ml-1" />
+                                اعتماد
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-[11px] text-red-600 border-red-300 hover:bg-red-50 px-2"
+                                onClick={() => openRejectDialog(mosque.id)}
+                                disabled={rejectMutation.isPending}
+                              >
+                                <XCircle className="w-3 h-3 ml-1" />
+                                رفض
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             ) : (
               <div className="p-8 text-center">
                 <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
