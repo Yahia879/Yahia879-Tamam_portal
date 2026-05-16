@@ -95,50 +95,52 @@ export default function MosquesMap() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-full overflow-x-hidden">
         {/* العنوان والأدوات */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">خريطة المساجد</h1>
-            <p className="text-muted-foreground">عرض جميع المساجد المسجلة على الخريطة مع إمكانية عرض صور الأقمار الصناعية</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">خريطة المساجد</h1>
+            <p className="text-sm md:text-base text-muted-foreground break-words max-w-2xl">عرض جميع المساجد المسجلة على الخريطة مع إمكانية عرض صور الأقمار الصناعية</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
             <Button
               variant={viewMode === "map" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("map")}
+              className="w-full sm:w-28"
             >
-              <MapIcon className="w-4 h-4 ml-1" />
-              خريطة
+              <MapIcon className="w-4 h-4 ml-1 shrink-0" />
+              <span className="truncate">خريطة</span>
             </Button>
             <Button
               variant={viewMode === "list" ? "default" : "outline"}
               size="sm"
               onClick={() => setViewMode("list")}
+              className="w-full sm:w-28"
             >
-              <List className="w-4 h-4 ml-1" />
-              قائمة
+              <List className="w-4 h-4 ml-1 shrink-0" />
+              <span className="truncate">قائمة</span>
             </Button>
           </div>
         </div>
 
         {/* أدوات البحث والفلترة */}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="البحث عن مسجد..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-10 w-full"
                 />
               </div>
 
               <Select value={cityFilter} onValueChange={setCityFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
+                <SelectTrigger className="w-full h-10">
                   <SelectValue placeholder="المدينة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -154,31 +156,31 @@ export default function MosquesMap() {
 
         {/* عرض الخريطة أو القائمة */}
         {viewMode === "map" ? (
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-0 shadow-sm w-full">
             <CardContent className="p-0">
-              <div className="relative">
+              <div className="relative w-full overflow-hidden">
                 <LeafletMap
-                  className="h-[600px]"
+                  className="h-[400px] sm:h-[500px] md:h-[600px] w-full"
                   markers={mapMarkers}
                   initialCenter={{ lat: 24.7136, lng: 46.6753 }} // الرياض
                   initialZoom={6}
                 />
 
                 {/* مفتاح الخريطة التفاعلي */}
-                <div className="absolute top-4 right-4 z-[1000] min-w-[200px]">
+                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-[1000] w-auto max-w-[calc(100%-1rem)] sm:min-w-[220px]">
                   <motion.div 
                     initial={false}
-                    className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border overflow-hidden cursor-pointer"
+                    className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-border overflow-hidden cursor-pointer"
                     onClick={() => setIsLegendExpanded(!isLegendExpanded)}
                   >
-                    <div className="p-3 flex items-center justify-between gap-3 hover:bg-gray-50/50 transition-colors">
-                      <p className="text-sm font-medium text-gray-700">
+                    <div className="p-2.5 sm:p-3 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors">
+                      <p className="text-[11px] sm:text-sm font-medium text-foreground whitespace-nowrap">
                         إجمالي المساجد: <span className="font-bold text-primary">{stats.total}</span>
                       </p>
                       {isLegendExpanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
                       ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
                       )}
                     </div>
 
@@ -190,27 +192,27 @@ export default function MosquesMap() {
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <div className="p-3 pt-0 space-y-2 border-t border-gray-100 mt-1">
-                            <div className="flex items-center justify-between text-xs py-1">
+                          <div className="p-3 pt-0 space-y-2 border-t border-border mt-1">
+                            <div className="flex items-center justify-between text-[10px] sm:text-xs py-1">
                               <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#22c55e]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />
                                 <span className="text-muted-foreground">معتمد</span>
                               </div>
-                              <span className="font-bold text-gray-700">{stats.approved}</span>
+                              <span className="font-bold text-foreground">{stats.approved}</span>
                             </div>
-                            <div className="flex items-center justify-between text-xs py-1">
+                            <div className="flex items-center justify-between text-[10px] sm:text-xs py-1">
                               <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]" />
                                 <span className="text-muted-foreground">قيد المراجعة</span>
                               </div>
-                              <span className="font-bold text-gray-700">{stats.pending}</span>
+                              <span className="font-bold text-foreground">{stats.pending}</span>
                             </div>
-                            <div className="flex items-center justify-between text-xs py-1">
+                            <div className="flex items-center justify-between text-[10px] sm:text-xs py-1">
                               <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-full bg-[#ef4444]" />
+                                <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" />
                                 <span className="text-muted-foreground">مرفوض</span>
                               </div>
-                              <span className="font-bold text-gray-700">{stats.rejected}</span>
+                              <span className="font-bold text-foreground">{stats.rejected}</span>
                             </div>
                           </div>
                         </motion.div>
@@ -235,30 +237,30 @@ export default function MosquesMap() {
               </div>
             ) : (
               mosques.map(mosque => (
-                <Card key={mosque.id} className="card-hover">
+                <Card key={mosque.id} className="card-hover border-0 shadow-sm">
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg">{mosque.name}</CardTitle>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base md:text-lg line-clamp-1">{mosque.name}</CardTitle>
+                      <Badge variant="secondary" className="bg-primary/10 text-primary shrink-0 text-[10px] md:text-xs">
                         مسجد
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                    <div className="space-y-2 text-[13px] md:text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>{mosque.city}{mosque.district ? ` - ${mosque.district}` : ''}</span>
+                        <MapPin className="w-4 h-4 shrink-0" />
+                        <span className="line-clamp-1">{mosque.city}{mosque.district ? ` - ${mosque.district}` : ''}</span>
                       </div>
                       {mosque.capacity && (
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-4 h-4 shrink-0" />
                           <span>{mosque.capacity} مصلي</span>
                         </div>
                       )}
                     </div>
                     <Link href={`/mosques/${mosque.id}`}>
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="outline" size="sm" className="w-full h-9 text-xs md:text-sm">
                         عرض التفاصيل
                         <ChevronRight className="w-4 h-4 mr-1" />
                       </Button>
