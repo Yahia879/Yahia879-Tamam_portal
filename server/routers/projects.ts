@@ -271,6 +271,7 @@ export const projectsRouter = router({
           id: mosqueRequests.id,
           requestNumber: mosqueRequests.requestNumber,
           programType: mosqueRequests.programType,
+          currentStage: mosqueRequests.currentStage,
           mosqueName: mosques.name,
           mosqueCity: mosques.city,
         })

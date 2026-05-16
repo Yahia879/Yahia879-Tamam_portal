@@ -93,6 +93,15 @@ const phaseStatusLabels: Record<string, string> = {
   completed: "مكتمل",
 };
 
+// المراحل التي تظهر فيها الميزانية (من التقييم المالي واعتماد العرض وما بعدها)
+const BUDGET_VISIBLE_STAGES = [
+  "financial_eval_and_approval",
+  "contracting",
+  "execution",
+  "handover",
+  "closed",
+];
+
 export default function ProjectDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -348,29 +357,61 @@ export default function ProjectDetailsPage() {
         {/* بطاقات المعلومات الرئيسية */}
         <TooltipProvider delayDuration={300}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 text-right">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>الميزانية هي قيمة مرتبطة بمجموع بنود جدول الكميات وتظهر بعد اعتماد جدول الكميات</p>
-                        </TooltipContent>
-                      </Tooltip>
+            {/* الميزانية - تظهر فقط عندما تكون حالة الطلب المرتبط هي "التقييم المالي واعتماد العرض" أو بعدها */}
+            {project.request && BUDGET_VISIBLE_STAGES.includes(project.request.currentStage) ? (
+              <Card className="border-0 shadow-sm">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-primary" />
                     </div>
-                    <p className="font-bold text-foreground">{formatCurrency(project.budget)}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="font-bold text-foreground">
+                        {boqData && boqData.total > 0
+                          ? formatCurrency(boqData.total.toString())
+                          : formatCurrency(project.budget)
+                        }
+                      </p>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-0 shadow-sm bg-muted/30">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>الميزانية تظهر بعد وصول الطلب لمرحلة التقييم المالي واعتماد العرض</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="font-bold text-muted-foreground text-sm">لم تُحدد بعد</p>
+                    </div>
                   </div>
-                  </CardContent>
-                  </Card>
+                </CardContent>
+              </Card>
+            )}
 
                   <Card className="border-0 shadow-sm">
                   <CardContent className="p-4 text-right">
