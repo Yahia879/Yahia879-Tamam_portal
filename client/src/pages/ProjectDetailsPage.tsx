@@ -367,6 +367,9 @@ export default function ProjectDetailsPage() {
     return statusLabels[project.status || "planning"];
   };
 
+  const totalPaymentsSum = project?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  const totalContractsSum = project?.contracts?.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0) || 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-6" dir="rtl">
@@ -1059,7 +1062,8 @@ export default function ProjectDetailsPage() {
               </CardHeader>
               <CardContent>
                 {project.payments && project.payments.length > 0 ? (
-                  <Table>
+                  <>
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الدفعة</TableHead>
@@ -1101,6 +1105,17 @@ export default function ProjectDetailsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  <div className="mt-6 p-4 bg-muted/30 rounded-lg flex flex-col sm:flex-row items-center justify-between border border-dashed border-muted-foreground/20 gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">إجمالي قيم المدفوعات:</span>
+                      <span className="font-bold text-lg text-primary">{formatCurrency(totalPaymentsSum.toString())}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">من إجمالي قيمة العقد:</span>
+                      <span className="font-bold text-lg">{formatCurrency(totalContractsSum.toString())}</span>
+                    </div>
+                  </div>
+                </>
                 ) : (
                   <div className="text-center py-8">
                     {isPaymentsLocked ? (
