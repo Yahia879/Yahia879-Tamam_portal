@@ -248,9 +248,9 @@ export default function BOQ() {
           </CardHeader>
           <CardContent>
             {/* فلاتر البحث */}
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex-1 min-w-[200px]">
-                <Label className="mb-2 block">البحث</Label>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-6">
+              <div className="flex-1 w-full sm:min-w-[200px]">
+                <Label className="mb-2 block text-sm">البحث</Label>
                 <Input
                   placeholder="ابحث برقم الطلب أو اسم المسجد..."
                   value={searchQuery}
@@ -258,10 +258,10 @@ export default function BOQ() {
                   className="w-full"
                 />
               </div>
-              <div className="w-[180px]">
-                <Label className="mb-2 block">البرنامج</Label>
+              <div className="w-full sm:w-[180px]">
+                <Label className="mb-2 block text-sm">البرنامج</Label>
                 <Select value={filterProgram} onValueChange={setFilterProgram}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="جميع البرامج" />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,10 +278,10 @@ export default function BOQ() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="w-[180px]">
-                <Label className="mb-2 block">الحالة</Label>
+              <div className="w-full sm:w-[180px]">
+                <Label className="mb-2 block text-sm">الحالة</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="جميع الحالات" />
                   </SelectTrigger>
                   <SelectContent>
@@ -340,111 +340,116 @@ export default function BOQ() {
             </div>
             
             {/* أزرار الإجراءات */}
-            <div className="flex gap-4 items-end">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-end">
               {selectedRequestId && (
-                <div className="flex gap-2">
-                  <Button onClick={() => setShowAddDialog(true)}>
+                <>
+                  <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة بند
                   </Button>
-                  {/* زر تحميل قالب Excel */}
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const headers = ["التصنيف", "اسم البند", "الوصف", "الوحدة", "الكمية", "سعر الوحدة"];
-                      const example = [
-                        "electrical", "استبدال الإنارة", "استبدال كامل للإنارة الداخلية", "unit", "100", "50"
-                      ];
-                      const csvContent = [headers, example]
-                        .map(row => row.join("\t"))
-                        .join("\n");
-                      const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-                      const url = URL.createObjectURL(blob);
-                      const link = document.createElement("a");
-                      link.href = url;
-                      link.download = "قالب_جدول_الكميات.csv";
-                      link.click();
-                      URL.revokeObjectURL(url);
-                      toast.success("تم تحميل القالب - التصنيفات: construction, electrical, plumbing, hvac, finishing, carpentry, painting, flooring, other | الوحدات: m2, m3, m, unit, kg, ton, lump_sum");
-                    }}
-                  >
-                    <Download className="h-4 w-4 ml-2" />
-                    تحميل قالب
-                  </Button>
-                  {/* زر استيراد من Excel */}
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".csv,.xlsx,.xls"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        
-                        const reader = new FileReader();
-                        reader.onload = async (event) => {
-                          try {
-                            const text = event.target?.result as string;
-                            const lines = text.split("\n").filter(line => line.trim());
-                            if (lines.length < 2) {
-                              toast.error("الملف فارغ أو لا يحتوي على بيانات");
-                              return;
-                            }
-                            
-                            const dataLines = lines.slice(1);
-                            let addedCount = 0;
-                            let errorCount = 0;
-                            
-                            for (const line of dataLines) {
-                              const cols = line.split(/[\t,]/);
-                              if (cols.length >= 5) {
-                                const category = cols[0]?.trim() || "other";
-                                const itemName = cols[1]?.trim();
-                                const description = cols[2]?.trim() || "";
-                                const unit = cols[3]?.trim() || "unit";
-                                const quantity = parseFloat(cols[4]?.trim().replace(/[^\d.]/g, "")) || 0;
-                                const unitPrice = parseFloat(cols[5]?.trim().replace(/[^\d.]/g, "")) || 0;
-                                
-                                if (itemName && quantity > 0) {
-                                  try {
-                                    await addItemMutation.mutateAsync({
-                                      requestId: parseInt(selectedRequestId),
-                                      itemName,
-                                      itemDescription: description,
-                                      unit,
-                                      quantity,
-                                      unitPrice,
-                                      category,
-                                    });
-                                    addedCount++;
-                                  } catch {
-                                    errorCount++;
+                  
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    {/* زر تحميل قالب Excel */}
+                    <Button
+                      variant="outline"
+                      className="flex-1 sm:w-auto"
+                      onClick={() => {
+                        const headers = ["التصنيف", "اسم البند", "الوصف", "الوحدة", "الكمية", "سعر الوحدة"];
+                        const example = [
+                          "electrical", "استبدال الإنارة", "استبدال كامل للإنارة الداخلية", "unit", "100", "50"
+                        ];
+                        const csvContent = [headers, example]
+                          .map(row => row.join("\t"))
+                          .join("\n");
+                        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = "قالب_جدول_الكميات.csv";
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("تم تحميل القالب - التصنيفات: construction, electrical, plumbing, hvac, finishing, carpentry, painting, flooring, other | الوحدات: m2, m3, m, unit, kg, ton, lump_sum");
+                      }}
+                    >
+                      <Download className="h-4 w-4 ml-2" />
+                      تحميل قالب
+                    </Button>
+                    
+                    {/* زر استيراد من Excel */}
+                    <div className="relative flex-1 sm:flex-none">
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          const reader = new FileReader();
+                          reader.onload = async (event) => {
+                            try {
+                              const text = event.target?.result as string;
+                              const lines = text.split("\n").filter(line => line.trim());
+                              if (lines.length < 2) {
+                                toast.error("الملف فارغ أو لا يحتوي على بيانات");
+                                return;
+                              }
+                              
+                              const dataLines = lines.slice(1);
+                              let addedCount = 0;
+                              let errorCount = 0;
+                              
+                              for (const line of dataLines) {
+                                const cols = line.split(/[\t,]/);
+                                if (cols.length >= 5) {
+                                  const category = cols[0]?.trim() || "other";
+                                  const itemName = cols[1]?.trim();
+                                  const description = cols[2]?.trim() || "";
+                                  const unit = cols[3]?.trim() || "unit";
+                                  const quantity = parseFloat(cols[4]?.trim().replace(/[^\d.]/g, "")) || 0;
+                                  const unitPrice = parseFloat(cols[5]?.trim().replace(/[^\d.]/g, "")) || 0;
+                                  
+                                  if (itemName && quantity > 0) {
+                                    try {
+                                      await addItemMutation.mutateAsync({
+                                        requestId: parseInt(selectedRequestId),
+                                        itemName,
+                                        itemDescription: description,
+                                        unit,
+                                        quantity,
+                                        unitPrice,
+                                        category,
+                                      });
+                                      addedCount++;
+                                    } catch {
+                                      errorCount++;
+                                    }
                                   }
                                 }
                               }
+                              
+                              if (addedCount > 0) {
+                                toast.success(`تم استيراد ${addedCount} بند بنجاح`);
+                                refetch();
+                              }
+                              if (errorCount > 0) {
+                                toast.error(`فشل استيراد ${errorCount} بند`);
+                              }
+                            } catch (err) {
+                              toast.error("حدث خطأ أثناء قراءة الملف");
                             }
-                            
-                            if (addedCount > 0) {
-                              toast.success(`تم استيراد ${addedCount} بند بنجاح`);
-                              refetch();
-                            }
-                            if (errorCount > 0) {
-                              toast.error(`فشل استيراد ${errorCount} بند`);
-                            }
-                          } catch (err) {
-                            toast.error("حدث خطأ أثناء قراءة الملف");
-                          }
-                        };
-                        reader.readAsText(file);
-                        e.target.value = "";
-                      }}
-                    />
-                    <Button variant="default">
-                      <Upload className="h-4 w-4 ml-2" />
-                      استيراد من Excel
-                    </Button>
+                          };
+                          reader.readAsText(file);
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button variant="default" className="w-full">
+                        <Upload className="h-4 w-4 ml-2" />
+                        استيراد
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </CardContent>
@@ -453,8 +458,8 @@ export default function BOQ() {
         {/* جدول الكميات */}
         {selectedRequestId && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Calculator className="h-5 w-5" />
                 بنود جدول الكميات
               </CardTitle>
@@ -462,77 +467,135 @@ export default function BOQ() {
                 إجمالي التكلفة: {totalAmount.toLocaleString("ar-SA")} ريال
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : boqData && boqData.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>التصنيف</TableHead>
-                      <TableHead>البند</TableHead>
-                      <TableHead>الوحدة</TableHead>
-                      <TableHead>الكمية</TableHead>
-                      <TableHead>سعر الوحدة</TableHead>
-                      <TableHead>الإجمالي</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  {/* Desktop View Table */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>التصنيف</TableHead>
+                          <TableHead>البند</TableHead>
+                          <TableHead>الوحدة</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead>سعر الوحدة</TableHead>
+                          <TableHead>الإجمالي</TableHead>
+                          <TableHead>الإجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {boqData.map((item: any) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{item.itemName}</p>
+                                {item.description && (
+                                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {UNITS.find(u => u.value === item.unit)?.label || item.unit}
+                            </TableCell>
+                            <TableCell>{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
+                            <TableCell>{parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال</TableCell>
+                            <TableCell className="font-medium">
+                              {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString("ar-SA")} ريال
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openEditDialog(item)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteItem(item.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile View Cards */}
+                  <div className="md:hidden divide-y divide-border border-t border-b">
                     {boqData.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{item.itemName}</p>
+                      <div key={item.id} className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <Badge variant="outline" className="mb-2 text-[10px]">
+                              {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                            </Badge>
+                            <p className="font-bold text-sm">{item.itemName}</p>
                             {item.description && (
-                              <p className="text-sm text-muted-foreground">{item.description}</p>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {UNITS.find(u => u.value === item.unit)?.label || item.unit}
-                        </TableCell>
-                        <TableCell>{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
-                        <TableCell>{parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال</TableCell>
-                        <TableCell className="font-medium">
-                          {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString("ar-SA")} ريال
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col gap-2 shrink-0">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="icon"
+                              className="h-8 w-8"
                               onClick={() => openEditDialog(item)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="icon"
+                              className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50"
                               onClick={() => handleDeleteItem(item.id)}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-xs pt-2">
+                          <div>
+                            <span className="text-muted-foreground block mb-1">الكمية</span>
+                            <span className="font-medium">{parseFloat(item.quantity).toLocaleString("ar-SA")} {UNITS.find(u => u.value === item.unit)?.label || item.unit}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block mb-1">سعر الوحدة</span>
+                            <span className="font-medium">{parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال</span>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-border/50 flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground">الإجمالي:</span>
+                          <span className="font-bold text-primary">
+                            {(parseFloat(item.quantity) * parseFloat(item.unitPrice)).toLocaleString("ar-SA")} ريال
+                          </span>
+                        </div>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-12 text-muted-foreground px-4">
                   <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا توجد بنود في جدول الكميات</p>
                   <Button
                     variant="outline"
-                    className="mt-4"
+                    className="mt-4 w-full sm:w-auto"
                     onClick={() => setShowAddDialog(true)}
                   >
                     <Plus className="h-4 w-4 ml-2" />
@@ -543,7 +606,7 @@ export default function BOQ() {
               
               {/* زر إنهاء إعداد جدول الكميات */}
               {boqData && boqData.length > 0 && (
-                <div className="mt-6 pt-6 border-t flex justify-between items-center">
+                <div className="p-4 sm:p-0 mt-6 pt-6 border-t flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">
                       عدد البنود: {boqData.length}
@@ -562,7 +625,7 @@ export default function BOQ() {
                         });
                     }}
                     disabled={completeBOQMutation.isPending}
-                    className="gap-2"
+                    className="w-full sm:w-auto gap-2"
                   >
                     {completeBOQMutation.isPending ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
