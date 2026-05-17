@@ -264,20 +264,25 @@ export default function ContractTemplates() {
   };
 
   const handleSubmitClause = () => {
-    if (!clauseForm.content) {
-      toast.error("يرجى إدخال نص البند");
+    if (!clauseForm.titleAr || !clauseForm.content) {
+      toast.error("يرجى إدخال عنوان ونص البند");
       return;
     }
+
+    const submissionData = {
+      ...clauseForm,
+      title: clauseForm.title || clauseForm.titleAr, // استخدام العنوان العربي للإنجليزي إذا كان فارغاً
+    };
 
     if (editingClause) {
       updateClauseMutation.mutate({
         id: editingClause.id,
-        ...clauseForm,
+        ...submissionData,
       });
     } else {
       createClauseMutation.mutate({
         templateId: selectedTemplateId!,
-        ...clauseForm,
+        ...submissionData,
         orderIndex: selectedTemplate?.clauses?.length || 0,
       });
     }
@@ -602,6 +607,18 @@ export default function ContractTemplates() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="titleAr">عنوان البند *</Label>
+                <Input
+                  id="titleAr"
+                  value={clauseForm.titleAr}
+                  onChange={(e) =>
+                    setClauseForm({ ...clauseForm, titleAr: e.target.value })
+                  }
+                  placeholder="المادة الأولى: التعريفات"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="clauseCategory">فئة البند</Label>
                 <Select

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Printer,
   Download,
@@ -148,6 +150,7 @@ export default function ContractPreview() {
   const [modificationType, setModificationType] = useState("");
   const [modificationDescription, setModificationDescription] = useState("");
   const [modificationJustification, setModificationJustification] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   
   // State لنموذج الموافقة/الرفض
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -300,6 +303,93 @@ export default function ContractPreview() {
   const handlePrint = () => {
     window.print();
   };
+
+  // تحميل العقد كـ PDF
+  const handleDownloadPDF = async () => {
+    if (!printRef.current || !data?.contract) return;
+    
+    setIsExporting(true);
+    const contract = data.contract;
+    
+    try {
+      const element = printRef.current;
+      
+      // التقاط محتوى الصفحة باستخدام html2canvas
+      const canvas = await html2canvas(element, {
+        scale: 2, // دقة عالية
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: element.offsetWidth,
+        height: element.offsetHeight,
+        onclone: (clonedDoc) => {
+          // حل مشكلة oklch مع الحفاظ على الألوان الأصلية
+          const styleTags = clonedDoc.getElementsByTagName('style');
+          for (let i = 0; i < styleTags.length; i++) {
+            let css = styleTags[i].innerHTML;
+            // استبدال المتغيرات الأساسية بألوانها الحقيقية
+            css = css.replace(/--primary:\s*oklch\([^)]+\)/g, '--primary: #0D9488');
+            css = css.replace(/--foreground:\s*oklch\([^)]+\)/g, '--foreground: #1e293b');
+            css = css.replace(/--background:\s*oklch\([^)]+\)/g, '--background: #ffffff');
+            css = css.replace(/--border:\s*oklch\([^)]+\)/g, '--border: #e2e8f0');
+            // استبدال أي oklch متبقي بلون رمادي محايد لمنع الخطأ
+            css = css.replace(/oklch\([^)]+\)/g, '#64748b');
+            styleTags[i].innerHTML = css;
+          }
+          
+          // إضافة استايلات مخصصة لضمان دقة الألوان في العناصر المهمة بالعقد
+          const customStyle = clonedDoc.createElement('style');
+          customStyle.innerHTML = `
+            .text-green-800 { color: #166534 !important; }
+            .text-green-700 { color: #15803d !important; }
+            .text-gray-700 { color: #374151 !important; }
+            .text-gray-600 { color: #4b5563 !important; }
+            .text-gray-500 { color: #6b7280 !important; }
+            .bg-gray-50 { background-color: #f9fafb !important; }
+            .border-gray-300 { border-color: #d1d5db !important; }
+            .text-muted-foreground { color: #64748b !important; }
+            /* الحفاظ على الألوان المحددة يدوياً في العقد */
+            [style*="background-color: #1a5f4a"] { background-color: #1a5f4a !important; color: white !important; }
+            [style*="background-color: #d4a574"] { background-color: #d4a574 !important; color: #5d4037 !important; }
+            [style*="background-color: #e8f5e9"] { background-color: #e8f5e9 !important; }
+          `;
+          clonedDoc.head.appendChild(customStyle);
+        }
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let heightLeft = pdfHeight;
+      let position = 0;
+
+      // إضافة الصفحة الأولى
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      // إضافة بقية الصفحات إذا كان المحتوى طويلاً
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`عقد-${contract.contractNumber || contract.id}.pdf`);
+      toast.success('تم تحميل العقد بصيغة PDF بنجاح');
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      toast.error(`حدث خطأ أثناء تحميل PDF: ${error.message || 'خطأ غير معروف'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
   
   // التحقق من إمكانية طلب التعديل
   const canRequestModification = (contract: any, payments: any[]) => {
@@ -389,9 +479,9 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="h-4 w-4 ml-2" />
-              طباعة
+            <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting}>
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Download className="h-4 w-4 ml-2" />}
+              تحميل PDF
             </Button>
             {/* زر طلب التعديل */}
             {(() => {
@@ -505,58 +595,12 @@ export default function ContractPreview() {
             position: 'relative',
           }}
         >
-          {/* علامة معتمد المائية */}
-          {contract.status === "approved" && (
-            <div 
-              className="approved-watermark"
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) rotate(-30deg)',
-                zIndex: 1000,
-                pointerEvents: 'none',
-              }}
-            >
-              <div 
-                style={{
-                  border: '8px solid rgba(22, 163, 74, 0.6)',
-                  borderRadius: '12px',
-                  padding: '16px 32px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                }}
-              >
-                <div 
-                  style={{
-                    color: 'rgba(22, 163, 74, 0.7)',
-                    fontSize: '72px',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  معتمد
-                </div>
-                <div 
-                  style={{
-                    color: 'rgba(22, 163, 74, 0.7)',
-                    fontSize: '18px',
-                    textAlign: 'center',
-                    marginTop: '8px',
-                  }}
-                >
-                  {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : ''}
-                </div>
-              </div>
-            </div>
-          )}
-          
           {/* الصفحة الأولى */}
           <div className="p-8 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
             {/* رأس الصفحة */}
             <div className="flex items-start justify-between mb-6">
               <div className="text-right">
-                <div className="text-sm text-gray-600">رقم الترخيص {orgSettings?.licenseNumber || "----"}</div>
+                {/* تم إزالة رقم الترخيص من هنا */}
               </div>
               <div className="flex items-center gap-4">
                 {/* شعار الجمعية */}
@@ -579,7 +623,7 @@ export default function ContractPreview() {
 
             {/* مقدمة العقد */}
             <p className="text-center mb-6 text-gray-700">
-              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} هـ الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
+              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
             </p>
 
             {/* الطرف الأول */}
@@ -604,7 +648,7 @@ export default function ContractPreview() {
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
-                    <td className="py-1">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
+                    <td className="py-1 text-right" dir="ltr">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">ويشار إليها لاحقاً بـ:</td>
@@ -628,7 +672,7 @@ export default function ContractPreview() {
                 <tbody>
                   <tr>
                     <td className="py-1 text-gray-600 w-40">سجل تجاري رقم:</td>
-                    <td className="py-1" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
+                    <td className="py-1 text-right" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
@@ -640,7 +684,7 @@ export default function ContractPreview() {
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
-                    <td className="py-1" dir="ltr">{contract.secondPartyEmail || "----"}</td>
+                    <td className="py-1 text-right" dir="ltr">{contract.secondPartyEmail || "----"}</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">ويشار إليها لاحقاً بـ:</td>
@@ -652,11 +696,10 @@ export default function ContractPreview() {
 
             {/* التمهيد */}
             <div className="mb-6">
-              <h3 className="font-bold text-green-800 mb-2">تمهيد:</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
                 حيث إن {orgSettings?.organizationName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
                 و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
-                فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية.
+                فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
               </p>
             </div>
 
@@ -665,8 +708,8 @@ export default function ContractPreview() {
               {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
                 <div key={clause.id} className="mb-6 break-inside-avoid">
                   <h3 
-                    className="font-bold py-2 px-4 rounded mb-3"
-                    style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none"
+                    style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
                   >
                     {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
                   </h3>
@@ -677,48 +720,28 @@ export default function ContractPreview() {
               ))}
             </div>
 
-            {/* المادة الخاصة بالدفعات (إذا لم تكن في البنود) */}
-            {!clauseValues?.some((c: any) => c.category === 'financial') && payments && payments.length > 0 && (
-              <div className="mb-6 break-inside-avoid">
-                <h3 
-                  className="font-bold py-2 px-4 rounded mb-3"
-                  style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-                >
-                  قيمة العقد وجدول الدفعات:
-                </h3>
+            {/* القيمة المالية وتفاصيل الحساب */}
+            <div className="mb-6 break-inside-avoid">
+              <h3 
+                className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none"
+                style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+              >
+                القيمة المالية وتفاصيل الحساب:
+              </h3>
+              <div className="pr-4">
                 <p className="text-sm text-gray-700 mb-4">
-                  ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+                  قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
                 </p>
-                <table className="w-full border-collapse text-sm mb-4">
-                  <thead>
-                    <tr style={{ backgroundColor: '#f5f5f5' }}>
-                      <th className="border p-2 text-right">المرحلة/الدفعة</th>
-                      <th className="border p-2 text-center">المبلغ</th>
-                      <th className="border p-2 text-center">تاريخ الاستحقاق</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((payment, index) => (
-                      <tr key={index}>
-                        <td className="border p-2">{payment.phaseName}</td>
-                        <td className="border p-2 text-center">{parseFloat(payment.amount).toLocaleString('ar-SA')}</td>
-                        <td className="border p-2 text-center">
-                          {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('ar-SA') : "يتم تحديده"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
                 <div className="text-sm">
-                  <p className="mb-1">يتم تحويل الدفعات على حساب الطرف الثاني:</p>
-                  <ul className="list-disc list-inside pr-4 space-y-1">
-                    <li>اسم الحساب: <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
-                    <li>رقم الآيبان: <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
-                    <li>اسم البنك: <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
+                  <p className="mb-2 font-medium">يتم تحويل الدفعات على حساب الطرف الثاني وفقاً للتفاصيل التالية:</p>
+                  <ul className="list-none space-y-1 text-gray-700">
+                    <li><span className="text-gray-600 ml-1">اسم الحساب:</span> <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
+                    <li><span className="text-gray-600 ml-1">رقم الآيبان:</span> <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
+                    <li><span className="text-gray-600 ml-1">اسم البنك:</span> <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
                   </ul>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* التوقيعات */}
             <div className="mt-12">
@@ -764,7 +787,7 @@ export default function ContractPreview() {
             >
               <div className="flex justify-between items-center">
                 <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
-                <span>{orgSettings?.website || "www.tamam.org.sa"}</span>
+                <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
                 <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
               </div>
             </div>

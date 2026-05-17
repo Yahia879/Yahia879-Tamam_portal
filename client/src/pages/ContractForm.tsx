@@ -94,6 +94,7 @@ export default function ContractForm() {
                    (params.projectId ? parseInt(params.projectId) : undefined);
   
   const { user } = useAuth();
+  const utils = trpc.useContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
@@ -201,6 +202,8 @@ export default function ContractForm() {
   // Mutation لتحديث العقد (وضع التعديل)
   const updateMutation = trpc.contracts.update.useMutation({
     onSuccess: () => {
+      // إبطال التخزين المؤقت لضمان تحديث البيانات في المعاينة
+      utils.contracts.getById.invalidate({ id: editContractId! });
       toast.success("تم تحديث العقد بنجاح");
       navigate(`/contracts/${editContractId}/preview`);
     },
@@ -515,6 +518,8 @@ export default function ContractForm() {
       updateMutation.mutate({
         id: editContractId,
         contractTitle: contractData.subject,
+        signatoryId: contractData.signatoryId,
+        // بيانات الطرف الثاني من المورد
         secondPartyName: selectedSupplier?.name,
         secondPartyCommercialRegister: selectedSupplier?.commercialRegister || undefined,
         secondPartyRepresentative: selectedSupplier?.contactPerson || undefined,
@@ -525,11 +530,16 @@ export default function ContractForm() {
         secondPartyBankName: selectedSupplier?.bankName || undefined,
         secondPartyIban: selectedSupplier?.iban || undefined,
         secondPartyAccountName: selectedSupplier?.bankAccountName || undefined,
+        // قيمة ومدة العقد
         contractAmount: contractData.totalValue,
         duration: contractData.duration,
         durationUnit: contractData.durationUnit as any,
         contractDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
+        // جدول الدفعات
+        paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
+        // بنود العقد المخصصة
+        clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
       });
       return;
     }
@@ -786,7 +796,7 @@ export default function ContractForm() {
                         <SelectItem key={signatory.id} value={signatory.id.toString()}>
                           <div className="flex items-center gap-2">
                             <span>{signatory.name}</span>
-                            <span className="text-muted-foreground">- {signatory.position}</span>
+                            <span className="text-muted-foreground">- {signatory.title}</span>
                             {signatory.isDefault && (
                               <Badge variant="secondary" className="mr-2">افتراضي</Badge>
                             )}

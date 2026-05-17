@@ -569,12 +569,15 @@ export const contractsRouter = router({
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
+        paymentSchedule: z.string().optional(),
+        clauseValues: z.string().optional(),
+        signatoryId: z.number().nullable().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      const { id, ...updateData } = input;
+      const { id, paymentSchedule, clauseValues, ...updateData } = input;
       
       // التحقق من أن العقد في حالة مسودة
       const [contract] = await db
@@ -599,11 +602,76 @@ export const contractsRouter = router({
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);
       }
+
+      // إضافة الحقول الجديدة للتحديث
+      if (paymentSchedule) {
+        updates.paymentScheduleJson = paymentSchedule;
+      }
+      if (clauseValues) {
+        updates.clauseValuesJson = clauseValues;
+      }
+      
+      // التأكد من تحديث مفوض التوقيع بشكل صريح
+      if (input.signatoryId !== undefined) {
+        updates.signatoryId = input.signatoryId;
+      }
       
       await db
         .update(contractsEnhanced)
         .set(updates)
         .where(eq(contractsEnhanced.id, id));
+
+      // تحديث الدفعات إذا تم توفير جدول جديد
+      if (paymentSchedule) {
+        try {
+          const schedule = JSON.parse(paymentSchedule);
+          if (Array.isArray(schedule)) {
+            // حذف الدفعات القديمة
+            await db.delete(contractPayments).where(eq(contractPayments.contractId, id));
+            
+            // إضافة الدفعات الجديدة
+            if (schedule.length > 0) {
+              await db.insert(contractPayments).values(
+                schedule.map((p: any, index: number) => ({
+                  contractId: id,
+                  phaseName: p.name || `الدفعة ${index + 1}`,
+                  amount: String(p.amount || 0),
+                  phaseOrder: index,
+                  dueDate: p.dueDate ? new Date(p.dueDate) : null,
+                  status: "pending" as const,
+                }))
+              );
+            }
+          }
+        } catch (e) {
+          console.error("خطأ في تحديث جدول الدفعات:", e);
+        }
+      }
+
+      // تحديث البنود إذا تم توفير قيم جديدة
+      if (clauseValues) {
+        try {
+          const clauses = JSON.parse(clauseValues);
+          if (Array.isArray(clauses)) {
+            // حذف قيم البنود القديمة
+            await db.delete(contractClauseValues).where(eq(contractClauseValues.contractId, id));
+            
+            // إضافة قيم البنود الجديدة
+            if (clauses.length > 0) {
+              await db.insert(contractClauseValues).values(
+                clauses.map((c: any) => ({
+                  contractId: id,
+                  clauseId: c.clauseId,
+                  customContent: c.customContent || null,
+                  isIncluded: c.isIncluded ?? true,
+                }))
+              );
+            }
+          }
+        } catch (e) {
+          console.error("خطأ في تحديث بنود العقد:", e);
+        }
+      }
       
       // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
       if (contract.projectId) {
