@@ -17,6 +17,7 @@ import {
   contractTemplates,
   contractClauses,
   contractClauseValues,
+  signatories,
   authorizedSignatories,
   quotations,
   contractModificationRequests,
@@ -280,14 +281,20 @@ export const contractsRouter = router({
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
       
-      const [contract] = await db
-        .select()
+      const [contractData] = await db
+        .select({
+          contract: contractsEnhanced,
+          signatory: signatories,
+        })
         .from(contractsEnhanced)
+        .leftJoin(signatories, eq(contractsEnhanced.signatoryId, signatories.id))
         .where(eq(contractsEnhanced.id, input.id));
       
-      if (!contract) {
+      if (!contractData) {
         throw new Error("العقد غير موجود");
       }
+      
+      const { contract, signatory } = contractData;
       
       // جلب الدفعات
       const payments = await db
@@ -318,7 +325,10 @@ export const contractsRouter = router({
         .orderBy(asc(contractClauseValues.orderIndex));
       
       return {
-        contract,
+        contract: {
+          ...contract,
+          signatory,
+        },
         payments,
         organizationSettings: orgSettings,
         clauseValues,

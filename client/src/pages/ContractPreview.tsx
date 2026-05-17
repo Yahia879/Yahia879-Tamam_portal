@@ -359,6 +359,8 @@ export default function ContractPreview() {
       "{{mosqueName}}": contract.mosqueName || "",
       "{{mosqueCity}}": contract.mosqueCity || "",
       "{{subject}}": contract.contractTitle || "",
+      "{{authorizedSignatory}}": contract.signatory?.name || orgSettings?.authorizedSignatory || "",
+      "{{signatoryTitle}}": contract.signatory?.title || orgSettings?.signatoryTitle || "",
     };
 
     Object.entries(variables).forEach(([key, value]) => {
@@ -593,20 +595,16 @@ export default function ContractPreview() {
               <table className="w-full text-sm">
                 <tbody>
                   <tr>
-                    <td className="py-1 text-gray-600 w-40">ترخيص المركز الوطني:</td>
-                    <td className="py-1">{orgSettings?.licenseNumber || "----"}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
-                    <td className="py-1 font-medium">{orgSettings?.authorizedSignatory || "----"} بصفته {orgSettings?.signatoryTitle || "----"}</td>
+                    <td className="py-1 text-gray-600 w-40">ويمثلها في هذا العقد:</td>
+                    <td className="py-1 font-medium">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">العنوان ورقم الاتصال:</td>
-                    <td className="py-1">{orgSettings?.address || "----"} | جوال ({orgSettings?.phone || "----"})</td>
+                    <td className="py-1">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
-                    <td className="py-1" dir="ltr">{orgSettings?.email || "----"}</td>
+                    <td className="py-1">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
                   </tr>
                   <tr>
                     <td className="py-1 text-gray-600">ويشار إليها لاحقاً بـ:</td>
@@ -733,8 +731,8 @@ export default function ContractPreview() {
                 <div className="text-center border-l pl-4">
                   <h4 className="font-bold mb-2">الطرف الأول</h4>
                   <p className="font-medium">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
-                  <p className="text-sm">{orgSettings?.authorizedSignatory || "----"}</p>
-                  <p className="text-sm text-gray-600">{orgSettings?.signatoryTitle || "----"}</p>
+                  <p className="text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
+                  <p className="text-sm text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
                   <div className="mt-8 space-y-4">
                     <p>التوقيع: ...................................</p>
                     <p>التاريخ: ...................................</p>

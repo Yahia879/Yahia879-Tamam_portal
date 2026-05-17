@@ -54,6 +54,7 @@ function SignatoriesSection() {
     nationalId: "",
     phone: "",
     email: "",
+    address: "",
     isDefault: false,
   });
 
@@ -115,6 +116,7 @@ function SignatoriesSection() {
       nationalId: "",
       phone: "",
       email: "",
+      address: "",
       isDefault: false,
     });
   };
@@ -127,13 +129,14 @@ function SignatoriesSection() {
       nationalId: signatory.nationalId || "",
       phone: signatory.phone || "",
       email: signatory.email || "",
+      address: signatory.address || "",
       isDefault: signatory.isDefault || false,
     });
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.title) {
-      toast.error("يرجى إدخال اسم المفوض والمنصب");
+    if (!formData.name || !formData.title || !formData.email || !formData.address || !formData.phone) {
+      toast.error("يرجى إدخال الحقول المطلوبة (الاسم، المنصب، الجوال، البريد، العنوان)");
       return;
     }
 
@@ -148,21 +151,22 @@ function SignatoriesSection() {
   };
 
   return (
-    <Card className="border-0 shadow-sm overflow-hidden">
+    <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
       <CardHeader className="p-4 sm:p-6 pb-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
+        <div className="flex flex-row items-center justify-between gap-4">
+          <div className="text-right">
+            <CardTitle className="flex items-center gap-2 text-lg justify-start">
               <Users className="h-5 w-5 text-primary" />
               مفوضو التوقيع
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-xs sm:text-sm mt-1">
               إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية
             </CardDescription>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto gradient-primary text-white">
-            <Plus className="h-4 w-4 ml-2" />
-            إضافة مفوض
+          <Button onClick={() => setShowAddDialog(true)} className="gradient-primary text-white shrink-0">
+            <Plus className="h-4 w-4 sm:mr-0 ml-1 sm:ml-2" />
+            <span className="hidden sm:inline">إضافة مفوض</span>
+            <span className="sm:hidden">إضافة</span>
           </Button>
         </div>
       </CardHeader>
@@ -189,11 +193,11 @@ function SignatoriesSection() {
                 <TableBody>
                   {signatories.map((signatory: any) => (
                     <TableRow key={signatory.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="font-bold">{signatory.name}</TableCell>
-                      <TableCell>{signatory.title}</TableCell>
-                      <TableCell dir="ltr">{signatory.nationalId || "-"}</TableCell>
-                      <TableCell dir="ltr">{signatory.phone || "-"}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-bold text-right">{signatory.name}</TableCell>
+                      <TableCell className="text-right">{signatory.title}</TableCell>
+                      <TableCell className="text-right">{signatory.nationalId || "-"}</TableCell>
+                      <TableCell className="text-right">{signatory.phone || "-"}</TableCell>
+                      <TableCell className="text-right">
                         {signatory.isDefault ? (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-bold border-0">
                             <Star className="h-3 w-3 ml-1 fill-current" />
@@ -261,12 +265,12 @@ function SignatoriesSection() {
                   
                   <div className="grid grid-cols-2 gap-2 text-[11px] py-2 border-y border-dashed">
                     <div className="space-y-0.5">
-                      <p className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">رقم الهوية</p>
-                      <p className="font-mono">{signatory.nationalId || "—"}</p>
+                      <p className="text-muted-foreground text-[9px] font-bold tracking-wider">رقم الهوية</p>
+                      <p>{signatory.nationalId || "—"}</p>
                     </div>
                     <div className="space-y-0.5">
-                      <p className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">الجوال</p>
-                      <p className="font-mono">{signatory.phone || "—"}</p>
+                      <p className="text-muted-foreground text-[9px] font-bold tracking-wider">الجوال</p>
+                      <p>{signatory.phone || "—"}</p>
                     </div>
                   </div>
 
@@ -364,42 +368,38 @@ function SignatoriesSection() {
                 value={formData.nationalId}
                 onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
                 placeholder="رقم الهوية الوطنية"
-                dir="ltr"
-                className="h-10 sm:h-11 text-sm font-mono"
+                className="h-10 sm:h-11 text-sm text-right"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">رقم الجوال</Label>
+                <Label className="text-xs sm:text-sm">رقم الجوال *</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="05XXXXXXXX"
-                  dir="ltr"
-                  className="h-10 sm:h-11 text-sm font-mono"
+                  className="h-10 sm:h-11 text-sm text-right"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">البريد الإلكتروني</Label>
+                <Label className="text-xs sm:text-sm">البريد الإلكتروني *</Label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="email@example.com"
-                  dir="ltr"
-                  className="h-10 sm:h-11 text-sm font-mono"
+                  className="h-10 sm:h-11 text-sm text-right"
                 />
               </div>
             </div>
-            <div className="flex items-center gap-3 pt-2">
-              <input
-                type="checkbox"
-                id="isDefault"
-                checked={formData.isDefault}
-                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-all"
+            <div className="space-y-2">
+              <Label className="text-xs sm:text-sm">العنوان *</Label>
+              <Input
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="العنوان التفصيلي للمفوض"
+                className="h-10 sm:h-11 text-sm"
               />
-              <Label htmlFor="isDefault" className="text-xs sm:text-sm font-bold cursor-pointer">تعيين كمفوض افتراضي</Label>
             </div>
           </div>
           <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
@@ -667,8 +667,7 @@ export default function OrganizationSettings() {
                       value={orgSettings.phone}
                       onChange={(e) => setOrgSettings({ ...orgSettings, phone: e.target.value })}
                       placeholder="رقم الهاتف"
-                      dir="ltr"
-                      className="h-10 sm:h-11 font-mono"
+                      className="h-10 sm:h-11 text-right"
                     />
                   </div>
                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
@@ -679,8 +678,7 @@ export default function OrganizationSettings() {
                       value={orgSettings.email}
                       onChange={(e) => setOrgSettings({ ...orgSettings, email: e.target.value })}
                       placeholder="البريد الإلكتروني"
-                      dir="ltr"
-                      className="h-10 sm:h-11 font-mono"
+                      className="h-10 sm:h-11 text-right"
                     />
                   </div>
                 </div>
@@ -692,8 +690,7 @@ export default function OrganizationSettings() {
                     value={orgSettings.website}
                     onChange={(e) => setOrgSettings({ ...orgSettings, website: e.target.value })}
                     placeholder="https://www.example.com"
-                    dir="ltr"
-                    className="h-10 sm:h-11 font-mono"
+                    className="h-10 sm:h-11 text-right"
                   />
                 </div>
 

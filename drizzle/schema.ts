@@ -855,6 +855,7 @@ export const signatories = mysqlTable("signatories", {
   nationalId: varchar("nationalId", { length: 20 }), // رقم الهوية
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
+  address: text("address"), // العنوان
   signatureUrl: varchar("signatureUrl", { length: 500 }), // صورة التوقيع
   isDefault: boolean("isDefault").default(false), // هل هو المفوض الافتراضي
   isActive: boolean("isActive").default(true),
