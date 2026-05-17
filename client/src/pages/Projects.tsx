@@ -204,7 +204,7 @@ export default function Projects() {
           </CardContent>
         </Card>
 
-        {/* جدول المشاريع */}
+        {/* جدول المشاريع - Desktop & Card View - Mobile */}
         <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {isLoading ? (
@@ -213,7 +213,8 @@ export default function Projects() {
               </div>
             ) : projectsList.length > 0 ? (
               <div>
-                <div className="overflow-x-auto">
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -231,13 +232,13 @@ export default function Projects() {
                         <TableRow key={project.id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                 <FolderKanban className="w-5 h-5 text-primary" />
                               </div>
-                              <div>
-                                <p className="font-medium">{project.name}</p>
+                              <div className="min-w-0">
+                                <p className="font-medium truncate max-w-[200px]">{project.name}</p>
                                 {project.managerName && (
-                                  <p className="text-xs text-muted-foreground">مدير: {project.managerName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">مدير: {project.managerName}</p>
                                 )}
                               </div>
                             </div>
@@ -246,7 +247,7 @@ export default function Projects() {
                             <span className="text-sm font-mono">{project.projectNumber}</span>
                           </TableCell>
                           <TableCell>
-                            <Badge className={statusColors[project.status || "planning"]}>
+                            <Badge className={`${statusColors[project.status || "planning"]} whitespace-nowrap`}>
                               {project.currentPhaseName || statusLabels[project.status || "planning"]}
                             </Badge>
                           </TableCell>
@@ -259,7 +260,7 @@ export default function Projects() {
                           <TableCell>
                             {project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage) ? (
                               project.budget ? (
-                                <span className="font-medium">{parseFloat(project.budget).toLocaleString()} ريال</span>
+                                <span className="font-medium whitespace-nowrap">{parseFloat(project.budget).toLocaleString()} ريال</span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )
@@ -268,7 +269,7 @@ export default function Projects() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1 text-muted-foreground">
+                            <div className="flex items-center gap-1 text-muted-foreground whitespace-nowrap">
                               <Calendar className="w-4 h-4" />
                               <span className="text-sm">
                                 {new Date(project.createdAt).toLocaleDateString("ar-SA")}
@@ -304,6 +305,87 @@ export default function Projects() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {projectsList.map((project: any) => (
+                    <div key={project.id} className="p-4 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FolderKanban className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold truncate">{project.name}</p>
+                            <p className="text-xs font-mono text-muted-foreground">{project.projectNumber}</p>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <Link href={`/projects/${project.id}`}>
+                              <DropdownMenuItem>
+                                <Eye className="w-4 h-4 ml-2" />
+                                عرض التفاصيل
+                              </DropdownMenuItem>
+                            </Link>
+                            {project.requestId && (
+                              <Link href={`/requests/${project.requestId}`}>
+                                <DropdownMenuItem>
+                                  <FileText className="w-4 h-4 ml-2" />
+                                  عرض الطلب
+                                </DropdownMenuItem>
+                              </Link>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">الحالة</p>
+                          <Badge className={`${statusColors[project.status || "planning"]} text-[10px] px-2 py-0`}>
+                            {project.currentPhaseName || statusLabels[project.status || "planning"]}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">الميزانية</p>
+                          {project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage) ? (
+                            <p className="text-sm font-semibold">
+                              {project.budget ? `${parseFloat(project.budget).toLocaleString()} ريال` : "-"}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">لم تُحدد بعد</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">التقدم</span>
+                          <span className="font-medium">{project.completionPercentage || 0}%</span>
+                        </div>
+                        <Progress value={project.completionPercentage || 0} className="h-1.5" />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(project.createdAt).toLocaleDateString("ar-SA")}</span>
+                        </div>
+                        {project.managerName && (
+                          <div className="truncate max-w-[150px]">
+                            مدير: {project.managerName}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Pagination Footer */}
