@@ -95,15 +95,8 @@ export default function ContractTemplates() {
 
   // نموذج القالب
   const [templateForm, setTemplateForm] = useState({
-    name: "",
     nameAr: "",
     type: "supply",
-    description: "",
-    headerTemplate: "",
-    introTemplate: "",
-    footerTemplate: "",
-    signatureTemplate: "",
-    isDefault: false,
   });
 
   // نموذج البند
@@ -210,15 +203,8 @@ export default function ContractTemplates() {
 
   const resetTemplateForm = () => {
     setTemplateForm({
-      name: "",
       nameAr: "",
       type: "supply",
-      description: "",
-      headerTemplate: "",
-      introTemplate: "",
-      footerTemplate: "",
-      signatureTemplate: "",
-      isDefault: false,
     });
   };
 
@@ -237,15 +223,8 @@ export default function ContractTemplates() {
   const handleEditTemplate = (template: any) => {
     setEditingTemplate(template);
     setTemplateForm({
-      name: template.name || "",
       nameAr: template.nameAr || "",
       type: template.type || "supply",
-      description: template.description || "",
-      headerTemplate: template.headerTemplate || "",
-      introTemplate: template.introTemplate || "",
-      footerTemplate: template.footerTemplate || "",
-      signatureTemplate: template.signatureTemplate || "",
-      isDefault: template.isDefault || false,
     });
     setShowTemplateDialog(true);
   };
@@ -265,7 +244,7 @@ export default function ContractTemplates() {
   };
 
   const handleSubmitTemplate = () => {
-    if (!templateForm.name || !templateForm.nameAr) {
+    if (!templateForm.nameAr) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
@@ -274,15 +253,19 @@ export default function ContractTemplates() {
       updateTemplateMutation.mutate({
         id: editingTemplate.id,
         ...templateForm,
+        name: templateForm.nameAr, // استخدام الاسم العربي للاسم الإنجليزي مؤقتاً أو تركه
       });
     } else {
-      createTemplateMutation.mutate(templateForm);
+      createTemplateMutation.mutate({
+        ...templateForm,
+        name: templateForm.nameAr,
+      });
     }
   };
 
   const handleSubmitClause = () => {
-    if (!clauseForm.title || !clauseForm.titleAr || !clauseForm.content) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة");
+    if (!clauseForm.content) {
+      toast.error("يرجى إدخال نص البند");
       return;
     }
 
@@ -536,12 +519,12 @@ export default function ContractTemplates() {
 
         {/* نافذة إضافة/تعديل القالب */}
         <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-right">
                 {editingTemplate ? "تعديل قالب العقد" : "إضافة قالب عقد جديد"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-right">
                 {editingTemplate
                   ? "قم بتعديل بيانات قالب العقد"
                   : "أدخل بيانات قالب العقد الجديد"}
@@ -549,116 +532,37 @@ export default function ContractTemplates() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">اسم القالب (إنجليزي)</Label>
-                  <Input
-                    id="name"
-                    value={templateForm.name}
-                    onChange={(e) =>
-                      setTemplateForm({ ...templateForm, name: e.target.value })
-                    }
-                    placeholder="Supply Contract"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nameAr">اسم القالب (عربي) *</Label>
-                  <Input
-                    id="nameAr"
-                    value={templateForm.nameAr}
-                    onChange={(e) =>
-                      setTemplateForm({ ...templateForm, nameAr: e.target.value })
-                    }
-                    placeholder="عقد توريد"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="type">نوع العقد *</Label>
-                  <Select
-                    value={templateForm.type}
-                    onValueChange={(value) =>
-                      setTemplateForm({ ...templateForm, type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(CONTRACT_TYPES).map(([key, { label }]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2 flex items-end">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="isDefault"
-                      checked={templateForm.isDefault}
-                      onCheckedChange={(checked) =>
-                        setTemplateForm({ ...templateForm, isDefault: checked })
-                      }
-                    />
-                    <Label htmlFor="isDefault">قالب افتراضي لهذا النوع</Label>
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="description">وصف القالب</Label>
-                <Textarea
-                  id="description"
-                  value={templateForm.description}
+                <Label htmlFor="nameAr">اسم القالب (عربي) *</Label>
+                <Input
+                  id="nameAr"
+                  value={templateForm.nameAr}
                   onChange={(e) =>
-                    setTemplateForm({ ...templateForm, description: e.target.value })
+                    setTemplateForm({ ...templateForm, nameAr: e.target.value })
                   }
-                  placeholder="وصف مختصر للقالب..."
-                  rows={2}
+                  placeholder="عقد توريد"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="introTemplate">مقدمة العقد</Label>
-                <Textarea
-                  id="introTemplate"
-                  value={templateForm.introTemplate}
-                  onChange={(e) =>
-                    setTemplateForm({ ...templateForm, introTemplate: e.target.value })
+                <Label htmlFor="type">نوع العقد *</Label>
+                <Select
+                  value={templateForm.type}
+                  onValueChange={(value) =>
+                    setTemplateForm({ ...templateForm, type: value })
                   }
-                  placeholder="نص مقدمة العقد... يمكن استخدام المتغيرات مثل {{organizationName}}, {{supplierName}}, {{contractDate}}"
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="footerTemplate">تذييل العقد</Label>
-                <Textarea
-                  id="footerTemplate"
-                  value={templateForm.footerTemplate}
-                  onChange={(e) =>
-                    setTemplateForm({ ...templateForm, footerTemplate: e.target.value })
-                  }
-                  placeholder="نص تذييل العقد..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="signatureTemplate">قالب التوقيعات</Label>
-                <Textarea
-                  id="signatureTemplate"
-                  value={templateForm.signatureTemplate}
-                  onChange={(e) =>
-                    setTemplateForm({ ...templateForm, signatureTemplate: e.target.value })
-                  }
-                  placeholder="نص منطقة التوقيعات..."
-                  rows={3}
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CONTRACT_TYPES).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -685,12 +589,12 @@ export default function ContractTemplates() {
 
         {/* نافذة إضافة/تعديل البند */}
         <Dialog open={showClauseDialog} onOpenChange={setShowClauseDialog}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-right">
                 {editingClause ? "تعديل بند العقد" : "إضافة بند جديد"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-right">
                 {editingClause
                   ? "قم بتعديل بيانات البند"
                   : "أدخل بيانات البند الجديد"}
@@ -698,31 +602,6 @@ export default function ContractTemplates() {
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clauseTitle">عنوان البند (إنجليزي)</Label>
-                  <Input
-                    id="clauseTitle"
-                    value={clauseForm.title}
-                    onChange={(e) =>
-                      setClauseForm({ ...clauseForm, title: e.target.value })
-                    }
-                    placeholder="Obligations of First Party"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clauseTitleAr">عنوان البند (عربي) *</Label>
-                  <Input
-                    id="clauseTitleAr"
-                    value={clauseForm.titleAr}
-                    onChange={(e) =>
-                      setClauseForm({ ...clauseForm, titleAr: e.target.value })
-                    }
-                    placeholder="التزامات الطرف الأول"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="clauseCategory">فئة البند</Label>
                 <Select
@@ -752,32 +631,9 @@ export default function ContractTemplates() {
                   onChange={(e) =>
                     setClauseForm({ ...clauseForm, content: e.target.value })
                   }
-                  placeholder="أدخل نص البند هنا... يمكن استخدام المتغيرات مثل {{contractValue}}, {{duration}}, {{penaltyPercentage}}"
+                  placeholder="أدخل نص البند هنا..."
                   rows={8}
                 />
-              </div>
-
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="isRequired"
-                    checked={clauseForm.isRequired}
-                    onCheckedChange={(checked) =>
-                      setClauseForm({ ...clauseForm, isRequired: checked })
-                    }
-                  />
-                  <Label htmlFor="isRequired">بند إلزامي</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="isEditable"
-                    checked={clauseForm.isEditable}
-                    onCheckedChange={(checked) =>
-                      setClauseForm({ ...clauseForm, isEditable: checked })
-                    }
-                  />
-                  <Label htmlFor="isEditable">قابل للتعديل</Label>
-                </div>
               </div>
             </div>
 

@@ -340,8 +340,33 @@ export default function ContractPreview() {
     );
   }
 
-  const { contract, payments, organizationSettings: orgSettings } = data;
+  const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
+
+  // دالة لاستبدال المتغيرات في نصوص البنود
+  const replaceVariables = (content: string) => {
+    if (!content) return "";
+    let result = content;
+    const variables: Record<string, string> = {
+      "{{organizationName}}": orgSettings?.organizationName || "",
+      "{{secondPartyName}}": contract.secondPartyName || "",
+      "{{contractNumber}}": contract.contractNumber || "",
+      "{{contractDate}}": contractDate.toLocaleDateString('ar-SA'),
+      "{{contractAmount}}": parseFloat(contract.contractAmount).toLocaleString('ar-SA'),
+      "{{contractAmountText}}": contract.contractAmountText || "",
+      "{{duration}}": contract.duration?.toString() || "",
+      "{{durationUnit}}": contract.durationUnit ? DURATION_UNITS[contract.durationUnit] : "",
+      "{{mosqueName}}": contract.mosqueName || "",
+      "{{mosqueCity}}": contract.mosqueCity || "",
+      "{{subject}}": contract.contractTitle || "",
+    };
+
+    Object.entries(variables).forEach(([key, value]) => {
+      result = result.split(key).join(value);
+    });
+
+    return result;
+  };
 
   return (
     <DashboardLayout>
@@ -362,6 +387,10 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="h-4 w-4 ml-2" />
+              طباعة
+            </Button>
             {/* زر طلب التعديل */}
             {(() => {
               const modStatus = canRequestModification(contract, payments || []);
@@ -548,8 +577,7 @@ export default function ContractPreview() {
 
             {/* مقدمة العقد */}
             <p className="text-center mb-6 text-gray-700">
-              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} هـ الموافق {contractDate.toLocaleDateString('ar-SA')} م 
-              وفي مدينة {contract.mosqueCity || orgSettings?.city || "----"} فقد تم الاتفاق بين كل من:
+              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} هـ الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
             </p>
 
             {/* الطرف الأول */}
@@ -634,24 +662,106 @@ export default function ContractPreview() {
               </p>
             </div>
 
-            {/* المادة الأولى */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الأولى: التزامات الطرف الأول:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>تزويد الطرف الثاني بجميع البيانات والمستندات المتعلقة بالمشروع.</li>
-                <li>دفع قيمة الخدمات المتفق عليها وفقًا للشروط الزمنية المحددة.</li>
-                <li>إصدار الدفعات حسب مراحل الإنجاز.</li>
-              </ol>
+            {/* بنود العقد الديناميكية */}
+            <div className="space-y-6">
+              {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
+                <div key={clause.id} className="mb-6 break-inside-avoid">
+                  <h3 
+                    className="font-bold py-2 px-4 rounded mb-3"
+                    style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                  >
+                    {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
+                  </h3>
+                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-4">
+                    {replaceVariables(clause.customContent || clause.originalContent)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* المادة الخاصة بالدفعات (إذا لم تكن في البنود) */}
+            {!clauseValues?.some((c: any) => c.category === 'financial') && payments && payments.length > 0 && (
+              <div className="mb-6 break-inside-avoid">
+                <h3 
+                  className="font-bold py-2 px-4 rounded mb-3"
+                  style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                >
+                  قيمة العقد وجدول الدفعات:
+                </h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+                </p>
+                <table className="w-full border-collapse text-sm mb-4">
+                  <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5' }}>
+                      <th className="border p-2 text-right">المرحلة/الدفعة</th>
+                      <th className="border p-2 text-center">المبلغ</th>
+                      <th className="border p-2 text-center">تاريخ الاستحقاق</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((payment, index) => (
+                      <tr key={index}>
+                        <td className="border p-2">{payment.phaseName}</td>
+                        <td className="border p-2 text-center">{parseFloat(payment.amount).toLocaleString('ar-SA')}</td>
+                        <td className="border p-2 text-center">
+                          {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('ar-SA') : "يتم تحديده"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="text-sm">
+                  <p className="mb-1">يتم تحويل الدفعات على حساب الطرف الثاني:</p>
+                  <ul className="list-disc list-inside pr-4 space-y-1">
+                    <li>اسم الحساب: <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
+                    <li>رقم الآيبان: <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
+                    <li>اسم البنك: <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* التوقيعات */}
+            <div className="mt-12">
+              <div className="text-center mb-8">
+                <p className="font-bold text-lg">هذا وبالله التوفيق،،،</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8">
+                {/* الطرف الأول */}
+                <div className="text-center border-l pl-4">
+                  <h4 className="font-bold mb-2">الطرف الأول</h4>
+                  <p className="font-medium">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
+                  <p className="text-sm">{orgSettings?.authorizedSignatory || "----"}</p>
+                  <p className="text-sm text-gray-600">{orgSettings?.signatoryTitle || "----"}</p>
+                  <div className="mt-8 space-y-4">
+                    <p>التوقيع: ...................................</p>
+                    <p>التاريخ: ...................................</p>
+                  </div>
+                  <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
+                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                </div>
+
+                {/* الطرف الثاني */}
+                <div className="text-center pr-4">
+                  <h4 className="font-bold mb-2">الطرف الثاني</h4>
+                  <p className="font-medium">{contract.secondPartyName}</p>
+                  <p className="text-sm">{contract.secondPartyRepresentative || "----"}</p>
+                  <p className="text-sm text-gray-600">{contract.secondPartyTitle || "----"}</p>
+                  <div className="mt-8 space-y-4">
+                    <p>التوقيع: ...................................</p>
+                    <p>التاريخ: ...................................</p>
+                  </div>
+                  <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
+                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                </div>
+              </div>
             </div>
 
             {/* تذييل الصفحة */}
             <div 
-              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500"
+              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500 print:relative print:mt-12"
               style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 32px' }}
             >
               <div className="flex justify-between items-center">
@@ -659,259 +769,6 @@ export default function ContractPreview() {
                 <span>{orgSettings?.website || "www.tamam.org.sa"}</span>
                 <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
               </div>
-              <div className="mt-2">الصفحة 1 من 4</div>
-            </div>
-          </div>
-
-          {/* الصفحة الثانية */}
-          <div className="p-8 print:p-6 page-break-before" style={{ minHeight: '297mm', position: 'relative', pageBreakBefore: 'always' }}>
-            {/* المادة الثانية */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الثانية: التزامات الطرف الثاني:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>إصدار التراخيص المطلوبة.</li>
-                <li>اعتماد كافة المخططات من كل الجهات ذات العلاقة.</li>
-                <li>تقديم الدراسات الفنية والمخططات المطلوبة وفقًا للمعايير الهندسية.</li>
-                <li>الالتزام بتسليم الأعمال ضمن الجدول الزمني المحدد.</li>
-                <li>استخراج التراخيص في نطاق المنطقة.</li>
-                <li>إجراء التعديلات المطلوبة خلال مدة زمنية محددة.</li>
-                <li>المحافظة على سرية المعلومات والبيانات المقدمة.</li>
-                <li>الالتزام بمعايير الجودة والسلامة.</li>
-              </ol>
-            </div>
-
-            {/* المادة الثالثة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الثالثة: مدة العقد
-              </h3>
-              <p className="text-sm text-gray-700">
-                مدة العقد ({contract.duration}) {contract.durationUnit ? DURATION_UNITS[contract.durationUnit] : "شهر"} من تاريخ توقيع العقد.
-              </p>
-            </div>
-
-            {/* المادة الرابعة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الرابعة: قيمة العقد
-              </h3>
-              <p className="text-sm text-gray-700 mb-4">
-                ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
-              </p>
-
-              {/* جدول الدفعات */}
-              {payments && payments.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">الدفعات</h4>
-                  <table className="w-full border-collapse text-sm">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f5f5f5' }}>
-                        <th className="border p-2 text-right">المرحلة/الدفعة</th>
-                        <th className="border p-2 text-center">المبلغ</th>
-                        <th className="border p-2 text-center">تاريخ الاستحقاق</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payments.map((payment, index) => (
-                        <tr key={index}>
-                          <td className="border p-2">{payment.phaseName}</td>
-                          <td className="border p-2 text-center">{parseFloat(payment.amount).toLocaleString('ar-SA')}</td>
-                          <td className="border p-2 text-center">
-                            {payment.dueDate ? new Date(payment.dueDate).toLocaleDateString('ar-SA') : "يتم تحديده"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* بيانات الحساب البنكي */}
-              <div className="text-sm">
-                <p className="mb-1">يتم تحويل الدفعات على حساب الطرف الثاني:</p>
-                <ul className="list-disc list-inside pr-4 space-y-1">
-                  <li>اسم الحساب: <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
-                  <li>رقم الآيبان: <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
-                  <li>اسم البنك: <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
-                </ul>
-              </div>
-            </div>
-
-            {/* تذييل الصفحة */}
-            <div 
-              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500"
-              style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 32px' }}
-            >
-              <div className="mt-2">الصفحة 2 من 4</div>
-            </div>
-          </div>
-
-          {/* الصفحة الثالثة */}
-          <div className="p-8 print:p-6" style={{ minHeight: '297mm', position: 'relative', pageBreakBefore: 'always' }}>
-            {/* المادة الخامسة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الخامسة: تعديل العقد:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>لا يجوز تعديل أي بند من بنود هذا العقد إلا بموافقة الطرفين كتابياً على التعديل.</li>
-                <li>يتم إضافة أي بنود إضافية لهذا العقد لملاحق العقد بعد التوقيع عليها من الطرفين.</li>
-                <li>يشار في الملاحق التي تتبع التوقيع على هذا العقد إلى هذا العقد لإيضاح العمل المنفذ وإثباته.</li>
-              </ol>
-            </div>
-
-            {/* المادة السادسة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة السادسة: الإشعارات والمراسلات:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>تتم الإشعارات والمراسلات بين الطرفين كتابياً بواسطة البريد الرسمي أو التسليم باليد بوجود تأكيد خطي على الاستلام أو عبر البريد الإلكتروني أو الفاكس مع تأكيد الاستلام على العناوين المحددة في صدر هذا العقد.</li>
-                <li>تُعد الإشعارات والمراسلات المرسلة عبر الطرق المحددة صحيحة ومنتجة لكافة آثارها.</li>
-                <li>في حال قام أحد الطرفين بتغيير عنوانه فيلزم إشعار الطرف الآخر رسمياً بعنوانه الجديد ويكون العنوان الجديد والموضح من الطرف المعني هو العنوان الصحيح وكذلك ضابط الاتصال.</li>
-              </ol>
-            </div>
-
-            {/* المادة السابعة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة السابعة: أحكام عامة:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>يتم البدء بالعمل بهذا العقد بموجب التوقيع عليه من قبل الطرفين.</li>
-                <li>يلتزم الطرف الثاني بتنفيذ الأعمال المطلوبة منه وفق الأصول المتبعة وبأفضل جودة وخلال الفترة الزمنية المحددة بالعقد.</li>
-                <li>تخضع هذه الاتفاقية لموافقة الطرفين كتابياً في جميع أعمالها والتزامهما بالعمل ضمن بنودها أو الملاحق الموافق عليها خطياً.</li>
-              </ol>
-            </div>
-
-            {/* المادة الثامنة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الثامنة: سرية المعلومات:
-              </h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                يتعهد الطرفان بالحفاظ على سرية المعلومات التي تتوفر لديهما بسبب تطبيق هذه الاتفاقية سواءً كانت شفوية أو مكتوبة
-                ولا يجوز إفشاء هذه الأسرار لأي طرف ثالث إلا بعد الحصول على موافقة خطية مسبقة من الطرف الآخر.
-              </p>
-            </div>
-
-            {/* تذييل الصفحة */}
-            <div 
-              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500"
-              style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 32px' }}
-            >
-              <div className="mt-2">الصفحة 3 من 4</div>
-            </div>
-          </div>
-
-          {/* الصفحة الرابعة */}
-          <div className="p-8 print:p-6" style={{ minHeight: '297mm', position: 'relative', pageBreakBefore: 'always' }}>
-            {/* المادة التاسعة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة التاسعة: حقوق الملكية الفكرية:
-              </h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                يلتزم الطرفين بمراعاة حقوق الملكية الفكرية والأدبية الخاصة أو المملوكة للطرف الآخر وعدم التعدي عليها، كما لا تعطي
-                هذه الاتفاقية أياً من الطرفين أي حقوق تجاه حقوق الملكية الفكرية المملوكة للطرف الآخر.
-              </p>
-            </div>
-
-            {/* المادة العاشرة */}
-            <div className="mb-6">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة العاشرة: حل المنازعات:
-              </h3>
-              <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 pr-4">
-                <li>في حال حدوث أي خلاف بين الطرفين حول تفسير أو تنفيذ أي بند من بنود هذه الاتفاقية أو ملحقاتها يتم حله بالطرق الودية، فإن تعذر ذلك فيكون الاختصاص للجهات الرسمية وفقاً لأحكام القانون والنظام السعودي.</li>
-                <li>تخضع هذه الاتفاقية للأنظمة المعمول بها في المملكة العربية السعودية، وفي حالة نشوء أي نزاع بين الطرفين حول أحكام هذه الاتفاقية يعملان على حلّه ودياً، وإذا تعذر ذلك فيعالج النزاع وفقاً للمحكمة المختصة مكانياً وولائياً.</li>
-              </ol>
-            </div>
-
-            {/* المادة الحادية عشر */}
-            <div className="mb-8">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3"
-                style={{ backgroundColor: '#1a5f4a', color: 'white' }}
-              >
-                المادة الحادية عشر: نُسخ الاتفاقية:
-              </h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                حررت هذه الاتفاقية من نسختين ويُسلم كل طرف نسخة للعمل بموجبها، وتوثيقاً لما تقدم فقد جرى التوقيع على هذه
-                الاتفاقية في التاريخ المبين في مقدمتها.
-              </p>
-            </div>
-
-            {/* التوقيعات */}
-            <div className="text-center mb-8">
-              <p className="font-bold text-lg">هذا وبالله التوفيق،،،</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-8">
-              {/* الطرف الأول */}
-              <div className="text-center border-l pl-4">
-                <h4 className="font-bold mb-2">الطرف الأول</h4>
-                <p className="font-medium">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
-                <p className="text-sm">{orgSettings?.authorizedSignatory || "----"}</p>
-                <p className="text-sm text-gray-600">{orgSettings?.signatoryTitle || "----"}</p>
-                <div className="mt-8 space-y-4">
-                  <p>التوقيع: ...................................</p>
-                  <p>التاريخ: ...................................</p>
-                </div>
-                <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
-                <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
-              </div>
-
-              {/* الطرف الثاني */}
-              <div className="text-center pr-4">
-                <h4 className="font-bold mb-2">الطرف الثاني</h4>
-                <p className="font-medium">{contract.secondPartyName}</p>
-                <p className="text-sm">{contract.secondPartyRepresentative || "----"}</p>
-                <p className="text-sm text-gray-600">{contract.secondPartyTitle || "----"}</p>
-                <div className="mt-8 space-y-4">
-                  <p>التوقيع: ...................................</p>
-                  <p>التاريخ: ...................................</p>
-                </div>
-                <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
-                <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
-              </div>
-            </div>
-
-            {/* تذييل الصفحة */}
-            <div 
-              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500"
-              style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 32px' }}
-            >
-              <div className="mt-2">الصفحة 4 من 4</div>
             </div>
           </div>
         </div>

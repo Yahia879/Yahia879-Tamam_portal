@@ -298,11 +298,30 @@ export const contractsRouter = router({
       
       // جلب إعدادات الجمعية
       const [orgSettings] = await db.select().from(organizationSettings).limit(1);
+
+      // جلب بنود العقد الفعلية
+      const clauseValues = await db
+        .select({
+          id: contractClauseValues.id,
+          clauseId: contractClauseValues.clauseId,
+          title: contractClauseValues.title,
+          customContent: contractClauseValues.customContent,
+          orderIndex: contractClauseValues.orderIndex,
+          isIncluded: contractClauseValues.isIncluded,
+          originalTitle: contractClauses.title,
+          originalTitleAr: contractClauses.titleAr,
+          originalContent: contractClauses.content,
+        })
+        .from(contractClauseValues)
+        .leftJoin(contractClauses, eq(contractClauseValues.clauseId, contractClauses.id))
+        .where(eq(contractClauseValues.contractId, input.id))
+        .orderBy(asc(contractClauseValues.orderIndex));
       
       return {
         contract,
         payments,
         organizationSettings: orgSettings,
+        clauseValues,
       };
     }),
   
