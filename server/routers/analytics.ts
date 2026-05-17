@@ -140,19 +140,43 @@ export const analyticsRouter = router({
         .groupBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, '%Y-%m')`)
         .orderBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, '%Y-%m')`);
 
+      // الطلبات الجديدة (مفلترة)
+      const newRequestsResult = await db
+        .select({ count: count() })
+        .from(mosqueRequests)
+        .where(and(whereClause, eq(mosqueRequests.currentStage, "submitted")));
+      const newRequests = newRequestsResult[0]?.count || 0;
+
+      // المشاريع المكتملة
+      const completedProjectsResult = await db
+        .select({ count: count() })
+        .from(projects)
+        .where(eq(projects.status, "completed"));
+      const completedProjects = completedProjectsResult[0]?.count || 0;
+
+      // آخر التقارير الختامية
+      const recentReports = await db
+        .select()
+        .from(finalReports)
+        .orderBy(desc(finalReports.createdAt))
+        .limit(5);
+
       return {
         summary: {
           totalRequests,
           closedRequests,
           activeRequests,
+          newRequests,
           avgRating: Math.round(avgRating * 10) / 10,
           totalCost,
           benefitedMosques,
+          completedProjects,
           completionRate: totalRequests > 0 ? Math.round((closedRequests / totalRequests) * 100) : 0,
         },
         byProgram: byProgramResult,
         byStage: byStageResult,
         monthlyTrend,
+        recentReports,
       };
     }),
 

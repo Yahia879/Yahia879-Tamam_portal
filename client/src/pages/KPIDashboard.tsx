@@ -214,7 +214,7 @@ export default function KPIDashboard() {
         </div>
 
         {/* بطاقات الإحصاءات الرئيسية */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="إجمالي الطلبات"
             value={summary.totalRequests}
@@ -246,7 +246,7 @@ export default function KPIDashboard() {
         </div>
 
         {/* بطاقات الأداء */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="متوسط تقييم الجودة"
             value={summary.avgRating > 0 ? `${summary.avgRating}/5` : "—"}
@@ -278,21 +278,21 @@ export default function KPIDashboard() {
         </div>
 
         {/* مؤشر معدل الإنجاز */}
-        <Card>
-          <CardContent className="p-6">
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-700">معدل إنجاز الطلبات</h3>
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">
+              <h3 className="font-semibold text-gray-700 text-sm sm:text-base">معدل إنجاز الطلبات</h3>
+              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] sm:text-xs">
                 {summary.completionRate}%
               </Badge>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden">
+            <div className="w-full bg-gray-100 rounded-full h-3 sm:h-4 overflow-hidden">
               <div
-                className="h-4 rounded-full bg-gradient-to-l from-emerald-400 to-emerald-600 transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-emerald-600 transition-all duration-500"
                 style={{ width: `${summary.completionRate}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-gray-400 mt-2">
+            <div className="flex justify-between text-[10px] sm:text-xs text-gray-400 mt-2">
               <span>0%</span>
               <span>50%</span>
               <span>100%</span>
@@ -301,92 +301,98 @@ export default function KPIDashboard() {
         </Card>
 
         {/* الرسوم البيانية */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* توزيع الطلبات حسب البرنامج */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700 flex items-center gap-2">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="p-4 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
                 <div className="w-1 h-5 bg-indigo-500 rounded-full" />
                 توزيع الطلبات حسب البرنامج
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {programChartData.length > 0 ? (
-                <div className="flex items-center gap-4">
-                  <ResponsiveContainer width="50%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={programChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        dataKey="value"
-                      >
-                        {programChartData.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: any, name: any) => [value, name]}
-                        contentStyle={{ direction: 'rtl', fontFamily: 'inherit' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex-1 space-y-2">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="w-full sm:w-1/2 aspect-square max-h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={programChartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          dataKey="value"
+                        >
+                          {programChartData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(value: any, name: any) => [value, name]}
+                          contentStyle={{ direction: 'rtl', fontFamily: 'inherit', borderRadius: '8px' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="w-full sm:flex-1 space-y-1.5">
                     {programChartData.map((item: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
+                      <div key={index} className="flex items-center justify-between text-xs sm:text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-gray-600">{item.name}</span>
+                          <span className="text-gray-600 truncate">{item.name}</span>
                         </div>
-                        <span className="font-semibold text-gray-800">{item.value}</span>
+                        <span className="font-bold text-gray-800 shrink-0">{item.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">لا توجد بيانات</div>
+                <div className="text-center py-12 text-gray-400 text-sm">لا توجد بيانات</div>
               )}
             </CardContent>
           </Card>
 
           {/* توزيع الطلبات حسب المرحلة */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700 flex items-center gap-2">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="p-4 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
                 <div className="w-1 h-5 bg-amber-500 rounded-full" />
                 توزيع الطلبات حسب المرحلة
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               {stageChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={stageChartData} layout="vertical" margin={{ right: 10, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11 }} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fontSize: 11, fontFamily: 'inherit' }}
-                      width={80}
-                    />
-                    <Tooltip
-                      formatter={(value: any) => [value, 'عدد الطلبات']}
-                      contentStyle={{ direction: 'rtl', fontFamily: 'inherit' }}
-                    />
-                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                      {stageChartData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="h-[220px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stageChartData} layout="vertical" margin={{ right: 30, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 10, fontFamily: 'inherit' }}
+                        width={90}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(value: any) => [value, 'عدد الطلبات']}
+                        contentStyle={{ direction: 'rtl', fontFamily: 'inherit', borderRadius: '8px' }}
+                      />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={16}>
+                        {stageChartData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">لا توجد بيانات</div>
+                <div className="text-center py-12 text-gray-400 text-sm">لا توجد بيانات</div>
               )}
             </CardContent>
           </Card>
@@ -394,62 +400,64 @@ export default function KPIDashboard() {
 
         {/* الاتجاه الشهري */}
         {trendChartData.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700 flex items-center gap-2">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="p-4 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
                 <div className="w-1 h-5 bg-emerald-500 rounded-full" />
-                الاتجاه الشهري للطلبات (آخر 12 شهر)
+                الاتجاه الشهري للطلبات
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={trendChartData} margin={{ right: 10, left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    formatter={(value: any) => [value, 'عدد الطلبات']}
-                    contentStyle={{ direction: 'rtl', fontFamily: 'inherit' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="طلبات"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendChartData} margin={{ right: 5, left: 0, top: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      formatter={(value: any) => [value, 'عدد الطلبات']}
+                      contentStyle={{ direction: 'rtl', fontFamily: 'inherit', borderRadius: '8px' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="طلبات"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         )}
 
         {/* آخر التقارير الختامية */}
         {recentReports.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700 flex items-center gap-2">
+          <Card className="border-0 shadow-sm overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 pb-2">
+              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
                 <div className="w-1 h-5 bg-purple-500 rounded-full" />
                 آخر التقارير الختامية
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0 sm:p-6 pt-0">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs sm:text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100">
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
                       <th className="text-right py-3 px-4 font-semibold text-gray-600">رقم الطلب</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">تاريخ الإنجاز</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">التكلفة الإجمالية</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">تقييم الجودة</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-600 hidden sm:table-cell">تاريخ الإنجاز</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-600">التكلفة</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-600">الجودة</th>
                     </tr>
                   </thead>
                   <tbody>
                     {recentReports.map((report: any) => (
-                      <tr key={report.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <tr key={report.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
                         <td className="py-3 px-4 text-gray-700 font-medium">#{report.requestId}</td>
-                        <td className="py-3 px-4 text-gray-500">
+                        <td className="py-3 px-4 text-gray-500 hidden sm:table-cell">
                           {report.completionDate
                             ? new Date(report.completionDate).toLocaleDateString('ar-SA')
                             : new Date(report.createdAt).toLocaleDateString('ar-SA')}
@@ -459,7 +467,7 @@ export default function KPIDashboard() {
                             ? formatCurrency(Number(report.totalCost))
                             : '—'}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3 px-4 min-w-[100px]">
                           {report.satisfactionRating ? (
                             <StarDisplay rating={report.satisfactionRating} />
                           ) : (
