@@ -410,41 +410,41 @@ export default function DisbursementRequests() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">طلبات قيد المراجعة</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات قيد المراجعة</CardTitle>
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData?.pendingRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">طلبات معتمدة</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات معتمدة</CardTitle>
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData?.approvedRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.approvedRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">أوامر قيد الاعتماد</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">أوامر قيد الاعتماد</CardTitle>
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{statsData?.pendingOrders || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingOrders || 0}</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المصروف</CardTitle>
-              <Banknote className="h-4 w-4 text-green-500" />
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المصروف</CardTitle>
+              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-sm sm:text-2xl font-bold truncate">
                 {Number(statsData?.totalPaid || 0).toLocaleString()} ريال
               </div>
             </CardContent>
@@ -460,7 +460,7 @@ export default function DisbursementRequests() {
           {/* طلبات الصرف */}
           <TabsContent value="requests" className="space-y-4">
             {/* الفلاتر */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -470,233 +470,417 @@ export default function DisbursementRequests() {
                   className="pr-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <Filter className="ml-2 h-4 w-4" />
-                  <SelectValue placeholder="الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">قيد المراجعة</SelectItem>
-                  <SelectItem value="approved">معتمد</SelectItem>
-                  <SelectItem value="rejected">مرفوض</SelectItem>
-                  <SelectItem value="paid">مصروف</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <CreditCard className="ml-2 h-4 w-4" />
-                  <SelectValue placeholder="نوع الدفعة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">جميع الأنواع</SelectItem>
-                  <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                  <SelectItem value="progress">دفعة مرحلية</SelectItem>
-                  <SelectItem value="final">دفعة نهائية</SelectItem>
-                  <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-4 lg:flex lg:w-auto">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full lg:w-[180px]">
+                    <Filter className="ml-2 h-4 w-4" />
+                    <SelectValue placeholder="الحالة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">قيد المراجعة</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
+                    <SelectItem value="paid">مصروف</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+                  <SelectTrigger className="w-full lg:w-[180px]">
+                    <CreditCard className="ml-2 h-4 w-4" />
+                    <SelectValue placeholder="نوع الدفعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الأنواع</SelectItem>
+                    <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                    <SelectItem value="progress">دفعة مرحلية</SelectItem>
+                    <SelectItem value="final">دفعة نهائية</SelectItem>
+                    <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* جدول طلبات الصرف */}
-            <Card>
+            {/* جدول طلبات الصرف - Desktop & Card View - Mobile */}
+            <Card className="border-0 shadow-sm overflow-hidden">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>رقم الطلب</TableHead>
-                      <TableHead>العنوان</TableHead>
-                      <TableHead>المشروع</TableHead>
-                      <TableHead>المبلغ</TableHead>
-                      <TableHead>نوع الدفعة</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRequests?.length === 0 ? (
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          لا توجد طلبات صرف
-                        </TableCell>
+                        <TableHead>رقم الطلب</TableHead>
+                        <TableHead>العنوان</TableHead>
+                        <TableHead>المشروع</TableHead>
+                        <TableHead>المبلغ</TableHead>
+                        <TableHead>نوع الدفعة</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                        <TableHead>الإجراءات</TableHead>
                       </TableRow>
-                    ) : (
-                      filteredRequests?.map((request) => (
-                        <TableRow key={request.id}>
-                          <TableCell className="font-mono">{request.requestNumber}</TableCell>
-                          <TableCell>{request.title}</TableCell>
-                          <TableCell>{request.projectName}</TableCell>
-                          <TableCell>{Number(request.amount).toLocaleString()} ريال</TableCell>
-                          <TableCell>{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
-                          <TableCell>
-                            <DisbursementStatusBadge 
-                              status={request.status as any} 
-                              type="request" 
-                            />
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            لا توجد طلبات صرف
                           </TableCell>
-                          <TableCell>
-                            {request.requestedAt
-                              ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
-                              : "-"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setShowDetailsDialog(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {canApproveRequest && request.status === "pending" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-green-600"
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setShowApproveDialog(true);
-                                    }}
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-red-600"
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setShowRejectDialog(true);
-                                    }}
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                              {canCreateOrder && request.status === "approved" && (
+                        </TableRow>
+                      ) : (
+                        filteredRequests?.map((request) => (
+                          <TableRow key={request.id}>
+                            <TableCell className="font-mono text-xs">{request.requestNumber}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{request.title}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">{request.projectName}</TableCell>
+                            <TableCell className="whitespace-nowrap">{Number(request.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell>{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
+                            <TableCell>
+                              <DisbursementStatusBadge 
+                                status={request.status as any} 
+                                type="request" 
+                              />
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {request.requestedAt
+                                ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
+                                : "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-blue-600"
-                                  onClick={() => openCreateOrderDialog(request)}
-                                  title="إنشاء أمر صرف"
+                                  onClick={() => {
+                                    setSelectedRequest(request);
+                                    setShowDetailsDialog(true);
+                                  }}
                                 >
-                                  <FileText className="h-4 w-4" />
+                                  <Eye className="h-4 w-4" />
                                 </Button>
-                              )}
+                                {canApproveRequest && request.status === "pending" && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-green-600"
+                                      onClick={() => {
+                                        setSelectedRequest(request);
+                                        setShowApproveDialog(true);
+                                      }}
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-600"
+                                      onClick={() => {
+                                        setSelectedRequest(request);
+                                        setShowRejectDialog(true);
+                                      }}
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                                {canCreateOrder && request.status === "approved" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-600"
+                                    onClick={() => openCreateOrderDialog(request)}
+                                    title="إنشاء أمر صرف"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                  title="طباعة طلب الصرف"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {filteredRequests?.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">لا توجد طلبات صرف</div>
+                  ) : (
+                    filteredRequests?.map((request) => (
+                      <div key={request.id} className="p-4 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0">
+                            <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
+                            <p className="font-bold text-sm truncate">{request.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                          </div>
+                          <DisbursementStatusBadge 
+                            status={request.status as any} 
+                            type="request" 
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-1">المبلغ</p>
+                            <p className="text-sm font-semibold">{Number(request.amount).toLocaleString()} ريال</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-1">نوع الدفعة</p>
+                            <p className="text-xs">{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                          <span className="text-[10px] text-muted-foreground">
+                            {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                setSelectedRequest(request);
+                                setShowDetailsDialog(true);
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            {canApproveRequest && request.status === "pending" && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-green-600 border-green-200"
+                                  onClick={() => {
+                                    setSelectedRequest(request);
+                                    setShowApproveDialog(true);
+                                  }}
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-red-600 border-red-200"
+                                  onClick={() => {
+                                    setSelectedRequest(request);
+                                    setShowRejectDialog(true);
+                                  }}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                            {canCreateOrder && request.status === "approved" && (
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                title="طباعة طلب الصرف"
+                                className="h-8 w-8 p-0 text-blue-600 border-blue-200"
+                                onClick={() => openCreateOrderDialog(request)}
                               >
-                                <Printer className="h-4 w-4" />
+                                <FileText className="h-3.5 w-3.5" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* أوامر الصرف */}
           <TabsContent value="orders" className="space-y-4">
-            <Card>
+            <Card className="border-0 shadow-sm overflow-hidden">
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>رقم الأمر</TableHead>
-                      <TableHead>طلب الصرف</TableHead>
-                      <TableHead>المشروع</TableHead>
-                      <TableHead>المستفيد</TableHead>
-                      <TableHead>المبلغ</TableHead>
-                      <TableHead>طريقة الدفع</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ordersData?.orders?.length === 0 ? (
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          لا توجد أوامر صرف
-                        </TableCell>
+                        <TableHead>رقم الأمر</TableHead>
+                        <TableHead>طلب الصرف</TableHead>
+                        <TableHead>المشروع</TableHead>
+                        <TableHead>المستفيد</TableHead>
+                        <TableHead>المبلغ</TableHead>
+                        <TableHead>طريقة الدفع</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>الإجراءات</TableHead>
                       </TableRow>
-                    ) : (
-                      ordersData?.orders?.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-mono">{order.orderNumber}</TableCell>
-                          <TableCell>{order.requestNumber}</TableCell>
-                          <TableCell>{order.projectName}</TableCell>
-                          <TableCell>{order.beneficiaryName}</TableCell>
-                          <TableCell>{Number(order.amount).toLocaleString()} ريال</TableCell>
-                          <TableCell>
-                            {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
-                          </TableCell>
-                          <TableCell>
-                            <DisbursementStatusBadge 
-                              status={order.status as any} 
-                              type="order" 
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowOrderPreviewDialog(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {canApproveOrder && order.status === "pending" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-green-600"
-                                  onClick={() => approveOrderMutation.mutate({ id: order.id })}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                              )}
-                              {canExecuteOrder && order.status === "approved" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-blue-600"
-                                  onClick={() => executeOrderMutation.mutate({ id: order.id })}
-                                  title="تنفيذ الصرف"
-                                >
-                                  <Banknote className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/disbursements/orders/${order.id}/print`)}
-                                title="طباعة أمر الصرف"
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </div>
+                    </TableHeader>
+                    <TableBody>
+                      {ordersData?.orders?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            لا توجد أوامر صرف
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        ordersData?.orders?.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+                            <TableCell className="text-xs">{order.requestNumber}</TableCell>
+                            <TableCell className="max-w-[150px] truncate">{order.projectName}</TableCell>
+                            <TableCell className="max-w-[150px] truncate">{order.beneficiaryName}</TableCell>
+                            <TableCell className="whitespace-nowrap">{Number(order.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                            </TableCell>
+                            <TableCell>
+                              <DisbursementStatusBadge 
+                                status={order.status as any} 
+                                type="order" 
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowOrderPreviewDialog(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                {canApproveOrder && order.status === "pending" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-green-600"
+                                    onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canExecuteOrder && order.status === "approved" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-600"
+                                    onClick={() => executeOrderMutation.mutate({ id: order.id })}
+                                    title="تنفيذ الصرف"
+                                  >
+                                    <Banknote className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigate(`/disbursements/orders/${order.id}/print`)}
+                                  title="طباعة أمر الصرف"
+                                >
+                                  <Printer className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {ordersData?.orders?.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">لا توجد أوامر صرف</div>
+                  ) : (
+                    ordersData?.orders?.map((order) => (
+                      <div key={order.id} className="p-4 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0">
+                            <p className="font-mono text-[10px] text-muted-foreground">{order.orderNumber}</p>
+                            <p className="font-bold text-sm truncate">{order.beneficiaryName}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">لطلب: {order.requestNumber}</p>
+                          </div>
+                          <DisbursementStatusBadge 
+                            status={order.status as any} 
+                            type="order" 
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-1">المبلغ</p>
+                            <p className="text-sm font-semibold">{Number(order.amount).toLocaleString()} ريال</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-1">طريقة الدفع</p>
+                            <p className="text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">{order.projectName}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowOrderPreviewDialog(true);
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            {canApproveOrder && order.status === "pending" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-green-600 border-green-200"
+                                onClick={() => approveOrderMutation.mutate({ id: order.id })}
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {canExecuteOrder && order.status === "approved" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-blue-600 border-blue-200"
+                                onClick={() => executeOrderMutation.mutate({ id: order.id })}
+                              >
+                                <Banknote className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => navigate(`/disbursements/orders/${order.id}/print`)}
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
