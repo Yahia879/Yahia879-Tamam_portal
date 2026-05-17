@@ -105,17 +105,18 @@ export default function FinancialDashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">لوحة التحكم المالية</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold">لوحة التحكم المالية</h1>
+            <p className="text-muted-foreground mt-1 text-sm sm:text-base">
               متابعة شاملة للحركة المالية وطلبات وأوامر الصرف
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setLocation("/disbursement-requests")}
+              className="w-full sm:w-auto"
             >
               <FileText className="ml-2 h-4 w-4" />
               طلبات الصرف
@@ -123,6 +124,7 @@ export default function FinancialDashboard() {
             <Button
               variant="outline"
               onClick={() => setLocation("/disbursement-orders")}
+              className="w-full sm:w-auto"
             >
               <CreditCard className="ml-2 h-4 w-4" />
               أوامر الصرف
@@ -132,16 +134,17 @@ export default function FinancialDashboard() {
 
         {/* Project Filter */}
         {projects && projects.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">تصفية حسب المشروع</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-base sm:text-lg">تصفية حسب المشروع</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div className="flex gap-2 flex-wrap">
                 <Button
                   variant={selectedProject === null ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedProject(null)}
+                  className="text-xs sm:text-sm"
                 >
                   جميع المشاريع
                 </Button>
@@ -151,8 +154,9 @@ export default function FinancialDashboard() {
                     variant={selectedProject === project.id ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedProject(project.id)}
+                    className="text-xs sm:text-sm"
                   >
-                    <Building2 className="ml-2 h-4 w-4" />
+                    <Building2 className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                     {project.projectNumber}
                   </Button>
                 ))}
@@ -163,7 +167,7 @@ export default function FinancialDashboard() {
 
         {/* Financial Summary Cards */}
         {summaryLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader className="pb-2">
@@ -178,9 +182,9 @@ export default function FinancialDashboard() {
           </div>
         ) : financialSummary ? (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               {/* إجمالي المبلغ المعتمد */}
-              <Card>
+              <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Banknote className="h-4 w-4" />
@@ -188,7 +192,7 @@ export default function FinancialDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-primary">
+                  <div className="text-xl sm:text-2xl font-bold text-primary truncate">
                     {formatCurrency(financialSummary.totalApproved)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -198,7 +202,7 @@ export default function FinancialDashboard() {
               </Card>
 
               {/* المبلغ المصروف */}
-              <Card>
+              <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <TrendingDown className="h-4 w-4" />
@@ -206,7 +210,7 @@ export default function FinancialDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-600">
+                  <div className="text-xl sm:text-2xl font-bold text-emerald-600 truncate">
                     {formatCurrency(financialSummary.totalPaid)}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
@@ -217,7 +221,7 @@ export default function FinancialDashboard() {
               </Card>
 
               {/* المبلغ المتبقي */}
-              <Card>
+              <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
@@ -225,7 +229,7 @@ export default function FinancialDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-600 truncate">
                     {formatCurrency(financialSummary.totalRemaining)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -235,7 +239,7 @@ export default function FinancialDashboard() {
               </Card>
 
               {/* طلبات قيد المراجعة */}
-              <Card>
+              <Card className="border-0 shadow-sm">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <Clock className="h-4 w-4" />
@@ -243,10 +247,10 @@ export default function FinancialDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-amber-600">
+                  <div className="text-xl sm:text-2xl font-bold text-amber-600">
                     {financialSummary.pendingRequests}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 truncate">
                     بقيمة {formatCurrency(financialSummary.pendingAmount)}
                   </p>
                 </CardContent>
@@ -254,19 +258,19 @@ export default function FinancialDashboard() {
             </div>
 
             {/* Detailed Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle>تفاصيل الحركة المالية</CardTitle>
-                <CardDescription>
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">تفاصيل الحركة المالية</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   نظرة شاملة على مراحل الصرف المختلفة
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-4 sm:p-6 space-y-4 pt-0">
                 {/* Advance Payment */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">الدفعة المقدمة</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">الدفعة المقدمة</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {formatCurrency(financialSummary.advancePayment || 0)}
                     </span>
                   </div>
@@ -276,8 +280,8 @@ export default function FinancialDashboard() {
                 {/* Progress Payments */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">الدفعات المرحلية</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">الدفعات المرحلية</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {formatCurrency(financialSummary.progressPayments || 0)}
                     </span>
                   </div>
@@ -287,8 +291,8 @@ export default function FinancialDashboard() {
                 {/* Final Payment */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">الدفعة الختامية</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">الدفعة الختامية</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {formatCurrency(financialSummary.finalPayment || 0)}
                     </span>
                   </div>
@@ -298,8 +302,8 @@ export default function FinancialDashboard() {
                 {/* Retention */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">ضمان حسن التنفيذ</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm font-medium">ضمان حسن التنفيذ</span>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {formatCurrency(financialSummary.retentionAmount || 0)}
                     </span>
                   </div>
@@ -309,7 +313,7 @@ export default function FinancialDashboard() {
             </Card>
           </>
         ) : (
-          <Card>
+          <Card className="border-0 shadow-sm">
             <CardContent className="py-12 text-center">
               <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">لا توجد بيانات مالية متاحة</p>
@@ -319,72 +323,117 @@ export default function FinancialDashboard() {
 
         {/* Recent Activity Tabs */}
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="requests">
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted/50">
+            <TabsTrigger value="requests" className="py-2 text-xs sm:text-sm">
               <FileText className="ml-2 h-4 w-4" />
-              طلبات الصرف الأخيرة
+              طلبات الصرف
             </TabsTrigger>
-            <TabsTrigger value="orders">
+            <TabsTrigger value="orders" className="py-2 text-xs sm:text-sm">
               <CreditCard className="ml-2 h-4 w-4" />
-              أوامر الصرف الأخيرة
+              أوامر الصرف
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="requests">
-            <Card>
-              <CardHeader>
-                <CardTitle>آخر طلبات الصرف</CardTitle>
-                <CardDescription>
+          <TabsContent value="requests" className="mt-4">
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 pb-2">
+                <CardTitle className="text-lg">آخر طلبات الصرف</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   آخر 5 طلبات صرف تم إنشاؤها
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 sm:p-6">
                 {recentRequests && recentRequests.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>رقم الطلب</TableHead>
-                        <TableHead>المشروع</TableHead>
-                        <TableHead>المبلغ</TableHead>
-                        <TableHead>النوع</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <>
+                    {/* Desktop View Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-right">رقم الطلب</TableHead>
+                            <TableHead className="text-right">المشروع</TableHead>
+                            <TableHead className="text-right">المبلغ</TableHead>
+                            <TableHead className="text-right">النوع</TableHead>
+                            <TableHead className="text-right">الحالة</TableHead>
+                            <TableHead className="text-right">التاريخ</TableHead>
+                            <TableHead className="text-right"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recentRequests.map((request: any) => (
+                            <TableRow key={request.id}>
+                              <TableCell className="font-medium">{request.requestNumber}</TableCell>
+                              <TableCell>{request.projectNumber}</TableCell>
+                              <TableCell>{formatCurrency(Number(request.amount))}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] sm:text-xs">
+                                  {request.paymentType === "advance" && "دفعة مقدمة"}
+                                  {request.paymentType === "progress" && "دفعة مرحلية"}
+                                  {request.paymentType === "final" && "دفعة ختامية"}
+                                  {request.paymentType === "retention" && "ضمان"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{getStatusBadge(request.status)}</TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setLocation(`/disbursement-requests`)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile View Cards */}
+                    <div className="md:hidden divide-y divide-border border-t">
                       {recentRequests.map((request: any) => (
-                        <TableRow key={request.id}>
-                          <TableCell className="font-medium">{request.requestNumber}</TableCell>
-                          <TableCell>{request.projectNumber}</TableCell>
-                          <TableCell>{formatCurrency(Number(request.amount))}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
+                        <div key={request.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-primary">{request.requestNumber}</span>
+                            {getStatusBadge(request.status)}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              <span>{request.projectNumber}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(request.createdAt).toLocaleDateString("ar-SA")}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline" className="text-[10px]">
                               {request.paymentType === "advance" && "دفعة مقدمة"}
                               {request.paymentType === "progress" && "دفعة مرحلية"}
                               {request.paymentType === "final" && "دفعة ختامية"}
                               {request.paymentType === "retention" && "ضمان"}
                             </Badge>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(request.status)}</TableCell>
-                          <TableCell>
-                            {new Date(request.createdAt).toLocaleDateString("ar-SA")}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setLocation(`/disbursement-requests`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                            <span className="font-bold text-sm">{formatCurrency(Number(request.amount))}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-muted-foreground border border-dashed"
+                            onClick={() => setLocation(`/disbursement-requests`)}
+                          >
+                            <Eye className="h-3 w-3 ml-1" />
+                            عرض التفاصيل
+                          </Button>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  </>
                 ) : (
-                  <div className="py-12 text-center text-muted-foreground">
+                  <div className="py-12 text-center text-muted-foreground text-sm">
                     لا توجد طلبات صرف
                   </div>
                 )}
@@ -392,54 +441,97 @@ export default function FinancialDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>آخر أوامر الصرف</CardTitle>
-                <CardDescription>
+          <TabsContent value="orders" className="mt-4">
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardHeader className="p-4 sm:p-6 pb-2">
+                <CardTitle className="text-lg">آخر أوامر الصرف</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   آخر 5 أوامر صرف تم إنشاؤها
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 sm:p-6">
                 {recentOrders.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>رقم الأمر</TableHead>
-                        <TableHead>رقم الطلب</TableHead>
-                        <TableHead>المستفيد</TableHead>
-                        <TableHead>المبلغ</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <>
+                    {/* Desktop View Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-right">رقم الأمر</TableHead>
+                            <TableHead className="text-right">رقم الطلب</TableHead>
+                            <TableHead className="text-right">المستفيد</TableHead>
+                            <TableHead className="text-right">المبلغ</TableHead>
+                            <TableHead className="text-right">الحالة</TableHead>
+                            <TableHead className="text-right">التاريخ</TableHead>
+                            <TableHead className="text-right"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {recentOrders.map((order: any) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                              <TableCell>{order.disbursementRequest?.requestNumber}</TableCell>
+                              <TableCell className="truncate max-w-[150px]">{order.beneficiaryName}</TableCell>
+                              <TableCell>{formatCurrency(Number(order.amount))}</TableCell>
+                              <TableCell>{getStatusBadge(order.status)}</TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {new Date(order.createdAt).toLocaleDateString("ar-SA")}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setLocation(`/disbursement-orders/${order.id}`)}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile View Cards */}
+                    <div className="md:hidden divide-y divide-border border-t">
                       {recentOrders.map((order: any) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                          <TableCell>{order.disbursementRequest?.requestNumber}</TableCell>
-                          <TableCell>{order.beneficiaryName}</TableCell>
-                          <TableCell>{formatCurrency(Number(order.amount))}</TableCell>
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                          <TableCell>
-                            {new Date(order.createdAt).toLocaleDateString("ar-SA")}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setLocation(`/disbursement-orders/${order.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                        <div key={order.id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-primary">{order.orderNumber}</span>
+                            {getStatusBadge(order.status)}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              <span>{order.disbursementRequest?.requestNumber}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{new Date(order.createdAt).toLocaleDateString("ar-SA")}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs truncate max-w-[150px]">{order.beneficiaryName}</span>
+                            </div>
+                            <span className="font-bold text-sm">{formatCurrency(Number(order.amount))}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs text-muted-foreground border border-dashed"
+                            onClick={() => setLocation(`/disbursement-orders/${order.id}`)}
+                          >
+                            <Eye className="h-3 w-3 ml-1" />
+                            عرض التفاصيل
+                          </Button>
+                        </div>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </div>
+                  </>
                 ) : (
-                  <div className="py-12 text-center text-muted-foreground">
+                  <div className="py-12 text-center text-muted-foreground text-sm">
                     لا توجد أوامر صرف
                   </div>
                 )}
