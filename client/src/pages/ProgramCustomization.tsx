@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
-import { AlertCircle, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle } from 'lucide-react';
 import { PROGRAM_CONFIGS } from '@/lib/programFields';
 
 interface ProgramCustomization {
@@ -131,16 +132,16 @@ export default function ProgramCustomization() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* رأس الصفحة */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">البرامج والخدمات</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">البرامج والخدمات</h1>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
               إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
             </p>
           </div>
           <Button
             onClick={() => setShowAddNew(true)}
-            className="gradient-primary text-white"
+            className="gradient-primary text-white w-full sm:w-auto h-10"
           >
             <Plus className="w-4 h-4 ml-2" />
             إضافة برنامج جديد
@@ -149,11 +150,11 @@ export default function ProgramCustomization() {
 
         {/* تنبيه */}
         <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="flex items-start gap-4 pt-6">
+          <CardContent className="flex items-start gap-3 sm:gap-4 pt-4 sm:pt-6 p-4 sm:p-6">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900">ملاحظة مهمة</h3>
-              <p className="text-sm text-amber-800 mt-1">
+              <h3 className="font-semibold text-amber-900 text-sm sm:text-base">ملاحظة مهمة</h3>
+              <p className="text-xs sm:text-sm text-amber-800 mt-1 leading-relaxed">
                 التغييرات التي تجريها هنا ستؤثر على نموذج تقديم الطلبات الديناميكي.
                 يمكنك تفعيل أو تعطيل البرامج دون حذفها نهائياً.
               </p>
@@ -163,37 +164,39 @@ export default function ProgramCustomization() {
 
         {/* نموذج إضافة برنامج جديد */}
         {showAddNew && (
-          <Card>
-            <CardHeader>
-              <CardTitle>إضافة برنامج جديد</CardTitle>
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader className="p-4 sm:p-6 pb-2">
+              <CardTitle className="text-lg sm:text-xl">إضافة برنامج جديد</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    اسم البرنامج
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    اسم البرنامج *
                   </label>
                   <Input
                     value={newProgram.name || ''}
                     onChange={(e) =>
                       setNewProgram({ ...newProgram, name: e.target.value })
                     }
-                    placeholder="مثال: برنامج جديد"
+                    placeholder="مثال: برنامج السقيا"
+                    className="h-10"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
                     اللون
                   </label>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap max-w-full">
                     {colors.map((color) => (
                       <button
                         key={color}
+                        type="button"
                         onClick={() =>
                           setNewProgram({ ...newProgram, color })
                         }
-                        className={`w-8 h-8 rounded-lg ${color} ${
-                          newProgram.color === color ? 'ring-2 ring-offset-2 ring-primary' : ''
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
+                          newProgram.color === color ? 'ring-2 ring-offset-2 ring-primary scale-110' : 'hover:scale-105'
                         }`}
                       />
                     ))}
@@ -201,22 +204,23 @@ export default function ProgramCustomization() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  الوصف
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-foreground">
+                  الوصف *
                 </label>
                 <Textarea
                   value={newProgram.description || ''}
                   onChange={(e) =>
                     setNewProgram({ ...newProgram, description: e.target.value })
                   }
-                  placeholder="وصف البرنامج"
+                  placeholder="وصف تفصيلي للخدمات المقدمة ضمن هذا البرنامج"
                   rows={3}
+                  className="text-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2 py-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={newProgram.requiresMosque || false}
@@ -226,26 +230,27 @@ export default function ProgramCustomization() {
                         requiresMosque: e.target.checked,
                       })
                     }
-                    className="w-4 h-4"
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
-                  <span className="text-sm text-foreground">
-                    يتطلب اختيار مسجد
+                  <span className="text-sm text-foreground group-hover:text-primary transition-colors">
+                    يتطلب اختيار مسجد من قبل مقدم الطلب
                   </span>
                 </label>
               </div>
 
-              <div className="flex gap-2 justify-end">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
                 <Button
                   variant="outline"
                   onClick={() => setShowAddNew(false)}
+                  className="w-full sm:w-auto h-10"
                 >
                   إلغاء
                 </Button>
                 <Button
                   onClick={handleAddNew}
-                  className="gradient-primary text-white"
+                  className="gradient-primary text-white w-full sm:w-auto h-10"
                 >
-                  إضافة
+                  إضافة البرنامج
                 </Button>
               </div>
             </CardContent>
@@ -255,14 +260,14 @@ export default function ProgramCustomization() {
         {/* قائمة البرامج */}
         <div className="grid grid-cols-1 gap-4">
           {programs.map((program) => (
-            <Card key={program.id} className={!program.active ? 'opacity-50' : ''}>
-              <CardContent className="pt-6">
+            <Card key={program.id} className={`transition-all overflow-hidden ${!program.active ? 'bg-muted/30 opacity-70 grayscale-[0.5]' : 'hover:shadow-sm'}`}>
+              <CardContent className="p-4 sm:p-6">
                 {editingId === program.id ? (
                   // وضع التحرير
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-foreground">
                           اسم البرنامج
                         </label>
                         <Input
@@ -270,23 +275,25 @@ export default function ProgramCustomization() {
                           onChange={(e) =>
                             setEditData({ ...editData, name: e.target.value })
                           }
+                          className="h-10"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-foreground">
                           اللون
                         </label>
                         <div className="flex gap-2 flex-wrap">
                           {colors.map((color) => (
                             <button
                               key={color}
+                              type="button"
                               onClick={() =>
                                 setEditData({ ...editData, color })
                               }
-                              className={`w-8 h-8 rounded-lg ${color} ${
+                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
                                 editData.color === color
-                                  ? 'ring-2 ring-offset-2 ring-primary'
-                                  : ''
+                                  ? 'ring-2 ring-offset-2 ring-primary scale-110'
+                                  : 'hover:scale-105'
                               }`}
                             />
                           ))}
@@ -294,8 +301,8 @@ export default function ProgramCustomization() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-foreground">
                         الوصف
                       </label>
                       <Textarea
@@ -307,83 +314,92 @@ export default function ProgramCustomization() {
                           })
                         }
                         rows={3}
+                        className="text-sm"
                       />
                     </div>
 
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
                       <Button
                         variant="outline"
                         onClick={() => setEditingId(null)}
+                        className="w-full sm:w-auto h-9"
                       >
                         <X className="w-4 h-4 ml-2" />
                         إلغاء
                       </Button>
                       <Button
                         onClick={() => handleSaveEdit(program.id)}
-                        className="gradient-primary text-white"
+                        className="gradient-primary text-white w-full sm:w-auto h-9"
                       >
                         <Save className="w-4 h-4 ml-2" />
-                        حفظ
+                        حفظ التعديلات
                       </Button>
                     </div>
                   </div>
                 ) : (
                   // وضع العرض
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                       <div
-                        className={`w-12 h-12 rounded-lg ${program.color} flex items-center justify-center flex-shrink-0`}
+                        className={`w-12 h-12 rounded-xl ${program.color} flex items-center justify-center flex-shrink-0 shadow-sm`}
                       >
-                        <span className="text-white text-lg">📦</span>
+                        <span className="text-white text-xl">📦</span>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-foreground">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
                             {program.name}
                           </h3>
                           {!program.active && (
-                            <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
+                            <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-500 border-gray-300">
                               معطّل
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
                           {program.description}
                         </p>
-                        <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
                           {program.requiresMosque && (
-                            <span>✓ يتطلب اختيار مسجد</span>
+                            <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                              <CheckCircle className="w-3 h-3" />
+                              يتطلب اختيار مسجد
+                            </span>
                           )}
-                          <span>المعرّف: {program.id}</span>
+                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">ID: {program.id}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="flex items-center gap-3 self-end sm:self-center bg-muted/50 p-1 rounded-lg">
+                      <label className="flex items-center gap-2 cursor-pointer px-2">
                         <input
                           type="checkbox"
                           checked={program.active}
                           onChange={() => toggleActive(program.id)}
-                          className="w-4 h-4"
+                          className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                         />
-                        <span className="text-sm text-foreground">فعّال</span>
+                        <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
                       </label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(program)}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(program.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />
+                      <div className="flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(program)}
+                          className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(program.id)}
+                          className="h-8 w-8 text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -393,30 +409,30 @@ export default function ProgramCustomization() {
         </div>
 
         {/* ملخص */}
-        <Card className="bg-muted/50">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <div className="text-2xl font-bold text-foreground">
+        <Card className="bg-primary/5 border-primary/10">
+          <CardContent className="p-4 sm:p-6">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+              <div className="space-y-1">
+                <div className="text-xl sm:text-3xl font-black text-primary">
                   {programs.length}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-[10px] sm:text-sm text-muted-foreground font-medium">
                   إجمالي البرامج
                 </div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">
+              <div className="space-y-1 border-x border-primary/10">
+                <div className="text-xl sm:text-3xl font-black text-emerald-600">
                   {programs.filter((p) => p.active).length}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-[10px] sm:text-sm text-muted-foreground font-medium">
                   برامج فعّالة
                 </div>
               </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-600">
+              <div className="space-y-1">
+                <div className="text-xl sm:text-3xl font-black text-orange-600">
                   {programs.filter((p) => !p.active).length}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-[10px] sm:text-sm text-muted-foreground font-medium">
                   برامج معطّلة
                 </div>
               </div>
