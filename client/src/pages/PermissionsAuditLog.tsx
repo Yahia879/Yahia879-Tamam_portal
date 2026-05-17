@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Shield, User, Calendar, Filter, Download } from "lucide-react";
+import { Search, Shield, User, Calendar, Filter, Download, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -66,80 +66,87 @@ export default function PermissionsAuditLog() {
     // TODO: تنفيذ تصدير السجل
   };
 
+  // مساعد للحصول على اسم المستخدم من معرّفه
+  const getUserName = (userId: number | string | null) => {
+    if (!userId) return "-";
+    const user = usersList.find((u: any) => u.id.toString() === userId.toString());
+    return user ? user.name : `مستخدم (#${userId})`;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* العنوان */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">سجل تدقيق الصلاحيات</h1>
-            <p className="text-muted-foreground">تتبع جميع التغييرات في صلاحيات المستخدمين</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">سجل تدقيق الصلاحيات</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">تتبع جميع التغييرات في صلاحيات المستخدمين</p>
           </div>
-          <Button onClick={handleExport} variant="outline">
+          <Button onClick={handleExport} variant="outline" className="w-full sm:w-auto h-9 text-sm">
             <Download className="w-4 h-4 ml-2" />
             تصدير السجل
           </Button>
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">إجمالي السجلات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{filteredLogs.length}</p>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">إجمالي السجلات</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground mt-1">{filteredLogs.length}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-primary" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">منح صلاحيات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">منح صلاحيات</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground mt-1">
                     {filteredLogs.filter((l: any) => l.actionType === "grant").length}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-green-600" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">إلغاء صلاحيات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">إلغاء صلاحيات</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground mt-1">
                     {filteredLogs.filter((l: any) => l.actionType === "revoke").length}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-red-600" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-red-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">تحديثات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">تحديثات</p>
+                  <p className="text-lg sm:text-2xl font-bold text-foreground mt-1">
                     {filteredLogs.filter((l: any) => l.actionType === "update").length}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-blue-600" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -148,14 +155,14 @@ export default function PermissionsAuditLog() {
 
         {/* فلاتر البحث */}
         <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="w-5 h-5" />
+          <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
               فلترة السجلات
             </CardTitle>
-            <CardDescription>ابحث وفلتر سجلات التدقيق حسب معايير مختلفة</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">ابحث وفلتر سجلات التدقيق حسب معايير مختلفة</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -163,12 +170,12 @@ export default function PermissionsAuditLog() {
                   placeholder="بحث في السجل..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 h-9 text-sm"
                 />
               </div>
 
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="نوع الإجراء" />
                 </SelectTrigger>
                 <SelectContent>
@@ -180,7 +187,7 @@ export default function PermissionsAuditLog() {
               </Select>
 
               <Select value={userFilter} onValueChange={setUserFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="المستخدم" />
                 </SelectTrigger>
                 <SelectContent>
@@ -194,7 +201,7 @@ export default function PermissionsAuditLog() {
               </Select>
 
               <Select value={dateFilter} onValueChange={setDateFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9 text-sm">
                   <SelectValue placeholder="الفترة الزمنية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -210,87 +217,153 @@ export default function PermissionsAuditLog() {
         </Card>
 
         {/* جدول السجلات */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="p-8 text-center">
-                <p className="text-muted-foreground">جاري التحميل...</p>
+              <div className="p-12 text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground">جاري تحميل سجلات التدقيق...</p>
               </div>
             ) : filteredLogs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">التاريخ والوقت</TableHead>
-                      <TableHead className="text-right">الإجراء</TableHead>
-                      <TableHead className="text-right">المستخدم المتأثر</TableHead>
-                      <TableHead className="text-right">الصلاحية</TableHead>
-                      <TableHead className="text-right">القيمة القديمة</TableHead>
-                      <TableHead className="text-right">القيمة الجديدة</TableHead>
-                      <TableHead className="text-right">المنفذ</TableHead>
-                      <TableHead className="text-right">الملاحظات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map((log: any) => (
-                      <TableRow key={log.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <div className="text-sm">
-                              <div>{new Date(log.createdAt).toLocaleDateString("ar-SA")}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(log.createdAt).toLocaleTimeString("ar-SA")}
+              <>
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">التاريخ والوقت</TableHead>
+                        <TableHead className="text-right">الإجراء</TableHead>
+                        <TableHead className="text-right">المستخدم المتأثر</TableHead>
+                        <TableHead className="text-right">الصلاحية</TableHead>
+                        <TableHead className="text-right">القيمة القديمة</TableHead>
+                        <TableHead className="text-right">القيمة الجديدة</TableHead>
+                        <TableHead className="text-right">المنفذ</TableHead>
+                        <TableHead className="text-right">الملاحظات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLogs.map((log: any) => (
+                        <TableRow key={log.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <div className="text-sm">
+                                <div>{new Date(log.createdAt).toLocaleDateString("ar-SA")}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(log.createdAt).toLocaleTimeString("ar-SA")}
+                                </div>
                               </div>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${ACTION_COLORS[log.actionType] || "bg-gray-100 text-gray-800"} whitespace-nowrap px-1.5 py-0`}>
+                              {ACTION_LABELS[log.actionType] || log.actionType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="truncate max-w-[120px]">{getUserName(log.targetUserId)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
+                              {log.permissionId || "-"}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground truncate max-w-[100px] block">
+                              {log.oldValue || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-medium truncate max-w-[100px] block">
+                              {log.newValue || "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                              <span className="text-sm truncate max-w-[100px]">{getUserName(log.performedBy)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground truncate max-w-[150px] block">
+                              {log.reason || "-"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {filteredLogs.map((log: any) => (
+                    <div key={log.id} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                          <div className="text-xs">
+                            <span className="font-medium">{new Date(log.createdAt).toLocaleDateString("ar-SA")}</span>
+                            <span className="mx-1 text-muted-foreground text-[10px]">{new Date(log.createdAt).toLocaleTimeString("ar-SA")}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={ACTION_COLORS[log.actionType] || "bg-gray-100 text-gray-800"}>
-                            {ACTION_LABELS[log.actionType] || log.actionType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <Badge className={`${ACTION_COLORS[log.actionType] || "bg-gray-100 text-gray-800"} text-[10px] px-1.5 py-0 shrink-0`}>
+                          {ACTION_LABELS[log.actionType] || log.actionType}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">المستخدم المتأثر</p>
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span>{log.targetUserId || "-"}</span>
+                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium">{getUserName(log.targetUserId)}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
-                            {log.permissionId || "-"}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {log.oldValue || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium">
-                            {log.newValue || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">المنفذ</p>
                           <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-sm">{log.performedBy}</span>
+                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-medium">{getUserName(log.performedBy)}</span>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {log.reason || "-"}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">الصلاحية</p>
+                        <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono block w-fit">
+                          {log.permissionId || "-"}
+                        </code>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground">القيمة القديمة</p>
+                          <span className="text-xs text-muted-foreground break-all block">{log.oldValue || "-"}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground">القيمة الجديدة</p>
+                          <span className="text-xs font-bold text-primary break-all block">{log.newValue || "-"}</span>
+                        </div>
+                      </div>
+
+                      {log.reason && (
+                        <div className="pt-2 border-t border-border/50">
+                          <p className="text-[10px] text-muted-foreground mb-1">الملاحظات</p>
+                          <p className="text-xs italic leading-relaxed">{log.reason}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
-              <div className="p-8 text-center">
-                <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">لا توجد سجلات تدقيق</p>
+              <div className="p-12 text-center">
+                <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                <p className="text-sm text-muted-foreground">لا توجد سجلات تدقيق مطابقة للبحث</p>
               </div>
             )}
           </CardContent>
