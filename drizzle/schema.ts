@@ -1363,6 +1363,7 @@ export const contractTemplates = mysqlTable("contract_templates", {
   signatureTemplate: text("signatureTemplate"), // قسم التوقيعات
   isActive: boolean("isActive").default(true),
   isDefault: boolean("isDefault").default(false), // القالب الافتراضي لهذا النوع
+  isSystem: boolean("isSystem").default(false), // قالب نظام غير قابل للتعديل
   createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

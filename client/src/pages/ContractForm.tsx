@@ -912,7 +912,7 @@ export default function ContractForm() {
                         ...contractData, 
                         supplierId: parseInt(value) 
                       })}
-                      disabled={hasApprovedSupplier}
+                      disabled={isEditMode || hasApprovedSupplier}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="اختر المورد" />

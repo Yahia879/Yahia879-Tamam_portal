@@ -414,6 +414,13 @@
       "when": 1778833798519,
       "tag": "0058_nebulous_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "5",
+      "when": 1779049918141,
+      "tag": "0059_mysterious_thanos",
+      "breakpoints": true
     }
   ]
 }

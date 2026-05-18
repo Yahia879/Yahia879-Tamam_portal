@@ -1078,6 +1078,16 @@ export const contractsRouter = router({
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
       const { id, ...data } = input;
 
+      // التحقق من أنه ليس قالب نظام
+      const [template] = await db
+        .select()
+        .from(contractTemplates)
+        .where(eq(contractTemplates.id, id));
+      
+      if (template?.isSystem) {
+        throw new Error("لا يمكن تعديل قوالب النظام");
+      }
+
       // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
       if (data.isDefault && data.type) {
         await db
@@ -1101,6 +1111,16 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
       
+      // التحقق من أنه ليس قالب نظام
+      const [template] = await db
+        .select()
+        .from(contractTemplates)
+        .where(eq(contractTemplates.id, input.id));
+      
+      if (template?.isSystem) {
+        throw new Error("لا يمكن حذف قوالب النظام");
+      }
+
       // حذف البنود المرتبطة أولاً
       await db
         .delete(contractClauses)
@@ -1160,6 +1180,19 @@ export const contractsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      // التحقق من أنه ليس قالب نظام
+      if (input.templateId) {
+        const [template] = await db
+          .select()
+          .from(contractTemplates)
+          .where(eq(contractTemplates.id, input.templateId));
+        
+        if (template?.isSystem) {
+          throw new Error("لا يمكن إضافة بنود لقوالب النظام");
+        }
+      }
+
       const [result] = await db.insert(contractClauses).values(input as any);
       return { id: result.insertId };
     }),
@@ -1182,6 +1215,23 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
       const { id, ...data } = input;
+
+      // التحقق من أنه ليس بنداً في قالب نظام أو غير قابل للتعديل
+      const [clause] = await db
+        .select({
+          clause: contractClauses,
+          template: contractTemplates,
+        })
+        .from(contractClauses)
+        .leftJoin(contractTemplates, eq(contractClauses.templateId, contractTemplates.id))
+        .where(eq(contractClauses.id, id));
+
+      if (!clause) throw new Error("البند غير موجود");
+
+      if (clause.template?.isSystem || !clause.clause.isEditable) {
+        throw new Error("لا يمكن تعديل هذا البند");
+      }
+
       await db.update(contractClauses).set(data as any).where(eq(contractClauses.id, id));
       return { success: true };
     }),
@@ -1192,6 +1242,23 @@ export const contractsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
+
+      // التحقق من أنه ليس بنداً في قالب نظام
+      const [clause] = await db
+        .select({
+          clause: contractClauses,
+          template: contractTemplates,
+        })
+        .from(contractClauses)
+        .leftJoin(contractTemplates, eq(contractClauses.templateId, contractTemplates.id))
+        .where(eq(contractClauses.id, input.id));
+
+      if (!clause) throw new Error("البند غير موجود");
+
+      if (clause.template?.isSystem || !clause.clause.isEditable) {
+        throw new Error("لا يمكن حذف هذا البند");
+      }
+
       await db.delete(contractClauses).where(eq(contractClauses.id, input.id));
       return { success: true };
     }),
