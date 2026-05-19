@@ -437,13 +437,20 @@ export default function FinancialApproval() {
                         </div>
 
                         {/* أزرار الإجراءات */}
-                        <div className="flex justify-end gap-4">
-                          <Button variant="outline" onClick={() => navigate("/requests/" + selectedRequestId)}>
+                        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => navigate("/requests/" + selectedRequestId)}
+                            className="w-full sm:w-auto order-2 sm:order-1"
+                          >
                             <Eye className="h-4 w-4 ml-2" />
                             عرض تفاصيل الطلب
                           </Button>
                           {canApprove && (
-                            <Button onClick={() => setShowApprovalDialog(true)}>
+                            <Button 
+                              onClick={() => setShowApprovalDialog(true)}
+                              className="w-full sm:w-auto order-1 sm:order-2"
+                            >
                               <CheckCircle2 className="h-4 w-4 ml-2" />
                               اعتماد مالياً وانتقال للتعاقد
                             </Button>
