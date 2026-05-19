@@ -6,35 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, FileText, Send } from "lucide-react";
+import { ArrowRight, Building2, FileText, Send, Loader2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PROGRAM_LABELS } from "@shared/constants";
 import { toast } from "sonner";
-
-const programDescriptions: Record<string, string> = {
-  bunyan: "بناء مسجد جديد من الصفر",
-  daaem: "استكمال المساجد المتعثرة أو غير المكتملة",
-  enaya: "صيانة وترميم المساجد القائمة",
-  emdad: "توفير تجهيزات ومستلزمات المساجد",
-  ethraa: "سداد فواتير الخدمات (كهرباء، ماء، اتصالات)",
-  sedana: "خدمات التشغيل والنظافة والصيانة الدورية",
-  taqa: "تركيب أنظمة الطاقة الشمسية",
-  miyah: "تركيب أنظمة معالجة وتنقية المياه",
-  suqya: "توفير ماء الشرب للمصلين",
-};
-
-const programIcons: Record<string, string> = {
-  bunyan: "🏗️",
-  daaem: "🔨",
-  enaya: "🔧",
-  emdad: "📦",
-  ethraa: "🧾",
-  sedana: "✨",
-  taqa: "☀️",
-  miyah: "💧",
-  suqya: "🚰",
-};
 
 export default function RequestForm() {
   const [, navigate] = useLocation();
@@ -45,6 +20,8 @@ export default function RequestForm() {
 
   const { data: mosquesData } = trpc.mosques.search.useQuery({ limit: 100 });
   const mosques = mosquesData?.mosques || [];
+
+  const { data: programs = [], isLoading: programsLoading } = trpc.programs.getActive.useQuery();
 
   const createMutation = trpc.requests.create.useMutation({
     onSuccess: (data) => {
@@ -99,27 +76,35 @@ export default function RequestForm() {
               <CardDescription>اختر البرنامج المناسب لطلبك</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                  <div
-                    key={key}
-                    onClick={() => setSelectedProgram(key)}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedProgram === key
-                        ? "border-primary bg-primary/5"
-                        : "border-muted hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{programIcons[key]}</span>
-                      <div>
-                        <p className="font-medium">{label}</p>
-                        <p className="text-xs text-muted-foreground">{programDescriptions[key]}</p>
+              {programsLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {programs.map((program: any) => (
+                    <div
+                      key={program.id}
+                      onClick={() => setSelectedProgram(program.id)}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all overflow-hidden break-words ${
+                        selectedProgram === program.id
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg ${program.color} flex items-center justify-center shadow-sm flex-shrink-0`}>
+                          <span className="text-white text-lg">📦</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm break-words">{program.name}</p>
+                          <p className="text-[10px] text-muted-foreground line-clamp-2 break-words">{program.description}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -205,7 +190,7 @@ export default function RequestForm() {
             >
               {createMutation.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2" />
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
                   جاري الإرسال...
                 </>
               ) : (

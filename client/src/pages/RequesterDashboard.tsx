@@ -265,7 +265,7 @@ export default function RequesterDashboard() {
                               <ProgramIcon program={request.programType} size="md" showBackground />
                               <div className="min-w-0">
                                 <p className="font-medium text-sm sm:text-base text-foreground truncate">
-                                  {PROGRAM_LABELS[request.programType]}
+                                  {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                                 </p>
                                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                   {request.requestNumber}

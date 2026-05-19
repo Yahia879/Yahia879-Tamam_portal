@@ -301,8 +301,8 @@ export default function Requests({
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-foreground text-sm md:text-sm">{request.requestNumber}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate">
-                              {PROGRAM_LABELS[request.programType] || request.programType}
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
+                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                             </p>
                           </div>
                         </div>

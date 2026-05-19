@@ -23,13 +23,17 @@ import { fieldVisitsRouter } from "./routers/fieldVisits";
 import { finalReportsRouter } from "./routers/finalReports";
 import { analyticsRouter } from "./routers/analytics";
 import { jobPositionsRouter } from "./routers/jobPositions";
+import { programsRouter } from "./routers/programs";
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   // نظام المصادقة
   auth: authRouter,
-  
+
+  // إدارة البرامج
+  programs: programsRouter,
+
   // إدارة المساجد
   mosques: mosquesRouter,
   

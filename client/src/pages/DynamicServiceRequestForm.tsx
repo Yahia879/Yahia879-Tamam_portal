@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { 
-  PROGRAM_CONFIGS, 
   getAllFieldsForProgram,
   getVisibleFieldsForProgram,
 } from '@/lib/programFields';
@@ -15,7 +14,28 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle2, AlertCircle, ChevronRight, ChevronLeft, Plus, Loader2, Paperclip } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  AlertCircle, 
+  ChevronRight, 
+  ChevronLeft, 
+  Plus, 
+  Loader2, 
+  Paperclip,
+  Building2, 
+  Hammer, 
+  Wrench, 
+  Package, 
+  Receipt, 
+  Sparkles, 
+  Sun, 
+  Droplets, 
+  GlassWater
+} from 'lucide-react';
+
+const ICON_MAP: Record<string, any> = {
+  Building2, Hammer, Wrench, Package, Receipt, Sparkles, Sun, Droplets, GlassWater,
+};
 
 type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
 
@@ -36,6 +56,9 @@ export const DynamicServiceRequestForm: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // الحصول على البرامج الفعالة من قاعدة البيانات
+  const { data: activePrograms = [], isLoading: programsLoading } = trpc.programs.getActive.useQuery();
+
   // الحصول على بيانات المساجد
   const { data: mosquesResult, isLoading: mosquesLoading } = trpc.mosques.search.useQuery(
     { page: 1, limit: 100 },
@@ -48,8 +71,8 @@ export const DynamicServiceRequestForm: React.FC = () => {
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
     if (!selectedService) return null;
-    return PROGRAM_CONFIGS[selectedService];
-  }, [selectedService]);
+    return activePrograms.find(p => p.id === selectedService);
+  }, [selectedService, activePrograms]);
 
   // الحصول على جميع الحقول المرئية
   const visibleFields = useMemo(() => {
@@ -210,28 +233,35 @@ export const DynamicServiceRequestForm: React.FC = () => {
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">اختر نوع الخدمة</h2>
                 <p className="text-sm sm:text-base text-muted-foreground">اختر البرنامج الذي تريد تقديم طلب خدمة له</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-                {Object.values(PROGRAM_CONFIGS).map((program) => {
-                  const Icon = program.icon;
-                  return (
-                    <Card
-                      key={program.id}
-                      className={`p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg border-2 ${
-                        selectedService === program.id
-                          ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
-                          : 'border-transparent hover:border-primary/20 bg-muted/20'
-                      }`}
-                      onClick={() => setSelectedService(program.id)}
-                    >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color} flex items-center justify-center mb-2 sm:mb-3 shadow-sm`}>
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                      </div>
-                      <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight">{program.name}</h3>
-                      <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none leading-relaxed">{program.description}</p>
-                    </Card>
-                  );
-                })}
-              </div>
+
+              {programsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                  {activePrograms.map((program) => {
+                    const Icon = ICON_MAP[program.icon || 'Package'] || Package;
+                    return (
+                      <Card
+                        key={program.id}
+                        className={`p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg border-2 overflow-hidden break-words ${
+                          selectedService === program.id
+                            ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
+                            : 'border-transparent hover:border-primary/20 bg-muted/20'
+                        }`}
+                        onClick={() => setSelectedService(program.id)}
+                      >
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        </div>
+                        <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">{program.name}</h3>
+                        <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">{program.description}</p>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -414,7 +444,7 @@ export const DynamicServiceRequestForm: React.FC = () => {
                     {selectedProgramConfig && (
                       <>
                         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${selectedProgramConfig.color} flex items-center justify-center shadow-md`}>
-                          <selectedProgramConfig.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                          {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-5 h-5 sm:w-6 sm:h-6 text-white" })}
                         </div>
                         <div>
                           <p className="font-bold text-foreground text-sm sm:text-base">{selectedProgramConfig.name}</p>

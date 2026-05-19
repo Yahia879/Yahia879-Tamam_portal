@@ -303,9 +303,8 @@ export default function MyRequests() {
                               </Badge>
                             </div>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate mb-2">
-                              {PROGRAM_LABELS[request.programType]} - {request.mosqueName || "مسجد غير محدد"}
-                            </p>
-                            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
+                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType} - {request.mosqueName || "مسجد غير محدد"}
+                            </p>                            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                 {new Date(request.createdAt).toLocaleDateString("ar-SA")}

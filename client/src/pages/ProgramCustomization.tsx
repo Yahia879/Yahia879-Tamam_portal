@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle } from 'lucide-react';
-import { PROGRAM_CONFIGS } from '@/lib/programFields';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2 } from 'lucide-react';
 
 interface ProgramCustomization {
   id: string;
@@ -16,21 +15,27 @@ interface ProgramCustomization {
   color: string;
   icon: any;
   requiresMosque: boolean;
-  active: boolean;
+  isActive: boolean;
 }
 
 export default function ProgramCustomization() {
-  const [programs, setPrograms] = useState<ProgramCustomization[]>(
-    Object.entries(PROGRAM_CONFIGS).map(([id, config]) => ({
-      id,
-      name: config.name,
-      description: config.description,
-      color: config.color,
-      icon: 'Package' as any,
-      requiresMosque: config.requiresMosque,
-      active: true,
-    }))
-  );
+  const utils = trpc.useUtils();
+  const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
+  const createMutation = trpc.programs.create.useMutation({
+    onSuccess: () => {
+      utils.programs.getAll.invalidate();
+    },
+  });
+  const updateMutation = trpc.programs.update.useMutation({
+    onSuccess: () => {
+      utils.programs.getAll.invalidate();
+    },
+  });
+  const deleteMutation = trpc.programs.delete.useMutation({
+    onSuccess: () => {
+      utils.programs.getAll.invalidate();
+    },
+  });
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ProgramCustomization>>({});
@@ -41,48 +46,44 @@ export default function ProgramCustomization() {
     color: 'bg-gray-500',
     icon: 'Package',
     requiresMosque: false,
-    active: true,
+    isActive: true,
   });
 
-  const handleEdit = (program: ProgramCustomization) => {
+  const handleEdit = (program: any) => {
     setEditingId(program.id);
     setEditData({ ...program });
   };
 
-  const handleSaveEdit = (id: string) => {
-    const updatedPrograms = programs.map((p) =>
-      p.id === id ? { ...p, ...editData } : p
-    );
-    setPrograms(updatedPrograms);
+  const handleSaveEdit = async (id: string) => {
+    await updateMutation.mutateAsync({
+      id,
+      ...editData,
+    });
     setEditingId(null);
     setEditData({});
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('هل تريد حذف هذا البرنامج؟')) {
-      setPrograms(programs.filter((p) => p.id !== id));
+      await deleteMutation.mutateAsync({ id });
     }
   };
 
-  const handleAddNew = () => {
+  const handleAddNew = async () => {
     if (!newProgram.name || !newProgram.description) {
       alert('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
 
     const newId = `custom_${Date.now()}`;
-    setPrograms([
-      ...programs,
-      {
-        id: newId,
-        name: newProgram.name!,
-        description: newProgram.description!,
-        color: newProgram.color || 'bg-gray-500',
-        icon: newProgram.icon || 'Package',
-        requiresMosque: newProgram.requiresMosque || false,
-        active: true,
-      },
-    ]);
+    await createMutation.mutateAsync({
+      id: newId,
+      name: newProgram.name!,
+      description: newProgram.description!,
+      color: newProgram.color || 'bg-gray-500',
+      icon: newProgram.icon || 'Package',
+      requiresMosque: newProgram.requiresMosque || false,
+    });
 
     setNewProgram({
       name: '',
@@ -90,17 +91,16 @@ export default function ProgramCustomization() {
       color: 'bg-gray-500',
       icon: 'Package',
       requiresMosque: false,
-      active: true,
+      isActive: true,
     });
     setShowAddNew(false);
   };
 
-  const toggleActive = (id: string) => {
-    setPrograms(
-      programs.map((p) =>
-        p.id === id ? { ...p, active: !p.active } : p
-      )
-    );
+  const toggleActive = async (id: string, currentActive: boolean) => {
+    await updateMutation.mutateAsync({
+      id,
+      isActive: !currentActive,
+    });
   };
 
   const colors = [
@@ -114,18 +114,6 @@ export default function ProgramCustomization() {
     'bg-orange-500',
     'bg-teal-500',
     'bg-gray-500',
-  ];
-
-  const icons = [
-    'Building2',
-    'Hammer',
-    'Wrench',
-    'Package',
-    'Receipt',
-    'Sparkles',
-    'Sun',
-    'Droplets',
-    'GlassWater',
   ];
 
   return (
@@ -249,7 +237,9 @@ export default function ProgramCustomization() {
                 <Button
                   onClick={handleAddNew}
                   className="gradient-primary text-white w-full sm:w-auto h-10"
+                  disabled={createMutation.isPending}
                 >
+                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Plus className="w-4 h-4 ml-2" />}
                   إضافة البرنامج
                 </Button>
               </div>
@@ -258,155 +248,162 @@ export default function ProgramCustomization() {
         )}
 
         {/* قائمة البرامج */}
-        <div className="grid grid-cols-1 gap-4">
-          {programs.map((program) => (
-            <Card key={program.id} className={`transition-all overflow-hidden ${!program.active ? 'bg-muted/30 opacity-70 grayscale-[0.5]' : 'hover:shadow-sm'}`}>
-              <CardContent className="p-4 sm:p-6">
-                {editingId === program.id ? (
-                  // وضع التحرير
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {programs.map((program: any) => (
+              <Card key={program.id} className={`transition-all overflow-hidden ${!program.isActive ? 'bg-muted/30 opacity-70 grayscale-[0.5]' : 'hover:shadow-sm'}`}>
+                <CardContent className="p-4 sm:p-6">
+                  {editingId === program.id ? (
+                    // وضع التحرير
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-foreground">
+                            اسم البرنامج
+                          </label>
+                          <Input
+                            value={editData.name || ''}
+                            onChange={(e) =>
+                              setEditData({ ...editData, name: e.target.value })
+                            }
+                            className="h-10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-foreground">
+                            اللون
+                          </label>
+                          <div className="flex gap-2 flex-wrap">
+                            {colors.map((color) => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() =>
+                                  setEditData({ ...editData, color })
+                                }
+                                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
+                                  editData.color === color
+                                    ? 'ring-2 ring-offset-2 ring-primary scale-110'
+                                    : 'hover:scale-105'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-foreground">
-                          اسم البرنامج
+                          الوصف
                         </label>
-                        <Input
-                          value={editData.name || ''}
+                        <Textarea
+                          value={editData.description || ''}
                           onChange={(e) =>
-                            setEditData({ ...editData, name: e.target.value })
+                            setEditData({
+                              ...editData,
+                              description: e.target.value,
+                            })
                           }
-                          className="h-10"
+                          rows={3}
+                          className="text-sm"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground">
-                          اللون
+
+                      <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditingId(null)}
+                          className="w-full sm:w-auto h-9"
+                        >
+                          <X className="w-4 h-4 ml-2" />
+                          إلغاء
+                        </Button>
+                        <Button
+                          onClick={() => handleSaveEdit(program.id)}
+                          className="gradient-primary text-white w-full sm:w-auto h-9"
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+                          حفظ التعديلات
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    // وضع العرض
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div
+                          className={`w-12 h-12 rounded-xl ${program.color} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                        >
+                          <span className="text-white text-xl">📦</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
+                              {program.name}
+                            </h3>
+                            {!program.isActive && (
+                              <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-500 border-gray-300">
+                                معطّل
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
+                            {program.description}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
+                            {program.requiresMosque && (
+                              <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                <CheckCircle className="w-3 h-3" />
+                                يتطلب اختيار مسجد
+                              </span>
+                            )}
+                            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">ID: {program.id}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-end sm:self-center bg-muted/50 p-1 rounded-lg">
+                        <label className="flex items-center gap-2 cursor-pointer px-2">
+                          <input
+                            type="checkbox"
+                            checked={program.isActive}
+                            onChange={() => toggleActive(program.id, program.isActive)}
+                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
                         </label>
-                        <div className="flex gap-2 flex-wrap">
-                          {colors.map((color) => (
-                            <button
-                              key={color}
-                              type="button"
-                              onClick={() =>
-                                setEditData({ ...editData, color })
-                              }
-                              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
-                                editData.color === color
-                                  ? 'ring-2 ring-offset-2 ring-primary scale-110'
-                                  : 'hover:scale-105'
-                              }`}
-                            />
-                          ))}
+                        <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />
+                        <div className="flex items-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(program)}
+                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(program.id)}
+                            className="h-8 w-8 text-red-500 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-foreground">
-                        الوصف
-                      </label>
-                      <Textarea
-                        value={editData.description || ''}
-                        onChange={(e) =>
-                          setEditData({
-                            ...editData,
-                            description: e.target.value,
-                          })
-                        }
-                        rows={3}
-                        className="text-sm"
-                      />
-                    </div>
-
-                    <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
-                      <Button
-                        variant="outline"
-                        onClick={() => setEditingId(null)}
-                        className="w-full sm:w-auto h-9"
-                      >
-                        <X className="w-4 h-4 ml-2" />
-                        إلغاء
-                      </Button>
-                      <Button
-                        onClick={() => handleSaveEdit(program.id)}
-                        className="gradient-primary text-white w-full sm:w-auto h-9"
-                      >
-                        <Save className="w-4 h-4 ml-2" />
-                        حفظ التعديلات
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  // وضع العرض
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                      <div
-                        className={`w-12 h-12 rounded-xl ${program.color} flex items-center justify-center flex-shrink-0 shadow-sm`}
-                      >
-                        <span className="text-white text-xl">📦</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
-                            {program.name}
-                          </h3>
-                          {!program.active && (
-                            <Badge variant="outline" className="text-[10px] sm:text-xs text-gray-500 border-gray-300">
-                              معطّل
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
-                          {program.description}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
-                          {program.requiresMosque && (
-                            <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                              <CheckCircle className="w-3 h-3" />
-                              يتطلب اختيار مسجد
-                            </span>
-                          )}
-                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">ID: {program.id}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 self-end sm:self-center bg-muted/50 p-1 rounded-lg">
-                      <label className="flex items-center gap-2 cursor-pointer px-2">
-                        <input
-                          type="checkbox"
-                          checked={program.active}
-                          onChange={() => toggleActive(program.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
-                      </label>
-                      <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />
-                      <div className="flex items-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(program)}
-                          className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(program.id)}
-                          className="h-8 w-8 text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* ملخص */}
         <Card className="bg-primary/5 border-primary/10">
@@ -422,7 +419,7 @@ export default function ProgramCustomization() {
               </div>
               <div className="space-y-1 border-x border-primary/10">
                 <div className="text-xl sm:text-3xl font-black text-emerald-600">
-                  {programs.filter((p) => p.active).length}
+                  {programs.filter((p: any) => p.isActive).length}
                 </div>
                 <div className="text-[10px] sm:text-sm text-muted-foreground font-medium">
                   برامج فعّالة
@@ -430,7 +427,7 @@ export default function ProgramCustomization() {
               </div>
               <div className="space-y-1">
                 <div className="text-xl sm:text-3xl font-black text-orange-600">
-                  {programs.filter((p) => !p.active).length}
+                  {programs.filter((p: any) => !p.isActive).length}
                 </div>
                 <div className="text-[10px] sm:text-sm text-muted-foreground font-medium">
                   برامج معطّلة

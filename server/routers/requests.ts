@@ -26,6 +26,7 @@ import {
   contractsEnhanced,
   requestNumberSequence,
   fieldVisits,
+  programs,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray, or, gte, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -73,12 +74,6 @@ async function generateRequestNumber(
   return `REQ-${currentYear}-${prefix}-${String(sequence).padStart(4, "0")}`;
 }
 
-// البرامج التسعة
-const programTypes = [
-  "bunyan", "daaem", "enaya", "emdad", "ethraa", 
-  "sedana", "taqa", "miyah", "suqya"
-] as const;
-
 // المراحل الـ 11
 const requestStages = [
   "submitted", "initial_review", "field_visit", 
@@ -96,7 +91,7 @@ const requestStatuses = [
 // مخطط إنشاء طلب جديد
 const createRequestSchema = z.object({
   mosqueId: z.number().optional().nullable(), // اختياري لبرنامج بنيان
-  programType: z.enum(programTypes),
+  programType: z.string().min(1, "يرجى اختيار البرنامج"),
   priority: z.enum(["urgent", "medium", "normal"]).default("normal"),
   programData: z.record(z.string(), z.any()).optional(),
   description: z.string().optional(),
@@ -105,7 +100,7 @@ const createRequestSchema = z.object({
 // مخطط البحث والفلترة
 const searchRequestsSchema = z.object({
   search: z.string().optional(),
-  programType: z.enum(programTypes).optional(),
+  programType: z.string().optional(),
   currentStage: z.enum(requestStages).optional(),
   status: z.enum(requestStatuses).optional(),
   priority: z.enum(["urgent", "medium", "normal"]).optional(),
@@ -137,10 +132,17 @@ export const requestsRouter = router({
         });
       }
 
-      // التحقق من وجود المسجد (برنامج بنيان لا يتطلب مسجد)
+      // التحقق من وجود المسجد (برنامج بنيان والبرامج التي لا تتطلب مسجداً)
       let mosqueData = null;
-      if (input.programType !== "bunyan") {
-        // البرامج الأخرى تتطلب مسجد موجود
+      
+      // جلب إعدادات البرنامج من قاعدة البيانات
+      const [programConfig] = await db.select().from(programs).where(eq(programs.id, input.programType)).limit(1);
+      
+      // إذا لم يوجد البرنامج في القاعدة (قد يكون من الثوابت القديمة)، نستخدم المنطق القديم للتوافق
+      const requiresMosque = programConfig ? programConfig.requiresMosque : (input.programType !== "bunyan");
+
+      if (requiresMosque) {
+        // البرامج التي تتطلب مسجد موجود
         if (!input.mosqueId) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "يجب اختيار مسجد لهذا البرنامج" });
         }
@@ -150,7 +152,6 @@ export const requestsRouter = router({
         }
         mosqueData = mosque[0];
       }
-      // برنامج بنيان - لا يتطلب مسجد موجود
 
       // التحقق من اعتماد المسجد (فقط إذا كان البرنامج يتطلب مسجد)
       if (mosqueData && mosqueData.approvalStatus !== "approved" && ctx.user.role === "service_requester") {
@@ -162,7 +163,7 @@ export const requestsRouter = router({
 
       const result = await db.insert(mosqueRequests).values({
         requestNumber,
-        mosqueId: input.programType === "bunyan" ? null : input.mosqueId,
+        mosqueId: requiresMosque ? input.mosqueId : null,
         userId: ctx.user.id,
         programType: input.programType,
         currentStage: "submitted",
@@ -205,12 +206,22 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const result = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.id)).limit(1);
+      const result = await db.select({
+        request: mosqueRequests,
+        programName: programs.name,
+      }).from(mosqueRequests)
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+        .where(eq(mosqueRequests.id, input.id))
+        .limit(1);
+
       if (result.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
 
-      const request = result[0];
+      const request = {
+        ...result[0].request,
+        programName: result[0].programName,
+      };
 
       // التحقق من الصلاحية
       const isOwner = request.userId === ctx.user.id;
@@ -389,9 +400,11 @@ export const requestsRouter = router({
         mosqueName: mosques.name,
         mosqueCity: mosques.city,
         requesterName: users.name,
+        programName: programs.name,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-        .leftJoin(users, eq(mosqueRequests.userId, users.id));
+        .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id));
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions)) as typeof query;
@@ -427,6 +440,7 @@ export const requestsRouter = router({
           mosqueName: r.mosqueName,
           mosqueCity: r.mosqueCity,
           requesterName: r.requesterName,
+          programName: r.programName,
         })),
         total,
         stats,
@@ -446,8 +460,10 @@ export const requestsRouter = router({
       request: mosqueRequests,
       mosqueName: mosques.name,
       mosqueCity: mosques.city,
+      programName: programs.name,
     }).from(mosqueRequests)
       .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+      .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
       .where(eq(mosqueRequests.userId, ctx.user.id))
       .orderBy(desc(mosqueRequests.createdAt));
 
@@ -455,6 +471,7 @@ export const requestsRouter = router({
       ...r.request,
       mosqueName: r.mosqueName,
       mosqueCity: r.mosqueCity,
+      programName: r.programName,
     }));
   }),
 
@@ -945,8 +962,11 @@ export const requestsRouter = router({
 
     const byProgram = await db.select({
       programType: mosqueRequests.programType,
+      programName: programs.name,
       count: sql<number>`count(*)`,
-    }).from(mosqueRequests).groupBy(mosqueRequests.programType);
+    }).from(mosqueRequests)
+      .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+      .groupBy(mosqueRequests.programType, programs.name);
 
     const byStage = await db.select({
       currentStage: mosqueRequests.currentStage,
@@ -960,7 +980,7 @@ export const requestsRouter = router({
 
     return {
       total: total[0]?.count || 0,
-      byProgram: Object.fromEntries(byProgram.map(p => [p.programType, p.count])),
+      byProgram: Object.fromEntries(byProgram.map(p => [p.programType, { count: p.count, name: p.programName }])),
       byStage: Object.fromEntries(byStage.map(s => [s.currentStage, s.count])),
       byStatus: Object.fromEntries(byStatus.map(s => [s.status, s.count])),
     };
@@ -1505,17 +1525,25 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const result = await db.select().from(mosqueRequests).where(eq(mosqueRequests.requestNumber, input.requestNumber)).limit(1);
+      const result = await db.select({
+        request: mosqueRequests,
+        programName: programs.name,
+      }).from(mosqueRequests)
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+        .where(eq(mosqueRequests.requestNumber, input.requestNumber))
+        .limit(1);
+
       if (result.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
 
-      const request = result[0];
+      const { request, programName } = result[0];
       
       // إرجاع معلومات محدودة للعامة
       return {
         requestNumber: request.requestNumber,
         programType: request.programType,
+        programName: programName,
         currentStage: request.currentStage,
         status: request.status,
         priority: request.priority,

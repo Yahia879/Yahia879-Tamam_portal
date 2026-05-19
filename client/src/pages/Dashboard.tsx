@@ -253,8 +253,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {Object.entries(requestStats?.byProgram || {}).map(([program, count]) => {
+                {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
                   const color = PROGRAM_COLORS[program] || '#6B7280';
+                  const stats = data as { count: number; name?: string };
                   return (
                     <Link key={program} href={`/requests?program=${program}`}>
                       <div 
@@ -264,10 +265,10 @@ export default function Dashboard() {
                         <ProgramIcon program={program} size="md" className="sm:size-lg shrink-0" showBackground />
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-xs sm:text-sm lg:text-base text-foreground group-hover:text-primary transition-colors truncate">
-                            {PROGRAM_LABELS[program] || program}
+                            {stats.name || PROGRAM_LABELS[program] || program}
                           </p>
                           <p className="text-[10px] sm:text-xs text-muted-foreground">
-                            {count as number} طلب
+                            {stats.count} طلب
                           </p>
                         </div>
                         <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />

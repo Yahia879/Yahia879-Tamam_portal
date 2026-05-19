@@ -421,6 +421,13 @@
       "when": 1779049918141,
       "tag": "0059_mysterious_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "5",
+      "when": 1779217887198,
+      "tag": "0060_jittery_professor_monster",
+      "breakpoints": true
     }
   ]
 }

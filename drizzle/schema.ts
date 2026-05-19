@@ -16,19 +16,6 @@ export const userRoles = [
   "service_requester" // طالب الخدمة
 ] as const;
 
-// البرامج التسعة
-export const programTypes = [
-  "bunyan",    // بنيان - بناء مسجد جديد
-  "daaem",     // دعائم - استكمال المساجد المتعثرة
-  "enaya",     // عناية - الصيانة والترميم
-  "emdad",     // إمداد - توفير تجهيزات المساجد
-  "ethraa",    // إثراء - سداد فواتير الخدمات
-  "sedana",    // سدانة - خدمات التشغيل والنظافة
-  "taqa",      // طاقة - الطاقة الشمسية
-  "miyah",     // مياه - أنظمة المياه
-  "suqya"      // سقيا - توفير ماء الشرب
-] as const;
-
 // المراحل الرئيسية للطلبات (11 مرحلة)
 export const requestStages = [
   "submitted",                  // تقديم الطلب
@@ -212,13 +199,26 @@ export const mosqueImages = mysqlTable("mosque_images", {
 
 // ==================== جداول الطلبات ====================
 
+// جدول البرامج والخدمات
+export const programs = mysqlTable("programs", {
+  id: varchar("id", { length: 50 }).primaryKey(), // معرف فريد (مثل bunyan, custom_123)
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 50 }),
+  icon: varchar("icon", { length: 50 }),
+  requiresMosque: boolean("requiresMosque").default(true),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 // جدول الطلبات الرئيسي
 export const mosqueRequests = mysqlTable("mosque_requests", {
   id: int("id").autoincrement().primaryKey(),
   requestNumber: varchar("requestNumber", { length: 50 }).notNull().unique(),
   mosqueId: int("mosqueId").references(() => mosques.id), // nullable لبرنامج بنيان
   userId: int("userId").references(() => users.id, { onDelete: "set null" }),
-  programType: mysqlEnum("programType", programTypes).notNull(),
+  programType: varchar("programType", { length: 50 }).notNull(),
   currentStage: mysqlEnum("currentStage", requestStages).default("submitted").notNull(),
   status: mysqlEnum("status", requestStatuses).default("pending").notNull(),
   priority: mysqlEnum("priority", ["urgent", "medium", "normal"]).default("normal"),
@@ -1692,7 +1692,7 @@ export type EscalationLog = typeof escalationLogs.$inferSelect;
 
 // تصدير الثوابت
 export type UserRole = typeof userRoles[number];
-export type ProgramType = typeof programTypes[number];
+export type ProgramType = string;
 export type RequestStage = typeof requestStages[number];
 export type RequestStatus = typeof requestStatuses[number];
 export type MosqueStatus = typeof mosqueStatuses[number];

@@ -519,7 +519,7 @@ export default function RequestDetails() {
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{request.requestNumber}</h1>
                 <p className="text-muted-foreground">
-                  {PROGRAM_LABELS[request.programType]}
+                  {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                   {request.mosque?.name && ` - ${request.mosque.name}`}
                   {isQuickResponse && <span className="mr-2 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">استجابة سريعة</span>}
                 </p>
@@ -632,7 +632,7 @@ export default function RequestDetails() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">البرنامج</p>
-                    <p className="font-medium">{PROGRAM_LABELS[request.programType]}</p>
+                    <p className="font-medium">{request.programName || PROGRAM_LABELS[request.programType] || request.programType}</p>
                   </div>
                   <div className="p-3 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground">المرحلة الحالية</p>
@@ -1192,7 +1192,7 @@ export default function RequestDetails() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">البرنامج</p>
-                      <p className="font-medium">{PROGRAM_LABELS[request.programType]}</p>
+                      <p className="font-medium">{request.programName || PROGRAM_LABELS[request.programType] || request.programType}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">المساحة</p>
