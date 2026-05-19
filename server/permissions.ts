@@ -31,12 +31,15 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   appointments_calendar: ["requests.view", "field_visits.view"],
   projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
   service_requester_accounts: ["users.view", "users.edit"],
-  suppliers: ["suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete"],
-  quotations: ["quotations.view", "quotations.create", "quotations.edit"],
-  financial_approval: ["financial.view", "financial.approve"],
-  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.delete"],
-  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit"],
-  disbursement_orders: ["disbursements.view", "disbursements.create"],
+  suppliers: [
+    "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
+    "suppliers.approve", "suppliers.reject", "suppliers.suspend"
+  ],
+  quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
+  financial_approval: ["financial.view", "financial.approve", "financial.reject"],
+  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.delete", "contracts.approve"],
+  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve"],
+  disbursement_orders: ["disbursements.view", "disbursements.create", "disbursements.approve"],
   progress_reports: ["reports.view", "reports.create"],
   financial_report: ["reports.view"],
   settings_center: ["settings.view", "settings.edit"],
@@ -136,11 +139,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       )
     );
 
-  // 4. دمج الصلاحيات
-  const allPermissions = new Set(rolePermissionsData);
+  // 4. دمج وتوسيع الصلاحيات
+  const allPermissions = new Set<string>();
 
-  // 5. توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة
-  for (const perm of rolePermissionsData) {
+  // إضافة الصلاحيات المجمعة من كل المصادر
+  rolePermissionsData.forEach(p => allPermissions.add(p));
+
+  // دعم الـ Wildcard (إذا وجد '*')
+  if (allPermissions.has("*")) {
+    const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
+    allAvailablePerms.forEach(p => allPermissions.add(p.id));
+  }
+
+  // توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة لجميع الصلاحيات المجمعة
+  const permissionsToExpand = Array.from(allPermissions);
+  for (const perm of permissionsToExpand) {
     const expanded = PERMISSION_EXPANSION[perm];
     if (expanded) {
       expanded.forEach(sub => allPermissions.add(sub));

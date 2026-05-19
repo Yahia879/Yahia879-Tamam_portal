@@ -3,6 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions } from "../../drizzle/schema";
+import { calculateUserPermissions } from "../permissions";
 import { eq, and, isNull, inArray, sql, or } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
@@ -310,52 +311,17 @@ export const authRouter = router({
       )
       .limit(1);
 
-    // إذا لم يكن للمستخدم دور مخصص، أعد البيانات العادية
-    if (!customRoleAssignment) {
-      return { ...ctx.user, customRole: null, permissions: [] };
-    }
-
-    // ملاحظة: تم التحقق من isActive أعلاه في الـ Kill Switch الشامل
-    // لكننا نبقي هذا كطبقة حماية إضافية للبيانات
-    if (!customRoleAssignment.isActive) {
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
-    }
-
-    // جلب الصلاحيات: الأولوية لحقل description (حيث يخزّن createRole الصلاحيات كـ JSON)
-    // ثم rolePermissions كمصدر احتياطي
-    let permissions: string[] = [];
-
-    // 1. محاولة قراءة الصلاحيات من حقل description (المصدر الأساسي)
-    if (customRoleAssignment.roleDescription) {
-      try {
-        const parsed = JSON.parse(customRoleAssignment.roleDescription);
-        if (Array.isArray(parsed)) {
-          permissions = parsed;
-        }
-      } catch {
-        // ليس JSON صالح، نتجاهل ونجرب rolePermissions
-      }
-    }
-
-    // 2. إذا لم نجد صلاحيات في description، نجرب جدول rolePermissions
-    if (permissions.length === 0) {
-      const rolePermsData = await db
-        .select({ permissionId: rolePermissions.permissionId })
-        .from(rolePermissions)
-        .where(eq(rolePermissions.roleId, customRoleAssignment.roleId));
-      permissions = rolePermsData.map((rp) => rp.permissionId);
-    }
+    // حساب الصلاحيات الموسعة باستخدام الدالة المركزية
+    const permissions = await calculateUserPermissions(ctx.user.id);
 
     return {
       ...ctx.user,
-      customRole: {
+      customRole: customRoleAssignment ? {
         id: customRoleAssignment.roleId,
         nameAr: customRoleAssignment.roleNameAr,
         nameEn: customRoleAssignment.roleNameEn,
         isActive: customRoleAssignment.isActive,
-      },
+      } : null,
       permissions,
     };
   }),
