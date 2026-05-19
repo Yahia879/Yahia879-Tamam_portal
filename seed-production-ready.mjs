@@ -203,17 +203,171 @@ async function seed() {
     // 7. قوالب العقود
     console.log("📜 حقن قوالب العقود...");
     const templates = [
-      { name: "Supervision Contract", nameAr: "عقد إشراف هندسي", type: "supervision", isActive: true, isDefault: true },
-      { name: "Construction Contract", nameAr: "عقد مقاولات إنشائية", type: "construction", isActive: true, isDefault: true },
-      { name: "Supply Contract", nameAr: "عقد توريد", type: "supply", isActive: true, isDefault: true },
-      { name: "Maintenance Contract", nameAr: "عقد صيانة", type: "maintenance", isActive: true, isDefault: true },
-      { name: "Consulting Contract", nameAr: "عقد استشارات", type: "consulting", isActive: true, isDefault: true }
+      { 
+        name: "Supervision Contract", 
+        nameAr: "عقد إشراف هندسي", 
+        type: "supervision", 
+        isActive: true, 
+        isDefault: true, 
+        isSystem: true,
+        description: "القالب الافتراضي لعقود الإشراف الهندسي",
+        headerTemplate: "نموذج عقد إشراف هندسي - جمعية تمام",
+        introTemplate: "إنه في يوم {{contract_date}} الموافق {{contract_date_hijri}} بمدينة {{mosque_city}}، تم الاتفاق بين كل من:\n\nالطرف الأول: {{organization_name}}، ويمثلها في التوقيع {{signatory_name}} بصفته {{signatory_title}}.\n\nالطرف الثاني: {{second_party_name}}، سجل تجاري رقم {{second_party_cr}}، ويمثلها {{second_party_representative}}.",
+        footerTemplate: "بوابة تمام للعناية بالمساجد - عقد إشراف هندسي",
+        signatureTemplate: "توقيع الطرف الأول: ....................\nتوقيع الطرف الثاني: ...................."
+      },
+      { name: "Construction Contract", nameAr: "عقد مقاولات إنشائية", type: "construction", isActive: true, isDefault: true, isSystem: true },
+      { name: "Supply Contract", nameAr: "عقد توريد", type: "supply", isActive: true, isDefault: true, isSystem: true },
+      { name: "Maintenance Contract", nameAr: "عقد صيانة", type: "maintenance", isActive: true, isDefault: true, isSystem: true },
+      { name: "Consulting Contract", nameAr: "عقد استشارات", type: "consulting", isActive: true, isDefault: true, isSystem: true }
     ];
 
     for (const t of templates) {
       await db.insert(schema.contractTemplates).values(t).onDuplicateKeyUpdate({
-        set: { isActive: true, isDefault: true }
+        set: { 
+          isActive: true, 
+          isDefault: true, 
+          isSystem: true,
+          description: t.description || null,
+          headerTemplate: t.headerTemplate || null,
+          introTemplate: t.introTemplate || null,
+          footerTemplate: t.footerTemplate || null,
+          signatureTemplate: t.signatureTemplate || null
+        }
       });
+
+      // جلب ID القالب المحقون
+      const [insertedTemplate] = await db.select().from(schema.contractTemplates).where(sql`${schema.contractTemplates.type} = ${t.type}`).limit(1);
+      const templateId = insertedTemplate.id;
+
+      if (t.type === 'supervision') {
+        console.log("📝 حقن بنود عقد الإشراف...");
+        const supervisionClauses = [
+          {
+            templateId,
+            title: "Article 1",
+            titleAr: "المادة الأولى: التزامات الطرف الأول",
+            content: "1. تزويد الطرف الثاني بجميع البيانات والمستندات المتعلقة بالمشروع.\n2. دفع قيمة الخدمات المتفق عليها وفقًا للشروط الزمنية المحددة.\n3. إصدار الدفعات حسب مراحل الإنجاز.",
+            category: "obligations_first_party",
+            orderIndex: 1,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 2",
+            titleAr: "المادة الثانية: التزامات الطرف الثاني",
+            content: "1. إصدار التراخيص المطلوبة.\n2. اعتماد كافة المخططات من كل الجهات ذات العلاقة.\n3. تقديم الدراسات الفنية والمخططات المطلوبة وفقًا للمعايير الهندسية.\n4. الالتزام بتسليم الأعمال ضمن الجدول الزمني المحدد.\n5. استخراج التراخيص في نطاق المنطقة.\n6. إجراء التعديلات المطلوبة خلال مدة زمنية محددة.\n7. المحافظة على سرية المعلومات والبيانات المقدمة.\n8. الالتزام بمعايير الجودة والسلامة.",
+            category: "obligations_second_party",
+            orderIndex: 2,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 3",
+            titleAr: "المادة الثالثة: مدة العقد",
+            content: "مدة العقد هي {{duration}} {{duration_unit}} تبدأ من تاريخ توقيع هذا العقد.",
+            category: "duration",
+            orderIndex: 3,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 4",
+            titleAr: "المادة الرابعة: قيمة العقد والدفعات",
+            content: "القيمة الإجمالية لهذا العقد هي {{contract_amount}} ريال سعودي ({{contract_amount_text}})، تُصرف كدفعات مالية حسب جدول الدفعات المعتمد.",
+            category: "financial",
+            orderIndex: 4,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 5",
+            titleAr: "المادة الخامسة: تعديل العقد",
+            content: "1. لا يجوز تعديل أي بند من بنود هذا العقد إلا بموافقة الطرفين كتابياً على التعديل.\n2. يتم إضافة أي بنود إضافية لهذا العقد لملاحق العقد بعد التوقيع عليها من الطرفين.\n3. يشار في الملاحق التي تتبع التوقيع على هذا العقد إلى هذا العقد لإيضاح العمل المنفذ وإثباته.",
+            category: "modifications",
+            orderIndex: 5,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 6",
+            titleAr: "المادة السادسة: الإشعارات والمراسلات",
+            content: "1. تتم الإشعارات والمراسلات بين الطرفين كتابياً بواسطة البريد الرسمي أو التسليم باليد بوجود تأكيد خطي على الاستلام أو عبر البريد الإلكتروني أو الفاكس مع تأكيد الاستلام على العناوين المحددة في صدر هذا العقد.\n2. تُعد الإشعارات والمراسلات المرسلة عبر الطرق المحددة صحيحة ومنتجة لكافة آثارها.\n3. في حال قام أحد الطرفين بتغيير عنوانه فيلزم إشعار الطرف الآخر رسمياً بعنوانه الجديد ويكون العنوان الجديد والموضح من الطرف المعني هو العنوان الصحيح وكذلك ضابط الاتصال.",
+            category: "notifications",
+            orderIndex: 6,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 7",
+            titleAr: "المادة السابعة: أحكام عامة",
+            content: "1. يتم البدء بالعمل بهذا العقد بموجب التوقيع عليه من قبل الطرفين.\n2. يلتزم الطرف الثاني بتنفيذ الأعمال المطلوبة منه وفق الأصول المتبعة وبأفضل جودة وخلال الفترة الزمنية المحددة بالعقد.\n3. تخضع هذه الاتفاقية لموافقة الطرفين كتابياً في جميع أعمالها والتزامهما بالعمل ضمن بنودها أو الملاحق الموافق عليها خطياً.",
+            category: "general",
+            orderIndex: 7,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 8",
+            titleAr: "المادة الثامنة: سرية المعلومات",
+            content: "يتعهد الطرفان بالحفاظ على سرية المعلومات التي تتوفر لديهما بسبب تطبيق هذه الاتفاقية سواءً كانت شفوية أو مكتوبة ولا يجوز إفشاء هذه الأسرار لأي طرف ثالث إلا بعد الحصول على موافقة خطية مسبقة من الطرف الآخر.",
+            category: "confidentiality",
+            orderIndex: 8,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 9",
+            titleAr: "المادة التاسعة: حقوق الملكية الفكرية",
+            content: "يلتزم الطرفين بمراعاة حقوق الملكية الفكرية والأدبية الخاصة أو المملوكة للطرف الآخر وعدم التعدي عليها، كما لا تعطي هذه الاتفاقية أياً من الطرفين أي حقوق تجاه حقوق الملكية الفكرية المملوكة للطرف الآخر.",
+            category: "intellectual_property",
+            orderIndex: 9,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 10",
+            titleAr: "المادة العاشرة: حل المنازعات",
+            content: "1. في حال حدوث أي خلاف بين الطرفين حول تفسير أو تنفيذ أي بند من بنود هذه الاتفاقية أو ملحقاتها يتم حله بالطرق الودية، فإن تعذر ذلك فيكون الاختصاص للجهات الرسمية وفقاً لأحكام القانون والنظام السعودي.\n2. تخضع هذه الاتفاقية للأنظمة المعمول بها في المملكة العربية السعودية، وفي حالة نشوء أي نزاع بين الطرفين حول أحكام هذه الاتفاقية يعملان على حلّه ودياً، وإذا تعذر ذلك فيعالج النزاع وفقاً للمحكمة المختصة مكانياً وولائياً.",
+            category: "disputes",
+            orderIndex: 10,
+            isRequired: true,
+            isEditable: false
+          },
+          {
+            templateId,
+            title: "Article 11",
+            titleAr: "المادة الحادية عشر: نُسخ الاتفاقية",
+            content: "حررت هذه الاتفاقية من نسختين ويُسلم كل طرف نسخة للعمل بموجبها، وتوثيقاً لما تقدم فقد جرى التوقيع على هذه الاتفاقية في التاريخ المبين في مقدمتها.",
+            category: "copies",
+            orderIndex: 11,
+            isRequired: true,
+            isEditable: false
+          }
+        ];
+
+        for (const clause of supervisionClauses) {
+          await db.insert(schema.contractClauses).values(clause).onDuplicateKeyUpdate({
+            set: { 
+              content: clause.content, 
+              titleAr: clause.titleAr, 
+              category: clause.category,
+              orderIndex: clause.orderIndex,
+              isRequired: clause.isRequired,
+              isEditable: clause.isEditable
+            }
+          });
+        }
+      }
     }
 
     // 8. حساب المدير الافتراضي (Admin)
