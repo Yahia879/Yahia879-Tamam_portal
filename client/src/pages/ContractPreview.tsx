@@ -464,9 +464,10 @@ export default function ContractPreview() {
     <DashboardLayout>
       <div className="space-y-4">
         {/* شريط الأدوات */}
-        <div className="flex items-center justify-between print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
           <Button 
             variant="outline" 
+            className="w-full sm:w-auto"
             onClick={() => {
               if (window.history.length > 1) {
                 window.history.back();
@@ -478,8 +479,8 @@ export default function ContractPreview() {
             <ArrowRight className="h-4 w-4 ml-2" />
             العودة
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting}>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+            <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting} className="flex-1 sm:flex-none">
               {isExporting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Download className="h-4 w-4 ml-2" />}
               تحميل PDF
             </Button>
@@ -493,28 +494,29 @@ export default function ContractPreview() {
                       variant="outline"
                       disabled={!modStatus.allowed}
                       title={modStatus.reason || "طلب تعديل على العقد"}
+                      className="flex-1 sm:flex-none"
                     >
                       <Edit className="h-4 w-4 ml-2" />
                       طلب تعديل
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-lg">
-                    <DialogHeader>
+                  <DialogContent className="max-w-lg w-[95vw]">
+                    <DialogHeader className="text-right sm:text-right">
                       <DialogTitle>طلب تعديل على العقد</DialogTitle>
                       <DialogDescription>
                         أدخل تفاصيل التعديل المطلوب ومبرراته. سيتم إرسال الطلب للموافقة.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4 text-right">
                       <div className="space-y-2">
                         <Label>نوع التعديل <span className="text-red-500">*</span></Label>
                         <Select value={modificationType} onValueChange={setModificationType}>
-                          <SelectTrigger>
+                          <SelectTrigger dir="rtl" className="text-right">
                             <SelectValue placeholder="اختر نوع التعديل" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent dir="rtl">
                             {MODIFICATION_TYPES.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
+                              <SelectItem key={type.value} value={type.value} className="text-right">
                                 {type.label}
                               </SelectItem>
                             ))}
@@ -528,6 +530,7 @@ export default function ContractPreview() {
                           onChange={(e) => setModificationDescription(e.target.value)}
                           placeholder="اشرح بالتفصيل التعديلات التي تريد إجراءها على العقد..."
                           rows={3}
+                          className="text-right"
                         />
                       </div>
                       <div className="space-y-2">
@@ -537,11 +540,12 @@ export default function ContractPreview() {
                           onChange={(e) => setModificationJustification(e.target.value)}
                           placeholder="اذكر الأسباب والمبررات التي تستدعي هذا التعديل..."
                           rows={3}
+                          className="text-right"
                         />
                       </div>
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                        <div className="flex items-start gap-2 justify-start">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
                           <div className="text-sm text-yellow-800">
                             <p className="font-medium">تنبيه:</p>
                             <p>سيتم إرسال طلب التعديل للموافقة عليه من المسؤول. لن يتم إجراء أي تعديل إلا بعد الموافقة.</p>
@@ -549,13 +553,11 @@ export default function ContractPreview() {
                         </div>
                       </div>
                     </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setModificationDialogOpen(false)}>
-                        إلغاء
-                      </Button>
+                    <DialogFooter className="flex-row gap-2 justify-start">
                       <Button 
                         onClick={handleSubmitModificationRequest}
                         disabled={requestModificationMutation.isPending}
+                        className="flex-1"
                       >
                         {requestModificationMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin ml-2" />
@@ -563,6 +565,9 @@ export default function ContractPreview() {
                           <MessageSquare className="h-4 w-4 ml-2" />
                         )}
                         إرسال الطلب
+                      </Button>
+                      <Button variant="outline" onClick={() => setModificationDialogOpen(false)} className="flex-1">
+                        إلغاء
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -574,7 +579,7 @@ export default function ContractPreview() {
             {contract.status === "approved" && (
               <Button 
                 variant="outline" 
-                className="border-green-600 text-green-700 hover:bg-green-50"
+                className="border-green-600 text-green-700 hover:bg-green-50 flex-1 sm:flex-none"
                 onClick={() => navigate(`/disbursements?contractId=${contractId}`)}
               >
                 <Banknote className="h-4 w-4 ml-2" />
@@ -585,210 +590,217 @@ export default function ContractPreview() {
         </div>
 
         {/* معاينة العقد */}
-        <div 
-          ref={printRef}
-          className="bg-white mx-auto print:m-0"
-          style={{ 
-            width: '210mm', 
-            minHeight: '297mm',
-            fontFamily: 'Arial, sans-serif',
-            position: 'relative',
-          }}
-        >
-          {/* الصفحة الأولى */}
-          <div className="p-8 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
-            {/* رأس الصفحة */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="text-right">
-                {/* تم إزالة رقم الترخيص من هنا */}
+        <div className="w-full overflow-x-auto pb-8 print:p-0 bg-muted/30">
+          <div 
+            ref={printRef}
+            className="bg-white mx-auto print:m-0 shadow-sm sm:shadow-lg border rounded-lg overflow-hidden"
+            style={{ 
+              width: '100%', 
+              maxWidth: '210mm',
+              minHeight: '297mm',
+              fontFamily: 'Arial, sans-serif',
+              position: 'relative',
+            }}
+          >
+            {/* الصفحة الأولى */}
+            <div className="p-4 sm:p-8 md:p-12 lg:p-16 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
+              {/* رأس الصفحة */}
+              <div className="flex flex-row items-start justify-between mb-6">
+                <div className="text-right">
+                  {/* تم إزالة رقم الترخيص من هنا */}
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* شعار الجمعية */}
+                  {orgSettings?.logoUrl && (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 sm:h-16" />
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                {/* شعار الجمعية */}
-                {orgSettings?.logoUrl && (
-                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16" />
-                )}
-              </div>
-            </div>
 
-            {/* عنوان العقد */}
-            <div 
-              className="text-center py-4 px-6 mb-6 rounded-lg"
-              style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
-            >
-              <h1 className="text-xl font-bold">
-                عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
-                {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
-              </h1>
-            </div>
-
-            {/* مقدمة العقد */}
-            <p className="text-center mb-6 text-gray-700">
-              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
-            </p>
-
-            {/* الطرف الأول */}
-            <div className="mb-6">
+              {/* عنوان العقد */}
               <div 
-                className="py-2 px-4 mb-3 rounded"
-                style={{ backgroundColor: '#e8f5e9' }}
+                className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg"
+                style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
               >
-                <h2 className="font-bold text-green-800">
-                  {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
-                </h2>
+                <h1 className="text-lg sm:text-xl font-bold">
+                  عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
+                  {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
+                </h1>
               </div>
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="py-1 text-gray-600 w-40">ويمثلها في هذا العقد:</td>
-                    <td className="py-1 font-medium">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">العنوان ورقم الاتصال:</td>
-                    <td className="py-1">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
-                    <td className="py-1 text-right" dir="ltr">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">ويشار إليها لاحقاً بـ:</td>
-                    <td className="py-1 font-bold">الطرف الأول</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
 
-            {/* الطرف الثاني */}
-            <div className="mb-6">
-              <div 
-                className="py-2 px-4 mb-3 rounded"
-                style={{ backgroundColor: '#e8f5e9' }}
-              >
-                <h2 className="font-bold text-green-800">
-                  {contract.secondPartyName}
-                </h2>
-              </div>
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr>
-                    <td className="py-1 text-gray-600 w-40">سجل تجاري رقم:</td>
-                    <td className="py-1 text-right" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
-                    <td className="py-1 font-medium">{contract.secondPartyRepresentative || "----"} بصفته {contract.secondPartyTitle || "----"}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">العنوان ورقم الاتصال:</td>
-                    <td className="py-1">{contract.secondPartyAddress || "----"} | جوال ({contract.secondPartyPhone || "----"})</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
-                    <td className="py-1 text-right" dir="ltr">{contract.secondPartyEmail || "----"}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-1 text-gray-600">ويشار إليها لاحقاً بـ:</td>
-                    <td className="py-1 font-bold">الطرف الثاني</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* التمهيد */}
-            <div className="mb-6">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                حيث إن {orgSettings?.organizationName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
-                و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
-                فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
+              {/* مقدمة العقد */}
+              <p className="text-center mb-6 text-gray-700 text-sm sm:text-base">
+                إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
               </p>
-            </div>
 
-            {/* بنود العقد الديناميكية */}
-            <div className="space-y-6">
-              {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
-                <div key={clause.id} className="mb-6 break-inside-avoid">
-                  <h3 
-                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none"
-                    style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
-                  >
-                    {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
-                  </h3>
-                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-4">
-                    {replaceVariables(clause.customContent || clause.originalContent)}
-                  </div>
+              {/* الطرف الأول */}
+              <div className="mb-6">
+                <div 
+                  className="py-2 px-4 mb-3 rounded"
+                  style={{ backgroundColor: '#e8f5e9' }}
+                >
+                  <h2 className="font-bold text-green-800 text-sm sm:text-base">
+                    {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                  </h2>
                 </div>
-              ))}
-            </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-gray-600 w-24 sm:w-40">ويمثلها في هذا العقد:</td>
+                        <td className="py-1 font-medium">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">العنوان والاتصال:</td>
+                        <td className="py-1">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                        <td className="py-1 text-right" dir="ltr">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
+                        <td className="py-1 font-bold">الطرف الأول</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-            {/* القيمة المالية وتفاصيل الحساب */}
-            <div className="mb-6 break-inside-avoid">
-              <h3 
-                className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none"
-                style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
-              >
-                القيمة المالية وتفاصيل الحساب:
-              </h3>
-              <div className="pr-4">
-                <p className="text-sm text-gray-700 mb-4">
-                  قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+              {/* الطرف الثاني */}
+              <div className="mb-6">
+                <div 
+                  className="py-2 px-4 mb-3 rounded"
+                  style={{ backgroundColor: '#e8f5e9' }}
+                >
+                  <h2 className="font-bold text-green-800 text-sm sm:text-base">
+                    {contract.secondPartyName}
+                  </h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm">
+                    <tbody>
+                      <tr>
+                        <td className="py-1 text-gray-600 w-24 sm:w-40">سجل تجاري رقم:</td>
+                        <td className="py-1 text-right" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
+                        <td className="py-1 font-medium">{contract.secondPartyRepresentative || "----"} بصفته {contract.secondPartyTitle || "----"}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">العنوان والاتصال:</td>
+                        <td className="py-1">{contract.secondPartyAddress || "----"} | جوال ({contract.secondPartyPhone || "----"})</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                        <td className="py-1 text-right" dir="ltr">{contract.secondPartyEmail || "----"}</td>
+                      </tr>
+                      <tr>
+                        <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
+                        <td className="py-1 font-bold">الطرف الثاني</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* التمهيد */}
+              <div className="mb-6">
+                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                  حيث إن {orgSettings?.organizationName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
+                  و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
+                  فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
                 </p>
-                <div className="text-sm">
-                  <p className="mb-2 font-medium">يتم تحويل الدفعات على حساب الطرف الثاني وفقاً للتفاصيل التالية:</p>
-                  <ul className="list-none space-y-1 text-gray-700">
-                    <li><span className="text-gray-600 ml-1">اسم الحساب:</span> <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
-                    <li><span className="text-gray-600 ml-1">رقم الآيبان:</span> <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
-                    <li><span className="text-gray-600 ml-1">اسم البنك:</span> <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* التوقيعات */}
-            <div className="mt-12">
-              <div className="text-center mb-8">
-                <p className="font-bold text-lg">هذا وبالله التوفيق،،،</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-8">
-                {/* الطرف الأول */}
-                <div className="text-center border-l pl-4">
-                  <h4 className="font-bold mb-2">الطرف الأول</h4>
-                  <p className="font-medium">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
-                  <p className="text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                  <p className="text-sm text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
-                  <div className="mt-8 space-y-4">
-                    <p>التوقيع: ...................................</p>
-                    <p>التاريخ: ...................................</p>
+              {/* بنود العقد الديناميكية */}
+              <div className="space-y-6">
+                {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
+                  <div key={clause.id} className="mb-6 break-inside-avoid">
+                    <h3 
+                      className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                      style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                    >
+                      {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
+                    </h3>
+                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                      {replaceVariables(clause.customContent || clause.originalContent)}
+                    </div>
                   </div>
-                  <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
-                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
-                </div>
+                ))}
+              </div>
 
-                {/* الطرف الثاني */}
-                <div className="text-center pr-4">
-                  <h4 className="font-bold mb-2">الطرف الثاني</h4>
-                  <p className="font-medium">{contract.secondPartyName}</p>
-                  <p className="text-sm">{contract.secondPartyRepresentative || "----"}</p>
-                  <p className="text-sm text-gray-600">{contract.secondPartyTitle || "----"}</p>
-                  <div className="mt-8 space-y-4">
-                    <p>التوقيع: ...................................</p>
-                    <p>التاريخ: ...................................</p>
+              {/* القيمة المالية وتفاصيل الحساب */}
+              <div className="mb-6 break-inside-avoid">
+                <h3 
+                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                  style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                >
+                  القيمة المالية وتفاصيل الحساب:
+                </h3>
+                <div className="pr-2 sm:pr-4">
+                  <p className="text-xs sm:text-sm text-gray-700 mb-4">
+                    قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+                  </p>
+                  <div className="text-xs sm:text-sm">
+                    <p className="mb-2 font-medium">يتم تحويل الدفعات على حساب الطرف الثاني وفقاً للتفاصيل التالية:</p>
+                    <ul className="list-none space-y-1 text-gray-700">
+                      <li><span className="text-gray-600 ml-1">اسم الحساب:</span> <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
+                      <li><span className="text-gray-600 ml-1">رقم الآيبان:</span> <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
+                      <li><span className="text-gray-600 ml-1">اسم البنك:</span> <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
+                    </ul>
                   </div>
-                  <p className="mt-4 text-sm text-gray-600">الختم الرسمي</p>
-                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
                 </div>
               </div>
-            </div>
 
-            {/* تذييل الصفحة */}
-            <div 
-              className="absolute bottom-4 left-0 right-0 text-center text-xs text-gray-500 print:relative print:mt-12"
-              style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 32px' }}
-            >
-              <div className="flex justify-between items-center">
-                <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
-                <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
-                <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+              {/* التوقيعات */}
+              <div className="mt-12">
+                <div className="text-center mb-8">
+                  <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  {/* الطرف الأول */}
+                  <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 border-b sm:border-b-0 last:border-b-0">
+                    <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
+                    <p className="font-medium text-xs sm:text-sm">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
+                    <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                    <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                      <p>التوقيع: ...................................</p>
+                      <p>التاريخ: ...................................</p>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                    <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                  </div>
+
+                  {/* الطرف الثاني */}
+                  <div className="text-center sm:pr-4">
+                    <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
+                    <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
+                    <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
+                    <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                      <p>التوقيع: ...................................</p>
+                      <p>التاريخ: ...................................</p>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                    <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* تذييل الصفحة */}
+              <div 
+                className="absolute bottom-4 left-0 right-0 text-center text-[10px] sm:text-xs text-gray-500 print:relative print:mt-12"
+                style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 16px sm:0 32px' }}
+              >
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
+                  <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
+                  <span className="hidden sm:inline">{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
+                  <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+                </div>
               </div>
             </div>
           </div>
