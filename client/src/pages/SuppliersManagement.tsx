@@ -201,17 +201,17 @@ export default function SuppliersManagement() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* العنوان */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">إدارة الموردين</h1>
-            <p className="text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
+            <h1 className="text-xl md:text-2xl font-bold">إدارة الموردين</h1>
+            <p className="text-sm md:text-base text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={() => navigate("/supplier/register")}>
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+            <Button onClick={() => navigate("/supplier/register")} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 ml-2" />
               إضافة مورد
             </Button>
-            <Button variant="outline" onClick={() => refetch()}>
+            <Button variant="outline" onClick={() => refetch()} className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 ml-2" />
               تحديث
             </Button>
