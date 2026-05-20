@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
-import { getAllFieldsForProgram } from "@/lib/programFields";
+import { getAllFieldsForProgram, getVisibleFieldsForProgram } from "@/lib/programFields";
 import {   ArrowRight,
   ArrowLeft,
   Save,
@@ -96,18 +96,55 @@ export default function FieldInspectionForm() {
 
   // ملء بيانات مواصفات الطلب عند تحميل بيانات الطلب
   useEffect(() => {
-    if (requestData?.programData) {
+    if (requestData) {
       let parsedData: Record<string, any> = {};
-      try {
-        if (typeof requestData.programData === 'string') {
-          parsedData = JSON.parse(requestData.programData);
-        } else {
-          parsedData = (requestData.programData as Record<string, any>) || {};
+      if (requestData.programData) {
+        try {
+          if (typeof requestData.programData === 'string') {
+            parsedData = JSON.parse(requestData.programData);
+          } else {
+            parsedData = (requestData.programData as Record<string, any>) || {};
+          }
+        } catch (e) {
+          console.error("Error parsing programData:", e);
+          parsedData = {};
         }
-      } catch (e) {
-        console.error("Error parsing programData:", e);
-        parsedData = {};
       }
+
+      // التحقق من وجود مصلى نساء في المسجد ودمجه في مواصفات الطلب
+      if (requestData.mosque?.hasPrayerHall) {
+        parsedData.hasPrayerHall = true;
+        
+        let womenArea = "";
+        let womenCapacity = "";
+        
+        if (requestData.mosque.notes && requestData.mosque.notes.includes("[معلومات مصلى النساء]")) {
+          const parts = requestData.mosque.notes.split("[معلومات مصلى النساء]:");
+          if (parts.length > 1) {
+            const details = parts[1];
+            
+            // Extract capacity
+            const capMatch = details.match(/- السعة:\s*([0-9]+)/);
+            if (capMatch) {
+              womenCapacity = capMatch[1];
+            }
+            
+            // Extract area
+            const areaMatch = details.match(/- المساحة:\s*([0-9.]+)/);
+            if (areaMatch) {
+              womenArea = areaMatch[1];
+            }
+          }
+        }
+        
+        if (parsedData.womenPrayerArea === undefined || parsedData.womenPrayerArea === "") {
+          parsedData.womenPrayerArea = womenArea ? parseFloat(womenArea) : "";
+        }
+        if (parsedData.womenPrayerCapacity === undefined || parsedData.womenPrayerCapacity === "") {
+          parsedData.womenPrayerCapacity = womenCapacity ? parseInt(womenCapacity) : "";
+        }
+      }
+
       setLocalProgramData(parsedData);
     }
   }, [requestData]);
@@ -344,6 +381,7 @@ export default function FieldInspectionForm() {
                   )}
                 </div>
               </div>
+
             </div>
           </CardContent>
         </Card>
@@ -362,7 +400,7 @@ export default function FieldInspectionForm() {
           <CardContent className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-800/30">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(() => {
-                const fields = getAllFieldsForProgram(requestData.programType)
+                const fields = getVisibleFieldsForProgram(requestData.programType, localProgramData)
                   .filter(f => f.name !== 'mosqueId');
                 
                 if (fields.length === 0) {
