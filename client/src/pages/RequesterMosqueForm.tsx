@@ -107,6 +107,9 @@ export default function RequesterMosqueForm() {
     area: "",
     capacity: "",
     hasPrayerHall: false,
+    womenPrayerCapacity: "",
+    womenPrayerArea: "",
+    womenPrayerNotes: "",
     mosqueAge: "",
     description: "",
   });
@@ -160,8 +163,13 @@ export default function RequesterMosqueForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.city || !formData.mosqueType) {
-      toast.error("يرجى ملء الحقول المطلوبة");
+    if (!formData.name || !formData.city || !formData.mosqueType || !formData.area || !formData.capacity) {
+      toast.error("يرجى ملء كافة الحقول المطلوبة للمسجد (الاسم، المدينة، النوع، المساحة، السعة)");
+      return;
+    }
+
+    if (formData.hasPrayerHall && (!formData.womenPrayerCapacity || !formData.womenPrayerArea)) {
+      toast.error("يرجى ملء الحقول المطلوبة لمصلى النساء (السعة والمساحة)");
       return;
     }
 
@@ -169,6 +177,12 @@ export default function RequesterMosqueForm() {
     if (!canRegisterMore) {
       toast.error("لا يمكنك تقديم أكثر من طلب تسجيل مسجد واحد. يرجى التواصل مع الإدارة للحصول على استثناء.");
       return;
+    }
+
+    let finalNotes = formData.description || "";
+    if (formData.hasPrayerHall) {
+      const womenDetails = `\n\n[معلومات مصلى النساء]:\n- السعة: ${formData.womenPrayerCapacity ? formData.womenPrayerCapacity + " مصلية" : "غير محدد"}\n- المساحة: ${formData.womenPrayerArea ? formData.womenPrayerArea + " م²" : "غير محدد"}\n- ملاحظات إضافية: ${formData.womenPrayerNotes || "لا يوجد"}`;
+      finalNotes += womenDetails;
     }
 
     createMutation.mutate({
@@ -184,7 +198,7 @@ export default function RequesterMosqueForm() {
       capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
       hasPrayerHall: formData.hasPrayerHall,
       mosqueAge: formData.mosqueAge ? parseInt(formData.mosqueAge) : undefined,
-      notes: formData.description || undefined,
+      notes: finalNotes || undefined,
     });
   };
 
@@ -389,7 +403,7 @@ export default function RequesterMosqueForm() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="area" className="text-xs sm:text-sm">المساحة (م²)</Label>
+                    <Label htmlFor="area" className="text-xs sm:text-sm">المساحة (م²) *</Label>
                     <Input
                       id="area"
                       type="number"
@@ -397,10 +411,11 @@ export default function RequesterMosqueForm() {
                       onChange={(e) => handleChange("area", e.target.value)}
                       placeholder="مثال: 500"
                       className="h-9 sm:h-10 text-xs sm:text-sm"
+                      required
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="capacity" className="text-xs sm:text-sm">السعة (مصلي)</Label>
+                    <Label htmlFor="capacity" className="text-xs sm:text-sm">السعة (مصلى) *</Label>
                     <Input
                       id="capacity"
                       type="number"
@@ -408,6 +423,7 @@ export default function RequesterMosqueForm() {
                       onChange={(e) => handleChange("capacity", e.target.value)}
                       placeholder="مثال: 300"
                       className="h-9 sm:h-10 text-xs sm:text-sm"
+                      required
                     />
                   </div>
                   <div className="space-y-1.5 col-span-2 sm:col-span-1">
@@ -427,12 +443,69 @@ export default function RequesterMosqueForm() {
                   <Checkbox
                     id="hasPrayerHall"
                     checked={formData.hasPrayerHall}
-                    onCheckedChange={(checked) => handleChange("hasPrayerHall", checked as boolean)}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked as boolean;
+                      handleChange("hasPrayerHall", isChecked);
+                      if (!isChecked) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          womenPrayerCapacity: "",
+                          womenPrayerArea: "",
+                          womenPrayerNotes: "",
+                        }));
+                      }
+                    }}
                   />
                   <Label htmlFor="hasPrayerHall" className="cursor-pointer text-xs sm:text-sm">
                     هل يوجد مصلى نساء؟
                   </Label>
                 </div>
+
+                {formData.hasPrayerHall && (
+                  <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <h4 className="font-semibold text-xs sm:text-sm text-primary flex items-center gap-1.5 border-b pb-2">
+                      <Building2 className="w-4 h-4" />
+                      معلومات مصلى النساء
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="womenPrayerCapacity" className="text-[11px] sm:text-xs">سعة مصلى النساء (مصلي) *</Label>
+                        <Input
+                          id="womenPrayerCapacity"
+                          type="number"
+                          value={formData.womenPrayerCapacity}
+                          onChange={(e) => handleChange("womenPrayerCapacity", e.target.value)}
+                          placeholder="مثال: 50"
+                          className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                          required={formData.hasPrayerHall}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="womenPrayerArea" className="text-[11px] sm:text-xs">المساحة (م²) *</Label>
+                        <Input
+                          id="womenPrayerArea"
+                          type="number"
+                          value={formData.womenPrayerArea}
+                          onChange={(e) => handleChange("womenPrayerArea", e.target.value)}
+                          placeholder="مثال: 80"
+                          className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                          required={formData.hasPrayerHall}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="womenPrayerNotes" className="text-[11px] sm:text-xs">ملاحظات مصلى النساء</Label>
+                      <Input
+                        id="womenPrayerNotes"
+                        type="text"
+                        value={formData.womenPrayerNotes}
+                        onChange={(e) => handleChange("womenPrayerNotes", e.target.value)}
+                        placeholder="مثال: منفصل وله مدخل خاص ودورة مياه..."
+                        className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

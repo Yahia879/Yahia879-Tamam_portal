@@ -2,19 +2,19 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { programs } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 export const programsRouter = router({
   // الحصول على جميع البرامج
   getAll: publicProcedure.query(async () => {
-    const db = await getDb();
-    return await db.select().from(programs);
+    const db = (await getDb())!;
+    return await db.select().from(programs).orderBy(asc(programs.createdAt));
   }),
 
   // الحصول على البرامج الفعالة فقط
   getActive: publicProcedure.query(async () => {
-    const db = await getDb();
-    return await db.select().from(programs).where(eq(programs.isActive, true));
+    const db = (await getDb())!;
+    return await db.select().from(programs).where(eq(programs.isActive, true)).orderBy(asc(programs.createdAt));
   }),
 
   // إضافة برنامج جديد
@@ -30,7 +30,7 @@ export const programsRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      const db = await getDb();
+      const db = (await getDb())!;
       await db.insert(programs).values({
         ...input,
         isActive: true,
@@ -53,7 +53,7 @@ export const programsRouter = router({
     )
     .mutation(async ({ input }) => {
       const { id, ...data } = input;
-      const db = await getDb();
+      const db = (await getDb())!;
       await db.update(programs).set(data).where(eq(programs.id, id));
       return { success: true };
     }),
@@ -62,7 +62,7 @@ export const programsRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
-      const db = await getDb();
+      const db = (await getDb())!;
       await db.delete(programs).where(eq(programs.id, input.id));
       return { success: true };
     }),
