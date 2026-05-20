@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -216,6 +217,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             programData[field.name] = formData[field.name];
           }
         }
+      }
+
+      if (selectedService === 'bunyan' && formData.hasPrayerHall !== undefined) {
+        programData.hasPrayerHall = formData.hasPrayerHall;
       }
 
       const result = await createRequestMutation.mutateAsync({
@@ -429,19 +434,95 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             )}
 
             <div className="space-y-4 sm:space-y-6">
-              {visibleFields.map((field) => (
-                <div key={field.name} className="space-y-4">
-                  <ConditionalField
-                    field={field}
-                    formData={formData}
-                    value={formData[field.name]}
-                    onChange={(value) => handleFieldChange(field.name, value)}
-                    error={errors[field.name]}
-                    mosqueOptions={userMosques}
-                    onAddMosque={() => navigate('/requester/mosques/new')}
-                    disabled={['mosqueArea', 'actualWorshippers', 'womenPrayerArea', 'womenPrayerCapacity'].includes(field.name)}
-                  />
-                </div>
+              {(selectedService === 'bunyan'
+                ? visibleFields.filter(f => f.name !== 'womenPrayerArea' && f.name !== 'womenPrayerCapacity')
+                : visibleFields
+              ).map((field) => (
+                <React.Fragment key={field.name}>
+                  <div className="space-y-4">
+                    <ConditionalField
+                      field={field}
+                      formData={formData}
+                      value={formData[field.name]}
+                      onChange={(value) => handleFieldChange(field.name, value)}
+                      error={errors[field.name]}
+                      mosqueOptions={userMosques}
+                      onAddMosque={() => navigate('/requester/mosques/new')}
+                      disabled={selectedService !== 'bunyan' && ['mosqueArea', 'actualWorshippers', 'womenPrayerArea', 'womenPrayerCapacity'].includes(field.name)}
+                    />
+                  </div>
+                  {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
+                    <>
+                      <div className="flex items-center gap-2 py-2 mt-2 mb-4 animate-in fade-in duration-200">
+                        <Checkbox
+                          id="hasPrayerHall"
+                          checked={!!formData.hasPrayerHall}
+                          onCheckedChange={(checked) => {
+                            const isChecked = checked as boolean;
+                            setFormData((prev) => {
+                              const updated = { ...prev, hasPrayerHall: isChecked };
+                              if (!isChecked) {
+                                delete updated.womenPrayerArea;
+                                delete updated.womenPrayerCapacity;
+                              }
+                              return updated;
+                            });
+                            if (!isChecked) {
+                              setErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.womenPrayerArea;
+                                delete newErrors.womenPrayerCapacity;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                        <label htmlFor="hasPrayerHall" className="cursor-pointer text-xs sm:text-sm select-none font-medium text-foreground">
+                          هل يوجد مصلى نساء؟
+                        </label>
+                      </div>
+
+                      {formData.hasPrayerHall && (
+                        <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                          <h4 className="font-semibold text-xs sm:text-sm text-primary flex items-center gap-1.5 border-b pb-2">
+                            <Building2 className="w-4 h-4" />
+                            معلومات مصلى النساء
+                          </h4>
+                          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                            <div className="space-y-1.5">
+                              <label htmlFor="womenPrayerCapacity" className="text-[11px] sm:text-xs font-medium text-foreground">سعة مصلى النساء (مصلي) *</label>
+                              <Input
+                                id="womenPrayerCapacity"
+                                type="number"
+                                value={formData.womenPrayerCapacity || ''}
+                                onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
+                                placeholder="مثال: 50"
+                                className={`h-9 sm:h-10 text-xs sm:text-sm bg-white ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
+                              />
+                              {errors.womenPrayerCapacity && (
+                                <p className="text-[11px] sm:text-xs text-red-500">{errors.womenPrayerCapacity}</p>
+                              )}
+                            </div>
+                            <div className="space-y-1.5">
+                              <label htmlFor="womenPrayerArea" className="text-[11px] sm:text-xs font-medium text-foreground">المساحة (م²) *</label>
+                              <Input
+                                id="womenPrayerArea"
+                                type="number"
+                                value={formData.womenPrayerArea || ''}
+                                onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
+                                placeholder="مثال: 50"
+                                className={`h-9 sm:h-10 text-xs sm:text-sm bg-white ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
+                              />
+                              {errors.womenPrayerArea && (
+                                <p className="text-[11px] sm:text-xs text-red-500">{errors.womenPrayerArea}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </React.Fragment>
               ))}
 
               {/* حقل رفع المرفق الاختياري */}
@@ -552,12 +633,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-4 uppercase tracking-wider font-bold">تفاصيل الطلب</p>
                 <div className="space-y-4">
                   {visibleFields.map((field) => (
-                    <div key={field.name} className="border-b border-border last:border-0 pb-3 last:pb-0">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{field.label}</p>
-                      <p className="font-medium text-foreground text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
-                        {formData[field.name] ? String(formData[field.name]) : '-'}
-                      </p>
-                    </div>
+                    <React.Fragment key={field.name}>
+                      <div className="border-b border-border last:border-0 pb-3 last:pb-0">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{field.label}</p>
+                        <p className="font-medium text-foreground text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
+                          {formData[field.name] ? String(formData[field.name]) : '-'}
+                        </p>
+                      </div>
+                      {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
+                        <div className="border-b border-border pb-3 last:border-0 animate-fade-in">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">مصلى النساء</p>
+                          <p className="font-medium text-foreground text-xs sm:text-sm">
+                            {formData.hasPrayerHall ? 'يوجد مصلى للنساء' : 'لا يوجد مصلى للنساء'}
+                          </p>
+                        </div>
+                      )}
+                    </React.Fragment>
                   ))}
                   {selectedFile && (
                     <div className="pt-1">
