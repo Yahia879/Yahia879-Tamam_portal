@@ -61,8 +61,9 @@ export default function FieldVisitSchedule() {
     }
   }, [busySlots, formData.visitTime]);
   
-  // جلب قائمة المستخدمين الموظفين
-  const { data: staffUsers } = trpc.users.getStaffUsers.useQuery();
+  // جلب قائمة المستخدمين وتصفيتهم ليظهر فقط أعضاء الفريق الميداني (field_team)
+  const { data: allStaffUsers } = trpc.users.getStaffUsers.useQuery();
+  const staffUsers = allStaffUsers?.filter((user: any) => user.role === "field_team");
 
   // جلب بيانات الطلب
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
