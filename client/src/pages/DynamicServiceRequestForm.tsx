@@ -30,7 +30,8 @@ import {
   Sparkles, 
   Sun, 
   Droplets, 
-  GlassWater
+  GlassWater,
+  Info
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, any> = {
@@ -386,16 +387,45 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
             <div className="space-y-4 sm:space-y-6">
               {visibleFields.map((field) => (
-                <ConditionalField
-                  key={field.name}
-                  field={field}
-                  formData={formData}
-                  value={formData[field.name]}
-                  onChange={(value) => handleFieldChange(field.name, value)}
-                  error={errors[field.name]}
-                  mosqueOptions={userMosques}
-                  onAddMosque={() => navigate('/requester/mosques/new')}
-                />
+                <div key={field.name} className="space-y-4">
+                  <ConditionalField
+                    field={field}
+                    formData={formData}
+                    value={formData[field.name]}
+                    onChange={(value) => handleFieldChange(field.name, value)}
+                    error={errors[field.name]}
+                    mosqueOptions={userMosques}
+                    onAddMosque={() => navigate('/requester/mosques/new')}
+                  />
+                  
+                  {field.name === 'mosqueId' && formData.mosqueId && (() => {
+                    const selectedMosque = userMosques?.find(m => m.id === Number(formData.mosqueId)) as any;
+                    if (selectedMosque?.hasPrayerHall) {
+                      let womenInfoStr = "";
+                      if (selectedMosque.notes && selectedMosque.notes.includes("[معلومات مصلى النساء]")) {
+                        const parts = selectedMosque.notes.split("[معلومات مصلى النساء]:");
+                        if (parts.length > 1) {
+                          womenInfoStr = parts[1].trim();
+                        }
+                      }
+                      
+                      return (
+                        <Alert className="bg-fuchsia-50 border-fuchsia-200 mt-2">
+                          <Info className="h-4 w-4 text-fuchsia-600" />
+                          <AlertDescription className="text-fuchsia-800 text-sm">
+                            <p className="font-bold mb-1">يحتوي هذا المسجد على مصلى إناث</p>
+                            {womenInfoStr ? (
+                              <div className="text-xs whitespace-pre-wrap mt-2 opacity-90">{womenInfoStr}</div>
+                            ) : (
+                              <p className="text-xs mt-1">تتوفر معلومات إضافية عن المصلى في سجل المسجد.</p>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               ))}
 
               {/* حقل رفع المرفق الاختياري */}

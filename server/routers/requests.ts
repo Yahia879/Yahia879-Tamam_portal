@@ -1020,6 +1020,8 @@ export const requestsRouter = router({
       // تقييم صحة معلومات المستفيد
       beneficiaryInfoAccuracyRating: z.number().min(1).max(5).optional(),
       beneficiaryInfoAccuracyNotes: z.string().optional(),
+      // تعديل بيانات الطلب الأصلية عند إدراج تقرير الزيارة الميدانية
+      programData: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -1056,6 +1058,13 @@ export const requestsRouter = router({
         beneficiaryInfoAccuracyRating: input.beneficiaryInfoAccuracyRating || null,
         beneficiaryInfoAccuracyNotes: input.beneficiaryInfoAccuracyNotes || null,
       });
+
+      // تحديث بيانات الطلب الأساسية المذكورة عند إنشاء الطلب
+      if (input.programData) {
+        await db.update(mosqueRequests).set({
+          programData: input.programData,
+        }).where(eq(mosqueRequests.id, input.requestId));
+      }
 
       // تحديث مرحلة الطلب
       await db.update(mosqueRequests).set({

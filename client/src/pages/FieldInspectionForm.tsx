@@ -13,8 +13,8 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
-import { 
-  ArrowRight,
+import { getAllFieldsForProgram } from "@/lib/programFields";
+import {   ArrowRight,
   ArrowLeft,
   Save,
   MapPin,
@@ -54,6 +54,12 @@ export default function FieldInspectionForm() {
   const [accuracyHoverRating, setAccuracyHoverRating] = useState<number>(0);
   const [accuracyNotes, setAccuracyNotes] = useState<string>("");
   
+  // حالة الخطوات
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // مواصفات الطلب الميدانية
+  const [localProgramData, setLocalProgramData] = useState<Record<string, any>>({});
+
   // بيانات النموذج
   const [formData, setFormData] = useState({
     // التقييم الفني
@@ -87,6 +93,24 @@ export default function FieldInspectionForm() {
     { id: requestId },
     { enabled: requestId > 0 }
   );
+
+  // ملء بيانات مواصفات الطلب عند تحميل بيانات الطلب
+  useEffect(() => {
+    if (requestData?.programData) {
+      let parsedData: Record<string, any> = {};
+      try {
+        if (typeof requestData.programData === 'string') {
+          parsedData = JSON.parse(requestData.programData);
+        } else {
+          parsedData = (requestData.programData as Record<string, any>) || {};
+        }
+      } catch (e) {
+        console.error("Error parsing programData:", e);
+        parsedData = {};
+      }
+      setLocalProgramData(parsedData);
+    }
+  }, [requestData]);
 
   // جلب بيانات الزيارة المجدولة للحصول على اسم المسؤول
   const { data: fieldVisitData } = trpc.fieldVisits.getVisit.useQuery(
@@ -171,6 +195,7 @@ export default function FieldInspectionForm() {
         teamMember5: formData.teamMember5 || undefined,
         beneficiaryInfoAccuracyRating: accuracyRating > 0 ? accuracyRating : undefined,
         beneficiaryInfoAccuracyNotes: accuracyNotes || undefined,
+        programData: localProgramData,
       });
 
       // رفع المرفقات إذا وجدت
@@ -229,8 +254,31 @@ export default function FieldInspectionForm() {
           <p className="text-sm md:text-base text-gray-600">توثيق حالة المسجد فنياً وتحديد الاحتياجات</p>
         </div>
 
-        {/* البيانات الأساسية */}
-        <Card className="mb-6 border-0 shadow-sm">
+        {/* شريط التقدم */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute left-0 right-0 top-1/2 h-1 bg-gray-200 -z-10 transform -translate-y-1/2"></div>
+            <div className="absolute right-0 top-1/2 h-1 bg-primary -z-10 transform -translate-y-1/2 transition-all duration-300" style={{ width: `${((currentStep - 1) / 2) * 100}%` }}></div>
+            
+            {[
+              { step: 1, title: "البيانات والمواصفات" },
+              { step: 2, title: "التقييم والاحتياج" },
+              { step: 3, title: "الفريق والمستفيد" }
+            ].map((item) => (
+              <div key={item.step} className="flex flex-col items-center">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base transition-colors duration-300 ${currentStep >= item.step ? 'bg-primary text-white shadow-lg' : 'bg-gray-200 text-gray-500'}`}>
+                  {item.step}
+                </div>
+                <span className={`text-[10px] md:text-xs font-bold mt-2 ${currentStep >= item.step ? 'text-primary' : 'text-gray-500'}`}>{item.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {currentStep === 1 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* البيانات الأساسية */}
+            <Card className="mb-6 border-0 shadow-sm">
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <FileText className="w-5 h-5 text-primary" />
@@ -300,6 +348,145 @@ export default function FieldInspectionForm() {
           </CardContent>
         </Card>
 
+        {/* تدقيق وتعديل مواصفات الطلب الميدانية */}
+        <Card className="mb-6 border-0 shadow-sm overflow-hidden bg-white dark:bg-slate-900 border-t-4 border-t-primary">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl text-slate-800 dark:text-slate-100">
+              <ClipboardList className="w-5 h-5 text-primary" />
+              مواصفات الطلب وتفاصيل الاحتياج الميداني
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-500">
+              مراجعة وتعديل مواصفات الطلب المقدمة من المستفيد ومطابقتها ميدانياً
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6 bg-slate-50/50 dark:bg-slate-800/30">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(() => {
+                const fields = getAllFieldsForProgram(requestData.programType)
+                  .filter(f => f.name !== 'mosqueId');
+                
+                if (fields.length === 0) {
+                  return (
+                    <p className="text-slate-500 text-sm col-span-2 text-center py-4">
+                      لا توجد مواصفات إضافية لهذا البرنامج.
+                    </p>
+                  );
+                }
+
+                return fields.map((field) => {
+                  const value = localProgramData[field.name] !== undefined ? localProgramData[field.name] : (field.defaultValue || "");
+                  
+                  const handleFieldChange = (val: any) => {
+                    setLocalProgramData(prev => ({
+                      ...prev,
+                      [field.name]: val
+                    }));
+                  };
+
+                  return (
+                    <div key={field.name} className={`space-y-1.5 ${field.type === 'textarea' ? 'md:col-span-2' : ''}`}>
+                      <Label className="text-sm font-bold flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                        {field.label}
+                        {field.required && <span className="text-red-500">*</span>}
+                      </Label>
+                      
+                      {field.type === 'textarea' && (
+                        <Textarea
+                          value={value}
+                          onChange={(e) => handleFieldChange(e.target.value)}
+                          placeholder={field.placeholder || `أدخل ${field.label}...`}
+                          className="min-h-[100px] text-sm md:text-base leading-relaxed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        />
+                      )}
+
+                      {field.type === 'select' && (
+                        <Select
+                          value={value}
+                          onValueChange={(val) => handleFieldChange(val)}
+                        >
+                          <SelectTrigger className="h-10 md:h-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+                            <SelectValue placeholder={field.placeholder || `اختر ${field.label}...`} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {field.options?.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {field.type === 'radio' && (
+                        <div className="flex flex-wrap gap-4 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                          {field.options?.map((opt) => (
+                            <label key={opt.value} className="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
+                              <input
+                                type="radio"
+                                name={field.name}
+                                value={opt.value}
+                                checked={value === opt.value}
+                                onChange={() => handleFieldChange(opt.value)}
+                                className="h-4 w-4 text-primary focus:ring-primary border-slate-300"
+                              />
+                              {opt.label}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {field.type === 'checkbox' && (
+                        <div className="flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <Checkbox
+                            id={field.name}
+                            checked={value === true || value === 'yes'}
+                            onCheckedChange={(checked) => handleFieldChange(checked === true)}
+                            className="h-5 w-5"
+                          />
+                          <Label htmlFor={field.name} className="cursor-pointer text-sm font-bold text-slate-700 dark:text-slate-300">
+                            {field.label}
+                          </Label>
+                        </div>
+                      )}
+
+                      {field.type === 'number' && (
+                        <Input
+                          type="number"
+                          value={value}
+                          onChange={(e) => {
+                            const parsed = parseFloat(e.target.value);
+                            handleFieldChange(isNaN(parsed) ? "" : parsed);
+                          }}
+                          placeholder={field.placeholder || "0"}
+                          className="h-10 md:h-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        />
+                      )}
+
+                      {field.type !== 'textarea' && field.type !== 'select' && field.type !== 'radio' && field.type !== 'checkbox' && field.type !== 'number' && (
+                        <Input
+                          type={field.type}
+                          value={value}
+                          onChange={(e) => handleFieldChange(e.target.value)}
+                          placeholder={field.placeholder || `أدخل ${field.label}...`}
+                          className="h-10 md:h-11 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        />
+                      )}
+                      
+                      {field.help && (
+                        <p className="text-[11px] text-slate-400 font-medium mt-1">{field.help}</p>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+          </div>
+        )}
+
+        {currentStep === 2 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* التقييم الفني */}
         <Card className="mb-6 border-0 shadow-sm">
           <CardHeader className="p-4 md:p-6 pb-2">
@@ -510,7 +697,11 @@ export default function FieldInspectionForm() {
             )}
           </CardContent>
         </Card>
+          </div>
+        )}
 
+        {currentStep === 3 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* فريق المعاينة */}
         <Card className="mb-6 border-0 shadow-sm">
           <CardHeader className="p-4 md:p-6 pb-2">
@@ -648,35 +839,65 @@ export default function FieldInspectionForm() {
             </div>
           </CardContent>
         </Card>
+          </div>
+        )}
 
         {/* أزرار التحكم */}
         <div className="flex flex-col-reverse sm:flex-row justify-between gap-4 mt-8 pb-10">
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto h-11 border-2 font-bold"
-            onClick={() => navigate(`/requests/${requestId}`)}
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            إلغاء وإغلاق
-          </Button>
+          {currentStep === 1 ? (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto h-11 border-2 font-bold"
+              onClick={() => navigate(`/requests/${requestId}`)}
+            >
+              <ArrowRight className="w-4 h-4 ml-2" />
+              إلغاء وإغلاق
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto h-11 border-2 font-bold"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setCurrentStep(prev => prev - 1);
+              }}
+            >
+              <ArrowRight className="w-4 h-4 ml-2" />
+              السابق
+            </Button>
+          )}
           
-          <Button
-            className="w-full sm:w-auto h-11 gradient-primary text-white font-bold shadow-lg"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                جاري المعالجة...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 ml-2" />
-                اعتماد وحفظ تقرير المعاينة
-              </>
-            )}
-          </Button>
+          {currentStep < 3 ? (
+            <Button
+              className="w-full sm:w-auto h-11 gradient-primary text-white font-bold shadow-lg"
+              onClick={() => {
+                // Validate step 1 fields if necessary, skipping for brevity to match "minimal steps" requirement
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setCurrentStep(prev => prev + 1);
+              }}
+            >
+              التالي
+              <ArrowLeft className="w-4 h-4 mr-2" />
+            </Button>
+          ) : (
+            <Button
+              className="w-full sm:w-auto h-11 gradient-primary text-white font-bold shadow-lg"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                  جاري المعالجة...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 ml-2" />
+                  اعتماد وحفظ تقرير المعاينة
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>
