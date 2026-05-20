@@ -40,7 +40,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
             disabled={disabled}
-            className={error ? 'border-red-500' : ''}
+            className={`${error ? 'border-red-500' : ''} ${disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-slate-50/80 font-bold border-slate-300 text-slate-900 shadow-none' : ''}`}
           />
         );
 

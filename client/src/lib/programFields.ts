@@ -111,6 +111,34 @@ export const SHARED_FIELDS: Record<string, FormField> = {
     },
   },
 
+  // مساحة مصلى النساء
+  womenPrayerArea: {
+    name: 'womenPrayerArea',
+    type: 'number',
+    label: 'مساحة مصلى النساء بالمتر المربع',
+    placeholder: 'مثال: 50',
+    required: true,
+    validation: {
+      min: 1,
+      max: 10000,
+      message: 'مساحة مصلى النساء يجب أن تكون بين 1 و 10000 متر مربع',
+    },
+  },
+
+  // سعة مصلى النساء
+  womenPrayerCapacity: {
+    name: 'womenPrayerCapacity',
+    type: 'number',
+    label: 'عدد مصليات النساء الفعلي',
+    placeholder: 'مثال: 50',
+    required: true,
+    validation: {
+      min: 1,
+      max: 10000,
+      message: 'العدد يجب أن يكون موجباً',
+    },
+  },
+
   // وجود متبرع للصيانة
   hasDonorForMaintenance: {
     name: 'hasDonorForMaintenance',
@@ -508,5 +536,22 @@ export function shouldShowField(field: FormField, formData: Record<string, any>)
  */
 export function getVisibleFieldsForProgram(programId: string, formData: Record<string, any>): FormField[] {
   const allFields = getAllFieldsForProgram(programId);
-  return allFields.filter((field) => shouldShowField(field, formData));
+  const fields = allFields.filter((field) => shouldShowField(field, formData));
+  
+  if (formData && formData.hasPrayerHall) {
+    const womenFields = [SHARED_FIELDS['womenPrayerArea'], SHARED_FIELDS['womenPrayerCapacity']].filter(Boolean);
+    const insertIndex = fields.findIndex(f => f.name === 'actualWorshippers');
+    if (insertIndex !== -1) {
+      fields.splice(insertIndex + 1, 0, ...womenFields);
+    } else {
+      const mosqueIdIndex = fields.findIndex(f => f.name === 'mosqueId');
+      if (mosqueIdIndex !== -1) {
+        fields.splice(mosqueIdIndex + 1, 0, ...womenFields);
+      } else {
+        fields.push(...womenFields);
+      }
+    }
+  }
+  
+  return fields;
 }

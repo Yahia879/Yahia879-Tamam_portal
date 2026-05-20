@@ -97,6 +97,45 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           if (selectedMosque.capacity) {
             updated.actualWorshippers = selectedMosque.capacity.toString();
           }
+
+          if (selectedMosque.hasPrayerHall) {
+            updated.hasPrayerHall = true;
+            
+            let womenPrayerArea = "";
+            let womenPrayerCapacity = "";
+            
+            if (selectedMosque.notes && selectedMosque.notes.includes("[معلومات مصلى النساء]")) {
+              const parts = selectedMosque.notes.split("[معلومات مصلى النساء]:");
+              if (parts.length > 1) {
+                const details = parts[1];
+                
+                // Extract capacity
+                const capMatch = details.match(/- السعة:\s*([0-9]+)/);
+                if (capMatch) {
+                  womenPrayerCapacity = capMatch[1];
+                }
+                
+                // Extract area
+                const areaMatch = details.match(/- المساحة:\s*([0-9.]+)/);
+                if (areaMatch) {
+                  womenPrayerArea = areaMatch[1];
+                }
+              }
+            }
+            
+            updated.womenPrayerArea = womenPrayerArea;
+            updated.womenPrayerCapacity = womenPrayerCapacity;
+          } else {
+            updated.hasPrayerHall = false;
+            delete updated.womenPrayerArea;
+            delete updated.womenPrayerCapacity;
+          }
+        } else {
+          updated.hasPrayerHall = false;
+          delete updated.mosqueArea;
+          delete updated.actualWorshippers;
+          delete updated.womenPrayerArea;
+          delete updated.womenPrayerCapacity;
         }
       }
       
@@ -111,6 +150,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         if (fieldName === 'mosqueId') {
           delete newErrors['mosqueArea'];
           delete newErrors['actualWorshippers'];
+          delete newErrors['womenPrayerArea'];
+          delete newErrors['womenPrayerCapacity'];
         }
         return newErrors;
       });
@@ -120,6 +161,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         const newErrors = { ...prev };
         delete newErrors['mosqueArea'];
         delete newErrors['actualWorshippers'];
+        delete newErrors['womenPrayerArea'];
+        delete newErrors['womenPrayerCapacity'];
         return newErrors;
       });
     }
@@ -396,35 +439,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     error={errors[field.name]}
                     mosqueOptions={userMosques}
                     onAddMosque={() => navigate('/requester/mosques/new')}
+                    disabled={['mosqueArea', 'actualWorshippers', 'womenPrayerArea', 'womenPrayerCapacity'].includes(field.name)}
                   />
-                  
-                  {field.name === 'mosqueId' && formData.mosqueId && (() => {
-                    const selectedMosque = userMosques?.find(m => m.id === Number(formData.mosqueId)) as any;
-                    if (selectedMosque?.hasPrayerHall) {
-                      let womenInfoStr = "";
-                      if (selectedMosque.notes && selectedMosque.notes.includes("[معلومات مصلى النساء]")) {
-                        const parts = selectedMosque.notes.split("[معلومات مصلى النساء]:");
-                        if (parts.length > 1) {
-                          womenInfoStr = parts[1].trim();
-                        }
-                      }
-                      
-                      return (
-                        <Alert className="bg-fuchsia-50 border-fuchsia-200 mt-2">
-                          <Info className="h-4 w-4 text-fuchsia-600" />
-                          <AlertDescription className="text-fuchsia-800 text-sm">
-                            <p className="font-bold mb-1">يحتوي هذا المسجد على مصلى إناث</p>
-                            {womenInfoStr ? (
-                              <div className="text-xs whitespace-pre-wrap mt-2 opacity-90">{womenInfoStr}</div>
-                            ) : (
-                              <p className="text-xs mt-1">تتوفر معلومات إضافية عن المصلى في سجل المسجد.</p>
-                            )}
-                          </AlertDescription>
-                        </Alert>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               ))}
 
