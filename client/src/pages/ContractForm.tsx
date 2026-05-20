@@ -603,9 +603,9 @@ export default function ContractForm() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6 text-right" dir="rtl">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* العنوان */}
-        <div className="text-right">
+        <div>
          <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
           <p className="text-muted-foreground">
             {isEditMode 
@@ -628,24 +628,24 @@ export default function ContractForm() {
         )}
         
         {requestId && !isLoadingRequest && requestDetails && (
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-right">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 justify-start">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-600" />
                 معلومات الطلب المرتبط
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-                <div className="text-right">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
                   <span className="text-sm text-muted-foreground">رقم الطلب:</span>
                   <p className="font-semibold text-blue-900">{requestDetails.requestNumber}</p>
                 </div>
-                <div className="text-right">
+                <div>
                   <span className="text-sm text-muted-foreground">المسجد:</span>
                   <p className="font-semibold text-blue-900">{requestDetails.mosque?.name || "-"}</p>
                 </div>
-                <div className="text-right">
+                <div>
                   <span className="text-sm text-muted-foreground">المبلغ المعتمد:</span>
                   <p className="font-semibold text-blue-900">
                     {contractData.totalValue > 0 
@@ -656,9 +656,9 @@ export default function ContractForm() {
               </div>
               {requestDetails.project && (
                 <div className="mt-4 pt-4 border-t border-blue-200">
-                  <div className="flex items-center gap-2 justify-start">
+                  <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm text-muted-foreground ml-1">المشروع:</span>
+                    <span className="text-sm text-muted-foreground">المشروع:</span>
                     <span className="font-medium text-blue-900">
                       {requestDetails.project.projectNumber} - {requestDetails.project.name}
                     </span>
@@ -670,14 +670,14 @@ export default function ContractForm() {
         )}
 
         {/* شريط الخطوات */}
-        <div className="flex items-center justify-between overflow-x-auto pb-2 flex-row-reverse">
+        <div className="flex items-center justify-between overflow-x-auto pb-2">
           {steps.map((step, index) => {
             const StepIcon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
             
             return (
-              <div key={step.id} className="flex items-center flex-row-reverse">
+              <div key={step.id} className="flex items-center">
                 <div className="flex flex-col items-center min-w-[60px]">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
@@ -715,13 +715,13 @@ export default function ContractForm() {
         </div>
 
         {/* محتوى الخطوات */}
-        <Card className="text-right">
+        <Card>
           <CardContent className="pt-6">
             {/* الخطوة 1: اختيار القالب */}
             {currentStep === 1 && (
-              <div className="space-y-6 text-right">
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">قالب العقد *</Label>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>قالب العقد *</Label>
                   {templatesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -742,14 +742,14 @@ export default function ContractForm() {
                       {templates.map((template: any) => (
                         <div
                           key={template.id}
-                          className={`p-4 border rounded-lg cursor-pointer transition-colors text-right ${
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                             contractData.templateId === template.id
                               ? "border-primary bg-primary/5"
                               : "hover:border-gray-400"
                           }`}
                           onClick={() => setContractData({ ...contractData, templateId: template.id })}
                         >
-                          <div className="flex items-start gap-3 justify-start">
+                          <div className="flex items-start gap-3">
                             <div className={`p-2 rounded-lg ${
                               contractData.templateId === template.id
                                 ? "bg-primary text-primary-foreground"
@@ -757,10 +757,10 @@ export default function ContractForm() {
                             }`}>
                               <FileText className="h-5 w-5" />
                             </div>
-                            <div className="flex-1 text-right">
-                              <h3 className="font-medium text-right">{template.name}</h3>
-                              <p className="text-sm text-muted-foreground text-right">{template.description}</p>
-                              <Badge variant="outline" className="mt-2 text-right">
+                            <div className="flex-1">
+                              <h3 className="font-medium">{template.name}</h3>
+                              <p className="text-sm text-muted-foreground">{template.description}</p>
+                              <Badge variant="outline" className="mt-2">
                                 {template.type === "supply" ? "توريد" :
                                  template.type === "construction" ? "مقاولات" :
                                  template.type === "supervision" ? "إشراف" :
@@ -779,8 +779,8 @@ export default function ContractForm() {
                 </div>
 
                 {/* اختيار مفوض التوقيع */}
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">مفوض التوقيع (الطرف الأول) *</Label>
+                <div className="space-y-2">
+                  <Label>مفوض التوقيع (الطرف الأول) *</Label>
                   <Select
                     value={contractData.signatoryId?.toString() || ""}
                     onValueChange={(value) => setContractData({ 
@@ -788,13 +788,13 @@ export default function ContractForm() {
                       signatoryId: value ? parseInt(value) : null 
                     })}
                   >
-                    <SelectTrigger className="text-right" dir="rtl">
+                    <SelectTrigger>
                       <SelectValue placeholder="اختر مفوض التوقيع" />
                     </SelectTrigger>
-                    <SelectContent dir="rtl">
+                    <SelectContent>
                       {signatoriesData?.map((signatory: any) => (
-                        <SelectItem key={signatory.id} value={signatory.id.toString()} className="text-right">
-                          <div className="flex items-center gap-2 justify-start">
+                        <SelectItem key={signatory.id} value={signatory.id.toString()}>
+                          <div className="flex items-center gap-2">
                             <span>{signatory.name}</span>
                             <span className="text-muted-foreground">- {signatory.title}</span>
                             {signatory.isDefault && (
@@ -805,7 +805,7 @@ export default function ContractForm() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground text-right">
+                  <p className="text-xs text-muted-foreground">
                     الشخص المفوض بالتوقيع على العقد من جهة الجمعية
                   </p>
                 </div>
@@ -813,10 +813,10 @@ export default function ContractForm() {
                 {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}
                 {(requestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
                   // عند وجود طلب مرتبط بمشروع أو في وضع التعديل، نعرض المشروع كقيمة ثابتة
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">{requestId ? "المشروع المرتبط" : "المشروع"}</Label>
-                    <div className="p-3 bg-muted rounded-lg border text-right">
-                      <div className="flex items-center gap-2 justify-start">
+                  <div className="space-y-2">
+                    <Label>{requestId ? "المشروع المرتبط" : "المشروع"}</Label>
+                    <div className="p-3 bg-muted rounded-lg border">
+                      <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-primary" />
                         {requestId && requestDetails?.project ? (
                           <>
@@ -847,12 +847,12 @@ export default function ContractForm() {
                         )}
                       </div>
                       {requestId && (
-                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                        <p className="text-xs text-muted-foreground mt-1">
                           هذا العقد مرتبط بالطلب رقم {requestDetails.requestNumber}
                         </p>
                       )}
                       {isEditMode && !requestId && (
-                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                        <p className="text-xs text-muted-foreground mt-1">
                           لا يمكن تغيير المشروع بعد إنشاء العقد.
                         </p>
                       )}
@@ -860,8 +860,8 @@ export default function ContractForm() {
                   </div>
                 ) : (
                   // عند عدم وجود طلب، نعرض قائمة اختيار المشروع
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">المشروع (اختياري)</Label>
+                  <div className="space-y-2">
+                    <Label>المشروع (اختياري)</Label>
                     <Select
                       value={contractData.projectId?.toString() || "none"}
                       onValueChange={(value) => setContractData({ 
@@ -869,13 +869,13 @@ export default function ContractForm() {
                         projectId: value === "none" ? null : parseInt(value) 
                       })}
                     >
-                      <SelectTrigger className="text-right" dir="rtl">
+                      <SelectTrigger>
                         <SelectValue placeholder="اختر المشروع" />
                       </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="none" className="text-right">بدون مشروع</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="none">بدون مشروع</SelectItem>
                         {projects.map((project: any) => (
-                          <SelectItem key={project.id} value={project.id.toString()} className="text-right">
+                          <SelectItem key={project.id} value={project.id.toString()}>
                             {project.projectNumber} - {project.projectName}
                           </SelectItem>
                         ))}
@@ -888,19 +888,19 @@ export default function ContractForm() {
 
             {/* الخطوة 2: الطرف الثاني */}
             {currentStep === 2 && (
-              <div className="space-y-6 text-right">
+              <div className="space-y-6">
                 {hasApprovedSupplier && (
-                  <Alert className="bg-blue-50 border-blue-200 text-right">
+                  <Alert className="bg-blue-50 border-blue-200">
                     <Check className="h-4 w-4 text-blue-600" />
-                    <AlertTitle className="text-blue-800 text-right">تم اختيار المورد تلقائياً</AlertTitle>
-                    <AlertDescription className="text-blue-700 text-right">
+                    <AlertTitle className="text-blue-800">تم اختيار المورد تلقائياً</AlertTitle>
+                    <AlertDescription className="text-blue-700">
                       تم تحديد المورد "{approvedSupplierQuotation.supplierName}" بناءً على عرض السعر المعتمد في المرحلة المالية.
                     </AlertDescription>
                   </Alert>
                 )}
 
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">المورد (الطرف الثاني) *</Label>
+                <div className="space-y-2">
+                  <Label>المورد (الطرف الثاني) *</Label>
                   {suppliersLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -914,12 +914,12 @@ export default function ContractForm() {
                       })}
                       disabled={isEditMode || hasApprovedSupplier}
                     >
-                      <SelectTrigger className="text-right" dir="rtl">
+                      <SelectTrigger>
                         <SelectValue placeholder="اختر المورد" />
                       </SelectTrigger>
-                      <SelectContent dir="rtl">
+                      <SelectContent>
                         {suppliers.map((supplier: any) => (
-                          <SelectItem key={supplier.id} value={supplier.id.toString()} className="text-right">
+                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
                             {supplier.name}
                           </SelectItem>
                         ))}
@@ -927,39 +927,39 @@ export default function ContractForm() {
                     </Select>
                   )}
                   {hasApprovedSupplier && (
-                    <p className="text-xs text-blue-600 font-medium text-right">
+                    <p className="text-xs text-blue-600 font-medium">
                       لا يمكن تغيير المورد لوجود عرض سعر معتمد مرتب بهذا الطلب.
                     </p>
                   )}
                 </div>
 
                 {selectedSupplier && (
-                  <Card className="bg-muted/50 text-right">
-                    <CardHeader className="pb-2 text-right">
-                      <CardTitle className="text-lg text-right">بيانات المورد</CardTitle>
+                  <Card className="bg-muted/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">بيانات المورد</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4 text-sm text-right">
-                      <div className="text-right">
+                    <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
                         <span className="text-muted-foreground">الاسم:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.name}</span>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground">السجل التجاري:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.commercialRegister || "-"}</span>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground">المسؤول:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.contactPerson || "-"}</span>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground">الجوال:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.phone || "-"}</span>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground">البريد:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.email || "-"}</span>
                       </div>
-                      <div className="text-right">
+                      <div>
                         <span className="text-muted-foreground">العنوان:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.address || "-"}</span>
                       </div>
@@ -971,31 +971,29 @@ export default function ContractForm() {
 
             {/* الخطوة 3: تفاصيل العقد */}
             {currentStep === 3 && (
-              <div className="space-y-6 text-right">
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">موضوع العقد *</Label>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>موضوع العقد *</Label>
                   <Input
                     value={contractData.subject}
                     onChange={(e) => setContractData({ ...contractData, subject: e.target.value })}
                     placeholder="مثال: توريد مواد بناء لمشروع ترميم مسجد..."
-                    className="text-right"
                   />
                 </div>
 
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف العقد</Label>
+                <div className="space-y-2">
+                  <Label>وصف العقد</Label>
                   <Textarea
                     value={contractData.description}
                     onChange={(e) => setContractData({ ...contractData, description: e.target.value })}
                     placeholder="وصف تفصيلي للعقد..."
                     rows={3}
-                    className="text-right"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">مدة العقد *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>مدة العقد *</Label>
                     <Input
                       type="number"
                       min={1}
@@ -1005,42 +1003,40 @@ export default function ContractForm() {
                         duration: parseInt(e.target.value) || 0 
                       })}
                       placeholder="المدة"
-                      className="text-right"
                     />
                   </div>
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">وحدة المدة</Label>
+                  <div className="space-y-2">
+                    <Label>وحدة المدة</Label>
                     <Select
                       value={contractData.durationUnit}
                       onValueChange={(value) => setContractData({ ...contractData, durationUnit: value })}
                     >
-                      <SelectTrigger className="text-right" dir="rtl">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent dir="rtl">
+                      <SelectContent>
                         {DURATION_UNITS.map((unit) => (
-                          <SelectItem key={unit.value} value={unit.value} className="text-right">
+                          <SelectItem key={unit.value} value={unit.value}>
                             {unit.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">تاريخ البدء *</Label>
+                  <div className="space-y-2">
+                    <Label>تاريخ البدء *</Label>
                     <Input
                       type="date"
                       value={contractData.startDate}
                       onChange={(e) => setContractData({ ...contractData, startDate: e.target.value })}
-                      className="text-right"
                     />
                   </div>
                 </div>
 
                 {/* القيمة الأساسية والنسبة */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">القيمة الأساسية (ريال)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>القيمة الأساسية (ريال)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1056,12 +1052,11 @@ export default function ContractForm() {
                         });
                       }}
                       placeholder="القيمة الأساسية"
-                      className="text-right"
                     />
-                    <p className="text-xs text-muted-foreground text-right">المبلغ المعتمد من عرض السعر</p>
+                    <p className="text-xs text-muted-foreground">المبلغ المعتمد من عرض السعر</p>
                   </div>
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">نسبة الإشراف/الإدارة (%)</Label>
+                  <div className="space-y-2">
+                    <Label>نسبة الإشراف/الإدارة (%)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1078,12 +1073,11 @@ export default function ContractForm() {
                         });
                       }}
                       placeholder="0"
-                      className="text-right"
                     />
-                    <p className="text-xs text-muted-foreground text-right">نسبة الجمعية من العقد</p>
+                    <p className="text-xs text-muted-foreground">نسبة الجمعية من العقد</p>
                   </div>
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">إجمالي قيمة العقد (ريال) *</Label>
+                  <div className="space-y-2">
+                    <Label>إجمالي قيمة العقد (ريال) *</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1093,9 +1087,9 @@ export default function ContractForm() {
                         totalValue: parseFloat(e.target.value) || 0 
                       })}
                       placeholder="إجمالي القيمة"
-                      className="font-bold text-green-700 text-right"
+                      className="font-bold text-green-700"
                     />
-                    <p className="text-xs text-muted-foreground text-right">
+                    <p className="text-xs text-muted-foreground">
                       القيمة النهائية شاملة النسبة
                       {contractData.managementPercentage > 0 && (
                         <span className="text-green-600 mr-1">
@@ -1110,11 +1104,11 @@ export default function ContractForm() {
 
             {/* الخطوة 4: جدول الدفعات */}
             {currentStep === 4 && (
-              <div className="space-y-6 text-right">
-                <div className="flex items-center justify-between flex-row-reverse">
-                  <div className="text-right">
-                    <h3 className="font-medium text-right">جدول الدفعات</h3>
-                    <p className="text-sm text-muted-foreground text-right">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">جدول الدفعات</h3>
+                    <p className="text-sm text-muted-foreground">
                       حدد الدفعات ومواعيدها (اختياري)
                     </p>
                   </div>
@@ -1131,17 +1125,17 @@ export default function ContractForm() {
                     <p className="text-sm">يمكنك تخطي هذه الخطوة إذا لم تكن هناك دفعات محددة</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 text-right">
+                  <div className="space-y-4">
                     {paymentSchedule.map((payment, index) => (
-                      <Card key={payment.id} className="p-4 text-right">
-                        <div className="flex items-start gap-4 flex-row-reverse">
+                      <Card key={payment.id} className="p-4">
+                        <div className="flex items-start gap-4">
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <GripVertical className="h-5 w-5" />
                             <span className="font-medium">{index + 1}</span>
                           </div>
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
-                            <div className="space-y-1 text-right">
-                              <Label className="text-xs text-right">التاريخ الميلادي</Label>
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <Label className="text-xs">التاريخ الميلادي</Label>
                               <Input
                                 type="date"
                                 value={payment.dueDate}
@@ -1187,28 +1181,25 @@ export default function ContractForm() {
                                   }
                                   return endDate.toISOString().split('T')[0];
                                 })()}
-                                className="text-right"
                               />
                             </div>
-                            <div className="space-y-1 text-right">
-                              <Label className="text-xs text-right">عنوان طلب الصرف</Label>
+                            <div className="space-y-1">
+                              <Label className="text-xs">عنوان طلب الصرف</Label>
                               <Input
                                 value={payment.name}
                                 required
                                 onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
                                 placeholder="عنوان الطلب"
-                                className="text-right"
                               />
                             </div>
-                            <div className="space-y-1 text-right">
-                              <Label className="text-xs text-right">المبلغ</Label>
+                            <div className="space-y-1">
+                              <Label className="text-xs">المبلغ</Label>
                               <Input
                                 type="number"
                                 value={payment.amount || ""}
                                 required
                                 onChange={(e) => updatePayment(payment.id, "amount", parseFloat(e.target.value) || 0)}
                                 placeholder="0.00"
-                                className="text-right"
                               />
                             </div>
                           </div>
@@ -1225,14 +1216,14 @@ export default function ContractForm() {
                     ))}
 
                     {/* ملخص الدفعات */}
-                    <Card className="bg-muted/50 p-4 text-right">
-                      <div className="flex items-center justify-between flex-row-reverse">
-                        <div className="flex items-center gap-2 justify-start flex-row-reverse">
-                          <span className="ml-2">إجمالي المبالغ:</span>
+                    <Card className="bg-muted/50 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span>إجمالي المبالغ:</span>
                           <span className={`font-bold ${paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue ? "text-destructive" : "text-primary"}`}>
                             {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
                           </span>
-                          <span className="text-muted-foreground mr-1 ml-1">من قيمة العقد:</span>
+                          <span className="text-muted-foreground mr-1">من قيمة العقد:</span>
                           <span className="font-bold">
                             {contractData.totalValue.toLocaleString()} ريال
                           </span>
@@ -1258,10 +1249,10 @@ export default function ContractForm() {
 
             {/* الخطوة 5: بنود العقد */}
             {currentStep === 5 && (
-              <div className="space-y-6 text-right">
-                <div className="text-right">
-                  <h3 className="font-medium text-right">بنود العقد</h3>
-                  <p className="text-sm text-muted-foreground text-right">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium">بنود العقد</h3>
+                  <p className="text-sm text-muted-foreground">
                     راجع البنود وقم بتخصيصها حسب الحاجة
                   </p>
                 </div>
@@ -1276,23 +1267,23 @@ export default function ContractForm() {
                     <p>لا توجد بنود في هذا القالب</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 text-right">
+                  <div className="space-y-3">
                     {clauseValues.map((clause, index) => (
-                      <Card key={clause.clauseId} className={`${!clause.isIncluded ? "opacity-50" : ""} text-right`}>
-                        <div className="p-4 text-right">
-                          <div className="flex items-start gap-3 flex-row-reverse">
+                      <Card key={clause.clauseId} className={`${!clause.isIncluded ? "opacity-50" : ""}`}>
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
                             <Checkbox
                               checked={clause.isIncluded}
                               onCheckedChange={() => toggleClauseInclusion(clause.clauseId)}
                               disabled={clause.isRequired}
                             />
-                            <div className="flex-1 text-right">
+                            <div className="flex-1">
                               <div 
-                                className="flex items-center justify-between cursor-pointer flex-row-reverse"
+                                className="flex items-center justify-between cursor-pointer"
                                 onClick={() => toggleClauseExpansion(clause.clauseId)}
                               >
-                                <div className="flex items-center gap-2 justify-start flex-row-reverse">
-                                  <span className="font-medium text-right">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">
                                     المادة {index + 1}: {clause.titleAr || clause.title}
                                   </span>
                                   {clause.isRequired && (
@@ -1310,19 +1301,18 @@ export default function ContractForm() {
                               </div>
                               
                               {expandedClauses.has(clause.clauseId) && (
-                                <div className="mt-3 space-y-3 text-right">
-                                  <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded text-right">
+                                <div className="mt-3 space-y-3">
+                                  <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded">
                                     {clause.content}
                                   </div>
                                   {clause.isEditable && clause.isIncluded && (
-                                    <div className="space-y-2 text-right">
-                                      <Label className="text-xs text-right">تعديل المحتوى (اختياري)</Label>
+                                    <div className="space-y-2">
+                                      <Label className="text-xs">تعديل المحتوى (اختياري)</Label>
                                       <Textarea
                                         value={clause.customContent}
                                         onChange={(e) => updateClauseContent(clause.clauseId, e.target.value)}
                                         placeholder="اترك فارغاً لاستخدام النص الافتراضي..."
                                         rows={3}
-                                        className="text-right"
                                       />
                                     </div>
                                   )}
@@ -1340,51 +1330,51 @@ export default function ContractForm() {
 
             {/* الخطوة 6: المراجعة */}
             {currentStep === 6 && (
-              <div className="space-y-6 text-right">
-                <h3 className="font-medium text-lg text-right">مراجعة العقد</h3>
+              <div className="space-y-6">
+                <h3 className="font-medium text-lg">مراجعة العقد</h3>
                 
                 {/* ملخص القالب */}
-                <Card className="text-right">
-                  <CardHeader className="pb-2 text-right">
-                    <CardTitle className="text-base text-right">قالب العقد</CardTitle>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">قالب العقد</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-right">
+                  <CardContent>
                     {templates.find((t: any) => t.id === contractData.templateId)?.name || "-"}
                   </CardContent>
                 </Card>
 
                 {/* ملخص الطرف الثاني */}
-                <Card className="text-right">
-                  <CardHeader className="pb-2 text-right">
-                    <CardTitle className="text-base text-right">الطرف الثاني</CardTitle>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">الطرف الثاني</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-right">
+                  <CardContent>
                     <p className="font-medium">{selectedSupplier?.name || "-"}</p>
                     <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || "-"}</p>
                   </CardContent>
                 </Card>
 
                 {/* ملخص التفاصيل */}
-                <Card className="text-right">
-                  <CardHeader className="pb-2 text-right">
-                    <CardTitle className="text-base text-right">تفاصيل العقد</CardTitle>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">تفاصيل العقد</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 text-sm text-right">
-                    <div className="text-right">
+                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
                       <span className="text-muted-foreground">الموضوع:</span>
                       <p className="font-medium">{contractData.subject || "-"}</p>
                     </div>
-                    <div className="text-right">
+                    <div>
                       <span className="text-muted-foreground">المدة:</span>
                       <p className="font-medium">
                         {contractData.duration} {DURATION_UNITS.find(u => u.value === contractData.durationUnit)?.label}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div>
                       <span className="text-muted-foreground">تاريخ البدء:</span>
                       <p className="font-medium">{contractData.startDate || "-"}</p>
                     </div>
-                    <div className="text-right">
+                    <div>
                       <span className="text-muted-foreground">القيمة:</span>
                       <p className="font-medium">{contractData.totalValue.toLocaleString()} ريال</p>
                     </div>
@@ -1393,14 +1383,14 @@ export default function ContractForm() {
 
                 {/* ملخص الدفعات */}
                 {paymentSchedule.length > 0 && (
-                  <Card className="text-right">
-                    <CardHeader className="pb-2 text-right">
-                      <CardTitle className="text-base text-right">جدول الدفعات ({paymentSchedule.length} دفعات)</CardTitle>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">جدول الدفعات ({paymentSchedule.length} دفعات)</CardTitle>
                     </CardHeader>
-                    <CardContent className="text-right">
-                      <div className="space-y-2 text-right">
+                    <CardContent>
+                      <div className="space-y-2">
                         {paymentSchedule.map((payment, index) => (
-                          <div key={payment.id} className="flex items-center justify-between text-sm flex-row-reverse">
+                          <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span>{payment.name}</span>
                             <span className="font-medium">{payment.amount.toLocaleString()} ريال</span>
                           </div>
@@ -1411,16 +1401,16 @@ export default function ContractForm() {
                 )}
 
                 {/* ملخص البنود */}
-                <Card className="text-right">
-                  <CardHeader className="pb-2 text-right">
-                    <CardTitle className="text-base text-right">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
                       بنود العقد ({clauseValues.filter(c => c.isIncluded).length} بند)
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="text-right">
-                    <div className="space-y-1 text-right">
+                  <CardContent>
+                    <div className="space-y-1">
                       {clauseValues.filter(c => c.isIncluded).map((clause, index) => (
-                        <div key={clause.clauseId} className="text-sm text-right">
+                        <div key={clause.clauseId} className="text-sm">
                           <span className="text-muted-foreground">المادة {index + 1}:</span>
                           <span className="mr-2">{clause.titleAr || clause.title}</span>
                         </div>
@@ -1432,20 +1422,20 @@ export default function ContractForm() {
             )}
 
             {/* أزرار التنقل */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t flex-row-reverse">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 1}
               >
+                <ArrowRight className="h-4 w-4 ml-2" />
                 السابق
-                <ArrowLeft className="h-4 w-4 mr-2" />
               </Button>
 
               {currentStep < 6 ? (
                 <Button onClick={nextStep}>
                   التالي
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <ArrowLeft className="h-4 w-4 mr-2" />
                 </Button>
               ) : (
                 <Button

@@ -102,22 +102,22 @@ export default function DisbursementOrderDetails() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6" dir="rtl">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => navigate("/disbursement-orders")}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-right">
+          <div className="flex items-center gap-4 flex-row-reverse justify-end">
+            <Button variant="outline" size="icon" onClick={() => navigate("/disbursement-orders")} className="rotate-180">
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">أمر الصرف رقم {order.orderNumber}</h1>
-              <p className="text-muted-foreground">تفاصيل أمر الصرف</p>
+            <div className="text-right">
+              <h1 className="text-2xl font-bold text-right">أمر الصرف رقم {order.orderNumber}</h1>
+              <p className="text-muted-foreground text-right">تفاصيل أمر الصرف</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className={status.color}>
+          <div className="flex items-center gap-2 justify-start flex-row-reverse">
+            <Badge className={`${status.color} flex items-center gap-1`}>
               {status.icon}
-              <span className="mr-1">{status.label}</span>
+              <span>{status.label}</span>
             </Badge>
             <Button variant="outline" onClick={() => navigate(`/disbursement-orders/${id}/print`)}>
               <Printer className="ml-2 h-4 w-4" />
@@ -131,14 +131,14 @@ export default function DisbursementOrderDetails() {
                     اعتماد
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>تأكيد اعتماد أمر الصرف</AlertDialogTitle>
-                    <AlertDialogDescription>
+                <AlertDialogContent dir="rtl">
+                  <AlertDialogHeader className="text-right">
+                    <AlertDialogTitle className="text-right">تأكيد اعتماد أمر الصرف</AlertDialogTitle>
+                    <AlertDialogDescription className="text-right">
                       هل أنت متأكد من اعتماد أمر الصرف رقم {order.orderNumber}؟
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
+                  <AlertDialogFooter className="flex-row-reverse justify-start gap-2">
                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => approveOrder.mutate({ id: Number(id) })}
@@ -158,14 +158,14 @@ export default function DisbursementOrderDetails() {
                     تنفيذ الدفع
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>تأكيد تنفيذ أمر الصرف</AlertDialogTitle>
-                    <AlertDialogDescription>
+                <AlertDialogContent dir="rtl">
+                  <AlertDialogHeader className="text-right">
+                    <AlertDialogTitle className="text-right">تأكيد تنفيذ أمر الصرف</AlertDialogTitle>
+                    <AlertDialogDescription className="text-right">
                       هل أنت متأكد من تنفيذ أمر الصرف رقم {order.orderNumber} بمبلغ {Number(order.amount).toLocaleString("ar-SA")} ريال؟
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
+                  <AlertDialogFooter className="flex-row-reverse justify-start gap-2">
                     <AlertDialogCancel>إلغاء</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => executeOrder.mutate({ id: Number(id) })}
@@ -183,54 +183,56 @@ export default function DisbursementOrderDetails() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* بيانات أمر الصرف */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="text-right">
+            <CardHeader className="text-right">
+              <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                 <FileText className="h-5 w-5 text-primary" />
                 بيانات أمر الصرف
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">رقم أمر الصرف</p>
-                  <p className="font-semibold">{order.orderNumber}</p>
+            <CardContent className="space-y-4 text-right">
+              <div className="grid grid-cols-2 gap-4 text-right">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">رقم أمر الصرف</p>
+                  <p className="font-semibold text-right">{order.orderNumber}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">المبلغ</p>
-                  <p className="font-semibold text-primary text-lg">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">المبلغ</p>
+                  <p className="font-semibold text-primary text-lg text-right">
                     {Number(order.amount).toLocaleString("ar-SA")} ريال
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">تاريخ الإنشاء</p>
-                  <p className="font-semibold">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">تاريخ الإنشاء</p>
+                  <p className="font-semibold text-right">
                     {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">الحالة</p>
-                  <Badge className={status.color}>
-                    {status.icon}
-                    <span className="mr-1">{status.label}</span>
-                  </Badge>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">الحالة</p>
+                  <div className="flex justify-start">
+                    <Badge className={`${status.color} flex items-center gap-1`}>
+                      {status.icon}
+                      <span>{status.label}</span>
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
               {order.approvedAt && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">تاريخ الاعتماد</p>
-                      <p className="font-semibold">
+                  <div className="grid grid-cols-2 gap-4 text-right">
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground text-right">تاريخ الاعتماد</p>
+                      <p className="font-semibold text-right">
                         {new Date(order.approvedAt).toLocaleDateString("ar-SA")}
                       </p>
                     </div>
                     {order.approvalNotes && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">ملاحظات الاعتماد</p>
-                        <p className="font-semibold">{order.approvalNotes}</p>
+                      <div className="col-span-2 text-right">
+                        <p className="text-sm text-muted-foreground text-right">ملاحظات الاعتماد</p>
+                        <p className="font-semibold text-right">{order.approvalNotes}</p>
                       </div>
                     )}
                   </div>
@@ -240,17 +242,17 @@ export default function DisbursementOrderDetails() {
               {order.executedAt && (
                 <>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">تاريخ التنفيذ</p>
-                      <p className="font-semibold">
+                  <div className="grid grid-cols-2 gap-4 text-right">
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground text-right">تاريخ التنفيذ</p>
+                      <p className="font-semibold text-right">
                         {new Date(order.executedAt).toLocaleDateString("ar-SA")}
                       </p>
                     </div>
                     {order.transactionReference && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">رقم العملية</p>
-                        <p className="font-semibold">{order.transactionReference}</p>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground text-right">رقم العملية</p>
+                        <p className="font-semibold text-right">{order.transactionReference}</p>
                       </div>
                     )}
                   </div>
@@ -260,36 +262,38 @@ export default function DisbursementOrderDetails() {
           </Card>
 
           {/* بيانات المستفيد */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="text-right">
+            <CardHeader className="text-right">
+              <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                 <Building2 className="h-5 w-5 text-primary" />
                 بيانات المستفيد
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">اسم المستفيد</p>
-                  <p className="font-semibold text-lg">{order.beneficiaryName}</p>
+            <CardContent className="space-y-4 text-right">
+              <div className="grid grid-cols-1 gap-4 text-right">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">اسم المستفيد</p>
+                  <p className="font-semibold text-lg text-right">{order.beneficiaryName}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">طريقة الدفع</p>
-                  <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                    <CreditCard className="h-3 w-3" />
-                    {paymentMethodLabels[order.paymentMethod as keyof typeof paymentMethodLabels] || order.paymentMethod}
-                  </Badge>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground text-right">طريقة الدفع</p>
+                  <div className="flex justify-start">
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      <CreditCard className="h-3 w-3" />
+                      {paymentMethodLabels[order.paymentMethod as keyof typeof paymentMethodLabels] || order.paymentMethod}
+                    </Badge>
+                  </div>
                 </div>
                 {order.beneficiaryBank && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">البنك</p>
-                    <p className="font-semibold">{order.beneficiaryBank}</p>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground text-right">البنك</p>
+                    <p className="font-semibold text-right">{order.beneficiaryBank}</p>
                   </div>
                 )}
                 {order.beneficiaryIban && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">رقم الآيبان</p>
-                    <p className="font-semibold font-mono text-sm" dir="ltr">{order.beneficiaryIban}</p>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground text-right">رقم الآيبان</p>
+                    <p className="font-semibold font-mono text-sm text-right" dir="ltr">{order.beneficiaryIban}</p>
                   </div>
                 )}
               </div>
@@ -298,29 +302,29 @@ export default function DisbursementOrderDetails() {
 
           {/* بيانات طلب الصرف */}
           {order.disbursementRequest && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <Banknote className="h-5 w-5 text-primary" />
                   طلب الصرف المرتبط
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">رقم الطلب</p>
-                    <p className="font-semibold">{order.disbursementRequest.requestNumber}</p>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid grid-cols-2 gap-4 text-right">
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground text-right">رقم الطلب</p>
+                    <p className="font-semibold text-right">{order.disbursementRequest.requestNumber}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">المبلغ المطلوب</p>
-                    <p className="font-semibold">
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground text-right">المبلغ المطلوب</p>
+                    <p className="font-semibold text-right">
                       {Number(order.disbursementRequest.amount).toLocaleString("ar-SA")} ريال
                     </p>
                   </div>
                   {order.disbursementRequest.description && (
-                    <div className="col-span-2">
-                      <p className="text-sm text-muted-foreground">الوصف</p>
-                      <p className="font-semibold">{order.disbursementRequest.description}</p>
+                    <div className="col-span-2 text-right">
+                      <p className="text-sm text-muted-foreground text-right">الوصف</p>
+                      <p className="font-semibold text-right">{order.disbursementRequest.description}</p>
                     </div>
                   )}
                 </div>
@@ -338,23 +342,23 @@ export default function DisbursementOrderDetails() {
 
           {/* بيانات المشروع */}
           {order.project && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <Building2 className="h-5 w-5 text-primary" />
                   المشروع
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <p className="text-sm text-muted-foreground">اسم المشروع</p>
-                    <p className="font-semibold text-lg">{order.project.name}</p>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid grid-cols-2 gap-4 text-right">
+                  <div className="col-span-2 text-right">
+                    <p className="text-sm text-muted-foreground text-right">اسم المشروع</p>
+                    <p className="font-semibold text-lg text-right">{order.project.name}</p>
                   </div>
                   {order.project.budget && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">ميزانية المشروع</p>
-                      <p className="font-semibold">
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground text-right">ميزانية المشروع</p>
+                      <p className="font-semibold text-right">
                         {Number(order.project.budget).toLocaleString("ar-SA")} ريال
                       </p>
                     </div>

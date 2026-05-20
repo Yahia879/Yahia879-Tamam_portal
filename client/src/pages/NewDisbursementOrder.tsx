@@ -224,15 +224,15 @@ export default function NewDisbursementOrder() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         {/* العنوان */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/disbursements")}>
+        <div className="flex items-center gap-4 flex-row-reverse justify-end">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/disbursements")} className="rotate-180">
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">إنشاء أمر صرف</h1>
-            <p className="text-muted-foreground">
+          <div className="text-right">
+            <h1 className="text-2xl font-bold text-right">إنشاء أمر صرف</h1>
+            <p className="text-muted-foreground text-right">
               أمر صرف لطلب رقم {requestData.requestNumber}
             </p>
           </div>
@@ -240,63 +240,64 @@ export default function NewDisbursementOrder() {
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* النموذج الرئيسي */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 text-right">
             {/* بيانات طلب الصرف */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <FileText className="h-5 w-5" />
                   بيانات طلب الصرف
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label className="text-muted-foreground">رقم طلب الصرف</Label>
-                    <p className="font-mono font-medium">{requestData.requestNumber}</p>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid gap-4 md:grid-cols-2 text-right">
+                  <div className="text-right">
+                    <Label className="text-muted-foreground text-right">رقم طلب الصرف</Label>
+                    <p className="font-mono font-medium text-right">{requestData.requestNumber}</p>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">المبلغ</Label>
-                    <p className="font-bold text-lg text-primary">
+                  <div className="text-right">
+                    <Label className="text-muted-foreground text-right">المبلغ</Label>
+                    <p className="font-bold text-lg text-primary text-right">
                       {amount.toLocaleString()} ريال
                     </p>
                   </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-muted-foreground">المبلغ كتابة</Label>
-                    <p className="font-medium">{numberToArabicText(amount)}</p>
+                  <div className="md:col-span-2 text-right">
+                    <Label className="text-muted-foreground text-right">المبلغ كتابة</Label>
+                    <p className="font-medium text-right">{numberToArabicText(amount)}</p>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">المشروع</Label>
-                    <p className="font-medium">{requestData.project?.name}</p>
+                  <div className="text-right">
+                    <Label className="text-muted-foreground text-right">المشروع</Label>
+                    <p className="font-medium text-right">{requestData.project?.name}</p>
                   </div>
-                  <div>
-                    <Label className="text-muted-foreground">العقد</Label>
-                    <p className="font-medium">{requestData.contract?.contractNumber || "-"}</p>
+                  <div className="text-right">
+                    <Label className="text-muted-foreground text-right">العقد</Label>
+                    <p className="font-medium text-right">{requestData.contract?.contractNumber || "-"}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* بيانات المستفيد */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <User className="h-5 w-5" />
                   بيانات المستفيد
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <Label>اسم المستفيد *</Label>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid gap-4 md:grid-cols-2 text-right">
+                  <div className="md:col-span-2 text-right">
+                    <Label className="text-right">اسم المستفيد *</Label>
                     <Input
                       value={formData.beneficiaryName}
                       onChange={(e) => setFormData({ ...formData, beneficiaryName: e.target.value })}
                       placeholder="اسم المستفيد أو الشركة"
+                      className="text-right"
                     />
                   </div>
-                  <div>
-                    <Label>البنك *</Label>
+                  <div className="text-right">
+                    <Label className="text-right">البنك *</Label>
                     <Select
                       value={formData.beneficiaryBankId.toString()}
                       onValueChange={(v) => {
@@ -308,33 +309,34 @@ export default function NewDisbursementOrder() {
                         });
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر البنك" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {banksData?.values?.map((bank: any) => (
-                          <SelectItem key={bank.id} value={bank.id.toString()}>
+                          <SelectItem key={bank.id} value={bank.id.toString()} className="text-right">
                             {bank.valueAr || bank.value}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>اسم صاحب الحساب</Label>
+                  <div className="text-right">
+                    <Label className="text-right">اسم صاحب الحساب</Label>
                     <Input
                       value={formData.beneficiaryAccountName}
                       onChange={(e) => setFormData({ ...formData, beneficiaryAccountName: e.target.value })}
                       placeholder="اسم صاحب الحساب البنكي"
+                      className="text-right"
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <Label>رقم الآيبان *</Label>
+                  <div className="md:col-span-2 text-right">
+                    <Label className="text-right">رقم الآيبان *</Label>
                     <Input
                       value={formData.beneficiaryIban}
                       onChange={(e) => setFormData({ ...formData, beneficiaryIban: e.target.value })}
                       placeholder="SA0000000000000000000000"
-                      className="font-mono"
+                      className="font-mono text-right"
                       dir="ltr"
                     />
                   </div>
@@ -343,167 +345,172 @@ export default function NewDisbursementOrder() {
             </Card>
 
             {/* طريقة الدفع */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <CreditCard className="h-5 w-5" />
                   طريقة الدفع
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label>طريقة الدفع *</Label>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid gap-4 md:grid-cols-2 text-right">
+                  <div className="text-right">
+                    <Label className="text-right">طريقة الدفع *</Label>
                     <Select
                       value={formData.paymentMethod}
                       onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                        <SelectItem value="check">إصدار شيك</SelectItem>
-                        <SelectItem value="sadad">سداد</SelectItem>
-                        <SelectItem value="custody">صرف من العهدة</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="bank_transfer" className="text-right">تحويل بنكي</SelectItem>
+                        <SelectItem value="check" className="text-right">إصدار شيك</SelectItem>
+                        <SelectItem value="sadad" className="text-right">سداد</SelectItem>
+                        <SelectItem value="custody" className="text-right">صرف من العهدة</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {formData.paymentMethod === "check" && (
-                    <div>
-                      <Label>رقم الشيك</Label>
+                    <div className="text-right">
+                      <Label className="text-right">رقم الشيك</Label>
                       <Input
                         value={formData.checkNumber}
                         onChange={(e) => setFormData({ ...formData, checkNumber: e.target.value })}
                         placeholder="رقم الشيك"
+                        className="text-right"
                       />
                     </div>
                   )}
 
                   {formData.paymentMethod === "sadad" && (
                     <>
-                      <div>
-                        <Label>رقم سداد</Label>
+                      <div className="text-right">
+                        <Label className="text-right">رقم سداد</Label>
                         <Input
                           value={formData.sadadNumber}
                           onChange={(e) => setFormData({ ...formData, sadadNumber: e.target.value })}
                           placeholder="رقم سداد"
+                          className="text-right"
                         />
                       </div>
-                      <div>
-                        <Label>رمز المفوتر</Label>
+                      <div className="text-right">
+                        <Label className="text-right">رمز المفوتر</Label>
                         <Input
                           value={formData.billerCode}
                           onChange={(e) => setFormData({ ...formData, billerCode: e.target.value })}
                           placeholder="رمز المفوتر"
+                          className="text-right"
                         />
                       </div>
                     </>
                   )}
                 </div>
 
-                <div>
-                  <Label>الغرض من الصرف</Label>
+                <div className="text-right">
+                  <Label className="text-right">الغرض من الصرف</Label>
                   <Textarea
                     value={formData.purpose}
                     onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                     placeholder="وصف الغرض من الصرف"
                     rows={3}
+                    className="text-right"
                   />
                 </div>
 
-                <div>
-                  <Label>ملاحظات</Label>
+                <div className="text-right">
+                  <Label className="text-right">ملاحظات</Label>
                   <Textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="ملاحظات إضافية"
                     rows={2}
+                    className="text-right"
                   />
                 </div>
               </CardContent>
             </Card>
 
             {/* التوقيعات */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <CheckCircle className="h-5 w-5" />
                   التوقيعات والاعتمادات
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-right">
                   سيتم طباعة هذه التوقيعات على أمر الصرف
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label>المحاسب</Label>
+              <CardContent className="space-y-4 text-right">
+                <div className="grid gap-4 md:grid-cols-2 text-right">
+                  <div className="text-right">
+                    <Label className="text-right">المحاسب</Label>
                     <Select
                       value={formData.accountantSignature}
                       onValueChange={(v) => setFormData({ ...formData, accountantSignature: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر المحاسب" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {signatoriesData?.values?.map((sig: any) => (
-                          <SelectItem key={sig.id} value={sig.valueAr || sig.value}>
+                          <SelectItem key={sig.id} value={sig.valueAr || sig.value} className="text-right">
                             {sig.valueAr || sig.value}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>المدير المالي</Label>
+                  <div className="text-right">
+                    <Label className="text-right">المدير المالي</Label>
                     <Select
                       value={formData.financialManagerSignature}
                       onValueChange={(v) => setFormData({ ...formData, financialManagerSignature: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر المدير المالي" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {signatoriesData?.values?.map((sig: any) => (
-                          <SelectItem key={sig.id} value={sig.valueAr || sig.value}>
+                          <SelectItem key={sig.id} value={sig.valueAr || sig.value} className="text-right">
                             {sig.valueAr || sig.value}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>صاحب صلاحية الصرف</Label>
+                  <div className="text-right">
+                    <Label className="text-right">صاحب صلاحية الصرف</Label>
                     <Select
                       value={formData.disbursementAuthoritySignature}
                       onValueChange={(v) => setFormData({ ...formData, disbursementAuthoritySignature: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر صاحب الصلاحية" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {signatoriesData?.values?.map((sig: any) => (
-                          <SelectItem key={sig.id} value={sig.valueAr || sig.value}>
+                          <SelectItem key={sig.id} value={sig.valueAr || sig.value} className="text-right">
                             {sig.valueAr || sig.value}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label>مدير الحسابات البنكية</Label>
+                  <div className="text-right">
+                    <Label className="text-right">مدير الحسابات البنكية</Label>
                     <Select
                       value={formData.bankAccountManagerSignature}
                       onValueChange={(v) => setFormData({ ...formData, bankAccountManagerSignature: v })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر مدير الحسابات" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {signatoriesData?.values?.map((sig: any) => (
-                          <SelectItem key={sig.id} value={sig.valueAr || sig.value}>
+                          <SelectItem key={sig.id} value={sig.valueAr || sig.value} className="text-right">
                             {sig.valueAr || sig.value}
                           </SelectItem>
                         ))}
@@ -516,26 +523,26 @@ export default function NewDisbursementOrder() {
           </div>
 
           {/* الشريط الجانبي */}
-          <div className="space-y-6">
+          <div className="space-y-6 text-right">
             {/* ملخص أمر الصرف */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <Banknote className="h-5 w-5" />
                   ملخص أمر الصرف
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
+              <CardContent className="space-y-4 text-right">
+                <div className="space-y-2 text-right">
+                  <div className="flex justify-between flex-row-reverse">
                     <span className="text-muted-foreground">المبلغ</span>
                     <span className="font-bold">{amount.toLocaleString()} ريال</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between flex-row-reverse">
                     <span className="text-muted-foreground">طريقة الدفع</span>
                     <span>{PAYMENT_METHOD_MAP[formData.paymentMethod]}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between flex-row-reverse">
                     <span className="text-muted-foreground">المستفيد</span>
                     <span>{formData.beneficiaryName || "-"}</span>
                   </div>
@@ -543,7 +550,7 @@ export default function NewDisbursementOrder() {
 
                 <Separator />
 
-                <div className="space-y-2">
+                <div className="space-y-2 text-right">
                   <Button
                     className="w-full"
                     onClick={handleSubmit}
@@ -561,32 +568,32 @@ export default function NewDisbursementOrder() {
             </Card>
 
             {/* معلومات المشروع */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <Building2 className="h-5 w-5" />
                   معلومات المشروع
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <Label className="text-muted-foreground text-xs">اسم المشروع</Label>
-                  <p className="font-medium">{requestData.project?.name}</p>
+              <CardContent className="space-y-3 text-right">
+                <div className="text-right">
+                  <Label className="text-muted-foreground text-xs text-right">اسم المشروع</Label>
+                  <p className="font-medium text-right">{requestData.project?.name}</p>
                 </div>
-                <div>
-                  <Label className="text-muted-foreground text-xs">رقم المشروع</Label>
-                  <p className="font-mono">{requestData.project?.projectNumber}</p>
+                <div className="text-right">
+                  <Label className="text-muted-foreground text-xs text-right">رقم المشروع</Label>
+                  <p className="font-mono text-right">{requestData.project?.projectNumber}</p>
                 </div>
                 {requestData.contract && (
                   <>
                     <Separator />
-                    <div>
-                      <Label className="text-muted-foreground text-xs">رقم العقد</Label>
-                      <p className="font-mono">{requestData.contract.contractNumber}</p>
+                    <div className="text-right">
+                      <Label className="text-muted-foreground text-xs text-right">رقم العقد</Label>
+                      <p className="font-mono text-right">{requestData.contract.contractNumber}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground text-xs">المقاول</Label>
-                      <p className="font-medium">{requestData.contract.secondPartyName}</p>
+                    <div className="text-right">
+                      <Label className="text-muted-foreground text-xs text-right">المقاول</Label>
+                      <p className="font-medium text-right">{requestData.contract.secondPartyName}</p>
                     </div>
                   </>
                 )}

@@ -394,12 +394,12 @@ export default function DisbursementRequests() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         {/* العنوان والإحصائيات */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">طلبات الصرف</h1>
-            <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-right">
+          <div className="text-right">
+            <h1 className="text-2xl font-bold text-right">طلبات الصرف</h1>
+            <p className="text-muted-foreground text-right">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
           {canCreateRequest && (
             <Button onClick={() => setShowCreateDialog(true)}>
@@ -410,41 +410,41 @@ export default function DisbursementRequests() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات قيد المراجعة</CardTitle>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
+          <Card className="border-0 shadow-sm text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">طلبات قيد المراجعة</CardTitle>
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0 text-right">
+              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.pendingRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات معتمدة</CardTitle>
+          <Card className="border-0 shadow-sm text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">طلبات معتمدة</CardTitle>
               <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.approvedRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0 text-right">
+              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.approvedRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">أوامر قيد الاعتماد</CardTitle>
+          <Card className="border-0 shadow-sm text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">أوامر قيد الاعتماد</CardTitle>
               <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingOrders || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0 text-right">
+              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.pendingOrders || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المصروف</CardTitle>
+          <Card className="border-0 shadow-sm text-right">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">إجمالي المصروف</CardTitle>
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-sm sm:text-2xl font-bold truncate">
+            <CardContent className="p-3 sm:p-4 pt-0 text-right">
+              <div className="text-sm sm:text-2xl font-bold truncate text-right">
                 {Number(statsData?.totalPaid || 0).toLocaleString()} ريال
               </div>
             </CardContent>
@@ -452,13 +452,13 @@ export default function DisbursementRequests() {
         </div>
 
         {/* طلبات الصرف */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
           <TabsList className="hidden">
             <TabsTrigger value="requests">طلبات الصرف</TabsTrigger>
           </TabsList>
 
           {/* طلبات الصرف */}
-          <TabsContent value="requests" className="space-y-4">
+          <TabsContent value="requests" className="space-y-4 pt-4">
             {/* الفلاتر */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
               <div className="relative flex-1">
@@ -467,34 +467,35 @@ export default function DisbursementRequests() {
                   placeholder="بحث برقم الطلب أو العنوان أو المشروع..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 text-right"
+                  dir="rtl"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 lg:flex lg:w-auto">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px]">
+                  <SelectTrigger className="w-full lg:w-[180px] text-right" dir="rtl">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="pending">قيد المراجعة</SelectItem>
-                    <SelectItem value="approved">معتمد</SelectItem>
-                    <SelectItem value="rejected">مرفوض</SelectItem>
-                    <SelectItem value="paid">مصروف</SelectItem>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all" className="text-right">جميع الحالات</SelectItem>
+                    <SelectItem value="pending" className="text-right">قيد المراجعة</SelectItem>
+                    <SelectItem value="approved" className="text-right">معتمد</SelectItem>
+                    <SelectItem value="rejected" className="text-right">مرفوض</SelectItem>
+                    <SelectItem value="paid" className="text-right">مصروف</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px]">
+                  <SelectTrigger className="w-full lg:w-[180px] text-right" dir="rtl">
                     <CreditCard className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="نوع الدفعة" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الأنواع</SelectItem>
-                    <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                    <SelectItem value="progress">دفعة مرحلية</SelectItem>
-                    <SelectItem value="final">دفعة نهائية</SelectItem>
-                    <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all" className="text-right">جميع الأنواع</SelectItem>
+                    <SelectItem value="advance" className="text-right">دفعة مقدمة</SelectItem>
+                    <SelectItem value="progress" className="text-right">دفعة مرحلية</SelectItem>
+                    <SelectItem value="final" className="text-right">دفعة نهائية</SelectItem>
+                    <SelectItem value="retention" className="text-right">ضمان حسن التنفيذ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -505,17 +506,17 @@ export default function DisbursementRequests() {
               <CardContent className="p-0">
                 {/* Desktop View Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <Table>
+                  <Table dir="rtl">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>رقم الطلب</TableHead>
-                        <TableHead>العنوان</TableHead>
-                        <TableHead>المشروع</TableHead>
-                        <TableHead>المبلغ</TableHead>
-                        <TableHead>نوع الدفعة</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>الإجراءات</TableHead>
+                        <TableHead className="text-right">رقم الطلب</TableHead>
+                        <TableHead className="text-right">العنوان</TableHead>
+                        <TableHead className="text-right">المشروع</TableHead>
+                        <TableHead className="text-right">المبلغ</TableHead>
+                        <TableHead className="text-right">نوع الدفعة</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-right">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -528,24 +529,24 @@ export default function DisbursementRequests() {
                       ) : (
                         filteredRequests?.map((request) => (
                           <TableRow key={request.id}>
-                            <TableCell className="font-mono text-xs">{request.requestNumber}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{request.title}</TableCell>
-                            <TableCell className="max-w-[200px] truncate">{request.projectName}</TableCell>
-                            <TableCell className="whitespace-nowrap">{Number(request.amount).toLocaleString()} ريال</TableCell>
-                            <TableCell>{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
-                            <TableCell>
+                            <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
+                            <TableCell className="max-w-[200px] truncate text-right">{request.title}</TableCell>
+                            <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
+                            <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="text-right">{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
+                            <TableCell className="text-right">
                               <DisbursementStatusBadge 
                                 status={request.status as any} 
                                 type="request" 
                               />
                             </TableCell>
-                            <TableCell className="whitespace-nowrap">
+                            <TableCell className="whitespace-nowrap text-right">
                               {request.requestedAt
                                 ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
                                 : "-"}
                             </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-start">
                                 <Button
                                   variant="ghost"
                                   size="sm"

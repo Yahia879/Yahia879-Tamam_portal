@@ -255,16 +255,16 @@ export default function NewDisbursementRequest() {
   
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between flex-row-reverse">
+          <div className="flex items-center gap-4 flex-row-reverse">
             <Button variant="ghost" size="icon" onClick={() => navigate("/disbursements")}>
-              <ArrowRight className="h-5 w-5" />
+              <ArrowRight className="h-5 w-5 rotate-180" />
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold">طلب صرف جديد</h1>
-              <p className="text-muted-foreground">إنشاء طلب صرف للمشروع</p>
+            <div className="text-right">
+              <h1 className="text-2xl font-bold text-right">طلب صرف جديد</h1>
+              <p className="text-muted-foreground text-right">إنشاء طلب صرف للمشروع</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -278,40 +278,41 @@ export default function NewDisbursementRequest() {
         {/* Form */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 text-right">
             {/* بيانات الترويسة */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <FileText className="h-5 w-5" />
                   بيانات طلب الصرف
                 </CardTitle>
-                <CardDescription>معلومات أساسية عن طلب الصرف</CardDescription>
+                <CardDescription className="text-right">معلومات أساسية عن طلب الصرف</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>التاريخ الميلادي *</Label>
+              <CardContent className="space-y-4 text-right">
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">التاريخ الميلادي *</Label>
                   <Input
                     type="date"
                     value={formData.dateMiladi}
                     onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
                     required
+                    className="text-right"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>المشروع</Label>
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">المشروع</Label>
                   <Select
                     value={formData.projectId.toString()}
                     onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
                     disabled={formData.projectId > 0}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-right" dir="rtl">
                       <SelectValue placeholder="اختر المشروع" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir="rtl">
                       {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
+                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
                           {project.name} - {project.projectNumber}
                         </SelectItem>
                       ))}
@@ -320,20 +321,20 @@ export default function NewDisbursementRequest() {
                 </div>
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>العقد</Label>
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right">العقد</Label>
                     <Select
                       value={formData.contractId.toString()}
                       onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
                       disabled={formData.contractId > 0}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر العقد" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">بدون عقد</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="0" className="text-right">بدون عقد</SelectItem>
                         {projectContracts.contracts.map((contract) => (
-                          <SelectItem key={contract.id} value={contract.id.toString()}>
+                          <SelectItem key={contract.id} value={contract.id.toString()} className="text-right">
                             {contract.contractNumber} - {(contract as any).subject || contract.contractType}
                           </SelectItem>
                         ))}
@@ -342,117 +343,121 @@ export default function NewDisbursementRequest() {
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  <Label>عنوان طلب الصرف *</Label>
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="مثال: صرف الدفعة الأولى لمشروع ترميم مسجد..."
                     required
+                    className="text-right"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>وصف الأعمال المنفذة</Label>
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">وصف الأعمال المنفذة</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="وصف تفصيلي للأعمال المنفذة..."
                     rows={3}
+                    className="text-right"
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label>نسبة الإنجاز (%)</Label>
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">نسبة الإنجاز (%)</Label>
                   <Input
                     type="number"
                     min="0"
                     max="100"
                     value={formData.completionPercentage}
                     onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                    className="text-right"
                   />
                 </div>
               </CardContent>
             </Card>
             
             {/* الموردون */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-right">
+                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                       <Building2 className="h-5 w-5" />
                       معلومات المورد المستفيد
                     </CardTitle>
-                    <CardDescription>بيانات المستفيد من الصرف</CardDescription>
+                    <CardDescription className="text-right">بيانات المستفيد من الصرف</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <Table>
+              <CardContent className="text-right">
+                <Table dir="rtl">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>اسم المورد</TableHead>
-                      <TableHead>الأعمال</TableHead>
-                      <TableHead>المبلغ *</TableHead>
-                      <TableHead>البنك</TableHead>
-                      <TableHead>الآيبان</TableHead>
+                      <TableHead className="text-right">اسم المورد</TableHead>
+                      <TableHead className="text-right">الأعمال</TableHead>
+                      <TableHead className="text-right">المبلغ *</TableHead>
+                      <TableHead className="text-right">البنك</TableHead>
+                      <TableHead className="text-right">الآيبان</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {suppliers.map((supplier) => (
                       <TableRow key={supplier.id}>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Select
                             value={supplier.name}
                             onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
                             disabled={formData.contractId > 0}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="text-right" dir="rtl">
                               <SelectValue placeholder="اسم المورد" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent dir="rtl">
                               {allSuppliers?.map((s) => (
-                                <SelectItem key={s.id} value={s.name}>
+                                <SelectItem key={s.id} value={s.name} className="text-right">
                                   {s.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Input
                             value={supplier.work}
                             onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
                             placeholder="وصف الأعمال"
                             readOnly
-                            className="bg-muted"
+                            className="bg-muted text-right"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Input
                             type="number"
                             value={supplier.amount}
                             onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
+                            className="text-right"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Input
                             value={supplier.bank}
                             onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
                             placeholder="اسم البنك"
                             readOnly
-                            className="bg-muted"
+                            className="bg-muted text-right"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Input
                             value={supplier.iban}
                             onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
                             placeholder="SA..."
                             dir="ltr"
                             readOnly
-                            className="bg-muted"
+                            className="bg-muted text-right"
                           />
                         </TableCell>
                       </TableRow>
@@ -464,20 +469,20 @@ export default function NewDisbursementRequest() {
           </div>
           
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 text-right">
             {/* ملخص الطلب */}
-            <Card>
-              <CardHeader>
-                <CardTitle>ملخص طلب الصرف</CardTitle>
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="text-right">ملخص طلب الصرف</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 text-right">
                 {projectDetails && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                  <div className="space-y-2 text-right">
+                    <div className="flex justify-between text-sm flex-row-reverse">
                       <span className="text-muted-foreground">المشروع:</span>
                       <span className="font-medium">{projectDetails.name}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between text-sm flex-row-reverse">
                       <span className="text-muted-foreground">رقم المشروع:</span>
                       <span className="font-medium">{projectDetails.projectNumber}</span>
                     </div>
@@ -487,16 +492,16 @@ export default function NewDisbursementRequest() {
                 {contractDetails && (
                   <>
                     <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-2 text-right">
+                      <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground">العقد:</span>
                         <span className="font-medium">{contractDetails.contract.contractNumber}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground">قيمة العقد:</span>
                         <span className="font-medium">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} ريال</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground font-medium">الإجمالي المتبقي للصرف:</span>
                         <span className="font-bold text-emerald-600">
                           {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} ريال
@@ -508,8 +513,8 @@ export default function NewDisbursementRequest() {
                 
                 <Separator />
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between">
+                <div className="space-y-2 text-right">
+                  <div className="flex justify-between flex-row-reverse">
                     <span className="font-medium">إجمالي الدفعة:</span>
                     <span className={`font-bold text-lg ${contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
                       {totalAmount.toLocaleString()} ريال
@@ -517,8 +522,8 @@ export default function NewDisbursementRequest() {
                   </div>
                 </div>
                 
-                <div className="p-3 bg-muted rounded-lg text-sm">
-                  <p className="text-muted-foreground">{numberToArabicText(totalAmount)}</p>
+                <div className="p-3 bg-muted rounded-lg text-sm text-right">
+                  <p className="text-muted-foreground text-right">{numberToArabicText(totalAmount)}</p>
                 </div>
               </CardContent>
             </Card>
