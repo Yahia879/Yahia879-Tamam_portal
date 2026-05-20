@@ -414,8 +414,20 @@ export const PROGRAM_CONFIGS: Record<string, ProgramConfig> = {
  * الحصول على جميع الحقول (المشتركة + المتخصصة) لبرنامج معين
  */
 export function getAllFieldsForProgram(programId: string): FormField[] {
-  const config = PROGRAM_CONFIGS[programId];
-  if (!config) return [];
+  let config = PROGRAM_CONFIGS[programId];
+  if (!config) {
+    // For custom/dynamic programs, fallback to the standard form fields used by other programs (e.g., daaem, enaya, etc.)
+    config = {
+      id: programId,
+      name: 'برنامج مخصص',
+      description: '',
+      icon: Hammer,
+      color: 'bg-indigo-600',
+      requiresMosque: true,
+      sharedFields: ['mosqueId', 'workDescription', 'mosqueArea', 'actualWorshippers', 'hasDonorForMaintenance', 'willingToVolunteer'],
+      specificFields: [],
+    };
+  }
 
   const fields: FormField[] = [];
 

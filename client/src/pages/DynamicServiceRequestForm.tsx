@@ -82,11 +82,43 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   // معالج تغيير الحقول
   const handleFieldChange = (fieldName: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [fieldName]: value };
+      
+      // إذا كان التغيير لحقل mosqueId والبرنامج ليس بنيان
+      if (fieldName === 'mosqueId' && selectedService !== 'bunyan') {
+        const selectedMosqueId = Number(value);
+        const selectedMosque = mosquesResult?.mosques?.find((m: any) => m.id === selectedMosqueId) as any;
+        if (selectedMosque) {
+          if (selectedMosque.area) {
+            updated.mosqueArea = selectedMosque.area.toString();
+          }
+          if (selectedMosque.capacity) {
+            updated.actualWorshippers = selectedMosque.capacity.toString();
+          }
+        }
+      }
+      
+      return updated;
+    });
+
     if (errors[fieldName]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[fieldName];
+        // تنظيف أخطاء الحقول المعبأة تلقائياً أيضاً
+        if (fieldName === 'mosqueId') {
+          delete newErrors['mosqueArea'];
+          delete newErrors['actualWorshippers'];
+        }
+        return newErrors;
+      });
+    } else if (fieldName === 'mosqueId') {
+      // إذا تم تغيير المسجد، نمسح أخطاء الحقول التابعة حتى لو لم يكن هناك خطأ في المسجد نفسه
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors['mosqueArea'];
+        delete newErrors['actualWorshippers'];
         return newErrors;
       });
     }
@@ -251,7 +283,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color || 'bg-indigo-600'} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">{program.name}</h3>
@@ -442,7 +474,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <div className="flex items-center gap-3">
                   {selectedProgramConfig && (
                     <>
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${selectedProgramConfig.color} flex items-center justify-center shadow-md`}>
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${selectedProgramConfig.color || 'bg-indigo-600'} flex items-center justify-center shadow-md`}>
                         {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-5 h-5 sm:w-6 sm:h-6 text-white" })}
                       </div>
                       <div>
