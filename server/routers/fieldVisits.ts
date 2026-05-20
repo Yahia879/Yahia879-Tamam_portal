@@ -3,7 +3,7 @@ import { permissionProcedure } from "../permissions";
 import { z } from "zod";
 import { getDb } from "../db";
 import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const fieldVisitsRouter = router({
@@ -23,6 +23,33 @@ export const fieldVisitsRouter = router({
       const { requestId, visitDate, visitTime, assignedUserId, teamMembers, notes } = input;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
+
+      // التحقق من تعارض المواعيد للموظف المختار (في نفس اليوم ونفس الوقت)
+      if (assignedUserId) {
+        const startOfDay = new Date(`${visitDate}T00:00:00`);
+        const endOfDay = new Date(`${visitDate}T23:59:59`);
+
+        const conflict = await db
+          .select()
+          .from(fieldVisits)
+          .where(
+            and(
+              eq(fieldVisits.assignedTo, assignedUserId),
+              gte(fieldVisits.scheduledDate, startOfDay),
+              lte(fieldVisits.scheduledDate, endOfDay),
+              eq(fieldVisits.scheduledTime, visitTime),
+              ne(fieldVisits.requestId, requestId) // باستثناء الطلب الحالي (في حال إعادة الجدولة)
+            )
+          )
+          .limit(1);
+
+        if (conflict.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "هذا الموظف لديه زيارة ميدانية مجدولة بالفعل في نفس اليوم والوقت المختارين",
+          });
+        }
+      }
 
       // التحقق من وجود زيارة سابقة
       const existingVisits = await db.select().from(fieldVisits).where(eq(fieldVisits.requestId, requestId)).limit(1);
@@ -194,5 +221,36 @@ export const fieldVisitsRouter = router({
         assignedUserName = assignedUser?.name || null;
       }
       return { ...visit, assignedUserName };
+    }),
+
+  // جلب الفترات المحجوزة لموظف معين في تاريخ محدد
+  getBusySlots: protectedProcedure
+    .input(
+      z.object({
+        userId: z.number(),
+        date: z.string(),
+      })
+    )
+    .query(async ({ input }) => {
+      const { userId, date } = input;
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
+
+      const startOfDay = new Date(`${date}T00:00:00`);
+      const endOfDay = new Date(`${date}T23:59:59`);
+
+      const visits = await db
+        .select({ scheduledTime: fieldVisits.scheduledTime })
+        .from(fieldVisits)
+        .where(
+          and(
+            eq(fieldVisits.assignedTo, userId),
+            gte(fieldVisits.scheduledDate, startOfDay),
+            lte(fieldVisits.scheduledDate, endOfDay)
+          )
+        );
+
+      // إرجاع مصفوفة من الساعات المحجوزة
+      return visits.map(v => v.scheduledTime).filter(Boolean) as string[];
     }),
 });
