@@ -428,6 +428,13 @@
       "when": 1779217887198,
       "tag": "0060_jittery_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "5",
+      "when": 1779270166774,
+      "tag": "0061_strange_triton",
+      "breakpoints": true
     }
   ]
 }

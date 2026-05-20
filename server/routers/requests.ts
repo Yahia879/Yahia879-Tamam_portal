@@ -245,7 +245,7 @@ export const requestsRouter = router({
         name: users.name,
         email: users.email,
         phone: users.phone,
-      }).from(users).where(eq(users.id, request.userId)).limit(1);
+      }).from(users).where(eq(users.id, request.userId as number)).limit(1);
 
       // الحصول على المرفقات
       const attachments = await db.select().from(requestAttachments).where(eq(requestAttachments.requestId, input.id));
@@ -287,10 +287,10 @@ export const requestsRouter = router({
           .orderBy(desc(requestHistory.createdAt));
       }
 
-      // الحصول على تقارير الزيارات الميدانية (فقط للموظفين)
+      // الحصول على تقارير الزيارات الميدانية (للموظفين ومقدم الطلب)
       let fieldReports: any[] = [];
       let quickReports: any[] = [];
-      if (isInternal || isAssigned) {
+      if (isInternal || isAssigned || isOwner) {
         fieldReports = await db.select().from(fieldVisitReports).where(eq(fieldVisitReports.requestId, input.id));
         quickReports = await db.select().from(quickResponseReports).where(eq(quickResponseReports.requestId, input.id));
       }
@@ -1017,6 +1017,9 @@ export const requestsRouter = router({
       recommendations: z.string().optional(),
       estimatedCost: z.number().optional(),
       technicalNeeds: z.string().optional(),
+      // تقييم صحة معلومات المستفيد
+      beneficiaryInfoAccuracyRating: z.number().min(1).max(5).optional(),
+      beneficiaryInfoAccuracyNotes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -1050,6 +1053,8 @@ export const requestsRouter = router({
         recommendations: input.recommendations || null,
         estimatedCost: input.estimatedCost?.toString() || null,
         technicalNeeds: input.technicalNeeds || null,
+        beneficiaryInfoAccuracyRating: input.beneficiaryInfoAccuracyRating || null,
+        beneficiaryInfoAccuracyNotes: input.beneficiaryInfoAccuracyNotes || null,
       });
 
       // تحديث مرحلة الطلب

@@ -353,6 +353,10 @@ export const fieldVisitReports = mysqlTable("field_visit_reports", {
   teamMember3: varchar("teamMember3", { length: 255 }),
   teamMember4: varchar("teamMember4", { length: 255 }),
   teamMember5: varchar("teamMember5", { length: 255 }),
+
+  // تقييم صحة معلومات المستفيد
+  beneficiaryInfoAccuracyRating: int("beneficiaryInfoAccuracyRating"), // تقييم النجوم (1-5)
+  beneficiaryInfoAccuracyNotes: text("beneficiaryInfoAccuracyNotes"), // ملاحظات صحة المعلومات
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

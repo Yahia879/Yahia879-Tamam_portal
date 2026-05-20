@@ -26,7 +26,8 @@ import {
   Users,
   Camera,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Star
 } from "lucide-react";
 
 // حالات المسجد
@@ -47,6 +48,11 @@ export default function FieldInspectionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [womenPrayerExists, setWomenPrayerExists] = useState(false);
+
+  // تقييم صحة معلومات المستفيد
+  const [accuracyRating, setAccuracyRating] = useState<number>(0);
+  const [accuracyHoverRating, setAccuracyHoverRating] = useState<number>(0);
+  const [accuracyNotes, setAccuracyNotes] = useState<string>("");
   
   // بيانات النموذج
   const [formData, setFormData] = useState({
@@ -163,6 +169,8 @@ export default function FieldInspectionForm() {
         teamMember3: formData.teamMember3 || undefined,
         teamMember4: formData.teamMember4 || undefined,
         teamMember5: formData.teamMember5 || undefined,
+        beneficiaryInfoAccuracyRating: accuracyRating > 0 ? accuracyRating : undefined,
+        beneficiaryInfoAccuracyNotes: accuracyNotes || undefined,
       });
 
       // رفع المرفقات إذا وجدت
@@ -558,6 +566,85 @@ export default function FieldInspectionForm() {
                   className="h-10"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* تقييم صحة معلومات المستفيد */}
+        <Card className="mb-6 border-0 shadow-sm overflow-hidden bg-white dark:bg-slate-900 border-l-4 border-l-amber-500">
+          <CardHeader className="p-4 md:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base md:text-xl text-slate-800 dark:text-slate-100">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500 animate-pulse" />
+              تقييم صحة معلومات المستفيد
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-slate-500">
+              يرجى تقييم مدى مطابقة وصحة المعلومات والبيانات المقدمة من قبل المستفيد على أرض الواقع
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 md:p-6 space-y-6">
+            <div className="flex flex-col items-center justify-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/80">
+              <Label className="text-sm sm:text-base font-bold text-slate-700 dark:text-slate-300 mb-3">
+                مدى صحة المعلومات ومطابقتها للواقع
+              </Label>
+              
+              <div className="flex items-center gap-2" style={{ direction: "ltr" }}>
+                {[1, 2, 3, 4, 5].map((starValue) => {
+                  const isGold = starValue <= (accuracyHoverRating || accuracyRating);
+                  return (
+                    <button
+                      key={starValue}
+                      type="button"
+                      className="transition-all duration-200 transform hover:scale-125 focus:outline-none cursor-pointer"
+                      onMouseEnter={() => setAccuracyHoverRating(starValue)}
+                      onMouseLeave={() => setAccuracyHoverRating(0)}
+                      onClick={() => setAccuracyRating(starValue)}
+                    >
+                      <Star
+                        className={`w-8 h-8 sm:w-10 sm:h-10 transition-colors ${
+                          isGold
+                            ? "text-amber-500 fill-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]"
+                            : "text-slate-300 dark:text-slate-700"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* النص التعبيري للتقييم */}
+              <div className="mt-3 min-h-[24px]">
+                {(() => {
+                  const currentVal = accuracyHoverRating || accuracyRating;
+                  const labels: Record<number, { text: string; color: string }> = {
+                    1: { text: "غير صحيحة تماماً (البيانات مخالفة للواقع كلياً)", color: "text-red-500 font-bold" },
+                    2: { text: "غير صحيحة غالباً (هناك اختلافات جوهرية كثيرة)", color: "text-orange-500 font-semibold" },
+                    3: { text: "مقبولة / صحيحة جزئياً (تتطابق في بعض الجوانب دون أخرى)", color: "text-yellow-600 dark:text-yellow-400 font-semibold" },
+                    4: { text: "صحيحة ودقيقة غالباً (تطابق شبه كامل مع اختلافات طفيفة جداً)", color: "text-teal-600 dark:text-teal-400 font-bold" },
+                    5: { text: "صحيحة ودقيقة بالكامل (مطابقة تامة وموثوقة 100%)", color: "text-emerald-600 dark:text-emerald-400 font-extrabold" },
+                  };
+                  const selected = labels[currentVal];
+                  return selected ? (
+                    <span className={`text-xs sm:text-sm animate-in fade-in zoom-in-95 duration-150 ${selected.color}`}>
+                      {selected.text}
+                    </span>
+                  ) : (
+                    <span className="text-xs sm:text-sm text-slate-400">انقر لتحديد التقييم بالنجوم</span>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>ملاحظات المعاين على صحة المعلومات</span>
+                <span className="text-xs font-normal text-slate-400">(اختياري)</span>
+              </Label>
+              <Textarea
+                value={accuracyNotes}
+                onChange={(e) => setAccuracyNotes(e.target.value)}
+                placeholder="اكتب أي ملاحظات أو تباينات تم رصدها بين البيانات المقدمة في الطلب والواقع الميداني..."
+                className="min-h-[100px] text-sm md:text-base leading-relaxed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:border-amber-500 focus:ring-amber-500 rounded-lg shadow-sm"
+              />
             </div>
           </CardContent>
         </Card>
