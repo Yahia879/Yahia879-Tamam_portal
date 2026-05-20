@@ -144,60 +144,60 @@ export default function DisbursementOrders() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-6">
         {/* العنوان والإحصائيات */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-right">
-          <div className="text-right">
-            <h1 className="text-2xl font-bold text-right">أوامر الصرف</h1>
-            <p className="text-muted-foreground text-right">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">أوامر الصرف</h1>
+            <p className="text-muted-foreground">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
           </div>
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">قيد الاعتماد</CardTitle>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">قيد الاعتماد</CardTitle>
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{pendingCount}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{pendingCount}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">معتمدة</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">معتمدة</CardTitle>
               <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{approvedCount}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{approvedCount}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">منفذة</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">منفذة</CardTitle>
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{executedCount}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{executedCount}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">إجمالي المبالغ</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المبالغ</CardTitle>
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-sm sm:text-2xl font-bold truncate text-right">{totalAmount.toLocaleString()} ريال</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-sm sm:text-2xl font-bold truncate">{totalAmount.toLocaleString()} ريال</div>
             </CardContent>
           </Card>
         </div>
 
         {/* أدوات البحث والتصفية */}
-        <Card className="border-0 shadow-sm text-right">
-          <CardHeader className="p-4 sm:p-6 pb-2 text-right">
-            <CardTitle className="text-lg sm:text-xl text-right">قائمة أوامر الصرف</CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-right">عرض وإدارة جميع أوامر الصرف</CardDescription>
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="p-4 sm:p-6 pb-2">
+            <CardTitle className="text-lg sm:text-xl">قائمة أوامر الصرف</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">عرض وإدارة جميع أوامر الصرف</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center mb-6">
@@ -207,21 +207,20 @@ export default function DisbursementOrders() {
                   placeholder="بحث برقم الأمر أو اسم المستفيد..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10 text-right"
-                  dir="rtl"
+                  className="pr-10"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full lg:w-[180px] text-right" dir="rtl">
+                <SelectTrigger className="w-full lg:w-[180px]">
                   <Filter className="ml-2 h-4 w-4" />
                   <SelectValue placeholder="جميع الحالات" />
                 </SelectTrigger>
-                <SelectContent dir="rtl">
-                  <SelectItem value="all" className="text-right">جميع الحالات</SelectItem>
-                  <SelectItem value="pending" className="text-right">قيد الاعتماد</SelectItem>
-                  <SelectItem value="approved" className="text-right">معتمد</SelectItem>
-                  <SelectItem value="executed" className="text-right">منفذ</SelectItem>
-                  <SelectItem value="rejected" className="text-right">مرفوض</SelectItem>
+                <SelectContent>
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="pending">قيد الاعتماد</SelectItem>
+                  <SelectItem value="approved">معتمد</SelectItem>
+                  <SelectItem value="executed">منفذ</SelectItem>
+                  <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -336,11 +335,11 @@ export default function DisbursementOrders() {
                 </div>
 
                 {/* Mobile View Cards */}
-                <div className="md:hidden divide-y divide-border">
+                <div className="md:hidden divide-y divide-border" dir="rtl">
                   {filteredOrders?.map((order) => (
                     <div key={order.id} className="p-4 space-y-4">
                       <div className="flex items-start justify-between">
-                        <div className="min-w-0">
+                        <div className="min-w-0 text-right">
                           <p className="font-mono text-[10px] text-muted-foreground">{order.orderNumber}</p>
                           <p className="font-bold text-sm truncate">{order.beneficiaryName}</p>
                           <p className="text-[10px] text-muted-foreground truncate">{order.projectName || "-"}</p>
@@ -350,7 +349,7 @@ export default function DisbursementOrders() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-4 text-right">
                         <div>
                           <p className="text-[10px] text-muted-foreground mb-1">المبلغ</p>
                           <p className="text-sm font-semibold">{Number(order.amount).toLocaleString()} ريال</p>
