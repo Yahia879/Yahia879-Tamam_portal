@@ -370,7 +370,106 @@ async function seed() {
       }
     }
 
-    // 8. حساب المدير الافتراضي (Admin)
+    // 8. البرامج الأساسية (Programs)
+    console.log("🛠️ حقن البرامج الأساسية (9 برامج)...");
+    const programsData = [
+      {
+        id: "bunyan",
+        name: "بنيان",
+        description: "بناء مساجد جديدة",
+        color: "bg-blue-600",
+        icon: "Building2",
+        requiresMosque: false,
+        isActive: true,
+      },
+      {
+        id: "daaem",
+        name: "دعائم",
+        description: "استكمال المساجد المتعثرة",
+        color: "bg-purple-600",
+        icon: "Hammer",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "enaya",
+        name: "عناية",
+        description: "الصيانة والترميم",
+        color: "bg-green-600",
+        icon: "Wrench",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "emdad",
+        name: "إمداد",
+        description: "توفير تجهيزات المساجد",
+        color: "bg-orange-600",
+        icon: "Package",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "ethraa",
+        name: "إثراء",
+        description: "سداد فواتير الخدمات",
+        color: "bg-red-600",
+        icon: "Receipt",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "sedana",
+        name: "سدانة",
+        description: "خدمات التشغيل والنظافة",
+        color: "bg-cyan-600",
+        icon: "Sparkles",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "taqa",
+        name: "طاقة",
+        description: "الطاقة الشمسية",
+        color: "bg-amber-500",
+        icon: "Sun",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "miyah",
+        name: "مياه",
+        description: "أنظمة المياه",
+        color: "bg-sky-600",
+        icon: "Droplets",
+        requiresMosque: true,
+        isActive: true,
+      },
+      {
+        id: "suqya",
+        name: "سقيا",
+        description: "توفير ماء الشرب",
+        color: "bg-teal-600",
+        icon: "GlassWater",
+        requiresMosque: true,
+        isActive: true,
+      },
+    ];
+
+    for (const p of programsData) {
+      await db.insert(schema.programs).values(p).onDuplicateKeyUpdate({
+        set: {
+          name: p.name,
+          description: p.description,
+          color: p.color,
+          icon: p.icon,
+          requiresMosque: p.requiresMosque,
+          isActive: p.isActive,
+        },
+      });
+    }
+
+    // 9. حساب المدير الافتراضي (Admin)
     console.log("🔑 إنشاء حساب المدير الافتراضي...");
     const adminEmail = "admin@tamam.sa";
     const adminPassword = "Admin@123456";
