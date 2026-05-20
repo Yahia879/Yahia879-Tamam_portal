@@ -451,83 +451,85 @@ export default function ContractTemplates() {
                           لا توجد بنود في هذا القالب
                         </div>
                       ) : (
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead className="w-12">#</TableHead>
-                              <TableHead>العنوان</TableHead>
-                              <TableHead>الفئة</TableHead>
-                              <TableHead>إلزامي</TableHead>
-                              <TableHead>قابل للتعديل</TableHead>
-                              <TableHead className="w-24">الإجراءات</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {selectedTemplate?.clauses?.map((clause: any, index: number) => (
-                              <TableRow key={clause.id}>
-                                <TableCell className="font-medium">
-                                  {index + 1}
-                                </TableCell>
-                                <TableCell>
-                                  <div>
-                                    <div className="font-medium">{clause.titleAr}</div>
-                                    <div className="text-sm text-gray-500 line-clamp-1">
-                                      {clause.content?.substring(0, 100)}...
-                                    </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">
-                                    {CLAUSE_CATEGORIES[clause.category as keyof typeof CLAUSE_CATEGORIES] ||
-                                      clause.category}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {clause.isRequired ? (
-                                    <Badge className="bg-green-100 text-green-800">نعم</Badge>
-                                  ) : (
-                                    <Badge variant="outline">لا</Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {clause.isEditable ? (
-                                    <Badge className="bg-blue-100 text-blue-800">نعم</Badge>
-                                  ) : (
-                                    <Badge variant="outline">لا</Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1">
-                                    {!template.isSystem && clause.isEditable ? (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => handleEditClause(clause)}
-                                        >
-                                          <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => {
-                                            if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
-                                              deleteClauseMutation.mutate({ id: clause.id });
-                                            }
-                                          }}
-                                        >
-                                          <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
-                                      </>
-                                    ) : (
-                                      <Badge variant="outline" className="text-xs">محمي</Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
+                        <div className="overflow-x-auto">
+                          <Table dir="rtl">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-12 text-right">#</TableHead>
+                                <TableHead className="text-right">العنوان</TableHead>
+                                <TableHead className="text-right">الفئة</TableHead>
+                                <TableHead className="text-right">إلزامي</TableHead>
+                                <TableHead className="text-right">قابل للتعديل</TableHead>
+                                <TableHead className="w-24 text-right">الإجراءات</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {selectedTemplate?.clauses?.map((clause: any, index: number) => (
+                                <TableRow key={clause.id}>
+                                  <TableCell className="font-medium text-right">
+                                    {index + 1}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div>
+                                      <div className="font-medium">{clause.titleAr}</div>
+                                      <div className="text-sm text-gray-500 line-clamp-1">
+                                        {clause.content?.substring(0, 100)}...
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Badge variant="outline">
+                                      {CLAUSE_CATEGORIES[clause.category as keyof typeof CLAUSE_CATEGORIES] ||
+                                        clause.category}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {clause.isRequired ? (
+                                      <Badge className="bg-green-100 text-green-800">نعم</Badge>
+                                    ) : (
+                                      <Badge variant="outline">لا</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {clause.isEditable ? (
+                                      <Badge className="bg-blue-100 text-blue-800">نعم</Badge>
+                                    ) : (
+                                      <Badge variant="outline">لا</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center gap-1 justify-start">
+                                      {!template.isSystem && clause.isEditable ? (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleEditClause(clause)}
+                                          >
+                                            <Edit className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                              if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+                                                deleteClauseMutation.mutate({ id: clause.id });
+                                              }
+                                            }}
+                                          >
+                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">محمي</Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
                       )}
                     </div>
                   </CardContent>

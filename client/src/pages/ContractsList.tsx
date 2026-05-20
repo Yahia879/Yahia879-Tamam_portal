@@ -149,9 +149,9 @@ export default function ContractsList() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" dir="rtl">
         {/* العنوان */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-right">
           <div>
             <h1 className="text-2xl font-bold">إدارة العقود</h1>
             <p className="text-muted-foreground">
@@ -165,7 +165,7 @@ export default function ContractsList() {
         </div>
 
         {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
           <div className="overflow-x-auto pb-2 -mb-2">
             <TabsList className="flex w-max sm:w-full max-w-md sm:grid sm:grid-cols-2">
               <TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
@@ -191,29 +191,30 @@ export default function ContractsList() {
                       placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pr-10"
+                      className="pr-10 text-right"
+                      dir="rtl"
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full lg:w-48">
+                      <SelectTrigger className="w-full lg:w-48 text-right" dir="rtl">
                         <SelectValue placeholder="حالة العقد" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {CONTRACT_STATUSES.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
+                          <SelectItem key={status.value} value={status.value} className="text-right">
                             {status.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="w-full lg:w-48">
+                      <SelectTrigger className="w-full lg:w-48 text-right" dir="rtl">
                         <SelectValue placeholder="نوع العقد" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {CONTRACT_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
+                          <SelectItem key={type.value} value={type.value} className="text-right">
                             {type.label}
                           </SelectItem>
                         ))}
@@ -249,12 +250,12 @@ export default function ContractsList() {
                   <Card key={contract.id} className="hover:shadow-md transition-shadow overflow-hidden">
                     <CardContent className="p-4">
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                        <div className="flex items-start gap-3 sm:gap-4 flex-1 text-right">
                           <div className="p-2 sm:p-3 rounded-lg bg-primary/10 shrink-0">
                             <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap justify-start">
                               <h3 className="font-semibold truncate text-sm sm:text-base">
                                 {contract.contractTitle}
                               </h3>
@@ -265,7 +266,7 @@ export default function ContractsList() {
                             <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                               رقم العقد: {contract.contractNumber}
                             </p>
-                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground justify-start">
                               <span className="flex items-center gap-1">
                                 <Building2 className="h-3.5 w-3.5" />
                                 <span className="truncate max-w-[150px]">{contract.secondPartyName || "غير محدد"}</span>
@@ -278,7 +279,7 @@ export default function ContractsList() {
                                 <Calendar className="h-3.5 w-3.5" />
                                 {formatDate(contract.contractDate)}
                               </span>
-                              <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5">
+                              <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5 mr-auto sm:mr-0">
                                 {getContractTypeLabel(contract.contractType)}
                               </Badge>
                             </div>
@@ -314,7 +315,7 @@ export default function ContractsList() {
 
                 {/* التصفح */}
                 {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2" dir="rtl">
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       عرض {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalContracts)} من {totalContracts} عقد
                     </p>
@@ -349,7 +350,7 @@ export default function ContractsList() {
 
           {/* تبويب قوالب العقود */}
           <TabsContent value="templates" className="space-y-4 pt-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-right">
               <p className="text-muted-foreground text-sm">
                 قوالب العقود الجاهزة للاستخدام
               </p>

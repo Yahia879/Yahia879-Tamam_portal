@@ -634,9 +634,9 @@ export default function ContractPreview() {
               </p>
 
               {/* الطرف الأول */}
-              <div className="mb-6">
+              <div className="mb-6" dir="rtl">
                 <div 
-                  className="py-2 px-4 mb-3 rounded"
+                  className="py-2 px-4 mb-3 rounded text-right"
                   style={{ backgroundColor: '#e8f5e9' }}
                 >
                   <h2 className="font-bold text-green-800 text-sm sm:text-base">
@@ -644,23 +644,23 @@ export default function ContractPreview() {
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="py-1 text-gray-600 w-24 sm:w-40">ويمثلها في هذا العقد:</td>
-                        <td className="py-1 font-medium">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
+                  <table className="w-full text-xs sm:text-sm text-right">
+                    <tbody className="text-right">
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 w-24 sm:w-40 text-right">ويمثلها في هذا العقد:</td>
+                        <td className="py-1 font-medium text-right">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">العنوان والاتصال:</td>
-                        <td className="py-1">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">العنوان والاتصال:</td>
+                        <td className="py-1 text-right">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">البريد الإلكتروني:</td>
                         <td className="py-1 text-right" dir="ltr">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
-                        <td className="py-1 font-bold">الطرف الأول</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">ويشار إليها بـ:</td>
+                        <td className="py-1 font-bold text-right">الطرف الأول</td>
                       </tr>
                     </tbody>
                   </table>
@@ -668,9 +668,9 @@ export default function ContractPreview() {
               </div>
 
               {/* الطرف الثاني */}
-              <div className="mb-6">
+              <div className="mb-6" dir="rtl">
                 <div 
-                  className="py-2 px-4 mb-3 rounded"
+                  className="py-2 px-4 mb-3 rounded text-right"
                   style={{ backgroundColor: '#e8f5e9' }}
                 >
                   <h2 className="font-bold text-green-800 text-sm sm:text-base">
@@ -678,27 +678,27 @@ export default function ContractPreview() {
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs sm:text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="py-1 text-gray-600 w-24 sm:w-40">سجل تجاري رقم:</td>
+                  <table className="w-full text-xs sm:text-sm text-right">
+                    <tbody className="text-right">
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 w-24 sm:w-40 text-right">سجل تجاري رقم:</td>
                         <td className="py-1 text-right" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
-                        <td className="py-1 font-medium">{contract.secondPartyRepresentative || "----"} بصفته {contract.secondPartyTitle || "----"}</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">ويمثلها في هذا العقد:</td>
+                        <td className="py-1 font-medium text-right">{contract.secondPartyRepresentative || "----"} بصفته {contract.secondPartyTitle || "----"}</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">العنوان والاتصال:</td>
-                        <td className="py-1">{contract.secondPartyAddress || "----"} | جوال ({contract.secondPartyPhone || "----"})</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">العنوان والاتصال:</td>
+                        <td className="py-1 text-right">{contract.secondPartyAddress || "----"} | جوال ({contract.secondPartyPhone || "----"})</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">البريد الإلكتروني:</td>
                         <td className="py-1 text-right" dir="ltr">{contract.secondPartyEmail || "----"}</td>
                       </tr>
-                      <tr>
-                        <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
-                        <td className="py-1 font-bold">الطرف الثاني</td>
+                      <tr className="text-right">
+                        <td className="py-1 text-gray-600 text-right">ويشار إليها بـ:</td>
+                        <td className="py-1 font-bold text-right">الطرف الثاني</td>
                       </tr>
                     </tbody>
                   </table>
