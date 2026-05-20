@@ -566,115 +566,7 @@ export default function FieldInspectionForm() {
               </div>
             </div>
 
-            <Separator />
 
-            {/* مساحة مصلى الرجال */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
-                <Ruler className="w-4 h-4 text-primary" />
-                مساحة مصلى الرجال
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] md:text-xs">الطول (متر)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.menPrayerLength}
-                    onChange={(e) => handleInputChange("menPrayerLength", e.target.value)}
-                    placeholder="0.00"
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] md:text-xs">العرض (متر)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.menPrayerWidth}
-                    onChange={(e) => handleInputChange("menPrayerWidth", e.target.value)}
-                    placeholder="0.00"
-                    className="h-10"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] md:text-xs">الارتفاع (متر)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.menPrayerHeight}
-                    onChange={(e) => handleInputChange("menPrayerHeight", e.target.value)}
-                    placeholder="0.00"
-                    className="h-10"
-                  />
-                </div>
-              </div>
-              {formData.menPrayerLength && formData.menPrayerWidth && (
-                <div className="inline-block px-3 py-1 bg-primary/5 text-primary rounded-full text-[11px] md:text-xs font-bold border border-primary/10">
-                  المساحة الكلية: {(parseFloat(formData.menPrayerLength) * parseFloat(formData.menPrayerWidth)).toFixed(2)} م²
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* مساحة مصلى النساء */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="womenPrayerExists"
-                  checked={womenPrayerExists}
-                  onCheckedChange={(checked) => setWomenPrayerExists(checked === true)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="womenPrayerExists" className="cursor-pointer font-bold text-sm md:text-base flex items-center gap-2 text-gray-800">
-                  يوجد مصلى للنساء
-                </Label>
-              </div>
-              
-              {womenPrayerExists && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 pt-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-[11px] md:text-xs">الطول (متر)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.womenPrayerLength}
-                      onChange={(e) => handleInputChange("womenPrayerLength", e.target.value)}
-                      placeholder="0.00"
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[11px] md:text-xs">العرض (متر)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.womenPrayerWidth}
-                      onChange={(e) => handleInputChange("womenPrayerWidth", e.target.value)}
-                      placeholder="0.00"
-                      className="h-10"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-[11px] md:text-xs">الارتفاع (متر)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.womenPrayerHeight}
-                      onChange={(e) => handleInputChange("womenPrayerHeight", e.target.value)}
-                      placeholder="0.00"
-                      className="h-10"
-                    />
-                  </div>
-                </div>
-              )}
-              {womenPrayerExists && formData.womenPrayerLength && formData.womenPrayerWidth && (
-                <div className="inline-block px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-[11px] md:text-xs font-bold border border-teal-100">
-                  مساحة مصلى النساء: {(parseFloat(formData.womenPrayerLength) * parseFloat(formData.womenPrayerWidth)).toFixed(2)} م²
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -800,7 +692,7 @@ export default function FieldInspectionForm() {
         </Card>
 
         {/* تقييم صحة معلومات المستفيد */}
-        <Card className="mb-6 border-0 shadow-sm overflow-hidden bg-white dark:bg-slate-900 border-l-4 border-l-amber-500">
+        <Card className="mb-6 border-0 shadow-sm overflow-hidden bg-white dark:bg-slate-900 border-r-4 border-r-amber-500">
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl text-slate-800 dark:text-slate-100">
               <Star className="w-5 h-5 text-amber-500 fill-amber-500 animate-pulse" />

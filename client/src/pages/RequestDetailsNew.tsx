@@ -780,7 +780,7 @@ export default function RequestDetailsNew() {
                       )}
 
                       {/* مصلى النساء */}
-                      {report.womenPrayerExists ? (
+                      {report.womenPrayerExists && (
                         womenArea > 0 ? (
                           <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
                             <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">أبعاد مصلى النساء</h4>
@@ -804,13 +804,6 @@ export default function RequestDetailsNew() {
                             </div>
                           </div>
                         )
-                      ) : (
-                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10 flex items-center">
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">مصلى النساء</h4>
-                            <p className="text-sm font-bold text-slate-500">لا يوجد مصلى مخصص للنساء</p>
-                          </div>
-                        </div>
                       )}
                     </div>
 
