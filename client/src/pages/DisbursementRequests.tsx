@@ -394,12 +394,12 @@ export default function DisbursementRequests() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-6">
         {/* العنوان والإحصائيات */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between text-right">
-          <div className="text-right">
-            <h1 className="text-2xl font-bold text-right">طلبات الصرف</h1>
-            <p className="text-muted-foreground text-right">إدارة طلبات الصرف المالية للمشاريع</p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">طلبات الصرف</h1>
+            <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
           {canCreateRequest && (
             <Button onClick={() => setShowCreateDialog(true)}>
@@ -410,41 +410,41 @@ export default function DisbursementRequests() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">طلبات قيد المراجعة</CardTitle>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات قيد المراجعة</CardTitle>
               <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.pendingRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">طلبات معتمدة</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات معتمدة</CardTitle>
               <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.approvedRequests || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.approvedRequests || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">أوامر قيد الاعتماد</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">أوامر قيد الاعتماد</CardTitle>
               <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-lg sm:text-2xl font-bold text-right">{statsData?.pendingOrders || 0}</div>
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingOrders || 0}</div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm text-right">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4 flex-row-reverse">
-              <CardTitle className="text-[10px] sm:text-xs font-medium text-right">إجمالي المصروف</CardTitle>
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
+              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المصروف</CardTitle>
               <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0 text-right">
-              <div className="text-sm sm:text-2xl font-bold truncate text-right">
+            <CardContent className="p-3 sm:p-4 pt-0">
+              <div className="text-sm sm:text-2xl font-bold truncate">
                 {Number(statsData?.totalPaid || 0).toLocaleString()} ريال
               </div>
             </CardContent>
@@ -452,7 +452,7 @@ export default function DisbursementRequests() {
         </div>
 
         {/* طلبات الصرف */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="hidden">
             <TabsTrigger value="requests">طلبات الصرف</TabsTrigger>
           </TabsList>
@@ -467,35 +467,34 @@ export default function DisbursementRequests() {
                   placeholder="بحث برقم الطلب أو العنوان أو المشروع..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10 text-right"
-                  dir="rtl"
+                  className="pr-10"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 lg:flex lg:w-auto">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px] text-right" dir="rtl">
+                  <SelectTrigger className="w-full lg:w-[180px]">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all" className="text-right">جميع الحالات</SelectItem>
-                    <SelectItem value="pending" className="text-right">قيد المراجعة</SelectItem>
-                    <SelectItem value="approved" className="text-right">معتمد</SelectItem>
-                    <SelectItem value="rejected" className="text-right">مرفوض</SelectItem>
-                    <SelectItem value="paid" className="text-right">مصروف</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="pending">قيد المراجعة</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
+                    <SelectItem value="paid">مصروف</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px] text-right" dir="rtl">
+                  <SelectTrigger className="w-full lg:w-[180px]">
                     <CreditCard className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="نوع الدفعة" />
                   </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all" className="text-right">جميع الأنواع</SelectItem>
-                    <SelectItem value="advance" className="text-right">دفعة مقدمة</SelectItem>
-                    <SelectItem value="progress" className="text-right">دفعة مرحلية</SelectItem>
-                    <SelectItem value="final" className="text-right">دفعة نهائية</SelectItem>
-                    <SelectItem value="retention" className="text-right">ضمان حسن التنفيذ</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="all">جميع الأنواع</SelectItem>
+                    <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                    <SelectItem value="progress">دفعة مرحلية</SelectItem>
+                    <SelectItem value="final">دفعة نهائية</SelectItem>
+                    <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
