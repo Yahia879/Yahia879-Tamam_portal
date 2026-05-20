@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -38,6 +38,7 @@ export default function RequestDetailsNew() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [boqOpen, setBoqOpen] = useState(false);
   const [showReviewInfo, setShowReviewInfo] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
   
   // States for add dialogs
   const [addCommentOpen, setAddCommentOpen] = useState(false);
@@ -786,19 +787,91 @@ export default function RequestDetailsNew() {
                 </h4>
                 {request?.attachments && request.attachments.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {request.attachments.map((attachment: any, index: number) => (
-                      <div key={index} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-300 transition-all flex items-center justify-between gap-3 group">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate">{attachment.fileName}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1 font-medium bg-slate-50 dark:bg-slate-900/50 px-2 py-0.5 rounded-full inline-block">{attachment.fileType}</p>
+                    {request.attachments.map((attachment: any, index: number) => {
+                      const ext = attachment.fileName.split('.').pop()?.toLowerCase();
+                      const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '') ||
+                        attachment.fileType?.toLowerCase() === 'image' ||
+                        attachment.fileType?.toLowerCase().startsWith('image/') ||
+                        ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(attachment.fileType?.toLowerCase() || '');
+                      
+                      return (
+                        <div key={index} className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 hover:border-orange-300 transition-all flex flex-col justify-between gap-3 group relative overflow-hidden">
+                          {isImg ? (
+                            <div className="relative aspect-video w-full rounded-lg overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center group/img">
+                              <img 
+                                src={attachment.fileUrl} 
+                                alt={attachment.fileName} 
+                                className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                                onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
+                              />
+                              <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+                                <Button 
+                                  type="button" 
+                                  variant="secondary" 
+                                  size="icon" 
+                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
+                                  onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
+                                  title="عرض الصورة ملء الشاشة"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="secondary" 
+                                  size="icon" 
+                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
+                                  asChild
+                                  title="تنزيل الصورة"
+                                >
+                                  <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
+                                    <Download className="w-4 h-4" />
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="aspect-video w-full rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2">
+                              <FileText className="w-10 h-10 text-slate-300 dark:text-slate-700" />
+                              <span className="text-[10px] bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400 font-medium">مستند</span>
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1 flex flex-col justify-end">
+                            <p className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 truncate" title={attachment.fileName}>
+                              {attachment.fileName}
+                            </p>
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                              <span className="text-[10px] text-muted-foreground font-medium bg-slate-50 dark:bg-slate-900/50 px-2 py-0.5 rounded-full inline-block">
+                                {attachment.fileType || 'ملف'}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                {isImg && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1"
+                                    onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    عرض
+                                  </Button>
+                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  asChild 
+                                  className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1"
+                                >
+                                  <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
+                                    <Download className="w-3.5 h-3.5" />
+                                    تنزيل
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <Button variant="ghost" size="sm" asChild className="shrink-0 h-9 w-9 rounded-full bg-slate-50 group-hover:bg-orange-50 group-hover:text-orange-600 transition-colors">
-                          <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer">
-                            <Download className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-10 bg-white dark:bg-slate-800/50 rounded-lg border-2 border-dashed">
@@ -1213,6 +1286,55 @@ export default function RequestDetailsNew() {
       >
         <BoqTab requestId={requestId} />
       </ColoredDialog>
+
+      {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center bg-slate-900/55 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button 
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full p-2 transition-all z-10 shadow-lg"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Download button */}
+            <a 
+              href={previewImage.url} 
+              download={previewImage.name}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute top-4 left-4 bg-slate-800/80 hover:bg-orange-600/80 text-white rounded-full p-2 transition-all flex items-center gap-1.5 px-3 z-10 shadow-lg"
+              title="تحميل"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+            </a>
+
+            {/* Image container */}
+            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-auto mt-12 mb-2">
+              <img 
+                src={previewImage.url} 
+                alt={previewImage.name} 
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
+              />
+            </div>
+
+            {/* Caption/Name */}
+            <div className="mt-2 text-center px-4 py-2 w-full border-t border-slate-800/60 bg-slate-900/30">
+              <p className="text-sm font-bold text-slate-100 truncate">{previewImage.name}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
