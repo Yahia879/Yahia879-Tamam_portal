@@ -62,6 +62,7 @@ export default function RequestDetailsNew() {
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
+  const [durationDays, setDurationDays] = useState("");
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
@@ -173,6 +174,7 @@ export default function RequestDetailsNew() {
       setSelectedManagerId(null);
       setStartDate("");
       setExpectedEndDate("");
+      setDurationDays("");
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (error) => {
@@ -1250,50 +1252,22 @@ export default function RequestDetailsNew() {
 
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2">
-                    مدير المشروع <span className="text-red-500">*</span>
+                    المدة المتوقعة للانتهاء (بالأيام) <span className="text-red-500">*</span>
                   </label>
-                  <Select
-                    value={selectedManagerId || ""}
-                    onValueChange={setSelectedManagerId}
-                  >
-                    <SelectTrigger className="w-full flex-row-reverse">
-                      <SelectValue placeholder="اختر مديراً للمشروع..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {managers.map((manager) => (
-                        <SelectItem key={manager.id} value={manager.id.toString()}>
-                          {manager.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">سيتم إسناد المشروع لهذا المدير فور إنشائه</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">
-                      تاريخ البدء <span className="text-red-500">*</span>
-                    </label>
+                  <div className="relative flex items-center">
                     <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full"
+                      type="number"
+                      min="1"
+                      value={durationDays}
+                      onChange={(e) => setDurationDays(e.target.value)}
+                      placeholder="مثال: 30"
+                      className="w-full pl-12 text-right"
                     />
+                    <span className="absolute left-3 text-sm text-muted-foreground font-medium pointer-events-none">
+                      يوم
+                    </span>
                   </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">
-                      الانتهاء المتوقع <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="date"
-                      value={expectedEndDate}
-                      onChange={(e) => setExpectedEndDate(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                 </div>
               </div>
             )}
@@ -1321,6 +1295,7 @@ export default function RequestDetailsNew() {
                   setSelectedManagerId(null);
                   setStartDate("");
                   setExpectedEndDate("");
+                  setDurationDays("");
                 }}
               >
                 إلغاء
@@ -1331,28 +1306,36 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
-                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
-                    toast.error("يجب اختيار مدير للمشروع");
+                  if (selectedDecision === 'convert_to_project' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
+                    toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
                     return;
                   }
-                  if (selectedDecision === 'convert_to_project' && (!startDate || !expectedEndDate)) {
-                    toast.error("يجب إدخال تاريخ البدء وتاريخ الانتهاء المتوقع");
-                    return;
+                  
+                  let calculatedStartDate = undefined;
+                  let calculatedEndDate = undefined;
+                  if (selectedDecision === 'convert_to_project') {
+                    const start = new Date();
+                    const end = new Date();
+                    const days = parseInt(durationDays || "0", 10);
+                    end.setDate(start.getDate() + days);
+                    calculatedStartDate = start.toISOString().split('T')[0];
+                    calculatedEndDate = end.toISOString().split('T')[0];
                   }
+
                   technicalEvalMutation.mutate({
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
-                    managerId: selectedDecision === 'convert_to_project' ? (selectedManagerId ? parseInt(selectedManagerId) : undefined) : undefined,
-                    startDate: selectedDecision === 'convert_to_project' ? startDate : undefined,
-                    endDate: selectedDecision === 'convert_to_project' ? expectedEndDate : undefined,
+                    managerId: undefined,
+                    startDate: calculatedStartDate,
+                    endDate: calculatedEndDate,
                     justification: justification || undefined,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId || !startDate || !expectedEndDate))
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
