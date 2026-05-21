@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import {
   DropdownMenu,
@@ -311,7 +311,7 @@ export default function MyRequests() {
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                                {STAGE_LABELS[request.currentStage]}
+                                {getStageLabel(request.currentStage, request.requestTrack)}
                               </span>
                             </div>
                           </div>

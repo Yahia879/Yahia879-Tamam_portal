@@ -281,6 +281,14 @@ export const STAGE_LABELS: Record<string, string> = {
   closed: 'الإغلاق',
 };
 
+// دالة للحصول على تسمية المرحلة مع دعم مسارات الطلبات
+export function getStageLabel(stage: string, track?: string): string {
+  if (stage === 'execution' && track === 'quick_response') {
+    return 'تقرير الاستجابة السريعة';
+  }
+  return STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage;
+}
+
 // ==================== المراحل الفرعية (الإجراءات) ====================
 export const SUB_STAGES = {
   // الزيارة الميدانية
@@ -1171,7 +1179,7 @@ export const FAST_RESPONSE_WORKFLOW = [
   { id: "initial_review", label: "المراجعة الأولية", order: 2 },
   { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
   { id: "technical_eval", label: "التقييم الفني", order: 4 },
-  { id: "execution", label: "التنفيذ", order: 5 },
+  { id: "execution", label: "تقرير الاستجابة السريعة", order: 5 },
   { id: "closed", label: "الإغلاق", order: 6 },
 ] as const;
 

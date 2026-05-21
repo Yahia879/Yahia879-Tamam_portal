@@ -20,6 +20,7 @@ export function getActiveAction(
   requestData?: {
     assignedTo?: number | null;
     userId?: number;
+    requestTrack?: string | null;
   }
 ): ActiveAction | null {
   const config = ACTION_CONFIGS[currentStage as keyof typeof ACTION_CONFIGS];
@@ -29,22 +30,49 @@ export function getActiveAction(
   }
 
   // التحقق من الصلاحيات
-  const hasRole = userRole && config.allowedRoles.some(role => role === userRole);
+  let hasRole = userRole && config.allowedRoles.some(role => role === userRole);
 
   // التحقق من الإسناد (إذا كان الطلب مسنداً لشخص معين)
-  const isAssignedToUser =
+  let isAssignedToUser =
     !requestData?.assignedTo || requestData.assignedTo === requestData.userId;
+
+  let title = config.title;
+  let description = config.description;
+  let icon = config.icon;
+  let iconColor = config.iconColor;
+  let actionButton = 'actionButton' in config ? config.actionButton : undefined;
+  let allowedRoles = config.allowedRoles;
+
+  // تخصيص مرحلة التنفيذ لمسار الاستجابة السريعة
+  if (currentStage === 'execution' && requestData?.requestTrack === 'quick_response') {
+    title = "تقديم تقرير الاستجابة السريعة";
+    description = "تم تحويل هذا الطلب لمسار الاستجابة السريعة وهو قيد المتابعة والزيارة من قبل الشخص المسؤول. يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.";
+    icon = "Zap";
+    iconColor = "text-purple-600";
+    actionButton = {
+      label: "رفع تقرير الاستجابة السريعة",
+      redirectUrl: "/requests/:requestId/quick-response",
+    };
+    
+    // الأدوار المسموح لها برفع التقرير في الاستجابة السريعة
+    const allowedQRRoles = ["quick_response"];
+    hasRole = Boolean(userRole && allowedQRRoles.includes(userRole));
+    
+    // يجب أن يكون المستخدم هو المسؤول المسند إليه الطلب
+    isAssignedToUser = Boolean(requestData && requestData.assignedTo === requestData.userId);
+    allowedRoles = allowedQRRoles;
+  }
 
   const canPerformAction = Boolean(hasRole && isAssignedToUser);
 
   return {
     stage: currentStage,
-    title: config.title,
-    description: config.description,
-    icon: config.icon,
-    iconColor: config.iconColor,
-    actionButton: 'actionButton' in config ? config.actionButton : undefined,
-    allowedRoles: config.allowedRoles,
+    title,
+    description,
+    icon,
+    iconColor,
+    actionButton,
+    allowedRoles,
     canPerformAction,
   };
 }
@@ -52,19 +80,26 @@ export function getActiveAction(
 /**
  * الحصول على المراحل المكتملة بناءً على المرحلة الحالية
  */
-export function getCompletedSteps(currentStage: string): string[] {
-  const currentIndex = WORKFLOW_STEPS.findIndex((s) => s.id === currentStage);
+export function getCompletedSteps(
+  currentStage: string,
+  workflow: readonly { id: string; label: string; order: number }[] = WORKFLOW_STEPS
+): string[] {
+  const currentIndex = workflow.findIndex((s) => s.id === currentStage);
   if (currentIndex === -1) return [];
 
-  return WORKFLOW_STEPS.slice(0, currentIndex).map((s) => s.id);
+  return workflow.slice(0, currentIndex).map((s) => s.id);
 }
 
 /**
  * حساب نسبة التقدم
  */
-export function getProgressPercentage(currentStage: string): number {
-  const currentIndex = WORKFLOW_STEPS.findIndex((s) => s.id === currentStage);
+export function getProgressPercentage(
+  currentStage: string,
+  workflow: readonly { id: string; label: string; order: number }[] = WORKFLOW_STEPS
+): number {
+  const currentIndex = workflow.findIndex((s) => s.id === currentStage);
   if (currentIndex === -1) return 0;
 
-  return Math.round(((currentIndex + 1) / WORKFLOW_STEPS.length) * 100);
+  return Math.round(((currentIndex + 1) / workflow.length) * 100);
 }
+

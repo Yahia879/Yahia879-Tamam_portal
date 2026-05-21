@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS } from "@shared/constants";
+import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -324,7 +324,7 @@ export default function Requests({
                       {/* Stage (Desktop) */}
                       <div className="hidden md:block min-w-0">
                         <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
-                          {STAGE_LABELS[request.currentStage] || request.currentStage}
+                          {getStageLabel(request.currentStage, request.requestTrack)}
                         </Badge>
                         {request.currentResponsibleDepartment && (
                           <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
@@ -349,7 +349,7 @@ export default function Requests({
                         </div>
                         <div className="flex items-center justify-between gap-2">
                            <Badge variant="outline" className="text-[10px] py-0.5">
-                            {STAGE_LABELS[request.currentStage] || request.currentStage}
+                            {getStageLabel(request.currentStage, request.requestTrack)}
                           </Badge>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                             {status.icon}

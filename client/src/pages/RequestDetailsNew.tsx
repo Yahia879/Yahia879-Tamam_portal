@@ -286,6 +286,7 @@ export default function RequestDetailsNew() {
   let activeAction = isRequester ? null : getActiveAction(request.currentStage, user?.role, {
     assignedTo: request.assignedTo,
     userId: user?.id,
+    requestTrack: request.requestTrack,
   });
 
   // Override active action for contracting stage based on contract status
@@ -359,8 +360,8 @@ export default function RequestDetailsNew() {
     }
   }
 
-  const completedSteps = getCompletedSteps(request.currentStage);
-  const progress = getProgressPercentage(request.currentStage);
+  const completedSteps = getCompletedSteps(request.currentStage, workflow);
+  const progress = getProgressPercentage(request.currentStage, workflow);
 
   return (
     <div className="min-h-screen bg-background">
@@ -483,7 +484,7 @@ export default function RequestDetailsNew() {
                       onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                       variant: 'default' as const,
                     }
-                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
+                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution') && request.requestTrack !== 'quick_response'
                   ? {
                       label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
                       onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
