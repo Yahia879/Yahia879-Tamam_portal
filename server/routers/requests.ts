@@ -1203,6 +1203,7 @@ export const requestsRouter = router({
       notes: z.string().optional(),
       projectName: z.string().optional(), // اسم المشروع عند التحويل
       managerId: z.number().optional(), // مدير المشروع عند التحويل
+      assignedToId: z.number().optional(), // المسؤول عن الاستجابة السريعة
       startDate: z.string().optional(), // تاريخ البدء
       endDate: z.string().optional(), // تاريخ الانتهاء المتوقع
     }))
@@ -1241,6 +1242,13 @@ export const requestsRouter = router({
         });
       }
 
+      if (input.decision === 'quick_response' && !input.assignedToId) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: "يجب تحديد الشخص المسؤول للاستجابة السريعة" 
+        });
+      }
+
       // تحديث الطلب حسب القرار
       const updateData: any = {
         status: option.resultStatus,
@@ -1256,6 +1264,10 @@ export const requestsRouter = router({
       // إذا كان القرار هو التحويل للاستجابة السريعة، تحديد المسار
       if (input.decision === 'quick_response') {
         updateData.requestTrack = 'quick_response';
+        if (input.assignedToId) {
+          updateData.assignedTo = input.assignedToId;
+          updateData.currentResponsible = input.assignedToId;
+        }
       }
 
       // إذا كان القرار هو الاعتذار، تحديد تاريخ الإغلاق
@@ -1318,16 +1330,12 @@ export const requestsRouter = router({
 
       // إرسال إشعارات للفريق المختص حسب المسار
       if (input.decision === 'quick_response') {
-        // إشعار فريق الاستجابة السريعة
-        const quickResponseTeam = await db.select({ id: users.id })
-          .from(users)
-          .where(eq(users.role, 'quick_response'));
-        
-        for (const member of quickResponseTeam) {
+        if (input.assignedToId) {
+          // إشعار الشخص المسؤول فقط
           await db.insert(notifications).values({
-            userId: member.id,
+            userId: input.assignedToId,
             title: 'طلب جديد للاستجابة السريعة',
-            message: `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مسار الاستجابة السريعة`,
+            message: `تم تكليفك بالطلب رقم ${request[0].requestNumber} للاستجابة السريعة`,
             type: 'info',
             relatedType: 'request',
             relatedId: input.requestId,
@@ -1589,6 +1597,23 @@ export const requestsRouter = router({
       })
         .from(users)
         .where(inArray(users.role, ['field_team', 'projects_office', 'super_admin', 'system_admin']))
+        .orderBy(users.name);
+
+      return members;
+    }),
+
+  // الحصول على موظفي فريق الاستجابة السريعة
+  getQuickResponseTeamMembers: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const members = await db.select({
+        id: users.id,
+        name: users.name,
+      })
+        .from(users)
+        .where(eq(users.role, 'quick_response'))
         .orderBy(users.name);
 
       return members;

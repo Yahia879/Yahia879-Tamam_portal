@@ -63,6 +63,11 @@ export default function RequestDetailsNew() {
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
   const [durationDays, setDurationDays] = useState("");
+  const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
+
+  const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
+    enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
+  });
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
@@ -1273,6 +1278,27 @@ export default function RequestDetailsNew() {
                 </div>
               </div>
             )}
+            {/* تحديد المسؤول للاستجابة السريعة */}
+            {selectedDecision === 'quick_response' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">
+                  الشخص المسؤول <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedQuickResponseMemberId || ''}
+                  onChange={(e) => setSelectedQuickResponseMemberId(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="" disabled>-- اختر الشخص المسؤول --</option>
+                  {quickResponseTeamMembers?.map((member) => (
+                    <option key={member.id} value={member.id.toString()}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* ملاحظات إضافية (اختياري) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
               <div className="mb-4">
@@ -1295,6 +1321,7 @@ export default function RequestDetailsNew() {
                   setJustification("");
                   setProjectName("");
                   setSelectedManagerId(null);
+                  setSelectedQuickResponseMemberId(null);
                   setStartDate("");
                   setExpectedEndDate("");
                   setDurationDays("");
@@ -1329,6 +1356,7 @@ export default function RequestDetailsNew() {
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
                     managerId: undefined,
+                    assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
                     startDate: calculatedStartDate,
                     endDate: calculatedEndDate,
                     justification: justification || undefined,
@@ -1337,7 +1365,8 @@ export default function RequestDetailsNew() {
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0))
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
+                  (selectedDecision === 'quick_response' && !selectedQuickResponseMemberId)
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
