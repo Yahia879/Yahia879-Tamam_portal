@@ -1124,7 +1124,7 @@ export const requestsRouter = router({
 
       // تحديث مرحلة الطلب
       await db.update(mosqueRequests).set({
-        currentStage: "boq_preparation",
+        currentStage: "technical_eval",
         currentResponsibleDepartment: "مكتب المشاريع",
         estimatedCost: input.estimatedCost?.toString() || null,
       }).where(eq(mosqueRequests.id, input.requestId));
@@ -1134,9 +1134,9 @@ export const requestsRouter = router({
         requestId: input.requestId,
         userId: ctx.user.id,
         fromStage: "field_visit",
-        toStage: "boq_preparation",
+        toStage: "technical_eval",
         action: "stage_updated",
-        notes: "تم رفع تقرير الزيارة الميدانية والتحويل لجدول الكميات",
+        notes: "تم رفع تقرير الزيارة الميدانية والتحويل للتقييم الفني",
       });
 
       return { success: true, message: "تم إضافة تقرير الزيارة الميدانية بنجاح" };
