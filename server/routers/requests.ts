@@ -347,10 +347,13 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.userId, ctx.user.id));
       }
 
-      // الفريق الميداني يرى الطلبات المسندة إليه أو في مرحلة الزيارة الميدانية
+      // الفريق الميداني يرى الطلبات المسندة إليه فقط (سواء كمسؤول عام أو مسؤول زيارة ميدانية)
       if (ctx.user.role === "field_team") {
         conditions.push(
-          sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.currentStage} = 'field_visit')`
+          or(
+            eq(mosqueRequests.assignedTo, ctx.user.id),
+            eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)
+          )
         );
       }
 
@@ -372,10 +375,30 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.programType, input.programType));
       }
       if (input.currentStage) {
-        conditions.push(eq(mosqueRequests.currentStage, input.currentStage));
+        // إذا كان المستخدم من الفريق الميداني وطلب مرحلة الزيارة الميدانية، لا نفلتر بها لكي لا تختفي طلباته بعد رفع التقرير
+        if (ctx.user.role === "field_team" && input.currentStage === "field_visit") {
+          // لا تفعل شيئاً
+        } else {
+          conditions.push(eq(mosqueRequests.currentStage, input.currentStage));
+        }
       }
       if (input.status) {
-        conditions.push(eq(mosqueRequests.status, input.status));
+        if (ctx.user.role === "field_team" && input.status === "completed") {
+          const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+          conditions.push(
+            or(
+              eq(mosqueRequests.status, "completed"),
+              and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, postStages))
+            )
+          );
+        } else if (ctx.user.role === "field_team" && input.status === "in_progress") {
+          const preStages = ["submitted", "initial_review", "field_visit"];
+          conditions.push(
+            and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, preStages))
+          );
+        } else {
+          conditions.push(eq(mosqueRequests.status, input.status));
+        }
       }
       if (input.priority) {
         conditions.push(eq(mosqueRequests.priority, input.priority));
@@ -424,24 +447,42 @@ export const requestsRouter = router({
       // الحصول على الإحصائيات حسب الحالة للنتائج المفلترة
       let statsQuery = db.select({ 
         status: mosqueRequests.status, 
+        currentStage: mosqueRequests.currentStage,
         count: sql<number>`count(*)` 
       }).from(mosqueRequests);
       if (conditions.length > 0) {
         statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
       }
-      const statsResult = await statsQuery.groupBy(mosqueRequests.status);
-      const stats = Object.fromEntries(statsResult.map(s => [s.status || 'unknown', s.count]));
+      const statsResult = await statsQuery.groupBy(mosqueRequests.status, mosqueRequests.currentStage);
+      
+      const stats: Record<string, number> = { pending: 0, under_review: 0, in_progress: 0, completed: 0, rejected: 0, cancelled: 0 };
+      const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+      
+      for (const s of statsResult) {
+        let effectiveStatus = s.status || 'unknown';
+        if (ctx.user.role === "field_team" && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
+          effectiveStatus = "completed";
+        }
+        stats[effectiveStatus] = (stats[effectiveStatus] || 0) + s.count;
+      }
 
       console.log('[search] Total count:', total, 'Stats:', stats);
 
       return {
-        requests: results.map(r => ({
-          ...r.request,
-          mosqueName: r.mosqueName,
-          mosqueCity: r.mosqueCity,
-          requesterName: r.requesterName,
-          programName: r.programName,
-        })),
+        requests: results.map(r => {
+          let effectiveStatus = r.request.status;
+          if (ctx.user.role === "field_team" && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
+            effectiveStatus = "completed" as any;
+          }
+          return {
+            ...r.request,
+            status: effectiveStatus,
+            mosqueName: r.mosqueName,
+            mosqueCity: r.mosqueCity,
+            requesterName: r.requesterName,
+            programName: r.programName,
+          };
+        }),
         total,
         stats,
       };
