@@ -1066,11 +1066,37 @@ export const requestsRouter = router({
         }).where(eq(mosqueRequests.id, input.requestId));
       }
 
+      // تحديث حالة الزيارة الميدانية في جدول field_visits إن وجدت
+      await db
+        .update(fieldVisits)
+        .set({
+          reportSubmitted: true,
+          reportSubmittedBy: ctx.user.id,
+          reportSubmittedAt: new Date(),
+          status: "reported",
+          executionDate: new Date(input.visitDate),
+          executedBy: ctx.user.id,
+          executedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(fieldVisits.requestId, input.requestId));
+
       // تحديث مرحلة الطلب
       await db.update(mosqueRequests).set({
-        currentStage: "technical_eval",
+        currentStage: "boq_preparation",
+        currentResponsibleDepartment: "مكتب المشاريع",
         estimatedCost: input.estimatedCost?.toString() || null,
       }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إضافة سجل في تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        fromStage: "field_visit",
+        toStage: "boq_preparation",
+        action: "stage_updated",
+        notes: "تم رفع تقرير الزيارة الميدانية والتحويل لجدول الكميات",
+      });
 
       return { success: true, message: "تم إضافة تقرير الزيارة الميدانية بنجاح" };
     }),

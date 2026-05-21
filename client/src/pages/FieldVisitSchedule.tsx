@@ -9,10 +9,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Calendar, Clock, Users, ArrowRight } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function FieldVisitSchedule() {
   const { requestId } = useParams();
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+
+  // التحقق من الصلاحيات وتسجيل الدخول
+  useEffect(() => {
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
+        setLocation("/login");
+      } else if (user?.role === "field_team") {
+        toast.error("ليس لديك صلاحية لجدولة الزيارة الميدانية");
+        setLocation(`/requests/${requestId}`);
+      }
+    }
+  }, [authLoading, isAuthenticated, user, setLocation, requestId]);
 
   const [formData, setFormData] = useState({
     visitDate: "",

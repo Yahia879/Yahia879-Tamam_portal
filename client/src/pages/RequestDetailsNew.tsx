@@ -316,7 +316,7 @@ export default function RequestDetailsNew() {
 
   // Override active action for field_visit stage based on field visit status
   if (request.currentStage === 'field_visit' && activeAction) {
-    if (!fieldVisit?.scheduledDate) {
+    if (!fieldVisit?.scheduledDate && !request?.fieldVisitScheduledDate) {
       // لم يتم الجدولة بعد
       activeAction = {
         ...activeAction,
@@ -326,6 +326,7 @@ export default function RequestDetailsNew() {
           label: 'جدولة الزيارة الميدانية',
           redirectUrl: '/field-visits/schedule/:requestId',
         },
+        canPerformAction: user?.role !== 'field_team',
       };
     } else if (!fieldVisit?.reportSubmitted) {
       // تم الجدولة، الآن يجب رفع التقرير
@@ -538,25 +539,25 @@ export default function RequestDetailsNew() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* جدولة الزيارة */}
                   <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                    fieldVisit?.scheduledDate 
+                    (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) 
                       ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' 
                       : 'bg-gray-50 border-gray-200 dark:bg-gray-900/10 dark:border-gray-800'
                   }`}>
                     <div className="flex items-center gap-3 mb-2">
-                      {fieldVisit?.scheduledDate ? (
+                      {(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? (
                         <CheckCircle className="w-5 h-5 text-green-600" />
                       ) : (
                         <Clock className="w-5 h-5 text-gray-400" />
                       )}
                       <h4 className={`font-bold text-sm sm:text-base ${
-                        fieldVisit?.scheduledDate ? 'text-green-800 dark:text-green-200' : 'text-gray-600 dark:text-gray-400'
+                        (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? 'text-green-800 dark:text-green-200' : 'text-gray-600 dark:text-gray-400'
                       }`}>جدولة الزيارة</h4>
                     </div>
                     <p className={`text-[11px] sm:text-sm font-medium ${
-                      fieldVisit?.scheduledDate ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
+                      (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
                     }`}>
-                      {fieldVisit?.scheduledDate 
-                        ? `مجدولة: ${new Date(fieldVisit?.scheduledDate).toLocaleDateString('ar-SA')}`
+                      {(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) 
+                        ? `مجدولة: ${new Date(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate!).toLocaleDateString('ar-SA')}`
                         : 'معلقة (لم يتم التحديد)'
                       }
                     </p>

@@ -20,6 +20,10 @@ export const fieldVisitsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role === "field_team") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لجدولة الزيارة الميدانية" });
+      }
+
       const { requestId, visitDate, visitTime, assignedUserId, teamMembers, notes } = input;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
@@ -95,6 +99,17 @@ export const fieldVisitsRouter = router({
         action: "field_visit_scheduled",
         notes: `تم جدولة زيارة ميدانية بتاريخ ${visitDate} الساعة ${visitTime}`,
       });
+
+      // مزامنة حقول الزيارة الميدانية في جدول mosque_requests
+      await db
+        .update(mosqueRequests)
+        .set({
+          fieldVisitScheduledDate: new Date(visitDate),
+          fieldVisitScheduledTime: visitTime,
+          fieldVisitAssignedTo: assignedUserId || null,
+          fieldVisitNotes: notes || null,
+        })
+        .where(eq(mosqueRequests.id, requestId));
 
       // تسجيل في سجل التدقيق
       await db.insert(auditLogs).values({

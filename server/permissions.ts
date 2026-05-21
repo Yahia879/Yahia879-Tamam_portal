@@ -45,6 +45,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view"],
+  field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 };
 
 /**
@@ -95,6 +96,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (userData?.role === "service_requester") {
     rolePermissionsData.push("requests.create", "requests.view");
   }
+  if (userData?.role === "field_team") {
+    rolePermissionsData.push("field_visits", "requests.view", "requests.edit", "mosques.view");
+  }
 
   if (roleIds.length > 0) {
     // جلب صلاحيات من جدول rolePermissions (المصدر التقليدي)
@@ -103,7 +107,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       .from(rolePermissions)
       .where(inArray(rolePermissions.roleId, roleIds));
     
-    rolePermissionsData = rolePermsResult.map(rp => rp.permissionId);
+    rolePermissionsData.push(...rolePermsResult.map(rp => rp.permissionId));
 
     // جلب صلاحيات من حقل description في جدول roles (المصدر للأدوار المخصصة)
     const rolesData = await db
