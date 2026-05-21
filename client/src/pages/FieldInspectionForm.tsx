@@ -187,11 +187,16 @@ export default function FieldInspectionForm() {
 
   // التحقق من تسجيل الدخول والصلاحيات
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
-      navigate("/login");
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
+        navigate("/login");
+      } else if (user?.role !== 'field_team') {
+        toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
+        navigate(`/requests/${requestId}`);
+      }
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, user, navigate, requestId]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));

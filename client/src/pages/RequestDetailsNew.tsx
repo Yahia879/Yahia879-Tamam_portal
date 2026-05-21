@@ -337,6 +337,7 @@ export default function RequestDetailsNew() {
           label: 'رفع التقرير',
           redirectUrl: '/field-visits/report/:requestId',
         },
+        canPerformAction: user?.role === 'field_team',
       };
     } else {
       // تم إكمال جميع الإجراءات، يمكن الانتقال للمرحلة التالية

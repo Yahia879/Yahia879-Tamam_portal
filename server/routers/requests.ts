@@ -1024,7 +1024,7 @@ export const requestsRouter = router({
       programData: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      if (ctx.user.role !== "field_team") {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير ميدانية" });
       }
 
