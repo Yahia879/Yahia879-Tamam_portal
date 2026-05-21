@@ -108,7 +108,6 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       items: [
         { icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" },
         { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-        { icon: FileText, label: "طلباتي", path: "/my-requests" },
       ],
     });
   }

@@ -1497,13 +1497,8 @@ export const requestsRouter = router({
       }
 
       if (ctx.user.role === 'field_team') {
-        // مستخدم الفريق الميداني: يرى الزيارات المسندة إليه أو غير المسندة (للعلم بالزيارات المتاحة)
-        conditions.push(
-          or(
-            eq(fieldVisits.assignedTo, ctx.user.id),
-            sql`${fieldVisits.assignedTo} IS NULL`
-          )!
-        );
+        // مستخدم الفريق الميداني: يرى الزيارات المسندة إليه فقط بناءً على طلب العميل
+        conditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
       } else if (input.assignedTo) {
         // فلترة بموظف محدد للمديرين
         conditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
