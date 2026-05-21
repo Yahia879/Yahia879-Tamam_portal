@@ -182,7 +182,7 @@ export default function ProjectDetailsPage() {
 
   // جلب المدراء لإمكانية التعيين
   const { data: managersResult } = trpc.users.getAll.useQuery({
-    roles: ['super_admin', 'system_admin', 'projects_office', 'project_manager'],
+    roles: ['project_manager'],
     limit: 100,
   }, {
     enabled: showAssignManagerDialog,
