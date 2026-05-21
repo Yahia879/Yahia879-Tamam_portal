@@ -21,31 +21,16 @@ interface Category {
 
 // تعريف أسماء التصنيفات بالعربية
 const categoryTypeNames: Record<string, string> = {
-  city: "المدن",
-  nationality: "الجنسيات",
-  work_field: "مجالات العمل",
-  unit: "الوحدات",
-  boq_unit: "وحدات جدول الكميات (BOQ)",
-  item_category: "فئات البنود",
-  item_type: "أنواع البنود",
+  boq_category: "تصنيفات جداول الكميات",
   bank: "البنوك",
-  entity_type: "أنواع الكيانات",
 };
 
 export default function CategoriesManagement() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isAddValueOpen, setIsAddValueOpen] = useState(false);
   const [isEditValueOpen, setIsEditValueOpen] = useState(false);
   const [editingValue, setEditingValue] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Form states
-  const [categoryForm, setCategoryForm] = useState({
-    name: "",
-    nameAr: "",
-    type: "",
-  });
 
   const [valueForm, setValueForm] = useState({
     name: "",
@@ -68,9 +53,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = useMemo(() => {
-    return Object.keys(groupedCategories).sort();
-  }, [groupedCategories]);
+  const categoryTypes = ["boq_category", "bank"];
 
   // الحصول على قيم التصنيف المحدد
   const selectedCategoryValues = useMemo(() => {
@@ -81,9 +64,7 @@ export default function CategoriesManagement() {
   // Mutations
   const createCategoryMutation = trpc.categories.createCategory.useMutation({
     onSuccess: () => {
-      toast.success("تم إنشاء التصنيف بنجاح");
-      setCategoryForm({ name: "", nameAr: "", type: "" });
-      setIsAddCategoryOpen(false);
+      toast.success("تم الإجراء بنجاح");
       refetchCategories();
     },
     onError: (error) => {
@@ -113,21 +94,16 @@ export default function CategoriesManagement() {
     },
   });
 
-  const handleAddCategory = () => {
-    if (!categoryForm.type) {
-      toast.error("يرجى اختيار نوع التصنيف");
-      return;
-    }
-    createCategoryMutation.mutate(categoryForm);
-  };
-
   const handleAddValue = () => {
-    if (!valueForm.name || !valueForm.nameAr || !selectedType) {
+    if (!valueForm.nameAr || !selectedType) {
       toast.error("جميع الحقول مطلوبة");
       return;
     }
+    // Generate a unique English identifier for the database
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const generatedName = `${selectedType}_${Date.now()}_${randomSuffix}`;
     createCategoryMutation.mutate({
-      name: valueForm.name,
+      name: generatedName,
       nameAr: valueForm.nameAr,
       type: selectedType,
     });
@@ -139,10 +115,18 @@ export default function CategoriesManagement() {
     if (!editingValue) return;
     updateCategoryMutation.mutate({
       id: editingValue.id,
-      name: valueForm.name,
+      name: editingValue.name,
       nameAr: valueForm.nameAr,
       type: editingValue.type,
     });
+  };
+
+  const openAddValue = () => {
+    setValueForm({
+      name: "",
+      nameAr: "",
+    });
+    setIsAddValueOpen(true);
   };
 
   const openEditValue = (value: Category) => {
@@ -173,58 +157,8 @@ export default function CategoriesManagement() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">إدارة التصنيفات</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">إدارة التصنيفات العامة للنظام (مدن، جنسيات، مجالات عمل، وحدات، فئات، بنود)</p>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1">إدارة التصنيفات العامة للنظام (تصنيفات جداول الكميات، البنوك)</p>
           </div>
-          <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-sm h-9">
-                <Plus className="w-4 h-4" />
-                إضافة تصنيف جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
-              <DialogHeader>
-                <DialogTitle className="text-lg sm:text-xl">إضافة نوع تصنيف جديد</DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm">أدخل بيانات نوع التصنيف الجديد (مثل: مدن، جنسيات، إلخ)</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">الاسم بالعربية *</label>
-                  <Input
-                    placeholder="مثال: المدن"
-                    value={categoryForm.nameAr}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, nameAr: e.target.value })}
-                    className="h-9"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">الاسم بالإنجليزية *</label>
-                  <Input
-                    placeholder="مثال: cities"
-                    value={categoryForm.name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    className="h-9"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">المعرّف (النوع) *</label>
-                  <Input
-                    placeholder="مثال: city"
-                    value={categoryForm.type}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, type: e.target.value })}
-                    className="h-9"
-                  />
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-1">يستخدم للربط البرمجي (بدون مسافات)</p>
-                </div>
-              </div>
-              <DialogFooter className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={() => setIsAddCategoryOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
-                <Button onClick={handleAddCategory} disabled={createCategoryMutation.isPending} className="w-full sm:w-auto h-9 text-sm">
-                  {createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Search */}
@@ -318,13 +252,15 @@ export default function CategoriesManagement() {
                       >
                         رجوع
                       </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={openAddValue}
+                        className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-8 text-xs sm:text-sm"
+                      >
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة قيمة
+                      </Button>
                       <Dialog open={isAddValueOpen} onOpenChange={setIsAddValueOpen}>
-                        <DialogTrigger asChild>
-                          <Button size="sm" className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-8 text-xs sm:text-sm">
-                            <Plus className="w-4 h-4 ml-1" />
-                            إضافة قيمة
-                          </Button>
-                        </DialogTrigger>
                         <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
                           <DialogHeader>
                             <DialogTitle className="text-lg sm:text-xl">إضافة قيمة جديدة</DialogTitle>
@@ -337,15 +273,6 @@ export default function CategoriesManagement() {
                                 placeholder="مثال: الرياض"
                                 value={valueForm.nameAr}
                                 onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                                className="h-9"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-2">القيمة بالإنجليزية *</label>
-                              <Input
-                                placeholder="مثال: riyadh"
-                                value={valueForm.name}
-                                onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
                                 className="h-9"
                               />
                             </div>
@@ -377,7 +304,6 @@ export default function CategoriesManagement() {
                             <TableRow>
                               <TableHead className="text-right w-12">#</TableHead>
                               <TableHead className="text-right">القيمة بالعربية</TableHead>
-                              <TableHead className="text-right">القيمة بالإنجليزية</TableHead>
                               <TableHead className="w-24 text-center">الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -386,7 +312,6 @@ export default function CategoriesManagement() {
                               <TableRow key={value.id}>
                                 <TableCell className="text-gray-500">{index + 1}</TableCell>
                                 <TableCell className="font-medium">{value.nameAr}</TableCell>
-                                <TableCell className="text-gray-600">{value.name}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center justify-center gap-1">
                                     <Button
@@ -448,15 +373,9 @@ export default function CategoriesManagement() {
                                 </Button>
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <p className="text-[10px] text-gray-500 mb-0.5">بالعربية</p>
-                                <p className="text-sm font-bold">{value.nameAr}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-gray-500 mb-0.5">بالإنجليزية</p>
-                                <p className="text-sm font-medium text-gray-600">{value.name}</p>
-                              </div>
+                            <div>
+                              <p className="text-[10px] text-gray-500 mb-0.5">بالعربية</p>
+                              <p className="text-sm font-bold">{value.nameAr}</p>
                             </div>
                           </div>
                         ))}
@@ -492,14 +411,6 @@ export default function CategoriesManagement() {
                 <Input
                   value={valueForm.nameAr}
                   onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                  className="h-9"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">القيمة بالإنجليزية *</label>
-                <Input
-                  value={valueForm.name}
-                  onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
                   className="h-9"
                 />
               </div>

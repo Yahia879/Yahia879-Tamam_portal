@@ -26,6 +26,12 @@ export default function AddSupplier() {
   const [, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // جلب البنوك ديناميكياً من قاعدة البيانات
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const banks = allCategories
+    .filter((cat: any) => cat.type === "bank")
+    .map((cat: any) => cat.nameAr || cat.name);
+
   // حالة النموذج
   const [formData, setFormData] = useState({
     name: "",
@@ -206,12 +212,21 @@ export default function AddSupplier() {
               <CardContent className="pt-6 space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="bankName">اسم البنك</Label>
-                  <Input 
-                    id="bankName" 
-                    value={formData.bankName} 
-                    onChange={handleChange} 
-                    placeholder="مثلاً: الراجحي، الأهلي..." 
-                  />
+                  <Select
+                    value={formData.bankName}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, bankName: value }))}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="اختر البنك" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {banks.map((bank: string) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="iban">رقم الآيبان (IBAN)</Label>

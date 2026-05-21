@@ -43,18 +43,6 @@ interface BoqFormDialogProps {
   item?: any; // إذا كان موجوداً، يكون في وضع التعديل
 }
 
-const ITEM_CATEGORIES = [
-  { value: "construction", label: "أعمال إنشائية" },
-  { value: "electrical", label: "أعمال كهربائية" },
-  { value: "plumbing", label: "أعمال سباكة" },
-  { value: "hvac", label: "تكييف وتبريد" },
-  { value: "finishing", label: "تشطيبات" },
-  { value: "carpentry", label: "نجارة" },
-  { value: "painting", label: "دهانات" },
-  { value: "flooring", label: "أرضيات" },
-  { value: "other", label: "أخرى" },
-];
-
 export default function BoqFormDialog({
   requestId,
   open,
@@ -76,6 +64,15 @@ export default function BoqFormDialog({
 
   // جلب الوحدات من قاعدة البيانات
   const { data: boqUnits = [] } = trpc.categories.getBoqUnits.useQuery();
+
+  // جلب التصنيفات من قاعدة البيانات
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const boqCategoryOptions = allCategories
+    .filter((cat: any) => cat.type === "boq_category")
+    .map((cat: any) => ({
+      value: cat.name,
+      label: cat.nameAr || cat.name,
+    }));
 
   // تعبئة البيانات في حالة التعديل
   useEffect(() => {
@@ -181,7 +178,7 @@ export default function BoqFormDialog({
                 <SelectValue placeholder="اختر التصنيف" />
               </SelectTrigger>
               <SelectContent>
-                {ITEM_CATEGORIES.map((cat) => (
+                {boqCategoryOptions.map((cat) => (
                   <SelectItem key={cat.value} value={cat.value}>
                     {cat.label}
                   </SelectItem>

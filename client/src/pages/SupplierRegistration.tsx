@@ -54,25 +54,15 @@ const WORK_FIELDS: { key: WorkFieldType; label: string }[] = [
   { key: "other", label: "أخرى" },
 ];
 
-// البنوك السعودية
-const SAUDI_BANKS = [
-  "البنك الأهلي السعودي",
-  "مصرف الراجحي",
-  "بنك الرياض",
-  "البنك السعودي الفرنسي",
-  "البنك السعودي البريطاني (ساب)",
-  "بنك البلاد",
-  "بنك الجزيرة",
-  "البنك العربي الوطني",
-  "بنك الإنماء",
-  "مصرف الإنماء",
-  "بنك الخليج الدولي",
-  "بنك الاستثمار السعودي",
-];
-
 export default function SupplierRegistration() {
   const [, navigate] = useLocation();
   const { user, loading: authLoading } = useAuth();
+
+  // جلب البنوك ديناميكياً من قاعدة البيانات
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const banks = allCategories
+    .filter((cat: any) => cat.type === "bank")
+    .map((cat: any) => cat.nameAr || cat.name);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // بيانات النموذج - معلومات الكيان
@@ -495,7 +485,7 @@ export default function SupplierRegistration() {
                       <SelectValue placeholder="اختر البنك" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SAUDI_BANKS.map((bank) => (
+                      {banks.map((bank: string) => (
                         <SelectItem key={bank} value={bank}>
                           {bank}
                         </SelectItem>

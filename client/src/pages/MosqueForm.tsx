@@ -108,6 +108,8 @@ export default function MosqueForm() {
     description: "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   // جلب بيانات المسجد في حالة التعديل
   const { data: mosque, isLoading: loadingMosque } = trpc.mosques.getById.useQuery(
     { id: mosqueId as number },
@@ -170,6 +172,25 @@ export default function MosqueForm() {
 
   const handleChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "area") {
+      const val = value as string;
+      if (!val) {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated.area;
+          return updated;
+        });
+      } else {
+        const areaNum = parseFloat(val);
+        if (!isNaN(areaNum) && areaNum >= 10 && areaNum <= 10000) {
+          setErrors((prev) => {
+            const updated = { ...prev };
+            delete updated.area;
+            return updated;
+          });
+        }
+      }
+    }
   };
 
   const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
@@ -197,6 +218,22 @@ export default function MosqueForm() {
       toast.error("يرجى ملء الحقول المطلوبة");
       return;
     }
+
+    const newErrors: Record<string, string> = {};
+    if (formData.area) {
+      const areaNum = parseFloat(formData.area);
+      if (isNaN(areaNum) || areaNum < 10 || areaNum > 10000) {
+        newErrors.area = "المساحة يجب أن تكون بين 10 و 10000 متر مربع";
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error("يرجى تصحيح الأخطاء في النموذج");
+      return;
+    }
+
+    setErrors({});
 
     // التحقق من عدم وجود طلب سابق (مع مراعاة الاستثناءات) - فقط عند الإضافة
     if (!isEdit && user?.role === "service_requester" && !canRegisterMore) {
@@ -361,14 +398,19 @@ export default function MosqueForm() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>مساحة المسجد (م²)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="area">مساحة المسجد (م²)</Label>
                   <Input
+                    id="area"
                     type="number"
                     value={formData.area}
                     onChange={(e) => handleChange("area", e.target.value)}
                     placeholder="مثال: 500"
+                    className={errors.area ? "border-red-500 focus-visible:ring-red-500" : ""}
                   />
+                  {errors.area && (
+                    <p className="text-[11px] sm:text-xs text-red-500">{errors.area}</p>
+                  )}
                 </div>
                 <div>
                   <Label>عدد المصلين</Label>

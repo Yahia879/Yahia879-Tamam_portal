@@ -48,19 +48,6 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 
-// تصنيفات البنود
-const ITEM_CATEGORIES = [
-  { value: "construction", label: "أعمال إنشائية" },
-  { value: "electrical", label: "أعمال كهربائية" },
-  { value: "plumbing", label: "أعمال سباكة" },
-  { value: "hvac", label: "تكييف وتبريد" },
-  { value: "finishing", label: "تشطيبات" },
-  { value: "carpentry", label: "نجارة" },
-  { value: "painting", label: "دهانات" },
-  { value: "flooring", label: "أرضيات" },
-  { value: "other", label: "أخرى" },
-];
-
 // وحدات القياس
 const UNITS = [
   { value: "m2", label: "متر مربع" },
@@ -74,6 +61,15 @@ const UNITS = [
 
 export default function BOQ() {
   const [, navigate] = useLocation();
+
+  // جلب التصنيفات من قاعدة البيانات
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const boqCategoryOptions = allCategories
+    .filter((cat: any) => cat.type === "boq_category")
+    .map((cat: any) => ({
+      value: cat.name,
+      label: cat.nameAr || cat.name,
+    }));
   const params = useParams();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -493,7 +489,7 @@ export default function BOQ() {
                           <TableRow key={item.id}>
                             <TableCell>
                               <Badge variant="outline">
-                                {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                                {boqCategoryOptions.find(c => c.value === item.category)?.label || item.category}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -543,7 +539,7 @@ export default function BOQ() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <Badge variant="outline" className="mb-2 text-[10px]">
-                              {ITEM_CATEGORIES.find(c => c.value === item.category)?.label || item.category}
+                              {boqCategoryOptions.find(c => c.value === item.category)?.label || item.category}
                             </Badge>
                             <p className="font-bold text-sm">{item.itemName}</p>
                             {item.description && (
@@ -658,7 +654,7 @@ export default function BOQ() {
                     <SelectValue placeholder="اختر التصنيف..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {ITEM_CATEGORIES.map((cat) => (
+                    {boqCategoryOptions.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
                       </SelectItem>
@@ -751,7 +747,7 @@ export default function BOQ() {
                     <SelectValue placeholder="اختر التصنيف..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {ITEM_CATEGORIES.map((cat) => (
+                    {boqCategoryOptions.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
                         {cat.label}
                       </SelectItem>
