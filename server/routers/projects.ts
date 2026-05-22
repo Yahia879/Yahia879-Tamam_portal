@@ -835,6 +835,97 @@ export const projectsRouter = router({
       return { success: true };
     }),
 
+  getUnifiedPayment: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (input.id.startsWith("disb-")) {
+        const actualId = parseInt(input.id.replace("disb-", ""));
+        const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
+        if (!disb) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+        return {
+          id: input.id,
+          projectId: disb.projectId,
+          title: disb.title || disb.description || "",
+          description: disb.description || "",
+          amount: parseFloat(disb.amount as string || "0"),
+          dateMiladi: disb.dateMiladi ? new Date(disb.dateMiladi).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          completionPercentage: disb.completionPercentage || 0,
+        };
+      } else if (input.id.startsWith("manual-")) {
+        const actualId = parseInt(input.id.replace("manual-", ""));
+        const [payment] = await db.select().from(payments).where(eq(payments.id, actualId));
+        if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+        return {
+          id: input.id,
+          projectId: payment.projectId,
+          title: payment.description || "",
+          description: payment.description || "",
+          amount: parseFloat(payment.amount as string || "0"),
+          dateMiladi: new Date(payment.createdAt).toISOString().split('T')[0],
+          completionPercentage: 0,
+        };
+      } else if (input.id.startsWith("cp-")) {
+        const actualId = parseInt(input.id.replace("cp-", ""));
+        const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
+        if (!cp) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+        return {
+          id: input.id,
+          projectId: 0, // Not directly available without joining contracts
+          title: cp.phaseName || "",
+          description: cp.phaseName || "",
+          amount: parseFloat(cp.amount as string || "0"),
+          dateMiladi: cp.dueDate ? new Date(cp.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          completionPercentage: 0,
+        };
+      } else {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
+      }
+    }),
+
+  updateUnifiedPayment: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      amount: z.number().positive(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      dateMiladi: z.string().optional(),
+      completionPercentage: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (input.id.startsWith("disb-")) {
+        const actualId = parseInt(input.id.replace("disb-", ""));
+        const updateValues: any = { amount: input.amount.toString() };
+        if (input.title !== undefined) updateValues.title = input.title;
+        if (input.description !== undefined) updateValues.description = input.description;
+        if (input.dateMiladi !== undefined) updateValues.dateMiladi = input.dateMiladi;
+        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
+        
+        await db.update(disbursementRequests).set(updateValues).where(eq(disbursementRequests.id, actualId));
+      } else if (input.id.startsWith("manual-")) {
+        const actualId = parseInt(input.id.replace("manual-", ""));
+        const updateValues: any = { amount: input.amount.toString() };
+        if (input.title !== undefined) updateValues.description = input.title;
+        await db.update(payments).set(updateValues).where(eq(payments.id, actualId));
+      } else if (input.id.startsWith("cp-")) {
+        const actualId = parseInt(input.id.replace("cp-", ""));
+        const updateValues: any = { amount: input.amount.toString() };
+        if (input.title !== undefined) updateValues.phaseName = input.title;
+        await db.update(contractPayments).set(updateValues).where(eq(contractPayments.id, actualId));
+      } else {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
+      }
+
+      return { success: true };
+    }),
+
+
+
   // ==================== عروض الأسعار ====================
 
   // إنشاء عرض سعر

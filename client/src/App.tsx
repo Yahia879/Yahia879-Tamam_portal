@@ -82,6 +82,7 @@ import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
 import DisbursementOrders from "./pages/DisbursementOrders";
 import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
+import EditPaymentPage from "./pages/EditPaymentPage";
 import FinancialDashboard from "./pages/FinancialDashboard";
 import FinancialReport from "./pages/FinancialReport";
 import StageSettings from "./pages/StageSettings";
@@ -279,6 +280,7 @@ function Router() {
       <Route path="/disbursements/new">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/disbursements/new/:projectId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/disbursements/new/contract/:contractId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
+      <Route path="/payments/edit/:id">{() => <AdminRoute component={EditPaymentPage} />}</Route>
       
       {/* أوامر الصرف - إدارية */}
       <Route path="/disbursement-orders">{() => <AdminRoute component={DisbursementOrders} />}</Route>

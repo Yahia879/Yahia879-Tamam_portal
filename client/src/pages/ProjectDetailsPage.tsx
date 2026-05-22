@@ -119,8 +119,8 @@ export default function ProjectDetailsPage() {
     unit: "",
     quantity: "",
     unitPrice: "",
-    category: "",
   });
+
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
@@ -606,10 +606,7 @@ export default function ProjectDetailsPage() {
             <TabsTrigger value="phases">المراحل</TabsTrigger>
             <TabsTrigger value="boq">جدول الكميات</TabsTrigger>
             <TabsTrigger value="contracts">العقود</TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-1.5 justify-center">
-              {isPaymentsLocked && <Lock className="w-3.5 h-3.5 text-amber-500" />}
-              الدفعات
-            </TabsTrigger>
+            <TabsTrigger value="payments">الدفعات</TabsTrigger>
           </TabsList>
 
           {/* نظرة عامة */}
@@ -995,7 +992,23 @@ export default function ProjectDetailsPage() {
                 )}
               </CardHeader>
               <CardContent>
-                {project.contracts && project.contracts.length > 0 ? (
+                {isContractsLocked ? (
+                  <div className="text-center py-12">
+                    <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
+                      <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
+                        <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
+                      </div>
+                      <h3 className="text-xl font-bold text-amber-900 mb-3">قسم العقود مقفل حالياً</h3>
+                      <p className="text-amber-700 text-sm leading-relaxed mb-6">
+                        هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم العقود وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الثالثة: التقييم المالي والاعتماد** للمشروع.
+                      </p>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                        يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
+                      </div>
+                    </div>
+                  </div>
+                ) : project.contracts && project.contracts.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1047,37 +1060,25 @@ export default function ProjectDetailsPage() {
                                 </Button>
                               )}
                               <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                                title="معاينة العقد"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-8">
-                    {isContractsLocked ? (
-                      <div className="bg-amber-50/50 p-6 rounded-lg border border-amber-100 max-w-md mx-auto">
-                        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-amber-900 mb-2">إضافة العقود غير متاحة حالياً</h3>
-                        <p className="text-amber-700">
-                          سيتم تفعيل إمكانية إضافة العقود بعد اعتماد عرض السعر المناسب (إكمال المرحلة الثالثة).
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <FileSignature className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">لا توجد عقود مسجلة</p>
-                      </>
-                    )}
-                  </div>
-                )}
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                  title="معاينة العقد"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileSignature className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">لا توجد عقود مسجلة</p>
+                    </div>
+                  )}
 
                 {showApproveContractButton && (
                   <div className="mt-6 flex justify-center">
@@ -1149,6 +1150,7 @@ export default function ProjectDetailsPage() {
                         <TableHead className="text-right">المبلغ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-center">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1178,6 +1180,20 @@ export default function ProjectDetailsPage() {
                                 ? new Date(payment.date).toLocaleDateString("ar-SA")
                                 : "-"
                             }
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center gap-2 justify-center">
+                              {payment.id && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => navigate(`/payments/edit/${payment.id}`)}
+                                  title="تعديل الدفعة"
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -1254,6 +1270,7 @@ export default function ProjectDetailsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
       </div>
     </DashboardLayout>
   );

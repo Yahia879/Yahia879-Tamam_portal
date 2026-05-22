@@ -221,6 +221,14 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى إدخال عنوان طلب الصرف");
       return;
     }
+    if (!formData.description) {
+      toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
+      return;
+    }
+    if (formData.completionPercentage <= 0) {
+      toast.error("يرجى إدخال نسبة الإنجاز");
+      return;
+    }
     if (totalAmount <= 0) {
       toast.error("يرجى إدخال مبلغ صحيح");
       return;
@@ -355,22 +363,24 @@ export default function NewDisbursementRequest() {
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف الأعمال التي سوف تنفذ</Label>
+                  <Label className="text-right">وصف الأعمال التي سوف تنفذ *</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                     rows={3}
+                    required
                     className="text-right"
                   />
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">نسبة الإنجاز (%)</Label>
+                  <Label className="text-right">نسبة الإنجاز (%) *</Label>
                   <Input
                     type="number"
-                    min="0"
+                    min="1"
                     max="100"
+                    required
                     value={formData.completionPercentage}
                     onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
                     className="text-right"
