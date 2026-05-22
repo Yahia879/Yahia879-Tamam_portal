@@ -513,7 +513,10 @@ export default function RequestDetailsNew() {
               }}
               fieldReportButton={
                 (user?.role as string) !== 'field_team' && hasFieldReport &&
-                !(isQuickResponse && (user?.role as string) !== 'quick_response')
+                !(isQuickResponse && (
+                  (user?.role as string) !== 'quick_response' ||
+                  (request.quickReports && request.quickReports.length > 0)
+                ))
                   ? {
                       label: 'عرض تقرير الزيارة الميدانية',
                       onClick: () => setFieldVisitReportOpen(true),

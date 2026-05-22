@@ -1182,7 +1182,8 @@ export const requestsRouter = router({
         requiresProject: input.requiresProject,
       });
 
-      // إذا تم حل المشكلة، إغلاق الطلب
+      // تم إلغاء الإغلاق التلقائي للطلب عند حفظ التقرير بناء على طلب المستخدم
+      /*
       if (input.resolved && !input.requiresProject) {
         await db.update(mosqueRequests).set({
           currentStage: "closed",
@@ -1190,6 +1191,7 @@ export const requestsRouter = router({
           completedAt: new Date(),
         }).where(eq(mosqueRequests.id, input.requestId));
       }
+      */
 
       return { success: true, message: "تم إضافة تقرير الاستجابة السريعة بنجاح" };
     }),
