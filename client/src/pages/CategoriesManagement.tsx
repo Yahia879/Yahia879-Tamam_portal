@@ -24,6 +24,7 @@ const categoryTypeNames: Record<string, string> = {
   boq_category: "تصنيفات جداول الكميات",
   bank: "البنوك",
   city: "المدن",
+  boq_unit: "الوحدات",
 };
 
 export default function CategoriesManagement() {
@@ -54,7 +55,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["boq_category", "bank", "city"];
+  const categoryTypes = ["boq_category", "bank", "city", "boq_unit"];
 
   // الحصول على قيم التصنيف المحدد
   const selectedCategoryValues = useMemo(() => {

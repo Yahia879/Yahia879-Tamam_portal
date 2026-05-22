@@ -62,13 +62,17 @@ export default function BoqFormDialog({
     unitPrice: "",
   });
 
-  // جلب الوحدات من قاعدة البيانات
-  const { data: boqUnits = [] } = trpc.categories.getBoqUnits.useQuery();
-
   // جلب التصنيفات من قاعدة البيانات
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
   const boqCategoryOptions = allCategories
     .filter((cat: any) => cat.type === "boq_category")
+    .map((cat: any) => ({
+      value: cat.name,
+      label: cat.nameAr || cat.name,
+    }));
+
+  const boqUnitOptions = allCategories
+    .filter((cat: any) => cat.type === "boq_unit")
     .map((cat: any) => ({
       value: cat.name,
       label: cat.nameAr || cat.name,
@@ -91,13 +95,10 @@ export default function BoqFormDialog({
   }, [item, open]);
 
   // فلترة الوحدات بناءً على البحث
-  const filteredUnits = boqUnits.filter((u: any) =>
-    u.nameAr.toLowerCase().includes(unitSearch.toLowerCase()) ||
-    u.name.toLowerCase().includes(unitSearch.toLowerCase())
+  const filteredUnits = boqUnitOptions.filter((u: any) =>
+    u.label.toLowerCase().includes(unitSearch.toLowerCase()) ||
+    u.value.toLowerCase().includes(unitSearch.toLowerCase())
   );
-
-  // الوحدة المختارة
-  const selectedUnit = boqUnits.find((u: any) => u.nameAr === formData.unit);
 
   // إضافة بند
   const addItemMutation = trpc.projects.addBOQItem.useMutation({
@@ -264,8 +265,8 @@ export default function BoqFormDialog({
                       <CommandGroup>
                         {filteredUnits.map((u: any) => (
                           <CommandItem
-                            key={u.id}
-                            value={u.nameAr}
+                            key={u.value}
+                            value={u.label}
                             onSelect={(currentValue) => {
                               setFormData({ ...formData, unit: currentValue });
                               setUnitSearch("");
@@ -275,10 +276,10 @@ export default function BoqFormDialog({
                             <Check
                               className={cn(
                                 "ml-2 h-4 w-4",
-                                formData.unit === u.nameAr ? "opacity-100" : "opacity-0"
+                                formData.unit === u.label ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {u.nameAr}
+                            {u.label}
                           </CommandItem>
                         ))}
                       </CommandGroup>
