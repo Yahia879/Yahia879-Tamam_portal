@@ -355,11 +355,11 @@ export default function NewDisbursementRequest() {
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف الأعمال المنفذة</Label>
+                  <Label className="text-right">وصف الأعمال التي سوف تنفذ</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="وصف تفصيلي للأعمال المنفذة..."
+                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                     rows={3}
                     className="text-right"
                   />
