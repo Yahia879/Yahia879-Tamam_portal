@@ -562,13 +562,21 @@ export default function RequestDetailsNew() {
                       onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                       variant: 'default' as const,
                     }
-                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution') && request.requestTrack !== 'quick_response'
-                  ? {
-                      label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
-                      onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
-                      variant: 'default' as const,
-                      disabled: !!latestFinalReport,
-                    }
+                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
+                    ? request.requestTrack === 'quick_response'
+                      ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
+                        ? {
+                            label: "إغلاق الطلب",
+                            onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                            variant: 'default' as const,
+                          }
+                        : undefined
+                      : {
+                          label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
+                          onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
+                          variant: 'default' as const,
+                          disabled: !!latestFinalReport,
+                        }
                   : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
                   ? {
                       label: "إغلاق الطلب رسمياً",
@@ -1075,7 +1083,7 @@ export default function RequestDetailsNew() {
                               <Camera className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
                             </div>
                             <span className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
-                              المرفقات (التوثيق بالصور قبل/أثناء/بعد التنفيذ)
+                              المرفقات
                             </span>
                             <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
                               ({reportPhotos.length} {reportPhotos.length === 1 ? "صورة" : "صور"})
