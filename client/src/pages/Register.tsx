@@ -19,19 +19,7 @@ const requesterTypes = [
   { value: "other", label: "أخرى" },
 ];
 
-// مدن ومحافظات ومراكز منطقة عسير فقط
-const cities = [
-  "أبها", "خميس مشيط", "بيشة", "محايل عسير", "النماص",
-  "تثليث", "ظهران الجنوب", "سراة عبيدة", "رجال ألمع", "بلقرن",
-  "أحد رفيدة", "تنومة", "بارق", "المجاردة", "طريب",
-  "البرك", "الحرجة", "الأمواه", "السودة", "بللحمر",
-  "بللسمر", "طبب", "مربة", "القحمة", "وادي بن هشبل",
-  "تمنية", "ثلوث المنظر", "بحر أبو سكينة", "خاط", "ثربان",
-  "البشائر", "خثعم", "باشوت", "الجوة", "الفرشة",
-  "وادي الحيا", "المضة", "الصبيخة", "العرين", "الخنقة",
-  "ذهبان", "العمائر", "علب", "منصبة", "الحمضة",
-  "جاش", "الزرق",
-];
+
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -60,6 +48,11 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
+
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const dynamicCities = allCategories
+    .filter((cat: any) => cat.type === "city" && cat.isActive !== false)
+    .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
@@ -288,8 +281,8 @@ export default function Register() {
                         <SelectValue placeholder="اختر المدينة" />
                       </SelectTrigger>
                       <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
+                        {dynamicCities.map((city: any) => (
+                          <SelectItem key={city.name} value={city.nameAr || city.name}>{city.nameAr || city.name}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

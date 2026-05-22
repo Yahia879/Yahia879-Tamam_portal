@@ -23,6 +23,7 @@ interface Category {
 const categoryTypeNames: Record<string, string> = {
   boq_category: "تصنيفات جداول الكميات",
   bank: "البنوك",
+  city: "المدن",
 };
 
 export default function CategoriesManagement() {
@@ -53,7 +54,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["boq_category", "bank"];
+  const categoryTypes = ["boq_category", "bank", "city"];
 
   // الحصول على قيم التصنيف المحدد
   const selectedCategoryValues = useMemo(() => {
