@@ -1054,6 +1054,76 @@ export default function RequestDetailsNew() {
                         </p>
                       </div>
                     )}
+
+                    {(() => {
+                      const reportPhotos = request?.attachments?.filter((att: any) => {
+                        const ext = att.fileName.split('.').pop()?.toLowerCase();
+                        const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '') ||
+                          att.fileType?.toLowerCase() === 'image' ||
+                          att.fileType?.toLowerCase().startsWith('image/') ||
+                          ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(att.fileType?.toLowerCase() || '');
+                        
+                        return isImg && att.fileUrl.includes('site_photo') && att.uploadedBy === report.respondedBy;
+                      }).slice(0, 10) || [];
+
+                      if (reportPhotos.length === 0) return null;
+
+                      return (
+                        <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center border border-purple-100 dark:border-purple-900/50">
+                              <Camera className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
+                              المرفقات (التوثيق بالصور قبل/أثناء/بعد التنفيذ)
+                            </span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
+                              ({reportPhotos.length} {reportPhotos.length === 1 ? "صورة" : "صور"})
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {reportPhotos.map((photo: any, index: number) => (
+                              <div 
+                                key={photo.id || index} 
+                                className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-purple-300 dark:hover:border-purple-900/80 transition-all duration-300"
+                              >
+                                <img 
+                                  src={photo.fileUrl} 
+                                  alt={photo.fileName} 
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                {/* Elegant dark overlay on hover */}
+                                <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2.5 backdrop-blur-xs">
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="icon" 
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300"
+                                    onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                                    title="عرض الصورة"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="icon" 
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300 delay-75"
+                                    asChild
+                                    title="تنزيل الصورة"
+                                  >
+                                    <a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" download={photo.fileName}>
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
