@@ -92,6 +92,27 @@ export default function QuickResponseReportForm() {
     }
   }, [authLoading, isAuthenticated, navigate]);
 
+  // ملء اسم الفني المختص تلقائياً من بيانات الطلب
+  useEffect(() => {
+    if (requestData && !requestLoading && !formData.technicianName) {
+      // 1. اسم الشخص المسؤول عن الاستجابة السريعة (المسند إليه الطلب حالياً - ذو دور quick_response)
+      const quickResponseName = (requestData as any).assignedToUser?.name;
+      // 2. اسم المسؤول المعين للزيارة الميدانية من جدول الطلبات (كاحتياطي)
+      const assignedName = (requestData as any).fieldVisitAssignedToUser?.name;
+      // 3. اسم عضو الفريق الأول من تقرير المعاينة الميدانية (كاحتياطي ثانٍ)
+      const fieldReportTeamMember = requestData.fieldReports?.[0]?.teamMember1;
+      
+      const technician = quickResponseName || assignedName || fieldReportTeamMember || "";
+      
+      if (technician) {
+        setFormData(prev => ({
+          ...prev,
+          technicianName: prev.technicianName || technician
+        }));
+      }
+    }
+  }, [requestData, requestLoading, formData.technicianName]);
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };

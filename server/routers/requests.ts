@@ -247,6 +247,30 @@ export const requestsRouter = router({
         phone: users.phone,
       }).from(users).where(eq(users.id, request.userId as number)).limit(1);
 
+      // الحصول على بيانات المسؤول عن الزيارة الميدانية
+      let fieldVisitAssignedToUser = null;
+      if (request.fieldVisitAssignedTo) {
+        const assignedUserResult = await db.select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+        }).from(users).where(eq(users.id, request.fieldVisitAssignedTo)).limit(1);
+        fieldVisitAssignedToUser = assignedUserResult[0] || null;
+      }
+
+      // الحصول على بيانات المسؤول المعين حالياً للطلب (موظف الاستجابة السريعة)
+      let assignedToUser = null;
+      if (request.assignedTo) {
+        const assignedUserResult = await db.select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+        }).from(users).where(eq(users.id, request.assignedTo)).limit(1);
+        assignedToUser = assignedUserResult[0] || null;
+      }
+
       // الحصول على المرفقات
       const attachments = await db.select().from(requestAttachments).where(eq(requestAttachments.requestId, input.id));
 
@@ -322,6 +346,8 @@ export const requestsRouter = router({
         project,
         progressPercentage,
         isOwner,
+        fieldVisitAssignedToUser,
+        assignedToUser,
       };
     }),
 
@@ -384,7 +410,7 @@ export const requestsRouter = router({
       }
       if (input.status) {
         if (ctx.user.role === "field_team" && input.status === "completed") {
-          const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+          const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"] as const;
           conditions.push(
             or(
               eq(mosqueRequests.status, "completed"),
@@ -392,7 +418,7 @@ export const requestsRouter = router({
             )
           );
         } else if (ctx.user.role === "field_team" && input.status === "in_progress") {
-          const preStages = ["submitted", "initial_review", "field_visit"];
+          const preStages = ["submitted", "initial_review", "field_visit"] as const;
           conditions.push(
             and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, preStages))
           );

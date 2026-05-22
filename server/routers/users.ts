@@ -33,7 +33,7 @@ export const usersRouter = router({
       role: z.string().optional(),
       roles: z.array(z.string()).optional(),
       includeAll: z.boolean().default(false),
-    }).optional().default({}))
+    }).optional().default({ page: 1, limit: 20, includeAll: false }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");

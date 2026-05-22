@@ -513,6 +513,7 @@ export default function RequestDetailsNew() {
               }}
               fieldReportButton={
                 (user?.role as string) !== 'field_team' && hasFieldReport &&
+                !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                 !(isQuickResponse && (
                   (user?.role as string) !== 'quick_response' ||
                   (request.quickReports && request.quickReports.length > 0)
