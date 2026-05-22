@@ -204,9 +204,15 @@ export const storageRouter = router({
       const results = [];
 
       for (const file of input.files) {
-        // التحقق من نوع الملف
-        if (!ALLOWED_FILE_TYPES.all.includes(file.mimeType)) {
+        // التحقق من نوع الملف (MIME)
+        const isMimeAllowed = ALL_ALLOWED_TYPES.includes(file.mimeType) || file.mimeType === 'application/octet-stream';
+        if (!isMimeAllowed) {
           continue; // تخطي الملفات غير المسموحة
+        }
+
+        // التحقق من امتداد الملف (Security)
+        if (!isExtensionAllowed(file.fileName)) {
+          continue; // تخطي الملفات غير الآمنة
         }
 
         const fileBuffer = Buffer.from(file.fileData, 'base64');

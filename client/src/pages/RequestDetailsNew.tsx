@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -296,6 +296,8 @@ export default function RequestDetailsNew() {
   // تحديد ما إذا كان المستخدم مستفيداً
   const isRequester = user?.role === 'service_requester';
 
+  const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
+
   // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد
   let activeAction = isRequester ? null : getActiveAction(request.currentStage, user?.role, {
     assignedTo: request.assignedTo,
@@ -510,7 +512,8 @@ export default function RequestDetailsNew() {
                 percentage: progress,
               }}
               fieldReportButton={
-                (user?.role as string) !== 'field_team' && hasFieldReport
+                (user?.role as string) !== 'field_team' && hasFieldReport &&
+                !(isQuickResponse && (user?.role as string) !== 'quick_response')
                   ? {
                       label: 'عرض تقرير الزيارة الميدانية',
                       onClick: () => setFieldVisitReportOpen(true),
@@ -1232,6 +1235,88 @@ export default function RequestDetailsNew() {
                       </div>
                     </div>
                   )}
+
+                  {(() => {
+                    const sitePhotos = request?.attachments?.filter((att: any) => {
+                      const ext = att.fileName.split('.').pop()?.toLowerCase();
+                      const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '') ||
+                        att.fileType?.toLowerCase() === 'image' ||
+                        att.fileType?.toLowerCase().startsWith('image/') ||
+                        ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(att.fileType?.toLowerCase() || '');
+                      
+                      return isImg && att.fileUrl.includes('site_photo');
+                    }) || [];
+
+                    return (
+                      <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/50">
+                            <Camera className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
+                            الصور التوثيقية لحالة المسجد
+                          </span>
+                          <span className="text-xs text-slate-400 dark:text-slate-50 font-normal">
+                            ({sitePhotos.length} {sitePhotos.length === 1 ? "صورة" : "صور"})
+                          </span>
+                        </div>
+
+                        {sitePhotos.length > 0 ? (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {sitePhotos.map((photo: any, index: number) => (
+                              <div 
+                                key={photo.id || index} 
+                                className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-900/80 transition-all duration-300"
+                              >
+                                <img 
+                                  src={photo.fileUrl} 
+                                  alt={photo.fileName} 
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                {/* Elegant dark overlay on hover */}
+                                <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2.5 backdrop-blur-xs">
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="icon" 
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300"
+                                    onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                                    title="عرض الصورة"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="icon" 
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300 delay-75"
+                                    asChild
+                                    title="تنزيل الصورة"
+                                  >
+                                    <a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" download={photo.fileName}>
+                                      <Download className="w-4 h-4" />
+                                    </a>
+                                  </Button>
+                                </div>
+                                
+                                {/* Subtle bottom tag showing filename */}
+                                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent p-2 pt-6 transform translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+                                  <p className="text-[10px] text-white font-medium truncate text-right">
+                                    {photo.fileName}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 text-center flex flex-col items-center justify-center gap-2">
+                            <Camera className="w-8 h-8 text-slate-300 dark:text-slate-700" />
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">لم يتم رفع أي صور توثيقية لحالة المسجد مع هذا التقرير</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {teamMembers.length > 0 && (
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">

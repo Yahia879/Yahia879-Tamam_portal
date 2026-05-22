@@ -177,7 +177,6 @@ export default function FieldInspectionForm() {
   const createReport = trpc.requests.addFieldVisitReport.useMutation({
     onSuccess: () => {
       toast.success("تم حفظ تقرير المعاينة الميدانية بنجاح");
-      navigate(`/requests/${requestId}`);
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
@@ -257,6 +256,7 @@ export default function FieldInspectionForm() {
           toast.warning("تم حفظ التقرير ولكن فشل رفع بعض الصور");
         }
       }
+      navigate(`/requests/${requestId}`);
     } catch {
       // Error handled in onError
     }

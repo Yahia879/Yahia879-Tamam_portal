@@ -77,7 +77,6 @@ export default function QuickResponseReportForm() {
     onSuccess: async () => {
       await utils.requests.getById.invalidate({ id: requestId });
       toast.success("تم حفظ تقرير الاستجابة السريعة بنجاح");
-      navigate(`/requests/${requestId}`);
     },
     onError: (error: { message?: string }) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
@@ -141,6 +140,7 @@ export default function QuickResponseReportForm() {
           toast.warning("تم حفظ التقرير ولكن فشل رفع بعض الصور");
         }
       }
+      navigate(`/requests/${requestId}`);
     } catch {
       // Error handled in onError
     }
