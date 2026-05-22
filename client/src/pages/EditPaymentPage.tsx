@@ -93,12 +93,19 @@ export default function EditPaymentPage() {
   const paymentId = params.id || "";
   
   // بيانات النموذج
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    projectId: number;
+    contractId: number;
+    title: string;
+    description: string;
+    completionPercentage: number | "";
+    dateMiladi: string;
+  }>({
     projectId: 0,
     contractId: 0,
     title: "",
     description: "",
-    completionPercentage: 0,
+    completionPercentage: "",
     dateMiladi: "",
   });
   
@@ -150,7 +157,7 @@ export default function EditPaymentPage() {
         contractId: payment.contractId || 0,
         title: payment.title || "",
         description: payment.description || "",
-        completionPercentage: payment.completionPercentage || 0,
+        completionPercentage: payment.completionPercentage === 0 ? "" : (payment.completionPercentage || ""),
         dateMiladi: payment.dateMiladi || "",
       });
     }
@@ -252,7 +259,7 @@ export default function EditPaymentPage() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage <= 0) {
+    if (formData.completionPercentage === "" || formData.completionPercentage <= 0) {
       toast.error("يرجى إدخال نسبة الإنجاز");
       return;
     }
@@ -282,7 +289,7 @@ export default function EditPaymentPage() {
       description: formData.description,
       amount: totalAmount,
       dateMiladi: formData.dateMiladi,
-      completionPercentage: formData.completionPercentage,
+      completionPercentage: Number(formData.completionPercentage),
     });
   };
   
@@ -300,10 +307,10 @@ export default function EditPaymentPage() {
     <DashboardLayout>
       <div className="space-y-6" dir="rtl">
         {/* Header */}
-        <div className="flex items-center justify-between flex-row-reverse">
-          <div className="flex items-center gap-4 flex-row-reverse">
+        <div className="flex items-center justify-between flex-row">
+          <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(formData.projectId ? `/projects/${formData.projectId}` : "/disbursements")}>
-              <ArrowRight className="h-5 w-5 rotate-180" />
+              <ArrowRight className="h-5 w-5" />
             </Button>
             <div className="text-right">
               <h1 className="text-2xl font-bold text-right">تعديل الدفعة</h1>
@@ -417,7 +424,7 @@ export default function EditPaymentPage() {
                     max="100"
                     required
                     value={formData.completionPercentage}
-                    onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setFormData({ ...formData, completionPercentage: e.target.value === "" ? "" : parseInt(e.target.value) || 0 })}
                     className="text-right"
                   />
                 </div>

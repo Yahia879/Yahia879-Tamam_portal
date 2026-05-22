@@ -890,7 +890,7 @@ export const projectsRouter = router({
           contractId,
           contractPaymentId: cp.id,
           title: cp.phaseName || "",
-          description: cp.notes || cp.phaseName || "",
+          description: cp.notes || "",
           amount: parseFloat(cp.amount as string || "0"),
           dateMiladi: cp.dueDate ? new Date(cp.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           completionPercentage: 0,
