@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ActiveActionCardProps {
@@ -15,6 +15,12 @@ interface ActiveActionCardProps {
     disabled?: boolean;
   };
   secondaryButton?: {
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "destructive" | "outline" | "secondary";
+    disabled?: boolean;
+  };
+  fieldReportButton?: {
     label: string;
     onClick: () => void;
     variant?: "default" | "destructive" | "outline" | "secondary";
@@ -38,6 +44,7 @@ export function ActiveActionCard({
   iconColor = "text-primary",
   actionButton,
   secondaryButton,
+  fieldReportButton,
   additionalActions,
   progress,
 }: ActiveActionCardProps) {
@@ -114,6 +121,24 @@ export function ActiveActionCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.3 }}
           >
+            {fieldReportButton && (
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Button
+                  size="lg"
+                  variant={fieldReportButton.variant || "default"}
+                  onClick={fieldReportButton.onClick}
+                  disabled={fieldReportButton.disabled}
+                  className="w-full text-base sm:text-lg py-5 sm:py-6 flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-5 h-5 shrink-0" />
+                  {fieldReportButton.label}
+                </Button>
+              </motion.div>
+            )}
+
             {actionButton && (
               <motion.div
                 whileHover={{ scale: 1.01 }}

@@ -509,6 +509,14 @@ export default function RequestDetailsNew() {
                 total: workflow.length,
                 percentage: progress,
               }}
+              fieldReportButton={
+                (user?.role as string) !== 'field_team' && hasFieldReport
+                  ? {
+                      label: 'عرض تقرير الزيارة الميدانية',
+                      onClick: () => setFieldVisitReportOpen(true),
+                    }
+                  : undefined
+              }
               actionButton={
                 activeAction.canPerformAction && activeAction.actionButton && (
                   request.currentStage !== 'technical_eval' ||
@@ -765,214 +773,7 @@ export default function RequestDetailsNew() {
 
 
 
-        {/* تقرير المعاينة الميدانية */}
-        {request?.fieldReports && request.fieldReports.length > 0 && (
-          <div className="mt-6 space-y-6">
-            {request.fieldReports.map((report: any) => {
-              const conditionLabels: Record<string, string> = {
-                excellent: "ممتاز",
-                good: "جيد",
-                fair: "مقبول",
-                poor: "سيء",
-                critical: "حرج / إنشائي"
-              };
-              const conditionColors: Record<string, string> = {
-                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
-                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
-                fair: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-900",
-                poor: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900",
-                critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
-              };
 
-              // حساب مساحة الرجال والنساء
-              const menLength = parseFloat(report.menPrayerLength || "0");
-              const menWidth = parseFloat(report.menPrayerWidth || "0");
-              const menArea = menLength * menWidth;
-
-              const womenLength = parseFloat(report.womenPrayerLength || "0");
-              const womenWidth = parseFloat(report.womenPrayerWidth || "0");
-              const womenArea = womenLength * womenWidth;
-
-              // الحصول على أعضاء الفريق
-              const teamMembers = [
-                report.teamMember1,
-                report.teamMember2,
-                report.teamMember3,
-                report.teamMember4,
-                report.teamMember5
-              ].filter(Boolean);
-
-              const rating = report.beneficiaryInfoAccuracyRating;
-              const ratingNotes = report.beneficiaryInfoAccuracyNotes;
-
-              const ratingLabels: Record<number, string> = {
-                1: "غير صحيحة تماماً (البيانات مخالفة للواقع كلياً)",
-                2: "غير صحيحة غالباً (هناك اختلافات جوهرية كثيرة)",
-                3: "مقبولة / صحيحة جزئياً (تتطابق في بعض الجوانب دون أخرى)",
-                4: "صحيحة ودقيقة غالباً (تطابق شبه كامل مع اختلافات طفيفة)",
-                5: "صحيحة ودقيقة بالكامل (مطابقة تامة وموثوقة 100%)"
-              };
-
-              return (
-                <Card key={report.id} className="border-0 shadow-md overflow-hidden bg-white dark:bg-slate-900 border-r-4 border-r-indigo-600">
-                  <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center shrink-0">
-                          <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base sm:text-lg">تقرير المعاينة الميدانية الرسمي</h3>
-                          <p className="text-xs text-slate-500">تمت الزيارة في: {new Date(report.visitDate).toLocaleDateString('ar-SA')}</p>
-                        </div>
-                      </div>
-                      {report.conditionRating && (
-                        <div className={`px-3 py-1 rounded-full border text-xs font-bold ${conditionColors[report.conditionRating] || ''}`}>
-                          الحالة: {conditionLabels[report.conditionRating] || report.conditionRating}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-4 sm:p-6 space-y-6">
-                    {/* معلومات المساحة والقدرة الاستيعابية */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* مصلى الرجال */}
-                      {menArea > 0 && (
-                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
-                          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">أبعاد مصلى الرجال</h4>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
-                              {menArea.toLocaleString('ar-SA')} م²
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              ({menLength.toLocaleString('ar-SA')}م × {menWidth.toLocaleString('ar-SA')}م)
-                            </span>
-                          </div>
-                          {report.menPrayerHeight && (
-                            <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.menPrayerHeight).toLocaleString('ar-SA')}م</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* مصلى النساء */}
-                      {report.womenPrayerExists && (
-                        womenArea > 0 ? (
-                          <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
-                            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">أبعاد مصلى النساء</h4>
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
-                                {womenArea.toLocaleString('ar-SA')} م²
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                ({womenLength.toLocaleString('ar-SA')}م × {womenWidth.toLocaleString('ar-SA')}م)
-                              </span>
-                            </div>
-                            {report.womenPrayerHeight && (
-                              <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.womenPrayerHeight).toLocaleString('ar-SA')}م</p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10 flex items-center">
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">مصلى النساء</h4>
-                              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">موجود (لم تحدد الأبعاد)</p>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-
-                    {/* التوصيف والاحتياجات */}
-                    <div className="space-y-4">
-                      {report.generalDescription && (
-                        <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">التوصيف العام للحالة الميدانية</h4>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                            {report.generalDescription}
-                          </p>
-                        </div>
-                      )}
-
-                      {report.requiredNeeds && (
-                        <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">الاحتياجات والملاحظات المطلوبة</h4>
-                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                            {report.requiredNeeds}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* تقييم صحة معلومات المستفيد */}
-                    {rating !== undefined && rating !== null && (
-                      <div className="bg-gradient-to-br from-amber-500/[0.03] to-amber-600/[0.08] dark:from-amber-950/10 dark:to-amber-900/20 border border-amber-200/50 dark:border-amber-900/50 rounded-xl p-4 sm:p-5">
-                        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
-                                <Star className="w-4.5 h-4.5 text-amber-500 fill-amber-500" />
-                              </div>
-                              <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
-                                تقييم صحة ومطابقة معلومات المستفيد
-                              </h4>
-                            </div>
-                            
-                            <div className="flex items-center gap-1.5" style={{ direction: "ltr" }}>
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                                    star <= rating
-                                      ? "text-amber-500 fill-amber-400 drop-shadow-[0_0_5px_rgba(245,158,11,0.4)]"
-                                      : "text-slate-200 dark:text-slate-800"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                            
-                            <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-bold mt-1">
-                              {ratingLabels[rating] || `تقييم ${rating} من 5`}
-                            </p>
-                          </div>
-
-                          {ratingNotes ? (
-                            <div className="flex-1 w-full md:max-w-md bg-white/70 dark:bg-slate-900/60 p-3 sm:p-4 rounded-lg border border-amber-100/80 dark:border-amber-900/30">
-                              <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">
-                                ملاحظات المعاين حول صحة البيانات:
-                              </span>
-                              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                "{ratingNotes}"
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 italic">
-                              لا توجد ملاحظات إضافية حول التقييم.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* فريق المعاينة */}
-                    {teamMembers.length > 0 && (
-                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">فريق المعاينة الميدانية:</span>
-                        <div className="flex flex-wrap gap-2">
-                          {teamMembers.map((member, i) => (
-                            <span key={i} className="text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-slate-600 dark:text-slate-300 font-medium">
-                              {member}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
 
         {/* زر مراجعة المعلومات والمرفقات الجديد - يظهر للجميع */}
         <div className="mt-6">
