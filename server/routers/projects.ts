@@ -848,6 +848,8 @@ export const projectsRouter = router({
         return {
           id: input.id,
           projectId: disb.projectId,
+          contractId: disb.contractId || undefined,
+          contractPaymentId: disb.contractPaymentId || undefined,
           title: disb.title || disb.description || "",
           description: disb.description || "",
           amount: parseFloat(disb.amount as string || "0"),
@@ -860,7 +862,8 @@ export const projectsRouter = router({
         if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
         return {
           id: input.id,
-          projectId: payment.projectId,
+          projectId: payment.projectId || 0,
+          contractId: payment.contractId || undefined,
           title: payment.description || "",
           description: payment.description || "",
           amount: parseFloat(payment.amount as string || "0"),
@@ -871,11 +874,23 @@ export const projectsRouter = router({
         const actualId = parseInt(input.id.replace("cp-", ""));
         const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
         if (!cp) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+
+        let projectId = 0;
+        let contractId = cp.contractId;
+        if (contractId) {
+          const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, contractId));
+          if (contract) {
+            projectId = contract.projectId || 0;
+          }
+        }
+
         return {
           id: input.id,
-          projectId: 0, // Not directly available without joining contracts
+          projectId,
+          contractId,
+          contractPaymentId: cp.id,
           title: cp.phaseName || "",
-          description: cp.phaseName || "",
+          description: cp.notes || cp.phaseName || "",
           amount: parseFloat(cp.amount as string || "0"),
           dateMiladi: cp.dueDate ? new Date(cp.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           completionPercentage: 0,
@@ -916,6 +931,12 @@ export const projectsRouter = router({
         const actualId = parseInt(input.id.replace("cp-", ""));
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.phaseName = input.title;
+        if (input.dateMiladi !== undefined) {
+          updateValues.dueDate = new Date(input.dateMiladi);
+        }
+        if (input.description !== undefined) {
+          updateValues.notes = input.description;
+        }
         await db.update(contractPayments).set(updateValues).where(eq(contractPayments.id, actualId));
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
