@@ -53,6 +53,7 @@ export default function RequestDetailsNew() {
     },
   });
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [quickResponseReportOpen, setQuickResponseReportOpen] = useState(false);
   
   // States for technical evaluation
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
@@ -207,6 +208,12 @@ export default function RequestDetailsNew() {
       setBoqOpen(true);
       return;
     }
+
+    // إذا كان المطلوب فتح نافذة تقرير الاستجابة السريعة
+    if (activeAction.actionButton?.openModal === 'quick_response_report') {
+      setQuickResponseReportOpen(true);
+      return;
+    }
     
     // إذا كان الطلب في مرحلة التقييم المالي، تحقق من اعتماد عرض سعر قبل الانتقال للتعاقد
     if (request.currentStage === 'financial_eval_and_approval') {
@@ -287,6 +294,7 @@ export default function RequestDetailsNew() {
     assignedTo: request.assignedTo,
     userId: user?.id,
     requestTrack: request.requestTrack,
+    quickReports: request.quickReports,
   });
 
   // Override active action for contracting stage based on contract status
@@ -435,6 +443,19 @@ export default function RequestDetailsNew() {
           currentStep={request.currentStage}
           completedSteps={completedSteps}
         />
+
+        {/* زر عرض تقرير الاستجابة السريعة عند وجود تقرير (يظهر فقط للمستفيد لأن الإدارة يظهر لها مدمجاً في كارت الإجراء النشط) */}
+        {isRequester && request.quickReports && request.quickReports.length > 0 && (
+          <div className="flex justify-center w-full mb-6 mt-6">
+            <Button
+              onClick={() => setQuickResponseReportOpen(true)}
+              className="w-full max-w-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all"
+            >
+              <Zap className="w-5 h-5 text-white animate-bounce shrink-0" />
+              عرض تقرير الاستجابة السريعة
+            </Button>
+          </div>
+        )}
 
         {/* Active Action Card */}
         {activeAction && (
@@ -696,6 +717,92 @@ export default function RequestDetailsNew() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* تقرير الاستجابة السريعة المكتوب */}
+        {request?.requestTrack === "quick_response" && request.quickReports && request.quickReports.length > 0 && (
+          <div className="mt-6 space-y-6">
+            {request.quickReports.map((report: any) => {
+              const evaluationLabels: Record<string, string> = {
+                excellent: "ممتاز",
+                good: "جيد",
+                acceptable: "مقبول",
+                needs_improvement: "يحتاج تحسين",
+                poor: "ضعيف"
+              };
+              const evaluationColors: Record<string, string> = {
+                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                acceptable: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900",
+                needs_improvement: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
+                poor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+              };
+
+              return (
+                <Card key={report.id} className="border-0 shadow-md overflow-hidden bg-white dark:bg-slate-900 border-r-4 border-r-purple-600">
+                  <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center shrink-0">
+                          <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base sm:text-lg">تقرير الاستجابة السريعة المعتمد</h3>
+                          <p className="text-xs text-slate-500">تم تقديم التقرير في: {new Date(report.responseDate).toLocaleDateString('ar-SA')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {report.finalEvaluation && (
+                          <div className={`px-3 py-1 rounded-full border text-xs font-bold ${evaluationColors[report.finalEvaluation] || ''}`}>
+                            التقييم: {evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
+                          </div>
+                        )}
+                        <div className={`px-3 py-1 rounded-full border text-xs font-bold ${report.resolved ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                          {report.resolved ? 'تم حل المشكلة بالكامل' : 'قيد المتابعة'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-6 space-y-6 text-right" dir="rtl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                        <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">الفني المختص</h4>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{report.technicianName || "غير محدد"}</p>
+                      </div>
+                      
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                        <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">حالة المشروع المتكامل</h4>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                          {report.requiresProject ? "نعم، يحتاج إلى مشروع متكامل" : "لا يحتاج إلى مشروع متكامل"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {report.technicalEvaluation && (
+                        <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                          <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-2">التقييم الفني للأعمال المنفذة</h4>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                            {report.technicalEvaluation}
+                          </p>
+                        </div>
+                      )}
+
+                      {report.unexecutedWorks && (
+                        <div className="bg-red-50/30 dark:bg-red-950/10 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
+                          <h4 className="text-xs font-bold text-red-500 mb-2">الأعمال غير المنفذة / أسباب عدم التنفيذ</h4>
+                          <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
+                            {report.unexecutedWorks}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         )}
 
@@ -1103,6 +1210,91 @@ export default function RequestDetailsNew() {
           )}
         </div>
       </div>
+
+      {/* Quick Response Report Dialog */}
+      {request.quickReports && request.quickReports.length > 0 && (
+        <ColoredDialog
+          open={quickResponseReportOpen}
+          onOpenChange={setQuickResponseReportOpen}
+          title="تقرير الاستجابة السريعة المعتمد"
+          color="purple"
+          icon={<Zap className="w-6 h-6" />}
+        >
+          <div className="space-y-6">
+            {request.quickReports.map((report: any) => {
+              const evaluationLabels: Record<string, string> = {
+                excellent: "ممتاز",
+                good: "جيد",
+                acceptable: "مقبول",
+                needs_improvement: "يحتاج تحسين",
+                poor: "ضعيف"
+              };
+              const evaluationColors: Record<string, string> = {
+                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                acceptable: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900",
+                needs_improvement: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
+                poor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+              };
+
+              return (
+                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-purple-100 dark:border-purple-900/50 text-right" style={{ direction: "rtl" }}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h4 className="font-bold text-purple-950 dark:text-purple-100 text-base sm:text-lg">تفاصيل التقرير الفني</h4>
+                      <p className="text-xs text-slate-500">تم تقديم التقرير في: {new Date(report.responseDate).toLocaleDateString('ar-SA')}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {report.finalEvaluation && (
+                        <div className={`px-3 py-1 rounded-full border text-xs font-bold ${evaluationColors[report.finalEvaluation] || ''}`}>
+                          التقييم: {evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
+                        </div>
+                      )}
+                      <div className={`px-3 py-1 rounded-full border text-xs font-bold ${report.resolved ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                        {report.resolved ? 'تم حل المشكلة بالكامل' : 'قيد المتابعة'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">الفني المختص</span>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{report.technicianName || "غير محدد"}</p>
+                    </div>
+                    
+                    <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">حالة المشروع المتكامل</span>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {report.requiresProject ? "نعم، يحتاج إلى مشروع متكامل" : "لا يحتاج إلى مشروع متكامل"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {report.technicalEvaluation && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">التقييم الفني للأعمال المنفذة</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.technicalEvaluation}
+                        </p>
+                      </div>
+                    )}
+
+                    {report.unexecutedWorks && (
+                      <div className="bg-red-50/30 dark:bg-red-950/10 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
+                        <span className="text-xs font-bold text-red-500 block mb-2">الأعمال غير المنفذة / أسباب عدم التنفيذ</span>
+                        <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
+                          {report.unexecutedWorks}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ColoredDialog>
+      )}
 
       {/* Colored Dialogs */}
       <ColoredDialog

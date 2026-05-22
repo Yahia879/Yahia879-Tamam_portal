@@ -21,6 +21,7 @@ export function getActiveAction(
     assignedTo?: number | null;
     userId?: number;
     requestTrack?: string | null;
+    quickReports?: any[];
   }
 ): ActiveAction | null {
   const config = ACTION_CONFIGS[currentStage as keyof typeof ACTION_CONFIGS];
@@ -43,23 +44,58 @@ export function getActiveAction(
   let actionButton = 'actionButton' in config ? config.actionButton : undefined;
   let allowedRoles = config.allowedRoles;
 
+  const hasReport = requestData?.quickReports && requestData.quickReports.length > 0;
+
   // تخصيص مرحلة التنفيذ لمسار الاستجابة السريعة
   if (currentStage === 'execution' && requestData?.requestTrack === 'quick_response') {
-    title = "تقديم تقرير الاستجابة السريعة";
-    description = "تم تحويل هذا الطلب لمسار الاستجابة السريعة وهو قيد المتابعة والزيارة من قبل الشخص المسؤول. يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.";
-    icon = "Zap";
-    iconColor = "text-purple-600";
+    if (hasReport) {
+      title = "تم تقديم تقرير الاستجابة السريعة";
+      description = "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.";
+      icon = "Zap";
+      iconColor = "text-purple-600";
+      actionButton = {
+        label: "عرض تقرير الاستجابة السريعة",
+        openModal: "quick_response_report",
+      };
+      
+      const allowedQRRoles = ["quick_response", "super_admin", "system_admin", "projects_office"];
+      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole));
+      isAssignedToUser = true;
+      allowedRoles = allowedQRRoles;
+    } else {
+      title = "تقديم تقرير الاستجابة السريعة";
+      description = "تم تحويل هذا الطلب لمسار الاستجابة السريعة وهو قيد المتابعة والزيارة من قبل الشخص المسؤول. يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.";
+      icon = "Zap";
+      iconColor = "text-purple-600";
+      actionButton = {
+        label: "رفع تقرير الاستجابة السريعة",
+        redirectUrl: "/requests/:requestId/quick-response",
+      };
+      
+      // الأدوار المسموح لها برفع التقرير في الاستجابة السريعة
+      const allowedQRRoles = ["quick_response"];
+      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole));
+      
+      // يجب أن يكون المستخدم هو المسؤول المسند إليه الطلب
+      isAssignedToUser = Boolean(requestData && requestData.assignedTo === requestData.userId);
+      allowedRoles = allowedQRRoles;
+    }
+  }
+
+  // تخصيص لمسار الاستجابة السريعة في حالة الإغلاق مع وجود تقرير
+  if (currentStage === 'closed' && requestData?.requestTrack === 'quick_response' && hasReport) {
+    title = "تم تقديم تقرير الاستجابة السريعة";
+    description = "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح وإغلاق الطلب. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.";
+    icon = "CheckCircle";
+    iconColor = "text-green-600";
     actionButton = {
-      label: "رفع تقرير الاستجابة السريعة",
-      redirectUrl: "/requests/:requestId/quick-response",
+      label: "عرض تقرير الاستجابة السريعة",
+      openModal: "quick_response_report",
     };
     
-    // الأدوار المسموح لها برفع التقرير في الاستجابة السريعة
-    const allowedQRRoles = ["quick_response"];
+    const allowedQRRoles = ["quick_response", "super_admin", "system_admin", "projects_office"];
     hasRole = Boolean(userRole && allowedQRRoles.includes(userRole));
-    
-    // يجب أن يكون المستخدم هو المسؤول المسند إليه الطلب
-    isAssignedToUser = Boolean(requestData && requestData.assignedTo === requestData.userId);
+    isAssignedToUser = true;
     allowedRoles = allowedQRRoles;
   }
 

@@ -39,6 +39,7 @@ export default function QuickResponseReportForm() {
   const params = useParams<{ requestId: string }>();
   const requestId = parseInt(params.requestId || "0");
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const utils = trpc.useUtils();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -73,7 +74,8 @@ export default function QuickResponseReportForm() {
 
   // mutation لإنشاء تقرير الاستجابة السريعة
   const createReport = trpc.requests.addQuickResponseReport.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
+      await utils.requests.getById.invalidate({ id: requestId });
       toast.success("تم حفظ تقرير الاستجابة السريعة بنجاح");
       navigate(`/requests/${requestId}`);
     },

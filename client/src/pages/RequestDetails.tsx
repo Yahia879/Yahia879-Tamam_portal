@@ -12,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { 
   ArrowRight, 
@@ -1317,8 +1318,58 @@ export default function RequestDetails() {
                 {/* زر تقرير الاستجابة السريعة - يظهر فقط في مسار الاستجابة السريعة */}
                 {(user?.role === "quick_response" || user?.role === "super_admin" || user?.role === "system_admin" || user?.role === "projects_office" || user?.role === "field_team") && (
                   <>
-                    {/* يظهر فقط إذا كان الطلب في مسار الاستجابة السريعة وفي مرحلة التنفيذ */}
-                    {request.requestTrack === "quick_response" && request.currentStage === "execution" && (
+                    {/* عرض التقرير إذا تم إنشاؤه مسبقاً (بغض النظر عن المرحلة الحالية) */}
+                    {request.requestTrack === "quick_response" && request.quickReports && request.quickReports.length > 0 && (
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800" 
+                          >
+                            <Eye className="w-4 h-4 ml-2" />
+                            عرض تقرير الاستجابة السريعة
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle className="text-xl font-bold text-orange-800 text-right">تقرير الاستجابة السريعة</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 mt-4 text-right" dir="rtl">
+                            {request.quickReports.map((report: any) => (
+                              <div key={report.id} className="border p-5 rounded-lg bg-orange-50/50 shadow-sm">
+                                <h3 className="font-bold mb-4 text-orange-700 border-b pb-2">تفاصيل التقرير</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                  <div className="bg-white p-3 rounded border shadow-sm">
+                                    <span className="font-semibold text-gray-500 block mb-1">الفني المختص</span>
+                                    <p className="font-medium">{report.technicianName || "غير محدد"}</p>
+                                  </div>
+                                  <div className="bg-white p-3 rounded border shadow-sm">
+                                    <span className="font-semibold text-gray-500 block mb-1">تاريخ التقرير</span>
+                                    <p className="font-medium">{new Date(report.responseDate).toLocaleDateString("ar-SA")}</p>
+                                  </div>
+                                  <div className="md:col-span-2 bg-white p-3 rounded border shadow-sm">
+                                    <span className="font-semibold text-gray-500 block mb-1">التقييم الفني</span>
+                                    <p className="whitespace-pre-wrap leading-relaxed">{report.technicalEvaluation || report.issueDescription}</p>
+                                  </div>
+                                  <div className="md:col-span-2 bg-white p-3 rounded border shadow-sm">
+                                    <span className="font-semibold text-gray-500 block mb-1">التقييم النهائي للأعمال</span>
+                                    <p className="whitespace-pre-wrap leading-relaxed">{report.finalEvaluation || report.actionsTaken}</p>
+                                  </div>
+                                  {report.unexecutedWorks && (
+                                    <div className="md:col-span-2 bg-white p-3 rounded border border-red-100 shadow-sm">
+                                      <span className="font-semibold text-red-500 block mb-1">أعمال لم يتم تنفيذها</span>
+                                      <p className="whitespace-pre-wrap leading-relaxed text-red-900">{report.unexecutedWorks}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+
+                    {/* زر إنشاء التقرير - فقط في مرحلة التنفيذ وبدون تقرير */}
+                    {request.requestTrack === "quick_response" && request.currentStage === "execution" && (!request.quickReports || request.quickReports.length === 0) && (
                       <Button 
                         className="w-full bg-orange-600 hover:bg-orange-700 text-white" 
                         onClick={() => navigate(`/requests/${requestId}/quick-response`)}
@@ -1327,8 +1378,9 @@ export default function RequestDetails() {
                         إنشاء تقرير الاستجابة السريعة
                       </Button>
                     )}
-                    {/* رسالة توضيحية إذا كان الطلب في مسار الاستجابة السريعة ولكن ليس في مرحلة التنفيذ */}
-                    {request.requestTrack === "quick_response" && request.currentStage !== "execution" && request.currentStage !== "closed" && (
+
+                    {/* رسالة توضيحية - ليس في مرحلة التنفيذ وبدون تقرير */}
+                    {request.requestTrack === "quick_response" && request.currentStage !== "execution" && request.currentStage !== "closed" && (!request.quickReports || request.quickReports.length === 0) && (
                       <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
                         <p className="text-sm text-orange-700 flex items-center gap-2">
                           <Zap className="w-4 h-4" />
