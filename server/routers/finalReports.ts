@@ -146,11 +146,13 @@ export const finalReportsRouter = router({
       }
 
       // جلب بيانات المُعِد
-      const preparedByResult = await db.select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-      }).from(users).where(eq(users.id, report.preparedBy)).limit(1);
+      const preparedByResult = report.preparedBy
+        ? await db.select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+          }).from(users).where(eq(users.id, report.preparedBy)).limit(1)
+        : [];
       const preparedBy = preparedByResult[0] || null;
 
       return { report, request, mosque, project, preparedBy };

@@ -81,8 +81,6 @@ export default function Projects() {
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     page,
     limit,
-  }, {
-    keepPreviousData: true
   });
 
   const projectsList = data?.projects || [];

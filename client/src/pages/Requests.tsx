@@ -106,8 +106,6 @@ export default function Requests({
     assignedTo: initialAssignedToMe ? user?.id : undefined,
     page,
     limit,
-  }, {
-    keepPreviousData: true
   });
 
   const requests = requestsData?.requests || [];

@@ -645,7 +645,7 @@ export default function SuppliersManagement() {
                 </PermissionGuard>
                 <PermissionGuard permission="suppliers.approve">
                   <Button
-                    onClick={handleApprove}
+                    onClick={() => handleApprove()}
                     disabled={approveMutation.isPending}
                     className="bg-green-600 hover:bg-green-700"
                   >

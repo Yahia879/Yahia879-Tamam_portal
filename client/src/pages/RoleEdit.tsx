@@ -6,7 +6,7 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Checkbox } from "../components/ui/checkbox";
-import { Shield, Save, ArrowRight, CheckSquare, Square, Mosque, FileText, Users, Settings } from "lucide-react";
+import { Shield, Save, ArrowRight, CheckSquare, Square, FileText, Users, Settings } from "lucide-react";
 import { toast } from "sonner";
 import DashboardLayout from "../components/DashboardLayout";
 

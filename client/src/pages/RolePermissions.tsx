@@ -887,7 +887,7 @@ export default function RolePermissions() {
                         </CardHeader>
                         <CardContent className="p-6">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {modulePerms.map((perm) => (
+                            {modulePerms.map((perm: any) => (
                               <div 
                                 key={perm.id} 
                                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-green-100 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 transition-all hover:bg-green-50/60"

@@ -357,6 +357,8 @@ export const projectsRouter = router({
           paidAt: d.status === "paid" ? d.updatedAt : null,
           source: "disbursement",
           contractPaymentId: d.contractPaymentId,
+          workDescription: d.description,
+          completionPercentage: d.completionPercentage,
         });
       });
 
@@ -374,6 +376,8 @@ export const projectsRouter = router({
             date: cp.dueDate || cp.createdAt,
             paidAt: cp.paidAt,
             source: "contract",
+            workDescription: cp.notes,
+            completionPercentage: cp.completionPercentage || 0,
           });
         }
       });
@@ -393,6 +397,8 @@ export const projectsRouter = router({
           date: p.createdAt,
           paidAt: p.paidAt,
           source: "manual",
+          workDescription: p.description,
+          completionPercentage: 0,
         });
       });
 
@@ -893,7 +899,7 @@ export const projectsRouter = router({
           description: cp.notes || "",
           amount: parseFloat(cp.amount as string || "0"),
           dateMiladi: cp.dueDate ? new Date(cp.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          completionPercentage: 0,
+          completionPercentage: cp.completionPercentage || 0,
         };
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
@@ -936,6 +942,9 @@ export const projectsRouter = router({
         }
         if (input.description !== undefined) {
           updateValues.notes = input.description;
+        }
+        if (input.completionPercentage !== undefined) {
+          updateValues.completionPercentage = input.completionPercentage;
         }
         await db.update(contractPayments).set(updateValues).where(eq(contractPayments.id, actualId));
       } else {

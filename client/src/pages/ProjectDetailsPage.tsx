@@ -33,12 +33,14 @@ import {
   Check,
   Loader2,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -1142,6 +1144,15 @@ export default function ProjectDetailsPage() {
                   </div>
                 ) : project.payments && project.payments.length > 0 ? (
                   <>
+                    {project.payments.some(payment => payment.source !== "manual" && (!payment.workDescription || !payment.completionPercentage)) && (
+                      <Alert className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6 text-right">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                        <AlertTitle className="font-bold text-amber-800 dark:text-amber-400">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
+                        <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
+                          بعض الدفعات المضافة تفتقر إلى "وصف الأعمال التي سوف تنفذ" أو "نسبة الإنجاز". يرجى استكمال هذه البيانات من خلال الضغط على أيقونة التعديل (📝) بجانب الدفعة المعنية لتجنب أي عوائق في مسار الاعتماد المالي.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <Table>
                     <TableHeader>
                       <TableRow>
@@ -1157,7 +1168,27 @@ export default function ProjectDetailsPage() {
                       {project.payments.map((payment) => (
                         <TableRow key={payment.id}>
                           <TableCell className="font-medium text-right">{payment.paymentNumber}</TableCell>
-                          <TableCell className="text-right">{payment.description || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex flex-col text-right">
+                              <span className="font-semibold text-foreground">{payment.description || "-"}</span>
+                              {payment.source !== "manual" && (!payment.workDescription || !payment.completionPercentage) && (
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                                  <span>بيانات غير مكتملة:</span>
+                                  {!payment.workDescription && (
+                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
+                                      الوصف ناقص
+                                    </span>
+                                  )}
+                                  {!payment.completionPercentage && (
+                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
+                                      نسبة الإنجاز ناقصة
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right">{formatCurrency(payment.amount)}</TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline" className={

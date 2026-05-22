@@ -89,6 +89,7 @@ export default function EditPaymentPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const params = useParams<{ id?: string }>();
+  const utils = trpc.useUtils();
   
   const paymentId = params.id || "";
   
@@ -231,6 +232,7 @@ export default function EditPaymentPage() {
     onSuccess: () => {
       toast.success("تم تحديث الدفعة بنجاح");
       if (formData.projectId) {
+        utils.projects.getById.invalidate({ id: formData.projectId });
         navigate(`/projects/${formData.projectId}`);
       } else {
         navigate("/disbursements");

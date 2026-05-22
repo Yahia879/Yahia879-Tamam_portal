@@ -368,7 +368,7 @@ export default function Reports() {
                         <TableCell>{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</TableCell>
                         <TableCell>{STAGE_LABELS[request.currentStage as keyof typeof STAGE_LABELS]}</TableCell>
                         <TableCell>
-                          <Badge variant={request.status === "completed" ? "success" : request.status === "rejected" ? "destructive" : "secondary"}>
+                          <Badge variant={request.status === "completed" ? "default" : request.status === "rejected" ? "destructive" : "secondary"} className={request.status === "completed" ? "bg-green-600" : ""}>
                             {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS]}
                           </Badge>
                         </TableCell>

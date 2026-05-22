@@ -985,6 +985,7 @@ export const contractPayments = mysqlTable("contract_payments", {
   paidAt: datetime("paidAt"),
   paidBy: int("paidBy").references(() => users.id, { onDelete: "set null" }),
   notes: text("notes"),
+  completionPercentage: int("completionPercentage"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
