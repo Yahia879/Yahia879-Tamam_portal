@@ -523,7 +523,7 @@ export default function RequestDetailsNew() {
                   : undefined
               }
               secondaryButton={
-                request.currentStage === 'boq_preparation' && activeAction.canPerformAction
+                request.currentStage === 'boq_preparation' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
                   ? {
                       label: "الانتقال إلى التقييم المالي",
                       onClick: () => {
@@ -536,7 +536,7 @@ export default function RequestDetailsNew() {
                       variant: 'default' as const,
                       disabled: !hasBoqItems || updateStageMutation.isPending,
                     }
-                : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction
+                : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
                   ? {
                       label: "إدارة عروض الأسعار",
                       onClick: () => setLocation('/quotations'),
@@ -677,7 +677,7 @@ export default function RequestDetailsNew() {
             )}
             
             {/* خيارات التقييم الفني */}
-            {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (
+            {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {/* التحويل إلى مشروع */}
                 <button 
