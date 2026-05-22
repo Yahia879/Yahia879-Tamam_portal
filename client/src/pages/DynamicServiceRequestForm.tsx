@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
+import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { 
   getAllFieldsForProgram,
@@ -51,6 +52,7 @@ const STEPS: { key: Step; label: string; order: number }[] = [
 
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('service-selection');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -258,7 +260,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       }
 
       alert('تم إرسال الطلب بنجاح');
-      navigate('/my-requests');
+      navigate(user?.role === 'service_requester' ? '/my-requests' : '/requests');
     } catch (error: any) {
       alert(error?.message || 'حدث خطأ أثناء إرسال الطلب');
     }
