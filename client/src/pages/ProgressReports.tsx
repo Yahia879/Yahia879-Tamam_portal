@@ -102,6 +102,17 @@ export default function ProgressReports() {
   const statsData = { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
   const { data: projectsData } = trpc.projects.getAll.useQuery({});
 
+  // جلب تفاصيل المشروع المحدد للتحقق من جدولة الدفعات
+  const { data: projectDetails, isLoading: isProjectDetailsLoading } = trpc.projects.getById.useQuery(
+    { id: newReport.projectId },
+    { enabled: newReport.projectId > 0 }
+  );
+
+  const totalContractAmount = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const totalScheduledPayments = projectDetails?.payments?.filter((p: any) => p.source === "contract" || (p.source === "disbursement" && p.contractPaymentId)).reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
+
+  const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || Math.abs(totalContractAmount - totalScheduledPayments) > 0.01);
+
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
     onSuccess: (data) => {
@@ -160,6 +171,10 @@ export default function ProgressReports() {
   const handleCreateReport = () => {
     if (!newReport.projectId) {
       toast.error("يرجى اختيار المشروع");
+      return;
+    }
+    if (hasIncompleteSchedule) {
+      toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
       return;
     }
     if (!newReport.title.trim()) {
@@ -443,6 +458,25 @@ export default function ProgressReports() {
                     />
                   </div>
                 </div>
+
+                {hasIncompleteSchedule && (
+                  <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 col-span-2">
+                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1.5 flex-1">
+                      <h4 className="font-bold text-amber-900 dark:text-amber-400 text-sm">
+                        لا يمكن صرف تقرير إنجاز للمشروع
+                      </h4>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                        لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع. يرجى الذهاب إلى تفاصيل المشروع وجدولة جميع الدفعات لتتساوى مع كامل قيمة العقد لتجنب أي عوائق.
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-xs font-semibold text-amber-900 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/40 w-fit">
+                        <span>قيمة العقد: <span className="font-bold">{totalContractAmount.toLocaleString()} ريال</span></span>
+                        <span className="w-1 h-1 bg-amber-400 rounded-full"></span>
+                        <span>الدفعات المجدولة: <span className="font-bold">{totalScheduledPayments.toLocaleString()} ريال</span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
                   <Label>عنوان التقرير <span className="text-red-500">*</span></Label>
@@ -630,7 +664,7 @@ export default function ProgressReports() {
               <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                 إلغاء
               </Button>
-              <Button onClick={handleCreateReport} disabled={createMutation.isPending}>
+              <Button onClick={handleCreateReport} disabled={createMutation.isPending || hasIncompleteSchedule}>
                 {createMutation.isPending ? "جاري الإنشاء..." : "إنشاء التقرير"}
               </Button>
             </DialogFooter>
