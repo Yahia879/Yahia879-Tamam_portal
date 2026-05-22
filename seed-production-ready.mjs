@@ -200,6 +200,76 @@ async function seed() {
       });
     }
 
+    // 6.1 البنوك
+    console.log("🏦 حقن البنوك الأساسية...");
+    const bankCategory = {
+      name: "Banks",
+      nameAr: "البنوك",
+      type: "banks",
+      isActive: true
+    };
+    
+    await db.insert(schema.categories).values(bankCategory).onDuplicateKeyUpdate({
+      set: { isActive: true }
+    });
+    
+    const bankCategoryResult = await db.select().from(schema.categories).where(sql`${schema.categories.type} = 'banks'`).limit(1);
+    const bankCategoryId = bankCategoryResult[0].id;
+
+    const banksList = [
+      { categoryId: bankCategoryId, value: "Al Ahli Bank", valueAr: "البنك الأهلي السعودي", isActive: true },
+      { categoryId: bankCategoryId, value: "Al Rajhi Bank", valueAr: "مصرف الراجحي", isActive: true },
+      { categoryId: bankCategoryId, value: "Riyad Bank", valueAr: "بنك الرياض", isActive: true },
+      { categoryId: bankCategoryId, value: "Banque Saudi Fransi", valueAr: "البنك السعودي الفرنسي", isActive: true },
+      { categoryId: bankCategoryId, value: "SABB", valueAr: "البنك السعودي البريطاني (ساب)", isActive: true },
+      { categoryId: bankCategoryId, value: "Bank Albilad", valueAr: "بنك البلاد", isActive: true },
+      { categoryId: bankCategoryId, value: "Bank AlJazira", valueAr: "بنك الجزيرة", isActive: true },
+      { categoryId: bankCategoryId, value: "Arab National Bank", valueAr: "البنك العربي الوطني", isActive: true },
+      { categoryId: bankCategoryId, value: "Alinma Bank", valueAr: "بنك الإنماء", isActive: true },
+      { categoryId: bankCategoryId, value: "Alinma Bank (Masraf)", valueAr: "مصرف الإنماء", isActive: true },
+      { categoryId: bankCategoryId, value: "Gulf International Bank", valueAr: "بنك الخليج الدولي", isActive: true },
+      { categoryId: bankCategoryId, value: "The Saudi Investment Bank", valueAr: "بنك الاستثمار السعودي", isActive: true }
+    ];
+
+    for (const bank of banksList) {
+      await db.insert(schema.categoryValues).values(bank).onDuplicateKeyUpdate({
+        set: { isActive: true }
+      });
+    }
+
+    // 6.2 تصنيفات جداول الكميات
+    console.log("📋 حقن تصنيفات جداول الكميات الأساسية...");
+    const boqCat = {
+      name: "BOQ Categories",
+      nameAr: "تصنيفات جداول الكميات",
+      type: "boq_category",
+      isActive: true
+    };
+    
+    await db.insert(schema.categories).values(boqCat).onDuplicateKeyUpdate({
+      set: { isActive: true }
+    });
+    
+    const boqCategoryResult = await db.select().from(schema.categories).where(sql`${schema.categories.type} = 'boq_category'`).limit(1);
+    const boqCategoryId = boqCategoryResult[0].id;
+
+    const boqCategoriesList = [
+      { categoryId: boqCategoryId, value: "Construction Works", valueAr: "أعمال إنشائية", isActive: true },
+      { categoryId: boqCategoryId, value: "Electrical Works", valueAr: "أعمال كهربائية", isActive: true },
+      { categoryId: boqCategoryId, value: "Plumbing Works", valueAr: "أعمال سباكة", isActive: true },
+      { categoryId: boqCategoryId, value: "HVAC", valueAr: "تكييف وتبريد", isActive: true },
+      { categoryId: boqCategoryId, value: "Finishing Works", valueAr: "تشطيبات", isActive: true },
+      { categoryId: boqCategoryId, value: "Carpentry Works", valueAr: "نجارة", isActive: true },
+      { categoryId: boqCategoryId, value: "Painting Works", valueAr: "دهانات", isActive: true },
+      { categoryId: boqCategoryId, value: "Flooring Works", valueAr: "أرضيات", isActive: true }
+    ];
+
+    for (const boq of boqCategoriesList) {
+      await db.insert(schema.categoryValues).values(boq).onDuplicateKeyUpdate({
+        set: { isActive: true }
+      });
+    }
+
     // 7. قوالب العقود
     console.log("📜 حقن قوالب العقود...");
     const templates = [
