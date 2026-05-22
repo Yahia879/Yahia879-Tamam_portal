@@ -1065,7 +1065,7 @@ export default function RequestDetailsNew() {
           color="indigo"
           icon={<FileText className="w-6 h-6" />}
         >
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto px-1">
+          <div className="space-y-6 px-1">
             {request.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
                 excellent: "ممتاز",
