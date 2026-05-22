@@ -54,6 +54,7 @@ export default function RequestDetailsNew() {
   });
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [quickResponseReportOpen, setQuickResponseReportOpen] = useState(false);
+  const [fieldVisitReportOpen, setFieldVisitReportOpen] = useState(false);
   
   // States for technical evaluation
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
@@ -214,6 +215,12 @@ export default function RequestDetailsNew() {
       setQuickResponseReportOpen(true);
       return;
     }
+
+    // إذا كان المطلوب فتح نافذة تقرير الزيارة الميدانية
+    if (activeAction.actionButton?.openModal === 'field_visit_report') {
+      setFieldVisitReportOpen(true);
+      return;
+    }
     
     // إذا كان الطلب في مرحلة التقييم المالي، تحقق من اعتماد عرض سعر قبل الانتقال للتعاقد
     if (request.currentStage === 'financial_eval_and_approval') {
@@ -340,7 +347,7 @@ export default function RequestDetailsNew() {
           label: 'جدولة الزيارة الميدانية',
           redirectUrl: '/field-visits/schedule/:requestId',
         },
-        canPerformAction: user?.role !== 'field_team',
+        canPerformAction: (user?.role as string) !== 'field_team',
       };
     } else if (!fieldVisit?.reportSubmitted) {
       // تم الجدولة، الآن يجب رفع التقرير
@@ -352,20 +359,52 @@ export default function RequestDetailsNew() {
           label: 'رفع التقرير',
           redirectUrl: '/field-visits/report/:requestId',
         },
-        canPerformAction: user?.role === 'field_team',
+        canPerformAction: (user?.role as string) === 'field_team',
       };
     } else {
-      // تم إكمال جميع الإجراءات، يمكن الانتقال للمرحلة التالية
-      activeAction = {
-        ...activeAction,
-        title: 'الانتقال للمرحلة التالية',
-        description: 'تم إكمال جميع إجراءات الزيارة الميدانية',
-        actionButton: {
-          label: 'الانتقال للتقييم الفني',
-          redirectUrl: undefined, // سيستخدم handleStageTransition الافتراضي
-        },
-      };
+      if ((user?.role as string) === 'field_team') {
+        activeAction = {
+          ...activeAction,
+          title: 'تم تقديم تقرير الزيارة الميدانية',
+          description: 'تم تقديم ورفع تقرير الزيارة الميدانية بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.',
+          actionButton: {
+            label: 'عرض تقرير الزيارة الميدانية',
+            openModal: 'field_visit_report',
+          },
+          canPerformAction: true,
+        };
+      } else {
+        // تم إكمال جميع الإجراءات، يمكن الانتقال للمرحلة التالية
+        activeAction = {
+          ...activeAction,
+          title: 'الانتقال للمرحلة التالية',
+          description: 'تم إكمال جميع إجراءات الزيارة الميدانية',
+          actionButton: {
+            label: 'الانتقال للتقييم الفني',
+            redirectUrl: undefined, // سيستخدم handleStageTransition الافتراضي
+          },
+          canPerformAction: (user?.role as string) !== 'field_team',
+        };
+      }
     }
+  }
+
+  // Override active action for field_team if they have submitted the report (regardless of currentStage)
+  const hasFieldReport = request?.fieldReports && request.fieldReports.length > 0;
+  if ((user?.role as string) === 'field_team' && (hasFieldReport || fieldVisit?.reportSubmitted)) {
+    activeAction = {
+      stage: request.currentStage,
+      title: 'تم تقديم تقرير الزيارة الميدانية',
+      description: 'تم تقديم ورفع تقرير الزيارة الميدانية بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.',
+      icon: 'FileText',
+      iconColor: 'text-indigo-600',
+      actionButton: {
+        label: 'عرض تقرير الزيارة الميدانية',
+        openModal: 'field_visit_report',
+      },
+      allowedRoles: ['field_team'],
+      canPerformAction: true,
+    };
   }
 
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
@@ -471,7 +510,11 @@ export default function RequestDetailsNew() {
                 percentage: progress,
               }}
               actionButton={
-                activeAction.canPerformAction && activeAction.actionButton && request.currentStage !== 'technical_eval'
+                activeAction.canPerformAction && activeAction.actionButton && (
+                  request.currentStage !== 'technical_eval' ||
+                  activeAction.actionButton.openModal === 'field_visit_report' ||
+                  activeAction.actionButton.openModal === 'quick_response_report'
+                )
                   ? {
                       label: activeAction.actionButton.label,
                       onClick: handleStageTransition,
@@ -1205,6 +1248,202 @@ export default function RequestDetailsNew() {
                       </div>
                     )}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        </ColoredDialog>
+      )}
+
+      {/* Field Visit Report Dialog */}
+      {request?.fieldReports && request.fieldReports.length > 0 && (
+        <ColoredDialog
+          open={fieldVisitReportOpen}
+          onOpenChange={setFieldVisitReportOpen}
+          title="تقرير المعاينة الميدانية الرسمي"
+          color="indigo"
+          icon={<FileText className="w-6 h-6" />}
+        >
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto px-1">
+            {request.fieldReports.map((report: any) => {
+              const conditionLabels: Record<string, string> = {
+                excellent: "ممتاز",
+                good: "جيد",
+                fair: "مقبول",
+                poor: "سيء",
+                critical: "حرج / إنشائي"
+              };
+              const conditionColors: Record<string, string> = {
+                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                fair: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-900",
+                poor: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900",
+                critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+              };
+
+              const menLength = parseFloat(report.menPrayerLength || "0");
+              const menWidth = parseFloat(report.menPrayerWidth || "0");
+              const menArea = menLength * menWidth;
+
+              const womenLength = parseFloat(report.womenPrayerLength || "0");
+              const womenWidth = parseFloat(report.womenPrayerWidth || "0");
+              const womenArea = womenLength * womenWidth;
+
+              const teamMembers = [
+                report.teamMember1,
+                report.teamMember2,
+                report.teamMember3,
+                report.teamMember4,
+                report.teamMember5
+              ].filter(Boolean);
+
+              const rating = report.beneficiaryInfoAccuracyRating;
+              const ratingNotes = report.beneficiaryInfoAccuracyNotes;
+
+              const ratingLabels: Record<number, string> = {
+                1: "غير صحيحة تماماً (البيانات مخالفة للواقع كلياً)",
+                2: "غير صحيحة غالباً (هناك اختلافات جوهرية كثيرة)",
+                3: "مقبولة / صحيحة جزئياً (تتطابق في بعض الجوانب دون أخرى)",
+                4: "صحيحة ودقيقة غالباً (تطابق شبه كامل مع اختلافات طفيفة)",
+                5: "صحيحة ودقيقة بالكامل (مطابقة تامة وموثوقة 100%)"
+              };
+
+              return (
+                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50 text-right" style={{ direction: "rtl" }}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h4 className="font-bold text-indigo-950 dark:text-indigo-100 text-base sm:text-lg">تفاصيل التقرير الميداني</h4>
+                      <p className="text-xs text-slate-500">تمت الزيارة في: {new Date(report.visitDate).toLocaleDateString('ar-SA')}</p>
+                    </div>
+                    {report.conditionRating && (
+                      <div className={`px-3 py-1 rounded-full border text-xs font-bold ${conditionColors[report.conditionRating] || ''}`}>
+                        الحالة: {conditionLabels[report.conditionRating] || report.conditionRating}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {menArea > 0 && (
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">أبعاد مصلى الرجال</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
+                            {menArea.toLocaleString('ar-SA')} م²
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            ({menLength.toLocaleString('ar-SA')}م × {menWidth.toLocaleString('ar-SA')}م)
+                          </span>
+                        </div>
+                        {report.menPrayerHeight && (
+                          <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.menPrayerHeight).toLocaleString('ar-SA')}م</p>
+                        )}
+                      </div>
+                    )}
+
+                    {report.womenPrayerExists && (
+                      womenArea > 0 ? (
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">أبعاد مصلى النساء</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
+                              {womenArea.toLocaleString('ar-SA')} م²
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              ({womenLength.toLocaleString('ar-SA')}م × {womenWidth.toLocaleString('ar-SA')}م)
+                            </span>
+                          </div>
+                          {report.womenPrayerHeight && (
+                            <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.womenPrayerHeight).toLocaleString('ar-SA')}م</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10 flex items-center">
+                          <div>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">مصلى النساء</span>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">موجود (لم تحدد الأبعاد)</p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    {report.generalDescription && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">التوصيف العام للحالة الميدانية</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.generalDescription}
+                        </p>
+                      </div>
+                    )}
+
+                    {report.requiredNeeds && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">الاحتياجات والملاحظات المطلوبة</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.requiredNeeds}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {rating !== undefined && rating !== null && (
+                    <div className="bg-gradient-to-br from-amber-500/[0.03] to-amber-600/[0.08] dark:from-amber-950/10 dark:to-amber-900/20 border border-amber-200/50 dark:border-amber-900/50 rounded-xl p-4 sm:p-5">
+                      <div className="flex flex-col gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+                              <Star className="w-4.5 h-4.5 text-amber-500 fill-amber-500" />
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
+                              تقييم صحة ومطابقة معلومات المستفيد
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5" style={{ direction: "ltr" }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-5 h-5 ${
+                                  star <= rating
+                                    ? "text-amber-500 fill-amber-400"
+                                    : "text-slate-200 dark:text-slate-800"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          
+                          <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-bold">
+                            {ratingLabels[rating] || `تقييم ${rating} من 5`}
+                          </p>
+                        </div>
+
+                        {ratingNotes && (
+                          <div className="bg-white/70 dark:bg-slate-900/60 p-3 sm:p-4 rounded-lg border border-amber-100/80 dark:border-amber-900/30">
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">
+                              ملاحظات المعاين حول صحة البيانات:
+                            </span>
+                            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                              "{ratingNotes}"
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {teamMembers.length > 0 && (
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">فريق المعاينة الميدانية:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {teamMembers.map((member, i) => (
+                          <span key={i} className="text-xs bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-slate-600 dark:text-slate-300 font-medium">
+                            {member}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

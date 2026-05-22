@@ -8,7 +8,7 @@ interface ColoredDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   children: ReactNode;
-  color: "blue" | "green" | "orange" | "purple" | "teal";
+  color: "blue" | "green" | "orange" | "purple" | "teal" | "indigo";
   icon?: ReactNode;
   wide?: boolean; // نافذة عريضة لجداول الكميات
 }
@@ -48,6 +48,13 @@ const colorClasses = {
     header: "bg-teal-100 dark:bg-teal-900/30",
     text: "text-teal-900 dark:text-teal-100",
     accent: "text-teal-600 dark:text-teal-400",
+  },
+  indigo: {
+    bg: "bg-indigo-50 dark:bg-indigo-950/20",
+    border: "border-indigo-200 dark:border-indigo-800",
+    header: "bg-indigo-100 dark:bg-indigo-900/30",
+    text: "text-indigo-900 dark:text-indigo-100",
+    accent: "text-indigo-600 dark:text-indigo-400",
   },
 };
 
