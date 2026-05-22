@@ -465,29 +465,33 @@ export default function ContractForm() {
         return true;
       case 4:
         // التحقق من صحة جدول الدفعات
-        if (paymentSchedule.length > 0) {
-          const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
-          
-          if (totalPayments > contractData.totalValue) {
-            toast.error("لا يمكن أن يتجاوز إجمالي مبالغ الدفعات قيمة العقد");
+        if (paymentSchedule.length === 0) {
+          toast.error("يرجى إضافة دفعات للعقد لتغطي كامل قيمة العقد");
+          return false;
+        }
+
+        // التأكد من صحة حقول الدفعات أولاً
+        for (let i = 0; i < paymentSchedule.length; i++) {
+          const p = paymentSchedule[i];
+          if (!p.dueDate) {
+            toast.error(`يرجى تحديد تاريخ الاستحقاق للدفعة ${i + 1}`);
             return false;
           }
-
-          for (let i = 0; i < paymentSchedule.length; i++) {
-            const p = paymentSchedule[i];
-            if (!p.dueDate) {
-              toast.error(`يرجى تحديد تاريخ الاستحقاق للدفعة ${i + 1}`);
-              return false;
-            }
-            if (!p.name) {
-              toast.error(`يرجى إدخال عنوان للدفعة ${i + 1}`);
-              return false;
-            }
-            if (!p.amount || p.amount <= 0) {
-              toast.error(`يرجى إدخال مبلغ صحيح للدفعة ${i + 1}`);
-              return false;
-            }
+          if (!p.name) {
+            toast.error(`يرجى إدخال عنوان للدفعة ${i + 1}`);
+            return false;
           }
+          if (!p.amount || p.amount <= 0) {
+            toast.error(`يرجى إدخال مبلغ صحيح للدفعة ${i + 1}`);
+            return false;
+          }
+        }
+
+        const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
+        
+        if (totalPayments !== contractData.totalValue) {
+          toast.error(`يجب أن يكون إجمالي مبالغ الدفعات مساوياً لقيمة العقد تماماً (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي: ${totalPayments.toLocaleString()} ريال`);
+          return false;
         }
         return true;
       default:
@@ -1220,7 +1224,13 @@ export default function ContractForm() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span>إجمالي المبالغ:</span>
-                          <span className={`font-bold ${paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue ? "text-destructive" : "text-primary"}`}>
+                          <span className={`font-bold ${
+                            paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue 
+                              ? "text-green-600 dark:text-green-400" 
+                              : paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue 
+                                ? "text-destructive" 
+                                : "text-amber-500 font-semibold"
+                          }`}>
                             {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
                           </span>
                           <span className="text-muted-foreground mr-1">من قيمة العقد:</span>
@@ -1232,6 +1242,12 @@ export default function ContractForm() {
                           <div className="flex items-center gap-1 text-destructive text-xs font-medium">
                             <AlertTriangle className="h-3 w-3" />
                             <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                          </div>
+                        )}
+                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) < contractData.totalValue && (
+                          <div className="flex items-center gap-1 text-amber-500 text-xs font-medium">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>تنبيه: إجمالي الدفعات أقل من قيمة العقد (متبقي { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } ريال)</span>
                           </div>
                         )}
                         {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
