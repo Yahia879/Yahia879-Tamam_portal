@@ -154,7 +154,7 @@ export default function Requests({
         </div>
 
         {/* Stats Row */}
-        <div className={`grid grid-cols-2 ${initialStage === "field_visit" ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 md:gap-4`}>
+        <div className={`grid grid-cols-2 ${initialStage === "field_visit" || user?.role === "quick_response" ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 md:gap-4`}>
           {[
             {
               label: "إجمالي الطلبات",
@@ -180,7 +180,7 @@ export default function Requests({
               icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
             },
-          ].filter(stat => !(initialStage === "field_visit" && stat.label === "قيد المراجعة")).map((stat) => (
+          ].filter(stat => !((initialStage === "field_visit" || user?.role === "quick_response") && stat.label === "قيد المراجعة")).map((stat) => (
             <Card key={stat.label} className="border-0 shadow-sm overflow-hidden">
               <CardContent className="p-3 md:p-4">
                 <div className="flex items-center gap-2 md:gap-3">
@@ -248,7 +248,7 @@ export default function Requests({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">جميع الحالات</SelectItem>
-                      {initialStage !== "field_visit" && (
+                      {initialStage !== "field_visit" && user?.role !== "quick_response" && (
                         <SelectItem value="under_review">قيد المراجعة</SelectItem>
                       )}
                       <SelectItem value="in_progress">قيد التنفيذ</SelectItem>

@@ -422,6 +422,14 @@ export const requestsRouter = router({
           conditions.push(
             and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, preStages))
           );
+        } else if (ctx.user.role === "quick_response" && input.status === "completed") {
+          conditions.push(
+            sql`exists(select 1 from quick_response_reports where quick_response_reports.requestId = ${mosqueRequests.id})`
+          );
+        } else if (ctx.user.role === "quick_response" && input.status === "in_progress") {
+          conditions.push(
+            sql`not exists(select 1 from quick_response_reports where quick_response_reports.requestId = ${mosqueRequests.id})`
+          );
         } else {
           conditions.push(eq(mosqueRequests.status, input.status));
         }
@@ -450,6 +458,7 @@ export const requestsRouter = router({
         mosqueCity: mosques.city,
         requesterName: users.name,
         programName: programs.name,
+        hasQuickReport: sql<number>`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
@@ -474,12 +483,17 @@ export const requestsRouter = router({
       let statsQuery = db.select({ 
         status: mosqueRequests.status, 
         currentStage: mosqueRequests.currentStage,
+        hasReport: sql<number>`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`,
         count: sql<number>`count(*)` 
       }).from(mosqueRequests);
       if (conditions.length > 0) {
         statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
       }
-      const statsResult = await statsQuery.groupBy(mosqueRequests.status, mosqueRequests.currentStage);
+      const statsResult = await statsQuery.groupBy(
+        mosqueRequests.status, 
+        mosqueRequests.currentStage,
+        sql`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`
+      );
       
       const stats: Record<string, number> = { pending: 0, under_review: 0, in_progress: 0, completed: 0, rejected: 0, cancelled: 0 };
       const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
@@ -488,6 +502,8 @@ export const requestsRouter = router({
         let effectiveStatus = s.status || 'unknown';
         if (ctx.user.role === "field_team" && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
           effectiveStatus = "completed";
+        } else if (ctx.user.role === "quick_response") {
+          effectiveStatus = s.hasReport ? "completed" : "in_progress";
         }
         stats[effectiveStatus] = (stats[effectiveStatus] || 0) + s.count;
       }
@@ -499,6 +515,8 @@ export const requestsRouter = router({
           let effectiveStatus = r.request.status;
           if (ctx.user.role === "field_team" && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
             effectiveStatus = "completed" as any;
+          } else if (ctx.user.role === "quick_response") {
+            effectiveStatus = r.hasQuickReport ? "completed" as any : "in_progress" as any;
           }
           return {
             ...r.request,
