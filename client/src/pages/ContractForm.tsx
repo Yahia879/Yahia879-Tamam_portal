@@ -466,8 +466,7 @@ export default function ContractForm() {
       case 4:
         // التحقق من صحة جدول الدفعات
         if (paymentSchedule.length === 0) {
-          toast.error("يرجى إضافة دفعات للعقد لتغطي كامل قيمة العقد");
-          return false;
+          return true;
         }
 
         // التأكد من صحة حقول الدفعات أولاً
