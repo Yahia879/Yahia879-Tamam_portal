@@ -402,78 +402,105 @@ export default function NewDisbursementRequest() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="text-right">
-                <Table dir="rtl">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">اسم المورد</TableHead>
-                      <TableHead className="text-right">الأعمال</TableHead>
-                      <TableHead className="text-right">المبلغ *</TableHead>
-                      <TableHead className="text-right">البنك</TableHead>
-                      <TableHead className="text-right">الآيبان</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {suppliers.map((supplier) => (
-                      <TableRow key={supplier.id}>
-                        <TableCell className="text-right">
-                          <Select
-                            value={supplier.name}
-                            onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                            disabled={formData.contractId > 0}
-                          >
-                            <SelectTrigger className="text-right" dir="rtl">
-                              <SelectValue placeholder="اسم المورد" />
-                            </SelectTrigger>
-                            <SelectContent dir="rtl">
-                              {allSuppliers?.map((s) => (
-                                <SelectItem key={s.id} value={s.name} className="text-right">
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.work}
-                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                            placeholder="وصف الأعمال"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            type="number"
-                            value={supplier.amount}
-                            onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
-                            className="text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.bank}
-                            onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
-                            placeholder="اسم البنك"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.iban}
-                            onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
-                            placeholder="SA..."
-                            dir="ltr"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <CardContent className="text-right space-y-6">
+                {suppliers.map((supplier) => (
+                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-4" dir="rtl">
+                    {/* اسم المورد */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">اسم المورد *</Label>
+                      <Select
+                        value={supplier.name}
+                        onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
+                        disabled={formData.contractId > 0}
+                      >
+                        <SelectTrigger className="text-right" dir="rtl">
+                          <SelectValue placeholder="اسم المورد" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {allSuppliers?.map((s) => (
+                            <SelectItem key={s.id} value={s.name} className="text-right">
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* الأعمال */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">الأعمال</Label>
+                      <Input
+                        value={supplier.work}
+                        onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                        placeholder="وصف الأعمال"
+                        readOnly
+                        className="bg-muted text-right"
+                      />
+                    </div>
+
+                    {/* البنك */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">البنك</Label>
+                      <Input
+                        value={supplier.bank}
+                        onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
+                        placeholder="اسم البنك"
+                        readOnly
+                        className="bg-muted text-right"
+                      />
+                    </div>
+
+                    {/* الآيبان */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">الآيبان</Label>
+                      <Input
+                        value={supplier.iban}
+                        onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
+                        placeholder="SA..."
+                        dir="ltr"
+                        readOnly
+                        className="bg-muted text-right"
+                      />
+                    </div>
+
+                    {/* النسبة (%) */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">النسبة (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                        onChange={(e) => {
+                          const pct = parseFloat(e.target.value) || 0;
+                          const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                          updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                        }}
+                        placeholder="0"
+                        className="text-right"
+                      />
+                    </div>
+
+                    {/* المبلغ */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right">المبلغ *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={supplier.amount || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          updateSupplier(supplier.id, "amount", val);
+                        }}
+                        placeholder="0.00"
+                        className="text-right"
+                      />
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
