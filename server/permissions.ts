@@ -106,7 +106,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       "contracts.view", 
       "contracts.create", 
       "contracts.edit",
-      "requests.view"
+      "requests.view",
+      "suppliers.view"
     );
   }
 
