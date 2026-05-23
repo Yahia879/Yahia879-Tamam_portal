@@ -1137,7 +1137,7 @@ export default function ContractForm() {
                             <GripVertical className="h-5 w-5" />
                             <span className="font-medium">{index + 1}</span>
                           </div>
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="space-y-1">
                               <Label className="text-xs">التاريخ الميلادي</Label>
                               <Input
@@ -1197,12 +1197,36 @@ export default function ContractForm() {
                               />
                             </div>
                             <div className="space-y-1">
+                              <Label className="text-xs">النسبة (%)</Label>
+                              <Input
+                                type="number"
+                                value={payment.percentage || ""}
+                                required
+                                onChange={(e) => {
+                                  const pct = parseFloat(e.target.value) || 0;
+                                  const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
+                                  setPaymentSchedule(prev => prev.map(p => 
+                                    p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
+                                  ));
+                                }}
+                                placeholder="0"
+                                min="0"
+                                max="100"
+                              />
+                            </div>
+                            <div className="space-y-1">
                               <Label className="text-xs">المبلغ</Label>
                               <Input
                                 type="number"
                                 value={payment.amount || ""}
                                 required
-                                onChange={(e) => updatePayment(payment.id, "amount", parseFloat(e.target.value) || 0)}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
+                                  setPaymentSchedule(prev => prev.map(p => 
+                                    p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
+                                  ));
+                                }}
                                 placeholder="0.00"
                               />
                             </div>
