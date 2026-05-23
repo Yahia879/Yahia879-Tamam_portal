@@ -269,6 +269,14 @@ export default function Quotations() {
       toast.error("يرجى اختيار المورد");
       return;
     }
+
+    const hasExistingQuotation = quotationsData?.quotations?.some(
+      (q: any) => q.supplierId === parseInt(selectedSupplierId)
+    );
+    if (hasExistingQuotation) {
+      toast.error("تم إضافة عرض سعر لهذا المورد مسبقاً");
+      return;
+    }
     
     // التحقق من تسعير جميع البنود
     const unpriced = quotationItems.filter((item) => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
@@ -889,6 +897,9 @@ export default function Quotations() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {selectedSupplierId && quotationsData?.quotations?.some((q: any) => q.supplierId === parseInt(selectedSupplierId)) && (
+                      <p className="text-red-500 text-sm mt-2 font-medium">تم إضافة عرض سعر لهذا المورد مسبقاً</p>
+                    )}
                     <div className="flex items-center gap-2 mt-3 justify-start">
                       <Checkbox
                         id="includeUnapproved"
