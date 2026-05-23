@@ -177,10 +177,11 @@ export default function ProjectDetailsPage() {
   // تحديث مرحلة الطلب
   const updateRequestStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
-      console.log('[Sync] Request stage updated to financial_eval_and_approval');
+      toast.success("تم اعتماد جدول الكميات بنجاح وتحويل الطلب للمرحلة التالية");
+      refetch();
     },
-    onError: (error) => {
-      console.error('[Sync] Error updating request stage:', error);
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث المرحلة");
     },
   });
 
@@ -242,6 +243,19 @@ export default function ProjectDetailsPage() {
   const isContractingPhase = project?.phases?.some(p => 
     p.phaseOrder === 4 && p.status === "in_progress"
   );
+
+  // التحقق من مرحلة إعداد جدول الكميات (المرحلة الثانية)
+  const isBOQPreparationPhase = project?.phases?.some(p => 
+    p.phaseOrder === 2 && p.status === "in_progress"
+  );
+
+  const hasBOQItems = (boqData?.items?.length || 0) > 0;
+  
+  // شرط ظهور زر اعتماد جدول الكميات: في مرحلة إعداد جدول الكميات (المرحلة الثانية) ويوجد بنود في الجدول ولديه الصلاحية
+  const isAllowedToApproveBOQ = ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
+  
+  // شرط أكثر مرونة للتحقق من المرحلة (المرحلة 2 قيد التنفيذ أو قيد التخطيط)
+  const showApproveBOQButton = (isBOQPreparationPhase || project?.status === "planning") && hasBOQItems && isAllowedToApproveBOQ;
 
   // شرط ظهور زر اعتماد العقد: في مرحلة التعاقد ويوجد عقد واحد فقط بانتظار الاعتماد
   const showApproveContractButton = isContractingPhase && project.contracts?.length === 1 && (project.contracts[0].status === "draft" || project.contracts[0].status === "pending_approval");
@@ -678,7 +692,32 @@ export default function ProjectDetailsPage() {
           {/* جدول الكميات */}
           <TabsContent value="boq" className="space-y-4">
             {project?.requestId ? (
-              <BoqTab requestId={project.requestId} />
+              <>
+                <BoqTab requestId={project.requestId} />
+                {showApproveBOQButton && (
+                  <div className="mt-6 flex justify-center">
+                    <Button 
+                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                      onClick={() => {
+                        if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
+                          updateRequestStageMutation.mutate({ 
+                            requestId: project.requestId!, 
+                            newStage: "financial_eval_and_approval" as any 
+                          });
+                        }
+                      }}
+                      disabled={updateRequestStageMutation.isPending}
+                    >
+                      {updateRequestStageMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      اعتماد العقد
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <Card className="border-0 shadow-sm">
                 <CardContent className="text-center py-12">
