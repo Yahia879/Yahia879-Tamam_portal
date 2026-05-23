@@ -99,6 +99,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (userData?.role === "field_team") {
     rolePermissionsData.push("field_visits", "requests.view", "requests.edit", "mosques.view");
   }
+  if (userData?.role === "project_manager") {
+    rolePermissionsData.push(
+      "projects.view", 
+      "projects.edit", 
+      "contracts.view", 
+      "contracts.create", 
+      "contracts.edit",
+      "requests.view"
+    );
+  }
 
   if (roleIds.length > 0) {
     // جلب صلاحيات من جدول rolePermissions (المصدر التقليدي)

@@ -49,7 +49,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   project_manager: [
-    "projects", "progress_reports", "requests",
+    "projects", "progress_reports", "requests", "contracts",
   ],
 
   corporate_comm: [
