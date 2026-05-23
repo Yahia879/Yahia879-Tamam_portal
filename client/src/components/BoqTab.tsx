@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -29,7 +29,11 @@ interface BoqTabProps {
   requestId: number;
 }
 
-export default function BoqTab({ requestId }: BoqTabProps) {
+export interface BoqTabHandle {
+  openAddDialog: () => void;
+}
+
+const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -47,6 +51,16 @@ export default function BoqTab({ requestId }: BoqTabProps) {
 
   // التحقق مما إذا كان الجدول مقفلاً (إذا تجاوز مرحلة إعداد جدول الكميات)
   const isLocked = request?.currentStage && getStageOrder(request.currentStage) > getStageOrder('boq_preparation');
+
+  useImperativeHandle(ref, () => ({
+    openAddDialog: () => {
+      if (isLocked) {
+        toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        return;
+      }
+      setShowAddDialog(true);
+    }
+  }));
 
   // حذف بند
   const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
@@ -118,37 +132,6 @@ export default function BoqTab({ requestId }: BoqTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* رأس القسم */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-primary" />
-            جداول الكميات (BOQ)
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            {isLocked 
-              ? "جدول الكميات مقفل للعرض فقط في هذه المرحلة" 
-              : "إدارة جداول الكميات المرتبطة بهذا الطلب"
-            }
-          </p>
-        </div>
-        {!isLocked && (
-          <Button
-            onClick={() => setShowAddDialog(true)}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            إضافة بند جديد
-          </Button>
-        )}
-        {isLocked && (
-          <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 p-2">
-            <Clock className="h-4 w-4" />
-            جدول الكميات مقفل
-          </Badge>
-        )}
-      </div>
-
       {/* ملخص الإجمالي */}
       {boqData.length > 0 && (
         <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950 dark:to-teal-900 border-teal-200 dark:border-teal-800">
@@ -282,4 +265,8 @@ export default function BoqTab({ requestId }: BoqTabProps) {
       )}
     </div>
   );
-}
+});
+
+BoqTab.displayName = "BoqTab";
+
+export default BoqTab;

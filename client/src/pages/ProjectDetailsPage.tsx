@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { getStageOrder, getNextStage } from "@shared/constants";
-import BoqTab from "@/components/BoqTab";
+import BoqTab, { BoqTabHandle } from "@/components/BoqTab";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -116,7 +116,7 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAssignManagerDialog, setShowAssignManagerDialog] = useState(false);
   const [selectedAssignManagerId, setSelectedAssignManagerId] = useState<string | null>(null);
-
+  const boqTabRef = useRef<BoqTabHandle>(null);
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
@@ -692,32 +692,49 @@ export default function ProjectDetailsPage() {
           {/* جدول الكميات */}
           <TabsContent value="boq" className="space-y-4">
             {project?.requestId ? (
-              <>
-                <BoqTab requestId={project.requestId} />
-                {showApproveBOQButton && (
-                  <div className="mt-6 flex justify-center">
-                    <Button 
-                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
-                      onClick={() => {
-                        if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
-                          updateRequestStageMutation.mutate({ 
-                            requestId: project.requestId!, 
-                            newStage: "financial_eval_and_approval" as any 
-                          });
-                        }
-                      }}
-                      disabled={updateRequestStageMutation.isPending}
-                    >
-                      {updateRequestStageMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4" />
-                      )}
-                      اعتماد العقد
-                    </Button>
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">جداول الكميات (BOQ)</CardTitle>
+                    <CardDescription>إدارة جداول الكميات المرتبطة بهذا الطلب</CardDescription>
                   </div>
-                )}
-              </>
+                  {!isBOQLocked && (
+                    <Button 
+                      className="gradient-primary text-white" 
+                      onClick={() => boqTabRef.current?.openAddDialog()}
+                    >
+                      <Plus className="w-4 h-4 ml-2" />
+                      إضافة بند جديد
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <BoqTab requestId={project.requestId} ref={boqTabRef} />
+                  {showApproveBOQButton && (
+                    <div className="mt-6 flex justify-center">
+                      <Button 
+                        className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                        onClick={() => {
+                          if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
+                            updateRequestStageMutation.mutate({ 
+                              requestId: project.requestId!, 
+                              newStage: "financial_eval_and_approval" as any 
+                            });
+                          }
+                        }}
+                        disabled={updateRequestStageMutation.isPending}
+                      >
+                        {updateRequestStageMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        اعتماد العقد
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ) : (
               <Card className="border-0 shadow-sm">
                 <CardContent className="text-center py-12">
