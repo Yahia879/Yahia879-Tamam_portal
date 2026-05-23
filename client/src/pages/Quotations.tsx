@@ -290,6 +290,12 @@ export default function Quotations() {
       return;
     }
 
+    // التحقق من نسبة الضريبة إذا لم يكن السعر شامل الضريبة
+    if (!formData.includesTax && !formData.taxRate) {
+      toast.error("يرجى إدخال نسبة الضريبة");
+      return;
+    }
+
     // حساب المبلغ النهائي بعد الخصم والضريبة
     let finalAmount = totalAmount;
     let discountAmount = 0;
@@ -304,7 +310,7 @@ export default function Quotations() {
     }
     
     // حساب الضريبة
-    if (formData.includesTax) {
+    if (!formData.includesTax) {
       taxAmount = finalAmount * parseFloat(formData.taxRate || "15") / 100;
       finalAmount += taxAmount;
     }
@@ -318,8 +324,8 @@ export default function Quotations() {
       notes: formData.notes,
       // حقول الضريبة
       includesTax: formData.includesTax,
-      taxRate: formData.includesTax ? parseFloat(formData.taxRate || "15") : null,
-      taxAmount: formData.includesTax ? taxAmount : null,
+      taxRate: !formData.includesTax ? parseFloat(formData.taxRate || "15") : null,
+      taxAmount: !formData.includesTax ? taxAmount : null,
       // حقول الخصم
       discountType: formData.discountType && formData.discountType !== "none" ? formData.discountType : null,
       discountValue: formData.discountType && formData.discountType !== "none" && formData.discountValue ? parseFloat(formData.discountValue) : null,
@@ -1031,25 +1037,32 @@ export default function Quotations() {
                       <Checkbox
                         id="includesTax"
                         checked={formData.includesTax}
-                        onCheckedChange={(checked) => setFormData({ ...formData, includesTax: checked as boolean })}
+                        onCheckedChange={(checked) => setFormData({ 
+                          ...formData, 
+                          includesTax: checked as boolean,
+                          taxRate: checked ? "" : "15.00"
+                        })}
                       />
                       <label htmlFor="includesTax" className="text-base font-medium cursor-pointer">
                         السعر شامل ضريبة القيمة المضافة
                       </label>
                     </div>
-                    {formData.includesTax && (
+                    {!formData.includesTax && (
                       <div>
-                        <Label className="text-sm font-semibold mb-2 block">نسبة الضريبة (%)</Label>
+                        <Label className="text-sm font-semibold mb-2 block">نسبة الضريبة (%) *</Label>
                         <Input
                           type="number"
                           value={formData.taxRate}
                           onChange={(e) => setFormData({ ...formData, taxRate: e.target.value })}
                           placeholder="15.00"
-                          className="h-10 w-32 bg-white"
+                          className={`h-10 w-32 bg-white ${!formData.taxRate ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                           min="0"
                           max="100"
                           step="0.01"
                         />
+                        {!formData.taxRate && (
+                          <p className="text-xs text-destructive mt-1">نسبة الضريبة مطلوبة عند عدم شمول السعر للضريبة</p>
+                        )}
                         <p className="text-xs text-muted-foreground mt-1">النسبة الافتراضية 15%</p>
                       </div>
                     )}
@@ -1093,7 +1106,7 @@ export default function Quotations() {
                 </div>
                 
                 {/* ملخص الحسابات */}
-                {(formData.includesTax || (formData.discountType && formData.discountType !== "none" && formData.discountValue)) && (
+                {(!formData.includesTax || (formData.discountType && formData.discountType !== "none" && formData.discountValue)) && (
                   <div className="mt-4 p-4 bg-white rounded-lg border border-amber-200">
                     <h4 className="font-semibold text-amber-700 mb-3">ملخص الحسابات</h4>
                     <div className="space-y-2 text-sm">
@@ -1112,7 +1125,7 @@ export default function Quotations() {
                           })()} ريال</span>
                         </div>
                       )}
-                      {formData.includesTax && (
+                      {!formData.includesTax && (
                         <div className="flex justify-between text-green-600">
                           <span>ضريبة القيمة المضافة ({formData.taxRate}%):</span>
                           <span className="font-medium">+{(() => {
@@ -1140,7 +1153,7 @@ export default function Quotations() {
                             finalAmount -= discount;
                           }
                           // حساب الضريبة
-                          if (formData.includesTax) {
+                          if (!formData.includesTax) {
                             const tax = finalAmount * parseFloat(formData.taxRate || "15") / 100;
                             finalAmount += tax;
                           }
