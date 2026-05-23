@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,6 +71,7 @@ const BUDGET_VISIBLE_STAGES = [
 ];
 
 export default function Projects() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -288,7 +290,7 @@ export default function Projects() {
                                     عرض التفاصيل
                                   </DropdownMenuItem>
                                 </Link>
-                                {project.requestId && (
+                                {project.requestId && user?.role !== "project_manager" && (
                                   <Link href={`/requests/${project.requestId}`}>
                                     <DropdownMenuItem>
                                       <FileText className="w-4 h-4 ml-2" />
@@ -332,7 +334,7 @@ export default function Projects() {
                                 عرض التفاصيل
                               </DropdownMenuItem>
                             </Link>
-                            {project.requestId && (
+                            {project.requestId && user?.role !== "project_manager" && (
                               <Link href={`/requests/${project.requestId}`}>
                                 <DropdownMenuItem>
                                   <FileText className="w-4 h-4 ml-2" />
