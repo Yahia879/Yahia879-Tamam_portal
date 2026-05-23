@@ -52,13 +52,17 @@ export const projectsRouter = router({
       limit: z.number().min(1).max(100).default(50),
       offset: z.number().min(0).default(0),
     }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const filters = [];
       if (input?.status) {
         filters.push(eq(projects.status, input.status));
+      }
+
+      if (ctx.user?.role === "project_manager") {
+        filters.push(eq(projects.managerId, ctx.user.id));
       }
 
       const projectsList = await db
@@ -123,11 +127,14 @@ export const projectsRouter = router({
       page: z.number().default(1),
       limit: z.number().default(20),
     }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const conditions = [];
+      if (ctx.user?.role === "project_manager") {
+        conditions.push(eq(projects.managerId, ctx.user.id));
+      }
       if (input.status && input.status !== "all") {
         if (["planning", "in_progress", "on_hold", "completed", "cancelled"].includes(input.status)) {
           conditions.push(eq(projects.status, input.status as any));
