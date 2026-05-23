@@ -182,9 +182,15 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
           <Card key={category}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Badge variant="outline" className="text-base">
-                  {ITEM_CATEGORIES[category] || category}
-                </Badge>
+                {ITEM_CATEGORIES[category] ? (
+                  <Badge variant="outline" className="text-base">
+                    {ITEM_CATEGORIES[category]}
+                  </Badge>
+                ) : !category.startsWith('boq_category_') && category !== "other" && (
+                  <Badge variant="outline" className="text-base">
+                    {category}
+                  </Badge>
+                )}
                 <span className="text-sm text-muted-foreground">
                   ({items.length} بند)
                 </span>
