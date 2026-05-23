@@ -311,7 +311,7 @@ export default function EditPaymentPage() {
         {/* Header */}
         <div className="flex items-center justify-between flex-row">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(formData.projectId ? `/projects/${formData.projectId}` : "/disbursements")}>
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
               <ArrowRight className="h-5 w-5" />
             </Button>
             <div className="text-right">

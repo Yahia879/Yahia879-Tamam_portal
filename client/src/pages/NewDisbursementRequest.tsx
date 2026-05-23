@@ -267,7 +267,7 @@ export default function NewDisbursementRequest() {
         {/* Header */}
         <div className="flex items-center justify-between flex-row-reverse">
           <div className="flex items-center gap-4 flex-row-reverse">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/disbursements")}>
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
               <ArrowRight className="h-5 w-5 rotate-180" />
             </Button>
             <div className="text-right">
