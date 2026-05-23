@@ -709,7 +709,7 @@ export default function ProjectDetailsPage() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <BoqTab requestId={project.requestId} ref={boqTabRef} />
+                  <BoqTab requestId={project.requestId} isLocked={isBOQLocked} ref={boqTabRef} />
                   {showApproveBOQButton && (
                     <div className="mt-6 flex justify-center">
                       <Button 
@@ -729,7 +729,7 @@ export default function ProjectDetailsPage() {
                         ) : (
                           <CheckCircle2 className="w-4 h-4" />
                         )}
-                        اعتماد العقد
+                        اعتماد جداول الكميات
                       </Button>
                     </div>
                   )}

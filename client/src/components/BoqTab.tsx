@@ -27,16 +27,19 @@ import { getStageOrder } from "../../../shared/constants";
 
 interface BoqTabProps {
   requestId: number;
+  isLocked?: boolean;
 }
 
 export interface BoqTabHandle {
   openAddDialog: () => void;
 }
 
-const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
+const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: externalIsLocked }, ref) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const utils = trpc.useUtils();
 
   // جلب تفاصيل الطلب للتحقق من المرحلة
   const { data: request } = trpc.requests.getById.useQuery({ id: requestId });
@@ -50,7 +53,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
   const totalAmount = boqResult?.total || 0;
 
   // التحقق مما إذا كان الجدول مقفلاً (إذا تجاوز مرحلة إعداد جدول الكميات)
-  const isLocked = request?.currentStage && getStageOrder(request.currentStage) > getStageOrder('boq_preparation');
+  const isLocked = externalIsLocked !== undefined 
+    ? externalIsLocked 
+    : (request?.currentStage && getStageOrder(request.currentStage) > getStageOrder('boq_preparation'));
 
   useImperativeHandle(ref, () => ({
     openAddDialog: () => {
@@ -66,6 +71,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
   const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
     onSuccess: () => {
       toast.success("تم حذف البند بنجاح");
+      utils.projects.getBOQ.invalidate();
       refetch();
     },
     onError: (error: any) => {
@@ -96,6 +102,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId }, ref) => {
     setShowAddDialog(false);
     setShowEditDialog(false);
     setSelectedItem(null);
+    utils.projects.getBOQ.invalidate();
     refetch();
   };
 
