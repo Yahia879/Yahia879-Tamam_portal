@@ -1073,7 +1073,7 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
       label: "فتح جدول الكميات",
       openModal: "boq", // فتح نافذة منبثقة بدلاً من صفحة منفصلة
     },
-    allowedRoles: ["super_admin", "system_admin", "projects_office"],
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
   },
   financial_eval: {
     title: "التقييم المالي",

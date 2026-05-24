@@ -21,6 +21,8 @@ import {
   Loader2,
   FileText,
   Clock,
+  Download,
+  Upload,
 } from "lucide-react";
 import BoqFormDialog from "./BoqFormDialog";
 import { getStageOrder } from "../../../shared/constants";
@@ -28,13 +30,14 @@ import { getStageOrder } from "../../../shared/constants";
 interface BoqTabProps {
   requestId: number;
   isLocked?: boolean;
+  hideAddButton?: boolean;
 }
 
 export interface BoqTabHandle {
   openAddDialog: () => void;
 }
 
-const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: externalIsLocked }, ref) => {
+const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -76,6 +79,18 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: ext
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء حذف البند");
+    },
+  });
+
+  // إضافة بند
+  const addItemMutation = trpc.projects.addBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم إضافة البند بنجاح");
+      utils.projects.getBOQ.invalidate();
+      refetch();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء إضافة البند");
     },
   });
 
@@ -139,6 +154,125 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: ext
 
   return (
     <div className="space-y-6">
+      {!hideAddButton && !isLocked && (
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-muted/40 rounded-lg border border-border">
+          <div className="flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-teal-600" />
+            <span className="font-semibold text-sm">إدارة بنود جدول الكميات</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => setShowAddDialog(true)}
+              className="bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة بند
+            </Button>
+            
+            {/* تحميل قالب Excel */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                const headers = ["التصنيف", "اسم البند", "الوصف", "الوحدة", "الكمية", "سعر الوحدة"];
+                const example = [
+                  "electrical", "استبدال الإنارة", "استبدال كامل للإنارة الداخلية", "unit", "100", "50"
+                ];
+                const csvContent = [headers, example]
+                  .map(row => row.join("\t"))
+                  .join("\n");
+                const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "قالب_جدول_الكميات.csv";
+                link.click();
+                URL.revokeObjectURL(url);
+                toast.success("تم تحميل القالب - التصنيفات: construction, electrical, plumbing, hvac, finishing, carpentry, painting, flooring, other | الوحدات: m2, m3, m, unit, kg, ton, lump_sum");
+              }}
+            >
+              <Download className="h-4 w-4 ml-2" />
+              تحميل قالب
+            </Button>
+            
+            {/* استيراد من Excel */}
+            <div className="relative">
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  
+                  const reader = new FileReader();
+                  reader.onload = async (event) => {
+                    try {
+                      const text = event.target?.result as string;
+                      const lines = text.split("\n").filter(line => line.trim());
+                      if (lines.length < 2) {
+                        toast.error("الملف فارغ أو لا يحتوي على بيانات");
+                        return;
+                      }
+                      
+                      const dataLines = lines.slice(1);
+                      let addedCount = 0;
+                      let errorCount = 0;
+                      
+                      for (const line of dataLines) {
+                        const cols = line.split(/[\t,]/);
+                        if (cols.length >= 5) {
+                          const category = cols[0]?.trim() || "other";
+                          const itemName = cols[1]?.trim();
+                          const description = cols[2]?.trim() || "";
+                          const unit = cols[3]?.trim() || "unit";
+                          const quantity = parseFloat(cols[4]?.trim().replace(/[^\d.]/g, "")) || 0;
+                          const unitPrice = parseFloat(cols[5]?.trim().replace(/[^\d.]/g, "")) || 0;
+                          
+                          if (itemName && quantity > 0) {
+                            try {
+                              await addItemMutation.mutateAsync({
+                                requestId,
+                                itemName,
+                                itemDescription: description,
+                                unit,
+                                quantity,
+                                unitPrice,
+                                category,
+                              });
+                              addedCount++;
+                            } catch {
+                              errorCount++;
+                            }
+                          }
+                        }
+                      }
+                      
+                      if (addedCount > 0) {
+                        toast.success(`تم استيراد ${addedCount} بند بنجاح`);
+                        refetch();
+                      }
+                      if (errorCount > 0) {
+                        toast.error(`فشل استيراد ${errorCount} بند`);
+                      }
+                    } catch (err) {
+                      toast.error("حدث خطأ أثناء قراءة الملف");
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = "";
+                }}
+              />
+              <Button variant="default" size="sm" className="text-xs">
+                <Upload className="h-4 w-4 ml-2" />
+                استيراد
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ملخص الإجمالي */}
       {boqData.length > 0 && (
         <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950 dark:to-teal-900 border-teal-200 dark:border-teal-800">

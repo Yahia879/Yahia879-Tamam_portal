@@ -901,17 +901,18 @@ export const requestsRouter = router({
       notes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["super_admin", "system_admin", "projects_office"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث حالة الطلب" });
-      }
-
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
       if (request.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      const allowedRoles = ["super_admin", "system_admin", "projects_office"];
+      const isAllowed = allowedRoles.includes(ctx.user.role) || (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id);
+      if (!isAllowed) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث حالة الطلب" });
       }
 
       const oldStatus = request[0].status;
@@ -1203,6 +1204,7 @@ export const requestsRouter = router({
       actionsTaken: z.string(),
       resolved: z.boolean().default(false),
       requiresProject: z.boolean().default(false),
+      status: z.enum(['partially_solved', 'fully_solved', 'not_solved']).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       if (!["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -1224,6 +1226,7 @@ export const requestsRouter = router({
         actionsTaken: input.actionsTaken,
         resolved: input.resolved,
         requiresProject: input.requiresProject,
+        status: input.status || null,
       });
 
       // تم إلغاء الإغلاق التلقائي للطلب عند حفظ التقرير بناء على طلب المستخدم
@@ -1263,17 +1266,19 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
 
-      // التحقق من أن الطلب في مرحلة التقييم الفني
-      if (request[0].currentStage !== 'technical_eval') {
+      // التحقق من أن الطلب في مرحلة التقييم الفني أو مرحلة التنفيذ (في حال الاستجابة السريعة)
+      if (request[0].currentStage !== 'technical_eval' && !(request[0].currentStage === 'execution' && input.decision === 'convert_to_project')) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
-          message: "يمكن اتخاذ هذا القرار فقط في مرحلة التقييم الفني" 
+          message: "يمكن اتخاذ هذا القرار فقط في مرحلة التقييم الفني أو أثناء مرحلة التنفيذ للاستجابة السريعة" 
         });
       }
 
       // التحقق من الصلاحيات
       const option = TECHNICAL_EVAL_OPTIONS[input.decision];
-      if (!(option.allowedRoles as readonly string[]).includes(ctx.user.role)) {
+      const isAllowedRole = (option.allowedRoles as readonly string[]).includes(ctx.user.role) ||
+        (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id);
+      if (!isAllowedRole) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 
           message: `ليس لديك صلاحية لاتخاذ قرار "${option.name}"` 
@@ -1316,6 +1321,15 @@ export const requestsRouter = router({
         }
       }
 
+      // إذا كان القرار هو التحويل لمشروع، إعادة تعيين المسار لـ standard وتحديد المسؤول
+      if (input.decision === 'convert_to_project') {
+        updateData.requestTrack = 'standard';
+        if (input.managerId) {
+          updateData.assignedTo = input.managerId;
+          updateData.currentResponsible = input.managerId;
+        }
+      }
+
       // إذا كان القرار هو الاعتذار، تحديد تاريخ الإغلاق
       if (input.decision === 'apologize') {
         updateData.completedAt = new Date();
@@ -1340,8 +1354,8 @@ export const requestsRouter = router({
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        fromStage: 'technical_eval',
-        toStage: option.nextStage || 'technical_eval',
+        fromStage: request[0].currentStage,
+        toStage: option.nextStage || request[0].currentStage,
         fromStatus: request[0].status,
         toStatus: option.resultStatus,
         action: `technical_eval_${input.decision}`,

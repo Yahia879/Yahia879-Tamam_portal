@@ -709,7 +709,7 @@ export default function ProjectDetailsPage() {
                   )}
                 </CardHeader>
                 <CardContent>
-                  <BoqTab requestId={project.requestId} isLocked={isBOQLocked} ref={boqTabRef} />
+                  <BoqTab requestId={project.requestId} isLocked={isBOQLocked} ref={boqTabRef} hideAddButton={true} />
                   {showApproveBOQButton && (
                     <div className="mt-6 flex justify-center">
                       <Button 

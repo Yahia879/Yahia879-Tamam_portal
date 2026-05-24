@@ -384,6 +384,7 @@ export const quickResponseReports = mysqlTable("quick_response_reports", {
   actionsTaken: text("actionsTaken"),
   resolved: boolean("resolved").default(false),
   requiresProject: boolean("requiresProject").default(false),
+  status: varchar("status", { length: 50 }), // 'partially_solved', 'fully_solved', 'not_solved'
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

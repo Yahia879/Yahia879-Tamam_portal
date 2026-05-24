@@ -61,6 +61,7 @@ export default function QuickResponseReportForm() {
     actionsTaken: "",
     resolved: false,
     requiresProject: false,
+    status: "",
   });
 
   // جلب بيانات الطلب
@@ -127,6 +128,10 @@ export default function QuickResponseReportForm() {
       toast.error("يرجى إدخال التقييم الفني");
       return;
     }
+    if (!formData.status) {
+      toast.error("يرجى اختيار حالة الطلب");
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -142,6 +147,7 @@ export default function QuickResponseReportForm() {
         actionsTaken: formData.actionsTaken || formData.finalEvaluation,
         resolved: formData.resolved,
         requiresProject: formData.requiresProject,
+        status: formData.status as any,
       });
 
       // رفع المرفقات إذا وجدت
@@ -362,35 +368,66 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <CheckCircle className="w-5 h-5 text-primary" />
-              حالة الطلب
+              حالة الطلب <span className="text-red-500">*</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-4">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.resolved}
-                    onChange={(e) => handleInputChange("resolved", e.target.checked)}
+                    checked={formData.status === "partially_solved"}
+                    onChange={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        status: "partially_solved",
+                        resolved: false,
+                        requiresProject: true
+                      }));
+                    }}
+                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                </div>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">تم حل المشكلة جزئياً</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.status === "fully_solved"}
+                    onChange={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        status: "fully_solved",
+                        resolved: true,
+                        requiresProject: false
+                      }));
+                    }}
                     className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                 </div>
                 <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">تم حل المشكلة بالكامل</span>
               </label>
-            </div>
-            
-            <div className="flex items-center gap-4">
+
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.requiresProject}
-                    onChange={(e) => handleInputChange("requiresProject", e.target.checked)}
+                    checked={formData.status === "not_solved"}
+                    onChange={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        status: "not_solved",
+                        resolved: false,
+                        requiresProject: true
+                      }));
+                    }}
                     className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                 </div>
-                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">يحتاج إلى مشروع متكامل</span>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">لم يتم حل المشكلة</span>
               </label>
             </div>
           </CardContent>

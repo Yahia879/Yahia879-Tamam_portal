@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -171,10 +171,21 @@ export default function RequestDetailsNew() {
   
   const uploadAttachmentMutation = trpc.storage.uploadRequestAttachment.useMutation();
 
+  const updateStatusMutation = trpc.requests.updateStatus.useMutation({
+    onSuccess: (data) => {
+      toast.success("تم تحديث حالة الطلب بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const technicalEvalMutation = trpc.requests.technicalEvalDecision.useMutation({
     onSuccess: (data) => {
       toast.success(data.message);
       setShowTechnicalEvalDialog(false);
+      const wasConverting = selectedDecision === 'convert_to_project';
       setSelectedDecision(null);
       setJustification("");
       setProjectName("");
@@ -183,6 +194,9 @@ export default function RequestDetailsNew() {
       setExpectedEndDate("");
       setDurationDays("");
       utils.requests.getById.invalidate({ id: requestId });
+      if (wasConverting) {
+        setLocation(`/requests/${requestId}`);
+      }
     },
     onError: (error) => {
       toast.error(error.message);
@@ -409,6 +423,15 @@ export default function RequestDetailsNew() {
     };
   }
 
+  const isManagementUser = user && (
+    ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
+    (user.role === 'project_manager' && request.assignedTo === user.id)
+  );
+
+  const latestQuickReport = request.quickReports && request.quickReports.length > 0
+    ? request.quickReports[request.quickReports.length - 1]
+    : null;
+
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
 
@@ -499,209 +522,99 @@ export default function RequestDetailsNew() {
         )}
 
         {/* Active Action Card */}
-        {activeAction && (
-          <div className="space-y-6">
-            <ActiveActionCard
-              title={activeAction.title}
-              description={activeAction.description}
-              icon={activeAction.icon as any}
-              iconColor={activeAction.iconColor}
-              progress={{
-                current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
-                total: workflow.length,
-                percentage: progress,
-              }}
-              fieldReportButton={
-                (user?.role as string) !== 'field_team' && hasFieldReport &&
-                !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
-                !(isQuickResponse && (
-                  (user?.role as string) !== 'quick_response' ||
-                  (request.quickReports && request.quickReports.length > 0)
-                ))
-                  ? {
-                      label: 'عرض تقرير الزيارة الميدانية',
-                      onClick: () => setFieldVisitReportOpen(true),
-                    }
-                  : undefined
-              }
-              actionButton={
-                activeAction.canPerformAction && activeAction.actionButton && (
-                  request.currentStage !== 'technical_eval' ||
-                  activeAction.actionButton.openModal === 'field_visit_report' ||
-                  activeAction.actionButton.openModal === 'quick_response_report'
-                )
-                  ? {
-                      label: activeAction.actionButton.label,
-                      onClick: handleStageTransition,
-                      disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
-                    }
-                  : undefined
-              }
-              secondaryButton={
-                request.currentStage === 'boq_preparation' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
-                  ? {
-                      label: "الانتقال إلى التقييم المالي",
-                      onClick: () => {
-                        if (!hasBoqItems) {
-                          toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
-                          return;
-                        }
-                        updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
-                      },
-                      variant: 'default' as const,
-                      disabled: !hasBoqItems || updateStageMutation.isPending,
-                    }
-                : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
-                  ? {
-                      label: "إدارة عروض الأسعار",
-                      onClick: () => setLocation('/quotations'),
-                      variant: 'outline' as const,
-                    }
-                  : request.currentStage === 'contracting' && hasApprovedContract && canTransitionStage(user?.role || '', 'contracting')
-                  ? {
-                      label: "الانتقال إلى مرحلة التنفيذ",
-                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
-                      variant: 'default' as const,
-                    }
-                  : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
-                    ? request.requestTrack === 'quick_response'
-                      ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
-                        ? {
-                            label: "إغلاق الطلب",
-                            onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
-                            variant: 'default' as const,
-                          }
-                        : undefined
-                      : {
-                          label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
-                          onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
-                          variant: 'default' as const,
-                          disabled: !!latestFinalReport,
-                        }
-                  : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
-                  ? {
-                      label: "إغلاق الطلب رسمياً",
-                      onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
-                      variant: 'default' as const,
-                    }
-                  : undefined
-              }
-              additionalActions={
-                (request.currentStage === 'handover' || request.currentStage === 'closed') && latestFinalReport
-                  ? [{
-                      label: "عرض التقرير النهائي",
-                      onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
-                    }]
-                  : []
-              }
-            />
-            
-            {/* قسم المراجعة الأولية */}
-            {request.currentStage === 'initial_review' && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                  <h4 className="font-bold text-blue-800 dark:text-blue-200 text-base sm:text-lg">المراجعة الأولية</h4>
+        {request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && (latestQuickReport.status === 'partially_solved' || latestQuickReport.status === 'not_solved') && isManagementUser ? (
+          <div className="mb-6 space-y-6">
+            <Card className="p-4 sm:p-6 md:p-8 shadow-lg border-2 border-purple-100 dark:border-purple-900/50">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 text-purple-600 shrink-0">
+                  <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
-                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
-                <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
-                  <input
-                    type="checkbox"
-                    id="review-completed"
-                    checked={request.reviewCompleted || false}
-                    onChange={(e) => {
-                      updateReviewCompletedMutation.mutate({
-                        requestId,
-                        reviewCompleted: e.target.checked
-                      });
-                    }}
-                    disabled={updateReviewCompletedMutation.isPending}
-                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-                  />
-                  <label htmlFor="review-completed" className="text-sm font-bold cursor-pointer">
-                    إتمام المراجعة الأولية للطلب
-                  </label>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground break-words font-sans">مراجعة تقرير الاستجابة السريعة</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                    المرحلة {workflow.findIndex((s) => s.id === request.currentStage) + 1} من {workflow.length} • {progress}% مكتمل
+                  </p>
                 </div>
               </div>
-            )}
-            
-            {/* مؤشرات إجراءات الزيارة الميدانية */}
-            {request.currentStage === 'field_visit' && (
-              <div className="p-4 sm:p-6 bg-card rounded-xl border-2 shadow-sm">
-                <h3 className="text-base sm:text-lg font-bold mb-4">حالة إجراءات الزيارة الميدانية</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {/* جدولة الزيارة */}
-                  <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                    (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) 
-                      ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' 
-                      : 'bg-gray-50 border-gray-200 dark:bg-gray-900/10 dark:border-gray-800'
-                  }`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      {(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <Clock className="w-5 h-5 text-gray-400" />
-                      )}
-                      <h4 className={`font-bold text-sm sm:text-base ${
-                        (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? 'text-green-800 dark:text-green-200' : 'text-gray-600 dark:text-gray-400'
-                      }`}>جدولة الزيارة</h4>
-                    </div>
-                    <p className={`text-[11px] sm:text-sm font-medium ${
-                      (fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) ? 'text-green-600 dark:text-green-400' : 'text-gray-500'
-                    }`}>
-                      {(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate) 
-                        ? `مجدولة: ${new Date(fieldVisit?.scheduledDate || request?.fieldVisitScheduledDate!).toLocaleDateString('ar-SA')}`
-                        : 'معلقة (لم يتم التحديد)'
-                      }
-                    </p>
-                  </div>
 
-                  {/* رفع التقرير */}
-                  <div className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                    fieldVisit?.reportSubmitted
-                      ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800'
-                      : fieldVisit?.executionDate
-                      ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800'
-                      : 'bg-gray-50 border-gray-200 dark:bg-gray-900/10 dark:border-gray-800'
-                  }`}>
-                    <div className="flex items-center gap-3 mb-2">
-                      {fieldVisit?.reportSubmitted ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      ) : fieldVisit?.executionDate ? (
-                        <Clock className="w-5 h-5 text-amber-600" />
-                      ) : (
-                        <Clock className="w-5 h-5 text-gray-400" />
-                      )}
-                      <h4 className={`font-bold text-sm sm:text-base ${
-                        fieldVisit?.reportSubmitted
-                          ? 'text-green-800 dark:text-green-200'
-                          : fieldVisit?.executionDate
-                          ? 'text-amber-800 dark:text-amber-200'
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`}>رفع التقرير</h4>
+              {/* Progress Bar */}
+              <div className="mb-4 sm:mb-6">
+                <div className="w-full bg-secondary rounded-full h-1.5 sm:h-2 overflow-hidden">
+                  <div className="bg-primary h-full rounded-full animate-pulse" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+
+              <p className="text-muted-foreground mb-6 text-sm sm:text-base leading-relaxed text-right">
+                يرجى مراجعة تقرير الاستجابة السريعة المقدم أدناه واتخاذ الإجراء المناسب. نظراً لأن المشكلة لم تحل بالكامل، يمكنك تحويل الطلب إلى مشروع متكامل أو إغلاقه مؤقتاً.
+              </p>
+
+              {/* Inline Report Preview */}
+              <div className="mb-6 space-y-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-right" style={{ direction: "rtl" }}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-200/60 dark:border-slate-800">
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">تفاصيل تقرير الاستجابة السريعة</h4>
+                    <p className="text-xs text-slate-500">تم تقديم التقرير في: {new Date(latestQuickReport.responseDate).toLocaleDateString('ar-SA')}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {latestQuickReport.finalEvaluation && (
+                      <div className={`px-2.5 py-0.5 rounded-full border text-xs font-bold ${
+                        latestQuickReport.finalEvaluation === 'excellent' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        latestQuickReport.finalEvaluation === 'good' ? 'bg-green-50 text-green-700 border-green-200' :
+                        latestQuickReport.finalEvaluation === 'acceptable' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        latestQuickReport.finalEvaluation === 'needs_improvement' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        التقييم: {
+                          latestQuickReport.finalEvaluation === 'excellent' ? 'ممتاز' :
+                          latestQuickReport.finalEvaluation === 'good' ? 'جيد' :
+                          latestQuickReport.finalEvaluation === 'acceptable' ? 'مقبول' :
+                          latestQuickReport.finalEvaluation === 'needs_improvement' ? 'يحتاج تحسين' : 'ضعيف'
+                        }
+                      </div>
+                    )}
+                    <div className="px-2.5 py-0.5 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200">
+                      {latestQuickReport.status === 'partially_solved' ? 'تم حل المشكلة جزئياً' : 'لم يتم حل المشكلة'}
                     </div>
-                    <p className={`text-[11px] sm:text-sm font-medium ${
-                      fieldVisit?.reportSubmitted
-                        ? 'text-green-600 dark:text-green-400'
-                        : fieldVisit?.executionDate
-                        ? 'text-amber-600 dark:text-amber-400'
-                        : 'text-gray-500'
-                    }`}>
-                      {fieldVisit?.reportSubmitted
-                        ? 'تم رفع التقرير بنجاح'
-                        : fieldVisit?.executionDate
-                        ? 'قيد الرفع (تمت الزيارة)'
-                        : 'معلق (بانتظار الزيارة)'
-                      }
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
+                  <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40">
+                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">الفني المختص</span>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{latestQuickReport.technicianName || "غير محدد"}</p>
+                  </div>
+                  
+                  <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40">
+                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">حالة المشروع المتكامل</span>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {latestQuickReport.requiresProject ? "نعم، يحتاج إلى مشروع متكامل" : "لا يحتاج إلى مشروع متكامل"}
                     </p>
                   </div>
                 </div>
+
+                <div className="space-y-3">
+                  {latestQuickReport.technicalEvaluation && (
+                    <div className="bg-white dark:bg-slate-900/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
+                      <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">التقييم الفني للأعمال المنفذة</span>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                        {latestQuickReport.technicalEvaluation}
+                      </p>
+                    </div>
+                  )}
+
+                  {latestQuickReport.unexecutedWorks && (
+                    <div className="bg-red-50/10 dark:bg-red-950/10 p-3 rounded-lg border border-red-100 dark:border-red-900/20">
+                      <span className="text-[11px] font-bold text-red-500 block mb-1">الأعمال غير المنفذة / أسباب عدم التنفيذ</span>
+                      <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
+                        {latestQuickReport.unexecutedWorks}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            
-            {/* خيارات التقييم الفني */}
-            {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+
+              {/* Action Buttons styled like Stage 4 buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 border-t pt-6 border-slate-100 dark:border-slate-800">
                 {/* التحويل إلى مشروع */}
                 <button 
                   className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
@@ -713,83 +626,249 @@ export default function RequestDetailsNew() {
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
+                      <FolderKanban className="w-6 h-6 text-green-600" />
                     </div>
                     <div className="min-w-0">
                       <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
-                      <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
+                      <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات</p>
                     </div>
                   </div>
                 </button>
 
-                {/* الاستجابة السريعة */}
-                <button 
-                  className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
-                  onClick={() => {
-                    setSelectedDecision('quick_response');
-                    setShowTechnicalEvalDialog(true);
-                  }}
-                  disabled={technicalEvalMutation.isPending}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
-                      <Zap className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
-                      <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* التعليق */}
+                {/* الإغلاق مؤقتاً */}
                 <button 
                   className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
                   onClick={() => {
-                    setSelectedDecision('suspend');
-                    setShowTechnicalEvalDialog(true);
+                    updateStatusMutation.mutate({ requestId, newStatus: 'suspended' });
                   }}
-                  disabled={technicalEvalMutation.isPending}
+                  disabled={updateStatusMutation.isPending}
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
                       <PauseCircle className="w-6 h-6 text-amber-600" />
                     </div>
                     <div className="min-w-0">
-                      <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
+                      <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">الإغلاق مؤقتاً</h5>
                       <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
                     </div>
                   </div>
                 </button>
-
-                {/* الاعتذار */}
-                <button 
-                  className="group p-4 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
-                  onClick={() => {
-                    setSelectedDecision('apologize');
-                    setShowTechnicalEvalDialog(true);
-                  }}
-                  disabled={technicalEvalMutation.isPending}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
-                      <XCircle className="w-6 h-6 text-red-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className="font-bold text-red-800 dark:text-red-200 text-sm sm:text-base mb-1">الاعتذار (الرفض)</h5>
-                      <p className="text-[11px] sm:text-sm text-red-600 dark:text-red-400 leading-tight">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
-                    </div>
-                  </div>
-                </button>
               </div>
-            )}
+            </Card>
           </div>
+        ) : (
+          activeAction && (
+            <div className="space-y-6">
+              <ActiveActionCard
+                title={activeAction.title}
+                description={activeAction.description}
+                icon={activeAction.icon as any}
+                iconColor={activeAction.iconColor}
+                progress={{
+                  current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
+                  total: workflow.length,
+                  percentage: progress,
+                }}
+                fieldReportButton={
+                  (user?.role as string) !== 'field_team' && hasFieldReport &&
+                  !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
+                  !(isQuickResponse && (
+                    (user?.role as string) !== 'quick_response' ||
+                    (request.quickReports && request.quickReports.length > 0)
+                  ))
+                    ? {
+                        label: 'عرض تقرير الزيارة الميدانية',
+                        onClick: () => setFieldVisitReportOpen(true),
+                      }
+                    : undefined
+                }
+                actionButton={
+                  activeAction.canPerformAction && activeAction.actionButton && (
+                    request.currentStage !== 'technical_eval' ||
+                    activeAction.actionButton.openModal === 'field_visit_report' ||
+                    activeAction.actionButton.openModal === 'quick_response_report'
+                  )
+                    ? {
+                        label: activeAction.actionButton.label,
+                        onClick: handleStageTransition,
+                        disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
+                      }
+                    : undefined
+                }
+                secondaryButton={
+                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
+                    ? {
+                        label: "الانتقال إلى التقييم المالي",
+                        onClick: () => {
+                          if (!hasBoqItems) {
+                            toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
+                            return;
+                          }
+                          updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
+                        },
+                        variant: 'default' as const,
+                        disabled: !hasBoqItems || updateStageMutation.isPending,
+                      }
+                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
+                    ? {
+                        label: "إدارة عروض الأسعار",
+                        onClick: () => setLocation('/quotations'),
+                        variant: 'outline' as const,
+                      }
+                    : request.currentStage === 'contracting' && hasApprovedContract && canTransitionStage(user?.role || '', 'contracting')
+                    ? {
+                        label: "الانتقال إلى مرحلة التنفيذ",
+                        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
+                        variant: 'default' as const,
+                      }
+                    : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
+                      ? request.requestTrack === 'quick_response'
+                        ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
+                          ? {
+                              label: "إغلاق الطلب",
+                              onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                              variant: 'default' as const,
+                            }
+                          : undefined
+                        : {
+                            label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
+                            onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
+                            variant: 'default' as const,
+                            disabled: !!latestFinalReport,
+                          }
+                    : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
+                    ? {
+                        label: "إغلاق الطلب رسمياً",
+                        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                        variant: 'default' as const,
+                      }
+                    : undefined
+                }
+                additionalActions={
+                  (request.currentStage === 'handover' || request.currentStage === 'closed') && latestFinalReport
+                    ? [{
+                        label: "عرض التقرير النهائي",
+                        onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
+                      }]
+                    : []
+                }
+              />
+              
+              {/* قسم المراجعة الأولية */}
+              {request.currentStage === 'initial_review' && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-3 mb-4">
+                    <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                    <h4 className="font-bold text-blue-800 dark:text-blue-200 text-base sm:text-lg">المراجعة الأولية</h4>
+                  </div>
+                  <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 mb-4">يجب إتمام المراجعة الأولية قبل الانتقال للزيارة الميدانية</p>
+                  <div className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-lg border shadow-sm">
+                    <input
+                      type="checkbox"
+                      id="review-completed"
+                      checked={request.reviewCompleted || false}
+                      onChange={(e) => {
+                        updateReviewCompletedMutation.mutate({
+                          requestId,
+                          reviewCompleted: e.target.checked
+                        });
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="review-completed" className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-350">
+                      تمت المراجعة الأولية للطلب بنجاح
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* خيارات التقييم الفني */}
+              {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {/* التحويل إلى مشروع */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('convert_to_project');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
+                        <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* الاستجابة السريعة */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('quick_response');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
+                        <Zap className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
+                        <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* التعليق */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('suspend');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
+                        <PauseCircle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
+                        <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* الاعتذار */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('apologize');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
+                        <XCircle className="w-6 h-6 text-red-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-red-800 dark:text-red-200 text-sm sm:text-base mb-1">الاعتذار (الرفض)</h5>
+                        <p className="text-[11px] sm:text-sm text-red-600 dark:text-red-400 leading-tight">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          )
         )}
-
-
-
-
-
         {/* زر مراجعة المعلومات والمرفقات الجديد - يظهر للجميع */}
         <div className="mt-6">
           <Button 
@@ -1592,6 +1671,25 @@ export default function RequestDetailsNew() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                 </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">
+                    مدير المشروع <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedManagerId || ''}
+                    onChange={(e) => setSelectedManagerId(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="" disabled>-- اختر مدير المشروع --</option>
+                    {managers?.map((manager: any) => (
+                      <option key={manager.id} value={manager.id.toString()}>
+                        {manager.name} ({manager.roleAr || manager.role})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">سيتم إسناد الطلب وإدارة المشروع لهذا المستخدم</p>
+                </div>
               </div>
             )}
             {/* تحديد المسؤول للاستجابة السريعة */}
@@ -1651,6 +1749,10 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
+                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
+                    toast.error("يجب تحديد مدير المشروع");
+                    return;
+                  }
                   if (selectedDecision === 'convert_to_project' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
                     toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
                     return;
@@ -1671,7 +1773,7 @@ export default function RequestDetailsNew() {
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
-                    managerId: undefined,
+                    managerId: selectedDecision === 'convert_to_project' && selectedManagerId ? parseInt(selectedManagerId) : undefined,
                     assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
                     startDate: calculatedStartDate,
                     endDate: calculatedEndDate,
@@ -1681,7 +1783,7 @@ export default function RequestDetailsNew() {
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
                   (selectedDecision === 'quick_response' && !selectedQuickResponseMemberId)
                 }
                 className={

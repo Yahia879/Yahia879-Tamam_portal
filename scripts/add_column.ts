@@ -14,13 +14,12 @@ async function run() {
   }
 
   try {
-    console.log("Adding column 'completionPercentage' to table 'contract_payments'...");
-    await db.execute(sql`ALTER TABLE \`contract_payments\` ADD COLUMN \`completionPercentage\` INT NULL;`);
-    console.log("Success: Column 'completionPercentage' added successfully to 'contract_payments'!");
+    console.log("Adding column 'status' to table 'quick_response_reports'...");
+    await db.execute(sql`ALTER TABLE \`quick_response_reports\` ADD COLUMN \`status\` VARCHAR(50) NULL;`);
+    console.log("Success: Column 'status' added successfully to 'quick_response_reports'!");
   } catch (error: any) {
-    // إذا كان العمود موجوداً بالفعل من محاولة سابقة، فلا مشكلة
     if (error.message && error.message.includes("Duplicate column name")) {
-      console.log("Column 'completionPercentage' already exists in 'contract_payments'.");
+      console.log("Column 'status' already exists in 'quick_response_reports'.");
     } else {
       console.error("Error executing migration query:", error);
     }

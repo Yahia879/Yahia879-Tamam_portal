@@ -35,7 +35,9 @@ export function getActiveAction(
 
   // التحقق من الإسناد (إذا كان الطلب مسنداً لشخص معين)
   let isAssignedToUser =
-    !requestData?.assignedTo || requestData.assignedTo === requestData.userId;
+    !requestData?.assignedTo ||
+    requestData.assignedTo === requestData.userId ||
+    (userRole && ['super_admin', 'system_admin', 'projects_office'].includes(userRole));
 
   let title = config.title;
   let description = config.description;
