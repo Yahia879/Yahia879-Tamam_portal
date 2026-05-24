@@ -19,6 +19,7 @@ import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
+import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
 import { WORKFLOW_STEPS, PROGRAM_LABELS, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
@@ -432,6 +433,22 @@ export default function RequestDetailsNew() {
     ? request.quickReports[request.quickReports.length - 1]
     : null;
 
+  const userRole = user?.role ?? "";
+  const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
+  const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const canAccessRequestDetails = Boolean(
+    user &&
+    userRole !== "service_requester" &&
+    hasRouteAccess(`/requests/${requestId}`, userRole, userPermissions, hasCustomRole)
+  );
+  const canViewQuickResponseReport = Boolean(
+    latestQuickReport &&
+    isQuickResponse &&
+    (isRequester || canAccessRequestDetails)
+  );
+  const showQuickResponseReportShortcut = canViewQuickResponseReport && userRole !== "quick_response";
+
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
 
@@ -508,14 +525,14 @@ export default function RequestDetailsNew() {
           completedSteps={completedSteps}
         />
 
-        {/* زر عرض تقرير الاستجابة السريعة عند وجود تقرير (يظهر فقط للمستفيد لأن الإدارة يظهر لها مدمجاً في كارت الإجراء النشط) */}
-        {isRequester && request.quickReports && request.quickReports.length > 0 && (
+        {/* زر عرض تقرير الاستجابة السريعة عند وجود تقرير */}
+        {showQuickResponseReportShortcut && (
           <div className="flex justify-center w-full mb-6 mt-6">
             <Button
+              size="lg"
               onClick={() => setQuickResponseReportOpen(true)}
-              className="w-full max-w-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all"
+              className="w-full max-w-2xl text-base sm:text-lg py-5 sm:py-6"
             >
-              <Zap className="w-5 h-5 text-white animate-bounce shrink-0" />
               عرض تقرير الاستجابة السريعة
             </Button>
           </div>
@@ -683,7 +700,10 @@ export default function RequestDetailsNew() {
                     : undefined
                 }
                 actionButton={
-                  activeAction.canPerformAction && activeAction.actionButton && (
+                  activeAction.canPerformAction &&
+                  activeAction.actionButton &&
+                  !(showQuickResponseReportShortcut && activeAction.actionButton.openModal === 'quick_response_report') &&
+                  (
                     request.currentStage !== 'technical_eval' ||
                     activeAction.actionButton.openModal === 'field_visit_report' ||
                     activeAction.actionButton.openModal === 'quick_response_report'
