@@ -54,7 +54,7 @@ export function getActiveAction(
       title = "تم تقديم تقرير الاستجابة السريعة";
       description = "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.";
       icon = "Zap";
-      iconColor = "text-purple-600";
+      iconColor = "text-emerald-600";
       actionButton = {
         label: "عرض تقرير الاستجابة السريعة",
         openModal: "quick_response_report",

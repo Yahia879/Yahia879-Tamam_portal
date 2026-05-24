@@ -71,19 +71,11 @@ export default function RequestDetailsNew() {
   const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
     enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
   });
+  const managers: any[] = [];
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
   const utils = trpc.useUtils();
-
-  // Fetch managers for project creation
-  const { data: managersResult } = trpc.users.getAll.useQuery({
-    roles: ['super_admin', 'system_admin', 'projects_office', 'project_manager'],
-    limit: 100,
-  }, {
-    enabled: selectedDecision === 'convert_to_project',
-  });
-  const managers = managersResult?.items || [];
 
   // Fetch unread comments count
   const { data: unreadData } = trpc.requests.getUnreadCommentsCount.useQuery({ requestId });
@@ -190,7 +182,6 @@ export default function RequestDetailsNew() {
       setSelectedDecision(null);
       setJustification("");
       setProjectName("");
-      setSelectedManagerId(null);
       setStartDate("");
       setExpectedEndDate("");
       setDurationDays("");
@@ -532,7 +523,7 @@ export default function RequestDetailsNew() {
               title="تم تقديم تقرير الاستجابة السريعة"
               description="تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه."
               icon={Zap}
-              iconColor="text-purple-600"
+              iconColor="text-emerald-600"
               progress={{
                 current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
                 total: workflow.length,
@@ -1633,7 +1624,7 @@ export default function RequestDetailsNew() {
                     <Input
                       type="number"
                       min="1"
-                      value={durationDays}
+                    value={durationDays}
                       onChange={(e) => setDurationDays(e.target.value)}
                       placeholder="مثال: 30"
                       className="w-full pl-12 text-right"
@@ -1645,7 +1636,7 @@ export default function RequestDetailsNew() {
                   <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-4 hidden">
                   <label className="block text-sm font-medium mb-2">
                     مدير المشروع <span className="text-red-500">*</span>
                   </label>
@@ -1707,7 +1698,6 @@ export default function RequestDetailsNew() {
                   setSelectedDecision(null);
                   setJustification("");
                   setProjectName("");
-                  setSelectedManagerId(null);
                   setSelectedQuickResponseMemberId(null);
                   setStartDate("");
                   setExpectedEndDate("");
@@ -1722,7 +1712,7 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
-                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
+                  if (false && selectedDecision === 'convert_to_project' && !selectedManagerId) {
                     toast.error("يجب تحديد مدير المشروع");
                     return;
                   }
@@ -1746,7 +1736,7 @@ export default function RequestDetailsNew() {
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
-                    managerId: selectedDecision === 'convert_to_project' && selectedManagerId ? parseInt(selectedManagerId) : undefined,
+                    managerId: undefined,
                     assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
                     startDate: calculatedStartDate,
                     endDate: calculatedEndDate,
@@ -1756,7 +1746,7 @@ export default function RequestDetailsNew() {
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !selectedManagerId || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
                   (selectedDecision === 'quick_response' && !selectedQuickResponseMemberId)
                 }
                 className={
