@@ -525,24 +525,27 @@ export default function RequestDetailsNew() {
           completedSteps={completedSteps}
         />
 
-        {/* زر عرض تقرير الاستجابة السريعة عند وجود تقرير */}
-        {showQuickResponseReportShortcut && (
-          <div className="flex justify-center w-full mb-6 mt-6">
-            <Button
-              size="lg"
-              onClick={() => setQuickResponseReportOpen(true)}
-              className="w-full max-w-2xl text-base sm:text-lg py-5 sm:py-6"
-            >
-              عرض تقرير الاستجابة السريعة
-            </Button>
-          </div>
-        )}
-
         {/* Active Action Card */}
         {request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && (latestQuickReport.status === 'partially_solved' || latestQuickReport.status === 'not_solved') && isManagementUser ? (
           <div className="mb-6 space-y-6">
+            <ActiveActionCard
+              title="تم تقديم تقرير الاستجابة السريعة"
+              description="تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه."
+              icon={Zap}
+              iconColor="text-purple-600"
+              progress={{
+                current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
+                total: workflow.length,
+                percentage: progress,
+              }}
+              actionButton={{
+                label: "عرض تقرير الاستجابة السريعة",
+                onClick: () => setQuickResponseReportOpen(true),
+              }}
+            />
+
             <Card className="p-4 sm:p-6 md:p-8 shadow-lg border-2 border-purple-100 dark:border-purple-900/50">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="hidden flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 text-purple-600 shrink-0">
                   <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
                 </div>
@@ -555,80 +558,30 @@ export default function RequestDetailsNew() {
               </div>
 
               {/* Progress Bar */}
-              <div className="mb-4 sm:mb-6">
+              <div className="hidden mb-4 sm:mb-6">
                 <div className="w-full bg-secondary rounded-full h-1.5 sm:h-2 overflow-hidden">
                   <div className="bg-primary h-full rounded-full animate-pulse" style={{ width: `${progress}%` }} />
                 </div>
               </div>
 
-              <p className="text-muted-foreground mb-6 text-sm sm:text-base leading-relaxed text-right">
+              <p className="hidden text-muted-foreground mb-6 text-sm sm:text-base leading-relaxed text-right">
                 يرجى مراجعة تقرير الاستجابة السريعة المقدم أدناه واتخاذ الإجراء المناسب. نظراً لأن المشكلة لم تحل بالكامل، يمكنك تحويل الطلب إلى مشروع متكامل أو إغلاقه مؤقتاً.
               </p>
 
               {/* Inline Report Preview */}
-              <div className="mb-6 space-y-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-right" style={{ direction: "rtl" }}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-200/60 dark:border-slate-800">
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">تفاصيل تقرير الاستجابة السريعة</h4>
-                    <p className="text-xs text-slate-500">تم تقديم التقرير في: {new Date(latestQuickReport.responseDate).toLocaleDateString('ar-SA')}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {latestQuickReport.finalEvaluation && (
-                      <div className={`px-2.5 py-0.5 rounded-full border text-xs font-bold ${
-                        latestQuickReport.finalEvaluation === 'excellent' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        latestQuickReport.finalEvaluation === 'good' ? 'bg-green-50 text-green-700 border-green-200' :
-                        latestQuickReport.finalEvaluation === 'acceptable' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        latestQuickReport.finalEvaluation === 'needs_improvement' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        التقييم: {
-                          latestQuickReport.finalEvaluation === 'excellent' ? 'ممتاز' :
-                          latestQuickReport.finalEvaluation === 'good' ? 'جيد' :
-                          latestQuickReport.finalEvaluation === 'acceptable' ? 'مقبول' :
-                          latestQuickReport.finalEvaluation === 'needs_improvement' ? 'يحتاج تحسين' : 'ضعيف'
-                        }
-                      </div>
-                    )}
-                    <div className="px-2.5 py-0.5 rounded-full border text-xs font-bold bg-amber-50 text-amber-700 border-amber-200">
-                      {latestQuickReport.status === 'partially_solved' ? 'تم حل المشكلة جزئياً' : 'لم يتم حل المشكلة'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
-                  <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40">
-                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">الفني المختص</span>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{latestQuickReport.technicianName || "غير محدد"}</p>
-                  </div>
-                  
-                  <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/40">
-                    <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">حالة المشروع المتكامل</span>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      {latestQuickReport.requiresProject ? "نعم، يحتاج إلى مشروع متكامل" : "لا يحتاج إلى مشروع متكامل"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {latestQuickReport.technicalEvaluation && (
-                    <div className="bg-white dark:bg-slate-900/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
-                      <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 block mb-1">التقييم الفني للأعمال المنفذة</span>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                        {latestQuickReport.technicalEvaluation}
-                      </p>
-                    </div>
-                  )}
-
-                  {latestQuickReport.unexecutedWorks && (
-                    <div className="bg-red-50/10 dark:bg-red-950/10 p-3 rounded-lg border border-red-100 dark:border-red-900/20">
-                      <span className="text-[11px] font-bold text-red-500 block mb-1">الأعمال غير المنفذة / أسباب عدم التنفيذ</span>
-                      <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
-                        {latestQuickReport.unexecutedWorks}
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="hidden mb-6">
+                <Button
+                  size="lg"
+                  onClick={() => setQuickResponseReportOpen(true)}
+                  className="w-full text-base sm:text-lg py-5 sm:py-6"
+                >
+                  عرض تقرير الاستجابة السريعة
+                </Button>
               </div>
+
+              <p className="text-muted-foreground mb-6 text-sm sm:text-base leading-relaxed text-right">
+                يرجى مراجعة تقرير الاستجابة السريعة واتخاذ الإجراء المناسب. نظراً لأن المشكلة لم تحل بالكامل، يمكنك تحويل الطلب إلى مشروع متكامل أو إغلاقه مؤقتاً.
+              </p>
 
               {/* Action Buttons styled like Stage 4 buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 border-t pt-6 border-slate-100 dark:border-slate-800">
