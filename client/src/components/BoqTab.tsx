@@ -1,6 +1,6 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,14 +15,10 @@ import { toast } from "sonner";
 import {
   Calculator,
   Plus,
-  Eye,
   Edit,
   Trash2,
   Loader2,
   FileText,
-  Clock,
-  Download,
-  Upload,
 } from "lucide-react";
 import BoqFormDialog from "./BoqFormDialog";
 import { getStageOrder } from "../../../shared/constants";
@@ -37,382 +33,264 @@ export interface BoqTabHandle {
   openAddDialog: () => void;
 }
 
-const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
+  ({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
+    const [showAddDialog, setShowAddDialog] = useState(false);
+    const [showEditDialog, setShowEditDialog] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<any>(null);
 
-  const utils = trpc.useUtils();
+    const utils = trpc.useUtils();
 
-  // جلب تفاصيل الطلب للتحقق من المرحلة
-  const { data: request } = trpc.requests.getById.useQuery({ id: requestId });
+    const { data: request } = trpc.requests.getById.useQuery({ id: requestId });
 
-  // جلب جداول الكميات المرتبطة بالطلب
-  const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
-    { requestId },
-    { enabled: !!requestId }
-  );
-  const boqData = boqResult?.items || [];
-  const totalAmount = boqResult?.total || 0;
+    const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
+      { requestId },
+      { enabled: !!requestId }
+    );
 
-  // التحقق مما إذا كان الجدول مقفلاً (إذا تجاوز مرحلة إعداد جدول الكميات)
-  const isLocked = externalIsLocked !== undefined 
-    ? externalIsLocked 
-    : (request?.currentStage && getStageOrder(request.currentStage) > getStageOrder('boq_preparation'));
+    const boqData = boqResult?.items || [];
+    const totalAmount = boqResult?.total || 0;
 
-  useImperativeHandle(ref, () => ({
-    openAddDialog: () => {
+    const isLocked =
+      externalIsLocked !== undefined
+        ? externalIsLocked
+        : !!(
+            request?.currentStage &&
+            getStageOrder(request.currentStage) > getStageOrder("boq_preparation")
+          );
+
+    useImperativeHandle(ref, () => ({
+      openAddDialog: () => {
+        if (isLocked) {
+          toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+          return;
+        }
+        setShowAddDialog(true);
+      },
+    }));
+
+    const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
+      onSuccess: () => {
+        toast.success("تم حذف البند بنجاح");
+        utils.projects.getBOQ.invalidate();
+        refetch();
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "حدث خطأ أثناء حذف البند");
+      },
+    });
+
+    const handleDeleteItem = (id: number) => {
       if (isLocked) {
         toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
         return;
       }
-      setShowAddDialog(true);
-    }
-  }));
+      if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+        deleteItemMutation.mutate({ id });
+      }
+    };
 
-  // حذف بند
-  const deleteItemMutation = trpc.projects.deleteBOQItem.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف البند بنجاح");
+    const openEditDialog = (item: any) => {
+      if (isLocked) {
+        toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        return;
+      }
+      setSelectedItem(item);
+      setShowEditDialog(true);
+    };
+
+    const handleDialogClose = () => {
+      setShowAddDialog(false);
+      setShowEditDialog(false);
+      setSelectedItem(null);
       utils.projects.getBOQ.invalidate();
       refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء حذف البند");
-    },
-  });
+    };
 
-  // إضافة بند
-  const addItemMutation = trpc.projects.addBOQItem.useMutation({
-    onSuccess: () => {
-      toast.success("تم إضافة البند بنجاح");
-      utils.projects.getBOQ.invalidate();
-      refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء إضافة البند");
-    },
-  });
+    const groupedItems = boqData.reduce((acc: any, item: any) => {
+      const category = item.category || "other";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(item);
+      return acc;
+    }, {});
 
-  const handleDeleteItem = (id: number) => {
-    if (isLocked) {
-      toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
-      return;
+    const ITEM_CATEGORIES: Record<string, string> = {
+      construction: "أعمال إنشائية",
+      electrical: "أعمال كهربائية",
+      plumbing: "أعمال سباكة",
+      hvac: "تكييف وتبريد",
+      finishing: "تشطيبات",
+      carpentry: "نجارة",
+      painting: "دهانات",
+      flooring: "أرضيات",
+      other: "أخرى",
+    };
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="mr-3 text-lg">جاري تحميل جداول الكميات...</span>
+        </div>
+      );
     }
-    if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
-      deleteItemMutation.mutate({ id });
-    }
-  };
 
-  const openEditDialog = (item: any) => {
-    if (isLocked) {
-      toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
-      return;
-    }
-    setSelectedItem(item);
-    setShowEditDialog(true);
-  };
-
-  const handleDialogClose = () => {
-    setShowAddDialog(false);
-    setShowEditDialog(false);
-    setSelectedItem(null);
-    utils.projects.getBOQ.invalidate();
-    refetch();
-  };
-
-  // تجميع البنود حسب التصنيف
-  const groupedItems = boqData.reduce((acc: any, item: any) => {
-    const category = item.category || "other";
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(item);
-    return acc;
-  }, {});
-
-  const ITEM_CATEGORIES: Record<string, string> = {
-    construction: "أعمال إنشائية",
-    electrical: "أعمال كهربائية",
-    plumbing: "أعمال سباكة",
-    hvac: "تكييف وتبريد",
-    finishing: "تشطيبات",
-    carpentry: "نجارة",
-    painting: "دهانات",
-    flooring: "أرضيات",
-    other: "أخرى",
-  };
-
-  if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="mr-3 text-lg">جاري تحميل جداول الكميات...</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {!hideAddButton && !isLocked && (
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-muted/40 rounded-lg border border-border">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-teal-600" />
-            <span className="font-semibold text-sm">إدارة بنود جدول الكميات</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => setShowAddDialog(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة بند
-            </Button>
-            
-            {/* تحميل قالب Excel */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                const headers = ["التصنيف", "اسم البند", "الوصف", "الوحدة", "الكمية", "سعر الوحدة"];
-                const example = [
-                  "electrical", "استبدال الإنارة", "استبدال كامل للإنارة الداخلية", "unit", "100", "50"
-                ];
-                const csvContent = [headers, example]
-                  .map(row => row.join("\t"))
-                  .join("\n");
-                const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = "قالب_جدول_الكميات.csv";
-                link.click();
-                URL.revokeObjectURL(url);
-                toast.success("تم تحميل القالب - التصنيفات: construction, electrical, plumbing, hvac, finishing, carpentry, painting, flooring, other | الوحدات: m2, m3, m, unit, kg, ton, lump_sum");
-              }}
-            >
-              <Download className="h-4 w-4 ml-2" />
-              تحميل قالب
-            </Button>
-            
-            {/* استيراد من Excel */}
-            <div className="relative">
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  
-                  const reader = new FileReader();
-                  reader.onload = async (event) => {
-                    try {
-                      const text = event.target?.result as string;
-                      const lines = text.split("\n").filter(line => line.trim());
-                      if (lines.length < 2) {
-                        toast.error("الملف فارغ أو لا يحتوي على بيانات");
-                        return;
-                      }
-                      
-                      const dataLines = lines.slice(1);
-                      let addedCount = 0;
-                      let errorCount = 0;
-                      
-                      for (const line of dataLines) {
-                        const cols = line.split(/[\t,]/);
-                        if (cols.length >= 5) {
-                          const category = cols[0]?.trim() || "other";
-                          const itemName = cols[1]?.trim();
-                          const description = cols[2]?.trim() || "";
-                          const unit = cols[3]?.trim() || "unit";
-                          const quantity = parseFloat(cols[4]?.trim().replace(/[^\d.]/g, "")) || 0;
-                          const unitPrice = parseFloat(cols[5]?.trim().replace(/[^\d.]/g, "")) || 0;
-                          
-                          if (itemName && quantity > 0) {
-                            try {
-                              await addItemMutation.mutateAsync({
-                                requestId,
-                                itemName,
-                                itemDescription: description,
-                                unit,
-                                quantity,
-                                unitPrice,
-                                category,
-                              });
-                              addedCount++;
-                            } catch {
-                              errorCount++;
-                            }
-                          }
-                        }
-                      }
-                      
-                      if (addedCount > 0) {
-                        toast.success(`تم استيراد ${addedCount} بند بنجاح`);
-                        refetch();
-                      }
-                      if (errorCount > 0) {
-                        toast.error(`فشل استيراد ${errorCount} بند`);
-                      }
-                    } catch (err) {
-                      toast.error("حدث خطأ أثناء قراءة الملف");
-                    }
-                  };
-                  reader.readAsText(file);
-                  e.target.value = "";
-                }}
-              />
-              <Button variant="default" size="sm" className="text-xs">
-                <Upload className="h-4 w-4 ml-2" />
-                استيراد
+      <div className="space-y-6">
+        {!hideAddButton && !isLocked && (
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Calculator className="h-5 w-5 text-teal-600" />
+              <span className="font-semibold text-sm">إدارة بنود جدول الكميات</span>
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة بند
               </Button>
             </div>
           </div>
-        </div>
-      )}
-      {/* ملخص الإجمالي */}
-      {boqData.length > 0 && (
-        <Card className="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950 dark:to-teal-900 border-teal-200 dark:border-teal-800">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
-              <FileText className="h-5 w-5" />
-              ملخص جدول الكميات
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">عدد البنود</p>
-                <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                  {boqData.length}
-                </p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">الإجمالي الكلي</p>
-                <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                  {totalAmount.toLocaleString("ar-SA")} ريال
-                </p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">التصنيفات</p>
-                <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                  {Object.keys(groupedItems).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        )}
 
-      {/* جداول الكميات حسب التصنيف */}
-      {boqData.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center text-muted-foreground">
-              <Calculator className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">لا توجد بنود في جدول الكميات</p>
-              {!isLocked && <p className="text-sm mt-2">ابدأ بإضافة بنود جديدة باستخدام الزر أعلاه</p>}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        Object.entries(groupedItems).map(([category, items]: [string, any]) => (
-          <Card key={category}>
+        {boqData.length > 0 && (
+          <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-teal-100 dark:border-teal-800 dark:from-teal-950 dark:to-teal-900">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {ITEM_CATEGORIES[category] ? (
-                  <Badge variant="outline" className="text-base">
-                    {ITEM_CATEGORIES[category]}
-                  </Badge>
-                ) : !category.startsWith('boq_category_') && category !== "other" && (
-                  <Badge variant="outline" className="text-base">
-                    {category}
-                  </Badge>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  ({items.length} بند)
-                </span>
+              <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
+                <FileText className="h-5 w-5" />
+                ملخص جدول الكميات
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>اسم البند</TableHead>
-                    <TableHead>الوصف</TableHead>
-                    <TableHead>الوحدة</TableHead>
-                    <TableHead>الكمية</TableHead>
-                    <TableHead>سعر الوحدة</TableHead>
-                    <TableHead>الإجمالي</TableHead>
-                    {!isLocked && <TableHead>الإجراءات</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((item: any) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.itemName}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {item.description || "-"}
-                      </TableCell>
-                      <TableCell>{item.unit}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>
-                        {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
-                      </TableCell>
-                      <TableCell className="font-bold text-teal-600">
-                        {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
-                      </TableCell>
-                      {!isLocked && (
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditDialog(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteItem(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
+                  <p className="text-sm text-muted-foreground">عدد البنود</p>
+                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                    {boqData.length}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
+                  <p className="text-sm text-muted-foreground">الإجمالي الكلي</p>
+                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                    {totalAmount.toLocaleString("ar-SA")} ريال
+                  </p>
+                </div>
+                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
+                  <p className="text-sm text-muted-foreground">التصنيفات</p>
+                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
+                    {Object.keys(groupedItems).length}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ))
-      )}
+        )}
 
-      {/* Dialogs */}
-      {showAddDialog && (
-        <BoqFormDialog
-          requestId={requestId}
-          open={showAddDialog}
-          onClose={handleDialogClose}
-        />
-      )}
-      {showEditDialog && selectedItem && (
-        <BoqFormDialog
-          requestId={requestId}
-          open={showEditDialog}
-          onClose={handleDialogClose}
-          item={selectedItem}
-        />
-      )}
-    </div>
-  );
-});
+        {boqData.length === 0 ? (
+          <Card>
+            <CardContent className="py-12">
+              <div className="text-center text-muted-foreground">
+                <Calculator className="mx-auto mb-4 h-16 w-16 opacity-50" />
+                <p className="text-lg font-medium">لا توجد بنود في جدول الكميات</p>
+                {!isLocked && (
+                  <p className="mt-2 text-sm">ابدأ بإضافة بنود جديدة باستخدام الزر أعلاه</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          Object.entries(groupedItems).map(([category, items]: [string, any]) => (
+            <Card key={category}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {ITEM_CATEGORIES[category] ? (
+                    <Badge variant="outline" className="text-base">
+                      {ITEM_CATEGORIES[category]}
+                    </Badge>
+                  ) : !category.startsWith("boq_category_") && category !== "other" ? (
+                    <Badge variant="outline" className="text-base">
+                      {category}
+                    </Badge>
+                  ) : null}
+                  <span className="text-sm text-muted-foreground">({items.length} بند)</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>اسم البند</TableHead>
+                      <TableHead>الوصف</TableHead>
+                      <TableHead>الوحدة</TableHead>
+                      <TableHead>الكمية</TableHead>
+                      <TableHead>سعر الوحدة</TableHead>
+                      <TableHead>الإجمالي</TableHead>
+                      {!isLocked && <TableHead>الإجراءات</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {items.map((item: any) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.itemName}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.description || "-"}
+                        </TableCell>
+                        <TableCell>{item.unit}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>
+                          {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
+                        </TableCell>
+                        <TableCell className="font-bold text-teal-600">
+                          {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
+                        </TableCell>
+                        {!isLocked && (
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEditDialog(item)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ))
+        )}
+
+        {showAddDialog && (
+          <BoqFormDialog requestId={requestId} open={showAddDialog} onClose={handleDialogClose} />
+        )}
+
+        {showEditDialog && selectedItem && (
+          <BoqFormDialog
+            requestId={requestId}
+            open={showEditDialog}
+            onClose={handleDialogClose}
+            item={selectedItem}
+          />
+        )}
+      </div>
+    );
+  }
+);
 
 BoqTab.displayName = "BoqTab";
 
