@@ -80,6 +80,7 @@ import NewDisbursementOrder from "./pages/NewDisbursementOrder";
 import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
+import ProgressReportPrint from "./pages/ProgressReportPrint";
 import DisbursementOrders from "./pages/DisbursementOrders";
 import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import EditPaymentPage from "./pages/EditPaymentPage";
@@ -293,6 +294,7 @@ function Router() {
       
       {/* تقارير الإنجاز - إدارية */}
       <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
+      <Route path="/progress-reports/:id/print">{() => <AdminRoute component={ProgressReportPrint} />}</Route>
       
       {/* الاستلامات - إدارية */}
       <Route path="/handovers">{() => <AdminRoute component={Handovers} />}</Route>

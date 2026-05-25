@@ -145,6 +145,8 @@ export default function ProgressReports() {
   const [activeTab, setActiveTab] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const limit = 10;
   
   // نوافذ الحوار
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -349,6 +351,19 @@ export default function ProgressReports() {
     setShowDetailsDialog(true);
   };
 
+  // اعتماد التقرير والتحويل المباشر لطلب صرف
+  const handleApproveAndConvert = (report: any) => {
+    if (report.status === "approved") {
+      navigate(`/disbursements/new/${report.projectId}`);
+    } else {
+      reviewMutation.mutate({ id: report.id, status: "approved" }, {
+        onSuccess: () => {
+          navigate(`/disbursements/new/${report.projectId}`);
+        }
+      });
+    }
+  };
+
   // حساب الانحراف
   const getVarianceIcon = (variance: number) => {
     if (variance > 0) return <TrendingUp className="w-4 h-4 text-green-600" />;
@@ -364,6 +379,14 @@ export default function ProgressReports() {
 
   // تصفية التقارير (تتم بالكامل من الـ backend)
   const filteredReports = reportsData || [];
+  const total = filteredReports.length;
+  const totalPages = Math.ceil(total / limit);
+  const paginatedReports = filteredReports.slice((page - 1) * limit, page * limit);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // التحقق من الصلاحيات
   const canCreateReport = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
@@ -848,11 +871,17 @@ export default function ProgressReports() {
             <Input
               placeholder="بحث برقم التقرير أو العنوان..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               className="pr-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}>
             <SelectTrigger className="w-[180px]">
               <Filter className="w-4 h-4 ml-2" />
               <SelectValue placeholder="الحالة" />
@@ -882,7 +911,7 @@ export default function ProgressReports() {
 
                 {/* Rows / Cards */}
                 <div className="divide-y divide-border">
-                  {filteredReports.map((report: any) => {
+                  {paginatedReports.map((report: any) => {
                     const variance = report.variance || 0;
                     const status = statusConfig[report.status] || statusConfig.draft;
                     return (
@@ -995,33 +1024,17 @@ export default function ProgressReports() {
                                 <span>تعديل تقرير الإنجاز</span>
                               </DropdownMenuItem>
 
-                              {report.status !== "approved" && (
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    reviewMutation.mutate({ id: report.id, status: "approved" });
-                                  }}
-                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>اعتماد التقرير</span>
-                                </DropdownMenuItem>
-                              )}
-
                               <DropdownMenuItem 
-                                onClick={() => {
-                                  navigate(`/disbursements/new/${report.projectId}`);
-                                }}
-                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-blue-600 focus:text-blue-700"
+                                onClick={() => handleApproveAndConvert(report)}
+                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
                               >
                                 <Coins className="w-3.5 h-3.5" />
-                                <span>تحويل إلى طلب صرف</span>
+                                <span>{report.status === "approved" ? "تحويل إلى طلب صرف" : "اعتماد وتحويل إلى طلب صرف"}</span>
                               </DropdownMenuItem>
 
                               <DropdownMenuItem 
                                 onClick={() => {
-                                  setSelectedReport(report);
-                                  setShowDetailsDialog(true);
-                                  setTimeout(() => window.print(), 500);
+                                  navigate(`/progress-reports/${report.id}/print`);
                                 }}
                                 className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
                               >
@@ -1034,6 +1047,68 @@ export default function ProgressReports() {
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Footer with Pagination */}
+                <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
+                  <div className="text-[11px] md:text-xs text-muted-foreground text-center">
+                    يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} تقرير إنجاز
+                  </div>
+                  
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                        if (
+                          totalPages <= 5 ||
+                          p === 1 ||
+                          p === totalPages ||
+                          (p >= page - 1 && p <= page + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={p}
+                              variant={page === p ? "default" : "outline"}
+                              size="sm"
+                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                              onClick={() => handlePageChange(p)}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        }
+                        
+                        if (p === 2 || p === totalPages - 1) {
+                          return (
+                            <span key={p} className="text-muted-foreground text-xs px-1">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return null;
+                      })}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page === totalPages}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1149,24 +1224,35 @@ export default function ProgressReports() {
               </div>
             )}
             
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                 إغلاق
               </Button>
-              {canReviewReport && selectedReport?.status === "submitted" && (
-                <>
+              
+              {selectedReport?.status === "approved" ? (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    handleApproveAndConvert(selectedReport);
+                  }}
+                  className="gradient-primary text-white font-bold"
+                >
+                  <Coins className="w-4 h-4 ml-2" />
+                  تحويل إلى طلب صرف
+                </Button>
+              ) : (
+                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
                   <Button
-                    variant="outline"
-                    onClick={() => reviewMutation.mutate({ id: selectedReport.id, status: "reviewed" })}
+                    onClick={() => {
+                      setShowDetailsDialog(false);
+                      handleApproveAndConvert(selectedReport);
+                    }}
+                    className="gradient-primary text-white font-bold"
                   >
-                    تمت المراجعة
+                    <Coins className="w-4 h-4 ml-2" />
+                    اعتماد وتحويل إلى طلب صرف
                   </Button>
-                  <Button
-                    onClick={() => reviewMutation.mutate({ id: selectedReport.id, status: "approved" })}
-                  >
-                    اعتماد
-                  </Button>
-                </>
+                )
               )}
             </DialogFooter>
           </DialogContent>
