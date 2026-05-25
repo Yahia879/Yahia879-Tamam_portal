@@ -163,23 +163,27 @@ export default function ProgressReports() {
     actualWorkDone: "",
   });
 
-  // استعلامات البيانات
+  // استعلام لكافة تقارير الإنجاز لحساب الإحصائيات العامة بشكل دائم
+  const { data: allReportsData, refetch: refetchAllReports } = trpc.progressReports.list.useQuery();
+
+  // استعلام تقارير الإنجاز المفلترة والمبحوثة من الـ backend
   const { data: reportsData, refetch: refetchReports } = trpc.progressReports.list.useQuery({
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    search: searchTerm ? searchTerm : undefined,
   });
   
-  // إحصائيات التقارير المحسوبة ديناميكياً من البيانات
+  // إحصائيات التقارير المحسوبة ديناميكياً من البيانات العامة
   const statsData = (() => {
-    if (!reportsData || reportsData.length === 0) {
+    if (!allReportsData || allReportsData.length === 0) {
       return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
     }
-    const total = reportsData.length;
-    const draft = reportsData.filter((r: any) => r.status === "draft").length;
-    const submitted = reportsData.filter((r: any) => r.status === "submitted").length;
-    const reviewed = reportsData.filter((r: any) => r.status === "reviewed").length;
-    const approved = reportsData.filter((r: any) => r.status === "approved").length;
+    const total = allReportsData.length;
+    const draft = allReportsData.filter((r: any) => r.status === "draft").length;
+    const submitted = allReportsData.filter((r: any) => r.status === "submitted").length;
+    const reviewed = allReportsData.filter((r: any) => r.status === "reviewed").length;
+    const approved = allReportsData.filter((r: any) => r.status === "approved").length;
     
-    const sumProgress = reportsData.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
+    const sumProgress = allReportsData.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
     const avgProgress = Math.round(sumProgress / total);
 
     return { total, draft, submitted, reviewed, approved, avgProgress };
@@ -205,6 +209,7 @@ export default function ProgressReports() {
       setActiveTab("list");
       resetNewReport();
       refetchReports();
+      refetchAllReports();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء التقرير");
@@ -215,6 +220,7 @@ export default function ProgressReports() {
     onSuccess: () => {
       toast.success("تم تقديم التقرير للمراجعة");
       refetchReports();
+      refetchAllReports();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ");
@@ -226,6 +232,7 @@ export default function ProgressReports() {
       toast.success("تمت المراجعة بنجاح");
       setShowDetailsDialog(false);
       refetchReports();
+      refetchAllReports();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ");
@@ -348,18 +355,8 @@ export default function ProgressReports() {
     return "text-gray-500";
   };
 
-  // تصفية التقارير
-  const filteredReports = reportsData?.filter((report: any) => {
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        report.reportNumber?.toLowerCase().includes(search) ||
-        report.title?.toLowerCase().includes(search) ||
-        report.projectName?.toLowerCase().includes(search)
-      );
-    }
-    return true;
-  }) || [];
+  // تصفية التقارير (تتم بالكامل من الـ backend)
+  const filteredReports = reportsData || [];
 
   // التحقق من الصلاحيات
   const canCreateReport = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
@@ -793,67 +790,48 @@ export default function ProgressReports() {
           )}
         </div>
 
-        {/* الإحصائيات */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="border-blue-100 dark:border-blue-900/50 bg-blue-50/10 dark:bg-blue-950/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">إجمالي التقارير</p>
-                <p className="text-3xl font-black text-slate-800 dark:text-slate-100">{statsData.total}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
-                <FileText className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-slate-100 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-900/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">مسودات</p>
-                <p className="text-3xl font-black text-slate-800 dark:text-slate-100">{statsData.draft}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400">
-                <Edit className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-amber-100 dark:border-amber-900/50 bg-amber-50/10 dark:bg-amber-950/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">قيد المراجعة</p>
-                <p className="text-3xl font-black text-amber-700 dark:text-amber-400">{statsData.submitted}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                <Clock className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-green-100 dark:border-green-900/50 bg-green-50/10 dark:bg-green-950/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-green-600 dark:text-green-400">معتمدة</p>
-                <p className="text-3xl font-black text-green-700 dark:text-green-400">{statsData.approved}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
-                <CheckCircle className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="border-primary/20 dark:border-primary/30 bg-primary/[0.02] dark:bg-primary/[0.05] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-primary">متوسط الإنجاز</p>
-                <p className="text-3xl font-black text-primary">{statsData.avgProgress}%</p>
-              </div>
-              <div className="p-3 rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* الإحصائيات - بطاقات عصرية خلفية بيضاء مطابقة لصفحة الطلبات */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {[
+            {
+              label: "إجمالي التقارير",
+              value: statsData.total,
+              icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
+              iconBg: "bg-primary/10 text-primary",
+            },
+            {
+              label: "مسودات",
+              value: statsData.draft,
+              icon: <Edit className="w-4 h-4 md:w-5 md:h-5" />,
+              iconBg: "bg-slate-100 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400",
+            },
+            {
+              label: "معتمدة",
+              value: statsData.approved,
+              icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
+              iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
+            },
+            {
+              label: "متوسط الإنجاز",
+              value: `${statsData.avgProgress}%`,
+              icon: <BarChart3 className="w-4 h-4 md:w-5 md:h-5" />,
+              iconBg: "bg-purple-100 dark:bg-purple-950/40 text-purple-600",
+            },
+          ].map((stat) => (
+            <Card key={stat.label} className="border-0 shadow-sm overflow-hidden bg-background">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+                    {stat.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-lg md:text-xl font-bold text-foreground truncate">{stat.value}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* أدوات البحث والتصفية */}
