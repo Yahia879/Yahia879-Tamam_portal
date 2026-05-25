@@ -76,6 +76,7 @@ import FinalReportForm from "./pages/FinalReportForm";
 import FinalReportView from "./pages/FinalReportView";
 import KPIDashboard from "./pages/KPIDashboard";
 import NewDisbursementRequest from "./pages/NewDisbursementRequest";
+import NewLinkedDisbursementRequest from "./pages/NewLinkedDisbursementRequest";
 import NewDisbursementOrder from "./pages/NewDisbursementOrder";
 import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
@@ -279,6 +280,7 @@ function Router() {
       <Route path="/disbursements">{() => <AdminRoute component={DisbursementRequests} />}</Route>
       <Route path="/disbursement-requests">{() => <AdminRoute component={DisbursementRequests} />}</Route>
       <Route path="/disbursements/new">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
+      <Route path="/disbursements/new-linked">{() => <AdminRoute component={NewLinkedDisbursementRequest} />}</Route>
       <Route path="/disbursements/new/:projectId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/disbursements/new/contract/:contractId">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
       <Route path="/payments/edit/:id">{() => <AdminRoute component={EditPaymentPage} />}</Route>

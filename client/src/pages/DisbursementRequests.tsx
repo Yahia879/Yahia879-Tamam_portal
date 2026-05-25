@@ -432,7 +432,7 @@ export default function DisbursementRequests() {
           </div>
           <div className="flex justify-end">
             <Button 
-              onClick={() => navigate("/disbursements/new")}
+              onClick={() => navigate("/disbursements/new-linked")}
               className="gradient-primary text-white font-bold"
             >
               <Plus className="ml-2 h-4 w-4" />
