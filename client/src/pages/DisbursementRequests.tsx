@@ -548,7 +548,7 @@ export default function DisbursementRequests() {
                                 return parsedId === request.contractPaymentId;
                               })()
                             ) : false)
-                          );
+                          ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                           return (
                             <TableRow key={request.id}>
@@ -617,7 +617,7 @@ export default function DisbursementRequests() {
                             return parsedId === request.contractPaymentId;
                           })()
                         ) : false)
-                      );
+                      ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                       return (
                         <div key={request.id} className="p-4 space-y-4">

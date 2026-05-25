@@ -59,6 +59,8 @@ import {
   ArrowRight,
   ChevronLeft,
   MoreVertical,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -152,6 +154,7 @@ export default function ProgressReports() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number; base64: string; type: string }[]>([]);
   
   const [newReport, setNewReport] = useState({
     projectId: 0,
@@ -171,6 +174,43 @@ export default function ProgressReports() {
     agreedPaymentAmount: "",
     actualWorkDone: "",
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const filesList = e.target.files;
+    if (!filesList) return;
+
+    const newFiles = Array.from(filesList);
+    for (const file of newFiles) {
+      const fileName = file.name;
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      const forbiddenExts = ['exe', 'bat', 'cmd', 'sh', 'msi', 'scr', 'pif', 'com', 'hta', 'vbs', 'js', 'jar', 'vbe', 'jse', 'wsf', 'wsh', 'ps1'];
+      
+      if (forbiddenExts.includes(ext || '')) {
+        toast.error(`عذراً، لا يُسمح برفع الملفات التنفيذية (${fileName}) لحماية خوادم النظام.`);
+        continue;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`حجم الملف كبير جداً (${fileName}). الحد الأقصى هو 10 ميجابايت.`);
+        continue;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setUploadedFiles(prev => {
+          if (prev.some(f => f.name === file.name)) return prev;
+          return [...prev, {
+            name: file.name,
+            size: file.size,
+            base64: base64,
+            type: file.type
+          }];
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // استعلام لكافة تقارير الإنجاز لحساب الإحصائيات العامة بشكل دائم
   const { data: allReportsData, refetch: refetchAllReports } = trpc.progressReports.list.useQuery();
@@ -284,6 +324,7 @@ export default function ProgressReports() {
   const resetNewReport = () => {
     setSelectedPaymentId(null);
     setEditingReportId(null);
+    setUploadedFiles([]);
     setNewReport({
       projectId: 0,
       title: "",
@@ -452,8 +493,9 @@ export default function ProgressReports() {
         challenges: newReport.challenges,
         nextSteps: newReport.nextSteps,
         recommendations: newReport.recommendations,
-        budgetSpent: newReport.budgetSpent,
-        budgetRemaining: newReport.budgetRemaining,
+        budgetSpent: "0",
+        budgetRemaining: "0",
+        photos: uploadedFiles.map(f => f.base64),
       });
     } else {
       if (hasIncompleteSchedule) {
@@ -461,15 +503,12 @@ export default function ProgressReports() {
         return;
       }
 
-      const agreed = parseFloat(newReport.agreedPaymentAmount || "0");
-      const spent = parseFloat(newReport.budgetSpent || "0");
-      if (spent < agreed) {
-        toast.info("تنبيه: لقد قمت بتحديد مبلغ مستحق صرفه أقل من القيمة المتفقة للدفعة. يرجى تعديل الدفعات في تفاصيل المشروع لإعادة الجدولة.");
-      }
-
       createMutation.mutate({
         ...newReport,
+        budgetSpent: "0",
+        budgetRemaining: "0",
         workSummary: combinedWorkSummary,
+        photos: uploadedFiles.map(f => f.base64),
       });
     }
   };
@@ -890,57 +929,68 @@ export default function ProgressReports() {
                   </CardContent>
                 </Card>
 
-                {/* Card 4: Financial Data */}
+                {/* Card 4: Upload Attachments Section */}
                 <Card className="border-border/60 shadow-sm">
                   <CardHeader className="bg-muted/30 border-b border-border/40 py-4">
                     <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                      <Coins className="w-4.5 h-4.5 text-primary" />
-                      البيانات والمبالغ المالية
+                      <Upload className="w-4.5 h-4.5 text-primary" />
+                      قسم المرفقات
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="font-semibold text-foreground flex items-center gap-1.5">
-                          قيمة الدفعة المتفقة <span className="text-xs text-muted-foreground">(غير قابلة للتعديل)</span>
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            value={newReport.agreedPaymentAmount ? parseFloat(newReport.agreedPaymentAmount).toLocaleString() : "0"}
-                            readOnly
-                            className="bg-muted/40 border-muted-foreground/20 text-slate-900 dark:text-slate-100 font-extrabold cursor-not-allowed h-11 pl-12 text-right focus-visible:ring-0"
-                          />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">ريال</span>
-                        </div>
+                    <div className="space-y-4">
+                      <Label className="font-semibold text-foreground">تحميل الصور والمستندات (الحد الأقصى 10 ميجابايت)</Label>
+                      
+                      {/* Dropzone design */}
+                      <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-xl p-6 transition-colors bg-muted/5 flex flex-col items-center justify-center cursor-pointer relative group">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileChange}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                          accept="image/*,application/pdf"
+                        />
+                        <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
+                        <p className="text-sm font-semibold text-foreground mb-1">اسحب وأفلت الملفات هنا، أو انقر للتصفح</p>
+                        <p className="text-xs text-muted-foreground">يدعم ملفات الصور ومستندات PDF فقط. يمنع تماماً رفع الملفات التنفيذية.</p>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="font-semibold text-foreground">المبلغ المستحق صرفه فعلياً <span className="text-red-500">*</span></Label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            value={newReport.budgetSpent}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setNewReport(prev => ({
-                                ...prev,
-                                budgetSpent: val,
-                              }));
-                            }}
-                            placeholder="0.00"
-                            className="h-11 pl-12 text-foreground font-bold text-right"
-                          />
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">ريال</span>
+                      {/* File preview list */}
+                      {uploadedFiles.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <h4 className="text-xs font-bold text-muted-foreground">الملفات المرفوعة ({uploadedFiles.length})</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {uploadedFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between border border-border/80 bg-background rounded-lg p-2.5 shadow-xs relative">
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  {file.type.startsWith("image/") ? (
+                                    <img src={file.base64} alt={file.name} className="w-10 h-10 object-cover rounded-md flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-10 h-10 flex items-center justify-center bg-primary/5 text-primary rounded-md flex-shrink-0">
+                                      <FileText className="w-5 h-5" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-bold text-foreground truncate">{file.name}</p>
+                                    <p className="text-[10px] text-muted-foreground font-mono">
+                                      {file.size > 0 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : "مرفق جاهز"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/5 shrink-0 rounded-full"
+                                  onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== idx))}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex justify-between items-center">
-                      <span className="text-sm font-semibold text-muted-foreground">المبلغ المتبقي من ميزانية المشروع:</span>
-                      <span className="text-lg font-black text-primary">
-                        {newReport.budgetRemaining ? parseFloat(newReport.budgetRemaining).toLocaleString() : "0"} <span className="text-xs font-normal">ريال</span>
-                      </span>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1392,6 +1442,49 @@ export default function ProgressReports() {
                     <p className="text-muted-foreground whitespace-pre-wrap">{selectedReport.recommendations}</p>
                   </div>
                 )}
+
+                {/* المرفقات المرفوعة */}
+                {selectedReport.photos && (() => {
+                  try {
+                    const photosArr = typeof selectedReport.photos === 'string' 
+                      ? JSON.parse(selectedReport.photos) 
+                      : selectedReport.photos;
+                    
+                    if (Array.isArray(photosArr) && photosArr.length > 0) {
+                      return (
+                        <div className="space-y-3">
+                          <Separator />
+                          <h3 className="font-semibold flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary" />
+                            مرفقات التقرير
+                          </h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {photosArr.map((photo: string, index: number) => {
+                              const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
+                              return (
+                                <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group hover:bg-muted/40 transition-colors">
+                                  {isImage ? (
+                                    <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-24 object-cover rounded-md mb-2" />
+                                  ) : (
+                                    <div className="w-full h-24 flex items-center justify-center rounded-md bg-background border border-dashed mb-2 text-primary font-bold text-xs">
+                                      ملف مستند PDF
+                                    </div>
+                                  )}
+                                  <a href={photo} download={`مرفق_${index + 1}`} className="text-xs text-primary font-semibold hover:underline">
+                                    تحميل المرفق
+                                  </a>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+                  } catch (e) {
+                    console.error("Error parsing photos", e);
+                  }
+                  return null;
+                })()}
               </div>
             )}
             

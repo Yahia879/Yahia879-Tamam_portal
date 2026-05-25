@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -43,6 +43,7 @@ import {
   Filter,
   Printer,
   PlayCircle,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -67,7 +68,11 @@ export default function DisbursementOrders() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showExecuteDialog, setShowExecuteDialog] = useState(false);
@@ -76,10 +81,24 @@ export default function DisbursementOrders() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [transactionReference, setTransactionReference] = useState("");
 
-  // جلب قائمة أوامر الصرف
+  // مؤقت لتأخير البحث (Debounce) لضمان أفضل أداء للاستعلامات
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // إعادة التعيين للصفحة الأولى عند البحث
+    }, 400);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  // جلب قائمة أوامر الصرف المفلترة والمسحوبة من الخادم
   const { data: ordersData, isLoading, refetch: refetchOrders } = trpc.disbursements.listOrders.useQuery({
     status: statusFilter !== "all" ? statusFilter as any : undefined,
-    limit: 100,
+    search: debouncedSearch || undefined,
+    page,
+    limit,
   });
 
   // Mutations
@@ -123,24 +142,17 @@ export default function DisbursementOrders() {
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
 
-  // تصفية الأوامر
-  const filteredOrders = ordersData?.orders?.filter((order) => {
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        order.orderNumber?.toLowerCase().includes(search) ||
-        order.beneficiaryName?.toLowerCase().includes(search) ||
-        order.projectName?.toLowerCase().includes(search)
-      );
-    }
-    return true;
-  });
+  // تعيين الأوامر مباشرة من استجابة الخادم
+  const filteredOrders = ordersData?.orders || [];
 
-  // إحصائيات
-  const pendingCount = ordersData?.orders?.filter(o => o.status === "pending").length || 0;
-  const approvedCount = ordersData?.orders?.filter(o => o.status === "approved").length || 0;
-  const executedCount = ordersData?.orders?.filter(o => o.status === "executed" || (o.status as string) === "paid").length || 0;
-  const totalAmount = ordersData?.orders?.reduce((sum, o) => sum + Number(o.amount || 0), 0) || 0;
+  // إحصائيات عامة وعالمية دقيقة من الخادم
+  const pendingCount = ordersData?.stats?.pendingCount || 0;
+  const approvedCount = ordersData?.stats?.approvedCount || 0;
+  const executedCount = ordersData?.stats?.executedCount || 0;
+  const totalAmount = ordersData?.stats?.totalAmount || 0;
+
+  const total = ordersData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <DashboardLayout>
@@ -153,42 +165,55 @@ export default function DisbursementOrders() {
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">قيد الاعتماد</CardTitle>
-              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{pendingCount}</div>
+        {/* بطاقات الإحصائيات المحدثة والأنيقة */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">قيد الاعتماد</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{pendingCount}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">معتمدة</CardTitle>
-              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{approvedCount}</div>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/50 text-green-600 dark:text-green-400">
+                <CheckCircle className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">معتمدة</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{approvedCount}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">منفذة</CardTitle>
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{executedCount}</div>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">منفذة</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{executedCount}</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المبالغ</CardTitle>
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-sm sm:text-2xl font-bold truncate">{totalAmount.toLocaleString()} ريال</div>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                <Banknote className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">إجمالي المبالغ</p>
+                <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
+                  {totalAmount.toLocaleString()} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -334,96 +359,187 @@ export default function DisbursementOrders() {
                   </Table>
                 </div>
 
-                {/* Mobile View Cards */}
-                <div className="md:hidden divide-y divide-border" dir="rtl">
+                {/* Modernized Mobile View Cards Grid */}
+                <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
                   {filteredOrders?.map((order) => (
-                    <div key={order.id} className="p-4 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 text-right">
-                          <p className="font-mono text-[10px] text-muted-foreground">{order.orderNumber}</p>
-                          <p className="font-bold text-sm truncate">{order.beneficiaryName}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{order.projectName || "-"}</p>
+                    <Card key={order.id} className="border border-border/80 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow rounded-xl">
+                      <div className="p-4 space-y-4">
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+                          <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
+                            {order.orderNumber}
+                          </span>
+                          <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold">
+                            {STATUS_MAP[order.status || "draft"]?.label}
+                          </Badge>
                         </div>
-                        <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className="text-[10px] px-2 py-0">
-                          {STATUS_MAP[order.status || "draft"]?.label}
-                        </Badge>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-right">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground mb-1">المبلغ</p>
-                          <p className="text-sm font-semibold">{Number(order.amount).toLocaleString()} ريال</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground mb-1">طريقة الدفع</p>
-                          <p className="text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</p>
-                        </div>
-                      </div>
+                        {/* Card Body */}
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">المستفيد</p>
+                            <h4 className="font-bold text-sm text-foreground leading-tight">{order.beneficiaryName}</h4>
+                          </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                        <span className="text-[10px] text-muted-foreground">
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
-                        </span>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
-                          >
-                            <Printer className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => navigate(`/disbursement-orders/${order.id}`)}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          {canApproveOrder && order.status === "pending" && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-green-600 border-green-200"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowApproveDialog(true);
-                                }}
-                              >
-                                <CheckCircle className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-red-600 border-red-200"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowRejectDialog(true);
-                                }}
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                              </Button>
-                            </>
-                          )}
-                          {canExecuteOrder && order.status === "approved" && (
+                          <div className="flex items-start gap-2 bg-muted/30 p-2 rounded-lg">
+                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1.5 shrink-0" />
+                            <div className="min-w-0 text-right">
+                              <p className="text-[9px] text-muted-foreground font-medium">المشروع</p>
+                              <p className="text-xs text-foreground font-semibold truncate">{order.projectName || "—"}</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-right">
+                            <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 p-2 rounded-lg">
+                              <p className="text-[9px] text-emerald-800 dark:text-emerald-400 font-semibold mb-0.5">المبلغ</p>
+                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 font-mono">
+                                {Number(order.amount).toLocaleString()} <span className="text-[10px] font-normal">ريال</span>
+                              </p>
+                            </div>
+                            <div className="bg-muted/40 p-2 rounded-lg">
+                              <p className="text-[9px] text-muted-foreground font-medium mb-0.5">طريقة الدفع</p>
+                              <p className="text-xs font-semibold text-foreground">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Actions Footer */}
+                        <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—"}
+                          </span>
+                          
+                          <div className="flex gap-1.5">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8 w-8 p-0 text-blue-600 border-blue-200"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowExecuteDialog(true);
-                              }}
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
+                              title="طباعة أمر الصرف"
                             >
-                              <PlayCircle className="h-3.5 w-3.5" />
+                              <Printer className="h-3.5 w-3.5" />
                             </Button>
-                          )}
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-muted text-blue-600 border-blue-100 hover:bg-blue-50"
+                              onClick={() => navigate(`/disbursement-orders/${order.id}`)}
+                              title="تفاصيل أمر الصرف"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {canApproveOrder && order.status === "pending" && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-green-600 border-green-200 hover:bg-green-50"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowApproveDialog(true);
+                                  }}
+                                  title="اعتماد أمر الصرف"
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowRejectDialog(true);
+                                  }}
+                                  title="رفض أمر الصرف"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+
+                            {canExecuteOrder && order.status === "approved" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-amber-600 border-amber-200 hover:bg-amber-50"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setShowExecuteDialog(true);
+                                }}
+                                title="تنفيذ أمر الصرف"
+                              >
+                                <PlayCircle className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   ))}
+                </div>
+
+                {/* تذييل الصفحة مع الترقيم وخادم البحث */}
+                <div className="px-4 py-4 bg-muted/10 border-t flex flex-col items-center justify-center gap-4">
+                  <div className="text-[11px] md:text-xs text-muted-foreground text-center font-medium">
+                    يعرض {total > 0 ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, total)} من أصل {total} أمر صرف
+                  </div>
+                  
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 text-right" />
+                      </Button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                        if (
+                          totalPages <= 5 ||
+                          p === 1 ||
+                          p === totalPages ||
+                          (p >= page - 1 && p <= page + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={p}
+                              variant={page === p ? "default" : "outline"}
+                              size="sm"
+                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                              onClick={() => setPage(p)}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        }
+                        
+                        if (p === 2 || p === totalPages - 1) {
+                          return (
+                            <span key={p} className="text-muted-foreground text-xs px-1">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return null;
+                      })}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={page === totalPages}
+                      >
+                        <ChevronLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </Card>
             )}

@@ -441,6 +441,7 @@ export const disbursementsRouter = router({
     .input(
       z.object({
         status: z.enum(disbursementOrderStatuses).optional(),
+        search: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(10),
       }).optional()
@@ -449,10 +450,21 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { status, page = 1, limit = 10 } = input || {};
+      const { status, search, page = 1, limit = 10 } = input || {};
 
       const conditions = [];
       if (status) conditions.push(eq(disbursementOrders.status, status));
+
+      if (search) {
+        const searchPattern = `%${search.toLowerCase()}%`;
+        conditions.push(
+          or(
+            like(sql`LOWER(${disbursementOrders.orderNumber})`, searchPattern),
+            like(sql`LOWER(${disbursementOrders.beneficiaryName})`, searchPattern),
+            like(sql`LOWER(${projects.name})`, searchPattern)
+          )
+        );
+      }
 
       const orders = await db
         .select({
@@ -544,13 +556,41 @@ export const disbursementsRouter = router({
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+      // حساب الإحصائيات العامة للمبالغ وأوامر الصرف
+      const [pendingCountResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "pending"));
+
+      const [approvedCountResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "approved"));
+
+      const [executedCountResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "executed"));
+
+      const [totalAmountResult] = await db
+        .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+        .from(disbursementOrders);
 
       return {
         orders: ordersWithDetails,
         total: countResult?.count || 0,
         page,
         limit,
+        stats: {
+          pendingCount: pendingCountResult?.count || 0,
+          approvedCount: approvedCountResult?.count || 0,
+          executedCount: executedCountResult?.count || 0,
+          totalAmount: Number(totalAmountResult?.total || 0),
+        }
       };
     }),
 
