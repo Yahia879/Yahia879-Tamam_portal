@@ -50,6 +50,7 @@ import {
   CreditCard,
   Printer,
   Download,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -129,9 +130,12 @@ export default function DisbursementRequests() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("requests");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
+  
+  const [page, setPage] = useState(1);
+  const limit = 10;
   
   // نوافذ الحوار
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -174,6 +178,9 @@ export default function DisbursementRequests() {
   // استعلامات البيانات
   const { data: requestsData, refetch: refetchRequests } = trpc.disbursements.listRequests.useQuery({
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    search: searchTerm || undefined,
+    page,
+    limit,
   });
   
   const { data: ordersData, refetch: refetchOrders } = trpc.disbursements.listOrders.useQuery({});
@@ -224,11 +231,12 @@ export default function DisbursementRequests() {
 
   const createOrderMutation = trpc.disbursements.createOrder.useMutation({
     onSuccess: () => {
-      toast.success("تم إنشاء أمر الصرف بنجاح");
+      toast.success("تم إنشاء أمر الصرف بنجاح وتم توجيهك لقسم أوامر الصرف");
       setShowCreateOrderDialog(false);
       resetNewOrder();
       refetchOrders();
       refetchRequests();
+      navigate("/disbursement-orders");
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء أمر الصرف");
@@ -368,25 +376,44 @@ export default function DisbursementRequests() {
     setShowCreateOrderDialog(true);
   };
 
-  const filteredRequests = requestsData?.requests?.filter((req) => {
-    // تصفية البحث
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = (
-        req.requestNumber?.toLowerCase().includes(search) ||
-        req.title?.toLowerCase().includes(search) ||
-        req.projectName?.toLowerCase().includes(search)
+  // تحويل مباشر في الخلفية إلى أمر صرف وتوجيه المستخدم إلى قسم أوامر الصرف
+  const handleDirectCreateOrder = async (request: any) => {
+    try {
+      if (request.status === "pending") {
+        await approveRequestMutation.mutateAsync({ id: request.id });
+      }
+
+      // البحث عن بيانات المشروع والمورد
+      const project = projectsWithContractsData?.projects?.find(
+        (p: any) => p.projectId === request.projectId
       );
-      if (!matchesSearch) return false;
+      
+      const beneficiaryName = project?.supplierName || request.projectName || "مستفيد غير محدد";
+      const beneficiaryBank = project?.supplierBank || "";
+      const beneficiaryIban = project?.supplierIban || "";
+      const beneficiaryAccountName = project?.supplierAccountName || "";
+
+      createOrderMutation.mutate({
+        disbursementRequestId: request.id,
+        beneficiaryName,
+        beneficiaryBank,
+        beneficiaryIban,
+        beneficiaryAccountName,
+        paymentMethod: "bank_transfer",
+      });
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أو تحويل الطلب");
     }
-    
-    // تصفية نوع الدفعة
-    if (paymentTypeFilter !== "all") {
-      if ((req as any).paymentType !== paymentTypeFilter) return false;
-    }
-    
-    return true;
-  });
+  };
+
+  // إعادة تعيين الصفحة الأولى عند تغيير الفلاتر أو البحث
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, paymentTypeFilter]);
+
+  const total = requestsData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
+  const paginatedRequests = requestsData?.requests || [];
 
   // تحويل الرقم إلى نص عربي
   const numberToArabicText = (num: number): string => {
@@ -468,34 +495,19 @@ export default function DisbursementRequests() {
                   placeholder="بحث برقم الطلب أو العنوان أو المشروع..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
+                  className="pr-10 text-right font-medium"
+                  dir="rtl"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4 lg:flex lg:w-auto">
+              <div className="flex w-full lg:w-auto">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full lg:w-[180px]">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="pending">قيد المراجعة</SelectItem>
-                    <SelectItem value="approved">معتمد</SelectItem>
-                    <SelectItem value="rejected">مرفوض</SelectItem>
-                    <SelectItem value="paid">مصروف</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px]">
-                    <CreditCard className="ml-2 h-4 w-4" />
-                    <SelectValue placeholder="نوع الدفعة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الأنواع</SelectItem>
-                    <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                    <SelectItem value="progress">دفعة مرحلية</SelectItem>
-                    <SelectItem value="final">دفعة نهائية</SelectItem>
-                    <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                    <SelectItem value="pending">قيد الاعتماد</SelectItem>
+                    <SelectItem value="approved">معتمدة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -519,14 +531,14 @@ export default function DisbursementRequests() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredRequests?.length === 0 ? (
+                      {paginatedRequests.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             لا توجد طلبات صرف
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredRequests?.map((request) => {
+                        paginatedRequests.map((request) => {
                           const correspondingReport = allReports?.find((report: any) => 
                             report.projectId === request.projectId && 
                             (request.contractPaymentId ? (
@@ -560,15 +572,12 @@ export default function DisbursementRequests() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setShowDetailsDialog(true);
-                                    }}
-                                    title="تفاصيل الطلب"
+                                    className="h-8 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/50 dark:text-amber-400 font-semibold"
+                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                    title="عرض تقرير طلب الصرف"
                                   >
-                                    <Eye className="ml-1 h-3.5 w-3.5" />
-                                    تفاصيل
+                                    <Printer className="ml-1 h-3.5 w-3.5" />
+                                    عرض تقرير طلب الصرف
                                   </Button>
 
                                   {correspondingReport && (
@@ -583,56 +592,17 @@ export default function DisbursementRequests() {
                                     </Button>
                                   )}
 
-                                  {canCreateOrder && request.status === "approved" && (
+                                  {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       className="h-8 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 font-semibold"
-                                      onClick={() => openCreateOrderDialog(request)}
+                                      onClick={() => handleDirectCreateOrder(request)}
                                     >
                                       <Banknote className="ml-1 h-3.5 w-3.5" />
                                       تحويل إلى أمر صرف
                                     </Button>
                                   )}
-
-                                  {canApproveRequest && request.status === "pending" && (
-                                    <div className="flex gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50"
-                                        onClick={() => {
-                                          setSelectedRequest(request);
-                                          setShowApproveDialog(true);
-                                        }}
-                                      >
-                                        <CheckCircle className="ml-1 h-3.5 w-3.5" />
-                                        اعتماد
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
-                                        onClick={() => {
-                                          setSelectedRequest(request);
-                                          setShowRejectDialog(true);
-                                        }}
-                                      >
-                                        <XCircle className="ml-1 h-3.5 w-3.5" />
-                                        رفض
-                                      </Button>
-                                    </div>
-                                  )}
-
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                    title="طباعة طلب الصرف"
-                                  >
-                                    <Printer className="h-4 w-4" />
-                                  </Button>
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -645,10 +615,10 @@ export default function DisbursementRequests() {
 
                 {/* Mobile View Cards */}
                 <div className="md:hidden divide-y divide-border">
-                  {filteredRequests?.length === 0 ? (
+                  {paginatedRequests.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">لا توجد طلبات صرف</div>
                   ) : (
-                    filteredRequests?.map((request) => {
+                    paginatedRequests.map((request) => {
                       const correspondingReport = allReports?.find((report: any) => 
                         report.projectId === request.projectId && 
                         (request.contractPaymentId ? (
@@ -684,29 +654,17 @@ export default function DisbursementRequests() {
                               <span className="text-[10px] text-muted-foreground">
                                 {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
                               </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                title="طباعة طلب الصرف"
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
                             </div>
 
                             <div className="flex flex-wrap gap-2 w-full">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 px-2 text-xs flex-1"
-                                onClick={() => {
-                                  setSelectedRequest(request);
-                                  setShowDetailsDialog(true);
-                                }}
+                                className="h-8 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/50 dark:text-amber-400 font-semibold flex-1"
+                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
                               >
-                                <Eye className="ml-1 h-3.5 w-3.5" />
-                                تفاصيل
+                                <Printer className="ml-1 h-3.5 w-3.5" />
+                                عرض تقرير طلب الصرف
                               </Button>
 
                               {correspondingReport && (
@@ -721,51 +679,84 @@ export default function DisbursementRequests() {
                                 </Button>
                               )}
 
-                              {canCreateOrder && request.status === "approved" && (
+                              {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="h-8 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 font-semibold flex-1"
-                                  onClick={() => openCreateOrderDialog(request)}
+                                  onClick={() => handleDirectCreateOrder(request)}
                                 >
                                   <Banknote className="ml-1 h-3.5 w-3.5" />
                                   تحويل إلى أمر صرف
                                 </Button>
-                              )}
-
-                              {canApproveRequest && request.status === "pending" && (
-                                <div className="flex gap-2 w-full">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 flex-1"
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setShowApproveDialog(true);
-                                    }}
-                                  >
-                                    <CheckCircle className="ml-1 h-3.5 w-3.5" />
-                                    اعتماد
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 flex-1"
-                                    onClick={() => {
-                                      setSelectedRequest(request);
-                                      setShowRejectDialog(true);
-                                    }}
-                                  >
-                                    <XCircle className="ml-1 h-3.5 w-3.5" />
-                                    رفض
-                                  </Button>
-                                </div>
                               )}
                             </div>
                           </div>
                         </div>
                       );
                     })
+                  )}
+                </div>
+
+                {/* Footer with Pagination */}
+                <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
+                  <div className="text-[11px] md:text-xs text-muted-foreground text-center">
+                    يعرض {total > 0 ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, total)} من أصل {total} طلب صرف
+                  </div>
+                  
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={page === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                        if (
+                          totalPages <= 5 ||
+                          p === 1 ||
+                          p === totalPages ||
+                          (p >= page - 1 && p <= page + 1)
+                        ) {
+                          return (
+                            <Button
+                              key={p}
+                              variant={page === p ? "default" : "outline"}
+                              size="sm"
+                              className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                              onClick={() => setPage(p)}
+                            >
+                              {p}
+                            </Button>
+                          );
+                        }
+                        
+                        if (p === 2 || p === totalPages - 1) {
+                          return (
+                            <span key={p} className="text-muted-foreground text-xs px-1">
+                              ...
+                            </span>
+                          );
+                        }
+                        
+                        return null;
+                      })}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={page === totalPages}
+                      >
+                        <ChevronLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
