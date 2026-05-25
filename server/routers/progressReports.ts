@@ -42,6 +42,8 @@ export const progressReportsRouter = router({
           variance: progressReports.variance,
           status: progressReports.status,
           createdAt: progressReports.createdAt,
+          budgetSpent: progressReports.budgetSpent,
+          workSummary: progressReports.workSummary,
           projectName: projects.name,
           createdByName: users.name,
         })
