@@ -53,6 +53,9 @@ import {
   Send,
   Edit,
   BarChart3,
+  Check,
+  Coins,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +64,35 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   submitted: { label: "مقدم للمراجعة", variant: "default" },
   reviewed: { label: "تمت المراجعة", variant: "outline" },
   approved: { label: "معتمد", variant: "outline" },
+};
+
+const PAYMENT_TYPE_MAP: Record<string, string> = {
+  advance: "دفعة مقدمة",
+  progress: "دفعة إنجاز",
+  final: "دفعة ختامية",
+  retention: "ضمان مسترجع",
+};
+
+const PAYMENT_STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  paid: { label: "مدفوعة", variant: "outline" },
+  pending: { label: "مستحقة", variant: "secondary" },
+  draft: { label: "مسودة", variant: "secondary" },
+  submitted: { label: "قيد المراجعة", variant: "default" },
+  approved: { label: "معتمدة", variant: "outline" },
+};
+
+const getPaymentStatusStyles = (status: string) => {
+  switch (status) {
+    case "paid":
+      return "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50";
+    case "pending":
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50";
+    case "submitted":
+    case "approved":
+      return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50";
+    default:
+      return "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700";
+  }
 };
 
 export default function ProgressReports() {
@@ -74,6 +106,7 @@ export default function ProgressReports() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   
   // بيانات تقرير جديد
   const [newReport, setNewReport] = useState({
@@ -149,6 +182,7 @@ export default function ProgressReports() {
 
   // إعادة تعيين النموذج
   const resetNewReport = () => {
+    setSelectedPaymentId(null);
     setNewReport({
       projectId: 0,
       title: "",
@@ -165,6 +199,28 @@ export default function ProgressReports() {
       budgetSpent: "",
       budgetRemaining: "",
     });
+  };
+
+  // معالجة اختيار الدفعة وملء الحقول تلقائياً
+  const handleSelectPayment = (payment: any) => {
+    setSelectedPaymentId(payment.id);
+    
+    const budget = parseFloat(projectDetails?.budget || "0");
+    const spent = parseFloat(payment.amount || "0");
+    const remaining = Math.max(0, budget - spent);
+
+    setNewReport(prev => ({
+      ...prev,
+      title: `تقرير إنجاز - ${payment.description || payment.paymentNumber}`,
+      plannedProgress: payment.completionPercentage || 0,
+      actualProgress: payment.completionPercentage || 0,
+      overallProgress: payment.completionPercentage || 0,
+      budgetSpent: payment.amount?.toString() || "0",
+      budgetRemaining: remaining.toString(),
+      workSummary: payment.workDescription || payment.description || "",
+    }));
+
+    toast.success("تم اختيار الدفعة وملء البيانات تلقائياً");
   };
 
   // إنشاء تقرير جديد
@@ -429,35 +485,123 @@ export default function ProgressReports() {
                   المعلومات الأساسية
                 </h3>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>المشروع <span className="text-red-500">*</span></Label>
-                    <Select
-                      value={newReport.projectId.toString()}
-                      onValueChange={(v) => setNewReport({ ...newReport, projectId: parseInt(v) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المشروع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projectsData?.map((project: any) => (
-                          <SelectItem key={project.id} value={project.id.toString()}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>تاريخ التقرير <span className="text-red-500">*</span></Label>
-                    <Input
-                      type="date"
-                      value={newReport.reportDate}
-                      onChange={(e) => setNewReport({ ...newReport, reportDate: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>المشروع <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={newReport.projectId.toString()}
+                    onValueChange={(v) => {
+                      const nextProjectId = parseInt(v);
+                      setSelectedPaymentId(null);
+                      setNewReport(prev => ({
+                        ...prev,
+                        projectId: nextProjectId,
+                        title: "",
+                        plannedProgress: 0,
+                        actualProgress: 0,
+                        overallProgress: 0,
+                        budgetSpent: "",
+                        budgetRemaining: "",
+                        workSummary: "",
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر المشروع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectsData?.map((project: any) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {newReport.projectId > 0 && (
+                  <div className="space-y-3 pt-3 border-t border-dashed border-border/80">
+                    <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-primary" />
+                      الدفعات وجدولة الإنجاز المرتبطة للمشروع
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      اختر الدفعة التي ترغب بإنشاء تقرير إنجاز لها لملء البيانات والمبالغ تلقائياً:
+                    </p>
+                    {isProjectDetailsLoading ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                        <div className="h-28 rounded-xl border border-dashed border-muted-foreground/20 animate-pulse bg-muted/40" />
+                      </div>
+                    ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
+                        {projectDetails.payments.map((payment: any) => {
+                          const isSelected = selectedPaymentId === payment.id;
+                          const statusStyles = getPaymentStatusStyles(payment.status);
+                          const statusLabel = PAYMENT_STATUS_MAP[payment.status]?.label || payment.status;
+                          
+                          return (
+                            <div
+                              key={payment.id}
+                              onClick={() => handleSelectPayment(payment)}
+                              className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                                  : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm"
+                              }`}
+                            >
+                              {/* Selected checkmark badge */}
+                              {isSelected && (
+                                <div className="absolute top-2 left-2 bg-primary text-primary-foreground rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
+                                  <Check className="w-3 h-3" />
+                                </div>
+                              )}
+                              
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`p-1.5 rounded-lg ${isSelected ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                                    <Coins className="w-4 h-4" />
+                                  </div>
+                                  <span className="font-bold text-sm leading-none block text-foreground">
+                                    {payment.description || payment.paymentNumber}
+                                  </span>
+                                </div>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${statusStyles}`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
+                                <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
+                                <span className="font-extrabold text-base text-foreground">
+                                  {parseFloat(payment.amount || "0").toLocaleString()} <span className="text-[10px] font-medium text-muted-foreground">ريال</span>
+                                </span>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="text-muted-foreground">نسبة الإنجاز المطلوبة:</span>
+                                  <span className="font-bold text-primary">{payment.completionPercentage || 0}%</span>
+                                </div>
+                                <Progress value={payment.completionPercentage || 0} className="h-1.5 bg-muted/60 animate-all duration-500" />
+                              </div>
+                              
+                              {payment.workDescription && (
+                                <p className="text-[10px] text-muted-foreground line-clamp-1 border-t pt-1.5 border-dashed border-border/60">
+                                  {payment.workDescription}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-xl border border-dashed border-muted-foreground/30 text-center bg-muted/10">
+                        <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm font-medium text-muted-foreground">لا توجد دفعات أو جدولة إنجاز معرفة لهذا المشروع.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {hasIncompleteSchedule && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 col-span-2">
@@ -487,24 +631,7 @@ export default function ProgressReports() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>بداية فترة التقرير</Label>
-                    <Input
-                      type="date"
-                      value={newReport.reportPeriodStart}
-                      onChange={(e) => setNewReport({ ...newReport, reportPeriodStart: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>نهاية فترة التقرير</Label>
-                    <Input
-                      type="date"
-                      value={newReport.reportPeriodEnd}
-                      onChange={(e) => setNewReport({ ...newReport, reportPeriodEnd: e.target.value })}
-                    />
-                  </div>
-                </div>
+
               </div>
               
               <Separator />
@@ -599,36 +726,7 @@ export default function ProgressReports() {
                     rows={3}
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>التحديات والمعوقات</Label>
-                  <Textarea
-                    value={newReport.challenges}
-                    onChange={(e) => setNewReport({ ...newReport, challenges: e.target.value })}
-                    placeholder="اذكر التحديات والمعوقات التي واجهت المشروع..."
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>الخطوات القادمة</Label>
-                  <Textarea
-                    value={newReport.nextSteps}
-                    onChange={(e) => setNewReport({ ...newReport, nextSteps: e.target.value })}
-                    placeholder="اذكر الخطوات المخطط تنفيذها في الفترة القادمة..."
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>التوصيات</Label>
-                  <Textarea
-                    value={newReport.recommendations}
-                    onChange={(e) => setNewReport({ ...newReport, recommendations: e.target.value })}
-                    placeholder="أي توصيات أو مقترحات لتحسين سير العمل..."
-                    rows={2}
-                  />
-                </div>
+
               </div>
               
               <Separator />
