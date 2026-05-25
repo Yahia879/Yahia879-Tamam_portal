@@ -248,7 +248,7 @@ export default function ProgressReportPrint() {
                   <tbody>
                     <tr className="border-b">
                       <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">اسم المشروع:</td>
-                      <td className="py-2.5 px-3 font-semibold text-gray-900">{report.projectName || "-"}</td>
+                      <td className="py-2.5 px-3 font-semibold text-gray-900">{(report.projectName as string) || "-"}</td>
                       <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">قيمة العقد:</td>
                       <td className="py-2.5 px-3 font-semibold text-gray-900">
                         {contractAmount > 0 ? `${contractAmount.toLocaleString()} ريال` : "—"}
@@ -262,7 +262,7 @@ export default function ProgressReportPrint() {
                     </tr>
                     <tr className="border-b">
                       <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">معد التقرير:</td>
-                      <td className="py-2.5 px-3 text-gray-900">{report.createdByName || "—"}</td>
+                      <td className="py-2.5 px-3 text-gray-900">{(report.createdByName as string) || "—"}</td>
                       <td className="py-2.5 bg-gray-50/50 font-bold text-gray-600">حالة التقرير:</td>
                       <td className="py-2.5 px-3">
                         <span className="font-bold text-primary">
@@ -366,6 +366,48 @@ export default function ProgressReportPrint() {
                   </div>
                 </div>
               )}
+
+              {!!report.photos && (() => {
+                try {
+                  const photosArr = typeof report.photos === 'string' 
+                    ? JSON.parse(report.photos) 
+                    : report.photos as any;
+                  
+                  if (Array.isArray(photosArr) && photosArr.length > 0) {
+                    return (
+                      <div className="mb-6 break-inside-avoid">
+                        <h3 
+                          className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                          style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                        >
+                          4. مرفقات التقرير وصور الموقع المنجز:
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
+                          {photosArr.map((photo: string, index: number) => {
+                            const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
+                            return (
+                              <div key={index} className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs">
+                                {isImage ? (
+                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-48 object-contain rounded-md" />
+                                ) : (
+                                  <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
+                                    <FileText className="w-8 h-8 text-primary" />
+                                    <span>مستند PDF مرفق</span>
+                                  </div>
+                                )}
+                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error("Error parsing photos for print view", e);
+                }
+                return null;
+              })()}
 
               {/* القسم الخامس: التوقيعات والاعتماد */}
               <div className="mt-12 break-inside-avoid">

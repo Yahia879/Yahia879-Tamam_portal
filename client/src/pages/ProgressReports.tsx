@@ -348,13 +348,13 @@ export default function ProgressReports() {
   // تحديث المبلغ المتبقي تلقائياً عند تغيير الحقول أو تفاصيل المشروع
   useEffect(() => {
     if (newReport.projectId > 0) {
-      const budget = parseFloat(projectDetails?.budget || "0");
+      const budget = parseFloat(projectDetails?.budget || "0") || 0;
       const otherReports = allReportsData?.filter((r: any) => 
         r.projectId === newReport.projectId && 
         r.id !== editingReportId
       ) || [];
-      const spentInOtherReports = otherReports.reduce((sum: number, r: any) => sum + parseFloat(r.budgetSpent || "0"), 0);
-      const spentOnThisReport = parseFloat(newReport.budgetSpent || "0");
+      const spentInOtherReports = otherReports.reduce((sum: number, r: any) => sum + (parseFloat(r.budgetSpent || "0") || 0), 0);
+      const spentOnThisReport = parseFloat(newReport.budgetSpent || "0") || 0;
       const remaining = Math.max(0, budget - spentInOtherReports - spentOnThisReport);
       
       setNewReport(prev => {
