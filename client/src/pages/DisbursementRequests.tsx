@@ -507,7 +507,7 @@ export default function DisbursementRequests() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">قيد الاعتماد</SelectItem>
-                    <SelectItem value="approved">معتمدة</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -569,17 +569,6 @@ export default function DisbursementRequests() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex flex-wrap gap-2 justify-start items-center">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/50 dark:text-amber-400 font-semibold"
-                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                    title="عرض تقرير طلب الصرف"
-                                  >
-                                    <Printer className="ml-1 h-3.5 w-3.5" />
-                                    عرض تقرير طلب الصرف
-                                  </Button>
-
                                   {correspondingReport && (
                                     <Button
                                       variant="outline"
@@ -657,15 +646,7 @@ export default function DisbursementRequests() {
                             </div>
 
                             <div className="flex flex-wrap gap-2 w-full">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2 text-xs text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-900/50 dark:text-amber-400 font-semibold flex-1"
-                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                              >
-                                <Printer className="ml-1 h-3.5 w-3.5" />
-                                عرض تقرير طلب الصرف
-                              </Button>
+
 
                               {correspondingReport && (
                                 <Button

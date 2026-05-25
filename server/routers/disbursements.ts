@@ -14,6 +14,7 @@ import {
   suppliers,
   users,
   notifications,
+  donationOpportunities,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, or, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -136,8 +137,10 @@ export const disbursementsRouter = router({
           projectId: disbursementRequests.projectId,
           contractId: disbursementRequests.contractId,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          requestedByName: users.name,
         })
         .from(disbursementRequests)
+        .leftJoin(users, eq(disbursementRequests.requestedBy, users.id))
         .where(eq(disbursementRequests.id, input.id));
 
       if (!request) {
@@ -150,22 +153,53 @@ export const disbursementsRouter = router({
           id: projects.id,
           name: projects.name,
           projectNumber: projects.projectNumber,
+          budget: projects.budget,
+          managerName: users.name,
         })
         .from(projects)
+        .leftJoin(users, eq(projects.managerId, users.id))
         .where(eq(projects.id, request.projectId));
+
+      // جلب فرصة التبرع المرتبطة بالمشروع إن وجدت
+      const [opportunity] = await db
+        .select({
+          id: donationOpportunities.id,
+          title: donationOpportunities.title,
+          collectedAmount: donationOpportunities.collectedAmount,
+          targetAmount: donationOpportunities.targetAmount,
+          status: donationOpportunities.status,
+        })
+        .from(donationOpportunities)
+        .where(eq(donationOpportunities.projectId, request.projectId))
+        .limit(1);
 
       // جلب بيانات العقد إن وجد
       let contract = null;
-      if (request.contractId) {
+      let targetContractId = request.contractId;
+
+      if (!targetContractId && request.contractPaymentId) {
+        const [paymentData] = await db
+          .select({ contractId: contractPayments.contractId })
+          .from(contractPayments)
+          .where(eq(contractPayments.id, request.contractPaymentId));
+        if (paymentData) {
+          targetContractId = paymentData.contractId;
+        }
+      }
+
+      if (targetContractId) {
         const [contractData] = await db
           .select({
             id: contractsEnhanced.id,
             contractNumber: contractsEnhanced.contractNumber,
             contractTitle: contractsEnhanced.contractTitle,
             secondPartyName: contractsEnhanced.secondPartyName,
+            secondPartyBankName: contractsEnhanced.secondPartyBankName,
+            secondPartyIban: contractsEnhanced.secondPartyIban,
+            secondPartyAccountName: contractsEnhanced.secondPartyAccountName,
           })
           .from(contractsEnhanced)
-          .where(eq(contractsEnhanced.id, request.contractId));
+          .where(eq(contractsEnhanced.id, targetContractId));
         contract = contractData;
       }
 
@@ -179,6 +213,7 @@ export const disbursementsRouter = router({
         ...request,
         project,
         contract,
+        opportunity: opportunity || null,
         disbursementOrder: order || null,
       };
     }),
@@ -1152,12 +1187,18 @@ export const disbursementsRouter = router({
     const [totalPaidDisb] = await db
       .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
       .from(disbursementRequests)
-      .where(eq(disbursementRequests.status, "paid"));
+      .where(or(
+        eq(disbursementRequests.status, "paid"),
+        eq(disbursementRequests.status, "approved")
+      ));
 
     const [totalPaidManual] = await db
       .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
       .from(payments)
-      .where(eq(payments.status, "paid"));
+      .where(or(
+        eq(payments.status, "paid"),
+        eq(payments.status, "approved")
+      ));
 
     return {
       pendingRequests: pendingRequests?.count || 0,
