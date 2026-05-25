@@ -208,6 +208,11 @@ export default function ProgressReports() {
 
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
+    if (!payment.workDescription || !payment.completionPercentage) {
+      toast.error("عذراً، لا يمكن اختيار هذه الدفعة لعدم اكتمال بياناتها (وصف الأعمال ونسبة الإنجاز المطلوبة) في تفاصيل المشروع.");
+      return;
+    }
+
     setSelectedPaymentId(payment.id);
     
     const budget = parseFloat(projectDetails?.budget || "0");
@@ -383,8 +388,11 @@ export default function ProgressReports() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
                         {projectDetails.payments.map((payment: any) => {
                           const isSelected = selectedPaymentId === payment.id;
-                          const statusStyles = getPaymentStatusStyles(payment.status);
-                          const statusLabel = PAYMENT_STATUS_MAP[payment.status]?.label || payment.status;
+                          const isIncomplete = !payment.workDescription || !payment.completionPercentage;
+                          const statusStyles = isIncomplete
+                            ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
+                            : getPaymentStatusStyles(payment.status);
+                          const statusLabel = isIncomplete ? "بيانات غير مكتملة" : (PAYMENT_STATUS_MAP[payment.status]?.label || payment.status);
                           
                           return (
                             <div
@@ -393,6 +401,8 @@ export default function ProgressReports() {
                               className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
                                 isSelected
                                   ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                                  : isIncomplete
+                                  ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
                                   : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm"
                               }`}
                             >
@@ -492,8 +502,8 @@ export default function ProgressReports() {
                           <Input
                             type="number"
                             value={newReport.plannedProgress}
-                            disabled
-                            className="bg-muted/50 font-bold border-muted/80 text-foreground cursor-not-allowed h-11"
+                            readOnly
+                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 text-right focus-visible:ring-0"
                           />
                           <span className="text-muted-foreground font-bold">%</span>
                         </div>
@@ -507,23 +517,30 @@ export default function ProgressReports() {
                             min="0"
                             max="100"
                             value={newReport.actualProgress}
-                            onChange={(e) => setNewReport({ ...newReport, actualProgress: parseInt(e.target.value) || 0 })}
-                            className="h-11 font-bold text-foreground"
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setNewReport(prev => ({
+                                ...prev,
+                                actualProgress: val,
+                                overallProgress: val,
+                              }));
+                            }}
+                            className="h-11 font-bold text-foreground text-right"
                           />
                           <span className="text-muted-foreground font-bold">%</span>
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="font-semibold text-foreground">نسبة الإنجاز الإجمالية <span className="text-red-500">*</span></Label>
+                        <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                          نسبة الإنجاز الإجمالية <span className="text-xs text-muted-foreground">(غير قابلة للتعديل - تطابق الفعلية)</span>
+                        </Label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            min="0"
-                            max="100"
                             value={newReport.overallProgress}
-                            onChange={(e) => setNewReport({ ...newReport, overallProgress: parseInt(e.target.value) || 0 })}
-                            className="h-11 font-bold text-foreground"
+                            readOnly
+                            className="bg-muted/40 font-extrabold border-muted-foreground/20 text-slate-900 dark:text-slate-100 cursor-not-allowed h-11 text-right focus-visible:ring-0"
                           />
                           <span className="text-muted-foreground font-bold">%</span>
                         </div>
@@ -569,9 +586,9 @@ export default function ProgressReports() {
                       </Label>
                       <Textarea
                         value={newReport.workSummary}
-                        disabled
+                        readOnly
                         placeholder="الأعمال المخططة التي تأتي تلقائياً من الدفعة..."
-                        className="bg-muted/50 border-muted/80 text-foreground cursor-not-allowed min-h-[100px] leading-relaxed resize-none text-right"
+                        className="bg-muted/40 border-muted-foreground/20 text-slate-900 dark:text-slate-100 font-semibold cursor-not-allowed min-h-[100px] leading-relaxed resize-none text-right focus-visible:ring-0"
                       />
                     </div>
 
@@ -605,8 +622,8 @@ export default function ProgressReports() {
                           <Input
                             type="text"
                             value={newReport.agreedPaymentAmount ? parseFloat(newReport.agreedPaymentAmount).toLocaleString() : "0"}
-                            disabled
-                            className="bg-muted/50 border-muted/80 text-foreground cursor-not-allowed h-11 pl-12 font-bold text-right"
+                            readOnly
+                            className="bg-muted/40 border-muted-foreground/20 text-slate-900 dark:text-slate-100 font-extrabold cursor-not-allowed h-11 pl-12 text-right focus-visible:ring-0"
                           />
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">ريال</span>
                         </div>
@@ -935,8 +952,11 @@ export default function ProgressReports() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
                         {projectDetails.payments.map((payment: any) => {
                           const isSelected = selectedPaymentId === payment.id;
-                          const statusStyles = getPaymentStatusStyles(payment.status);
-                          const statusLabel = PAYMENT_STATUS_MAP[payment.status]?.label || payment.status;
+                          const isIncomplete = !payment.workDescription || !payment.completionPercentage;
+                          const statusStyles = isIncomplete
+                            ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
+                            : getPaymentStatusStyles(payment.status);
+                          const statusLabel = isIncomplete ? "بيانات غير مكتملة" : (PAYMENT_STATUS_MAP[payment.status]?.label || payment.status);
                           
                           return (
                             <div
@@ -945,6 +965,8 @@ export default function ProgressReports() {
                               className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
                                 isSelected
                                   ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                                  : isIncomplete
+                                  ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
                                   : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm"
                               }`}
                             >
