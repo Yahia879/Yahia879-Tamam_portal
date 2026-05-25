@@ -1,7 +1,14 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // دالة تحويل الأرقام إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -73,6 +80,7 @@ export default function ProgressReportPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const reportId = params.id ? parseInt(params.id) : undefined;
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   // جلب تفاصيل التقرير
   const { data: report, isLoading: isReportLoading } = trpc.progressReports.getById.useQuery(
@@ -396,11 +404,19 @@ export default function ProgressReportPrint() {
                             const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp")));
                             const isPdf = photo.startsWith("data:application/pdf") || (photo.startsWith("http") && photo.endsWith(".pdf"));
                             return (
-                              <div key={index} className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full">
+                              <div 
+                                key={index} 
+                                className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
+                                onClick={() => setPreviewFile(photo)}
+                              >
                                 {isImage ? (
                                   <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-64 object-contain rounded-md" />
                                 ) : isPdf ? (
-                                  <iframe src={photo} className="w-full h-80 border rounded-md" title={`مرفق PDF ${index + 1}`} />
+                                  <div className="w-full h-80 relative">
+                                    <iframe src={photo} className="w-full h-full border rounded-md pointer-events-none" title={`مرفق PDF ${index + 1}`} />
+                                    {/* Overlay blocker to allow clicking the parent div instead of interacting with the iframe directly */}
+                                    <div className="absolute inset-0 bg-transparent"></div>
+                                  </div>
                                 ) : (
                                   <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
                                     <FileText className="w-8 h-8 text-primary" />
@@ -408,6 +424,14 @@ export default function ProgressReportPrint() {
                                   </div>
                                 )}
                                 <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                                
+                                {/* Premium Hover Overlay Indicator */}
+                                <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
+                                  <div className="bg-white/95 text-primary px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>تكبير وعرض المرفق</span>
+                                  </div>
+                                </div>
                               </div>
                             );
                           })}
@@ -487,6 +511,32 @@ export default function ProgressReportPrint() {
 
         </div>
       </div>
+
+      {/* نافذة معاينة المرفق بحجم أكبر */}
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-6 rounded-none border-none bg-background/98 backdrop-blur-sm z-50 overflow-y-auto" dir="rtl">
+          <DialogHeader className="text-right flex items-center justify-between flex-row">
+            <DialogTitle className="text-right">معاينة المرفق - ملء الشاشة</DialogTitle>
+          </DialogHeader>
+          {previewFile && (
+            <div className="flex-1 flex items-center justify-center p-4 min-h-[400px]">
+              {previewFile.startsWith("data:image/") || (previewFile.startsWith("http") && (previewFile.endsWith(".png") || previewFile.endsWith(".jpg") || previewFile.endsWith(".jpeg") || previewFile.endsWith(".webp"))) ? (
+                <img src={previewFile} alt="معاينة المرفق" className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-md" />
+              ) : previewFile.startsWith("data:application/pdf") || (previewFile.startsWith("http") && previewFile.endsWith(".pdf")) ? (
+                <iframe src={previewFile} className="w-full h-[80vh] border rounded-lg shadow-md" title="معاينة مستند PDF" />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full">
+                  <FileText className="w-16 h-16 text-muted-foreground" />
+                  <span className="font-bold text-foreground">مستند غير مدعوم للمعاينة المباشرة</span>
+                  <a href={previewFile} download="مرفق_تمام" className="text-sm underline font-semibold text-primary hover:text-primary/80">
+                    تحميل وتنزيل الملف
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* أنماط الطباعة المخصصة لـ A4 */}
       <style>{`

@@ -465,7 +465,7 @@ export const payments = mysqlTable("payments", {
   id: int("id").autoincrement().primaryKey(),
   paymentNumber: varchar("paymentNumber", { length: 50 }).notNull().unique(),
   projectId: int("projectId").references(() => projects.id),
-  contractId: int("contractId").references(() => contracts.id),
+  contractId: int("contractId").references(() => contractsEnhanced.id),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   paymentType: mysqlEnum("paymentType", ["advance", "progress", "final", "retention"]).default("progress"),
   status: mysqlEnum("status", ["pending", "approved", "paid", "rejected"]).default("pending"),

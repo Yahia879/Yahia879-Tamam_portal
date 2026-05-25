@@ -1268,13 +1268,15 @@ export default function ProgressReports() {
                                 </DropdownMenuItem>
                               )}
 
-                              {!isReportConverted(report) && report.status !== "approved" && (
+                              {report.status !== "approved" && (
                                 <DropdownMenuItem 
-                                  onClick={() => handleApproveAndConvert(report)}
+                                  onClick={() => {
+                                    reviewMutation.mutate({ id: report.id, status: "approved" });
+                                  }}
                                   className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
                                 >
-                                  <Coins className="w-3.5 h-3.5" />
-                                  <span>التحويل إلى طلب صرف</span>
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>اعتماد التقرير</span>
                                 </DropdownMenuItem>
                               )}
 
@@ -1518,17 +1520,17 @@ export default function ProgressReports() {
                 إغلاق
               </Button>
               
-              {!isReportConverted(selectedReport) && selectedReport?.status !== "approved" && (
+              {selectedReport?.status !== "approved" && (
                 canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
                   <Button
                     onClick={() => {
                       setShowDetailsDialog(false);
-                      handleApproveAndConvert(selectedReport);
+                      reviewMutation.mutate({ id: selectedReport.id, status: "approved" });
                     }}
                     className="gradient-primary text-white font-bold"
                   >
-                    <Coins className="w-4 h-4 ml-2" />
-                    اعتماد وتحويل إلى طلب صرف
+                    <CheckCircle className="w-4 h-4 ml-2" />
+                    اعتماد التقرير
                   </Button>
                 )
               )}

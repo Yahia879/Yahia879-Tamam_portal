@@ -182,10 +182,10 @@ export default function NewDisbursementRequest() {
     { enabled: formData.contractId > 0 }
   );
   
-  // mutation لإنشاء طلب الصرف
-  const createMutation = trpc.disbursements.createRequest.useMutation({
+  // mutation لإنشاء دفعة مباشرة للمشروع
+  const createMutation = trpc.projects.createPayment.useMutation({
     onSuccess: (data) => {
-      toast.success("تم إنشاء طلب الصرف بنجاح");
+      toast.success("تم إضافة الدفعة بنجاح");
       navigate(`/projects/${formData.projectId}`);
     },
     onError: (error) => {
@@ -302,13 +302,9 @@ export default function NewDisbursementRequest() {
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
-      contractPaymentId: formData.contractPaymentId || undefined,
-      title: formData.title,
-      description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
-      dateMiladi: formData.dateMiladi,
-      completionPercentage: formData.completionPercentage,
+      description: formData.description,
     });
   };
   
@@ -379,49 +375,6 @@ export default function NewDisbursementRequest() {
                   </Select>
                 </div>
 
-                {formData.projectId > 0 && (
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">تقرير الإنجاز المرتبط *</Label>
-                    <Select
-                      value={selectedReportId?.toString() || ""}
-                      onValueChange={(value) => setSelectedReportId(parseInt(value))}
-                    >
-                      <SelectTrigger className="text-right" dir="rtl">
-                        <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {approvedReports?.length === 0 ? (
-                          <div className="p-2 text-center text-xs text-muted-foreground">لا توجد تقارير إنجاز معتمدة لهذا المشروع</div>
-                        ) : (
-                          approvedReports?.map((report: any) => (
-                            <SelectItem key={report.id} value={report.id.toString()} className="text-right">
-                              {report.reportNumber} - {report.title} ({report.actualProgress}%)
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    
-                    {selectedReport && (
-                      <div className="mt-3 p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-primary">تم ربط تقرير الإنجاز بنجاح</p>
-                          <p className="text-xs font-semibold text-foreground">نسبة الإنجاز الفعلي: {selectedReport.actualProgress}% (المخطط: {selectedReport.plannedProgress}%)</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-primary border-primary/30 bg-background hover:bg-primary/5 font-bold h-8"
-                          onClick={() => setShowReportReviewDialog(true)}
-                        >
-                          <FileText className="ml-1.5 h-3.5 w-3.5" />
-                          مراجعة التقرير المعتمد
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
                   <div className="space-y-2 text-right">
@@ -429,7 +382,7 @@ export default function NewDisbursementRequest() {
                     <Select
                       value={formData.contractId.toString()}
                       onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
-                      disabled={!!params.contractId}
+                      disabled={true}
                     >
                       <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر العقد" />
