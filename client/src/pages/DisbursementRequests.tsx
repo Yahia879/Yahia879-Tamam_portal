@@ -425,10 +425,19 @@ export default function DisbursementRequests() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* العنوان والإحصائيات */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" dir="rtl">
+          <div className="text-right">
             <h1 className="text-2xl font-bold">طلبات الصرف</h1>
             <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
+          </div>
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => navigate("/disbursements/new")}
+              className="gradient-primary text-white font-bold"
+            >
+              <Plus className="ml-2 h-4 w-4" />
+              إضافة طلب صرف
+            </Button>
           </div>
         </div>
 

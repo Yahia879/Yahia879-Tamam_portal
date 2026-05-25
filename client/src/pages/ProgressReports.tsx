@@ -461,6 +461,31 @@ export default function ProgressReports() {
       agreedPaymentAmount: report.budgetSpent || "",
       actualWorkDone: actual,
     });
+
+    try {
+      if (report.photos) {
+        let parsedPhotos = report.photos;
+        while (typeof parsedPhotos === "string") {
+          parsedPhotos = JSON.parse(parsedPhotos);
+        }
+        if (Array.isArray(parsedPhotos)) {
+          setUploadedFiles(parsedPhotos.map((photo, i) => ({
+            name: `مرفق_${i + 1}`,
+            size: 0,
+            base64: photo,
+            type: photo.startsWith("data:image/") ? "image/png" : "application/pdf"
+          })));
+        } else {
+          setUploadedFiles([]);
+        }
+      } else {
+        setUploadedFiles([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setUploadedFiles([]);
+    }
+
     setEditingReportId(report.id);
     setActiveTab("edit");
   };

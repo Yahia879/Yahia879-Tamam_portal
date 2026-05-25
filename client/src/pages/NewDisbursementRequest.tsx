@@ -25,6 +25,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowRight,
   Send,
   Plus,
@@ -97,8 +105,12 @@ export default function NewDisbursementRequest() {
     description: "",
     completionPercentage: 0,
     dateMiladi: new Date().toISOString().split('T')[0],
+    contractPaymentId: 0,
   });
   
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
+
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>([
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "" }
@@ -125,6 +137,44 @@ export default function NewDisbursementRequest() {
     { id: formData.projectId },
     { enabled: formData.projectId > 0 }
   );
+
+  // جلب تقارير الإنجاز المعتمدة للمشروع المحدد
+  const { data: approvedReports } = trpc.progressReports.list.useQuery(
+    { projectId: formData.projectId || undefined, status: "approved" },
+    { enabled: formData.projectId > 0 }
+  );
+
+  const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
+
+  // الملء التلقائي بناءً على تقرير الإنجاز المختار
+  useEffect(() => {
+    if (selectedReport) {
+      const paymentIdMatch = (selectedReport.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+      const paymentId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : 0;
+      
+      const workSummaryText = selectedReport.workSummary || "";
+      const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
+      const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+
+      const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentId);
+
+      setFormData(prev => ({
+        ...prev,
+        title: `طلب صرف لـ ${selectedReport.title}`,
+        description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+        completionPercentage: selectedReport.actualProgress || 0,
+        contractPaymentId: paymentId,
+      }));
+
+      if (paymentInfo) {
+        setSuppliers(prev => prev.map(s => ({
+          ...s,
+          amount: parseFloat(paymentInfo.amount || "0"),
+          work: paymentInfo.description || "",
+        })));
+      }
+    }
+  }, [selectedReportId, projectDetails]);
   
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
@@ -252,6 +302,7 @@ export default function NewDisbursementRequest() {
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
+      contractPaymentId: formData.contractPaymentId || undefined,
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
@@ -313,7 +364,7 @@ export default function NewDisbursementRequest() {
                   <Select
                     value={formData.projectId.toString()}
                     onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
-                    disabled={formData.projectId > 0}
+                    disabled={!!params.projectId}
                   >
                     <SelectTrigger className="text-right" dir="rtl">
                       <SelectValue placeholder="اختر المشروع" />
@@ -327,6 +378,50 @@ export default function NewDisbursementRequest() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {formData.projectId > 0 && (
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right">تقرير الإنجاز المرتبط *</Label>
+                    <Select
+                      value={selectedReportId?.toString() || ""}
+                      onValueChange={(value) => setSelectedReportId(parseInt(value))}
+                    >
+                      <SelectTrigger className="text-right" dir="rtl">
+                        <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {approvedReports?.length === 0 ? (
+                          <div className="p-2 text-center text-xs text-muted-foreground">لا توجد تقارير إنجاز معتمدة لهذا المشروع</div>
+                        ) : (
+                          approvedReports?.map((report: any) => (
+                            <SelectItem key={report.id} value={report.id.toString()} className="text-right">
+                              {report.reportNumber} - {report.title} ({report.actualProgress}%)
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    
+                    {selectedReport && (
+                      <div className="mt-3 p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-primary">تم ربط تقرير الإنجاز بنجاح</p>
+                          <p className="text-xs font-semibold text-foreground">نسبة الإنجاز الفعلي: {selectedReport.actualProgress}% (المخطط: {selectedReport.plannedProgress}%)</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-primary border-primary/30 bg-background hover:bg-primary/5 font-bold h-8"
+                          onClick={() => setShowReportReviewDialog(true)}
+                        >
+                          <FileText className="ml-1.5 h-3.5 w-3.5" />
+                          مراجعة التقرير المعتمد
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
                   <div className="space-y-2 text-right">
@@ -334,7 +429,7 @@ export default function NewDisbursementRequest() {
                     <Select
                       value={formData.contractId.toString()}
                       onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
-                      disabled={formData.contractId > 0}
+                      disabled={!!params.contractId}
                     >
                       <SelectTrigger className="text-right" dir="rtl">
                         <SelectValue placeholder="اختر العقد" />
@@ -567,6 +662,126 @@ export default function NewDisbursementRequest() {
           </div>
         </div>
       </div>
+
+      {/* نافذة مراجعة تقرير الإنجاز */}
+      <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-right">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
+            <DialogDescription className="text-right">
+              {selectedReport?.reportNumber} - {selectedReport?.title}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedReport && (
+            <div className="space-y-6 py-4 text-right">
+              {/* المعلومات الأساسية */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
+                  <p className="text-sm font-semibold">{new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">معد التقرير</p>
+                  <p className="text-sm font-semibold">{selectedReport.createdByName}</p>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* نسب الإنجاز */}
+              <div className="space-y-3">
+                <h3 className="font-bold text-sm">نسب الإنجاز</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-3 bg-muted rounded-lg text-center">
+                    <p className="text-2xl font-bold">{selectedReport.overallProgress}%</p>
+                    <p className="text-xs text-muted-foreground">الإجمالي</p>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-blue-700">{selectedReport.plannedProgress}%</p>
+                    <p className="text-xs text-blue-600">المخطط</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-green-700">{selectedReport.actualProgress}%</p>
+                    <p className="text-xs text-green-600">الفعلي</p>
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* ملخص الأعمال */}
+              {!!selectedReport.workSummary && (
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-sm">الأعمال المنجزة</h3>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {selectedReport.workSummary as string}
+                  </p>
+                </div>
+              )}
+              
+              {!!selectedReport.challenges && (
+                <div className="space-y-1.5">
+                  <h3 className="font-bold text-sm">التحديات والمعوقات</h3>
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                    {selectedReport.challenges as string}
+                  </p>
+                </div>
+              )}
+
+              {/* المرفقات المرفوعة */}
+              {!!selectedReport.photos && (() => {
+                try {
+                  let photosArr = selectedReport.photos;
+                  while (typeof photosArr === 'string') {
+                    photosArr = JSON.parse(photosArr);
+                  }
+                  
+                  if (Array.isArray(photosArr) && photosArr.length > 0) {
+                    return (
+                      <div className="space-y-3">
+                        <Separator />
+                        <h3 className="font-bold text-sm flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-primary" />
+                          مرفقات التقرير
+                        </h3>
+                        <div className="grid grid-cols-3 gap-3">
+                          {photosArr.map((photo: string, index: number) => {
+                            const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
+                            return (
+                              <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group">
+                                {isImage ? (
+                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-20 object-cover rounded-md mb-2" />
+                                ) : (
+                                  <div className="w-full h-20 flex items-center justify-center rounded-md bg-background border border-dashed mb-2 text-primary font-bold text-xs">
+                                    مستند PDF
+                                  </div>
+                                )}
+                                <a href={photo} download={`مرفق_${index + 1}`} className="text-[10px] text-primary font-semibold hover:underline">
+                                  تحميل المرفق
+                                </a>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
+                return null;
+              })()}
+            </div>
+          )}
+          
+          <DialogFooter className="text-right">
+            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

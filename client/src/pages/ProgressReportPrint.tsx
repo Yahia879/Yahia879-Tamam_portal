@@ -367,13 +367,22 @@ export default function ProgressReportPrint() {
                 </div>
               )}
 
-              {!!report.photos && (() => {
+              {(() => {
                 try {
-                  const photosArr = typeof report.photos === 'string' 
-                    ? JSON.parse(report.photos) 
-                    : report.photos as any;
-                  
-                  if (Array.isArray(photosArr) && photosArr.length > 0) {
+                  const getFilesArray = (fieldVal: any) => {
+                    if (!fieldVal) return [];
+                    let arr = fieldVal;
+                    while (typeof arr === 'string') {
+                      arr = JSON.parse(arr);
+                    }
+                    return Array.isArray(arr) ? arr : [];
+                  };
+
+                  const photosArr = getFilesArray(report.photos);
+                  const attachmentsArr = getFilesArray(report.attachments);
+                  const allFiles = [...photosArr, ...attachmentsArr].filter(Boolean);
+
+                  if (allFiles.length > 0) {
                     return (
                       <div className="mb-6 break-inside-avoid">
                         <h3 
@@ -383,16 +392,19 @@ export default function ProgressReportPrint() {
                           4. مرفقات التقرير وصور الموقع المنجز:
                         </h3>
                         <div className="grid grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
-                          {photosArr.map((photo: string, index: number) => {
-                            const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
+                          {allFiles.map((photo: string, index: number) => {
+                            const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp")));
+                            const isPdf = photo.startsWith("data:application/pdf") || (photo.startsWith("http") && photo.endsWith(".pdf"));
                             return (
-                              <div key={index} className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs">
+                              <div key={index} className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full">
                                 {isImage ? (
-                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-48 object-contain rounded-md" />
+                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-64 object-contain rounded-md" />
+                                ) : isPdf ? (
+                                  <iframe src={photo} className="w-full h-80 border rounded-md" title={`مرفق PDF ${index + 1}`} />
                                 ) : (
                                   <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
                                     <FileText className="w-8 h-8 text-primary" />
-                                    <span>مستند PDF مرفق</span>
+                                    <span>مستند مرفق</span>
                                   </div>
                                 )}
                                 <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>

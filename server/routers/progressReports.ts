@@ -55,6 +55,11 @@ export const progressReportsRouter = router({
           createdAt: progressReports.createdAt,
           budgetSpent: progressReports.budgetSpent,
           workSummary: progressReports.workSummary,
+          challenges: progressReports.challenges,
+          nextSteps: progressReports.nextSteps,
+          recommendations: progressReports.recommendations,
+          attachments: progressReports.attachments,
+          photos: progressReports.photos,
           projectName: projects.name,
           createdByName: users.name,
         })
