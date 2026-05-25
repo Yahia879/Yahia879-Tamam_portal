@@ -398,24 +398,6 @@ export default function ProgressReportPrint() {
                     </div>
                   </div>
                 </div>
-
-                {/* مصادقة الإدارة الهندسية ومكتب المشاريع */}
-                <div className="border-t border-dashed pt-4">
-                  <table className="w-full text-xs text-gray-600">
-                    <tbody>
-                      <tr>
-                        <td className="text-center w-1/2">
-                          <span className="font-bold">معد التقرير (مهندس المشروع): </span>
-                          <span className="underline decoration-dotted px-2 font-semibold text-gray-900">{report.createdByName || "—"}</span>
-                        </td>
-                        <td className="text-center w-1/2">
-                          <span className="font-bold">مدير إدارة المشاريع (PMO): </span>
-                          <span className="text-gray-400">....................................................</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
               </div>
 
               {/* تذييل المستند */}

@@ -1029,7 +1029,7 @@ export default function ProgressReports() {
                                 className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
                               >
                                 <Coins className="w-3.5 h-3.5" />
-                                <span>{report.status === "approved" ? "تحويل إلى طلب صرف" : "اعتماد وتحويل إلى طلب صرف"}</span>
+                                <span>التحويل إلى طلب صرف</span>
                               </DropdownMenuItem>
 
                               <DropdownMenuItem 
