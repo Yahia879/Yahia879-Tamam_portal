@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, or, like } from "drizzle-orm";
 import { protectedProcedure, router } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
@@ -12,6 +12,7 @@ export const progressReportsRouter = router({
       z.object({
         projectId: z.number().optional(),
         status: z.enum(["draft", "submitted", "reviewed", "approved"]).optional(),
+        search: z.string().optional(),
         limit: z.number().default(50),
         offset: z.number().default(0),
       }).optional()
@@ -27,6 +28,16 @@ export const progressReportsRouter = router({
       }
       if (input?.status) {
         conditions.push(eq(progressReports.status, input.status));
+      }
+      if (input?.search) {
+        const searchPattern = `%${input.search}%`;
+        conditions.push(
+          or(
+            like(progressReports.reportNumber, searchPattern),
+            like(progressReports.title, searchPattern),
+            like(projects.name, searchPattern)
+          )
+        );
       }
 
       const reports = await db

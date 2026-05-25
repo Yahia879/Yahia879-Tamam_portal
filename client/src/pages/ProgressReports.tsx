@@ -57,6 +57,7 @@ import {
   Coins,
   CreditCard,
   ArrowRight,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -65,6 +66,41 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   submitted: { label: "مقدم للمراجعة", variant: "default" },
   reviewed: { label: "تمت المراجعة", variant: "outline" },
   approved: { label: "معتمد", variant: "outline" },
+};
+
+const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode; badgeIcon: React.ReactNode; iconBg: string }> = {
+  draft: {
+    label: "مسودة",
+    color: "text-slate-600 dark:text-slate-400",
+    bg: "bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800",
+    icon: <FileText className="w-5 h-5 text-slate-500" />,
+    badgeIcon: <FileText className="w-3 h-3" />,
+    iconBg: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800",
+  },
+  submitted: {
+    label: "مقدم للمراجعة",
+    color: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="w-5 h-5 text-amber-500" />,
+    badgeIcon: <Clock className="w-3 h-3" />,
+    iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  },
+  reviewed: {
+    label: "تمت المراجعة",
+    color: "text-blue-700 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
+    icon: <TrendingUp className="w-5 h-5 text-blue-500" />,
+    badgeIcon: <TrendingUp className="w-3 h-3" />,
+    iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  },
+  approved: {
+    label: "معتمد",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
+    icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+    badgeIcon: <CheckCircle className="w-3 h-3" />,
+    iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  },
 };
 
 const PAYMENT_TYPE_MAP: Record<string, string> = {
@@ -158,42 +194,9 @@ export default function ProgressReports() {
   );
 
   const totalContractAmount = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
-  const totalScheduledPayments = projectDetails?.payments?.filter((p: any) => p.source === "contract" || (p.source === "disbursement" && p.contractPaymentId)).reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  const totalScheduledPayments = projectDetails?.payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
 
   const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || Math.abs(totalContractAmount - totalScheduledPayments) > 0.01);
-
-  // التحقق من وجود دفعة سابقة تم صرف مبلغ أقل من قيمتها المتفقة (مما يقفل المشروع)
-  const lockedPaymentInfo = (() => {
-    if (newReport.projectId <= 0 || !projectDetails?.payments || !reportsData) return null;
-
-    for (const payment of projectDetails.payments) {
-      // البحث عن تقرير إنجاز مرتبط بهذه الدفعة
-      const paymentTitle = `تقرير إنجاز - ${payment.description || payment.paymentNumber}`;
-      const correspondingReport = reportsData.find((report: any) => 
-        report.projectId === newReport.projectId && 
-        (report.title === paymentTitle || 
-         report.title.includes(payment.description || payment.paymentNumber) || 
-         (report.workSummary && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`)))
-      );
-
-      if (correspondingReport) {
-        const agreedAmount = parseFloat(payment.amount || "0");
-        const spentAmount = parseFloat(correspondingReport.budgetSpent || "0");
-        
-        // إذا كان الصرف الفعلي أقل من القيمة المتفقة للدفعة، فهناك فارق مالي يعيق الجدولة
-        if (spentAmount < agreedAmount) {
-          return {
-            paymentId: payment.id,
-            paymentName: payment.description || payment.paymentNumber,
-            agreedAmount,
-            spentAmount,
-            difference: agreedAmount - spentAmount,
-          };
-        }
-      }
-    }
-    return null;
-  })();
 
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
@@ -254,10 +257,6 @@ export default function ProgressReports() {
 
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
-    if (lockedPaymentInfo) {
-      toast.error("عذراً، لا يمكن اختيار أي دفعة لأن المشروع مقفل مالياً بسبب عدم تطابق صرف دفعة سابقة. يرجى مراجعة التنبيه الأحمر بالأسفل.");
-      return;
-    }
 
     if (!payment.workDescription || !payment.completionPercentage) {
       toast.error("عذراً، لا يمكن اختيار هذه الدفعة لعدم اكتمال بياناتها (وصف الأعمال ونسبة الإنجاز المطلوبة) في تفاصيل المشروع.");
@@ -303,10 +302,6 @@ export default function ProgressReports() {
       toast.error("يرجى اختيار المشروع");
       return;
     }
-    if (lockedPaymentInfo) {
-      toast.error("عذراً، لا يمكن إنشاء تقرير جديد لأن المشروع مقفل مالياً بسبب عدم توازن الدفعات السابقة.");
-      return;
-    }
     if (hasIncompleteSchedule) {
       toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
       return;
@@ -323,7 +318,7 @@ export default function ProgressReports() {
     const agreed = parseFloat(newReport.agreedPaymentAmount || "0");
     const spent = parseFloat(newReport.budgetSpent || "0");
     if (spent < agreed) {
-      toast.info("تنبيه: لقد قمت بتحديد مبلغ مستحق صرفه أقل من القيمة المتفقة للدفعة. سيتم قفل رفع تقارير جديدة لهذا المشروع حتى تقوم بتعديل الدفعات.");
+      toast.info("تنبيه: لقد قمت بتحديد مبلغ مستحق صرفه أقل من القيمة المتفقة للدفعة. يرجى تعديل الدفعات في تفاصيل المشروع لإعادة الجدولة.");
     }
 
     const combinedWorkSummary = `الأعمال المجدولة للدفعة:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n[معرف الدفعة: ${selectedPaymentId}]`;
@@ -486,9 +481,7 @@ export default function ProgressReports() {
                               key={payment.id}
                               onClick={() => handleSelectPayment(payment)}
                               className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
-                                lockedPaymentInfo
-                                  ? "border-muted bg-muted/10 opacity-50 cursor-not-allowed"
-                                  : isSelected
+                                isSelected
                                   ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
                                   : isIncomplete
                                   ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
@@ -549,7 +542,7 @@ export default function ProgressReports() {
             {/* Card 2: Report Info & Progress */}
             {newReport.projectId > 0 && (
               <>
-                {(hasIncompleteSchedule || !!lockedPaymentInfo) && (
+                 {hasIncompleteSchedule && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
                     <div className="space-y-1.5 flex-1">
@@ -766,10 +759,10 @@ export default function ProgressReports() {
                   >
                     إلغاء وتراجع
                   </Button>
-                  <Button
+                   <Button
                     size="lg"
                     onClick={handleCreateReport}
-                    disabled={createMutation.isPending || hasIncompleteSchedule || !newReport.actualWorkDone.trim() || !newReport.title.trim() || !!lockedPaymentInfo}
+                    disabled={createMutation.isPending || hasIncompleteSchedule || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
                     className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90"
                   >
                     {createMutation.isPending ? "جاري الحفظ والإنشاء..." : "حفظ وإنشاء التقرير"}
@@ -889,87 +882,139 @@ export default function ProgressReports() {
           </Select>
         </div>
 
-        {/* جدول التقارير */}
-        <Card>
+        {/* قائمة التقارير - تصميم مطابق لصفحة الطلبات */}
+        <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>رقم التقرير</TableHead>
-                  <TableHead>المشروع</TableHead>
-                  <TableHead>العنوان</TableHead>
-                  <TableHead>تاريخ التقرير</TableHead>
-                  <TableHead>نسبة الإنجاز</TableHead>
-                  <TableHead>الانحراف</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead>الإجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report: any) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.reportNumber}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                        {report.projectName}
-                      </div>
-                    </TableCell>
-                    <TableCell>{report.title}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        {new Date(report.reportDate).toLocaleDateString("ar-SA")}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress value={report.overallProgress} className="w-20 h-2" />
-                        <span className="text-sm">{report.overallProgress}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className={`flex items-center gap-1 ${getVarianceColor(report.variance)}`}>
-                        {getVarianceIcon(report.variance)}
-                        <span>{report.variance > 0 ? "+" : ""}{report.variance}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_MAP[report.status]?.variant || "secondary"}>
-                        {STATUS_MAP[report.status]?.label || report.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewDetails(report)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {report.status === "draft" && (
+            {filteredReports.length > 0 ? (
+              <div>
+                {/* Table Header (Desktop Only) */}
+                <div className="hidden md:grid grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-4 px-5 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-right">
+                  <div className="w-10"></div>
+                  <div>التقرير</div>
+                  <div>المشروع</div>
+                  <div>نسبة الإنجاز</div>
+                  <div>الحالة</div>
+                  <div className="w-20 text-center">عرض</div>
+                </div>
+
+                {/* Rows / Cards */}
+                <div className="divide-y divide-border">
+                  {filteredReports.map((report: any) => {
+                    const variance = report.variance || 0;
+                    const status = statusConfig[report.status] || statusConfig.draft;
+                    return (
+                      <div
+                        key={report.id}
+                        className="grid grid-cols-1 md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer items-center text-right"
+                        onClick={() => handleViewDetails(report)}
+                      >
+                        {/* Desktop: Report Icon */}
+                        <div className="hidden md:flex w-10 justify-center">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
+                            {status.icon}
+                          </div>
+                        </div>
+
+                        {/* Report Info (Mobile & Desktop) */}
+                        <div className="flex items-start justify-between md:block gap-3">
+                          <div className="flex items-center gap-3 md:block min-w-0">
+                            <div className="md:hidden shrink-0">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
+                                {status.icon}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-foreground text-sm">{report.reportNumber}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
+                                {report.title}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-left md:text-right shrink-0 md:mt-1">
+                             <p className="text-[10px] md:text-xs text-muted-foreground">
+                              {new Date(report.reportDate).toLocaleDateString("ar-SA")}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Project Name (Desktop & Tablet) */}
+                        <div className="hidden md:flex items-center gap-2 min-w-0">
+                          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm text-foreground truncate font-medium">{report.projectName || "—"}</span>
+                        </div>
+
+                        {/* Progress (Desktop) */}
+                        <div className="hidden md:block min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Progress value={report.overallProgress} className="w-16 h-2 bg-muted shrink-0" />
+                            <span className="text-xs font-bold text-foreground">{report.overallProgress}%</span>
+                          </div>
+                          <div className={`flex items-center gap-1 text-[10px] font-semibold mt-1 ${getVarianceColor(variance)}`}>
+                            {getVarianceIcon(variance)}
+                            <span>الانحراف: {variance > 0 ? "+" : ""}{variance}%</span>
+                          </div>
+                        </div>
+
+                        {/* Status (Desktop) */}
+                        <div className="hidden md:block shrink-0">
+                          <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                            {status.badgeIcon}
+                            {status.label}
+                          </span>
+                        </div>
+
+                        {/* Mobile Card Row: Project + Progress + Status */}
+                        <div className="md:hidden flex flex-col gap-3">
+                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{report.projectName || "—"}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <Progress value={report.overallProgress} className="w-16 h-1.5 bg-muted shrink-0" />
+                              <span className="text-[10px] font-bold text-foreground">{report.overallProgress}%</span>
+                            </div>
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                              {status.badgeIcon}
+                              {status.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions (Desktop Only) */}
+                        <div className="hidden md:flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => submitMutation.mutate({ id: report.id })}
+                            className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-primary"
+                            onClick={() => handleViewDetails(report)}
+                            title="عرض التفاصيل"
                           >
-                            <Send className="w-4 h-4" />
+                            <ChevronLeft className="w-4 h-4" />
                           </Button>
-                        )}
+                          {report.status === "draft" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-muted p-0 text-blue-600 hover:text-blue-700"
+                              onClick={() => submitMutation.mutate({ id: report.id })}
+                              title="تقديم للمراجعة"
+                            >
+                              <Send className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredReports.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      لا توجد تقارير
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center text-muted-foreground">
+                <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm font-medium">لا توجد تقارير إنجاز حالياً.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
