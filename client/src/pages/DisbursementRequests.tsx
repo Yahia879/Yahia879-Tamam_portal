@@ -183,6 +183,8 @@ export default function DisbursementRequests() {
   // استخدام endpoint جديد للمشاريع مع بيانات العقد
   const { data: projectsWithContractsData } = trpc.disbursements.getProjectsWithContractDetails.useQuery();
 
+  const { data: allReports } = trpc.progressReports.list.useQuery();
+
   // Mutations
   const createRequestMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: () => {
@@ -401,30 +403,10 @@ export default function DisbursementRequests() {
             <h1 className="text-2xl font-bold">طلبات الصرف</h1>
             <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
-          {canCreateRequest && (
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="ml-2 h-4 w-4" />
-              طلب صرف جديد
-            </Button>
-          )}
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground font-semibold">طلبات قيد المراجعة</p>
-                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{statsData?.pendingRequests || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-center gap-3">
@@ -453,7 +435,7 @@ export default function DisbursementRequests() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50/40 via-background to-background dark:from-emerald-950/10 border-r-4 border-r-emerald-500">
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
             <CardContent className="p-3 sm:p-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
@@ -531,7 +513,6 @@ export default function DisbursementRequests() {
                         <TableHead className="text-right">العنوان</TableHead>
                         <TableHead className="text-right">المشروع</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">نوع الدفعة</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>
                         <TableHead className="text-right">الإجراءات</TableHead>
@@ -540,90 +521,123 @@ export default function DisbursementRequests() {
                     <TableBody>
                       {filteredRequests?.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                             لا توجد طلبات صرف
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredRequests?.map((request) => (
-                          <TableRow key={request.id}>
-                            <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
-                            <TableCell className="max-w-[200px] truncate text-right">{request.title}</TableCell>
-                            <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
-                            <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
-                            <TableCell className="text-right">{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</TableCell>
-                            <TableCell className="text-right">
-                              <DisbursementStatusBadge 
-                                status={request.status as any} 
-                                type="request" 
-                              />
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-right">
-                              {request.requestedAt
-                                ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
-                                : "-"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex gap-2 justify-start">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedRequest(request);
-                                    setShowDetailsDialog(true);
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                {canApproveRequest && request.status === "pending" && (
-                                  <>
+                        filteredRequests?.map((request) => {
+                          const correspondingReport = allReports?.find((report: any) => 
+                            report.projectId === request.projectId && 
+                            (request.contractPaymentId ? (
+                              (() => {
+                                const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+                                const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
+                                return parsedId === request.contractPaymentId;
+                              })()
+                            ) : false)
+                          );
+
+                          return (
+                            <TableRow key={request.id}>
+                              <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
+                              <TableCell className="max-w-[200px] truncate text-right">{request.title}</TableCell>
+                              <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
+                              <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
+                              <TableCell className="text-right">
+                                <DisbursementStatusBadge 
+                                  status={request.status as any} 
+                                  type="request" 
+                                />
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap text-right">
+                                {request.requestedAt
+                                  ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex flex-wrap gap-2 justify-start items-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setShowDetailsDialog(true);
+                                    }}
+                                    title="تفاصيل الطلب"
+                                  >
+                                    <Eye className="ml-1 h-3.5 w-3.5" />
+                                    تفاصيل
+                                  </Button>
+
+                                  {correspondingReport && (
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
-                                      className="text-green-600"
-                                      onClick={() => {
-                                        setSelectedRequest(request);
-                                        setShowApproveDialog(true);
-                                      }}
+                                      className="h-8 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-900/50 dark:text-blue-400 font-semibold"
+                                      onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
                                     >
-                                      <CheckCircle className="h-4 w-4" />
+                                      <FileText className="ml-1 h-3.5 w-3.5" />
+                                      عرض تقرير الإنجاز
                                     </Button>
+                                  )}
+
+                                  {canCreateOrder && request.status === "approved" && (
                                     <Button
-                                      variant="ghost"
+                                      variant="outline"
                                       size="sm"
-                                      className="text-red-600"
-                                      onClick={() => {
-                                        setSelectedRequest(request);
-                                        setShowRejectDialog(true);
-                                      }}
+                                      className="h-8 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 font-semibold"
+                                      onClick={() => openCreateOrderDialog(request)}
                                     >
-                                      <XCircle className="h-4 w-4" />
+                                      <Banknote className="ml-1 h-3.5 w-3.5" />
+                                      تحويل إلى أمر صرف
                                     </Button>
-                                  </>
-                                )}
-                                {canCreateOrder && request.status === "approved" && (
+                                  )}
+
+                                  {canApproveRequest && request.status === "pending" && (
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50"
+                                        onClick={() => {
+                                          setSelectedRequest(request);
+                                          setShowApproveDialog(true);
+                                        }}
+                                      >
+                                        <CheckCircle className="ml-1 h-3.5 w-3.5" />
+                                        اعتماد
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                                        onClick={() => {
+                                          setSelectedRequest(request);
+                                          setShowRejectDialog(true);
+                                        }}
+                                      >
+                                        <XCircle className="ml-1 h-3.5 w-3.5" />
+                                        رفض
+                                      </Button>
+                                    </div>
+                                  )}
+
                                   <Button
                                     variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => openCreateOrderDialog(request)}
-                                    title="إنشاء أمر صرف"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                    title="طباعة طلب الصرف"
                                   >
-                                    <FileText className="h-4 w-4" />
+                                    <Printer className="h-4 w-4" />
                                   </Button>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                  title="طباعة طلب الصرف"
-                                >
-                                  <Printer className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -634,95 +648,124 @@ export default function DisbursementRequests() {
                   {filteredRequests?.length === 0 ? (
                     <div className="p-8 text-center text-muted-foreground">لا توجد طلبات صرف</div>
                   ) : (
-                    filteredRequests?.map((request) => (
-                      <div key={request.id} className="p-4 space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div className="min-w-0">
-                            <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
-                            <p className="font-bold text-sm truncate">{request.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
-                          </div>
-                          <DisbursementStatusBadge 
-                            status={request.status as any} 
-                            type="request" 
-                          />
-                        </div>
+                    filteredRequests?.map((request) => {
+                      const correspondingReport = allReports?.find((report: any) => 
+                        report.projectId === request.projectId && 
+                        (request.contractPaymentId ? (
+                          (() => {
+                            const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+                            const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
+                            return parsedId === request.contractPaymentId;
+                          })()
+                        ) : false)
+                      );
 
-                        <div className="grid grid-cols-2 gap-4">
+                      return (
+                        <div key={request.id} className="p-4 space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div className="min-w-0">
+                              <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
+                              <p className="font-bold text-sm truncate">{request.title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                            </div>
+                            <DisbursementStatusBadge 
+                              status={request.status as any} 
+                              type="request" 
+                            />
+                          </div>
+
                           <div>
                             <p className="text-[10px] text-muted-foreground mb-1">المبلغ</p>
                             <p className="text-sm font-semibold">{Number(request.amount).toLocaleString()} ريال</p>
                           </div>
-                          <div>
-                            <p className="text-[10px] text-muted-foreground mb-1">نوع الدفعة</p>
-                            <p className="text-xs">{PAYMENT_TYPE_MAP[(request as any).paymentType || "progress"]}</p>
-                          </div>
-                        </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                          <span className="text-[10px] text-muted-foreground">
-                            {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
-                          </span>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => {
-                                setSelectedRequest(request);
-                                setShowDetailsDialog(true);
-                              }}
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-                            {canApproveRequest && request.status === "pending" && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-green-600 border-green-200"
-                                  onClick={() => {
-                                    setSelectedRequest(request);
-                                    setShowApproveDialog(true);
-                                  }}
-                                >
-                                  <CheckCircle className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-red-600 border-red-200"
-                                  onClick={() => {
-                                    setSelectedRequest(request);
-                                    setShowRejectDialog(true);
-                                  }}
-                                >
-                                  <XCircle className="h-3.5 w-3.5" />
-                                </Button>
-                              </>
-                            )}
-                            {canCreateOrder && request.status === "approved" && (
+                          <div className="pt-2 border-t border-border/50 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-muted-foreground">
+                                {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                title="طباعة طلب الصرف"
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 w-full">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-blue-600 border-blue-200"
-                                onClick={() => openCreateOrderDialog(request)}
+                                className="h-8 px-2 text-xs flex-1"
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setShowDetailsDialog(true);
+                                }}
                               >
-                                <FileText className="h-3.5 w-3.5" />
+                                <Eye className="ml-1 h-3.5 w-3.5" />
+                                تفاصيل
                               </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                            >
-                              <Printer className="h-3.5 w-3.5" />
-                            </Button>
+
+                              {correspondingReport && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-900/50 dark:text-blue-400 font-semibold flex-1"
+                                  onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
+                                >
+                                  <FileText className="ml-1 h-3.5 w-3.5" />
+                                  عرض تقرير الإنجاز
+                                </Button>
+                              )}
+
+                              {canCreateOrder && request.status === "approved" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-400 font-semibold flex-1"
+                                  onClick={() => openCreateOrderDialog(request)}
+                                >
+                                  <Banknote className="ml-1 h-3.5 w-3.5" />
+                                  تحويل إلى أمر صرف
+                                </Button>
+                              )}
+
+                              {canApproveRequest && request.status === "pending" && (
+                                <div className="flex gap-2 w-full">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 text-xs text-green-600 border-green-200 hover:bg-green-50 flex-1"
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setShowApproveDialog(true);
+                                    }}
+                                  >
+                                    <CheckCircle className="ml-1 h-3.5 w-3.5" />
+                                    اعتماد
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 flex-1"
+                                    onClick={() => {
+                                      setSelectedRequest(request);
+                                      setShowRejectDialog(true);
+                                    }}
+                                  >
+                                    <XCircle className="ml-1 h-3.5 w-3.5" />
+                                    رفض
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </CardContent>
