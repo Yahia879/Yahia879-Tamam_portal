@@ -353,17 +353,18 @@ export default function ProgressReports() {
     let scheduled = "";
     let actual = "";
 
-    const schedStart = combined.indexOf("الأعمال المجدولة للدفعة:\n");
-    const actualStart = combined.indexOf("\n\nالأعمال المنفذة فعلياً:\n");
+    const regex = /الأعمال المجدولة للدفعة:\r?\n([\s\S]*?)\r?\n\r?الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
+    const match = combined.match(regex);
 
-    if (schedStart !== -1 && actualStart !== -1) {
-      scheduled = combined.substring(schedStart + "الأعمال المجدولة للدفعة:\n".length, actualStart).trim();
-      const paymentIdStart = combined.indexOf("\n\n[معرف الدفعة:");
-      const endIdx = paymentIdStart !== -1 ? paymentIdStart : combined.length;
-      actual = combined.substring(actualStart + "\n\nالأعمال المنفذة فعلياً:\n".length, endIdx).trim();
+    if (match) {
+      scheduled = match[1].trim();
+      actual = match[2].trim();
     } else {
-      scheduled = combined;
-      actual = "";
+      const schedMatch = combined.match(/الأعمال المجدولة للدفعة:\r?\n([\s\S]*?)(?:\r?\n\r?الأعمال المنفذة فعلياً:|\r?\n\r?\[معرف الدفعة:|$)/);
+      const actualMatch = combined.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
+      
+      scheduled = schedMatch ? schedMatch[1].trim() : combined.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+      actual = actualMatch ? actualMatch[1].trim() : "";
     }
 
     return { scheduled, actual, paymentId };
@@ -371,6 +372,18 @@ export default function ProgressReports() {
 
   // فتح صفحة التعديل وملء البيانات
   const handleEditReportClick = (report: any) => {
+    if (isReportConverted(report)) {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
+      return;
+    }
+    if (report.status === "approved") {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده.");
+      return;
+    }
+    if (isDisbursementApproved(report)) {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماد طلب الصرف المرتبط.");
+      return;
+    }
     const { scheduled, actual, paymentId } = parseWorkSummary(report.workSummary || "");
     setSelectedPaymentId(paymentId);
     setNewReport({
@@ -458,6 +471,16 @@ export default function ProgressReports() {
     const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
     if (isNaN(parsedId)) return false;
     return disbursementRequestsData.requests.some((req: any) => req.contractPaymentId === parsedId);
+  };
+
+  // التحقق مما إذا كان طلب الصرف المرتبط معتمداً أو مصروفاً
+  const isDisbursementApproved = (report: any) => {
+    if (!report || !disbursementRequestsData?.requests) return false;
+    const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
+    if (isNaN(parsedId)) return false;
+    const associatedReq = disbursementRequestsData.requests.find((req: any) => req.contractPaymentId === parsedId);
+    return associatedReq ? (associatedReq.status === "approved" || associatedReq.status === "paid") : false;
   };
 
   // اعتماد التقرير والتحويل المباشر لطلب صرف
@@ -1146,23 +1169,19 @@ export default function ProgressReports() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                              <DropdownMenuItem 
-                                onClick={() => {
-                                  if (isReportConverted(report)) {
-                                    toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
-                                    return;
-                                  }
-                                  handleEditReportClick(report);
-                                }}
-                                className={`flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors ${
-                                  isReportConverted(report) ? "opacity-50 cursor-not-allowed text-muted-foreground" : ""
-                                }`}
-                              >
-                                <Edit className="w-3.5 h-3.5 text-blue-600" />
-                                <span>تعديل تقرير الإنجاز</span>
-                              </DropdownMenuItem>
+                              {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    handleEditReportClick(report);
+                                  }}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                                >
+                                  <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>تعديل تقرير الإنجاز</span>
+                                </DropdownMenuItem>
+                              )}
 
-                              {!isReportConverted(report) && (
+                              {!isReportConverted(report) && report.status !== "approved" && (
                                 <DropdownMenuItem 
                                   onClick={() => handleApproveAndConvert(report)}
                                   className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
@@ -1369,8 +1388,8 @@ export default function ProgressReports() {
                 إغلاق
               </Button>
               
-              {!isReportConverted(selectedReport) && (
-                selectedReport?.status === "approved" ? (
+              {!isReportConverted(selectedReport) && selectedReport?.status !== "approved" && (
+                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
                   <Button
                     onClick={() => {
                       setShowDetailsDialog(false);
@@ -1379,21 +1398,8 @@ export default function ProgressReports() {
                     className="gradient-primary text-white font-bold"
                   >
                     <Coins className="w-4 h-4 ml-2" />
-                    تحويل إلى طلب صرف
+                    اعتماد وتحويل إلى طلب صرف
                   </Button>
-                ) : (
-                  canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
-                    <Button
-                      onClick={() => {
-                        setShowDetailsDialog(false);
-                        handleApproveAndConvert(selectedReport);
-                      }}
-                      className="gradient-primary text-white font-bold"
-                    >
-                      <Coins className="w-4 h-4 ml-2" />
-                      اعتماد وتحويل إلى طلب صرف
-                    </Button>
-                  )
                 )
               )}
             </DialogFooter>

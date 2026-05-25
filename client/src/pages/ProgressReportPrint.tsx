@@ -135,11 +135,33 @@ export default function ProgressReportPrint() {
   const variance = report.variance ?? 0;
   const orgLocation = [orgSettings?.city, orgSettings?.address].filter(Boolean).join(" - ") || "—";
 
-  // تنظيف ملخص الأعمال من وسوم معرف الدفعة والأعمال المجدولة لظهورها بشكل رائع
-  const cleanWorkSummary = workSummaryText
-    .replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "")
-    .replace(/الأعمال المجدولة للدفعة:\n/g, "• ")
-    .replace(/الأعمال المنفذة فعلياً:\n/g, "\n• ");
+  // استخلاص الأعمال المنفذة فعلياً فقط لظهورها في هذا القسم
+  const getActualWorkDone = (combined: string) => {
+    if (!combined) return "";
+    
+    // البحث عن قسم الأعمال المنفذة فعلياً باستخدام تعبير نمطي يدعم كافة نهايات الأسطر
+    const regex = /(?:الأعمال المنفذة فعلياً|المنفذة فعلياً):\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
+    const match = combined.match(regex);
+    if (match && match[1].trim()) {
+      return match[1].trim();
+    }
+    
+    // حالة احتياطية إذا كان العنوان موجوداً بدون سطر جديد مباشر
+    const regexNoNewline = /(?:الأعمال المنفذة فعلياً|المنفذة فعلياً):\s*([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/;
+    const matchNoNewline = combined.match(regexNoNewline);
+    if (matchNoNewline && matchNoNewline[1].trim()) {
+      return matchNoNewline[1].trim();
+    }
+
+    // إذا كان النص يحتوي على ترويسة الأعمال المجدولة فقط، فلا نعرضها لأن المستخدم يطلب الأعمال المنجزة فعلياً فقط
+    if (combined.includes("الأعمال المجدولة للدفعة:")) {
+      return "لا يوجد تفاصيل أعمال منفذة فعلياً.";
+    }
+
+    return combined.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
+  };
+
+  const cleanWorkSummary = getActualWorkDone(workSummaryText);
 
   return (
     <>
@@ -306,7 +328,7 @@ export default function ProgressReportPrint() {
                   className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                   style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                 >
-                  3. ملخص الأعمال المنجزة والخطوات:
+                  ملخص الأعمال المنجزة والخطوات:
                 </h3>
                 <div className="border rounded-lg p-4 bg-gray-50 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {cleanWorkSummary || "لا يوجد تفاصيل أعمال مسجلة."}
@@ -320,7 +342,7 @@ export default function ProgressReportPrint() {
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#1a5f4a', color: 'white' }}
                   >
-                    4. التحديات، الخطوات القادمة والتوصيات:
+                    3. التحديات، الخطوات القادمة والتوصيات:
                   </h3>
                   <div className="space-y-4">
                     {report.challenges && (
