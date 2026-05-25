@@ -58,8 +58,15 @@ import {
   CreditCard,
   ArrowRight,
   ChevronLeft,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
@@ -853,8 +860,6 @@ export default function ProgressReports() {
             <SelectContent>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="draft">مسودة</SelectItem>
-              <SelectItem value="submitted">مقدم للمراجعة</SelectItem>
-              <SelectItem value="reviewed">تمت المراجعة</SelectItem>
               <SelectItem value="approved">معتمد</SelectItem>
             </SelectContent>
           </Select>
@@ -872,7 +877,7 @@ export default function ProgressReports() {
                   <div>المشروع</div>
                   <div>نسبة الإنجاز</div>
                   <div>الحالة</div>
-                  <div className="w-20 text-center">عرض</div>
+                  <div className="w-20 text-center">الإجراءات</div>
                 </div>
 
                 {/* Rows / Cards */}
@@ -960,27 +965,71 @@ export default function ProgressReports() {
                         </div>
 
                         {/* Actions (Desktop Only) */}
-                        <div className="hidden md:flex justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-primary"
-                            onClick={() => handleViewDetails(report)}
-                            title="عرض التفاصيل"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          {report.status === "draft" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-muted p-0 text-blue-600 hover:text-blue-700"
-                              onClick={() => submitMutation.mutate({ id: report.id })}
-                              title="تقديم للمراجعة"
-                            >
-                              <Send className="w-4 h-4" />
-                            </Button>
-                          )}
+                        <div className="hidden md:flex justify-center" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
+                              <DropdownMenuItem 
+                                onClick={() => handleViewDetails(report)}
+                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                                <span>عرض التقرير</span>
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  toast.info("تعديل تفاصيل تقرير الإنجاز المعتمد يتم عبر تقديم تقرير تعويضي جديد.");
+                                }}
+                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                <span>تعديل تقرير الإنجاز</span>
+                              </DropdownMenuItem>
+
+                              {report.status !== "approved" && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    reviewMutation.mutate({ id: report.id, status: "approved" });
+                                  }}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>اعتماد التقرير</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  navigate(`/disbursements/new/${report.projectId}`);
+                                }}
+                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-blue-600 focus:text-blue-700"
+                              >
+                                <Coins className="w-3.5 h-3.5" />
+                                <span>تحويل إلى طلب صرف</span>
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem 
+                                onClick={() => {
+                                  setSelectedReport(report);
+                                  setShowDetailsDialog(true);
+                                  setTimeout(() => window.print(), 500);
+                                }}
+                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-red-600" />
+                                <span>عرض التقرير PDF</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     );
