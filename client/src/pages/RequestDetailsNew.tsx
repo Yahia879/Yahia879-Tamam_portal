@@ -535,7 +535,47 @@ export default function RequestDetailsNew() {
               }}
             />
 
-            <Card className="p-4 sm:p-6 md:p-8 shadow-lg border-2 border-purple-100 dark:border-purple-900/50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <button
+                className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
+                onClick={() => {
+                  setSelectedDecision('convert_to_project');
+                  setShowTechnicalEvalDialog(true);
+                }}
+                disabled={technicalEvalMutation.isPending}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                    <FolderKanban className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
+                    <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
+                onClick={() => {
+                  setSelectedDecision('quick_response');
+                  setShowTechnicalEvalDialog(true);
+                }}
+                disabled={technicalEvalMutation.isPending}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
+                    <Zap className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
+                    <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <Card className="hidden p-4 sm:p-6 md:p-8 shadow-lg border-2 border-purple-100 dark:border-purple-900/50">
               <div className="hidden flex-col sm:flex-row items-center sm:items-start text-center sm:text-right gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="p-2 sm:p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 text-purple-600 shrink-0">
                   <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
