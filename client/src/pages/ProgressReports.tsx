@@ -180,6 +180,11 @@ export default function ProgressReports() {
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     search: searchTerm ? searchTerm : undefined,
   });
+
+  // استعلام طلبات الصرف للتحقق من التقارير المحولة
+  const { data: disbursementRequestsData, refetch: refetchDisbursementRequests } = trpc.disbursements.listRequests.useQuery({
+    limit: 1000,
+  });
   
   // إحصائيات التقارير المحسوبة ديناميكياً من البيانات العامة
   const statsData = (() => {
@@ -248,9 +253,37 @@ export default function ProgressReports() {
     },
   });
 
+  const [editingReportId, setEditingReportId] = useState<number | null>(null);
+
+  const updateMutation = trpc.progressReports.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث تقرير الإنجاز بنجاح");
+      setActiveTab("list");
+      resetNewReport();
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث التقرير");
+    },
+  });
+
+  const convertToDisbursementMutation = trpc.disbursements.createRequest.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحويل تقرير الإنجاز بنجاح إلى طلب صرف ونقله إلى قسم طلبات الصرف!");
+      refetchReports();
+      refetchAllReports();
+      refetchDisbursementRequests();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء التحويل إلى طلب صرف");
+    },
+  });
+
   // إعادة تعيين النموذج
   const resetNewReport = () => {
     setSelectedPaymentId(null);
+    setEditingReportId(null);
     setNewReport({
       projectId: 0,
       title: "",
@@ -312,14 +345,60 @@ export default function ProgressReports() {
     toast.success("تم اختيار الدفعة وملء البيانات تلقائياً");
   };
 
-  // إنشاء تقرير جديد
+  // تحليل ملخص الأعمال المنفذة
+  const parseWorkSummary = (combined: string) => {
+    const paymentIdMatch = combined.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const paymentId = paymentIdMatch ? paymentIdMatch[1] : null;
+
+    let scheduled = "";
+    let actual = "";
+
+    const schedStart = combined.indexOf("الأعمال المجدولة للدفعة:\n");
+    const actualStart = combined.indexOf("\n\nالأعمال المنفذة فعلياً:\n");
+
+    if (schedStart !== -1 && actualStart !== -1) {
+      scheduled = combined.substring(schedStart + "الأعمال المجدولة للدفعة:\n".length, actualStart).trim();
+      const paymentIdStart = combined.indexOf("\n\n[معرف الدفعة:");
+      const endIdx = paymentIdStart !== -1 ? paymentIdStart : combined.length;
+      actual = combined.substring(actualStart + "\n\nالأعمال المنفذة فعلياً:\n".length, endIdx).trim();
+    } else {
+      scheduled = combined;
+      actual = "";
+    }
+
+    return { scheduled, actual, paymentId };
+  };
+
+  // فتح صفحة التعديل وملء البيانات
+  const handleEditReportClick = (report: any) => {
+    const { scheduled, actual, paymentId } = parseWorkSummary(report.workSummary || "");
+    setSelectedPaymentId(paymentId);
+    setNewReport({
+      projectId: report.projectId,
+      title: report.title,
+      reportDate: report.reportDate ? new Date(report.reportDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      reportPeriodStart: report.reportPeriodStart ? new Date(report.reportPeriodStart).toISOString().split("T")[0] : "",
+      reportPeriodEnd: report.reportPeriodEnd ? new Date(report.reportPeriodEnd).toISOString().split("T")[0] : "",
+      overallProgress: report.overallProgress || 0,
+      plannedProgress: report.plannedProgress || 0,
+      actualProgress: report.actualProgress || 0,
+      workSummary: scheduled,
+      challenges: report.challenges || "",
+      nextSteps: report.nextSteps || "",
+      recommendations: report.recommendations || "",
+      budgetSpent: report.budgetSpent || "",
+      budgetRemaining: report.budgetRemaining || "",
+      agreedPaymentAmount: report.budgetSpent || "",
+      actualWorkDone: actual,
+    });
+    setEditingReportId(report.id);
+    setActiveTab("edit");
+  };
+
+  // إنشاء أو تعديل تقرير
   const handleCreateReport = () => {
     if (!newReport.projectId) {
       toast.error("يرجى اختيار المشروع");
-      return;
-    }
-    if (hasIncompleteSchedule) {
-      toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
       return;
     }
     if (!newReport.title.trim()) {
@@ -331,18 +410,39 @@ export default function ProgressReports() {
       return;
     }
 
-    const agreed = parseFloat(newReport.agreedPaymentAmount || "0");
-    const spent = parseFloat(newReport.budgetSpent || "0");
-    if (spent < agreed) {
-      toast.info("تنبيه: لقد قمت بتحديد مبلغ مستحق صرفه أقل من القيمة المتفقة للدفعة. يرجى تعديل الدفعات في تفاصيل المشروع لإعادة الجدولة.");
-    }
-
     const combinedWorkSummary = `الأعمال المجدولة للدفعة:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n[معرف الدفعة: ${selectedPaymentId}]`;
     
-    createMutation.mutate({
-      ...newReport,
-      workSummary: combinedWorkSummary,
-    });
+    if (editingReportId) {
+      updateMutation.mutate({
+        id: editingReportId,
+        title: newReport.title,
+        overallProgress: newReport.overallProgress,
+        plannedProgress: newReport.plannedProgress,
+        actualProgress: newReport.actualProgress,
+        workSummary: combinedWorkSummary,
+        challenges: newReport.challenges,
+        nextSteps: newReport.nextSteps,
+        recommendations: newReport.recommendations,
+        budgetSpent: newReport.budgetSpent,
+        budgetRemaining: newReport.budgetRemaining,
+      });
+    } else {
+      if (hasIncompleteSchedule) {
+        toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
+        return;
+      }
+
+      const agreed = parseFloat(newReport.agreedPaymentAmount || "0");
+      const spent = parseFloat(newReport.budgetSpent || "0");
+      if (spent < agreed) {
+        toast.info("تنبيه: لقد قمت بتحديد مبلغ مستحق صرفه أقل من القيمة المتفقة للدفعة. يرجى تعديل الدفعات في تفاصيل المشروع لإعادة الجدولة.");
+      }
+
+      createMutation.mutate({
+        ...newReport,
+        workSummary: combinedWorkSummary,
+      });
+    }
   };
 
   // عرض تفاصيل التقرير
@@ -351,14 +451,41 @@ export default function ProgressReports() {
     setShowDetailsDialog(true);
   };
 
+  // التحقق مما إذا كان تقرير الإنجاز قد تم تحويله بالفعل إلى طلب صرف
+  const isReportConverted = (report: any) => {
+    if (!report || !disbursementRequestsData?.requests) return false;
+    const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
+    if (isNaN(parsedId)) return false;
+    return disbursementRequestsData.requests.some((req: any) => req.contractPaymentId === parsedId);
+  };
+
   // اعتماد التقرير والتحويل المباشر لطلب صرف
   const handleApproveAndConvert = (report: any) => {
+    const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    const parsedPaymentId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
+    const contractPaymentId = isNaN(parsedPaymentId) ? undefined : parsedPaymentId;
+    const amountVal = parseFloat(report.budgetSpent || "0");
+    const amount = amountVal > 0 ? amountVal : 1;
+
+    const performConversion = () => {
+      convertToDisbursementMutation.mutate({
+        projectId: report.projectId,
+        title: report.title, // اسم الدفعة
+        amount: amount,
+        paymentType: "progress",
+        completionPercentage: report.actualProgress || report.overallProgress || 0,
+        contractPaymentId,
+        description: report.workSummary || "",
+      });
+    };
+
     if (report.status === "approved") {
-      navigate(`/disbursements/new/${report.projectId}`);
+      performConversion();
     } else {
       reviewMutation.mutate({ id: report.id, status: "approved" }, {
         onSuccess: () => {
-          navigate(`/disbursements/new/${report.projectId}`);
+          performConversion();
         }
       });
     }
@@ -392,7 +519,7 @@ export default function ProgressReports() {
   const canCreateReport = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
   const canReviewReport = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
 
-  if (activeTab === "create") {
+  if (activeTab === "create" || activeTab === "edit") {
     return (
       <DashboardLayout>
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -411,8 +538,12 @@ export default function ProgressReports() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">إنشاء تقرير إنجاز جديد</h1>
-                <p className="text-sm text-muted-foreground">أدخل تفاصيل التقرير والنسب المالية للمشروع</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {activeTab === "edit" ? "تعديل تقرير الإنجاز" : "إنشاء تقرير إنجاز جديد"}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === "edit" ? "تحديث تفاصيل التقرير والنسب المالية للمشروع" : "أدخل تفاصيل التقرير والنسب المالية للمشروع"}
+                </p>
               </div>
             </div>
           </div>
@@ -433,6 +564,7 @@ export default function ProgressReports() {
                   <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
                   <Select
                     value={newReport.projectId.toString()}
+                    disabled={!!editingReportId}
                     onValueChange={(v) => {
                       const nextProjectId = parseInt(v);
                       setSelectedPaymentId(null);
@@ -451,7 +583,7 @@ export default function ProgressReports() {
                       }));
                     }}
                   >
-                    <SelectTrigger className="h-11 text-right">
+                    <SelectTrigger className="h-11 text-right" disabled={!!editingReportId}>
                       <SelectValue placeholder="اختر المشروع المراد رفع تقرير له" />
                     </SelectTrigger>
                     <SelectContent>
@@ -506,14 +638,19 @@ export default function ProgressReports() {
                           return (
                             <div
                               key={payment.id}
-                              onClick={() => handleSelectPayment(payment)}
+                              onClick={() => {
+                                if (editingReportId) return;
+                                handleSelectPayment(payment);
+                              }}
                               className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
                                 isSelected
                                   ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
                                   : isIncomplete
                                   ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
                                   : isAlreadyReported
-                                  ? "border-green-200 bg-green-50/10 hover:border-green-400 opacity-90 cursor-not-allowed"
+                                  ? "border-green-200 bg-green-50/10 hover:border-green-400 opacity-90 cursor-not-allowed font-bold"
+                                  : editingReportId
+                                  ? "border-transparent bg-background opacity-60 cursor-not-allowed"
                                   : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm"
                               }`}
                             >
@@ -789,10 +926,13 @@ export default function ProgressReports() {
                    <Button
                     size="lg"
                     onClick={handleCreateReport}
-                    disabled={createMutation.isPending || hasIncompleteSchedule || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
+                    disabled={(editingReportId ? updateMutation.isPending : (createMutation.isPending || hasIncompleteSchedule)) || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
                     className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90"
                   >
-                    {createMutation.isPending ? "جاري الحفظ والإنشاء..." : "حفظ وإنشاء التقرير"}
+                    {editingReportId
+                      ? (updateMutation.isPending ? "جاري حفظ التعديلات..." : "حفظ التعديلات")
+                      : (createMutation.isPending ? "جاري الحفظ والإنشاء..." : "حفظ وإنشاء التقرير")
+                    }
                   </Button>
                 </div>
               </>
@@ -1007,30 +1147,30 @@ export default function ProgressReports() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
                               <DropdownMenuItem 
-                                onClick={() => handleViewDetails(report)}
-                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span>عرض التقرير</span>
-                              </DropdownMenuItem>
-                              
-                              <DropdownMenuItem 
                                 onClick={() => {
-                                  toast.info("تعديل تفاصيل تقرير الإنجاز المعتمد يتم عبر تقديم تقرير تعويضي جديد.");
+                                  if (isReportConverted(report)) {
+                                    toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
+                                    return;
+                                  }
+                                  handleEditReportClick(report);
                                 }}
-                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                                className={`flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors ${
+                                  isReportConverted(report) ? "opacity-50 cursor-not-allowed text-muted-foreground" : ""
+                                }`}
                               >
                                 <Edit className="w-3.5 h-3.5 text-blue-600" />
                                 <span>تعديل تقرير الإنجاز</span>
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem 
-                                onClick={() => handleApproveAndConvert(report)}
-                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
-                              >
-                                <Coins className="w-3.5 h-3.5" />
-                                <span>التحويل إلى طلب صرف</span>
-                              </DropdownMenuItem>
+                              {!isReportConverted(report) && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleApproveAndConvert(report)}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
+                                >
+                                  <Coins className="w-3.5 h-3.5" />
+                                  <span>التحويل إلى طلب صرف</span>
+                                </DropdownMenuItem>
+                              )}
 
                               <DropdownMenuItem 
                                 onClick={() => {
@@ -1229,19 +1369,8 @@ export default function ProgressReports() {
                 إغلاق
               </Button>
               
-              {selectedReport?.status === "approved" ? (
-                <Button
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    handleApproveAndConvert(selectedReport);
-                  }}
-                  className="gradient-primary text-white font-bold"
-                >
-                  <Coins className="w-4 h-4 ml-2" />
-                  تحويل إلى طلب صرف
-                </Button>
-              ) : (
-                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
+              {!isReportConverted(selectedReport) && (
+                selectedReport?.status === "approved" ? (
                   <Button
                     onClick={() => {
                       setShowDetailsDialog(false);
@@ -1250,8 +1379,21 @@ export default function ProgressReports() {
                     className="gradient-primary text-white font-bold"
                   >
                     <Coins className="w-4 h-4 ml-2" />
-                    اعتماد وتحويل إلى طلب صرف
+                    تحويل إلى طلب صرف
                   </Button>
+                ) : (
+                  canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
+                    <Button
+                      onClick={() => {
+                        setShowDetailsDialog(false);
+                        handleApproveAndConvert(selectedReport);
+                      }}
+                      className="gradient-primary text-white font-bold"
+                    >
+                      <Coins className="w-4 h-4 ml-2" />
+                      اعتماد وتحويل إلى طلب صرف
+                    </Button>
+                  )
                 )
               )}
             </DialogFooter>

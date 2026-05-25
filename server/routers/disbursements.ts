@@ -74,6 +74,7 @@ export const disbursementsRouter = router({
           projectName: projects.name,
           projectNumber: projects.projectNumber,
           requestedByName: users.name,
+          contractPaymentId: disbursementRequests.contractPaymentId,
         })
         .from(disbursementRequests)
         .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
