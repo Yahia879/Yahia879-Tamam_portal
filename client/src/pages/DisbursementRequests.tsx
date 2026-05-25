@@ -411,41 +411,60 @@ export default function DisbursementRequests() {
 
         {/* بطاقات الإحصائيات */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات قيد المراجعة</CardTitle>
-              <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingRequests || 0}</div>
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-semibold">طلبات قيد المراجعة</p>
+                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{statsData?.pendingRequests || 0}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">طلبات معتمدة</CardTitle>
-              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.approvedRequests || 0}</div>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-semibold">طلبات معتمدة</p>
+                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{statsData?.approvedRequests || 0}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">أوامر قيد الاعتماد</CardTitle>
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-lg sm:text-2xl font-bold">{statsData?.pendingOrders || 0}</div>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/50 text-purple-600 dark:text-purple-400">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-semibold">أوامر قيد الاعتماد</p>
+                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{statsData?.pendingOrders || 0}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-4">
-              <CardTitle className="text-[10px] sm:text-xs font-medium">إجمالي المصروف</CardTitle>
-              <Banknote className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            </CardHeader>
-            <CardContent className="p-3 sm:p-4 pt-0">
-              <div className="text-sm sm:text-2xl font-bold truncate">
-                {Number(statsData?.totalPaid || 0).toLocaleString()} ريال
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50/40 via-background to-background dark:from-emerald-950/10 border-r-4 border-r-emerald-500">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground font-semibold">إجمالي المصروف</p>
+                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
+                    {Number(statsData?.totalPaid || 0).toLocaleString()} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

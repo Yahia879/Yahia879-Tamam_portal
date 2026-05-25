@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -304,6 +304,27 @@ export default function ProgressReports() {
     });
   };
 
+  // تحديث المبلغ المتبقي تلقائياً عند تغيير الحقول أو تفاصيل المشروع
+  useEffect(() => {
+    if (newReport.projectId > 0) {
+      const budget = parseFloat(projectDetails?.budget || "0");
+      const otherReports = allReportsData?.filter((r: any) => 
+        r.projectId === newReport.projectId && 
+        r.id !== editingReportId
+      ) || [];
+      const spentInOtherReports = otherReports.reduce((sum: number, r: any) => sum + parseFloat(r.budgetSpent || "0"), 0);
+      const spentOnThisReport = parseFloat(newReport.budgetSpent || "0");
+      const remaining = Math.max(0, budget - spentInOtherReports - spentOnThisReport);
+      
+      setNewReport(prev => {
+        if (prev.budgetRemaining !== remaining.toString()) {
+          return { ...prev, budgetRemaining: remaining.toString() };
+        }
+        return prev;
+      });
+    }
+  }, [projectDetails, allReportsData, newReport.budgetSpent, newReport.projectId, editingReportId]);
+
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
 
@@ -326,10 +347,6 @@ export default function ProgressReports() {
 
     setSelectedPaymentId(payment.id);
     
-    const budget = parseFloat(projectDetails?.budget || "0");
-    const spent = parseFloat(payment.amount || "0");
-    const remaining = Math.max(0, budget - spent);
-
     setNewReport(prev => ({
       ...prev,
       title: paymentTitle,
@@ -337,7 +354,6 @@ export default function ProgressReports() {
       actualProgress: payment.completionPercentage || 0,
       overallProgress: payment.completionPercentage || 0,
       budgetSpent: payment.amount?.toString() || "0",
-      budgetRemaining: remaining.toString(),
       workSummary: payment.workDescription || payment.description || "",
       agreedPaymentAmount: payment.amount?.toString() || "0",
     }));
@@ -907,13 +923,9 @@ export default function ProgressReports() {
                             value={newReport.budgetSpent}
                             onChange={(e) => {
                               const val = e.target.value;
-                              const budget = parseFloat(projectDetails?.budget || "0");
-                              const spent = parseFloat(val || "0");
-                              const remaining = Math.max(0, budget - spent);
                               setNewReport(prev => ({
                                 ...prev,
                                 budgetSpent: val,
-                                budgetRemaining: remaining.toString(),
                               }));
                             }}
                             placeholder="0.00"

@@ -359,7 +359,7 @@ export const projectsRouter = router({
           paymentType: d.paymentType,
           amount: d.amount,
           status: d.status,
-          description: d.title || d.description,
+          description: (d.title || d.description)?.replace(/^تقرير إنجاز - /, ""),
           date: d.dateMiladi || d.createdAt,
           paidAt: d.status === "paid" ? d.updatedAt : null,
           source: "disbursement",
