@@ -815,7 +815,7 @@ export default function NewLinkedDisbursementRequest() {
             <div className="flex items-center justify-between border-t border-border/60 pt-4 flex-row-reverse">
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
                 className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
               >
                 <Send className="ml-2 h-4 w-4" />
