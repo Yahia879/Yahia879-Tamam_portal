@@ -487,6 +487,8 @@ export const contractsRouter = router({
                 phaseOrder: index,
                 dueDate: p.dueDate ? new Date(p.dueDate) : null,
                 status: "pending" as const,
+                notes: p.description || null,
+                completionPercentage: p.percentage !== undefined ? Number(p.percentage) : null,
               }))
             );
           }
@@ -502,6 +504,8 @@ export const contractsRouter = router({
             amount: String(p.amount),
             phaseOrder: p.phaseOrder,
             status: "pending" as const,
+            notes: (p as any).notes || (p as any).description || null,
+            completionPercentage: (p as any).completionPercentage !== undefined ? Number((p as any).completionPercentage) : null,
           }))
         );
       }
@@ -639,6 +643,8 @@ export const contractsRouter = router({
                   phaseOrder: index,
                   dueDate: p.dueDate ? new Date(p.dueDate) : null,
                   status: "pending" as const,
+                  notes: p.description || null,
+                  completionPercentage: p.percentage !== undefined ? Number(p.percentage) : null,
                 }))
               );
             }
@@ -914,6 +920,8 @@ export const contractsRouter = router({
             amount: z.number(),
             phaseOrder: z.number(),
             dueDate: z.string().optional(),
+            notes: z.string().optional(),
+            completionPercentage: z.number().optional(),
           })
         ),
       })
@@ -937,6 +945,8 @@ export const contractsRouter = router({
             phaseOrder: p.phaseOrder,
             dueDate: p.dueDate ? new Date(p.dueDate) : null,
             status: "pending" as const,
+            notes: p.notes || null,
+            completionPercentage: p.completionPercentage !== undefined ? p.completionPercentage : null,
           }))
         );
       }
@@ -1474,6 +1484,8 @@ export const contractsRouter = router({
             phaseOrder: p.phaseOrder,
             dueDate: null, // تواريخ جديدة
             status: "pending" as const,
+            notes: p.notes,
+            completionPercentage: p.completionPercentage,
           }))
         );
       }
