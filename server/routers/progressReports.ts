@@ -179,9 +179,9 @@ export const progressReportsRouter = router({
       } catch (error: any) {
         console.error("Error creating progress report:", error);
         if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
-          throw new Error("حجم المرفقات كبير جداً. يرجى تقليل حجم الملفات أو رفع عدد أقل من الصور/المستندات.");
+          throw new Error("حجم المرفقات كبير جداً. تجاوز الحد المسموح لقاعدة البيانات.");
         }
-        throw new Error("حدث خطأ أثناء حفظ تقرير الإنجاز. يرجى التأكد من حجم المرفقات.");
+        throw new Error("حدث خطأ أثناء حفظ التقرير: " + (error.message || "خطأ غير معروف"));
       }
     }),
 
@@ -236,9 +236,9 @@ export const progressReportsRouter = router({
       } catch (error: any) {
         console.error("Error updating progress report:", error);
         if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
-          throw new Error("حجم المرفقات كبير جداً. يرجى تقليل حجم الملفات أو رفع عدد أقل من الصور/المستندات.");
+          throw new Error("حجم المرفقات كبير جداً. تجاوز الحد المسموح لقاعدة البيانات.");
         }
-        throw new Error("حدث خطأ أثناء تحديث تقرير الإنجاز. يرجى التأكد من حجم المرفقات.");
+        throw new Error("حدث خطأ أثناء تحديث التقرير: " + (error.message || "خطأ غير معروف"));
       }
     }),
 
