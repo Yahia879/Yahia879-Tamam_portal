@@ -438,30 +438,33 @@ export default function NewDisbursementRequest() {
             </Card>
             
             {/* الموردون */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
+            <Card className="text-right border-border/60 shadow-sm">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <div className="flex items-center justify-between flex-row-reverse">
                   <div className="text-right">
-                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
-                      <Building2 className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-base font-bold text-foreground">
+                      <Building2 className="h-5 w-5 text-primary" />
                       معلومات المورد المستفيد
                     </CardTitle>
                     <CardDescription className="text-right">بيانات المستفيد من الصرف</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="text-right space-y-6">
+              <CardContent className="text-right pt-6 space-y-6">
                 {suppliers.map((supplier) => (
-                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-4" dir="rtl">
+                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
+                    {/* Row 1 */}
                     {/* اسم المورد */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">اسم المورد *</Label>
+                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                        اسم المورد <span className="text-red-500">*</span>
+                      </Label>
                       <Select
                         value={supplier.name}
                         onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
                         disabled={formData.contractId > 0}
                       >
-                        <SelectTrigger className="text-right" dir="rtl">
+                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl" dir="rtl">
                           <SelectValue placeholder="اسم المورد" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -476,44 +479,45 @@ export default function NewDisbursementRequest() {
 
                     {/* الأعمال */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">الأعمال</Label>
+                      <Label className="font-semibold text-foreground">الأعمال</Label>
                       <Input
                         value={supplier.work}
                         onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
                         placeholder="وصف الأعمال"
                         readOnly
-                        className="bg-muted text-right"
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
                       />
                     </div>
 
                     {/* البنك */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">البنك</Label>
+                      <Label className="font-semibold text-foreground">البنك</Label>
                       <Input
                         value={supplier.bank}
                         onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
                         placeholder="اسم البنك"
                         readOnly
-                        className="bg-muted text-right"
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
                       />
                     </div>
 
+                    {/* Row 2 */}
                     {/* الآيبان */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">الآيبان</Label>
+                      <Label className="font-semibold text-foreground">الآيبان</Label>
                       <Input
                         value={supplier.iban}
                         onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
                         placeholder="SA..."
                         dir="ltr"
                         readOnly
-                        className="bg-muted text-right"
+                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10"
                       />
                     </div>
 
                     {/* النسبة (%) */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">النسبة (%)</Label>
+                      <Label className="font-semibold text-foreground text-center block">النسبة (%)</Label>
                       <Input
                         type="number"
                         min="0"
@@ -526,13 +530,13 @@ export default function NewDisbursementRequest() {
                           updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
                         }}
                         placeholder="0"
-                        className="text-right"
+                        className="text-center font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
                       />
                     </div>
 
                     {/* المبلغ */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right">المبلغ *</Label>
+                      <Label className="font-semibold text-foreground text-center block">المبلغ *</Label>
                       <Input
                         type="number"
                         min="0"
@@ -544,12 +548,13 @@ export default function NewDisbursementRequest() {
                           updateSupplier(supplier.id, "amount", val);
                         }}
                         placeholder="0.00"
-                        className="text-right"
+                        className="text-center font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
                       />
                     </div>
                   </div>
                 ))}
               </CardContent>
+            </Card>
             </Card>
           </div>
           

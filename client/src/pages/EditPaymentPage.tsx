@@ -434,90 +434,121 @@ export default function EditPaymentPage() {
             </Card>
             
             {/* الموردون المستفيدون */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
+            <Card className="text-right border-border/60 shadow-sm">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <div className="flex items-center justify-between flex-row-reverse">
                   <div className="text-right">
-                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
-                      <Building2 className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-base font-bold text-foreground">
+                      <Building2 className="h-5 w-5 text-primary" />
                       معلومات المورد المستفيد
                     </CardTitle>
                     <CardDescription className="text-right">بيانات المستفيد من الصرف</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="text-right">
-                <Table dir="rtl">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">اسم المورد</TableHead>
-                      <TableHead className="text-right">الأعمال</TableHead>
-                      <TableHead className="text-right">المبلغ *</TableHead>
-                      <TableHead className="text-right">البنك</TableHead>
-                      <TableHead className="text-right">الآيبان</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {suppliers.map((supplier) => (
-                      <TableRow key={supplier.id}>
-                        <TableCell className="text-right">
-                          <Select
-                            value={supplier.name}
-                            onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                            disabled={formData.contractId > 0}
-                          >
-                            <SelectTrigger className="text-right" dir="rtl">
-                              <SelectValue placeholder="اسم المورد" />
-                            </SelectTrigger>
-                            <SelectContent dir="rtl">
-                              {allSuppliers?.map((s) => (
-                                <SelectItem key={s.id} value={s.name} className="text-right">
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.work}
-                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                            placeholder="وصف الأعمال"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            type="number"
-                            value={supplier.amount}
-                            onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
-                            className="text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.bank}
-                            onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
-                            placeholder="اسم البنك"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Input
-                            value={supplier.iban}
-                            onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
-                            placeholder="SA..."
-                            dir="ltr"
-                            readOnly
-                            className="bg-muted text-right"
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <CardContent className="text-right pt-6 space-y-6">
+                {suppliers.map((supplier) => (
+                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
+                    {/* Row 1 */}
+                    {/* اسم المورد */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                        اسم المورد <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={supplier.name}
+                        onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
+                        disabled={formData.contractId > 0}
+                      >
+                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl" dir="rtl">
+                          <SelectValue placeholder="اسم المورد" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {allSuppliers?.map((s) => (
+                            <SelectItem key={s.id} value={s.name} className="text-right">
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* الأعمال */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">الأعمال</Label>
+                      <Input
+                        value={supplier.work}
+                        onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                        placeholder="وصف الأعمال"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* البنك */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">البنك</Label>
+                      <Input
+                        value={supplier.bank}
+                        onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
+                        placeholder="اسم البنك"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* Row 2 */}
+                    {/* الآيبان */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">الآيبان</Label>
+                      <Input
+                        value={supplier.iban}
+                        onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
+                        placeholder="SA..."
+                        dir="ltr"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* النسبة (%) */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground text-center block">النسبة (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                        onChange={(e) => {
+                          const pct = parseFloat(e.target.value) || 0;
+                          const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                          updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                        }}
+                        placeholder="0"
+                        className="text-center font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
+                      />
+                    </div>
+
+                    {/* المبلغ */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground text-center block">المبلغ *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={supplier.amount || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          updateSupplier(supplier.id, "amount", val);
+                        }}
+                        placeholder="0.00"
+                        className="text-center font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
+                      />
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>

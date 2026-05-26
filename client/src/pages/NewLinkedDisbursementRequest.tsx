@@ -568,14 +568,16 @@ export default function NewLinkedDisbursementRequest() {
                           <span>المستفيد #{index + 1}</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                          {/* Row 1 */}
+                          {/* اسم المورد */}
                           <div className="space-y-2 text-right">
                             <Label className="text-right text-xs font-bold text-slate-700">اسم المستفيد (المقاول/المورد) *</Label>
                             <Select
                               value={supplier.name}
                               onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
                             >
-                              <SelectTrigger className="text-right border-emerald-100/80 focus:ring-emerald-500" dir="rtl">
+                              <SelectTrigger className="text-right border-emerald-100/80 focus:ring-emerald-500 rounded-xl h-10 bg-background" dir="rtl">
                                 <SelectValue placeholder="اختر المورد من القائمة" />
                               </SelectTrigger>
                               <SelectContent dir="rtl">
@@ -588,6 +590,7 @@ export default function NewLinkedDisbursementRequest() {
                             </Select>
                           </div>
 
+                          {/* الأعمال */}
                           <div className="space-y-2 text-right">
                             <Label className="text-right text-xs font-bold text-slate-700">بيان الأعمال / الدفعة *</Label>
                             <Input
@@ -595,34 +598,18 @@ export default function NewLinkedDisbursementRequest() {
                               onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
                               placeholder="مثال: الدفعة الأولى أو أعمال الخرسانة..."
                               required
-                              className="text-right"
+                              className="text-right rounded-xl h-10"
                             />
                           </div>
 
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700">المبلغ الفعلي الذي سوف يصرف (ريال) *</Label>
-                            <Input
-                              type="number"
-                              value={supplier.amount || ""}
-                              onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
-                              placeholder="أدخل قيمة الدفعة الفعلية للصرف"
-                              required
-                              className="text-right font-bold text-emerald-700"
-                            />
-                            {supplier.amount > 0 && (
-                              <p className="text-[10px] text-emerald-700 font-semibold mt-1">
-                                {numberToArabicText(supplier.amount)}
-                              </p>
-                            )}
-                          </div>
-
+                          {/* البنك */}
                           <div className="space-y-2 text-right">
                             <Label className="text-right text-xs font-bold text-slate-700">اسم البنك *</Label>
                             <Select
                               value={supplier.bank}
                               onValueChange={(value) => updateSupplier(supplier.id, "bank", value)}
                             >
-                              <SelectTrigger className="text-right border-emerald-100/80 focus:ring-emerald-500" dir="rtl">
+                              <SelectTrigger className="text-right border-emerald-100/80 focus:ring-emerald-500 rounded-xl h-10 bg-background" dir="rtl">
                                 <SelectValue placeholder="اختر البنك" />
                               </SelectTrigger>
                               <SelectContent dir="rtl">
@@ -635,15 +622,49 @@ export default function NewLinkedDisbursementRequest() {
                             </Select>
                           </div>
 
-                          <div className="space-y-2 text-right md:col-span-2">
+                          {/* Row 2 */}
+                          {/* الآيبان */}
+                          <div className="space-y-2 text-right">
                             <Label className="text-right text-xs font-bold text-slate-700">رقم الحساب أو الآيبان (IBAN) *</Label>
                             <Input
                               value={supplier.iban}
                               onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
                               placeholder="SA0000000000000000000000"
                               required
-                              className="text-left font-mono"
+                              className="text-right font-mono rounded-xl h-10"
                               dir="ltr"
+                            />
+                          </div>
+
+                          {/* النسبة (%) */}
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 text-center block">النسبة (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                              onChange={(e) => {
+                                const pct = parseFloat(e.target.value) || 0;
+                                const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                                updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                              }}
+                              placeholder="0"
+                              className="text-center font-bold text-emerald-700 border-emerald-100 rounded-xl h-10 bg-background"
+                            />
+                          </div>
+
+                          {/* المبلغ */}
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 text-center block">المبلغ الفعلي (ريال) *</Label>
+                            <Input
+                              type="number"
+                              value={supplier.amount || ""}
+                              onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              required
+                              className="text-center font-bold text-emerald-700 rounded-xl h-10 bg-background"
                             />
                           </div>
                         </div>
