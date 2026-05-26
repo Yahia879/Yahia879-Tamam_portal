@@ -154,8 +154,10 @@ export default function NewLinkedDisbursementRequest() {
 
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
   const paymentIdMatch = selectedReport ? (selectedReport.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/) : null;
-  const paymentId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : 0;
-  const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentId);
+  const paymentIdRaw = paymentIdMatch ? paymentIdMatch[1] : "";
+  // استخراج الرقم من معرف الدفعة (مثل cp-5 -> 5)
+  const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+  const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentIdRaw || p.id === paymentIdNumeric);
 
   // الملء التلقائي بناءً على تقرير الإنجاز المختار
   useEffect(() => {
@@ -165,7 +167,7 @@ export default function NewLinkedDisbursementRequest() {
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
       setFormData(prev => {
-        if (prev.contractPaymentId === paymentId && prev.completionPercentage === selectedReport.actualProgress) {
+        if (prev.contractPaymentId === paymentIdNumeric && prev.completionPercentage === selectedReport.actualProgress) {
           return prev;
         }
         return {
@@ -173,7 +175,7 @@ export default function NewLinkedDisbursementRequest() {
           title: `طلب صرف لـ ${selectedReport.title}`,
           description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
           completionPercentage: selectedReport.actualProgress || 0,
-          contractPaymentId: paymentId,
+          contractPaymentId: paymentIdNumeric,
         };
       });
 
@@ -199,9 +201,15 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.contractId > 0 }
   );
   
+  const utils = trpc.useUtils();
+
   // mutation لإنشاء طلب الصرف
   const createMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: (data) => {
+      // إبطال كاش المشروع لتحديث قسم الدفعات فوراً
+      if (formData.projectId) {
+        utils.projects.getById.invalidate({ id: formData.projectId });
+      }
       toast.success("تم إنشاء طلب الصرف بنجاح");
       navigate("/disbursements");
     },
@@ -242,10 +250,11 @@ export default function NewLinkedDisbursementRequest() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
-  // حساب المتبقي للصرف
+  // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
-  const remainingAmount = contractAmount - totalPaymentsSum - totalAmount;
+  const remainingForDisbursement = contractAmount - totalPaymentsSum;
+  const remainingAmount = remainingForDisbursement - totalAmount;
 
   // إضافة مورد جديد
   const addSupplier = () => {
@@ -321,8 +330,8 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
-    if (contractDetails && totalAmount > remainingAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingAmount.toLocaleString()} ريال)`);
+    if (contractDetails && totalAmount > remainingForDisbursement && remainingForDisbursement > 0) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
       return;
     }
     
@@ -341,11 +350,11 @@ export default function NewLinkedDisbursementRequest() {
   
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0" dir="rtl">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
         {/* Header and Visual Step Timeline */}
         <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
           <div className="flex items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -356,15 +365,15 @@ export default function NewLinkedDisbursementRequest() {
                     navigate("/disbursements");
                   }
                 }} 
-                className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground"
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
-                <ArrowRight className="h-5 w-5 rotate-180" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
               </Button>
               <div className="text-right">
-                <h1 className="text-2xl font-bold text-foreground font-display">
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
                   طلب صرف مرتبط بتقرير إنجاز
                 </h1>
-                <p className="text-xs text-muted-foreground text-right font-medium mt-0.5">
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
                   إنشاء طلب صرف معتمد على تقارير الإنجاز المدققة ومطابقتها مالياً بنظام تمام
                 </p>
               </div>
@@ -372,7 +381,7 @@ export default function NewLinkedDisbursementRequest() {
           </div>
 
           {/* Subtle Stepper Timeline */}
-          <div className="max-w-md mx-auto w-full px-4 py-2" dir="rtl">
+          <div className="max-w-md mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
               {/* Connecting Line background */}
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
@@ -480,7 +489,7 @@ export default function NewLinkedDisbursementRequest() {
                       <div className="space-y-4 animate-slide-up text-right">
                         {/* Premium Linked Report Stats Card */}
                         <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-100/30 dark:border-emerald-900/20 pb-3">
+                          <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center justify-between border-b border-emerald-100/30 dark:border-emerald-900/20 pb-3">
                             <div className="flex items-center gap-2 justify-start">
                               <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                                 <FileText className="w-4.5 h-4.5" />
@@ -496,7 +505,7 @@ export default function NewLinkedDisbursementRequest() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg ml-auto sm:ml-0 shrink-0 shadow-sm animate-in zoom-in duration-150"
+                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
                               onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
@@ -504,7 +513,7 @@ export default function NewLinkedDisbursementRequest() {
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-right">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-right">
                             <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm">
                               <span className="text-[10px] text-muted-foreground block font-semibold">تاريخ التقرير</span>
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
@@ -517,7 +526,7 @@ export default function NewLinkedDisbursementRequest() {
                                 {selectedReport.actualProgress}%
                               </span>
                             </div>
-                            <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm col-span-2 sm:col-span-1">
+                            <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm">
                               <span className="text-[10px] text-muted-foreground block font-semibold">الانحراف المجدول</span>
                               <span className={`text-xs font-black mt-1 block ${
                                 ((selectedReport.actualProgress || 0) - (selectedReport.plannedProgress || 0)) >= 0 
@@ -586,14 +595,14 @@ export default function NewLinkedDisbursementRequest() {
                 {/* عرض الدفعة المتفق عليها */}
                 {paymentInfo && (
                   <div className="p-5 rounded-xl bg-emerald-50/10 dark:bg-slate-900/20 border border-emerald-100 text-right space-y-3 shadow-inner">
-                    <div className="flex items-center gap-1.5 justify-start flex-row-reverse">
+                    <div className="flex items-center gap-1.5 justify-start flex-row-reverse flex-wrap">
                       <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-700">
                         <Info className="w-3.5 h-3.5" />
                       </div>
                       <Label className="text-xs font-black text-emerald-800 dark:text-emerald-400">الدفعة المتفق عليها مجدولة في العقد *</Label>
                     </div>
-                    <div className="flex items-baseline gap-1.5 justify-start flex-row-reverse">
-                      <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                    <div className="flex items-baseline gap-1.5 justify-start flex-row-reverse flex-wrap">
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
                         {parseFloat(paymentInfo.amount || "0").toLocaleString()}
                       </span>
                       <span className="text-[10px] text-muted-foreground font-bold">ريال سعودي</span>
@@ -676,7 +685,7 @@ export default function NewLinkedDisbursementRequest() {
                         <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         {/* اسم المورد */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
@@ -708,7 +717,7 @@ export default function NewLinkedDisbursementRequest() {
                         </div>
 
                         {/* الآيبان */}
-                        <div className="space-y-2 text-right sm:col-span-2 lg:col-span-1">
+                        <div className="space-y-2 text-right sm:col-span-2 md:col-span-1">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
                           <Input
                             value={supplier.iban}
@@ -791,20 +800,18 @@ export default function NewLinkedDisbursementRequest() {
 
                 <Separator />
 
-                <div className="p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
-                    <span className="text-2xl font-black text-primary">
+                    <span className="text-xl sm:text-2xl font-black text-primary">
                       {totalAmount.toLocaleString()} <span className="text-xs font-semibold">ريال سعودي</span>
                     </span>
                   </div>
                   
                   {contractDetails && (
-                    <div className="flex flex-wrap gap-4 text-right justify-start md:justify-end">
-                      <div className="text-xs">
-                        <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
-                        <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
-                      </div>
+                    <div className="text-xs text-left">
+                      <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
+                      <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
                     </div>
                   )}
                 </div>
@@ -812,11 +819,11 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
 
             {/* Navigation Actions */}
-            <div className="flex items-center justify-between border-t border-border/60 pt-4 flex-row-reverse">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3 sm:flex-row-reverse">
               <Button
                 onClick={handleSubmit}
                 disabled={createMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
-                className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
+                className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />
                 إرسال طلب الصرف للاعتماد
@@ -824,7 +831,7 @@ export default function NewLinkedDisbursementRequest() {
               <Button
                 variant="outline"
                 onClick={() => setStep(1)}
-                className="text-slate-700 border-border hover:bg-muted font-bold px-6 h-11 text-xs rounded-xl"
+                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto"
               >
                 <ArrowRight className="ml-2 h-4 w-4" />
                 السابق
@@ -836,7 +843,7 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* نافذة مراجعة تقرير الإنجاز */}
       <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader className="text-right">
             <DialogTitle className="text-right text-emerald-800 font-bold">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
             <DialogDescription className="text-right text-xs">
@@ -846,7 +853,7 @@ export default function NewLinkedDisbursementRequest() {
           
           {selectedReport && (
             <div className="space-y-6 py-4 text-right">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
                   <p className="text-sm font-semibold">{new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}</p>
@@ -861,7 +868,7 @@ export default function NewLinkedDisbursementRequest() {
               
               <div className="space-y-3">
                 <h3 className="font-bold text-sm text-slate-800">نسب الإنجاز</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="p-3 bg-muted rounded-lg text-center">
                     <p className="text-2xl font-bold">{selectedReport.overallProgress}%</p>
                     <p className="text-xs text-muted-foreground">الإجمالي</p>
@@ -912,7 +919,7 @@ export default function NewLinkedDisbursementRequest() {
                           <FileText className="w-4 h-4 text-emerald-600" />
                           مرفقات التقرير
                         </h3>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                           {photosArr.map((photo: string, index: number) => {
                             const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
                             return (
