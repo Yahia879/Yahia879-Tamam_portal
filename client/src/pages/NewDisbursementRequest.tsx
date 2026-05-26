@@ -310,20 +310,20 @@ export default function NewDisbursementRequest() {
   
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-row-reverse">
-          <div className="flex items-center gap-4 flex-row-reverse">
-            <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+      <div className="space-y-6 pb-20" dir="rtl">
+        {/* Header - التحسين للشاشات الصغيرة لتجنب التصادم */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="h-9 w-9">
               <ArrowRight className="h-5 w-5 rotate-180" />
             </Button>
             <div className="text-right">
-              <h1 className="text-2xl font-bold text-right">طلب صرف جديد</h1>
-              <p className="text-muted-foreground text-right">إنشاء طلب صرف للمشروع</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">طلب صرف جديد</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground text-right">إنشاء طلب صرف للمشروع</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSubmit} disabled={createMutation.isPending}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button onClick={handleSubmit} disabled={createMutation.isPending} className="w-full sm:w-auto shadow-sm">
               <Send className="h-4 w-4 ml-2" />
               إرسال للاعتماد
             </Button>

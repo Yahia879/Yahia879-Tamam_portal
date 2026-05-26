@@ -307,20 +307,20 @@ export default function EditPaymentPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-row">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+      <div className="space-y-6 pb-20" dir="rtl">
+        {/* Header - التحسين للشاشات الصغيرة لتجنب التصادم */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="h-9 w-9">
               <ArrowRight className="h-5 w-5" />
             </Button>
             <div className="text-right">
-              <h1 className="text-2xl font-bold text-right">تعديل الدفعة</h1>
-              <p className="text-muted-foreground text-right">تعديل تفاصيل طلب الصرف / الدفعة المحددة</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">تعديل الدفعة</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground text-right">تعديل تفاصيل طلب الصرف / الدفعة المحددة</p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button onClick={handleSubmit} disabled={updateMutation.isPending} className="w-full sm:w-auto shadow-sm">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
               حفظ التعديلات
             </Button>

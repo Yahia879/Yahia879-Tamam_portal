@@ -316,22 +316,25 @@ export default function NewLinkedDisbursementRequest() {
   
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in" dir="rtl">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-row-reverse">
-          <div className="flex items-center gap-4 flex-row-reverse">
-            <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+      <div className="space-y-6 animate-fade-in pb-20" dir="rtl">
+        {/* Header - التحسين للشاشات الصغيرة لتجنب التصادم */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-emerald-100/50 pb-4">
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="h-9 w-9">
               <ArrowRight className="h-5 w-5 rotate-180" />
             </Button>
             <div className="text-right">
-              <h1 className="text-2xl font-bold text-right text-emerald-800 dark:text-emerald-500 font-display">طلب صرف مرتبط بتقرير إنجاز</h1>
-              <p className="text-muted-foreground text-right text-xs">إنشاء طلب صرف يعتمد على تقرير إنجاز معتمد ومراجعته مالياً</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-right text-emerald-800 dark:text-emerald-500 font-display">طلب صرف مرتبط بتقرير إنجاز</h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium">إنشاء طلب صرف يعتمد على تقرير إنجاز معتمد ومراجعته مالياً</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground ml-2">الخطوة {step} من 2</span>
-            <div className="w-24 h-2 bg-emerald-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-600 transition-all duration-300" style={{ width: step === 1 ? '50%' : '100%' }}></div>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end bg-emerald-50/50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-emerald-700/70">المرحلة الحالية</span>
+              <span className="text-xs font-bold text-emerald-800">الخطوة {step} من 2</span>
+            </div>
+            <div className="w-24 h-2 bg-emerald-100/60 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-600 transition-all duration-300 shadow-[0_0_8px_rgba(5,150,105,0.4)]" style={{ width: step === 1 ? '50%' : '100%' }}></div>
             </div>
           </div>
         </div>
