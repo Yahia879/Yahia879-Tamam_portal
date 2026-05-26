@@ -332,7 +332,7 @@ export default function ProjectDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+      <div className="space-y-6 container mx-auto px-4 md:px-0" dir="rtl">
         {/* العنوان */}
         <div className="flex items-center gap-4 text-right">
           <Button 
@@ -387,7 +387,7 @@ export default function ProjectDetailsPage() {
 
         {/* بطاقات المعلومات الرئيسية */}
         <TooltipProvider delayDuration={300}>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* الميزانية - تظهر فقط عندما تكون حالة الطلب المرتبط هي "التقييم المالي واعتماد العرض" أو بعدها */}
             {project.request && BUDGET_VISIBLE_STAGES.includes(project.request.currentStage) ? (
               <Card className="border-0 shadow-sm">
@@ -530,12 +530,12 @@ export default function ProjectDetailsPage() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="phases">المراحل</TabsTrigger>
-            <TabsTrigger value="boq">جدول الكميات</TabsTrigger>
-            <TabsTrigger value="contracts">العقود</TabsTrigger>
-            <TabsTrigger value="payments">الدفعات</TabsTrigger>
+          <TabsList className="flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-5 h-auto p-1 bg-muted">
+            <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>
+            <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>
+            <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>
+            <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>
           </TabsList>
 
           {/* نظرة عامة */}
@@ -808,7 +808,8 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
                 ) : project.contracts && project.contracts.length > 0 ? (
-                  <Table>
+                  <div className="overflow-x-auto w-full scrollbar-hide">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم العقد</TableHead>
@@ -872,6 +873,7 @@ export default function ProjectDetailsPage() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
                   ) : (
                     <div className="text-center py-8">
                       <FileSignature className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -950,7 +952,8 @@ export default function ProjectDetailsPage() {
                         </AlertDescription>
                       </Alert>
                     )}
-                    <Table>
+                    <div className="overflow-x-auto w-full scrollbar-hide">
+                      <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الدفعة</TableHead>
@@ -1050,6 +1053,7 @@ export default function ProjectDetailsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                   <div className="mt-6 p-4 bg-muted/30 rounded-lg flex flex-col sm:flex-row items-center justify-between border border-dashed border-muted-foreground/20 gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-medium">إجمالي قيم المدفوعات:</span>

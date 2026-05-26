@@ -187,10 +187,10 @@ export default function ProgressReportPrint() {
 
       {/* تصميم الصفحة المطبوعة A4 */}
       <div className="min-h-screen bg-white print:p-0 font-sans" dir="rtl">
-        <div className="max-w-[210mm] mx-auto p-8 print:p-4 print:max-w-none">
+        <div className="max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
           
           {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-          <div className="border-[3px] border-[#1a5f4a] p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-5">
+          <div className="border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-5">
             {/* خط ذهبي داخلي رفيع للإطار */}
             <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
             
@@ -198,7 +198,7 @@ export default function ProgressReportPrint() {
             <div className="relative z-10">
               
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   {orgSettings?.logoUrl ? (
                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto print:h-14" />
@@ -215,16 +215,16 @@ export default function ProgressReportPrint() {
                   </div>
                 </div>
 
-                <div className="text-xs space-y-1 text-left">
-                  <div className="flex gap-2 justify-end">
+                <div className="text-xs space-y-1 text-center sm:text-left">
+                  <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">التاريخ:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(reportDate)} هـ</span>
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">الموافق:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{formatGregorianDate(reportDate)} م</span>
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">رقم التقرير:</span>
                     <span className="border-b border-dotted border-gray-400 px-3 font-mono">{report.reportNumber}</span>
                   </div>
@@ -252,7 +252,8 @@ export default function ProgressReportPrint() {
                 >
                   1. بيانات المشروع العامة:
                 </h3>
-                <table className="w-full border-collapse text-xs sm:text-sm">
+                <div className="overflow-x-auto w-full scrollbar-hide">
+                  <table className="w-full border-collapse text-xs sm:text-sm">
                   <tbody>
                     <tr className="border-b">
                       <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">اسم المشروع:</td>
@@ -280,6 +281,7 @@ export default function ProgressReportPrint() {
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
 
               {/* القسم الثاني: تفاصيل الدفعة المالية ونسب الإنجاز */}
@@ -290,7 +292,8 @@ export default function ProgressReportPrint() {
                 >
                   2. القيم المالية ونسب الإنجاز المحققة:
                 </h3>
-                <table className="w-full border text-xs sm:text-sm mb-4">
+                <div className="overflow-x-auto w-full scrollbar-hide">
+                  <table className="w-full border text-xs sm:text-sm mb-4">
                   <thead>
                     <tr className="bg-gray-100/80 border-b">
                       <th className="p-3 text-right font-bold w-1/3">البيان</th>
@@ -322,6 +325,7 @@ export default function ProgressReportPrint() {
                     </tr>
                   </tbody>
                 </table>
+                </div>
 
                 {actualBudgetSpent > 0 && actualBudgetSpent < agreedPaymentAmount && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs leading-relaxed">
@@ -399,7 +403,7 @@ export default function ProgressReportPrint() {
                         >
                           4. مرفقات التقرير وصور الموقع المنجز:
                         </h3>
-                        <div className="grid grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
                           {allFiles.map((photo: string, index: number) => {
                             const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp")));
                             const isPdf = photo.startsWith("data:application/pdf") || (photo.startsWith("http") && photo.endsWith(".pdf"));
@@ -447,7 +451,7 @@ export default function ProgressReportPrint() {
 
               {/* القسم الخامس: التوقيعات والاعتماد */}
               <div className="mt-12 break-inside-avoid">
-                <div className="grid grid-cols-2 gap-6 mb-6 text-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right">
                   {/* الطرف الأول */}
                   <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
                     <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
