@@ -310,6 +310,11 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
+    if (suppliers.some(s => s.amount > s.agreedAmount)) {
+      toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
+      return;
+    }
+
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
     if (contractDetails && totalAmount > contractAmount) {
       toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
@@ -654,21 +659,19 @@ export default function NewLinkedDisbursementRequest() {
             {/* الموردون المستحقون للصرف الفعلي */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <div className="flex items-center justify-between flex-row-reverse gap-4">
-                  <div className="text-right">
-                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                      <Building2 className="h-4.5 w-4.5 text-primary" />
-                      الدفعة التي سوف تصرف (المستفيدين والمبالغ الفعلية)
-                    </CardTitle>
-                    <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
-                  </div>
+                <div className="text-right space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold justify-start">
+                    <Building2 className="h-4.5 w-4.5 text-primary" />
+                    الدفعة التي سوف تصرف (المستفيدين والمبالغ الفعلية)
+                  </CardTitle>
+                  <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-6">
                   {suppliers.map((supplier, index) => (
                     <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-row-reverse border-b border-dashed border-border/80 pb-2">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start border-b border-dashed border-border/80 pb-2">
                         <Building2 className="w-4 h-4 text-primary" />
                         <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
                       </div>
