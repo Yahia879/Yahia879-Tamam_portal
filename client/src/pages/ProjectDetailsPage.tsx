@@ -925,12 +925,12 @@ export default function ProjectDetailsPage() {
                   </div>
                 ) : project.payments && project.payments.length > 0 ? (
                   <>
-                    {project.payments.some(payment => payment.source !== "manual" && (!payment.workDescription || !payment.completionPercentage)) && (
+                    {project.payments.some(payment => payment.source !== "manual" && (payment.completionPercentage === null || payment.completionPercentage === undefined)) && (
                       <Alert className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6 text-right">
                         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
                         <AlertTitle className="font-bold text-amber-800 dark:text-amber-400">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
                         <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
-                          بعض الدفعات المضافة تفتقر إلى "وصف الأعمال التي سوف تنفذ" أو "نسبة الإنجاز". يرجى استكمال هذه البيانات من خلال الضغط على أيقونة التعديل (📝) بجانب الدفعة المعنية لتجنب أي عوائق في مسار الاعتماد المالي.
+                          بعض الدفعات المضافة تفتقر إلى "نسبة الإنجاز". يرجى استكمال هذه البيانات من خلال الضغط على أيقونة التعديل (📝) بجانب الدفعة المعنية لتجنب أي عوائق في مسار الاعتماد المالي.
                         </AlertDescription>
                       </Alert>
                     )}
@@ -953,16 +953,11 @@ export default function ProjectDetailsPage() {
                           <TableCell className="text-right">
                             <div className="flex flex-col text-right">
                               <span className="font-semibold text-foreground">{payment.description || "-"}</span>
-                              {payment.source !== "manual" && (!payment.workDescription || !payment.completionPercentage) && (
+                              {payment.source !== "manual" && (payment.completionPercentage === null || payment.completionPercentage === undefined) && (
                                 <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
                                   <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
                                   <span>بيانات غير مكتملة:</span>
-                                  {!payment.workDescription && (
-                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
-                                      الوصف ناقص
-                                    </span>
-                                  )}
-                                  {!payment.completionPercentage && (
+                                  {(payment.completionPercentage === null || payment.completionPercentage === undefined) && (
                                     <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
                                       نسبة الإنجاز ناقصة
                                     </span>

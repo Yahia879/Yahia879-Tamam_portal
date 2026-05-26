@@ -182,10 +182,10 @@ export default function NewDisbursementRequest() {
     { enabled: formData.contractId > 0 }
   );
   
-  // mutation لإنشاء دفعة مباشرة للمشروع
-  const createMutation = trpc.projects.createPayment.useMutation({
+  // mutation لإنشاء طلب صرف للمشروع
+  const createMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: (data) => {
-      toast.success("تم إضافة الدفعة بنجاح");
+      toast.success("تم إضافة طلب الصرف بنجاح");
       navigate(`/projects/${formData.projectId}`);
     },
     onError: (error) => {
@@ -302,9 +302,13 @@ export default function NewDisbursementRequest() {
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
+      contractPaymentId: formData.contractPaymentId || undefined,
+      title: formData.title,
+      description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
-      description: formData.description,
+      dateMiladi: formData.dateMiladi,
+      completionPercentage: formData.completionPercentage,
     });
   };
   

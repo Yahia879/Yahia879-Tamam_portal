@@ -592,27 +592,7 @@ export default function NewLinkedDisbursementRequest() {
                     </Button>
                   </div>
                 )}
-                {/* عرض الدفعة المتفق عليها */}
-                {paymentInfo && (
-                  <div className="p-5 rounded-xl bg-emerald-50/10 dark:bg-slate-900/20 border border-emerald-100 text-right space-y-3 shadow-inner">
-                    <div className="flex items-center gap-1.5 justify-start flex-row-reverse flex-wrap">
-                      <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-700">
-                        <Info className="w-3.5 h-3.5" />
-                      </div>
-                      <Label className="text-xs font-black text-emerald-800 dark:text-emerald-400">الدفعة المتفق عليها مجدولة في العقد *</Label>
-                    </div>
-                    <div className="flex items-baseline gap-1.5 justify-start flex-row-reverse flex-wrap">
-                      <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                        {parseFloat(paymentInfo.amount || "0").toLocaleString()}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-bold">ريال سعودي</span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold bg-background p-2.5 rounded-lg border border-border/40 mt-1">
-                      <span className="text-muted-foreground block text-[9px] mb-0.5">وصف الدفعة المعتمد بملحق العقد:</span>
-                      {paymentInfo.description}
-                    </div>
-                  </div>
-                )}
+
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 text-right">
