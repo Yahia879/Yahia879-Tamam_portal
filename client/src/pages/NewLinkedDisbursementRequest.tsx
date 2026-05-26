@@ -95,6 +95,7 @@ interface SupplierEntry {
   amount: number;
   iban: string;
   bank: string;
+  agreedAmount: number;
 }
 
 export default function NewLinkedDisbursementRequest() {
@@ -120,7 +121,7 @@ export default function NewLinkedDisbursementRequest() {
 
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>([
-    { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "" }
+    { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
   ]);
   
   // جلب المشاريع
@@ -175,6 +176,7 @@ export default function NewLinkedDisbursementRequest() {
         setSuppliers(prev => prev.map(s => ({
           ...s,
           amount: parseFloat(paymentInfo.amount || "0"),
+          agreedAmount: parseFloat(paymentInfo.amount || "0"),
           work: paymentInfo.description || "",
         })));
       }
@@ -206,6 +208,7 @@ export default function NewLinkedDisbursementRequest() {
         name: contractDetails.contract.secondPartyName || "",
         work: contractDetails.contract.contractTitle || "",
         amount: paymentInfo ? parseFloat(paymentInfo.amount || "0") : parseFloat(String(contractDetails.contract.contractAmount || "0")),
+        agreedAmount: paymentInfo ? parseFloat(paymentInfo.amount || "0") : parseFloat(String(contractDetails.contract.contractAmount || "0")),
         iban: contractDetails.contract.secondPartyIban || "",
         bank: contractDetails.contract.secondPartyBankName || "",
       };
@@ -232,7 +235,7 @@ export default function NewLinkedDisbursementRequest() {
 
   // إضافة مورد جديد
   const addSupplier = () => {
-    setSuppliers([...suppliers, { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "" }]);
+    setSuppliers([...suppliers, { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
   };
   
   // حذف مورد
@@ -589,10 +592,9 @@ export default function NewLinkedDisbursementRequest() {
                     <Input
                       type="date"
                       value={formData.dateMiladi}
-                      onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                      readOnly
                       required
-                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                      disabled
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                     />
                   </div>
                   
@@ -604,9 +606,8 @@ export default function NewLinkedDisbursementRequest() {
                       max="100"
                       required
                       value={formData.completionPercentage}
-                      onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-primary bg-slate-50 dark:bg-slate-800 cursor-not-allowed"
-                      disabled
+                      readOnly
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-black text-primary bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                     />
                   </div>
                 </div>
@@ -615,11 +616,10 @@ export default function NewLinkedDisbursementRequest() {
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    readOnly
                     placeholder="عنوان طلب الصرف المالي"
                     required
-                    className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                    disabled
+                    className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                   />
                 </div>
                 
@@ -627,12 +627,11 @@ export default function NewLinkedDisbursementRequest() {
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والمنجزات الفعلية *</Label>
                   <Textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    readOnly
                     placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
                     rows={4}
                     required
-                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                    disabled
+                    className="text-right border-border focus:ring-0 rounded-xl text-xs leading-relaxed font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                   />
                 </div>
               </CardContent>
@@ -649,34 +648,12 @@ export default function NewLinkedDisbursementRequest() {
                     </CardTitle>
                     <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addSupplier}
-                    className="text-slate-700 border-border hover:bg-muted font-bold h-9 text-xs px-3 rounded-lg shrink-0"
-                  >
-                    <Plus className="ml-1.5 h-3.5 w-3.5" />
-                    إضافة مستفيد آخر
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-6">
                   {suppliers.map((supplier, index) => (
                     <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
-                      {suppliers.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-3 left-3 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 h-8 w-8 rounded-full transition-colors"
-                          onClick={() => removeSupplier(supplier.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-row-reverse border-b border-dashed border-border/80 pb-2">
                         <Building2 className="w-4 h-4 text-primary" />
                         <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
@@ -686,21 +663,11 @@ export default function NewLinkedDisbursementRequest() {
                         {/* اسم المورد */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
-                          <Select
+                          <Input
                             value={supplier.name}
-                            onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                          >
-                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
-                              <SelectValue placeholder="اختر المورد من القائمة" />
-                            </SelectTrigger>
-                            <SelectContent dir="rtl">
-                              {allSuppliers?.map((s) => (
-                                <SelectItem key={s.id} value={s.name} className="text-right">
-                                  {s.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            readOnly
+                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                          />
                         </div>
 
                         {/* الأعمال */}
@@ -708,31 +675,19 @@ export default function NewLinkedDisbursementRequest() {
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
                           <Input
                             value={supplier.work}
-                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                            placeholder="مثال: الدفعة الأولى أو أعمال الخرسانة..."
-                            required
-                            className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                            readOnly
+                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                           />
                         </div>
 
                         {/* البنك */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
-                          <Select
+                          <Input
                             value={supplier.bank}
-                            onValueChange={(value) => updateSupplier(supplier.id, "bank", value)}
-                          >
-                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
-                              <SelectValue placeholder="اختر البنك" />
-                            </SelectTrigger>
-                            <SelectContent dir="rtl">
-                              {banks?.map((b: any) => (
-                                <SelectItem key={b.id} value={b.valueAr || b.value} className="text-right">
-                                  {b.valueAr || b.value}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            readOnly
+                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                          />
                         </div>
 
                         {/* الآيبان */}
@@ -740,11 +695,22 @@ export default function NewLinkedDisbursementRequest() {
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
                           <Input
                             value={supplier.iban}
-                            onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
-                            placeholder="SA0000000000000000000000"
-                            required
-                            className="text-right border-border focus:ring-primary rounded-xl h-10 font-mono"
+                            readOnly
+                            className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                             dir="ltr"
+                          />
+                        </div>
+
+                        {/* المبلغ المتفق عليه للدفعة */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
+                          <Input
+                            type="number"
+                            value={supplier.agreedAmount || ""}
+                            onChange={(e) => updateSupplier(supplier.id, "agreedAmount", parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            required
+                            className="text-center font-bold text-slate-800 dark:text-slate-200 border-border focus:ring-primary rounded-xl h-10 bg-background"
                           />
                         </div>
 
