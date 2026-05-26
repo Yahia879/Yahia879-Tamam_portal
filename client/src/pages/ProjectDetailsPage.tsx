@@ -123,11 +123,6 @@ export default function ProjectDetailsPage() {
     id: parseInt(id || "0") 
   });
 
-  // جلب تقارير الإنجاز للمشروع للتحقق من المبالغ المصروفة فعلياً
-  const { data: reportsData } = trpc.progressReports.list.useQuery({
-    projectId: parseInt(id || "0")
-  }, { enabled: !!id });
-
   // جلب جدول الكميات لعرض الإجمالي
   const { data: boqData } = trpc.projects.getBOQ.useQuery({ 
     projectId: parseInt(id || "0") 
@@ -312,20 +307,7 @@ export default function ProjectDetailsPage() {
   };
 
   const totalPaymentsSum = project?.payments?.reduce((sum, p) => {
-    // البحث عن تقرير إنجاز مرتبط بهذه الدفعة
-    const paymentTitle = `تقرير إنجاز - ${p.description || p.paymentNumber}`;
-    const correspondingReport = reportsData?.find((report: any) => 
-      report.projectId === project.id && 
-      (report.title === paymentTitle || 
-       report.title.includes(p.description || p.paymentNumber) || 
-       (report.workSummary && report.workSummary.includes(`[معرف الدفعة: ${p.id}]`)))
-    );
-
-    const actualAmount = correspondingReport 
-      ? parseFloat(correspondingReport.budgetSpent || "0") 
-      : parseFloat(p.amount || "0");
-
-    return sum + actualAmount;
+    return sum + parseFloat(p.amount || "0");
   }, 0) || 0;
 
   const totalContractsSum = project?.contracts?.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0) || 0;
@@ -990,28 +972,7 @@ export default function ProjectDetailsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            {(() => {
-                              const paymentTitle = `تقرير إنجاز - ${payment.description || payment.paymentNumber}`;
-                              const correspondingReport = reportsData?.find((report: any) => 
-                                report.projectId === project.id && 
-                                (report.title === paymentTitle || 
-                                 report.title.includes(payment.description || payment.paymentNumber) || 
-                                 (report.workSummary && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`)))
-                              );
-                              if (correspondingReport) {
-                                const spent = parseFloat(correspondingReport.budgetSpent || "0");
-                                const agreed = parseFloat(payment.amount || "0");
-                                if (spent < agreed) {
-                                  return (
-                                    <div className="flex flex-col text-right">
-                                      <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(spent.toString())}</span>
-                                      <span className="text-xs text-muted-foreground line-through font-medium">متفق: {formatCurrency(payment.amount)}</span>
-                                    </div>
-                                  );
-                                }
-                              }
-                              return formatCurrency(payment.amount);
-                            })()}
+                            <span className="font-bold">{formatCurrency(payment.amount)}</span>
                           </TableCell>
                           <TableCell className="text-right">
                             <Badge variant="outline" className={
