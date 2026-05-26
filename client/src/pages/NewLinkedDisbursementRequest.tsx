@@ -164,24 +164,34 @@ export default function NewLinkedDisbursementRequest() {
       const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
-      setFormData(prev => ({
-        ...prev,
-        title: `طلب صرف لـ ${selectedReport.title}`,
-        description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: selectedReport.actualProgress || 0,
-        contractPaymentId: paymentId,
-      }));
+      setFormData(prev => {
+        if (prev.contractPaymentId === paymentId && prev.completionPercentage === selectedReport.actualProgress) {
+          return prev;
+        }
+        return {
+          ...prev,
+          title: `طلب صرف لـ ${selectedReport.title}`,
+          description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+          completionPercentage: selectedReport.actualProgress || 0,
+          contractPaymentId: paymentId,
+        };
+      });
 
       if (paymentInfo) {
-        setSuppliers(prev => prev.map(s => ({
-          ...s,
-          amount: parseFloat(paymentInfo.amount || "0"),
-          agreedAmount: parseFloat(paymentInfo.amount || "0"),
-          work: paymentInfo.description || "",
-        })));
+        setSuppliers(prev => {
+          if (prev.length > 0 && prev[0].name !== "" && prev[0].amount > 0) {
+            return prev;
+          }
+          return prev.map(s => ({
+            ...s,
+            amount: parseFloat(paymentInfo.amount || "0"),
+            agreedAmount: parseFloat(paymentInfo.amount || "0"),
+            work: paymentInfo.description || "",
+          }));
+        });
       }
     }
-  }, [selectedReportId, projectDetails]);
+  }, [selectedReportId, projectDetails, paymentInfo]);
   
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
@@ -202,7 +212,11 @@ export default function NewLinkedDisbursementRequest() {
   
   // تحديث بيانات المورد من العقد تلقائياً
   useEffect(() => {
-    if (contractDetails) {
+    if (contractDetails && contractDetails.contract) {
+      if (suppliers.length > 0 && suppliers[0].name === contractDetails.contract.secondPartyName && suppliers[0].iban === contractDetails.contract.secondPartyIban) {
+        return;
+      }
+
       const supplierFromContract: SupplierEntry = {
         id: crypto.randomUUID(),
         name: contractDetails.contract.secondPartyName || "",
@@ -231,7 +245,7 @@ export default function NewLinkedDisbursementRequest() {
   // حساب المتبقي للصرف
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
-  const remainingAmount = contractAmount - totalPaymentsSum;
+  const remainingAmount = contractAmount - totalPaymentsSum - totalAmount;
 
   // إضافة مورد جديد
   const addSupplier = () => {
@@ -707,10 +721,9 @@ export default function NewLinkedDisbursementRequest() {
                           <Input
                             type="number"
                             value={supplier.agreedAmount || ""}
-                            onChange={(e) => updateSupplier(supplier.id, "agreedAmount", parseFloat(e.target.value) || 0)}
-                            placeholder="0.00"
+                            readOnly
                             required
-                            className="text-center font-bold text-slate-800 dark:text-slate-200 border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-0 rounded-xl h-10 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                           />
                         </div>
 
@@ -762,7 +775,7 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription>تفاصيل التدقيق والمجاميع المالية لطلب الصرف الحالي</CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6 text-right">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-right">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{projectDetails?.name || "المشروع المحدد"}</span>
@@ -770,12 +783,6 @@ export default function NewLinkedDisbursementRequest() {
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block font-bold">رقم تقرير الإنجاز</span>
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedReport?.reportNumber || "لا يوجد"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-muted-foreground block font-bold">الدفعة المجدولة بالملحق</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {paymentInfo ? `${parseFloat(paymentInfo.amount || "0").toLocaleString()} ريال` : "غير محدد"}
-                    </span>
                   </div>
                 </div>
 
@@ -794,14 +801,6 @@ export default function NewLinkedDisbursementRequest() {
                       <div className="text-xs">
                         <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
                         <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
-                      </div>
-                      <div className="text-xs">
-                        <span className="text-rose-600 block text-[9px] font-semibold">المصروف سابقاً</span>
-                        <span className="font-bold text-rose-600">{totalPaymentsSum.toLocaleString()} ريال</span>
-                      </div>
-                      <div className="text-xs border-r border-dashed pr-4 border-border/80">
-                        <span className="text-emerald-700 dark:text-emerald-400 block text-[9px] font-black">المتبقي للصرف</span>
-                        <span className="font-black text-emerald-700 dark:text-emerald-400">{remainingAmount.toLocaleString()} ريال</span>
                       </div>
                     </div>
                   )}
