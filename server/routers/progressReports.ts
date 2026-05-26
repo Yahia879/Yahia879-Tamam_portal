@@ -58,8 +58,8 @@ export const progressReportsRouter = router({
           challenges: progressReports.challenges,
           nextSteps: progressReports.nextSteps,
           recommendations: progressReports.recommendations,
-          attachments: progressReports.attachments,
-          photos: progressReports.photos,
+          attachments: sql<any>`(CASE WHEN ${progressReports.attachments} IS NOT NULL THEN JSON_EXTRACT(${progressReports.attachments}, '$') ELSE NULL END)`,
+          photos: sql<any>`(CASE WHEN ${progressReports.photos} IS NOT NULL THEN JSON_EXTRACT(${progressReports.photos}, '$') ELSE NULL END)`,
           projectName: projects.name,
           createdByName: users.name,
         })
@@ -141,40 +141,48 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      // توليد رقم التقرير
-      const year = new Date().getFullYear();
-      const [countResult] = await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(progressReports);
-      const sequence = (countResult?.count || 0) + 1;
-      const reportNumber = `RPT-${year}-${String(sequence).padStart(4, "0")}`;
+      try {
+        // توليد رقم التقرير
+        const year = new Date().getFullYear();
+        const [countResult] = await db
+          .select({ count: sql<number>`COUNT(*)` })
+          .from(progressReports);
+        const sequence = (countResult?.count || 0) + 1;
+        const reportNumber = `RPT-${year}-${String(sequence).padStart(4, "0")}`;
 
-      // حساب الانحراف
-      const variance = input.actualProgress - input.plannedProgress;
+        // حساب الانحراف
+        const variance = input.actualProgress - input.plannedProgress;
 
-      const [result] = await db.insert(progressReports).values({
-        reportNumber,
-        projectId: input.projectId,
-        title: input.title,
-        reportDate: new Date(input.reportDate),
-        reportPeriodStart: (input.reportPeriodStart && input.reportPeriodStart.trim() !== "") ? new Date(input.reportPeriodStart) : null,
-        reportPeriodEnd: (input.reportPeriodEnd && input.reportPeriodEnd.trim() !== "") ? new Date(input.reportPeriodEnd) : null,
-        overallProgress: input.overallProgress,
-        plannedProgress: input.plannedProgress,
-        actualProgress: input.actualProgress,
-        variance,
-        workSummary: input.workSummary,
-        challenges: input.challenges,
-        nextSteps: input.nextSteps,
-        recommendations: input.recommendations,
-        budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
-        budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
-        photos: input.photos ? JSON.stringify(input.photos) : null,
-        status: "draft",
-        createdBy: ctx.user.id,
-      });
+        const [result] = await db.insert(progressReports).values({
+          reportNumber,
+          projectId: input.projectId,
+          title: input.title,
+          reportDate: new Date(input.reportDate),
+          reportPeriodStart: (input.reportPeriodStart && input.reportPeriodStart.trim() !== "") ? new Date(input.reportPeriodStart) : null,
+          reportPeriodEnd: (input.reportPeriodEnd && input.reportPeriodEnd.trim() !== "") ? new Date(input.reportPeriodEnd) : null,
+          overallProgress: input.overallProgress,
+          plannedProgress: input.plannedProgress,
+          actualProgress: input.actualProgress,
+          variance,
+          workSummary: input.workSummary,
+          challenges: input.challenges,
+          nextSteps: input.nextSteps,
+          recommendations: input.recommendations,
+          budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
+          budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
+          photos: input.photos ? JSON.stringify(input.photos) : null,
+          status: "draft",
+          createdBy: ctx.user.id,
+        });
 
-      return { id: result.insertId, reportNumber };
+        return { id: result.insertId, reportNumber };
+      } catch (error: any) {
+        console.error("Error creating progress report:", error);
+        if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
+          throw new Error("حجم المرفقات كبير جداً. يرجى تقليل حجم الملفات أو رفع عدد أقل من الصور/المستندات.");
+        }
+        throw new Error("حدث خطأ أثناء حفظ تقرير الإنجاز. يرجى التأكد من حجم المرفقات.");
+      }
     }),
 
   // تحديث تقرير
@@ -199,31 +207,39 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
-      const updateData: any = {};
-      
-      if (input.title !== undefined) updateData.title = input.title;
-      if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
-      if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
-      if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
-      if (input.workSummary !== undefined) updateData.workSummary = input.workSummary;
-      if (input.challenges !== undefined) updateData.challenges = input.challenges;
-      if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps;
-      if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
-      if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
-      if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
-      if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
+      try {
+        const updateData: any = {};
+        
+        if (input.title !== undefined) updateData.title = input.title;
+        if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
+        if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
+        if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
+        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary;
+        if (input.challenges !== undefined) updateData.challenges = input.challenges;
+        if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps;
+        if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
+        if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
+        if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
+        if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
 
-      // حساب الانحراف إذا تم تحديث النسب
-      if (input.actualProgress !== undefined && input.plannedProgress !== undefined) {
-        updateData.variance = input.actualProgress - input.plannedProgress;
+        // حساب الانحراف إذا تم تحديث النسب
+        if (input.actualProgress !== undefined && input.plannedProgress !== undefined) {
+          updateData.variance = input.actualProgress - input.plannedProgress;
+        }
+
+        await db
+          .update(progressReports)
+          .set(updateData)
+          .where(eq(progressReports.id, input.id));
+
+        return { success: true };
+      } catch (error: any) {
+        console.error("Error updating progress report:", error);
+        if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
+          throw new Error("حجم المرفقات كبير جداً. يرجى تقليل حجم الملفات أو رفع عدد أقل من الصور/المستندات.");
+        }
+        throw new Error("حدث خطأ أثناء تحديث تقرير الإنجاز. يرجى التأكد من حجم المرفقات.");
       }
-
-      await db
-        .update(progressReports)
-        .set(updateData)
-        .where(eq(progressReports.id, input.id));
-
-      return { success: true };
     }),
 
   // تقديم التقرير للمراجعة

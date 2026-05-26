@@ -1121,8 +1121,8 @@ export const progressReports = mysqlTable("progress_reports", {
   budgetRemaining: decimal("budgetRemaining", { precision: 15, scale: 2 }).default("0"), // المبلغ المتبقي
   
   // المرفقات
-  attachments: json("attachments"), // قائمة المرفقات
-  photos: json("photos"), // صور الموقع
+  attachments: longtext("attachments"), // قائمة المرفقات
+  photos: longtext("photos"), // صور الموقع
   
   // الحالة
   status: mysqlEnum("status", ["draft", "submitted", "reviewed", "approved"]).default("draft"),
