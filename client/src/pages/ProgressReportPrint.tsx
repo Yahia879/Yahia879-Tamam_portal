@@ -512,20 +512,22 @@ export default function ProgressReportPrint() {
         </div>
       </div>
 
-      {/* نافذة معاينة المرفق بحجم أكبر */}
       <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
-        <DialogContent className="max-w-[100vw] w-screen h-screen max-h-screen flex flex-col p-6 rounded-none border-none bg-background/98 backdrop-blur-sm z-50 overflow-y-auto" dir="rtl">
-          <DialogHeader className="text-right flex items-center justify-between flex-row">
-            <DialogTitle className="text-right">معاينة المرفق - ملء الشاشة</DialogTitle>
+        <DialogContent 
+          className="w-[95vw] !max-w-[95vw] h-[95vh] !max-h-[95vh] !flex !flex-col p-2 sm:p-5 rounded-xl border bg-background/98 backdrop-blur-md z-50 shadow-2xl" 
+          dir="rtl"
+        >
+          <DialogHeader className="text-right flex items-center justify-between flex-row pe-10 pb-2 border-b">
+            <DialogTitle className="text-right text-base font-bold">معاينة المرفق - كامل الشاشة</DialogTitle>
           </DialogHeader>
           {previewFile && (
-            <div className="flex-1 flex items-center justify-center p-4 min-h-[400px]">
+            <div className="flex-1 flex items-center justify-center p-1 sm:p-3 min-h-0 overflow-hidden w-full">
               {previewFile.startsWith("data:image/") || (previewFile.startsWith("http") && (previewFile.endsWith(".png") || previewFile.endsWith(".jpg") || previewFile.endsWith(".jpeg") || previewFile.endsWith(".webp"))) ? (
-                <img src={previewFile} alt="معاينة المرفق" className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-md" />
+                <img src={previewFile} alt="معاينة المرفق" className="max-w-full max-h-full object-contain rounded-md shadow-sm" />
               ) : previewFile.startsWith("data:application/pdf") || (previewFile.startsWith("http") && previewFile.endsWith(".pdf")) ? (
-                <iframe src={previewFile} className="w-full h-[80vh] border rounded-lg shadow-md" title="معاينة مستند PDF" />
+                <iframe src={previewFile} className="w-full h-full border rounded-lg shadow-sm" title="معاينة مستند PDF" />
               ) : (
-                <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full">
+                <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full max-w-md">
                   <FileText className="w-16 h-16 text-muted-foreground" />
                   <span className="font-bold text-foreground">مستند غير مدعوم للمعاينة المباشرة</span>
                   <a href={previewFile} download="مرفق_تمام" className="text-sm underline font-semibold text-primary hover:text-primary/80">
