@@ -348,15 +348,6 @@ export default function ProgressReportPrint() {
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="p-3 font-semibold bg-gray-50/30">المبالغ المالية للدفعة</td>
-                      <td className="p-3 text-center font-mono">
-                        {agreedPaymentAmount > 0 ? `${agreedPaymentAmount.toLocaleString()} ريال` : "—"}
-                      </td>
-                      <td className="p-3 text-center font-bold text-emerald-700 font-mono">
-                        {actualBudgetSpent > 0 ? `${actualBudgetSpent.toLocaleString()} ريال` : "—"}
-                      </td>
-                    </tr>
-                    <tr className="border-b">
                       <td className="p-3 font-semibold bg-gray-50/30">نسبة الإنجاز المحققة</td>
                       <td className="p-3 text-center font-mono text-blue-700">{report.plannedProgress}%</td>
                       <td className="p-3 text-center font-bold text-emerald-700 font-mono">{report.actualProgress}%</td>
