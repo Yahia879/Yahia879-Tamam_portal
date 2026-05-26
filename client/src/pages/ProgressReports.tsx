@@ -1192,8 +1192,56 @@ export default function ProgressReports() {
                               </p>
                             </div>
                           </div>
-                          <div className="text-left md:text-right shrink-0 md:mt-1">
-                             <p className="text-[10px] md:text-xs text-muted-foreground">
+                          <div className="text-left md:text-right shrink-0 md:mt-1 flex items-center gap-1">
+                            <div className="md:hidden" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-muted p-0 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
+                                  {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && (
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        handleEditReportClick(report);
+                                      }}
+                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                                    >
+                                      <Edit className="w-3.5 h-3.5 text-blue-600" />
+                                      <span>تعديل تقرير الإنجاز</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {report.status !== "approved" && (
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        reviewMutation.mutate({ id: report.id, status: "approved" });
+                                      }}
+                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
+                                    >
+                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>اعتماد التقرير</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      navigate(`/progress-reports/${report.id}/print`);
+                                    }}
+                                    className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-red-600" />
+                                    <span>عرض التقرير PDF</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                            <p className="text-[10px] md:text-xs text-muted-foreground">
                               {new Date(report.reportDate).toLocaleDateString("ar-SA")}
                             </p>
                           </div>
@@ -1304,7 +1352,7 @@ export default function ProgressReports() {
                   </div>
                   
                   {totalPages > 1 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                    <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1 scrollbar-hide">
                       <Button
                         variant="outline"
                         size="icon"

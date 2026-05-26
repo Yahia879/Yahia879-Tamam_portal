@@ -606,7 +606,7 @@ export default function ContractForm() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 px-4 md:px-0">
         {/* العنوان */}
         <div>
          <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
@@ -673,15 +673,15 @@ export default function ContractForm() {
         )}
 
         {/* شريط الخطوات */}
-        <div className="flex items-center justify-between overflow-x-auto pb-2">
+        <div className="flex items-center justify-between overflow-x-auto pb-2 scrollbar-hide flex-nowrap w-full gap-2 px-1">
           {steps.map((step, index) => {
             const StepIcon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
             
             return (
-              <div key={step.id} className="flex items-center">
-                <div className="flex flex-col items-center min-w-[60px]">
+              <div key={step.id} className="flex items-center shrink-0">
+                <div className="flex flex-col items-center min-w-[60px] shrink-0">
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                       isActive
@@ -707,7 +707,7 @@ export default function ContractForm() {
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`w-8 md:w-16 h-1 mx-1 ${
+                    className={`w-8 md:w-16 h-1 mx-1 shrink-0 ${
                       isCompleted ? "bg-green-500" : "bg-gray-200"
                     }`}
                   />
@@ -941,7 +941,7 @@ export default function ContractForm() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">بيانات المورد</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">الاسم:</span>
                         <span className="mr-2 font-medium">{selectedSupplier.name}</span>
@@ -1421,7 +1421,7 @@ export default function ContractForm() {
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">تفاصيل العقد</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 text-sm">
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">الموضوع:</span>
                       <p className="font-medium">{contractData.subject || "-"}</p>
