@@ -332,34 +332,34 @@ export default function EditPaymentPage() {
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6 text-right">
             {/* بيانات الترويسة */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
-                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
-                  <FileText className="h-5 w-5" />
+            <Card className="text-right border-border/60 shadow-sm">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-base font-bold text-foreground">
+                  <FileText className="h-5 w-5 text-primary" />
                   بيانات طلب الصرف
                 </CardTitle>
                 <CardDescription className="text-right">معلومات أساسية عن طلب الصرف الحالي</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 text-right">
+              <CardContent className="space-y-4 pt-6 text-right">
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">التاريخ الميلادي *</Label>
+                  <Label className="text-right font-semibold">التاريخ الميلادي *</Label>
                   <Input
                     type="date"
                     value={formData.dateMiladi}
                     onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
                     required
-                    className="text-right"
+                    className="text-right rounded-xl h-10 border-border/60"
                   />
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">المشروع</Label>
+                  <Label className="text-right font-semibold">المشروع</Label>
                   <Select
                     value={formData.projectId.toString()}
                     onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
                     disabled={true}
                   >
-                    <SelectTrigger className="text-right" dir="rtl">
+                    <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10" dir="rtl">
                       <SelectValue placeholder="اختر المشروع" />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
@@ -374,13 +374,13 @@ export default function EditPaymentPage() {
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
                   <div className="space-y-2 text-right">
-                    <Label className="text-right">العقد</Label>
+                    <Label className="text-right font-semibold">العقد</Label>
                     <Select
                       value={formData.contractId.toString()}
                       onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
                       disabled={true}
                     >
-                      <SelectTrigger className="text-right" dir="rtl">
+                      <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10" dir="rtl">
                         <SelectValue placeholder="اختر العقد" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
@@ -396,30 +396,30 @@ export default function EditPaymentPage() {
                 )}
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">عنوان طلب الصرف *</Label>
+                  <Label className="text-right font-semibold">عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="مثال: صرف الدفعة الأولى لمشروع ترميم مسجد..."
                     required
-                    className="text-right"
+                    className="text-right rounded-xl h-10 border-border/60"
                   />
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف الأعمال التي سوف تنفذ *</Label>
+                  <Label className="text-right font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                     rows={3}
                     required
-                    className="text-right"
+                    className="text-right rounded-xl border-border/60"
                   />
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">نسبة الإنجاز (%) *</Label>
+                  <Label className="text-right font-semibold">نسبة الإنجاز (%) *</Label>
                   <Input
                     type="number"
                     min="1"
@@ -427,7 +427,7 @@ export default function EditPaymentPage() {
                     required
                     value={formData.completionPercentage}
                     onChange={(e) => setFormData({ ...formData, completionPercentage: e.target.value === "" ? "" : parseInt(e.target.value) || 0 })}
-                    className="text-right"
+                    className="text-right rounded-xl h-10 border-border/60"
                   />
                 </div>
               </CardContent>

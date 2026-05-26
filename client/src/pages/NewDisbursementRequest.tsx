@@ -555,7 +555,6 @@ export default function NewDisbursementRequest() {
                 ))}
               </CardContent>
             </Card>
-            </Card>
           </div>
           
           {/* Sidebar */}
