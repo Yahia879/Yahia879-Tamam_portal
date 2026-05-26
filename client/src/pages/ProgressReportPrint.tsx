@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,17 @@ export default function ProgressReportPrint() {
   // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  // تغيير عنوان التوثيق ليتطابق مع اسم التقرير عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
+  useEffect(() => {
+    if (report) {
+      const originalTitle = document.title;
+      document.title = `${report.reportNumber} - ${report.title}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [report]);
+
   const handlePrint = () => {
     window.print();
   };
@@ -173,6 +184,40 @@ export default function ProgressReportPrint() {
 
   return (
     <>
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0 !important; /* Removes default browser margins, headers, and footers */
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
+          }
+          html, body {
+            width: 210mm !important; /* Force body to A4 physical width */
+            background-color: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          /* Custom layout that uses padding as page margin, guaranteeing perfect fit on Default browser settings */
+          .max-w-\\[210mm\\] {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            padding: 10mm !important; /* Safe margin from A4 physical page edges */
+            margin: 0 auto !important;
+          }
+          /* Keep frame border inside our custom page margin */
+          .border-\\[3px\\] {
+            border-width: 2px !important;
+            padding: 18px !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
       {/* أزرار التحكم */}
       <div className="print:hidden fixed top-4 right-4 z-50 flex gap-2">
         <Button variant="outline" onClick={() => navigate("/progress-reports")} className="bg-white/90 backdrop-blur border shadow-sm">
@@ -187,10 +232,10 @@ export default function ProgressReportPrint() {
 
       {/* تصميم الصفحة المطبوعة A4 */}
       <div className="min-h-screen bg-white print:p-0 font-sans" dir="rtl">
-        <div className="max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
+        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
           
           {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-          <div className="border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-5">
+          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-5">
             {/* خط ذهبي داخلي رفيع للإطار */}
             <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
             
@@ -215,7 +260,7 @@ export default function ProgressReportPrint() {
                   </div>
                 </div>
 
-                <div className="text-xs space-y-1 text-center sm:text-left">
+                <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5">
                   <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">التاريخ:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(reportDate)} هـ</span>
@@ -342,7 +387,7 @@ export default function ProgressReportPrint() {
                 >
                   ملخص الأعمال المنجزة والخطوات:
                 </h3>
-                <div className="border rounded-lg p-4 bg-gray-50 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+                <div className="border rounded-lg p-4 bg-gray-50 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
                   {cleanWorkSummary || "لا يوجد تفاصيل أعمال مسجلة."}
                 </div>
               </div>
@@ -360,19 +405,19 @@ export default function ProgressReportPrint() {
                     {report.challenges && (
                       <div>
                         <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ التحديات والمعوقات:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap">{report.challenges}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.challenges}</p>
                       </div>
                     )}
                     {report.nextSteps && (
                       <div>
                         <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ الخطوات القادمة:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap">{report.nextSteps}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.nextSteps}</p>
                       </div>
                     )}
                     {report.recommendations && (
                       <div>
                         <h4 className="font-bold text-xs sm:text-sm text-gray-700 mb-1">■ التوصيات والمقترحات:</h4>
-                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap">{report.recommendations}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-2 rounded-md border border-gray-100 whitespace-pre-wrap break-words [word-break:break-word]">{report.recommendations}</p>
                       </div>
                     )}
                   </div>
