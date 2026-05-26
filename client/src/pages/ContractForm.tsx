@@ -1130,19 +1130,31 @@ export default function ContractForm() {
                 ) : (
                   <div className="space-y-4">
                     {paymentSchedule.map((payment, index) => (
-                      <Card key={payment.id} className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <GripVertical className="h-5 w-5" />
-                            <span className="font-medium">{index + 1}</span>
+                      <Card key={payment.id} className="p-4 relative">
+                        <div className="flex flex-col md:flex-row items-start gap-4">
+                          <div className="flex items-center justify-between w-full md:w-auto md:flex-col md:justify-start gap-2 text-muted-foreground border-b md:border-0 pb-2 md:pb-0 mb-2 md:mb-0">
+                            <div className="flex items-center gap-2">
+                              <GripVertical className="h-5 w-5 hidden md:block" />
+                              <span className="font-bold text-primary md:text-foreground">الدفعة {index + 1}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removePayment(payment.id)}
+                              className="text-destructive h-8 w-8 p-0 md:hidden"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                          
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
                             <div className="space-y-1">
-                              <Label className="text-xs">التاريخ الميلادي</Label>
+                              <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
                               <Input
                                 type="date"
                                 value={payment.dueDate}
                                 required
+                                className="w-full rounded-xl"
                                 onChange={(e) => {
                                   const selectedDate = e.target.value;
                                   // التحقق من أن التاريخ ضمن فترة العقد
@@ -1187,20 +1199,22 @@ export default function ContractForm() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs">عنوان طلب الصرف</Label>
+                              <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
                               <Input
                                 value={payment.name}
                                 required
+                                className="w-full rounded-xl"
                                 onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
                                 placeholder="عنوان الطلب"
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs">النسبة (%)</Label>
+                              <Label className="text-xs font-semibold">النسبة (%)</Label>
                               <Input
                                 type="number"
                                 value={payment.percentage || ""}
                                 required
+                                className="w-full rounded-xl font-bold text-primary"
                                 onChange={(e) => {
                                   const pct = parseFloat(e.target.value) || 0;
                                   const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
@@ -1214,11 +1228,12 @@ export default function ContractForm() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label className="text-xs">المبلغ</Label>
+                              <Label className="text-xs font-semibold">المبلغ</Label>
                               <Input
                                 type="number"
                                 value={payment.amount || ""}
                                 required
+                                className="w-full rounded-xl font-bold"
                                 onChange={(e) => {
                                   const val = parseFloat(e.target.value) || 0;
                                   const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
@@ -1230,11 +1245,12 @@ export default function ContractForm() {
                               />
                             </div>
                           </div>
+                          
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => removePayment(payment.id)}
-                            className="text-destructive"
+                            className="text-destructive hidden md:flex"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1243,42 +1259,49 @@ export default function ContractForm() {
                     ))}
 
                     {/* ملخص الدفعات */}
-                    <Card className="bg-muted/50 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span>إجمالي المبالغ:</span>
-                          <span className={`font-bold ${
-                            paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue 
-                              ? "text-green-600 dark:text-green-400" 
-                              : paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue 
-                                ? "text-destructive" 
-                                : "text-amber-500 font-semibold"
-                          }`}>
-                            {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
-                          </span>
-                          <span className="text-muted-foreground mr-1">من قيمة العقد:</span>
-                          <span className="font-bold">
-                            {contractData.totalValue.toLocaleString()} ريال
-                          </span>
+                    <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">إجمالي المبالغ:</span>
+                            <span className={`font-black text-base ${
+                              paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue 
+                                ? "text-green-600 dark:text-green-400" 
+                                : paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue 
+                                  ? "text-destructive" 
+                                  : "text-amber-600"
+                            }`}>
+                              {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">من قيمة العقد:</span>
+                            <span className="font-bold text-foreground">
+                              {contractData.totalValue.toLocaleString()} ريال
+                            </span>
+                          </div>
                         </div>
-                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue && (
-                          <div className="flex items-center gap-1 text-destructive text-xs font-medium">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
-                          </div>
-                        )}
-                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) < contractData.totalValue && (
-                          <div className="flex items-center gap-1 text-amber-500 text-xs font-medium">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>تنبيه: إجمالي الدفعات أقل من قيمة العقد (متبقي { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } ريال)</span>
-                          </div>
-                        )}
-                        {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
-                          <div className="flex items-center gap-1 text-green-600 text-xs font-medium">
-                            <Check className="h-3 w-3" />
-                            <span>تمت تغطية كامل قيمة العقد</span>
-                          </div>
-                        )}
+
+                        <div className="flex flex-col gap-2">
+                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue && (
+                            <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
+                              <AlertTriangle className="h-4 w-4 shrink-0" />
+                              <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                            </div>
+                          )}
+                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) < contractData.totalValue && (
+                            <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
+                              <AlertTriangle className="h-4 w-4 shrink-0" />
+                              <span>تنبيه: متبقي للصرف { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } ريال</span>
+                            </div>
+                          )}
+                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
+                            <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
+                              <Check className="h-4 w-4 shrink-0" />
+                              <span>تمت تغطية كامل قيمة العقد</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   </div>
