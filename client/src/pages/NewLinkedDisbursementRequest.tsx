@@ -44,6 +44,8 @@ import {
   ArrowLeft,
   Info,
   Eye,
+  Check,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -317,69 +319,75 @@ export default function NewLinkedDisbursementRequest() {
   
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-fade-in pb-24 px-4 md:px-0" dir="rtl">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-20 px-4 md:px-0" dir="rtl">
         {/* Header and Visual Step Timeline */}
-        <div className="flex flex-col gap-6 border-b border-emerald-100/30 pb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-row-reverse">
+        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
+          <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center gap-3">
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="icon" 
-                onClick={() => window.history.back()} 
-                className="h-9 w-9 rounded-full hover:bg-emerald-50 dark:hover:bg-slate-900 text-emerald-800 dark:text-emerald-400"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigate("/disbursements");
+                  }
+                }} 
+                className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground"
               >
                 <ArrowRight className="h-5 w-5 rotate-180" />
               </Button>
               <div className="text-right">
-                <h1 className="text-xl sm:text-2xl font-black text-right bg-gradient-to-r from-emerald-800 to-teal-700 dark:from-emerald-400 dark:to-teal-500 bg-clip-text text-transparent font-display">
+                <h1 className="text-2xl font-bold text-foreground font-display">
                   طلب صرف مرتبط بتقرير إنجاز
                 </h1>
-                <p className="text-[11px] sm:text-xs text-muted-foreground text-right font-semibold mt-0.5">
+                <p className="text-xs text-muted-foreground text-right font-medium mt-0.5">
                   إنشاء طلب صرف معتمد على تقارير الإنجاز المدققة ومطابقتها مالياً بنظام تمام
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Timeline Indicators */}
+          {/* Subtle Stepper Timeline */}
           <div className="max-w-md mx-auto w-full px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
               {/* Connecting Line background */}
-              <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-1 bg-slate-100 dark:bg-slate-800 rounded-full z-0" />
+              <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
               {/* Connecting Active Line progress */}
               <div 
-                className="absolute right-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-l from-emerald-600 to-emerald-400 rounded-full z-0 transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
                 style={{ width: step === 1 ? '50%' : '100%' }}
               />
 
               {/* Step 1 Node */}
-              <div className="flex flex-col items-center gap-2 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10">
                 <div 
-                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step >= 1 
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/35 ring-4 ring-emerald-50 dark:ring-emerald-950/40' 
-                      : 'bg-white border border-slate-200 text-slate-400'
+                      ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
+                      : 'bg-background border-border text-muted-foreground'
                   }`}
                 >
-                  {step > 1 ? <CheckCircle className="w-5 h-5" /> : "١"}
+                  {step > 1 ? <Check className="w-4 h-4" /> : "١"}
                 </div>
-                <span className={`text-[10px] sm:text-xs font-bold transition-colors ${step >= 1 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                <span className={`text-xs font-semibold ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
                   المشروع والتقرير
                 </span>
               </div>
 
               {/* Step 2 Node */}
-              <div className="flex flex-col items-center gap-2 z-10">
+              <div className="flex flex-col items-center gap-1.5 z-10">
                 <div 
-                  className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
                     step === 2 
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/35 ring-4 ring-emerald-50 dark:ring-emerald-950/40' 
-                      : 'bg-slate-100 border border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800'
+                      ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
+                      : 'bg-background border-border text-muted-foreground'
                   }`}
                 >
                   ٢
                 </div>
-                <span className={`text-[10px] sm:text-xs font-bold transition-colors ${step === 2 ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                <span className={`text-xs font-semibold ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>
                   المطابقة والبيانات المالية
                 </span>
               </div>
@@ -389,11 +397,11 @@ export default function NewLinkedDisbursementRequest() {
         
         {step === 1 ? (
           /* الخطوة الأولى: اختيار المشروع وتقرير الإنجاز */
-          <div className="max-w-3xl mx-auto space-y-6">
-            <Card className="border-0 shadow-lg shadow-emerald-950/5 ring-1 ring-emerald-100/30 bg-white/70 backdrop-blur-md rounded-2xl overflow-hidden">
-              <CardHeader className="text-right border-b border-emerald-50/50 dark:border-emerald-900/20 pb-4">
-                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-emerald-800 dark:text-emerald-400 text-lg font-bold">
-                  <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
+          <div className="space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                  <FileText className="h-4.5 w-4.5 text-primary" />
                   الخطوة 1: اختيار المشروع والتقرير المرتبط
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
@@ -408,7 +416,7 @@ export default function NewLinkedDisbursementRequest() {
                       setSelectedReportId(null);
                     }}
                   >
-                    <SelectTrigger className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-11 bg-background" dir="rtl">
+                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
                       <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
@@ -429,7 +437,7 @@ export default function NewLinkedDisbursementRequest() {
                         value={selectedReportId?.toString() || ""}
                         onValueChange={(value) => setSelectedReportId(parseInt(value))}
                       >
-                        <SelectTrigger className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
                           <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -448,15 +456,15 @@ export default function NewLinkedDisbursementRequest() {
 
                     {selectedReport && (
                       <div className="space-y-4 animate-slide-up text-right">
-                        {/* Premium Glassmorphic Report Card */}
-                        <div className="bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-slate-900/60 dark:to-emerald-950/20 border border-emerald-100/60 dark:border-emerald-900/40 rounded-2xl p-5 shadow-sm space-y-4">
+                        {/* Premium Linked Report Stats Card */}
+                        <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-100/30 dark:border-emerald-900/20 pb-3">
-                            <div className="flex items-center gap-2.5 justify-start flex-row-reverse">
-                              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                                <FileText className="w-5 h-5" />
+                            <div className="flex items-center gap-2 justify-start">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                <FileText className="w-4.5 h-4.5" />
                               </div>
                               <div className="text-right">
-                                <p className="text-xs text-muted-foreground font-semibold">تقرير إنجاز مرتبط</p>
+                                <span className="text-[10px] text-muted-foreground block font-bold">تقرير الإنجاز المرتبط بالطلب</span>
                                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">
                                   {selectedReport.reportNumber} — {selectedReport.title}
                                 </h4>
@@ -466,28 +474,28 @@ export default function NewLinkedDisbursementRequest() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/30 font-bold h-9 text-xs px-3 rounded-xl mr-auto sm:mr-0 shrink-0"
-                              onClick={() => setShowReportReviewDialog(true)}
+                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg ml-auto sm:ml-0 shrink-0 shadow-sm animate-in zoom-in duration-150"
+                              onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
-                              مراجعة وتدقيق التقرير
+                              مراجعة وتدقيق التقرير المعتمد
                             </Button>
                           </div>
 
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center sm:text-right">
-                            <div className="bg-white/60 dark:bg-slate-900/40 p-3 rounded-xl border border-emerald-100/30 dark:border-emerald-900/10">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-right">
+                            <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm">
                               <span className="text-[10px] text-muted-foreground block font-semibold">تاريخ التقرير</span>
                               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 block">
                                 {new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}
                               </span>
                             </div>
-                            <div className="bg-white/60 dark:bg-slate-900/40 p-3 rounded-xl border border-emerald-100/30 dark:border-emerald-900/10">
+                            <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm">
                               <span className="text-[10px] text-muted-foreground block font-semibold">الإنجاز الفعلي بالتقرير</span>
                               <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
                                 {selectedReport.actualProgress}%
                               </span>
                             </div>
-                            <div className="bg-white/60 dark:bg-slate-900/40 p-3 rounded-xl border border-emerald-100/30 dark:border-emerald-900/10 col-span-2 sm:col-span-1">
+                            <div className="bg-background/80 p-3 rounded-lg border border-emerald-100/60 dark:border-emerald-900/10 shadow-sm col-span-2 sm:col-span-1">
                               <span className="text-[10px] text-muted-foreground block font-semibold">الانحراف المجدول</span>
                               <span className={`text-xs font-black mt-1 block ${
                                 ((selectedReport.actualProgress || 0) - (selectedReport.plannedProgress || 0)) >= 0 
@@ -499,11 +507,11 @@ export default function NewLinkedDisbursementRequest() {
                             </div>
                           </div>
 
-                          <div className="p-3 bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/40 rounded-xl flex items-start gap-2.5">
-                            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+                          <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 rounded-lg flex items-start gap-2.5 shadow-sm">
+                            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                             <div className="space-y-0.5">
-                              <p className="text-[10px] font-black text-amber-800 dark:text-amber-400">ملاحظة تنظيمية هامة</p>
-                              <p className="text-[10px] leading-relaxed text-amber-700/90 dark:text-amber-300/80 font-medium">
+                              <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400">ملاحظة تنظيمية هامة</p>
+                              <p className="text-[10px] leading-relaxed text-amber-700/80 dark:text-slate-300/80 font-medium">
                                 يجب تدقيق ومطابقة المبالغ المطروحة بالخطوة التالية مع المنجزات الفعلية لضمان توافق دفعات العقد مع واقع العمل.
                               </p>
                             </div>
@@ -514,11 +522,11 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="border-t border-emerald-50/50 dark:border-emerald-900/20 pt-4 flex justify-end gap-2">
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
                 <Button
                   onClick={() => setStep(2)}
                   disabled={!selectedReportId}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-md shadow-emerald-600/15"
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm"
                 >
                   التالي
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -527,323 +535,328 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
           </div>
         ) : (
-          /* الخطوة الثانية: البيانات المالية وتحديد مبالغ الموردين */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          /* الخطوة الثانية: البيانات المالية وتحديد مبالغ الموردين - مصفوفة عمودياً مثل التقارير */
+          <div className="space-y-6">
             {/* البيانات المالية الأساسية */}
-            <div className="lg:col-span-2 space-y-6 text-right">
-              <Card className="border-0 shadow-lg shadow-emerald-950/5 ring-1 ring-emerald-100/30 rounded-2xl overflow-hidden bg-white/70 backdrop-blur-md">
-                <CardHeader className="text-right border-b border-emerald-50/50 dark:border-emerald-900/20 pb-4">
-                  <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-emerald-800 dark:text-emerald-400 text-lg font-bold">
-                    <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
-                    الخطوة 2: مراجعة الدفعات والمعلومات المالية
-                  </CardTitle>
-                  <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية التي سوف تصرف</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5 pt-6 text-right">
-                  {/* عرض الدفعة المتفق عليها */}
-                  {paymentInfo && (
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-emerald-600/5 to-transparent border border-emerald-200/40 dark:border-emerald-900/30 text-right space-y-3 shadow-inner">
-                      <div className="flex items-center gap-1.5 justify-start flex-row-reverse">
-                        <div className="w-5 h-5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
-                          <Info className="w-3.5 h-3.5" />
-                        </div>
-                        <Label className="text-xs font-black text-emerald-800 dark:text-emerald-400">الدفعة المتفق عليها مجدولة في العقد *</Label>
-                      </div>
-                      <div className="flex items-baseline gap-1.5 justify-start flex-row-reverse">
-                        <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                          {parseFloat(paymentInfo.amount || "0").toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground font-bold">ريال سعودي</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold bg-white/40 dark:bg-slate-900/40 p-2.5 rounded-xl border border-emerald-100/10 mt-1">
-                        <span className="text-muted-foreground block text-[9px] mb-0.5">وصف الدفعة المعتمد بملحق العقد:</span>
-                        {paymentInfo.description}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
-                      <Input
-                        type="date"
-                        value={formData.dateMiladi}
-                        onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
-                        required
-                        className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 font-medium"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز المرتبطة بالطلب (%) *</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="100"
-                        required
-                        value={formData.completionPercentage}
-                        onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                        className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 font-bold text-emerald-700 dark:text-emerald-400"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="عنوان طلب الصرف المالي"
-                      required
-                      className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 font-medium"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والمنجزات الفعلية *</Label>
-                    <Textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
-                      rows={4}
-                      required
-                      className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl text-xs leading-relaxed"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* الموردون المستحقون للصرف الفعلي */}
-              <Card className="border-0 shadow-lg shadow-emerald-950/5 ring-1 ring-emerald-100/30 rounded-2xl overflow-hidden bg-white/70 backdrop-blur-md">
-                <CardHeader className="text-right border-b border-emerald-50/50 dark:border-emerald-900/20 pb-4">
-                  <div className="flex items-center justify-between flex-row-reverse gap-4">
-                    <div className="text-right">
-                      <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-emerald-800 dark:text-emerald-400 text-lg font-bold">
-                        <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
-                        الدفعة التي سوف تصرف (المستفيدين والمبالغ الفعلية)
-                      </CardTitle>
-                      <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
-                    </div>
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                  <FileText className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 2: مراجعة الدفعات والمعلومات المالية
+                </CardTitle>
+                <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية التي سوف تصرف</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-6 text-right">
+                {selectedReport && (
+                  <div className="flex justify-start text-right pb-3 mb-2 border-b border-border/40">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={addSupplier}
-                      className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/30 font-bold h-9 text-xs px-3 rounded-xl shrink-0"
+                      className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg shadow-sm"
+                      onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
                     >
-                      <Plus className="ml-1.5 h-3.5 w-3.5" />
-                      إضافة مستفيد آخر
+                      <Eye className="ml-1.5 h-3.5 w-3.5" />
+                      مراجعة وتدقيق التقرير المعتمد
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-6">
-                    {suppliers.map((supplier, index) => (
-                      <div key={supplier.id} className="p-5 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 relative space-y-5 text-right animate-slide-up hover:border-emerald-200/50 dark:hover:border-emerald-950/50 hover:shadow-sm transition-all duration-300">
-                        {suppliers.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-3 left-3 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 h-8 w-8 rounded-full transition-colors"
-                            onClick={() => removeSupplier(supplier.id)}
+                )}
+                {/* عرض الدفعة المتفق عليها */}
+                {paymentInfo && (
+                  <div className="p-5 rounded-xl bg-emerald-50/10 dark:bg-slate-900/20 border border-emerald-100 text-right space-y-3 shadow-inner">
+                    <div className="flex items-center gap-1.5 justify-start flex-row-reverse">
+                      <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-700">
+                        <Info className="w-3.5 h-3.5" />
+                      </div>
+                      <Label className="text-xs font-black text-emerald-800 dark:text-emerald-400">الدفعة المتفق عليها مجدولة في العقد *</Label>
+                    </div>
+                    <div className="flex items-baseline gap-1.5 justify-start flex-row-reverse">
+                      <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
+                        {parseFloat(paymentInfo.amount || "0").toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-bold">ريال سعودي</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold bg-background p-2.5 rounded-lg border border-border/40 mt-1">
+                      <span className="text-muted-foreground block text-[9px] mb-0.5">وصف الدفعة المعتمد بملحق العقد:</span>
+                      {paymentInfo.description}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                    <Input
+                      type="date"
+                      value={formData.dateMiladi}
+                      onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                      required
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز المرتبطة بالطلب (%) *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      required
+                      value={formData.completionPercentage}
+                      onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="عنوان طلب الصرف المالي"
+                    required
+                    className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                  />
+                </div>
+                
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والمنجزات الفعلية *</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
+                    rows={4}
+                    required
+                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* الموردون المستحقون للصرف الفعلي */}
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <div className="flex items-center justify-between flex-row-reverse gap-4">
+                  <div className="text-right">
+                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                      <Building2 className="h-4.5 w-4.5 text-primary" />
+                      الدفعة التي سوف تصرف (المستفيدين والمبالغ الفعلية)
+                    </CardTitle>
+                    <CardDescription className="text-right text-xs">حدد المبالغ الفعلية التي سوف تصرف وبيانات المستفيدين</CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addSupplier}
+                    className="text-slate-700 border-border hover:bg-muted font-bold h-9 text-xs px-3 rounded-lg shrink-0"
+                  >
+                    <Plus className="ml-1.5 h-3.5 w-3.5" />
+                    إضافة مستفيد آخر
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {suppliers.map((supplier, index) => (
+                    <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
+                      {suppliers.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-3 left-3 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 h-8 w-8 rounded-full transition-colors"
+                          onClick={() => removeSupplier(supplier.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start flex-row-reverse border-b border-dashed border-border/80 pb-2">
+                        <Building2 className="w-4 h-4 text-primary" />
+                        <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* اسم المورد */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
+                          <Select
+                            value={supplier.name}
+                            onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-400 justify-start flex-row-reverse border-b border-dashed border-slate-200/50 dark:border-slate-800 pb-2">
-                          <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
-                          <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
+                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
+                              <SelectValue placeholder="اختر المورد من القائمة" />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {allSuppliers?.map((s) => (
+                                <SelectItem key={s.id} value={s.name} className="text-right">
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {/* اسم المورد */}
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد (المقاول/المورد) *</Label>
-                            <Select
-                              value={supplier.name}
-                              onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                            >
-                              <SelectTrigger className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 bg-background" dir="rtl">
-                                <SelectValue placeholder="اختر المورد من القائمة" />
-                              </SelectTrigger>
-                              <SelectContent dir="rtl">
-                                {allSuppliers?.map((s) => (
-                                  <SelectItem key={s.id} value={s.name} className="text-right">
-                                    {s.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                        {/* الأعمال */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
+                          <Input
+                            value={supplier.work}
+                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                            placeholder="مثال: الدفعة الأولى أو أعمال الخرسانة..."
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                          />
+                        </div>
 
-                          {/* الأعمال */}
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
-                            <Input
-                              value={supplier.work}
-                              onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                              placeholder="مثال: الدفعة الأولى أو أعمال الخرسانة..."
-                              required
-                              className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 font-medium"
-                            />
-                          </div>
+                        {/* البنك */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
+                          <Select
+                            value={supplier.bank}
+                            onValueChange={(value) => updateSupplier(supplier.id, "bank", value)}
+                          >
+                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
+                              <SelectValue placeholder="اختر البنك" />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {banks?.map((b: any) => (
+                                <SelectItem key={b.id} value={b.valueAr || b.value} className="text-right">
+                                  {b.valueAr || b.value}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                          {/* البنك */}
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
-                            <Select
-                              value={supplier.bank}
-                              onValueChange={(value) => updateSupplier(supplier.id, "bank", value)}
-                            >
-                              <SelectTrigger className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 bg-background" dir="rtl">
-                                <SelectValue placeholder="اختر البنك" />
-                              </SelectTrigger>
-                              <SelectContent dir="rtl">
-                                {banks?.map((b: any) => (
-                                  <SelectItem key={b.id} value={b.valueAr || b.value} className="text-right">
-                                    {b.valueAr || b.value}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                        {/* الآيبان */}
+                        <div className="space-y-2 text-right sm:col-span-2 lg:col-span-1">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
+                          <Input
+                            value={supplier.iban}
+                            onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
+                            placeholder="SA0000000000000000000000"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-10 font-mono"
+                            dir="ltr"
+                          />
+                        </div>
 
-                          {/* الآيبان */}
-                          <div className="space-y-2 text-right sm:col-span-2 lg:col-span-1">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الحساب أو الآيبان (IBAN) *</Label>
-                            <Input
-                              value={supplier.iban}
-                              onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
-                              placeholder="SA0000000000000000000000"
-                              required
-                              className="text-right border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 font-mono"
-                              dir="ltr"
-                            />
-                          </div>
+                        {/* النسبة (%) */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">النسبة (%)</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                            onChange={(e) => {
+                                const pct = parseFloat(e.target.value) || 0;
+                                const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                                updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                            }}
+                            placeholder="0"
+                            className="text-center font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                          />
+                        </div>
 
-                          {/* النسبة (%) */}
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">النسبة من إجمالي العقد (%)</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                              value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
-                              onChange={(e) => {
-                                  const pct = parseFloat(e.target.value) || 0;
-                                  const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                                  updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
-                              }}
-                              placeholder="0"
-                              className="text-center font-bold text-emerald-700 dark:text-emerald-400 border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 bg-background"
-                            />
-                          </div>
-
-                          {/* المبلغ */}
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">المبلغ الفعلي المصروف (ريال) *</Label>
-                            <Input
-                              type="number"
-                              value={supplier.amount || ""}
-                              onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
-                              placeholder="0.00"
-                              required
-                              className="text-center font-black text-emerald-600 dark:text-emerald-400 border-emerald-100/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl h-10 bg-background"
-                            />
-                          </div>
+                        {/* المبلغ */}
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">المبلغ الفعلي (ريال) *</Label>
+                          <Input
+                            type="number"
+                            value={supplier.amount || ""}
+                            onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            required
+                            className="text-center font-black text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Navigation Actions */}
-              <div className="flex items-center justify-between border-t border-emerald-100/30 pt-4 flex-row-reverse">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createMutation.isPending}
-                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-md shadow-emerald-600/15"
-                >
-                  <Send className="ml-2 h-4 w-4" />
-                  إرسال طلب الصرف للاعتماد
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/30 font-bold px-6 h-11 text-xs rounded-xl"
-                >
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                  السابق
-                </Button>
-              </div>
-            </div>
-
-            {/* Sidebar Summary */}
-            <div className="space-y-6">
-              <Card className="border-0 shadow-lg shadow-emerald-950/5 ring-1 ring-emerald-100/30 bg-white/70 backdrop-blur-md rounded-2xl overflow-hidden sticky top-6">
-                <CardHeader className="text-right border-b border-emerald-50/50 dark:border-emerald-900/20 pb-4">
-                  <CardTitle className="text-emerald-800 dark:text-emerald-400 text-base font-bold">ملخص الدفعة والتقرير</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">تفاصيل مالية مراجعة</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-4 text-right">
+            {/* ملخص الدفعة والتقرير - مدمج عمودياً كبطاقة عادية بآخر الصفحة لتماثل تقارير الإنجاز */}
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                  <Coins className="w-4.5 h-4.5 text-primary" />
+                  ملخص الدفعة والتقرير المالي
+                </CardTitle>
+                <CardDescription>تفاصيل التدقيق والمجاميع المالية لطلب الصرف الحالي</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6 text-right">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-right">
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold">المشروع</p>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{projectDetails?.name || "المشروع المحدد"}</p>
+                    <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{projectDetails?.name || "المشروع المحدد"}</span>
                   </div>
-                  
-                  <Separator className="bg-emerald-50/30 dark:bg-emerald-900/20" />
-                  
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold">رقم تقرير الإنجاز</p>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedReport?.reportNumber || "لا يوجد"}</p>
+                    <span className="text-[10px] text-muted-foreground block font-bold">رقم تقرير الإنجاز</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedReport?.reportNumber || "لا يوجد"}</span>
                   </div>
-
-                  <Separator className="bg-emerald-50/30 dark:bg-emerald-900/20" />
-
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold">الدفعة المتفق عليها (العقد)</p>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <span className="text-[10px] text-muted-foreground block font-bold">الدفعة المجدولة بالملحق</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       {paymentInfo ? `${parseFloat(paymentInfo.amount || "0").toLocaleString()} ريال` : "غير محدد"}
-                    </p>
+                    </span>
                   </div>
+                </div>
 
-                  <Separator className="bg-emerald-50/30 dark:bg-emerald-900/20" />
+                <Separator />
 
-                  {/* Stunning Total Paid Badge */}
-                  <div className="space-y-1 p-4 bg-gradient-to-br from-emerald-600 to-teal-600 text-white rounded-2xl shadow-md shadow-emerald-600/15 relative overflow-hidden">
-                    <div className="absolute -right-6 -bottom-6 w-20 h-20 bg-white/5 rounded-full blur-xl animate-pulse" />
-                    <div className="absolute -left-4 -top-4 w-12 h-12 bg-white/10 rounded-full blur-lg" />
-                    <p className="text-[10px] text-white/80 font-bold relative z-10">إجمالي الدفعة الفعلية المصروفة</p>
-                    <p className="text-2xl font-black mt-1 leading-none relative z-10">
-                      {totalAmount.toLocaleString()} <span className="text-xs font-bold">ريال</span>
-                    </p>
+                <div className="p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
+                    <span className="text-2xl font-black text-primary">
+                      {totalAmount.toLocaleString()} <span className="text-xs font-semibold">ريال سعودي</span>
+                    </span>
                   </div>
-
+                  
                   {contractDetails && (
-                    <>
-                      <Separator className="bg-emerald-50/30 dark:bg-emerald-900/20" />
-                      <div className="space-y-2 pt-1">
-                        <div className="flex justify-between flex-row-reverse text-xs">
-                          <span className="text-muted-foreground font-semibold">مبلغ العقد الإجمالي</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-300">{contractAmount.toLocaleString()} ريال</span>
-                        </div>
-                        <div className="flex justify-between flex-row-reverse text-xs">
-                          <span className="text-rose-600 dark:text-rose-400 font-semibold">إجمالي المصروف سابقاً</span>
-                          <span className="font-bold text-rose-600 dark:text-rose-400">{totalPaymentsSum.toLocaleString()} ريال</span>
-                        </div>
-                        <div className="flex justify-between flex-row-reverse text-xs pt-1.5 border-t border-dashed border-slate-200 dark:border-slate-800">
-                          <span className="text-emerald-700 dark:text-emerald-400 font-black">المتبقي للصرف</span>
-                          <span className="font-black text-emerald-700 dark:text-emerald-400">{remainingAmount.toLocaleString()} ريال</span>
-                        </div>
+                    <div className="flex flex-wrap gap-4 text-right justify-start md:justify-end">
+                      <div className="text-xs">
+                        <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
+                        <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
                       </div>
-                    </>
+                      <div className="text-xs">
+                        <span className="text-rose-600 block text-[9px] font-semibold">المصروف سابقاً</span>
+                        <span className="font-bold text-rose-600">{totalPaymentsSum.toLocaleString()} ريال</span>
+                      </div>
+                      <div className="text-xs border-r border-dashed pr-4 border-border/80">
+                        <span className="text-emerald-700 dark:text-emerald-400 block text-[9px] font-black">المتبقي للصرف</span>
+                        <span className="font-black text-emerald-700 dark:text-emerald-400">{remainingAmount.toLocaleString()} ريال</span>
+                      </div>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Navigation Actions */}
+            <div className="flex items-center justify-between border-t border-border/60 pt-4 flex-row-reverse">
+              <Button
+                onClick={handleSubmit}
+                disabled={createMutation.isPending}
+                className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
+              >
+                <Send className="ml-2 h-4 w-4" />
+                إرسال طلب الصرف للاعتماد
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                className="text-slate-700 border-border hover:bg-muted font-bold px-6 h-11 text-xs rounded-xl"
+              >
+                <ArrowRight className="ml-2 h-4 w-4" />
+                السابق
+              </Button>
             </div>
           </div>
         )}
