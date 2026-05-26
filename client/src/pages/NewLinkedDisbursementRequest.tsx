@@ -591,12 +591,13 @@ export default function NewLinkedDisbursementRequest() {
                       value={formData.dateMiladi}
                       onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
                       required
-                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                      disabled
                     />
                   </div>
                   
                   <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز المرتبطة بالطلب (%) *</Label>
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
                     <Input
                       type="number"
                       min="1"
@@ -604,7 +605,8 @@ export default function NewLinkedDisbursementRequest() {
                       required
                       value={formData.completionPercentage}
                       onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-primary"
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-primary bg-slate-50 dark:bg-slate-800 cursor-not-allowed"
+                      disabled
                     />
                   </div>
                 </div>
@@ -616,7 +618,8 @@ export default function NewLinkedDisbursementRequest() {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="عنوان طلب الصرف المالي"
                     required
-                    className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium"
+                    className="text-right border-border focus:ring-primary rounded-xl h-10 font-medium bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                    disabled
                   />
                 </div>
                 
@@ -628,7 +631,8 @@ export default function NewLinkedDisbursementRequest() {
                     placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
                     rows={4}
                     required
-                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed"
+                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-slate-50 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </CardContent>
@@ -746,7 +750,7 @@ export default function NewLinkedDisbursementRequest() {
 
                         {/* النسبة (%) */}
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">النسبة (%)</Label>
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
                           <Input
                             type="number"
                             min="0"
@@ -765,7 +769,7 @@ export default function NewLinkedDisbursementRequest() {
 
                         {/* المبلغ */}
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 text-center block">المبلغ الفعلي (ريال) *</Label>
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ الفعلي (ريال) *</Label>
                           <Input
                             type="number"
                             value={supplier.amount || ""}
