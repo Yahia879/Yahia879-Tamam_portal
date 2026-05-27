@@ -369,8 +369,16 @@ export default function ProgressReports() {
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
 
-    if (payment.completionPercentage === null || payment.completionPercentage === undefined) {
-      toast.error("عذراً، لا يمكن اختيار هذه الدفعة لعدم تحديد نسبة الإنجاز المطلوبة في تفاصيل المشروع.");
+    const isIncomplete = payment.source !== "manual" && (
+      payment.completionPercentage === null || 
+      payment.completionPercentage === undefined || 
+      payment.completionPercentage === 0 ||
+      !payment.workDescription || 
+      payment.workDescription.trim() === ""
+    );
+
+    if (isIncomplete) {
+      toast.error("عذراً، لا يمكن اختيار هذه الدفعة لعدم اكتمال بياناتها (وصف الأعمال ونسبة الإنجاز المطلوبة) في تفاصيل المشروع.");
       return;
     }
 
@@ -718,7 +726,13 @@ export default function ProgressReports() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
                         {projectDetails.payments.map((payment: any) => {
                           const isSelected = selectedPaymentId === payment.id;
-                          const isIncomplete = payment.completionPercentage === null || payment.completionPercentage === undefined;
+                          const isIncomplete = payment.source !== "manual" && (
+                            payment.completionPercentage === null || 
+                            payment.completionPercentage === undefined || 
+                            payment.completionPercentage === 0 ||
+                            !payment.workDescription || 
+                            payment.workDescription.trim() === ""
+                          );
                           const isAlreadyReported = reportsData?.some((report: any) => 
                             report.projectId === newReport.projectId && 
                             (report.title === `تقرير إنجاز - ${payment.description || payment.paymentNumber}` || 
