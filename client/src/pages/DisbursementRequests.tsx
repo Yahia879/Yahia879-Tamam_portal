@@ -151,6 +151,8 @@ export default function DisbursementRequests() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCreateOrderDialog, setShowCreateOrderDialog] = useState(false);
   const [showOrderPreviewDialog, setShowOrderPreviewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editRequestData, setEditRequestData] = useState<any>(null);
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -209,6 +211,18 @@ export default function DisbursementRequests() {
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء طلب الصرف");
+    },
+  });
+
+  const updateRequestMutation = trpc.disbursements.updateRequest.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث طلب الصرف بنجاح");
+      setShowEditDialog(false);
+      setEditRequestData(null);
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث طلب الصرف");
     },
   });
 
@@ -566,10 +580,12 @@ export default function DisbursementRequests() {
                             ) : false)
                           ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
+                          const isConverted = !!request.orderId || request.status === "paid";
+
                           return (
                             <TableRow key={request.id}>
                               <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
-                              <TableCell className="max-w-[200px] truncate text-right">{request.title}</TableCell>
+                              <TableCell className="max-w-[200px] truncate text-right">{request.title || request.description}</TableCell>
                               <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
                               <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
                               <TableCell className="text-right">
@@ -584,7 +600,17 @@ export default function DisbursementRequests() {
                                   : "-"}
                               </TableCell>
                               <TableCell className="text-right">
-                                {correspondingReport || (canCreateOrder && (request.status === "approved" || request.status === "pending")) ? (
+                                {isConverted ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                    className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    عرض تقرير طلب الصرف
+                                  </Button>
+                                ) : (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
@@ -592,6 +618,25 @@ export default function DisbursementRequests() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-48 text-right font-medium">
+                                      {canCreateRequest && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setEditRequestData({
+                                              id: request.id,
+                                              title: request.title || request.description || "",
+                                              description: request.description || "",
+                                              amount: request.amount,
+                                              paymentType: request.paymentType || "progress",
+                                              completionPercentage: request.completionPercentage,
+                                            });
+                                            setShowEditDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                        >
+                                          <FileText className="h-4 w-4 text-gray-500" />
+                                          <span>تعديل طلب الدفعة</span>
+                                        </DropdownMenuItem>
+                                      )}
                                       {correspondingReport && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
@@ -612,8 +657,6 @@ export default function DisbursementRequests() {
                                       )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                ) : (
-                                  <span className="text-muted-foreground">—</span>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -641,50 +684,81 @@ export default function DisbursementRequests() {
                         ) : false)
                       ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
-                      return (
-                        <div key={request.id} className="p-4 space-y-3 hover:bg-muted/10 transition-colors">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
-                              <p className="font-bold text-sm truncate">{request.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                        const isConverted = !!request.orderId || request.status === "paid";
+
+                        return (
+                          <div key={request.id} className="p-4 space-y-3 hover:bg-muted/10 transition-colors">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
+                                <p className="font-bold text-sm truncate">{request.title || request.description}</p>
+                                <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <DisbursementStatusBadge 
+                                  status={request.status as any} 
+                                  type="request" 
+                                />
+                                {isConverted ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                    className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                    عرض تقرير طلب الصرف
+                                  </Button>
+                                ) : (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 text-right font-medium">
+                                      {canCreateRequest && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setEditRequestData({
+                                              id: request.id,
+                                              title: request.title || request.description || "",
+                                              description: request.description || "",
+                                              amount: request.amount,
+                                              paymentType: request.paymentType || "progress",
+                                              completionPercentage: request.completionPercentage,
+                                            });
+                                            setShowEditDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                        >
+                                          <FileText className="h-4 w-4 text-gray-500" />
+                                          <span>تعديل طلب الدفعة</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                      {correspondingReport && (
+                                        <DropdownMenuItem
+                                          onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                        >
+                                          <FileText className="h-4 w-4 text-blue-500" />
+                                          <span>عرض تقرير الإنجاز</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                      {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
+                                        <DropdownMenuItem
+                                          onClick={() => handleDirectCreateOrder(request)}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                        >
+                                          <Banknote className="h-4 w-4 text-emerald-500" />
+                                          <span>تحويل إلى أمر صرف</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <DisbursementStatusBadge 
-                                status={request.status as any} 
-                                type="request" 
-                              />
-                              {(correspondingReport || (canCreateOrder && (request.status === "approved" || request.status === "pending"))) && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
-                                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48 text-right font-medium">
-                                    {correspondingReport && (
-                                      <DropdownMenuItem
-                                        onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
-                                      >
-                                        <FileText className="h-4 w-4 text-blue-500" />
-                                        <span>عرض تقرير الإنجاز</span>
-                                      </DropdownMenuItem>
-                                    )}
-                                    {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleDirectCreateOrder(request)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                      >
-                                        <Banknote className="h-4 w-4 text-emerald-500" />
-                                        <span>تحويل إلى أمر صرف</span>
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-                          </div>
 
                           <div className="flex justify-between items-end pt-1">
                             <div>
@@ -955,6 +1029,110 @@ export default function DisbursementRequests() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* نافذة تعديل طلب صرف */}
+        <Dialog open={showEditDialog} onOpenChange={(open) => {
+          setShowEditDialog(open);
+          if (!open) setEditRequestData(null);
+        }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>تعديل طلب صرف</DialogTitle>
+              <DialogDescription>تعديل بيانات طلب الصرف الحالي</DialogDescription>
+            </DialogHeader>
+            
+            {editRequestData && (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>عنوان الطلب *</Label>
+                    <Input
+                      value={editRequestData.title || ""}
+                      onChange={(e) => setEditRequestData({ ...editRequestData, title: e.target.value })}
+                      placeholder="مثال: دفعة مرحلية للأعمال الإنشائية"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>الوصف</Label>
+                    <Textarea
+                      value={editRequestData.description || ""}
+                      onChange={(e) => setEditRequestData({ ...editRequestData, description: e.target.value })}
+                      placeholder="تفاصيل إضافية عن طلب الصرف..."
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>الدفعة المطلوبة (ريال) *</Label>
+                      <Input
+                        type="number"
+                        value={editRequestData.amount || ""}
+                        onChange={(e) => setEditRequestData({ ...editRequestData, amount: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>نوع الدفعة</Label>
+                      <Select
+                        value={editRequestData.paymentType || "progress"}
+                        onValueChange={(v: any) => setEditRequestData({ ...editRequestData, paymentType: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                          <SelectItem value="progress">دفعة مرحلية</SelectItem>
+                          <SelectItem value="final">دفعة نهائية</SelectItem>
+                          <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>نسبة الإنجاز المرتبطة (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editRequestData.completionPercentage !== undefined && editRequestData.completionPercentage !== null ? editRequestData.completionPercentage : ""}
+                      onChange={(e) => setEditRequestData({ ...editRequestData, completionPercentage: e.target.value ? parseInt(e.target.value) : "" })}
+                      placeholder="مثال: 30"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                إلغاء
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!editRequestData.title || !editRequestData.amount) {
+                    toast.error("يرجى ملء الحقول المطلوبة");
+                    return;
+                  }
+                  updateRequestMutation.mutate({
+                    id: editRequestData.id,
+                    title: editRequestData.title,
+                    description: editRequestData.description || "",
+                    amount: parseFloat(editRequestData.amount),
+                    paymentType: editRequestData.paymentType,
+                    completionPercentage: editRequestData.completionPercentage ? parseInt(editRequestData.completionPercentage) : undefined,
+                  });
+                }} 
+                disabled={updateRequestMutation.isPending}
+              >
+                {updateRequestMutation.isPending ? "جاري التحديث..." : "حفظ التغييرات"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* نافذة إنشاء طلب صرف - محسنة */}
         <Dialog open={showCreateDialog} onOpenChange={(open) => {

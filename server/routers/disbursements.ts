@@ -78,8 +78,11 @@ export const disbursementsRouter = router({
         .select({
           id: disbursementRequests.id,
           requestNumber: disbursementRequests.requestNumber,
-          title: disbursementRequests.description,
+          title: disbursementRequests.title,
+          description: disbursementRequests.description,
           amount: disbursementRequests.amount,
+          paymentType: disbursementRequests.paymentType,
+          completionPercentage: disbursementRequests.completionPercentage,
           status: disbursementRequests.status,
           requestedAt: disbursementRequests.requestedAt,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -88,10 +91,14 @@ export const disbursementsRouter = router({
           projectNumber: projects.projectNumber,
           requestedByName: users.name,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          orderId: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          orderStatus: disbursementOrders.status,
         })
         .from(disbursementRequests)
         .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
         .leftJoin(users, eq(disbursementRequests.requestedBy, users.id))
+        .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(disbursementRequests.createdAt))
         .limit(limit)
@@ -316,6 +323,70 @@ export const disbursementsRouter = router({
         id: result.insertId,
         requestNumber,
         message: "تم إنشاء طلب الصرف بنجاح",
+      };
+    }),
+
+  // تعديل طلب صرف
+  updateRequest: permissionProcedure("disbursements.create")
+    .input(
+      z.object({
+        id: z.number(),
+        title: z.string().min(1, "عنوان الطلب مطلوب"),
+        description: z.string().optional(),
+        amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
+        paymentType: z.enum(["advance", "progress", "final", "retention"]).default("progress"),
+        completionPercentage: z.number().min(0).max(100).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من الصلاحيات
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
+      }
+
+      const [request] = await db
+        .select()
+        .from(disbursementRequests)
+        .where(eq(disbursementRequests.id, input.id));
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
+      }
+
+      // لا يمكن تعديل الطلب إذا تم دفعه أو تم ربطه بأمر صرف
+      if (request.status === "paid") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم دفعه بالفعل" });
+      }
+
+      // تحقق إن كان هناك أمر صرف مرتبط بالطلب
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.disbursementRequestId, input.id));
+
+      if (order) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم تحويله إلى أمر صرف" });
+      }
+
+      await db
+        .update(disbursementRequests)
+        .set({
+          title: input.title,
+          description: input.description,
+          amount: input.amount.toString(),
+          paymentType: input.paymentType,
+          completionPercentage: input.completionPercentage,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementRequests.id, input.id));
+
+      return {
+        success: true,
+        message: "تم تحديث طلب الصرف بنجاح",
       };
     }),
 
