@@ -723,7 +723,7 @@ export default function EditLinkedDisbursementRequest() {
 
                 <Button
                   onClick={handleSubmit}
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
                   className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
                 >
                   {updateMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}

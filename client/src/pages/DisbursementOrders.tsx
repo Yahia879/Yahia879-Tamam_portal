@@ -17,6 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -44,6 +50,7 @@ import {
   Printer,
   PlayCircle,
   ChevronLeft,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -289,68 +296,68 @@ export default function DisbursementOrders() {
                             {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center gap-1 justify-start">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
-                                title="طباعة"
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => navigate(`/disbursement-orders/${order.id}`)}
-                                title="عرض التفاصيل"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {canApproveOrder && order.status === "pending" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-green-600"
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowApproveDialog(true);
-                                    }}
-                                    title="اعتماد"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-red-600"
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowRejectDialog(true);
-                                    }}
-                                    title="رفض"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-                              {canExecuteOrder && order.status === "approved" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-blue-600"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setShowExecuteDialog(true);
-                                  }}
-                                  title="تنفيذ"
-                                >
-                                  <PlayCircle className="h-4 w-4" />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
+                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                 </Button>
-                              )}
-                            </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
+                                >
+                                  <Printer className="h-4 w-4 text-slate-500" />
+                                  <span>طباعة</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/disbursement-orders/${order.id}`)}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
+                                >
+                                  <Eye className="h-4 w-4 text-blue-500" />
+                                  <span>عرض التفاصيل</span>
+                                </DropdownMenuItem>
+
+                                {canApproveOrder && order.status === "pending" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowApproveDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>اعتماد أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <span>رفض أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {canExecuteOrder && order.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowExecuteDialog(true);
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30"
+                                  >
+                                    <PlayCircle className="h-4 w-4 text-blue-600" />
+                                    <span>تنفيذ الصرف</span>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -409,69 +416,68 @@ export default function DisbursementOrders() {
                           </span>
                           
                           <div className="flex gap-1.5">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-muted"
-                              onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
-                              title="طباعة أمر الصرف"
-                            >
-                              <Printer className="h-3.5 w-3.5" />
-                            </Button>
-                            
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-muted text-blue-600 border-blue-100 hover:bg-blue-50"
-                              onClick={() => navigate(`/disbursement-orders/${order.id}`)}
-                              title="تفاصيل أمر الصرف"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
-
-                            {canApproveOrder && order.status === "pending" && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-green-600 border-green-200 hover:bg-green-50"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setShowApproveDialog(true);
-                                  }}
-                                  title="اعتماد أمر الصرف"
-                                >
-                                  <CheckCircle className="h-3.5 w-3.5" />
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 w-8 p-0 hover:bg-muted rounded-full">
+                                  <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-red-600 border-red-200 hover:bg-red-50"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setShowRejectDialog(true);
-                                  }}
-                                  title="رفض أمر الصرف"
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
                                 >
-                                  <XCircle className="h-3.5 w-3.5" />
-                                </Button>
-                              </>
-                            )}
+                                  <Printer className="h-4 w-4 text-slate-500" />
+                                  <span>طباعة أمر الصرف</span>
+                                </DropdownMenuItem>
 
-                            {canExecuteOrder && order.status === "approved" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-amber-600 border-amber-200 hover:bg-amber-50"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setShowExecuteDialog(true);
-                                }}
-                                title="تنفيذ أمر الصرف"
-                              >
-                                <PlayCircle className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/disbursement-orders/${order.id}`)}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
+                                >
+                                  <Eye className="h-4 w-4 text-blue-500" />
+                                  <span>تفاصيل أمر الصرف</span>
+                                </DropdownMenuItem>
+
+                                {canApproveOrder && order.status === "pending" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowApproveDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>اعتماد أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <span>رفض أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {canExecuteOrder && order.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowExecuteDialog(true);
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30"
+                                  >
+                                    <PlayCircle className="h-4 w-4 text-blue-600" />
+                                    <span>تنفيذ الصرف</span>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
