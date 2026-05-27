@@ -54,15 +54,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  draft: { label: "مسودة", variant: "secondary" },
-  pending: { label: "قيد الاعتماد", variant: "default" },
-  approved: { label: "معتمد", variant: "outline" },
-  rejected: { label: "مرفوض", variant: "destructive" },
-  edited: { label: "تم التعديل", variant: "outline" },
-  executed: { label: "منفذ", variant: "outline" },
-  paid: { label: "مدفوع", variant: "outline" },
-  cancelled: { label: "ملغي", variant: "destructive" },
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
+  draft: { label: "مسودة", variant: "outline", className: "border-slate-300 text-slate-600 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
+  pending: { label: "قيد الاعتماد", variant: "outline", className: "border-amber-400 text-amber-700 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30" },
+  approved: { label: "معتمد", variant: "outline", className: "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50" },
+  rejected: { label: "مرفوض", variant: "outline", className: "border-red-500 text-red-700 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50" },
+  edited: { label: "تم التعديل", variant: "outline", className: "border-purple-500 text-purple-700 bg-purple-50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/50" },
+  executed: { label: "منفذ", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
+  paid: { label: "مدفوع", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
+  cancelled: { label: "ملغي", variant: "outline", className: "border-slate-500 text-slate-700 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
 };
 
 const PAYMENT_METHOD_MAP: Record<string, string> = {
@@ -290,7 +290,7 @@ export default function DisbursementOrders() {
                           <TableCell className="whitespace-nowrap text-right">{Number(order.amount).toLocaleString()} ريال</TableCell>
                           <TableCell className="text-right">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
                           <TableCell className="text-right">
-                            <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className="whitespace-nowrap">
+                            <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
                               {STATUS_MAP[order.status || "draft"]?.label}
                             </Badge>
                           </TableCell>
@@ -305,7 +305,7 @@ export default function DisbursementOrders() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
-                                {canApproveOrder && order.status === "pending" && (
+                                {canApproveOrder && (order.status === "pending" || order.status === "edited") && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() => {
@@ -328,19 +328,6 @@ export default function DisbursementOrders() {
                                       <span>رفض أمر الصرف</span>
                                     </DropdownMenuItem>
                                   </>
-                                )}
-
-                                {canExecuteOrder && order.status === "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowExecuteDialog(true);
-                                    }}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
-                                  >
-                                    <PlayCircle className="h-4 w-4 text-blue-600" />
-                                    <span>تنفيذ الصرف</span>
-                                  </DropdownMenuItem>
                                 )}
 
                                 <DropdownMenuItem
@@ -377,7 +364,7 @@ export default function DisbursementOrders() {
                           <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
                             {order.orderNumber}
                           </span>
-                          <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold">
+                          <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_MAP[order.status || "draft"]?.className}`}>
                             {STATUS_MAP[order.status || "draft"]?.label}
                           </Badge>
                         </div>
@@ -425,7 +412,7 @@ export default function DisbursementOrders() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
-                                {canApproveOrder && order.status === "pending" && (
+                                {canApproveOrder && (order.status === "pending" || order.status === "edited") && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() => {
@@ -448,19 +435,6 @@ export default function DisbursementOrders() {
                                       <span>رفض أمر الصرف</span>
                                     </DropdownMenuItem>
                                   </>
-                                )}
-
-                                {canExecuteOrder && order.status === "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowExecuteDialog(true);
-                                    }}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
-                                  >
-                                    <PlayCircle className="h-4 w-4 text-blue-600" />
-                                    <span>تنفيذ الصرف</span>
-                                  </DropdownMenuItem>
                                 )}
 
                                 <DropdownMenuItem
