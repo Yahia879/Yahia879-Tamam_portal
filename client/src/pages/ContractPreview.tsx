@@ -433,6 +433,15 @@ export default function ContractPreview() {
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
+  let parsedCustomClauses: { title: string, description: string }[] = [];
+  if (contract.customClausesJson) {
+    try {
+      parsedCustomClauses = JSON.parse(contract.customClausesJson);
+    } catch (e) {
+      console.error("Error parsing custom clauses:", e);
+    }
+  }
+
   // دالة لاستبدال المتغيرات في نصوص البنود
   const replaceVariables = (content: string) => {
     if (!content) return "";
@@ -730,6 +739,25 @@ export default function ContractPreview() {
                   </div>
                 ))}
               </div>
+
+              {/* البنود المخصصة */}
+              {parsedCustomClauses && parsedCustomClauses.length > 0 && (
+                <div className="space-y-6 mb-6">
+                  {parsedCustomClauses.map((clause, index) => (
+                    <div key={`custom-${index}`} className="mb-6 break-inside-avoid">
+                      <h3 
+                        className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                        style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                      >
+                        {clause.title || `بند إضافي ${index + 1}`}:
+                      </h3>
+                      <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                        {clause.description}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* القيمة المالية وتفاصيل الحساب */}
               <div className="mb-6 break-inside-avoid">

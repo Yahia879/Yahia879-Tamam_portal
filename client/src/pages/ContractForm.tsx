@@ -137,6 +137,9 @@ export default function ContractForm() {
   // جدول الدفعات
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
 
+  // البنود المخصصة
+  const [customClauses, setCustomClauses] = useState<{title: string; description: string}[]>([]);
+
   // جلب قوالب العقود
   const { data: templatesData, isLoading: templatesLoading } = trpc.contracts.getTemplates.useQuery();
 
@@ -501,7 +504,7 @@ export default function ContractForm() {
   // الانتقال للخطوة التالية
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 6));
+      setCurrentStep(prev => Math.min(prev + 1, 7));
     }
   };
 
@@ -543,6 +546,7 @@ export default function ContractForm() {
         paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
         // بنود العقد المخصصة
         clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
+        customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
       });
       return;
     }
@@ -583,8 +587,9 @@ export default function ContractForm() {
       startDate: contractData.startDate,
       // جدول الدفعات
       paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
-      // بنود العقد المخصصة
+      // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
+      customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
       // ملاحظات
       customTerms: contractData.notes || undefined,
     });
@@ -601,7 +606,8 @@ export default function ContractForm() {
     { id: 3, title: "التفاصيل", icon: DollarSign },
     { id: 4, title: "الدفعات", icon: Calendar },
     { id: 5, title: "البنود", icon: Edit },
-    { id: 6, title: "المراجعة", icon: Eye },
+    { id: 6, title: "البنود المخصصة", icon: Plus },
+    { id: 7, title: "المراجعة", icon: Eye },
   ];
 
   return (
@@ -1390,8 +1396,82 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 6: المراجعة */}
+            {/* الخطوة 6: البنود المخصصة */}
             {currentStep === 6 && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium text-lg">البنود المخصصة (اختياري)</h3>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setCustomClauses([...customClauses, { title: "", description: "" }])}
+                  >
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة بند مخصص
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  يمكنك إضافة بنود إضافية خاصة بهذا العقد فقط. ستظهر هذه البنود قبل القيمة المالية وتفاصيل الحساب.
+                </p>
+                
+                {customClauses.length === 0 ? (
+                  <div className="text-center p-8 border border-dashed rounded-lg text-muted-foreground">
+                    لا توجد بنود مخصصة. يمكنك المتابعة للخطوة التالية بالنقر على "التالي".
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {customClauses.map((clause, index) => (
+                      <Card key={index} className="relative">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 left-2 text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            const newClauses = [...customClauses];
+                            newClauses.splice(index, 1);
+                            setCustomClauses(newClauses);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <CardContent className="pt-6 space-y-4 text-right" dir="rtl">
+                          <div className="space-y-2">
+                            <Label>اسم البند</Label>
+                            <Input 
+                              placeholder="مثال: التزامات إضافية على الطرف الثاني" 
+                              value={clause.title}
+                              onChange={(e) => {
+                                const newClauses = [...customClauses];
+                                newClauses[index].title = e.target.value;
+                                setCustomClauses(newClauses);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>وصف البند</Label>
+                            <Textarea 
+                              placeholder="أدخل نص البند وتفاصيله..." 
+                              rows={4}
+                              value={clause.description}
+                              onChange={(e) => {
+                                const newClauses = [...customClauses];
+                                newClauses[index].description = e.target.value;
+                                setCustomClauses(newClauses);
+                              }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* الخطوة 7: المراجعة */}
+            {currentStep === 7 && (
               <div className="space-y-6">
                 <h3 className="font-medium text-lg">مراجعة العقد</h3>
                 
@@ -1415,6 +1495,24 @@ export default function ContractForm() {
                     <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || "-"}</p>
                   </CardContent>
                 </Card>
+                {/* ملخص البنود المخصصة */}
+                {customClauses.filter(c => c.title || c.description).length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">البنود المخصصة ({customClauses.filter(c => c.title || c.description).length} بنود)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4 text-right" dir="rtl">
+                        {customClauses.filter(c => c.title || c.description).map((clause, index) => (
+                          <div key={index} className="text-sm border-b pb-3 last:border-0 last:pb-0">
+                            <div className="font-bold mb-1">{clause.title || `بند إضافي ${index + 1}`}</div>
+                            <div className="text-muted-foreground whitespace-pre-wrap">{clause.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* ملخص التفاصيل */}
                 <Card>
@@ -1494,7 +1592,7 @@ export default function ContractForm() {
                 السابق
               </Button>
 
-              {currentStep < 6 ? (
+              {currentStep < 7 ? (
                 <Button onClick={nextStep}>
                   التالي
                   <ArrowLeft className="h-4 w-4 mr-2" />

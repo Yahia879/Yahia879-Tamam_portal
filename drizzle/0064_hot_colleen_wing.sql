@@ -1,0 +1,2 @@
+ALTER TABLE `disbursement_orders` MODIFY COLUMN `status` enum('draft','pending','approved','rejected','executed','edited') DEFAULT 'draft';--> statement-breakpoint
+ALTER TABLE `contracts_enhanced` ADD `customClausesJson` text;

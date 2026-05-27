@@ -957,8 +957,9 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   customGeneralTerms: text("customGeneralTerms"),
   
   // جدول الدفعات وبنود العقد (JSON)
-  paymentScheduleJson: text("paymentScheduleJson"),
-  clauseValuesJson: text("clauseValuesJson"),
+  paymentScheduleJson: json("paymentScheduleJson"),
+  clauseValuesJson: json("clauseValuesJson"),
+  customClausesJson: json("customClausesJson"),
   
   // الملفات
   documentUrl: varchar("documentUrl", { length: 500 }),

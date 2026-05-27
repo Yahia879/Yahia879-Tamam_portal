@@ -388,6 +388,7 @@ export const contractsRouter = router({
         
         // بنود العقد المخصصة (JSON string)
         clauseValues: z.string().optional(),
+        customClausesJson: z.any().optional(),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -454,8 +455,9 @@ export const contractsRouter = router({
         customGeneralTerms: input.customGeneralTerms ?? null,
         templateId: input.templateId ?? null,
         signatoryId: signatoryIdValue ? signatoryIdValue : null,
-        paymentScheduleJson: input.paymentSchedule ?? null,
-        clauseValuesJson: input.clauseValues ?? null,
+        paymentScheduleJson: input.paymentSchedule ? (typeof input.paymentSchedule === 'string' ? JSON.parse(input.paymentSchedule) : input.paymentSchedule) : null,
+        clauseValuesJson: input.clauseValues ? (typeof input.clauseValues === 'string' ? JSON.parse(input.clauseValues) : input.clauseValues) : null,
+        customClausesJson: input.customClausesJson ? (typeof input.customClausesJson === 'string' ? JSON.parse(input.customClausesJson) : input.customClausesJson) : null,
         documentUrl: null,
         signedDocumentUrl: null,
         approvedBy: null,
@@ -573,8 +575,9 @@ export const contractsRouter = router({
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
-        paymentSchedule: z.string().optional(),
-        clauseValues: z.string().optional(),
+        paymentSchedule: z.any().optional(),
+        clauseValues: z.any().optional(),
+        customClausesJson: z.any().optional(),
         signatoryId: z.number().nullable().optional(),
       })
     )
@@ -609,10 +612,13 @@ export const contractsRouter = router({
 
       // إضافة الحقول الجديدة للتحديث
       if (paymentSchedule) {
-        updates.paymentScheduleJson = paymentSchedule;
+        updates.paymentScheduleJson = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
       }
       if (clauseValues) {
-        updates.clauseValuesJson = clauseValues;
+        updates.clauseValuesJson = typeof clauseValues === 'string' ? JSON.parse(clauseValues) : clauseValues;
+      }
+      if (updateData.customClausesJson !== undefined) {
+        updates.customClausesJson = updateData.customClausesJson ? (typeof updateData.customClausesJson === 'string' ? JSON.parse(updateData.customClausesJson) : updateData.customClausesJson) : null;
       }
       
       // التأكد من تحديث مفوض التوقيع بشكل صريح
