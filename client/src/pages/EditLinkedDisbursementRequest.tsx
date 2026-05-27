@@ -45,7 +45,7 @@ export default function EditLinkedDisbursementRequest() {
   const requestId = parseInt(params.id || "0");
 
   // التحكم بالخطوات
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
 
   // بيانات النموذج
   const [formData, setFormData] = useState({

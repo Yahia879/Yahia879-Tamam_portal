@@ -244,7 +244,6 @@ export default function DisbursementOrders() {
                   <SelectItem value="all">جميع الحالات</SelectItem>
                   <SelectItem value="pending">قيد الاعتماد</SelectItem>
                   <SelectItem value="approved">معتمد</SelectItem>
-                  <SelectItem value="executed">منفذ</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
