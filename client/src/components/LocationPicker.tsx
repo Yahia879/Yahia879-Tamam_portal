@@ -163,7 +163,7 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
           <div className="relative rounded-lg overflow-hidden border">
             <MapView
               className="h-[400px]"
-              initialCenter={value || { lat: 24.7136, lng: 46.6753 }}
+              initialCenter={value || { lat: 18.2164, lng: 42.5053 }}
               initialZoom={value ? 15 : 6}
               onMapReady={handleMapReady}
             >

@@ -21,56 +21,7 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
-// مدن ومراكز منطقة عسير (47 موقع)
-const asirLocations = [
-  "أبها",
-  "خميس مشيط",
-  "بيشة",
-  "محايل عسير",
-  "النماص",
-  "تثليث",
-  "ظهران الجنوب",
-  "سراة عبيدة",
-  "رجال ألمع",
-  "بلقرن",
-  "أحد رفيدة",
-  "تنومة",
-  "بارق",
-  "المجاردة",
-  "طريب",
-  "البرك",
-  "الحرجة",
-  "الأمواه",
-  "السودة",
-  "بللحمر",
-  "بللسمر",
-  "طبب",
-  "مربة",
-  "القحمة",
-  "وادي بن هشبل",
-  "تمنية",
-  "ثلوث المنظر",
-  "بحر أبو سكينة",
-  "خاط",
-  "ثربان",
-  "البشائر",
-  "خثعم",
-  "باشوت",
-  "الجوة",
-  "الفرشة",
-  "وادي الحيا",
-  "المضة",
-  "الصبيخة",
-  "العرين",
-  "الخنقة",
-  "ذهبان",
-  "العمائر",
-  "علب",
-  "منصبة",
-  "الحمضة",
-  "جاش",
-  "الزرق",
-];
+
 
 // ترجمة صفة طالب الخدمة
 const getRequesterTypeLabel = (type: string | null | undefined) => {
@@ -94,8 +45,8 @@ export default function MosqueForm() {
   const [formData, setFormData] = useState({
     name: "",
     mosqueType: "",
-    city: "",
-    governorate: "", // Will be set dynamically
+    city: "أبها",
+    governorate: "عسير", // Default to Asir region
     center: "",
     district: "",
     address: "",
@@ -109,6 +60,9 @@ export default function MosqueForm() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const availableCities = allCategories.filter((c: any) => c.type === "city").map((c: any) => c.nameAr);
 
   // جلب بيانات المسجد في حالة التعديل
   const { data: mosque, isLoading: loadingMosque } = trpc.mosques.getById.useQuery(
@@ -195,7 +149,7 @@ export default function MosqueForm() {
 
   const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string }) => {
     const detectedCity = location.city || "";
-    const cityExists = asirLocations.includes(detectedCity);
+    const cityExists = availableCities.includes(detectedCity);
 
     setFormData((prev) => ({
       ...prev,
@@ -211,11 +165,42 @@ export default function MosqueForm() {
     }
   };
 
+  const handleCityChange = async (value: string) => {
+    handleChange("city", value);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+          value + " السعودية"
+        )}&accept-language=ar&addressdetails=1`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const firstResult = data[0];
+        const addr = firstResult.address || {};
+        const region = addr.state || addr.province || addr.region || "عسير";
+        
+        setFormData((prev) => ({
+          ...prev,
+          latitude: firstResult.lat,
+          longitude: firstResult.lon,
+          governorate: region,
+        }));
+      }
+    } catch (error) {
+      console.error("City search error:", error);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name || !formData.city || !formData.mosqueType) {
       toast.error("يرجى ملء الحقول المطلوبة");
+      return;
+    }
+
+    if (!formData.latitude || !formData.longitude) {
+      toast.error("يرجى تحديد موقع المسجد على الخريطة");
       return;
     }
 
@@ -491,12 +476,12 @@ export default function MosqueForm() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <Label>المدينة / المركز *</Label>
-                  <Select value={formData.city} onValueChange={(v) => handleChange("city", v)}>
+                  <Select value={formData.city} onValueChange={handleCityChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر المدينة أو المركز" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
-                      {asirLocations.map((location) => (
+                      {availableCities.map((location: string) => (
                         <SelectItem key={location} value={location}>{location}</SelectItem>
                       ))}
                     </SelectContent>
