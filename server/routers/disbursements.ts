@@ -91,6 +91,7 @@ export const disbursementsRouter = router({
           projectNumber: projects.projectNumber,
           requestedByName: users.name,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          rejectionReason: disbursementRequests.rejectionReason,
           orderId: disbursementOrders.id,
           orderNumber: disbursementOrders.orderNumber,
           orderStatus: disbursementOrders.status,

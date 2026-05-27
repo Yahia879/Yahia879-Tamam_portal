@@ -524,6 +524,7 @@ export default function DisbursementRequests() {
                   <SelectContent>
                     <SelectItem value="pending">قيد الاعتماد</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -575,10 +576,17 @@ export default function DisbursementRequests() {
                               <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
                               <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
                               <TableCell className="text-right">
-                                <DisbursementStatusBadge 
-                                  status={request.status as any} 
-                                  type="request" 
-                                />
+                                <div className="flex flex-col gap-1 items-start justify-start">
+                                  <DisbursementStatusBadge 
+                                    status={request.status as any} 
+                                    type="request" 
+                                  />
+                                  {request.status === "rejected" && request.rejectionReason && (
+                                    <span className="text-[10px] text-red-600 dark:text-red-400 font-bold block max-w-[180px] break-words text-right" title={request.rejectionReason}>
+                                      سبب الرفض: {request.rejectionReason}
+                                    </span>
+                                  )}
+                                </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-right">
                                 {request.requestedAt
@@ -665,10 +673,15 @@ export default function DisbursementRequests() {
                         return (
                           <div key={request.id} className="p-4 space-y-3 hover:bg-muted/10 transition-colors">
                             <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
+                              <div className="min-w-0 flex-1 text-right">
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
                                 <p className="font-bold text-sm truncate">{request.title || request.description}</p>
                                 <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                                {request.status === "rejected" && request.rejectionReason && (
+                                  <p className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-1 bg-red-50/50 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-1 rounded-md inline-block max-w-full text-right">
+                                    سبب الرفض: {request.rejectionReason}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <DisbursementStatusBadge 

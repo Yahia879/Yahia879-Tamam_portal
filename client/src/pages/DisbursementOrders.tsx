@@ -303,6 +303,44 @@ export default function DisbursementOrders() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
+                                {canApproveOrder && order.status === "pending" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowApproveDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>اعتماد أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <span>رفض أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {canExecuteOrder && order.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowExecuteDialog(true);
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
+                                  >
+                                    <PlayCircle className="h-4 w-4 text-blue-600" />
+                                    <span>تنفيذ الصرف</span>
+                                  </DropdownMenuItem>
+                                )}
+
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
                                   className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
@@ -318,44 +356,6 @@ export default function DisbursementOrders() {
                                   <Eye className="h-4 w-4 text-blue-500" />
                                   <span>عرض التفاصيل</span>
                                 </DropdownMenuItem>
-
-                                {canApproveOrder && order.status === "pending" && (
-                                  <>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowApproveDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30"
-                                    >
-                                      <CheckCircle className="h-4 w-4 text-green-600" />
-                                      <span>اعتماد أمر الصرف</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowRejectDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
-                                    >
-                                      <XCircle className="h-4 w-4 text-red-600" />
-                                      <span>رفض أمر الصرف</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {canExecuteOrder && order.status === "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowExecuteDialog(true);
-                                    }}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30"
-                                  >
-                                    <PlayCircle className="h-4 w-4 text-blue-600" />
-                                    <span>تنفيذ الصرف</span>
-                                  </DropdownMenuItem>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -423,6 +423,44 @@ export default function DisbursementOrders() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="start" className="w-48 text-right font-medium" dir="rtl">
+                                {canApproveOrder && order.status === "pending" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowApproveDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>اعتماد أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <span>رفض أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {canExecuteOrder && order.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setShowExecuteDialog(true);
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-bold"
+                                  >
+                                    <PlayCircle className="h-4 w-4 text-blue-600" />
+                                    <span>تنفيذ الصرف</span>
+                                  </DropdownMenuItem>
+                                )}
+
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
                                   className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
@@ -438,44 +476,6 @@ export default function DisbursementOrders() {
                                   <Eye className="h-4 w-4 text-blue-500" />
                                   <span>تفاصيل أمر الصرف</span>
                                 </DropdownMenuItem>
-
-                                {canApproveOrder && order.status === "pending" && (
-                                  <>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowApproveDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30"
-                                    >
-                                      <CheckCircle className="h-4 w-4 text-green-600" />
-                                      <span>اعتماد أمر الصرف</span>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowRejectDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
-                                    >
-                                      <XCircle className="h-4 w-4 text-red-600" />
-                                      <span>رفض أمر الصرف</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-
-                                {canExecuteOrder && order.status === "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedOrder(order);
-                                      setShowExecuteDialog(true);
-                                    }}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-950/30"
-                                  >
-                                    <PlayCircle className="h-4 w-4 text-blue-600" />
-                                    <span>تنفيذ الصرف</span>
-                                  </DropdownMenuItem>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -560,10 +560,28 @@ export default function DisbursementOrders() {
                 هل أنت متأكد من اعتماد أمر الصرف رقم {selectedOrder?.orderNumber}؟
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <p><strong>المستفيد:</strong> {selectedOrder?.beneficiaryName}</p>
-                <p><strong>المبلغ:</strong> {Number(selectedOrder?.amount || 0).toLocaleString()} ريال</p>
+            <div className="space-y-4 text-right" dir="rtl">
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-xl space-y-3 shadow-inner">
+                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold">المستفيد:</span>
+                  <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryName}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold">المبلغ الذي سوف يصرف:</span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                    {Number(selectedOrder?.amount || 0).toLocaleString()} ريال
+                  </span>
+                </div>
+                <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
+                  <span className="text-xs text-muted-foreground font-semibold">اسم البنك:</span>
+                  <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryBank || "—"}</span>
+                </div>
+                <div className="flex flex-col gap-1 items-start justify-start pt-1">
+                  <span className="text-xs text-muted-foreground font-semibold">رقم الآيبان (IBAN):</span>
+                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-background px-2.5 py-1.5 rounded border border-border/80 w-full mt-1 text-left select-all" dir="ltr">
+                    {selectedOrder?.beneficiaryIban || "—"}
+                  </span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>ملاحظات (اختياري)</Label>
