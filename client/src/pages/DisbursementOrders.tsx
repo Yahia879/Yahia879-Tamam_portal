@@ -84,6 +84,7 @@ export default function DisbursementOrders() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showExecuteDialog, setShowExecuteDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
@@ -331,16 +332,11 @@ export default function DisbursementOrders() {
                                 )}
 
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
-                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
-                                >
-                                  <Printer className="h-4 w-4 text-slate-500" />
-                                  <span>طباعة</span>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/disbursement-orders/${order.id}`)}
-                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowDetailsDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
                                 >
                                   <Eye className="h-4 w-4 text-blue-500" />
                                   <span>عرض التفاصيل</span>
@@ -438,19 +434,14 @@ export default function DisbursementOrders() {
                                 )}
 
                                 <DropdownMenuItem
-                                  onClick={() => navigate(`/disbursement-orders/${order.id}/print`)}
-                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
-                                >
-                                  <Printer className="h-4 w-4 text-slate-500" />
-                                  <span>طباعة أمر الصرف</span>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/disbursement-orders/${order.id}`)}
-                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50"
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowDetailsDialog(true);
+                                  }}
+                                  className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
                                 >
                                   <Eye className="h-4 w-4 text-blue-500" />
-                                  <span>تفاصيل أمر الصرف</span>
+                                  <span>عرض التفاصيل</span>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -671,6 +662,73 @@ export default function DisbursementOrders() {
                 disabled={executeOrderMutation.isPending}
               >
                 {executeOrderMutation.isPending ? "جاري التنفيذ..." : "تنفيذ الصرف"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة تفاصيل أمر الصرف */}
+        <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-[#1a5f4a]">
+                <FileText className="h-5 w-5 text-[#1a5f4a]" />
+                <span>تفاصيل أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-right">
+                تفاصيل البيانات المالية والمعلومات البنكية للمورد الخاصة بأمر الصرف رقم {selectedOrder?.orderNumber}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 text-right py-2" dir="rtl">
+              {/* قسم المبلغ */}
+              <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/30 p-4 rounded-xl flex flex-col items-center justify-center text-center space-y-1 shadow-sm">
+                <span className="text-xs text-muted-foreground font-semibold">المبلغ المستحق للصرف</span>
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                  {Number(selectedOrder?.amount || 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">ريال سعودي</span>
+                </span>
+              </div>
+
+              {/* قسم تفاصيل المورد والبنك */}
+              <div className="border border-border/80 rounded-xl overflow-hidden divide-y divide-border/60">
+                <div className="p-3 flex justify-between items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم المستفيد (المورد):</span>
+                  <span className="text-sm font-bold text-foreground text-left">{selectedOrder?.beneficiaryName || "—"}</span>
+                </div>
+                <div className="p-3 flex justify-between items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم البنك:</span>
+                  <span className="text-sm font-bold text-foreground">{selectedOrder?.beneficiaryBank || "—"}</span>
+                </div>
+                <div className="p-3 flex flex-col gap-1 items-start justify-start">
+                  <span className="text-xs text-muted-foreground font-semibold">رقم الآيبان (IBAN):</span>
+                  <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-muted px-2.5 py-1.5 rounded border border-border/80 w-full mt-1 text-left select-all" dir="ltr">
+                    {selectedOrder?.beneficiaryIban || "—"}
+                  </span>
+                </div>
+                {selectedOrder?.beneficiaryAccountName && (
+                  <div className="p-3 flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم صاحب الحساب:</span>
+                    <span className="text-sm font-bold text-foreground text-left">{selectedOrder.beneficiaryAccountName}</span>
+                  </div>
+                )}
+                <div className="p-3 flex justify-between items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">طريقة الدفع:</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {PAYMENT_METHOD_MAP[selectedOrder?.paymentMethod || "bank_transfer"] || "—"}
+                  </span>
+                </div>
+                <div className="p-3 flex justify-between items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">حالة أمر الصرف:</span>
+                  <Badge variant={STATUS_MAP[selectedOrder?.status || "draft"]?.variant} className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_MAP[selectedOrder?.status || "draft"]?.className}`}>
+                    {STATUS_MAP[selectedOrder?.status || "draft"]?.label}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="sm:justify-start">
+              <Button variant="outline" onClick={() => setShowDetailsDialog(false)} className="w-full sm:w-auto font-semibold">
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
