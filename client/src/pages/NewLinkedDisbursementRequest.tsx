@@ -166,8 +166,10 @@ export default function NewLinkedDisbursementRequest() {
       const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
+      const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
+
       setFormData(prev => {
-        if (prev.contractPaymentId === paymentIdNumeric && prev.completionPercentage === selectedReport.actualProgress) {
+        if (prev.contractPaymentId === targetPaymentId && prev.completionPercentage === selectedReport.actualProgress) {
           return prev;
         }
         return {
@@ -175,7 +177,7 @@ export default function NewLinkedDisbursementRequest() {
           title: `طلب صرف لـ ${selectedReport.title}`,
           description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
           completionPercentage: selectedReport.actualProgress || 0,
-          contractPaymentId: paymentIdNumeric,
+          contractPaymentId: targetPaymentId,
         };
       });
 

@@ -842,7 +842,7 @@ export default function ContractForm() {
                                 </span>
                                 <span className="text-muted-foreground">-</span>
                                 <span>
-                                  {project?.projectName || project?.name || "-"}
+                                  {project?.name || "-"}
                                 </span>
                               </>
                             );
@@ -851,7 +851,7 @@ export default function ContractForm() {
                       </div>
                       {requestId && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          هذا العقد مرتبط بالطلب رقم {requestDetails.requestNumber}
+                          هذا العقد مرتبط بالطلب رقم {requestDetails?.requestNumber}
                         </p>
                       )}
                       {isEditMode && !requestId && (

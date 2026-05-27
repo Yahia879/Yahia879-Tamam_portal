@@ -265,13 +265,24 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
       }
 
+      let validatedContractPaymentId = input.contractPaymentId;
+      if (validatedContractPaymentId) {
+        const [paymentExists] = await db
+          .select({ id: contractPayments.id })
+          .from(contractPayments)
+          .where(eq(contractPayments.id, validatedContractPaymentId));
+        if (!paymentExists) {
+          validatedContractPaymentId = undefined;
+        }
+      }
+
       const requestNumber = await generateDisbursementRequestNumber(db);
 
       const [result] = await db.insert(disbursementRequests).values({
         requestNumber,
         projectId: input.projectId,
         contractId: input.contractId,
-        contractPaymentId: input.contractPaymentId,
+        contractPaymentId: validatedContractPaymentId,
         title: input.title,
         description: input.description,
         amount: input.amount.toString(),

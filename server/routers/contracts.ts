@@ -488,7 +488,7 @@ export const contractsRouter = router({
                 dueDate: p.dueDate ? new Date(p.dueDate) : null,
                 status: "pending" as const,
                 notes: p.description || null,
-                completionPercentage: p.percentage !== undefined ? Number(p.percentage) : null,
+                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : null,
               }))
             );
           }
@@ -644,7 +644,7 @@ export const contractsRouter = router({
                   dueDate: p.dueDate ? new Date(p.dueDate) : null,
                   status: "pending" as const,
                   notes: p.description || null,
-                  completionPercentage: p.percentage !== undefined ? Number(p.percentage) : null,
+                  completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : null,
                 }))
               );
             }

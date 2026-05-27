@@ -351,45 +351,24 @@ export const projectsRouter = router({
       // توحيد الدفعات
       const unifiedPayments: any[] = [];
 
-      // 1. إضافة طلبات الصرف كأولوية (لأنها تمثل العملية المالية الفعلية)
-      projectDisbursements.forEach(d => {
+      // 1. إضافة دفعات العقود المجدولة
+      allContractPayments.forEach(cp => {
         unifiedPayments.push({
-          id: `disb-${d.id}`,
-          paymentNumber: d.requestNumber,
-          paymentType: d.paymentType,
-          amount: d.amount,
-          status: d.status,
-          description: (d.title || d.description)?.replace(/^تقرير إنجاز - /, ""),
-          date: d.dateMiladi || d.createdAt,
-          paidAt: d.status === "paid" ? d.updatedAt : null,
-          source: "disbursement",
-          contractPaymentId: d.contractPaymentId,
-          workDescription: d.description,
-          completionPercentage: d.completionPercentage,
+          id: `cp-${cp.id}`,
+          paymentNumber: `PLAN-${cp.id}`,
+          paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
+          amount: cp.amount,
+          status: cp.status === "paid" ? "paid" : "pending",
+          description: cp.phaseName,
+          date: cp.dueDate || cp.createdAt,
+          paidAt: cp.paidAt,
+          source: "contract",
+          workDescription: cp.notes,
+          completionPercentage: cp.completionPercentage || 0,
         });
       });
 
-      // 2. إضافة دفعات العقود التي لم يُنشأ لها طلب صرف بعد
-      allContractPayments.forEach(cp => {
-        const hasDisbursement = projectDisbursements.find(d => d.contractPaymentId === cp.id);
-        if (!hasDisbursement) {
-          unifiedPayments.push({
-            id: `cp-${cp.id}`,
-            paymentNumber: `PLAN-${cp.id}`,
-            paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
-            amount: cp.amount,
-            status: cp.status === "paid" ? "paid" : "pending",
-            description: cp.phaseName,
-            date: cp.dueDate || cp.createdAt,
-            paidAt: cp.paidAt,
-            source: "contract",
-            workDescription: cp.notes,
-            completionPercentage: cp.completionPercentage || 0,
-          });
-        }
-      });
-
-      // 3. إضافة الدفعات اليدوية التي ليست مرتبطة بطلب صرف (لتجنب التكرار)
+      // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
         // إذا كانت الدفعة اليدوية مرتبطة بعقد، قد تكون مكررة مع طلبات الصرف
         // لكن حالياً لا يوجد ربط صريح بين payments و disbursementRequests في الشيمّا
