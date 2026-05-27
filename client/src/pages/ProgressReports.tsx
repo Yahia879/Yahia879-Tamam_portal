@@ -585,7 +585,7 @@ export default function ProgressReports() {
         title: report.title, // اسم الدفعة
         amount: amount,
         paymentType: "progress",
-        completionPercentage: report.actualProgress || report.overallProgress || 0,
+        completionPercentage: report.plannedProgress || report.overallProgress || 0,
         contractPaymentId,
         description: report.workSummary || "",
       });

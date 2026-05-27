@@ -188,14 +188,14 @@ export default function NewLinkedDisbursementRequest() {
       const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
 
       setFormData(prev => {
-        if (prev.contractPaymentId === targetPaymentId && prev.completionPercentage === selectedReport.actualProgress) {
+        if (prev.contractPaymentId === targetPaymentId && prev.completionPercentage === selectedReport.plannedProgress) {
           return prev;
         }
         return {
           ...prev,
           title: `طلب صرف لـ ${selectedReport.title}`,
           description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-          completionPercentage: selectedReport.actualProgress || 0,
+          completionPercentage: selectedReport.plannedProgress || 0,
           contractPaymentId: targetPaymentId,
         };
       });

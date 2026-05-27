@@ -183,7 +183,7 @@ export default function EditLinkedDisbursementRequest() {
         ...prev,
         title: `تعديل طلب صرف لـ ${selectedReport.title}`,
         description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: selectedReport.actualProgress || 0,
+        completionPercentage: selectedReport.plannedProgress || 0,
         contractPaymentId: targetPaymentId,
       }));
     }

@@ -162,7 +162,7 @@ export default function NewDisbursementRequest() {
         ...prev,
         title: `طلب دفعة لـ ${selectedReport.title}`,
         description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: selectedReport.actualProgress || 0,
+        completionPercentage: selectedReport.plannedProgress || 0,
         contractPaymentId: paymentId,
       }));
 
@@ -419,7 +419,10 @@ export default function NewDisbursementRequest() {
                   <Label className="text-right">المشروع</Label>
                   <Select
                     value={formData.projectId.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, projectId: parseInt(value), contractId: 0 });
+                      setSelectedReportId(null);
+                    }}
                     disabled={!!params.projectId}
                   >
                     <SelectTrigger className="text-right w-full" dir="rtl">
@@ -435,8 +438,30 @@ export default function NewDisbursementRequest() {
                   </Select>
                 </div>
 
+                {formData.projectId > 0 && approvedReports && approvedReports.length > 0 && (
+                  <div className="space-y-2 text-right animate-slide-up">
+                    <Label className="text-right font-semibold">تقرير الإنجاز المرتبط</Label>
+                    <Select
+                      value={selectedReportId?.toString() || "0"}
+                      onValueChange={(value) => setSelectedReportId(value === "0" ? null : parseInt(value))}
+                    >
+                      <SelectTrigger className="text-right w-full border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
+                        <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="0" className="text-right font-semibold">بدون تقرير إنجاز مرتبط</SelectItem>
+                        {approvedReports.map((report: any) => (
+                          <SelectItem key={report.id} value={report.id.toString()} className="text-right">
+                            {report.reportNumber} - {report.title} (مطلوب: {report.plannedProgress}%)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 
-                {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
+                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
                   <div className="space-y-2 text-right">
                     <Label className="text-right">العقد</Label>
                     <Select
@@ -458,16 +483,52 @@ export default function NewDisbursementRequest() {
                     </Select>
                   </div>
                 )}
+
+                {formData.projectId > 0 && projectDetails?.payments && projectDetails.payments.filter((p: any) => p.source === "contract").length > 0 && (
+                  <div className="space-y-2 text-right animate-slide-up">
+                    <Label className="text-right font-semibold text-xs text-slate-700 dark:text-slate-300">الدفعة المستحقة من العقد</Label>
+                    <Select
+                      value={formData.contractPaymentId?.toString() || "0"}
+                      onValueChange={(value) => {
+                        const paymentId = parseInt(value);
+                        const paymentInfo = projectDetails.payments.find((p: any) => {
+                          const pIdNumeric = parseInt(p.id.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+                          return p.source === "contract" && pIdNumeric === paymentId;
+                        });
+                        setFormData({
+                          ...formData,
+                          contractPaymentId: paymentId,
+                          completionPercentage: paymentInfo?.completionPercentage || 0,
+                          title: paymentInfo?.description ? `طلب صرف الدفعة: ${paymentInfo.description}` : formData.title,
+                        });
+                        if (paymentInfo) {
+                          setSuppliers(prev => prev.map(s => ({
+                            ...s,
+                            amount: parseFloat(paymentInfo.amount || "0"),
+                            work: paymentInfo.workDescription || paymentInfo.description || "",
+                          })));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="text-right w-full border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
+                        <SelectValue placeholder="اختر دفعة العقد لملء نسبة الإنجاز والبيانات تلقائياً" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="0" className="text-right font-semibold">بدون تحديد دفعة عقد</SelectItem>
+                        {projectDetails.payments.filter((p: any) => p.source === "contract").map((payment: any) => {
+                          const paymentIdNumeric = parseInt(payment.id.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+                          return (
+                            <SelectItem key={payment.id} value={paymentIdNumeric.toString()} className="text-right">
+                              {payment.description || payment.paymentNumber} (نسبة الإنجاز المطلوبة: {payment.completionPercentage}%)
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 
-                {/* تاريخ الهجري مستنتج تلقائياً لتقليل مدخلات المستخدم */}
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">التاريخ الهجري (تلقائي)</Label>
-                  <Input
-                    value={formData.dateHijri}
-                    readOnly
-                    className="bg-muted text-right text-muted-foreground"
-                  />
-                </div>
+
 
                 <div className="space-y-2 text-right">
                   <Label className="text-right">عنوان طلب الدفعة *</Label>
@@ -492,8 +553,8 @@ export default function NewDisbursementRequest() {
                   />
                 </div>
                 
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">نسبة الإنجاز الفعلية للمشروع (%) *</Label>
+                 <div className="space-y-2 text-right">
+                  <Label className="text-right font-semibold">نسبة الإنجاز (%) *</Label>
                   <Input
                     type="number"
                     min="0"
