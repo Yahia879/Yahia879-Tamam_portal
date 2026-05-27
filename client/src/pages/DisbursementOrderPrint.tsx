@@ -187,11 +187,11 @@ export default function DisbursementOrderPrint() {
           <table className="w-full border-collapse text-sm mb-4">
             <tbody>
               <tr className="border">
-                <td className="p-2 bg-gray-50 font-bold w-28 border-l">اصرفوا للمكرم/</td>
+                <td className="p-2 bg-gray-50 font-bold w-28 border-l">اصرفوا للمكرم</td>
                 <td className="p-2 font-bold">{order.beneficiaryName}</td>
               </tr>
               <tr className="border">
-                <td className="p-2 bg-gray-50 font-bold border-l">مبلغ وقدره/</td>
+                <td className="p-2 bg-gray-50 font-bold border-l">مبلغ وقدره</td>
                 <td className="p-2">
                   <span className="text-gray-500 ml-1">رقماً</span>
                   <span className="font-bold">{amount.toLocaleString()} ريال</span>
@@ -201,11 +201,11 @@ export default function DisbursementOrderPrint() {
                 </td>
               </tr>
               <tr className="border">
-                <td className="p-2 bg-gray-50 font-bold border-l">رقم طلب الصرف/</td>
+                <td className="p-2 bg-gray-50 font-bold border-l">رقم طلب الصرف</td>
                 <td className="p-2 font-mono text-xs">{request?.requestNumber || "-"}</td>
               </tr>
               <tr className="border">
-                <td className="p-2 bg-gray-50 font-bold border-l">وذلك مقابل/</td>
+                <td className="p-2 bg-gray-50 font-bold border-l">وذلك مقابل</td>
                 <td className="p-2">{request?.description || request?.title || "-"}</td>
               </tr>
             </tbody>
@@ -265,46 +265,12 @@ export default function DisbursementOrderPrint() {
                   </tr>
                   <tr className="border">
                     <td className="p-1.5 bg-gray-50 font-bold border-l">رقم الآيبان</td>
-                    <td className="p-1.5 font-mono" dir="ltr">{order.beneficiaryIban || "-"}</td>
-                    <td className="p-1.5 bg-gray-50 font-bold border-l">رقم سداد</td>
-                    <td className="p-1.5">{(order as any).sadadNumber || "-"}</td>
-                  </tr>
-                  <tr className="border">
-                    <td className="p-1.5 bg-gray-50 font-bold border-l">رمز المفوتر</td>
-                    <td className="p-1.5" colSpan={3}>{(order as any).billerCode || "-"}</td>
+                    <td className="p-1.5 font-mono" dir="ltr" colSpan={3}>{order.beneficiaryIban || "-"}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           )}
-
-          {/* جدول التوقيعات */}
-          <div className="mt-4">
-            <table className="w-full border-collapse text-xs">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2 text-right w-24">الوظيفة</th>
-                  <th className="border p-2 text-right">الاسم</th>
-                  <th className="border p-2 text-right w-32">التوقيع</th>
-                  <th className="border p-2 text-right w-24">التاريخ</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="border p-2 font-bold">المحاسب</td>
-                  <td className="border p-2">{orgSettings?.accountantName || ""}</td>
-                  <td className="border p-2 h-12"></td>
-                  <td className="border p-2"></td>
-                </tr>
-                <tr>
-                  <td className="border p-2 font-bold">المدير التنفيذي</td>
-                  <td className="border p-2">{orgSettings?.executiveDirectorName || ""}</td>
-                  <td className="border p-2 h-12"></td>
-                  <td className="border p-2"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
           {/* تذييل الصفحة */}
           <div className="mt-4 pt-2 border-t text-center text-gray-500 text-[10px]">
