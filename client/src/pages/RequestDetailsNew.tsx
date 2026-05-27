@@ -574,6 +574,11 @@ export default function RequestDetailsNew() {
                 label: "عرض تقرير الاستجابة السريعة",
                 onClick: () => setQuickResponseReportOpen(true),
               }}
+              secondaryButton={{
+                label: "إغلاق الطلب",
+                onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                variant: 'outline' as const,
+              }}
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
