@@ -388,32 +388,28 @@ export default function ContractTemplates() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {!template.isSystem && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditTemplate(template);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
-                                deleteTemplateMutation.mutate({ id: template.id });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditTemplate(template);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
+                            deleteTemplateMutation.mutate({ id: template.id });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                       {expandedTemplates.includes(template.id) ? (
                         <ChevronUp className="h-5 w-5 text-gray-400" />
                       ) : (
@@ -431,19 +427,17 @@ export default function ContractTemplates() {
                           <ListOrdered className="h-4 w-4" />
                           بنود العقد ({selectedTemplate?.clauses?.length || 0})
                         </h4>
-                        {!template.isSystem && (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setEditingClause(null);
-                              resetClauseForm();
-                              setShowClauseDialog(true);
-                            }}
-                          >
-                            <Plus className="h-4 w-4 ml-1" />
-                            إضافة بند
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setEditingClause(null);
+                            resetClauseForm();
+                            setShowClauseDialog(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 ml-1" />
+                          إضافة بند
+                        </Button>
                       </div>
 
                       {selectedTemplate?.clauses?.length === 0 ? (
@@ -498,8 +492,6 @@ export default function ContractTemplates() {
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-1">
-                                    {!template.isSystem && clause.isEditable ? (
-                                      <>
                                         <Button
                                           variant="ghost"
                                           size="icon"
@@ -518,10 +510,6 @@ export default function ContractTemplates() {
                                         >
                                           <Trash2 className="h-4 w-4 text-red-500" />
                                         </Button>
-                                      </>
-                                    ) : (
-                                      <Badge variant="outline" className="text-xs">محمي</Badge>
-                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>

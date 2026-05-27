@@ -1100,9 +1100,7 @@ export const contractsRouter = router({
         .from(contractTemplates)
         .where(eq(contractTemplates.id, id));
       
-      if (template?.isSystem) {
-        throw new Error("لا يمكن تعديل قوالب النظام");
-      }
+      // السماح بتعديل القالب حتى لو كان قالب نظام
 
       // إذا كان القالب الافتراضي، إلغاء الافتراضي من القوالب الأخرى
       if (data.isDefault && data.type) {
@@ -1133,9 +1131,7 @@ export const contractsRouter = router({
         .from(contractTemplates)
         .where(eq(contractTemplates.id, input.id));
       
-      if (template?.isSystem) {
-        throw new Error("لا يمكن حذف قوالب النظام");
-      }
+      // السماح بحذف جميع القوالب
 
       // حذف البنود المرتبطة أولاً
       await db
@@ -1204,9 +1200,7 @@ export const contractsRouter = router({
           .from(contractTemplates)
           .where(eq(contractTemplates.id, input.templateId));
         
-        if (template?.isSystem) {
-          throw new Error("لا يمكن إضافة بنود لقوالب النظام");
-        }
+        // السماح بالإضافة حتى لقوالب النظام
       }
 
       const [result] = await db.insert(contractClauses).values(input as any);
@@ -1244,9 +1238,7 @@ export const contractsRouter = router({
 
       if (!clause) throw new Error("البند غير موجود");
 
-      if (clause.template?.isSystem || !clause.clause.isEditable) {
-        throw new Error("لا يمكن تعديل هذا البند");
-      }
+      // السماح بتعديل جميع البنود
 
       await db.update(contractClauses).set(data as any).where(eq(contractClauses.id, id));
       return { success: true };
@@ -1259,7 +1251,7 @@ export const contractsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
 
-      // التحقق من أنه ليس بنداً في قالب نظام
+      // التحقق من أنه بند قابل للتعديل
       const [clause] = await db
         .select({
           clause: contractClauses,
@@ -1271,9 +1263,7 @@ export const contractsRouter = router({
 
       if (!clause) throw new Error("البند غير موجود");
 
-      if (clause.template?.isSystem || !clause.clause.isEditable) {
-        throw new Error("لا يمكن حذف هذا البند");
-      }
+      // السماح بحذف جميع البنود
 
       await db.delete(contractClauses).where(eq(contractClauses.id, input.id));
       return { success: true };
