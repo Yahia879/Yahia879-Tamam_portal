@@ -625,10 +625,15 @@ export default function DisbursementRequests() {
                                         <span>عرض تقرير طلب الصرف</span>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
-                                        disabled={true}
-                                        className="flex items-center gap-2 text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                        disabled={!!request.rejectionReason}
+                                        onClick={() => handleDirectCreateOrder(request)}
+                                        className={`flex items-center gap-2 cursor-pointer ${
+                                          request.rejectionReason
+                                            ? "text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                            : "text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                        }`}
                                       >
-                                        <Banknote className="h-4 w-4 text-slate-400" />
+                                        <Banknote className={`h-4 w-4 ${request.rejectionReason ? "text-slate-400" : "text-emerald-500"}`} />
                                         <span>التحويل الى طلب صرف</span>
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -756,10 +761,15 @@ export default function DisbursementRequests() {
                                         <span>عرض تقرير طلب الصرف</span>
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
-                                        disabled={true}
-                                        className="flex items-center gap-2 text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                        disabled={!!request.rejectionReason}
+                                        onClick={() => handleDirectCreateOrder(request)}
+                                        className={`flex items-center gap-2 cursor-pointer ${
+                                          request.rejectionReason
+                                            ? "text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                            : "text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                        }`}
                                       >
-                                        <Banknote className="h-4 w-4 text-slate-400" />
+                                        <Banknote className={`h-4 w-4 ${request.rejectionReason ? "text-slate-400" : "text-emerald-500"}`} />
                                         <span>التحويل الى طلب صرف</span>
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>

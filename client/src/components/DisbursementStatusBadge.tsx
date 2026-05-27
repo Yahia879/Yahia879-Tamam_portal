@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle2, XCircle, Banknote, FileCheck, AlertCircle } from "lucide-react";
 
 type DisbursementRequestStatus = "pending" | "approved" | "rejected" | "paid";
-type DisbursementOrderStatus = "pending" | "approved" | "executed" | "cancelled";
+type DisbursementOrderStatus = "pending" | "approved" | "executed" | "cancelled" | "rejected" | "edited";
 
 interface DisbursementStatusBadgeProps {
   status: DisbursementRequestStatus | DisbursementOrderStatus;
@@ -66,6 +66,18 @@ const ORDER_STATUS_CONFIG: Record<
     variant: "destructive",
     className: "border-gray-500 text-gray-700 bg-gray-50",
     icon: <AlertCircle className="h-3 w-3" />,
+  },
+  rejected: {
+    label: "مرفوض",
+    variant: "destructive",
+    className: "border-red-500 text-red-700 bg-red-50",
+    icon: <XCircle className="h-3 w-3" />,
+  },
+  edited: {
+    label: "تم التعديل",
+    variant: "outline",
+    className: "border-purple-500 text-purple-700 bg-purple-50",
+    icon: <FileCheck className="h-3 w-3" />,
   },
 };
 

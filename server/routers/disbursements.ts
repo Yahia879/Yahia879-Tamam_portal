@@ -441,6 +441,8 @@ export const disbursementsRouter = router({
           dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
           contractPaymentId: validatedContractPaymentId,
           updatedAt: new Date(),
+          // Clear rejection reason when a rejected request is edited
+          rejectionReason: request.status === "rejected" ? null : request.rejectionReason,
         })
         .where(eq(disbursementRequests.id, input.id));
 
@@ -718,6 +720,11 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.status, "executed"));
 
+      const [rejectedCountResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "rejected"));
+
       const [totalAmountResult] = await db
         .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
         .from(disbursementOrders);
@@ -731,6 +738,7 @@ export const disbursementsRouter = router({
           pendingCount: pendingCountResult?.count || 0,
           approvedCount: approvedCountResult?.count || 0,
           executedCount: executedCountResult?.count || 0,
+          rejectedCount: rejectedCountResult?.count || 0,
           totalAmount: Number(totalAmountResult?.total || 0),
         }
       };
@@ -809,23 +817,47 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
-      if (request.status !== "approved") {
+      if (request.status !== "approved" && !(request.status === "rejected" && request.rejectionReason === null)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "طلب الصرف غير معتمد" });
       }
 
-      // التحقق من عدم وجود أمر صرف سابق (غير مرفوض)
+      // التحقق من وجود أمر صرف سابق
       const [existingOrder] = await db
         .select()
         .from(disbursementOrders)
-        .where(
-          and(
-            eq(disbursementOrders.disbursementRequestId, input.disbursementRequestId),
-            sql`${disbursementOrders.status} != 'rejected'`
-          )
-        );
+        .where(eq(disbursementOrders.disbursementRequestId, input.disbursementRequestId));
 
       if (existingOrder) {
-        throw new TRPCError({ code: "CONFLICT", message: "يوجد أمر صرف مرتبط بهذا الطلب بالفعل" });
+        if (existingOrder.status === "rejected") {
+          // تحديث أمر الصرف الحالي وتغيير حالته إلى "edited"
+          await db
+            .update(disbursementOrders)
+            .set({
+              amount: request.amount,
+              beneficiaryName: input.beneficiaryName,
+              beneficiaryBank: input.beneficiaryBank,
+              beneficiaryIban: input.beneficiaryIban,
+              beneficiaryAccountName: input.beneficiaryAccountName || null,
+              paymentMethod: input.paymentMethod,
+              status: "edited" as any,
+              updatedAt: new Date(),
+            })
+            .where(eq(disbursementOrders.id, existingOrder.id));
+
+          // تحديث حالة طلب الصرف التابع له إلى "approved" وتصفير سبب الرفض
+          await db
+            .update(disbursementRequests)
+            .set({
+              status: "approved",
+              rejectionReason: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(disbursementRequests.id, input.disbursementRequestId));
+
+          return { success: true, message: "تم تحديث أمر الصرف بنجاح" };
+        } else {
+          throw new TRPCError({ code: "CONFLICT", message: "يوجد أمر صرف مرتبط بهذا الطلب بالفعل" });
+        }
       }
 
       const orderNumber = await generateDisbursementOrderNumber(db);

@@ -1006,7 +1006,8 @@ export const disbursementOrderStatuses = [
   "pending",         // قيد الاعتماد
   "approved",        // معتمد
   "rejected",        // مرفوض
-  "executed"         // منفذ
+  "executed",        // منفذ
+  "edited"           // تم التعديل
 ] as const;
 
 // جدول طلبات الصرف (مكتب المشاريع)

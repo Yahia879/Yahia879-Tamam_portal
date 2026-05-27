@@ -59,6 +59,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pending: { label: "قيد الاعتماد", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
   rejected: { label: "مرفوض", variant: "destructive" },
+  edited: { label: "تم التعديل", variant: "outline" },
   executed: { label: "منفذ", variant: "outline" },
   paid: { label: "مدفوع", variant: "outline" },
   cancelled: { label: "ملغي", variant: "destructive" },
@@ -155,7 +156,7 @@ export default function DisbursementOrders() {
   // إحصائيات عامة وعالمية دقيقة من الخادم
   const pendingCount = ordersData?.stats?.pendingCount || 0;
   const approvedCount = ordersData?.stats?.approvedCount || 0;
-  const executedCount = ordersData?.stats?.executedCount || 0;
+  const rejectedCount = ordersData?.stats?.rejectedCount || 0;
   const totalAmount = ordersData?.stats?.totalAmount || 0;
 
   const total = ordersData?.total || 0;
@@ -200,12 +201,12 @@ export default function DisbursementOrders() {
 
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
             <CardContent className="p-4 sm:p-5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
-                <FileText className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400">
+                <XCircle className="w-5 h-5" />
               </div>
               <div className="min-w-0 text-right">
-                <p className="text-xs text-muted-foreground font-semibold">منفذة</p>
-                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{executedCount}</p>
+                <p className="text-xs text-muted-foreground font-semibold">مرفوضة</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{rejectedCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -252,6 +253,7 @@ export default function DisbursementOrders() {
                   <SelectItem value="pending">قيد الاعتماد</SelectItem>
                   <SelectItem value="approved">معتمد</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
+                  <SelectItem value="edited">تم التعديل</SelectItem>
                 </SelectContent>
               </Select>
             </div>
