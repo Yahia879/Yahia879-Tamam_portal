@@ -183,7 +183,7 @@ export default function NewDisbursementRequest() {
   );
   
   // mutation لإنشاء طلب دفعة للمشروع
-  const createMutation = trpc.disbursements.createRequest.useMutation({
+  const createMutation = trpc.projects.createPayment.useMutation({
     onSuccess: (data) => {
       toast.success("تم إضافة طلب الدفعة بنجاح");
       navigate(`/projects/${formData.projectId}`);
@@ -302,13 +302,9 @@ export default function NewDisbursementRequest() {
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
-      contractPaymentId: formData.contractPaymentId || undefined,
-      title: formData.title,
-      description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
-      dateMiladi: formData.dateMiladi,
-      completionPercentage: formData.completionPercentage,
+      description: formData.title,
     });
   };
   
