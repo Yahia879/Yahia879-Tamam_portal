@@ -279,8 +279,8 @@ export default function SuppliersManagement() {
                   className="pr-10"
                 />
               </div>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                <TabsList className="grid w-full grid-cols-2 md:inline-flex h-auto md:w-auto gap-1 md:gap-0">
                   <TabsTrigger value="all">الكل</TabsTrigger>
                   <TabsTrigger value="pending">قيد المراجعة</TabsTrigger>
                   <TabsTrigger value="approved">معتمدين</TabsTrigger>
