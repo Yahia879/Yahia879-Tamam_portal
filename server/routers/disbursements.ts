@@ -145,6 +145,7 @@ export const disbursementsRouter = router({
           contractId: disbursementRequests.contractId,
           contractPaymentId: disbursementRequests.contractPaymentId,
           requestedByName: users.name,
+          dateMiladi: disbursementRequests.dateMiladi,
         })
         .from(disbursementRequests)
         .leftJoin(users, eq(disbursementRequests.requestedBy, users.id))
@@ -280,6 +281,25 @@ export const disbursementsRouter = router({
           .where(eq(contractPayments.id, validatedContractPaymentId));
         if (!paymentExists) {
           validatedContractPaymentId = undefined;
+        } else {
+          // التحقق من عدم وجود طلب صرف نشط (غير مرفوض) لنفس الدفعة/التقرير
+          const [existingRequest] = await db
+            .select({ id: disbursementRequests.id, requestNumber: disbursementRequests.requestNumber })
+            .from(disbursementRequests)
+            .where(
+              and(
+                eq(disbursementRequests.contractPaymentId, validatedContractPaymentId),
+                sql`${disbursementRequests.status} != 'rejected'`
+              )
+            )
+            .limit(1);
+
+          if (existingRequest) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `تقرير الإنجاز هذا مرتبط بالفعل بطلب صرف نشط رقم ${existingRequest.requestNumber}`
+            });
+          }
         }
       }
 
@@ -326,7 +346,6 @@ export const disbursementsRouter = router({
       };
     }),
 
-  // تعديل طلب صرف
   updateRequest: permissionProcedure("disbursements.create")
     .input(
       z.object({
@@ -336,6 +355,8 @@ export const disbursementsRouter = router({
         amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
         paymentType: z.enum(["advance", "progress", "final", "retention"]).default("progress"),
         completionPercentage: z.number().min(0).max(100).optional(),
+        dateMiladi: z.string().optional(),
+        contractPaymentId: z.number().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -372,6 +393,37 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم تحويله إلى أمر صرف" });
       }
 
+      let validatedContractPaymentId = input.contractPaymentId;
+      if (validatedContractPaymentId) {
+        const [paymentExists] = await db
+          .select({ id: contractPayments.id })
+          .from(contractPayments)
+          .where(eq(contractPayments.id, validatedContractPaymentId));
+        if (!paymentExists) {
+          validatedContractPaymentId = undefined;
+        } else {
+          // التحقق من عدم وجود طلب صرف نشط (غير مرفوض) لنفس الدفعة/التقرير من قبل طلب آخر غير هذا الطلب
+          const [existingRequest] = await db
+            .select({ id: disbursementRequests.id, requestNumber: disbursementRequests.requestNumber })
+            .from(disbursementRequests)
+            .where(
+              and(
+                eq(disbursementRequests.contractPaymentId, validatedContractPaymentId),
+                sql`${disbursementRequests.id} != ${input.id}`,
+                sql`${disbursementRequests.status} != 'rejected'`
+              )
+            )
+            .limit(1);
+
+          if (existingRequest) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `تقرير الإنجاز هذا مرتبط بالفعل بطلب صرف نشط رقم ${existingRequest.requestNumber}`
+            });
+          }
+        }
+      }
+
       await db
         .update(disbursementRequests)
         .set({
@@ -380,6 +432,8 @@ export const disbursementsRouter = router({
           amount: input.amount.toString(),
           paymentType: input.paymentType,
           completionPercentage: input.completionPercentage,
+          dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
+          contractPaymentId: validatedContractPaymentId,
           updatedAt: new Date(),
         })
         .where(eq(disbursementRequests.id, input.id));
@@ -994,6 +1048,7 @@ export const disbursementsRouter = router({
           status: disbursementRequests.status,
           requestedAt: disbursementRequests.requestedAt,
           approvedAt: disbursementRequests.approvedAt,
+          contractPaymentId: disbursementRequests.contractPaymentId,
         })
         .from(disbursementRequests)
         .where(eq(disbursementRequests.projectId, input.projectId))

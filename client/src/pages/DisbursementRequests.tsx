@@ -151,8 +151,6 @@ export default function DisbursementRequests() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCreateOrderDialog, setShowCreateOrderDialog] = useState(false);
   const [showOrderPreviewDialog, setShowOrderPreviewDialog] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editRequestData, setEditRequestData] = useState<any>(null);
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -213,19 +211,7 @@ export default function DisbursementRequests() {
       toast.error(error.message || "حدث خطأ أثناء إنشاء طلب الصرف");
     },
   });
-
-  const updateRequestMutation = trpc.disbursements.updateRequest.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث طلب الصرف بنجاح");
-      setShowEditDialog(false);
-      setEditRequestData(null);
-      refetchRequests();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تحديث طلب الصرف");
-    },
-  });
-
+  
   const approveRequestMutation = trpc.disbursements.approveRequest.useMutation({
     onSuccess: () => {
       toast.success("تم اعتماد طلب الصرف بنجاح");
@@ -620,17 +606,7 @@ export default function DisbursementRequests() {
                                     <DropdownMenuContent align="end" className="w-48 text-right font-medium">
                                       {canCreateRequest && (
                                         <DropdownMenuItem
-                                          onClick={() => {
-                                            setEditRequestData({
-                                              id: request.id,
-                                              title: request.title || request.description || "",
-                                              description: request.description || "",
-                                              amount: request.amount,
-                                              paymentType: request.paymentType || "progress",
-                                              completionPercentage: request.completionPercentage,
-                                            });
-                                            setShowEditDialog(true);
-                                          }}
+                                          onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
                                         >
                                           <FileText className="h-4 w-4 text-gray-500" />
@@ -719,17 +695,7 @@ export default function DisbursementRequests() {
                                     <DropdownMenuContent align="end" className="w-48 text-right font-medium">
                                       {canCreateRequest && (
                                         <DropdownMenuItem
-                                          onClick={() => {
-                                            setEditRequestData({
-                                              id: request.id,
-                                              title: request.title || request.description || "",
-                                              description: request.description || "",
-                                              amount: request.amount,
-                                              paymentType: request.paymentType || "progress",
-                                              completionPercentage: request.completionPercentage,
-                                            });
-                                            setShowEditDialog(true);
-                                          }}
+                                          onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
                                         >
                                           <FileText className="h-4 w-4 text-gray-500" />
@@ -1029,110 +995,6 @@ export default function DisbursementRequests() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* نافذة تعديل طلب صرف */}
-        <Dialog open={showEditDialog} onOpenChange={(open) => {
-          setShowEditDialog(open);
-          if (!open) setEditRequestData(null);
-        }}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>تعديل طلب صرف</DialogTitle>
-              <DialogDescription>تعديل بيانات طلب الصرف الحالي</DialogDescription>
-            </DialogHeader>
-            
-            {editRequestData && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>عنوان الطلب *</Label>
-                    <Input
-                      value={editRequestData.title || ""}
-                      onChange={(e) => setEditRequestData({ ...editRequestData, title: e.target.value })}
-                      placeholder="مثال: دفعة مرحلية للأعمال الإنشائية"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>الوصف</Label>
-                    <Textarea
-                      value={editRequestData.description || ""}
-                      onChange={(e) => setEditRequestData({ ...editRequestData, description: e.target.value })}
-                      placeholder="تفاصيل إضافية عن طلب الصرف..."
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>الدفعة المطلوبة (ريال) *</Label>
-                      <Input
-                        type="number"
-                        value={editRequestData.amount || ""}
-                        onChange={(e) => setEditRequestData({ ...editRequestData, amount: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>نوع الدفعة</Label>
-                      <Select
-                        value={editRequestData.paymentType || "progress"}
-                        onValueChange={(v: any) => setEditRequestData({ ...editRequestData, paymentType: v })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                          <SelectItem value="progress">دفعة مرحلية</SelectItem>
-                          <SelectItem value="final">دفعة نهائية</SelectItem>
-                          <SelectItem value="retention">ضمان حسن التنفيذ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>نسبة الإنجاز المرتبطة (%)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={editRequestData.completionPercentage !== undefined && editRequestData.completionPercentage !== null ? editRequestData.completionPercentage : ""}
-                      onChange={(e) => setEditRequestData({ ...editRequestData, completionPercentage: e.target.value ? parseInt(e.target.value) : "" })}
-                      placeholder="مثال: 30"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-                إلغاء
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (!editRequestData.title || !editRequestData.amount) {
-                    toast.error("يرجى ملء الحقول المطلوبة");
-                    return;
-                  }
-                  updateRequestMutation.mutate({
-                    id: editRequestData.id,
-                    title: editRequestData.title,
-                    description: editRequestData.description || "",
-                    amount: parseFloat(editRequestData.amount),
-                    paymentType: editRequestData.paymentType,
-                    completionPercentage: editRequestData.completionPercentage ? parseInt(editRequestData.completionPercentage) : undefined,
-                  });
-                }} 
-                disabled={updateRequestMutation.isPending}
-              >
-                {updateRequestMutation.isPending ? "جاري التحديث..." : "حفظ التغييرات"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* نافذة إنشاء طلب صرف - محسنة */}
         <Dialog open={showCreateDialog} onOpenChange={(open) => {

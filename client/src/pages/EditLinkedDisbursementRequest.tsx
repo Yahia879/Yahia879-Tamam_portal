@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -17,76 +17,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   ArrowRight,
-  Send,
-  Plus,
-  Trash2,
-  Building2,
   FileText,
   AlertCircle,
-  CheckCircle,
   ArrowLeft,
-  Info,
   Eye,
   Check,
   Coins,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
-
-// دالة تحويل الأرقام إلى نص عربي
-function numberToArabicText(num: number): string {
-  if (num === 0) return "صفر ريال";
-  
-  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-
-  function convertHundreds(n: number): string {
-    if (n === 0) return "";
-    if (n < 10) return ones[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) {
-      const t = Math.floor(n / 10);
-      const o = n % 10;
-      return o ? `${ones[o]} و${tens[t]}` : tens[t];
-    }
-    const h = Math.floor(n / 100);
-    const rest = n % 100;
-    return rest ? `${hundreds[h]} و${convertHundreds(rest)}` : hundreds[h];
-  }
-
-  function convertThousands(n: number): string {
-    if (n < 1000) return convertHundreds(n);
-    const thousands = Math.floor(n / 1000);
-    const rest = n % 1000;
-    let result = "";
-    if (thousands === 1) result = "ألف";
-    else if (thousands === 2) result = "ألفان";
-    else if (thousands <= 10) result = `${ones[thousands]} آلاف`;
-    else result = `${convertHundreds(thousands)} ألف`;
-    return rest ? `${result} و${convertHundreds(rest)}` : result;
-  }
-
-  const intPart = Math.floor(num);
-  return `${convertThousands(intPart)} ريال سعودي فقط لا غير`;
-}
 
 interface SupplierEntry {
   id: string;
@@ -98,13 +38,15 @@ interface SupplierEntry {
   agreedAmount: number;
 }
 
-export default function NewLinkedDisbursementRequest() {
+export default function EditLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  
+  const params = useParams<{ id: string }>();
+  const requestId = parseInt(params.id || "0");
+
   // التحكم بالخطوات
   const [step, setStep] = useState(1);
-  
+
   // بيانات النموذج
   const [formData, setFormData] = useState({
     projectId: 0,
@@ -115,31 +57,27 @@ export default function NewLinkedDisbursementRequest() {
     dateMiladi: new Date().toISOString().split('T')[0],
     contractPaymentId: 0,
   });
-  
+
   const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
-  const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
 
   // قائمة الموردين
-  const [suppliers, setSuppliers] = useState<SupplierEntry[]>([
-    { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
-  ]);
-  
+  const [suppliers, setSuppliers] = useState<SupplierEntry[]>([]);
+
+  // استعلام جلب طلب الصرف الحالي
+  const { data: request, isLoading: isRequestLoading } = trpc.disbursements.getRequestById.useQuery(
+    { id: requestId },
+    { enabled: !!requestId }
+  );
+
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
-  
-  // جلب الموردين النشطين
-  const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
 
-  // جلب التصنيفات
-  const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
-  const banks = banksData?.values;
-  
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
     { projectId: formData.projectId },
     { enabled: formData.projectId > 0 }
   );
-  
+
   // جلب تفاصيل المشروع
   const { data: projectDetails } = trpc.projects.getById.useQuery(
     { id: formData.projectId },
@@ -152,7 +90,7 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
-  // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم التكرار
+  // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم تكرار الدفعة
   const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(
     { projectId: formData.projectId },
     { enabled: formData.projectId > 0 }
@@ -165,7 +103,10 @@ export default function NewLinkedDisbursementRequest() {
     if (!match) return false;
     const paymentIdRaw = match[1];
     const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
-    
+
+    // يُسمح به إذا كان مرتبطاً بطلب الصرف الحالي الذي نقوم بتعديله
+    if (paymentIdNumeric === request?.contractPaymentId) return false;
+
     return projectRequests.requests.some(
       (req: any) => req.contractPaymentId === paymentIdNumeric && req.status !== "rejected"
     );
@@ -174,64 +115,93 @@ export default function NewLinkedDisbursementRequest() {
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
   const paymentIdMatch = selectedReport ? (selectedReport.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/) : null;
   const paymentIdRaw = paymentIdMatch ? paymentIdMatch[1] : "";
-  // استخراج الرقم من معرف الدفعة (مثل cp-5 -> 5)
   const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
   const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentIdRaw || p.id === paymentIdNumeric);
 
-  // الملء التلقائي بناءً على تقرير الإنجاز المختار
+  // تعبئة البيانات الأساسية من طلب الصرف عند التحميل
   useEffect(() => {
-    if (selectedReport) {
+    if (request) {
+      setFormData({
+        projectId: request.projectId,
+        contractId: request.contractId || 0,
+        title: request.title || "",
+        description: request.description || "",
+        completionPercentage: request.completionPercentage || 0,
+        dateMiladi: request.dateMiladi ? new Date(request.dateMiladi).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        contractPaymentId: request.contractPaymentId || 0,
+      });
+
+      // تهيئة مبلغ المورد الأصلي من الطلب
+      if (request.contract) {
+        setSuppliers([
+          {
+            id: crypto.randomUUID(),
+            name: request.contract.secondPartyName || "",
+            work: request.title || "",
+            amount: parseFloat(request.amount?.toString() || "0"),
+            iban: request.contract.secondPartyIban || "",
+            bank: request.contract.secondPartyBankName || "",
+            agreedAmount: parseFloat(request.amount?.toString() || "0"),
+          }
+        ]);
+      }
+    }
+  }, [request]);
+
+  // تحديد تقرير الإنجاز المطابق تلقائياً عند تحميل تقارير المشروع
+  useEffect(() => {
+    if (request && approvedReports && selectedReportId === null) {
+      const matchedReport = approvedReports.find((r: any) => {
+        const match = (r.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+        if (!match) return false;
+        const paymentIdRaw = match[1];
+        const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+        return paymentIdNumeric === request.contractPaymentId;
+      });
+      if (matchedReport) {
+        setSelectedReportId(matchedReport.id);
+      }
+    }
+  }, [request, approvedReports, selectedReportId]);
+
+  // الملء التلقائي بناءً على تغيير تقرير الإنجاز المختار يدوياً
+  useEffect(() => {
+    if (selectedReport && selectedReportId !== null && request && selectedReport.id !== approvedReports?.find((r: any) => {
+      const match = (r.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+      if (!match) return false;
+      const paymentIdRaw = match[1];
+      const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+      return paymentIdNumeric === request.contractPaymentId;
+    })?.id) {
       const workSummaryText = selectedReport.workSummary || "";
       const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
       const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
 
-      setFormData(prev => {
-        if (prev.contractPaymentId === targetPaymentId && prev.completionPercentage === selectedReport.actualProgress) {
-          return prev;
-        }
-        return {
-          ...prev,
-          title: `طلب صرف لـ ${selectedReport.title}`,
-          description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-          completionPercentage: selectedReport.actualProgress || 0,
-          contractPaymentId: targetPaymentId,
-        };
-      });
+      setFormData(prev => ({
+        ...prev,
+        title: `تعديل طلب صرف لـ ${selectedReport.title}`,
+        description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
+        completionPercentage: selectedReport.actualProgress || 0,
+        contractPaymentId: targetPaymentId,
+      }));
     }
-  }, [selectedReportId, projectDetails, paymentInfo]);
-  
+  }, [selectedReportId, selectedReport, paymentInfo, request, approvedReports]);
+
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
     { id: formData.contractId },
     { enabled: formData.contractId > 0 }
   );
-  
-  const utils = trpc.useUtils();
 
-  // mutation لإنشاء طلب الصرف
-  const createMutation = trpc.disbursements.createRequest.useMutation({
-    onSuccess: (data) => {
-      // إبطال كاش المشروع لتحديث قسم الدفعات فوراً
-      if (formData.projectId) {
-        utils.projects.getById.invalidate({ id: formData.projectId });
-      }
-      toast.success("تم إنشاء طلب الصرف بنجاح");
-      navigate("/disbursements");
-    },
-    onError: (error) => {
-      toast.error(`خطأ: ${error.message}`);
-    },
-  });
-  
-  // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
+  // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً في حال تغيير التقرير
   useEffect(() => {
     if (contractDetails && contractDetails.contract) {
-      const targetAmount = paymentInfo 
-        ? parseFloat(paymentInfo.amount || "0") 
+      const targetAmount = paymentInfo
+        ? parseFloat(paymentInfo.amount || "0")
         : parseFloat(String(contractDetails.contract.contractAmount || "0"));
-      
+
       const targetWork = paymentInfo
         ? paymentInfo.description || ""
         : contractDetails.contract.contractTitle || "";
@@ -259,64 +229,29 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [contractDetails, paymentInfo]);
 
-  // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
-  useEffect(() => {
-    if (projectContracts && projectContracts.contracts && projectContracts.contracts.length === 1) {
-      if (formData.contractId === 0) {
-        setFormData(prev => ({ ...prev, contractId: projectContracts.contracts[0].id }));
-      }
-    }
-  }, [projectContracts]);
-  
-  // حساب الإجمالي
+  // حساب الإجمالي والمبالغ
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  
-  // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
-  const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
-  const remainingForDisbursement = contractAmount - totalPaymentsSum;
-  const remainingAmount = remainingForDisbursement - totalAmount;
 
-  // إضافة مورد جديد
-  const addSupplier = () => {
-    setSuppliers([...suppliers, { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
-  };
-  
-  // حذف مورد
-  const removeSupplier = (id: string) => {
-    if (suppliers.length > 1) {
-      setSuppliers(suppliers.filter(s => s.id !== id));
-    }
-  };
-  
-  // تحديث بيانات المورد
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
     setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 
-  // اختيار مورد من القائمة
-  const handleSelectSupplier = (id: string, supplierName: string) => {
-    const selectedSupplier = allSuppliers?.find(s => s.name === supplierName);
-    if (selectedSupplier) {
-      setSuppliers(suppliers.map(s => s.id === id ? { 
-        ...s, 
-        name: selectedSupplier.name,
-        iban: selectedSupplier.iban || s.iban,
-        bank: selectedSupplier.bankName || s.bank
-      } : s));
-    } else {
-      updateSupplier(id, "name", supplierName);
-    }
-  };
-  
-  // إرسال للاعتماد
+  // mutation لتحديث طلب الصرف
+  const updateMutation = trpc.disbursements.updateRequest.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث طلب الصرف بنجاح");
+      navigate("/disbursements");
+    },
+    onError: (error) => {
+      toast.error(`خطأ: ${error.message}`);
+    },
+  });
+
+  // حفظ التعديلات
   const handleSubmit = () => {
     if (!formData.projectId) {
       toast.error("يرجى اختيار المشروع");
-      return;
-    }
-    if (!formData.dateMiladi) {
-      toast.error("يرجى تحديد التاريخ الميلادي");
       return;
     }
     if (!formData.title) {
@@ -324,7 +259,7 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
     if (!formData.description) {
-      toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
+      toast.error("يرجى إدخال وصف الأعمال");
       return;
     }
     if (formData.completionPercentage <= 0) {
@@ -335,40 +270,45 @@ export default function NewLinkedDisbursementRequest() {
       toast.error("يرجى إدخال مبلغ صحيح");
       return;
     }
-    if (suppliers.some(s => !s.name)) {
-      toast.error("يرجى اختيار المورد المستفيد");
-      return;
-    }
 
     if (suppliers.some(s => s.amount > s.agreedAmount)) {
       toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
       return;
     }
 
-    // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractDetails && totalAmount > contractAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
-      return;
-    }
-
-    if (contractDetails && totalAmount > remainingForDisbursement && remainingForDisbursement > 0) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
-      return;
-    }
-    
-    createMutation.mutate({
-      projectId: formData.projectId,
-      contractId: formData.contractId || undefined,
-      contractPaymentId: formData.contractPaymentId || undefined,
+    updateMutation.mutate({
+      id: requestId,
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
+      contractPaymentId: formData.contractPaymentId || undefined,
     });
   };
-  
+
+  if (isRequestLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!request) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12" dir="rtl">
+          <h2 className="text-xl font-bold mb-4">طلب الصرف غير موجود</h2>
+          <Button onClick={() => navigate("/disbursements")}>العودة لقائمة طلبات الصرف</Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
@@ -379,40 +319,31 @@ export default function NewLinkedDisbursementRequest() {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={() => {
-                  if (window.history.length > 1) {
-                    window.history.back();
-                  } else {
-                    navigate("/disbursements");
-                  }
-                }} 
+                onClick={() => navigate("/disbursements")} 
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
               </Button>
               <div className="text-right">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
-                  طلب صرف مرتبط بتقرير إنجاز
+                  تعديل طلب الصرف ({request.requestNumber})
                 </h1>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
-                  إنشاء طلب صرف معتمد على تقارير الإنجاز المدققة ومطابقتها مالياً بنظام تمام
+                  تعديل بيانات ومبالغ طلب الصرف المرتبط بتقرير الإنجاز بنظام تمام
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Subtle Stepper Timeline */}
+          {/* Stepper Timeline */}
           <div className="max-w-md mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
-              {/* Connecting Line background */}
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
-              {/* Connecting Active Line progress */}
               <div 
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
                 style={{ width: step === 1 ? '50%' : '100%' }}
               />
 
-              {/* Step 1 Node */}
               <div className="flex flex-col items-center gap-1.5 z-10">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
@@ -428,7 +359,6 @@ export default function NewLinkedDisbursementRequest() {
                 </span>
               </div>
 
-              {/* Step 2 Node */}
               <div className="flex flex-col items-center gap-1.5 z-10">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
@@ -448,15 +378,14 @@ export default function NewLinkedDisbursementRequest() {
         </div>
         
         {step === 1 ? (
-          /* الخطوة الأولى: اختيار المشروع وتقرير الإنجاز */
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <FileText className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 1: اختيار المشروع والتقرير المرتبط
+                  الخطوة 1: تعديل المشروع والتقرير المرتبط
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
+                <CardDescription className="text-right text-xs text-muted-foreground">راجع المشروع والتقرير المرتبط بالطلب الحالي</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
                 <div className="space-y-2 text-right">
@@ -511,7 +440,6 @@ export default function NewLinkedDisbursementRequest() {
 
                     {selectedReport && (
                       <div className="space-y-4 animate-slide-up text-right">
-                        {/* Premium Linked Report Stats Card */}
                         <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
                           <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center justify-between border-b border-emerald-100/30 dark:border-emerald-900/20 pb-3">
                             <div className="flex items-center gap-2 justify-start">
@@ -529,7 +457,7 @@ export default function NewLinkedDisbursementRequest() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
+                              className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm w-full sm:w-auto"
                               onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
@@ -561,16 +489,6 @@ export default function NewLinkedDisbursementRequest() {
                               </span>
                             </div>
                           </div>
-
-                          <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/40 rounded-lg flex items-start gap-2.5 shadow-sm">
-                            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                            <div className="space-y-0.5">
-                              <p className="text-[10px] font-bold text-amber-800 dark:text-amber-400">ملاحظة تنظيمية هامة</p>
-                              <p className="text-[10px] leading-relaxed text-amber-700/80 dark:text-slate-300/80 font-medium">
-                                يجب تدقيق ومطابقة المبالغ المطروحة بالخطوة التالية مع المنجزات الفعلية لضمان توافق دفعات العقد مع واقع العمل.
-                              </p>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     )}
@@ -590,9 +508,7 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
           </div>
         ) : (
-          /* الخطوة الثانية: البيانات المالية وتحديد مبالغ الموردين - مصفوفة عمودياً مثل التقارير */
           <div className="space-y-6">
-            {/* البيانات المالية الأساسية */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
@@ -602,31 +518,15 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية التي سوف تصرف</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5 pt-6 text-right">
-                {selectedReport && (
-                  <div className="flex justify-start text-right pb-3 mb-2 border-b border-border/40">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg shadow-sm"
-                      onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
-                    >
-                      <Eye className="ml-1.5 h-3.5 w-3.5" />
-                      مراجعة وتدقيق التقرير المعتمد
-                    </Button>
-                  </div>
-                )}
-
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
                     <Input
                       type="date"
                       value={formData.dateMiladi}
-                      readOnly
+                      onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
                       required
-                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
                     />
                   </div>
                   
@@ -638,8 +538,8 @@ export default function NewLinkedDisbursementRequest() {
                       max="100"
                       required
                       value={formData.completionPercentage}
-                      readOnly
-                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-black text-primary bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                      onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-black text-primary bg-background"
                     />
                   </div>
                 </div>
@@ -648,10 +548,10 @@ export default function NewLinkedDisbursementRequest() {
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
-                    readOnly
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="عنوان طلب الصرف المالي"
                     required
-                    className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
                   />
                 </div>
                 
@@ -659,11 +559,11 @@ export default function NewLinkedDisbursementRequest() {
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والمنجزات الفعلية *</Label>
                   <Textarea
                     value={formData.description}
-                    readOnly
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
                     rows={4}
                     required
-                    className="text-right border-border focus:ring-0 rounded-xl text-xs leading-relaxed font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed font-bold text-slate-900 dark:text-slate-100 bg-background"
                   />
                 </div>
               </CardContent>
@@ -683,14 +583,13 @@ export default function NewLinkedDisbursementRequest() {
               <CardContent className="pt-6">
                 <div className="space-y-6">
                   {suppliers.map((supplier, index) => (
-                    <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
+                    <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right hover:border-primary/30 transition-colors">
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start border-b border-dashed border-border/80 pb-2">
                         <Building2 className="w-4 h-4 text-primary" />
                         <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                        {/* اسم المورد */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
                           <Input
@@ -700,17 +599,15 @@ export default function NewLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        {/* الأعمال */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
                           <Input
                             value={supplier.work}
-                            readOnly
-                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
                           />
                         </div>
 
-                        {/* البنك */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
                           <Input
@@ -720,7 +617,6 @@ export default function NewLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        {/* الآيبان */}
                         <div className="space-y-2 text-right sm:col-span-2 md:col-span-1">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
                           <Input
@@ -731,19 +627,16 @@ export default function NewLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        {/* المبلغ المتفق عليه للدفعة */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
                           <Input
                             type="number"
                             value={supplier.agreedAmount || ""}
                             readOnly
-                            required
                             className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-0 rounded-xl h-10 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                           />
                         </div>
 
-                        {/* النسبة (%) */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
                           <Input
@@ -753,16 +646,14 @@ export default function NewLinkedDisbursementRequest() {
                             step="0.01"
                             value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
                             onChange={(e) => {
-                                const pct = parseFloat(e.target.value) || 0;
-                                const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                                updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                              const pct = parseFloat(e.target.value) || 0;
+                              const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                              updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
                             }}
-                            placeholder="0"
                             className="text-center font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
                           />
                         </div>
 
-                        {/* المبلغ */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ الفعلي (ريال) *</Label>
                           <Input
@@ -781,7 +672,7 @@ export default function NewLinkedDisbursementRequest() {
               </CardContent>
             </Card>
 
-            {/* ملخص الدفعة والتقرير - مدمج عمودياً كبطاقة عادية بآخر الصفحة لتماثل تقارير الإنجاز */}
+            {/* ملخص الدفعة والتقرير المالي */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
@@ -820,146 +711,28 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-            </Card>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                  className="border-border rounded-xl h-11 px-6 font-bold"
+                >
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                  السابق
+                </Button>
 
-            {/* Navigation Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3 sm:flex-row-reverse">
-              <Button
-                onClick={handleSubmit}
-                disabled={createMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
-                className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
-              >
-                <Send className="ml-2 h-4 w-4" />
-                إرسال طلب الصرف للاعتماد
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setStep(1)}
-                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto"
-              >
-                <ArrowRight className="ml-2 h-4 w-4" />
-                السابق
-              </Button>
-            </div>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={updateMutation.isPending}
+                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
+                >
+                  {updateMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
+                </Button>
+              </CardFooter>
+            </Card>
           </div>
         )}
       </div>
-
-      {/* نافذة مراجعة تقرير الإنجاز */}
-      <Dialog open={showReportReviewDialog} onOpenChange={setShowReportReviewDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
-          <DialogHeader className="text-right">
-            <DialogTitle className="text-right text-emerald-800 font-bold">مراجعة تقرير الإنجاز المعتمد</DialogTitle>
-            <DialogDescription className="text-right text-xs">
-              {selectedReport?.reportNumber} - {selectedReport?.title}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedReport && (
-            <div className="space-y-6 py-4 text-right">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">تاريخ التقرير</p>
-                  <p className="text-sm font-semibold">{new Date(selectedReport.reportDate).toLocaleDateString("ar-SA")}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">معد التقرير</p>
-                  <p className="text-sm font-semibold">{selectedReport.createdByName}</p>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-3">
-                <h3 className="font-bold text-sm text-slate-800">نسب الإنجاز</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="p-3 bg-muted rounded-lg text-center">
-                    <p className="text-2xl font-bold">{selectedReport.overallProgress}%</p>
-                    <p className="text-xs text-muted-foreground">الإجمالي</p>
-                  </div>
-                  <div className="p-3 bg-blue-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-700">{selectedReport.plannedProgress}%</p>
-                    <p className="text-xs text-blue-600">المخطط</p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-700">{selectedReport.actualProgress}%</p>
-                    <p className="text-xs text-green-600">الفعلي</p>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {!!selectedReport.workSummary && (
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-sm text-slate-800">الأعمال المنجزة</h3>
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {selectedReport.workSummary as string}
-                  </p>
-                </div>
-              )}
-              
-              {!!selectedReport.challenges && (
-                <div className="space-y-1.5">
-                  <h3 className="font-bold text-sm text-slate-800">التحديات والمعوقات</h3>
-                  <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                    {selectedReport.challenges as string}
-                  </p>
-                </div>
-              )}
-
-              {!!selectedReport.photos && (() => {
-                try {
-                  let photosArr = selectedReport.photos;
-                  while (typeof photosArr === 'string') {
-                    photosArr = JSON.parse(photosArr);
-                  }
-                  
-                  if (Array.isArray(photosArr) && photosArr.length > 0) {
-                    return (
-                      <div className="space-y-3">
-                        <Separator />
-                        <h3 className="font-bold text-sm flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-emerald-600" />
-                          مرفقات التقرير
-                        </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
-                          {photosArr.map((photo: string, index: number) => {
-                            const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
-                            return (
-                              <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group">
-                                {isImage ? (
-                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full h-20 object-cover rounded-md mb-2" />
-                                ) : (
-                                  <div className="w-full h-20 flex items-center justify-center rounded-md bg-background border border-dashed mb-2 text-emerald-800 font-bold text-xs">
-                                    مستند PDF
-                                  </div>
-                                )}
-                                <a href={photo} download={`مرفق_${index + 1}`} className="text-[10px] text-emerald-700 font-semibold hover:underline">
-                                  تحميل المرفق
-                                </a>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  }
-                } catch (e) {
-                  console.error(e);
-                }
-                return null;
-              })()}
-            </div>
-          )}
-          
-          <DialogFooter className="text-right border-t pt-4">
-            <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="text-xs h-9">
-              إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
