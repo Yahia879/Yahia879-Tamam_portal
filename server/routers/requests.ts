@@ -1267,7 +1267,7 @@ export const requestsRouter = router({
       }
 
       // التحقق من أن الطلب في مرحلة التقييم الفني أو مرحلة التنفيذ (في حال الاستجابة السريعة)
-      if (request[0].currentStage !== 'technical_eval' && !(request[0].currentStage === 'execution' && input.decision === 'convert_to_project')) {
+      if (request[0].currentStage !== 'technical_eval' && !(request[0].currentStage === 'execution' && (input.decision === 'convert_to_project' || input.decision === 'suspend'))) {
         throw new TRPCError({ 
           code: "BAD_REQUEST", 
           message: "يمكن اتخاذ هذا القرار فقط في مرحلة التقييم الفني أو أثناء مرحلة التنفيذ للاستجابة السريعة" 

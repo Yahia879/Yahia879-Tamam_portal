@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -305,6 +305,11 @@ export default function RequestDetailsNew() {
 
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
+  const isManagementUser = user && (
+    ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
+    (user.role === 'project_manager' && request.assignedTo === user.id)
+  );
+
   // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام
   let activeAction = (isRequester && !['handover', 'closed'].includes(request.currentStage))
     ? null
@@ -342,6 +347,8 @@ export default function RequestDetailsNew() {
       } : undefined,
       canPerformAction: !!latestFinalReport,
     };
+  } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
+    activeAction = null;
   } else if (activeAction && request.currentStage === 'handover' && latestFinalReport) {
     activeAction = {
       ...activeAction,
@@ -456,10 +463,7 @@ export default function RequestDetailsNew() {
     };
   }
 
-  const isManagementUser = user && (
-    ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
-    (user.role === 'project_manager' && request.assignedTo === user.id)
-  );
+  // تم نقل تعريف isManagementUser للأعلى للاستخدام في صلاحيات activeAction
 
   const latestQuickReport = request.quickReports && request.quickReports.length > 0
     ? request.quickReports[request.quickReports.length - 1]
@@ -558,7 +562,34 @@ export default function RequestDetailsNew() {
         />
 
         {/* Active Action Card */}
-        {request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && (latestQuickReport.status === 'partially_solved' || latestQuickReport.status === 'not_solved') && isManagementUser ? (
+        {request.status === 'suspended' && isManagementUser ? (
+          <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 p-6 rounded-xl text-center space-y-4 shadow-sm animate-fade-in mx-auto max-w-2xl" dir="rtl">
+            <div className="inline-flex p-3 bg-amber-100 dark:bg-amber-900/50 rounded-full text-amber-600 dark:text-amber-400 mb-1">
+              <PauseCircle className="w-8 h-8 animate-pulse" />
+            </div>
+            <h4 className="text-lg font-black text-amber-800 dark:text-amber-300">الطلب معلق مؤقتاً</h4>
+            
+            {request.technicalEvalJustification && (
+              <div className="text-right max-w-md mx-auto bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900/30 text-sm space-y-1">
+                <span className="font-bold text-amber-800 dark:text-amber-400">مبررات التعليق:</span>
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                  {request.technicalEvalJustification}
+                </p>
+              </div>
+            )}
+            
+            <div className="flex justify-center pt-2">
+              <Button 
+                onClick={() => updateStatusMutation.mutate({ requestId, newStatus: 'in_progress' })}
+                disabled={updateStatusMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-base"
+              >
+                <Play className="w-5 h-5" />
+                استئناف المشروع
+              </Button>
+            </div>
+          </div>
+        ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && (latestQuickReport.status === 'partially_solved' || latestQuickReport.status === 'not_solved') && isManagementUser ? (
           <div className="mb-6 space-y-6">
             <ActiveActionCard
               title="تم تقديم تقرير الاستجابة السريعة"
@@ -601,21 +632,22 @@ export default function RequestDetailsNew() {
                 </div>
               </button>
 
-              <button
-                className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
+              {/* التعليق */}
+              <button 
+                className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900/50 shadow-sm"
                 onClick={() => {
-                  setSelectedDecision('quick_response');
+                  setSelectedDecision('suspend');
                   setShowTechnicalEvalDialog(true);
                 }}
                 disabled={technicalEvalMutation.isPending}
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
-                    <Zap className="w-6 h-6 text-purple-600" />
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
+                    <PauseCircle className="w-6 h-6 text-amber-600" />
                   </div>
                   <div className="min-w-0">
-                    <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
-                    <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
+                    <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
+                    <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
                   </div>
                 </div>
               </button>
@@ -704,9 +736,39 @@ export default function RequestDetailsNew() {
             </Card>
           </div>
         ) : (
-          activeAction && (
-            <div className="space-y-6">
-              <ActiveActionCard
+          <div className="space-y-6">
+            {/* عرض كرت التعليق الأصفر فقط لحساب الـ Admin والمسؤولين الآخرين */}
+            {request.currentStage === 'technical_eval' && request.status === 'suspended' && isManagementUser ? (
+              <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 p-6 rounded-xl text-center space-y-4 shadow-sm animate-fade-in mx-auto max-w-2xl" dir="rtl">
+                <div className="inline-flex p-3 bg-amber-100 dark:bg-amber-900/50 rounded-full text-amber-600 dark:text-amber-400 mb-1">
+                  <PauseCircle className="w-8 h-8 animate-pulse" />
+                </div>
+                <h4 className="text-lg font-black text-amber-800 dark:text-amber-300">الطلب معلق مؤقتاً</h4>
+                
+                {request.technicalEvalJustification && (
+                  <div className="text-right max-w-md mx-auto bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900/30 text-sm space-y-1">
+                    <span className="font-bold text-amber-800 dark:text-amber-400">مبررات التعليق:</span>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {request.technicalEvalJustification}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    onClick={() => updateStatusMutation.mutate({ requestId, newStatus: 'in_progress' })}
+                    disabled={updateStatusMutation.isPending}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-base"
+                  >
+                    <Play className="w-5 h-5" />
+                    استئناف المشروع
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              activeAction && (
+                <div className="space-y-6">
+                  <ActiveActionCard
                 title={activeAction.title}
                 description={activeAction.description}
                 icon={activeAction.icon as any}
@@ -912,6 +974,9 @@ export default function RequestDetailsNew() {
             </div>
           )
         )}
+      </div>
+    )
+  }
         {/* زر مراجعة المعلومات والمرفقات الجديد - يظهر للجميع */}
         <div className="mt-6">
           <Button 
