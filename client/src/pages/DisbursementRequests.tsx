@@ -151,6 +151,8 @@ export default function DisbursementRequests() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showCreateOrderDialog, setShowCreateOrderDialog] = useState(false);
   const [showOrderPreviewDialog, setShowOrderPreviewDialog] = useState(false);
+  const [showViewRejectionDialog, setShowViewRejectionDialog] = useState(false);
+  const [viewRejectionReasonText, setViewRejectionReasonText] = useState("");
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -581,11 +583,6 @@ export default function DisbursementRequests() {
                                     status={request.status as any} 
                                     type="request" 
                                   />
-                                  {request.status === "rejected" && request.rejectionReason && (
-                                    <span className="text-[10px] text-red-600 dark:text-red-400 font-bold block max-w-[180px] break-words text-right" title={request.rejectionReason}>
-                                      سبب الرفض: {request.rejectionReason}
-                                    </span>
-                                  )}
                                 </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-right">
@@ -594,7 +591,49 @@ export default function DisbursementRequests() {
                                   : "-"}
                               </TableCell>
                               <TableCell className="text-right">
-                                {isConverted ? (
+                                {request.status === "rejected" ? (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedRequest(request);
+                                          setViewRejectionReasonText(request.rejectionReason || "");
+                                          setShowViewRejectionDialog(true);
+                                        }}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+                                      >
+                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span>عرض سبب رفض طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                      >
+                                        <FileText className="h-4 w-4 text-gray-500" />
+                                        <span>تعديل طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                      >
+                                        <Printer className="h-4 w-4 text-blue-500" />
+                                        <span>عرض تقرير طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        disabled={true}
+                                        className="flex items-center gap-2 text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                      >
+                                        <Banknote className="h-4 w-4 text-slate-400" />
+                                        <span>التحويل الى طلب صرف</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                ) : isConverted ? (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -677,18 +716,55 @@ export default function DisbursementRequests() {
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
                                 <p className="font-bold text-sm truncate">{request.title || request.description}</p>
                                 <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
-                                {request.status === "rejected" && request.rejectionReason && (
-                                  <p className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-1 bg-red-50/50 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 px-2 py-1 rounded-md inline-block max-w-full text-right">
-                                    سبب الرفض: {request.rejectionReason}
-                                  </p>
-                                )}
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <DisbursementStatusBadge 
                                   status={request.status as any} 
                                   type="request" 
                                 />
-                                {isConverted ? (
+                                {request.status === "rejected" ? (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedRequest(request);
+                                          setViewRejectionReasonText(request.rejectionReason || "");
+                                          setShowViewRejectionDialog(true);
+                                        }}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+                                      >
+                                        <AlertCircle className="h-4 w-4 text-red-500" />
+                                        <span>عرض سبب رفض طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                      >
+                                        <FileText className="h-4 w-4 text-gray-500" />
+                                        <span>تعديل طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                      >
+                                        <Printer className="h-4 w-4 text-blue-500" />
+                                        <span>عرض تقرير طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        disabled={true}
+                                        className="flex items-center gap-2 text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
+                                      >
+                                        <Banknote className="h-4 w-4 text-slate-400" />
+                                        <span>التحويل الى طلب صرف</span>
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                ) : isConverted ? (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1328,6 +1404,31 @@ export default function DisbursementRequests() {
                 disabled={!rejectionReason || rejectRequestMutation.isPending}
               >
                 {rejectRequestMutation.isPending ? "جاري الرفض..." : "رفض"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض سبب رفض طلب الصرف */}
+        <Dialog open={showViewRejectionDialog} onOpenChange={setShowViewRejectionDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertCircle className="h-5 w-5" />
+                <span>سبب رفض طلب الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-right">
+                تفاصيل سبب رفض طلب الصرف رقم {selectedRequest?.requestNumber}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg p-4 text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed text-right">
+                {viewRejectionReasonText || "لا يوجد سبب محدد."}
+              </div>
+            </div>
+            <DialogFooter className="sm:justify-start">
+              <Button variant="outline" onClick={() => setShowViewRejectionDialog(false)} className="w-full sm:w-auto">
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>

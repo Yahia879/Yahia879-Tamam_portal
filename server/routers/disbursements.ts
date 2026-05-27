@@ -384,11 +384,16 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم دفعه بالفعل" });
       }
 
-      // تحقق إن كان هناك أمر صرف مرتبط بالطلب
+      // تحقق إن كان هناك أمر صرف مرتبط بالطلب (وليس مرفوضاً)
       const [order] = await db
         .select()
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.disbursementRequestId, input.id));
+        .where(
+          and(
+            eq(disbursementOrders.disbursementRequestId, input.id),
+            sql`${disbursementOrders.status} != 'rejected'`
+          )
+        );
 
       if (order) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل طلب صرف تم تحويله إلى أمر صرف" });
@@ -808,11 +813,16 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "طلب الصرف غير معتمد" });
       }
 
-      // التحقق من عدم وجود أمر صرف سابق
+      // التحقق من عدم وجود أمر صرف سابق (غير مرفوض)
       const [existingOrder] = await db
         .select()
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.disbursementRequestId, input.disbursementRequestId));
+        .where(
+          and(
+            eq(disbursementOrders.disbursementRequestId, input.disbursementRequestId),
+            sql`${disbursementOrders.status} != 'rejected'`
+          )
+        );
 
       if (existingOrder) {
         throw new TRPCError({ code: "CONFLICT", message: "يوجد أمر صرف مرتبط بهذا الطلب بالفعل" });
@@ -1019,6 +1029,11 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض أمر الصرف" });
       }
 
+      const [order] = await db
+        .select({ disbursementRequestId: disbursementOrders.disbursementRequestId })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
       await db
         .update(disbursementOrders)
         .set({
@@ -1028,6 +1043,18 @@ export const disbursementsRouter = router({
           rejectionReason: input.reason,
         })
         .where(eq(disbursementOrders.id, input.id));
+
+      if (order && order.disbursementRequestId) {
+        await db
+          .update(disbursementRequests)
+          .set({
+            status: "rejected",
+            rejectedBy: ctx.user.id,
+            rejectedAt: new Date(),
+            rejectionReason: input.reason,
+          })
+          .where(eq(disbursementRequests.id, order.disbursementRequestId));
+      }
 
       return { success: true, message: "تم رفض أمر الصرف" };
     }),
