@@ -708,7 +708,10 @@ export const disbursementsRouter = router({
       const [pendingCountResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.status, "pending"));
+        .where(or(
+          eq(disbursementOrders.status, "pending"),
+          eq(disbursementOrders.status, "edited")
+        ));
 
       const [approvedCountResult] = await db
         .select({ count: sql<number>`count(*)` })
@@ -766,14 +769,53 @@ export const disbursementsRouter = router({
         .from(disbursementRequests)
         .where(eq(disbursementRequests.id, order.disbursementRequestId));
 
-      // جلب المشروع
+      // جلب المشروع وتفاصيل العقد والمدفوعات لتقرير أمر الصرف
       let project = null;
       if (request) {
         const [projectData] = await db
           .select()
           .from(projects)
           .where(eq(projects.id, request.projectId));
-        project = projectData;
+        
+        if (projectData) {
+          // جلب بيانات العقد
+          const [contract] = await db
+            .select()
+            .from(contractsEnhanced)
+            .where(eq(contractsEnhanced.projectId, projectData.id));
+
+          let contractAmount = 0;
+          let fundingAmount = 0;
+          let fundingSource = "لا يوجد";
+          if (contract) {
+            contractAmount = Number(contract.contractAmount || 0);
+            fundingAmount = Number((contract as any).fundingAmount || 0);
+            fundingSource = (contract as any).fundingSource || "لا يوجد";
+          }
+
+          // حساب إجمالي المدفوع
+          const [paidResult] = await db
+            .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
+            .from(disbursementRequests)
+            .where(
+              and(
+                eq(disbursementRequests.projectId, projectData.id),
+                eq(disbursementRequests.status, "paid")
+              )
+            );
+
+          const totalPaid = Number(paidResult?.total || 0);
+          const remainingAmount = contractAmount - totalPaid;
+
+          project = {
+            ...projectData,
+            contractAmount,
+            fundingAmount,
+            fundingSource,
+            totalPaid,
+            remainingAmount,
+          };
+        }
       }
 
       return {
@@ -934,7 +976,7 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      if (order.status !== "pending") {
+      if (order.status !== "pending" && order.status !== "edited") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد هذا الأمر في حالته الحالية" });
       }
 
@@ -947,6 +989,48 @@ export const disbursementsRouter = router({
           approvalNotes: input.notes,
         })
         .where(eq(disbursementOrders.id, input.id));
+
+      // تحديث قيمة الدفعة المجدولة في العقد وطلب الصرف إذا كان المبلغ الموافق عليه في أمر الصرف أقل من مبلغ الدفعة الأصلي
+      const [orderWithRequest] = await db
+        .select({
+          orderAmount: disbursementOrders.amount,
+          contractPaymentId: disbursementRequests.contractPaymentId,
+          requestId: disbursementRequests.id,
+        })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (orderWithRequest && orderWithRequest.contractPaymentId) {
+        const [contractPayment] = await db
+          .select()
+          .from(contractPayments)
+          .where(eq(contractPayments.id, orderWithRequest.contractPaymentId));
+
+        if (contractPayment) {
+          const cpAmount = Number(contractPayment.amount);
+          const approvedAmount = Number(orderWithRequest.orderAmount);
+          if (approvedAmount < cpAmount) {
+            // تحديث قيمة الدفعة في العقد لتكون مساوية للمبلغ المعتمد الفعلي
+            await db
+              .update(contractPayments)
+              .set({
+                amount: orderWithRequest.orderAmount,
+                updatedAt: new Date(),
+              })
+              .where(eq(contractPayments.id, orderWithRequest.contractPaymentId));
+
+            // تحديث قيمة طلب الصرف كذلك
+            await db
+              .update(disbursementRequests)
+              .set({
+                amount: orderWithRequest.orderAmount,
+                updatedAt: new Date(),
+              })
+              .where(eq(disbursementRequests.id, orderWithRequest.requestId));
+          }
+        }
+      }
 
       // إرسال إشعار للإدارة المالية لتنفيذ أمر الصرف
       const financialUsers = await db
@@ -1419,7 +1503,10 @@ export const disbursementsRouter = router({
     const [pendingOrders] = await db
       .select({ count: sql<number>`count(*)` })
       .from(disbursementOrders)
-      .where(eq(disbursementOrders.status, "pending"));
+      .where(or(
+        eq(disbursementOrders.status, "pending"),
+        eq(disbursementOrders.status, "edited")
+      ));
 
     const [totalPaidDisb] = await db
       .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
