@@ -113,7 +113,6 @@ export default function DisbursementRequestPrint() {
   const opportunity = (request as any).opportunity;
   const requestDate = new Date(request.requestedAt || new Date());
 
-  const fundingSource: string = opportunity ? "donations_store" : "direct_donation";
   const fundingSourceName = opportunity ? opportunity.title : (orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد");
 
   return (
@@ -179,48 +178,6 @@ export default function DisbursementRequestPrint() {
                 <h1 className="text-xl sm:text-2xl font-black text-[#1a5f4a] border-b-2 border-[#1a5f4a] pb-1.5 inline-block px-12 tracking-wide">
                   طلب صرف مالي للمشروع
                 </h1>
-              </div>
-
-              {/* مصدر دعم الفرصة */}
-              <div className="mb-5 border border-gray-100 rounded-lg p-4 bg-gray-50/40">
-                <div className="font-bold text-xs sm:text-sm text-gray-800 mb-2.5 flex items-center gap-2">
-                  <span className="w-1.5 h-3 bg-[#d4a574] rounded-full inline-block"></span>
-                  مصدر دعم الفرصة والمشروع:
-                </div>
-                <div className="flex flex-wrap gap-5 text-xs">
-                  <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                    {fundingSource === "donations_store" ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    متجر التبرعات / فرصة تبرع
-                  </span>
-                  <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                    {fundingSource === "ehsan_platform" ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    منصة إحسان
-                  </span>
-                  <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                    {fundingSource === "direct_donation" ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    تبرع مباشر
-                  </span>
-                  <span className="flex items-center gap-1.5 text-gray-700 font-medium">
-                    {fundingSource === "other" ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-gray-300 shrink-0" />
-                    )}
-                    أخرى
-                  </span>
-                </div>
               </div>
 
               {/* خاص بدعم المؤسسات المانحة */}

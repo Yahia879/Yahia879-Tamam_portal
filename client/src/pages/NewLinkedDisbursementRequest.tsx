@@ -180,20 +180,6 @@ export default function NewLinkedDisbursementRequest() {
           contractPaymentId: targetPaymentId,
         };
       });
-
-      if (paymentInfo) {
-        setSuppliers(prev => {
-          if (prev.length > 0 && prev[0].name !== "" && prev[0].amount > 0) {
-            return prev;
-          }
-          return prev.map(s => ({
-            ...s,
-            amount: parseFloat(paymentInfo.amount || "0"),
-            agreedAmount: parseFloat(paymentInfo.amount || "0"),
-            work: paymentInfo.description || "",
-          }));
-        });
-      }
     }
   }, [selectedReportId, projectDetails, paymentInfo]);
   
@@ -220,25 +206,39 @@ export default function NewLinkedDisbursementRequest() {
     },
   });
   
-  // تحديث بيانات المورد من العقد تلقائياً
+  // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
   useEffect(() => {
     if (contractDetails && contractDetails.contract) {
-      if (suppliers.length > 0 && suppliers[0].name === contractDetails.contract.secondPartyName && suppliers[0].iban === contractDetails.contract.secondPartyIban) {
+      const targetAmount = paymentInfo 
+        ? parseFloat(paymentInfo.amount || "0") 
+        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
+      
+      const targetWork = paymentInfo
+        ? paymentInfo.description || ""
+        : contractDetails.contract.contractTitle || "";
+
+      if (
+        suppliers.length === 1 &&
+        suppliers[0].name === contractDetails.contract.secondPartyName &&
+        suppliers[0].iban === contractDetails.contract.secondPartyIban &&
+        suppliers[0].agreedAmount === targetAmount &&
+        suppliers[0].work === targetWork
+      ) {
         return;
       }
 
       const supplierFromContract: SupplierEntry = {
-        id: crypto.randomUUID(),
+        id: suppliers.length === 1 ? suppliers[0].id : crypto.randomUUID(),
         name: contractDetails.contract.secondPartyName || "",
-        work: contractDetails.contract.contractTitle || "",
-        amount: paymentInfo ? parseFloat(paymentInfo.amount || "0") : parseFloat(String(contractDetails.contract.contractAmount || "0")),
-        agreedAmount: paymentInfo ? parseFloat(paymentInfo.amount || "0") : parseFloat(String(contractDetails.contract.contractAmount || "0")),
+        work: targetWork,
+        amount: targetAmount,
+        agreedAmount: targetAmount,
         iban: contractDetails.contract.secondPartyIban || "",
         bank: contractDetails.contract.secondPartyBankName || "",
       };
       setSuppliers([supplierFromContract]);
     }
-  }, [contractDetails]);
+  }, [contractDetails, paymentInfo]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
   useEffect(() => {
