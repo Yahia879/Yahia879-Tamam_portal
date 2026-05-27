@@ -322,7 +322,7 @@ export default function EditLinkedDisbursementRequest() {
                 onClick={() => navigate("/disbursements")} 
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="text-right">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
@@ -341,7 +341,7 @@ export default function EditLinkedDisbursementRequest() {
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
               <div 
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
-                style={{ width: step === 1 ? '50%' : '100%' }}
+                style={{ width: step === 1 ? '0%' : '100%' }}
               />
 
               <div className="flex flex-col items-center gap-1.5 z-10">
@@ -397,7 +397,7 @@ export default function EditLinkedDisbursementRequest() {
                       setSelectedReportId(null);
                     }}
                   >
-                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                    <SelectTrigger className="w-full text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
                       <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
@@ -418,7 +418,7 @@ export default function EditLinkedDisbursementRequest() {
                         value={selectedReportId?.toString() || ""}
                         onValueChange={(value) => setSelectedReportId(parseInt(value))}
                       >
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="w-full text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
                           <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -711,22 +711,22 @@ export default function EditLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="border-border rounded-xl h-11 px-6 font-bold"
-                >
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                  السابق
-                </Button>
-
+              <CardFooter className="border-t border-border/40 pt-4 flex flex-col-reverse sm:flex-row justify-between gap-2">
                 <Button
                   onClick={handleSubmit}
                   disabled={updateMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
-                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm"
+                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm w-full sm:w-auto"
                 >
                   {updateMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                  className="border-border rounded-xl h-11 px-6 font-bold w-full sm:w-auto"
+                >
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                  السابق
                 </Button>
               </CardFooter>
             </Card>

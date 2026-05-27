@@ -313,9 +313,9 @@ export default function NewDisbursementRequest() {
       <div className="space-y-6 pb-20" dir="rtl">
         {/* Header - التحسين للشاشات الصغيرة لتجنب التصادم */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
-          <div className="flex items-center gap-3 flex-row-reverse">
+          <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="h-9 w-9">
-              <ArrowRight className="h-5 w-5 rotate-180" />
+              <ArrowRight className="h-5 w-5" />
             </Button>
             <div className="text-right">
               <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">طلب دفعة جديد</h1>
@@ -329,236 +329,10 @@ export default function NewDisbursementRequest() {
             </Button>
           </div>
         </div>
-        
-        {/* Form */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6 text-right">
-            {/* بيانات الترويسة */}
-            <Card className="text-right">
-              <CardHeader className="text-right">
-                <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
-                  <FileText className="h-5 w-5" />
-                  بيانات طلب الدفعة
-                </CardTitle>
-                <CardDescription className="text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-right">
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">التاريخ الميلادي *</Label>
-                  <Input
-                    type="date"
-                    value={formData.dateMiladi}
-                    onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
-                    required
-                    className="text-right"
-                  />
-                </div>
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">المشروع</Label>
-                  <Select
-                    value={formData.projectId.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
-                    disabled={!!params.projectId}
-                  >
-                    <SelectTrigger className="text-right" dir="rtl">
-                      <SelectValue placeholder="اختر المشروع" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
-                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
-                          {project.name} - {project.projectNumber}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                
-                {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right">العقد</Label>
-                    <Select
-                      value={formData.contractId.toString()}
-                      onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
-                      disabled={true}
-                    >
-                      <SelectTrigger className="text-right" dir="rtl">
-                        <SelectValue placeholder="اختر العقد" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="0" className="text-right">بدون عقد</SelectItem>
-                        {projectContracts.contracts.map((contract) => (
-                          <SelectItem key={contract.id} value={contract.id.toString()} className="text-right">
-                            {contract.contractNumber} - {(contract as any).subject || contract.contractType}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">عنوان طلب الدفعة *</Label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="مثال: طلب الدفعة الأولى لمشروع ترميم مسجد..."
-                    required
-                    className="text-right"
-                  />
-                </div>
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">وصف الأعمال التي سوف تنفذ *</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
-                    rows={3}
-                    required
-                    className="text-right"
-                  />
-                </div>
-                
-                <div className="space-y-2 text-right">
-                  <Label className="text-right">نسبة الإنجاز (%) *</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    required
-                    value={formData.completionPercentage}
-                    onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                    className="text-right"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* الموردون */}
-            <Card className="text-right border-border/60 shadow-sm">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <div className="flex items-center justify-between flex-row-reverse">
-                  <div className="text-right">
-                    <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right text-base font-bold text-foreground">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      معلومات المورد المستفيد
-                    </CardTitle>
-                    <CardDescription className="text-right">بيانات المستفيد من الدفعة</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="text-right pt-6 space-y-6">
-                {suppliers.map((supplier) => (
-                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
-                    {/* Row 1 */}
-                    {/* اسم المورد */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
-                        اسم المورد <span className="text-red-500">*</span>
-                      </Label>
-                      <Select
-                        value={supplier.name}
-                        onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                        disabled={formData.contractId > 0}
-                      >
-                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl" dir="rtl">
-                          <SelectValue placeholder="اسم المورد" />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {allSuppliers?.map((s) => (
-                            <SelectItem key={s.id} value={s.name} className="text-right">
-                              {s.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* الأعمال */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">الأعمال</Label>
-                      <Input
-                        value={supplier.work}
-                        onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                        placeholder="وصف الأعمال"
-                        readOnly
-                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
-                      />
-                    </div>
-
-                    {/* البنك */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">البنك</Label>
-                      <Input
-                        value={supplier.bank}
-                        onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
-                        placeholder="اسم البنك"
-                        readOnly
-                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
-                      />
-                    </div>
-
-                    {/* Row 2 */}
-                    {/* الآيبان */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground">الآيبان</Label>
-                      <Input
-                        value={supplier.iban}
-                        onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
-                        placeholder="SA..."
-                        dir="ltr"
-                        readOnly
-                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10"
-                      />
-                    </div>
-
-                    {/* النسبة (%) */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground text-center block">النسبة (%)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
-                        onChange={(e) => {
-                          const pct = parseFloat(e.target.value) || 0;
-                          const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                          updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
-                        }}
-                        placeholder="0"
-                        className="text-center font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
-                      />
-                    </div>
-
-                    {/* المبلغ */}
-                    <div className="space-y-2 text-right">
-                      <Label className="font-semibold text-foreground text-center block">المبلغ *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        required
-                        value={supplier.amount || ""}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          updateSupplier(supplier.id, "amount", val);
-                        }}
-                        placeholder="0.00"
-                        className="text-center font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-          
+          {/* Form */}
+        <div className="flex flex-col-reverse lg:flex-row gap-6" dir="ltr">
           {/* Sidebar */}
-          <div className="space-y-6 text-right">
+          <div className="w-full lg:w-1/3 space-y-6 text-right" dir="rtl">
             {/* ملخص الطلب */}
             <Card className="text-right">
               <CardHeader className="text-right">
@@ -614,6 +388,241 @@ export default function NewDisbursementRequest() {
                 <div className="p-3 bg-muted rounded-lg text-sm text-right">
                   <p className="text-muted-foreground text-right">{numberToArabicText(totalAmount)}</p>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Form */}
+          <div className="w-full lg:w-2/3 space-y-6 text-right" dir="rtl">
+            {/* بيانات الترويسة */}
+            <Card className="text-right">
+              <CardHeader className="text-right">
+                <CardTitle className="flex items-center gap-2 text-right">
+                  <FileText className="h-5 w-5" />
+                  بيانات طلب الدفعة
+                </CardTitle>
+                <CardDescription className="text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 text-right">
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">التاريخ الميلادي *</Label>
+                  <Input
+                    type="date"
+                    value={formData.dateMiladi}
+                    onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                    required
+                    className="text-right"
+                  />
+                </div>
+                
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">المشروع</Label>
+                  <Select
+                    value={formData.projectId.toString()}
+                    onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
+                    disabled={!!params.projectId}
+                  >
+                    <SelectTrigger className="text-right w-full" dir="rtl">
+                      <SelectValue placeholder="اختر المشروع" />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
+                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
+                          {project.name} - {project.projectNumber}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                
+                {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right">العقد</Label>
+                    <Select
+                      value={formData.contractId.toString()}
+                      onValueChange={(value) => setFormData({ ...formData, contractId: parseInt(value) })}
+                      disabled={true}
+                    >
+                      <SelectTrigger className="text-right w-full" dir="rtl">
+                        <SelectValue placeholder="اختر العقد" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="0" className="text-right">بدون عقد</SelectItem>
+                        {projectContracts.contracts.map((contract) => (
+                          <SelectItem key={contract.id} value={contract.id.toString()} className="text-right">
+                            {contract.contractNumber} - {(contract as any).subject || contract.contractType}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                {/* تاريخ الهجري مستنتج تلقائياً لتقليل مدخلات المستخدم */}
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">التاريخ الهجري (تلقائي)</Label>
+                  <Input
+                    value={formData.dateHijri}
+                    readOnly
+                    className="bg-muted text-right text-muted-foreground"
+                  />
+                </div>
+
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">عنوان طلب الدفعة *</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="مثال: الدفعة الأولى لمشروع توريد الأجهزة"
+                    required
+                    className="text-right"
+                  />
+                </div>
+                
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">وصف الأعمال التي سوف تنفذ *</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                    rows={3}
+                    required
+                    className="text-right"
+                  />
+                </div>
+                
+                <div className="space-y-2 text-right">
+                  <Label className="text-right">نسبة الإنجاز الفعلية للمشروع (%) *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    required
+                    value={formData.completionPercentage}
+                    onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                    className="text-right"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* الموردون */}
+            <Card className="text-right border-border/60 shadow-sm">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <div className="flex items-center justify-between">
+                  <div className="text-right">
+                    <CardTitle className="flex items-center gap-2 text-right text-base font-bold text-foreground">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      معلومات المورد المستفيد
+                    </CardTitle>
+                    <CardDescription className="text-right">بيانات المستفيد من الدفعة</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="text-right pt-6 space-y-6">
+                {suppliers.map((supplier) => (
+                  <div key={supplier.id} className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 rounded-xl bg-muted/5 border border-border/40" dir="rtl">
+                    {/* Row 1 */}
+                    {/* اسم المورد */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                        اسم المورد <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={supplier.name}
+                        onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
+                        disabled={formData.contractId > 0}
+                      >
+                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl w-full" dir="rtl">
+                          <SelectValue placeholder="اسم المورد" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {allSuppliers?.map((s) => (
+                            <SelectItem key={s.id} value={s.name} className="text-right">
+                              {s.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* الأعمال */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">الأعمال</Label>
+                      <Input
+                        value={supplier.work}
+                        onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                        placeholder="وصف الأعمال"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* البنك */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">البنك</Label>
+                      <Input
+                        value={supplier.bank}
+                        onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
+                        placeholder="اسم البنك"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* Row 2 */}
+                    {/* الآيبان */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground">الآيبان</Label>
+                      <Input
+                        value={supplier.iban}
+                        onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
+                        placeholder="SA..."
+                        dir="ltr"
+                        readOnly
+                        className="bg-muted/50 border-border/40 text-right font-mono text-xs rounded-xl h-10"
+                      />
+                    </div>
+
+                    {/* النسبة (%) */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground text-right block">النسبة (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                        onChange={(e) => {
+                          const pct = parseFloat(e.target.value) || 0;
+                          const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                          updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                        }}
+                        placeholder="0"
+                        className="text-right font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
+                      />
+                    </div>
+
+                    {/* المبلغ */}
+                    <div className="space-y-2 text-right">
+                      <Label className="font-semibold text-foreground text-right block">المبلغ *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={supplier.amount || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          updateSupplier(supplier.id, "amount", val);
+                        }}
+                        placeholder="0.00"
+                        className="text-right font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
+                      />
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>

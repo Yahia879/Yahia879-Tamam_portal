@@ -388,7 +388,7 @@ export default function NewLinkedDisbursementRequest() {
                 }} 
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 rotate-180" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="text-right">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
@@ -409,7 +409,7 @@ export default function NewLinkedDisbursementRequest() {
               {/* Connecting Active Line progress */}
               <div 
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
-                style={{ width: step === 1 ? '50%' : '100%' }}
+                style={{ width: step === 1 ? '0%' : '100%' }}
               />
 
               {/* Step 1 Node */}
@@ -468,7 +468,7 @@ export default function NewLinkedDisbursementRequest() {
                       setSelectedReportId(null);
                     }}
                   >
-                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                       <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
@@ -489,7 +489,7 @@ export default function NewLinkedDisbursementRequest() {
                         value={selectedReportId?.toString() || ""}
                         onValueChange={(value) => setSelectedReportId(parseInt(value))}
                       >
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                           <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -758,7 +758,7 @@ export default function NewLinkedDisbursementRequest() {
                                 updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
                             }}
                             placeholder="0"
-                            className="text-center font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            className="text-right font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
                           />
                         </div>
 
@@ -771,7 +771,7 @@ export default function NewLinkedDisbursementRequest() {
                             onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
                             required
-                            className="text-center font-black text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            className="text-right font-black text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
                           />
                         </div>
                       </div>
@@ -823,7 +823,7 @@ export default function NewLinkedDisbursementRequest() {
             </Card>
 
             {/* Navigation Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3 sm:flex-row-reverse">
+            <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
               <Button
                 onClick={handleSubmit}
                 disabled={createMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
