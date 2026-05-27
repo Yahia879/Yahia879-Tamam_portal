@@ -63,7 +63,7 @@ import { toast } from "sonner";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
-  pending: { label: "قيد المراجعة", variant: "default" },
+  pending: { label: "قيد الاعتماد", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
   rejected: { label: "مرفوض", variant: "destructive" },
   paid: { label: "مصروف", variant: "outline" },
@@ -524,6 +524,7 @@ export default function DisbursementRequests() {
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">جميع الحالات</SelectItem>
                     <SelectItem value="pending">قيد الاعتماد</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
                     <SelectItem value="rejected">مرفوض</SelectItem>

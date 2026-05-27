@@ -77,7 +77,7 @@ export default function DisbursementOrders() {
   const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [page, setPage] = useState(1);
   const limit = 10;
 

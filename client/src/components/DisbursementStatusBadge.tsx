@@ -14,7 +14,7 @@ const REQUEST_STATUS_CONFIG: Record<
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string; icon: React.ReactNode }
 > = {
   pending: {
-    label: "قيد المراجعة",
+    label: "قيد الاعتماد",
     variant: "outline",
     className: "border-yellow-500 text-yellow-700 bg-yellow-50",
     icon: <Clock className="h-3 w-3" />,
