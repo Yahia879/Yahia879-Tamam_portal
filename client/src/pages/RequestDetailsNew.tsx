@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -67,6 +67,7 @@ export default function RequestDetailsNew() {
   const [expectedEndDate, setExpectedEndDate] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
+  const [showRejectionReportDialog, setShowRejectionReportDialog] = useState(false);
 
   const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
     enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
@@ -304,13 +305,53 @@ export default function RequestDetailsNew() {
 
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
-  // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد
-  let activeAction = isRequester ? null : getActiveAction(request.currentStage, user?.role, {
-    assignedTo: request.assignedTo,
-    userId: user?.id,
-    requestTrack: request.requestTrack,
-    quickReports: request.quickReports,
-  });
+  // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام
+  let activeAction = (isRequester && !['handover', 'closed'].includes(request.currentStage))
+    ? null
+    : getActiveAction(request.currentStage, user?.role, {
+        assignedTo: request.assignedTo,
+        userId: user?.id,
+        requestTrack: request.requestTrack,
+        quickReports: request.quickReports,
+      });
+
+  // تخصيص الإجراء النشط للمشروع المغلق أو المرفوض
+  if (activeAction && request.status === 'rejected') {
+    activeAction = {
+      ...activeAction,
+      title: "تم رفض المشروع",
+      description: "تم رفض طلب المشروع في مرحلة التقييم الفني. يمكنك مراجعة تفاصيل وسبب الرفض بالضغط على الزر أدناه.",
+      icon: XCircle as any,
+      iconColor: "text-red-600",
+      actionButton: {
+        label: "عرض التقرير النهائي",
+        onClick: () => setShowRejectionReportDialog(true),
+      } as any,
+      canPerformAction: true,
+    };
+  } else if (activeAction && request.currentStage === 'closed') {
+    activeAction = {
+      ...activeAction,
+      title: "المشروع مكتمل",
+      description: "تم إغلاق المشروع بنجاح. يمكنك مراجعة التقارير النهائية والمستندات.",
+      icon: CheckCircle as any,
+      iconColor: "text-green-600",
+      actionButton: latestFinalReport ? {
+        label: "عرض التقرير النهائي",
+        onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
+      } : undefined,
+      canPerformAction: !!latestFinalReport,
+    };
+  } else if (activeAction && request.currentStage === 'handover' && latestFinalReport) {
+    activeAction = {
+      ...activeAction,
+      actionButton: {
+        label: "عرض التقرير النهائي",
+        onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
+      } as any,
+      canPerformAction: true,
+    };
+  }
 
   // Override active action for contracting stage based on contract status
   if (request.currentStage === 'contracting' && activeAction && linkedContract) {
@@ -694,7 +735,7 @@ export default function RequestDetailsNew() {
                   )
                     ? {
                         label: activeAction.actionButton.label,
-                        onClick: handleStageTransition,
+                        onClick: activeAction.actionButton.onClick || handleStageTransition,
                         disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
                       }
                     : undefined
@@ -748,14 +789,7 @@ export default function RequestDetailsNew() {
                       }
                     : undefined
                 }
-                additionalActions={
-                  (request.currentStage === 'handover' || request.currentStage === 'closed') && latestFinalReport
-                    ? [{
-                        label: "عرض التقرير النهائي",
-                        onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
-                      }]
-                    : []
-                }
+                additionalActions={[]}
               />
               
               {/* قسم المراجعة الأولية */}
@@ -1802,6 +1836,38 @@ export default function RequestDetailsNew() {
           </div>
         </div>
       )}
+
+      {/* Rejection Report Dialog */}
+      <ColoredDialog
+        open={showRejectionReportDialog}
+        onOpenChange={setShowRejectionReportDialog}
+        title="تقرير الاعتذار عن الطلب"
+        color="red"
+        icon={<AlertCircle className="w-6 h-6" />}
+      >
+        <div className="space-y-4 text-right" dir="rtl">
+          <div className="bg-red-50/50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 p-5 rounded-xl text-center space-y-3">
+            <div className="inline-flex p-3 bg-red-100 dark:bg-red-900/50 rounded-full text-red-600 dark:text-red-400 mb-2">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <h4 className="text-lg font-black text-red-800 dark:text-red-300">تم الاعتذار عن هذا الطلب</h4>
+            <p className="text-sm text-muted-foreground">تم اتخاذ قرار بالاعتذار عن تلبية هذا الطلب في مرحلة التقييم الفني.</p>
+          </div>
+          
+          <div className="border border-border/80 rounded-xl p-4 space-y-2 bg-background">
+            <h5 className="text-sm font-bold text-foreground">مبررات الاعتذار / أسباب الرفض:</h5>
+            <p className="text-sm text-slate-700 dark:text-slate-350 bg-muted/30 p-3 rounded-lg border leading-relaxed whitespace-pre-wrap">
+              {request?.technicalEvalJustification || "لا توجد مبررات مسجلة"}
+            </p>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setShowRejectionReportDialog(false)} className="bg-red-600 hover:bg-red-700 text-white font-semibold w-full sm:w-auto">
+              إغلاق
+            </Button>
+          </div>
+        </div>
+      </ColoredDialog>
 
       {/* Request Details Modal */}
       <RequestDetailsModal

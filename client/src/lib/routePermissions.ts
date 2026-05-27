@@ -291,6 +291,9 @@ export function hasRouteAccess(
   // super_admin و system_admin لهما كل الصلاحيات دائماً
   if (userRole === "super_admin" || userRole === "system_admin") return true;
 
+  // السماح بالوصول لصفحة التقرير الختامي لأي مستخدم مسجل
+  if (/^\/final-report\/\d+$/.test(pathname)) return true;
+
   const required = getRequiredPermission(pathname);
 
   // لا توجد قيود صلاحية خاصة على هذا المسار (معفى أو مسار طالب خدمة)

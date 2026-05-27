@@ -47,7 +47,10 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     if (user.role === "service_requester" && !REQUESTER_ROUTES.has(location) && !((user as any)?.customRole)) {
       // نسمح بالوصول لبعض الصفحات المشتركة (الملف الشخصي، الإشعارات، وتفاصيل الطلبات/المساجد)
       const sharedPaths = ["/profile", "/notifications"];
-      const isDynamicSharedPath = /^\/requests\/\d+$/.test(location) || /^\/mosques\/\d+$/.test(location);
+      const isDynamicSharedPath = 
+        /^\/requests\/\d+$/.test(location) || 
+        /^\/mosques\/\d+$/.test(location) || 
+        /^\/final-report\/\d+$/.test(location);
       
       if (sharedPaths.includes(location) || location.startsWith("/requester/") || isDynamicSharedPath) {
         return { allowed: true, reason: "shared", pending: false };
