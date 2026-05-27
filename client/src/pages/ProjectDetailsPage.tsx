@@ -945,7 +945,7 @@ export default function ProjectDetailsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="text-right">رقم الدفعة</TableHead>
-                        <TableHead className="text-right">عنوان طلب الصرف</TableHead>
+                        <TableHead className="text-right">عنوان الدفعة</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>

@@ -160,7 +160,7 @@ export default function NewDisbursementRequest() {
 
       setFormData(prev => ({
         ...prev,
-        title: `طلب صرف لـ ${selectedReport.title}`,
+        title: `طلب دفعة لـ ${selectedReport.title}`,
         description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
         completionPercentage: selectedReport.actualProgress || 0,
         contractPaymentId: paymentId,
@@ -182,10 +182,10 @@ export default function NewDisbursementRequest() {
     { enabled: formData.contractId > 0 }
   );
   
-  // mutation لإنشاء طلب صرف للمشروع
+  // mutation لإنشاء طلب دفعة للمشروع
   const createMutation = trpc.disbursements.createRequest.useMutation({
     onSuccess: (data) => {
-      toast.success("تم إضافة طلب الصرف بنجاح");
+      toast.success("تم إضافة طلب الدفعة بنجاح");
       navigate(`/projects/${formData.projectId}`);
     },
     onError: (error) => {
@@ -220,7 +220,7 @@ export default function NewDisbursementRequest() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
-  // حساب المتبقي للصرف
+  // حساب المتبقي للدفعة
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
   const remainingAmount = contractAmount - totalPaymentsSum;
@@ -268,7 +268,7 @@ export default function NewDisbursementRequest() {
       return;
     }
     if (!formData.title) {
-      toast.error("يرجى إدخال عنوان طلب الصرف");
+      toast.error("يرجى إدخال عنوان طلب الدفعة");
       return;
     }
     if (!formData.description) {
@@ -295,7 +295,7 @@ export default function NewDisbursementRequest() {
     }
 
     if (contractDetails && totalAmount > remainingAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingAmount.toLocaleString()} ريال)`);
+      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${remainingAmount.toLocaleString()} ريال)`);
       return;
     }
     
@@ -322,8 +322,8 @@ export default function NewDisbursementRequest() {
               <ArrowRight className="h-5 w-5 rotate-180" />
             </Button>
             <div className="text-right">
-              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">طلب صرف جديد</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground text-right">إنشاء طلب صرف للمشروع</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-right text-foreground">طلب دفعة جديد</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground text-right">إنشاء طلب دفعة للمشروع</p>
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
@@ -343,9 +343,9 @@ export default function NewDisbursementRequest() {
               <CardHeader className="text-right">
                 <CardTitle className="flex items-center gap-2 justify-start flex-row-reverse text-right">
                   <FileText className="h-5 w-5" />
-                  بيانات طلب الصرف
+                  بيانات طلب الدفعة
                 </CardTitle>
-                <CardDescription className="text-right">معلومات أساسية عن طلب الصرف</CardDescription>
+                <CardDescription className="text-right">معلومات أساسية عن طلب الدفعة</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-right">
                 <div className="space-y-2 text-right">
@@ -404,11 +404,11 @@ export default function NewDisbursementRequest() {
                 )}
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right">عنوان طلب الصرف *</Label>
+                  <Label className="text-right">عنوان طلب الدفعة *</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="مثال: صرف الدفعة الأولى لمشروع ترميم مسجد..."
+                    placeholder="مثال: طلب الدفعة الأولى لمشروع ترميم مسجد..."
                     required
                     className="text-right"
                   />
@@ -450,7 +450,7 @@ export default function NewDisbursementRequest() {
                       <Building2 className="h-5 w-5 text-primary" />
                       معلومات المورد المستفيد
                     </CardTitle>
-                    <CardDescription className="text-right">بيانات المستفيد من الصرف</CardDescription>
+                    <CardDescription className="text-right">بيانات المستفيد من الدفعة</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -566,7 +566,7 @@ export default function NewDisbursementRequest() {
             {/* ملخص الطلب */}
             <Card className="text-right">
               <CardHeader className="text-right">
-                <CardTitle className="text-right">ملخص طلب الصرف</CardTitle>
+                <CardTitle className="text-right">ملخص طلب الدفعة</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-right">
                 {projectDetails && (
@@ -595,7 +595,7 @@ export default function NewDisbursementRequest() {
                         <span className="font-medium">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} ريال</span>
                       </div>
                       <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground font-medium">الإجمالي المتبقي للصرف:</span>
+                        <span className="text-muted-foreground font-medium">الإجمالي المتبقي للدفعة:</span>
                         <span className="font-bold text-emerald-600">
                           {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} ريال
                         </span>
