@@ -118,8 +118,8 @@ export default function DisbursementRequestPrint() {
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
-      <div className="print:hidden fixed top-4 right-4 z-50 flex gap-2">
-        <Button variant="outline" onClick={() => navigate("/disbursements")} className="bg-white/90 backdrop-blur border shadow-sm">
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
+        <Button variant="outline" onClick={() => navigate("/disbursements")} className="bg-white border shadow-sm sm:bg-white/90">
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
