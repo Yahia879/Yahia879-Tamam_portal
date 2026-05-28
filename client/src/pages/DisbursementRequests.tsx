@@ -439,10 +439,10 @@ export default function DisbursementRequests() {
             <h1 className="text-2xl font-bold">طلبات الصرف</h1>
             <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
-          <div className="flex justify-end">
+          <div className="w-full sm:w-auto flex justify-end">
             <Button 
               onClick={() => navigate("/disbursements/new-linked")}
-              className="gradient-primary text-white font-bold"
+              className="w-full sm:w-auto gradient-primary text-white font-bold"
             >
               <Plus className="ml-2 h-4 w-4" />
               إضافة طلب صرف
@@ -728,14 +728,24 @@ export default function DisbursementRequests() {
                                   status={request.status as any} 
                                   type="request" 
                                 />
-                                {request.status === "rejected" ? (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
-                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
+                                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                    {/* 1. Print/View Report - Always available */}
+                                    <DropdownMenuItem
+                                      onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                    >
+                                      <Printer className="h-4 w-4 text-blue-500" />
+                                      <span>عرض تقرير طلب الصرف</span>
+                                    </DropdownMenuItem>
+
+                                    {/* 2. View Rejection Reason - If rejected */}
+                                    {request.status === "rejected" && request.rejectionReason && (
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedRequest(request);
@@ -745,8 +755,12 @@ export default function DisbursementRequests() {
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
                                       >
                                         <AlertCircle className="h-4 w-4 text-red-500" />
-                                        <span>عرض سبب رفض طلب الصرف</span>
+                                        <span>عرض سبب الرفض</span>
                                       </DropdownMenuItem>
+                                    )}
+
+                                    {/* 3. Edit Request - If editable */}
+                                    {canCreateRequest && (request.status === "draft" || request.status === "rejected") && (
                                       <DropdownMenuItem
                                         onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -754,75 +768,31 @@ export default function DisbursementRequests() {
                                         <FileText className="h-4 w-4 text-gray-500" />
                                         <span>تعديل طلب الصرف</span>
                                       </DropdownMenuItem>
+                                    )}
+
+                                    {/* 4. Progress Report - If exists */}
+                                    {correspondingReport && (
                                       <DropdownMenuItem
-                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                        onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-purple-600 focus:text-purple-600 focus:bg-purple-50 dark:focus:bg-purple-950/30"
                                       >
-                                        <Printer className="h-4 w-4 text-blue-500" />
-                                        <span>عرض تقرير طلب الصرف</span>
+                                        <FileText className="h-4 w-4 text-purple-500" />
+                                        <span>عرض تقرير الإنجاز</span>
                                       </DropdownMenuItem>
+                                    )}
+
+                                    {/* 5. Convert to Order - If allowed */}
+                                    {canCreateOrder && (request.status === "approved" || request.status === "pending") && !isConverted && (
                                       <DropdownMenuItem
-                                        disabled={!!request.rejectionReason}
                                         onClick={() => handleDirectCreateOrder(request)}
-                                        className={`flex items-center gap-2 cursor-pointer ${
-                                          request.rejectionReason
-                                            ? "text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
-                                            : "text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                        }`}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
                                       >
-                                        <Banknote className={`h-4 w-4 ${request.rejectionReason ? "text-slate-400" : "text-emerald-500"}`} />
-                                        <span>التحويل الى طلب صرف</span>
+                                        <Banknote className="h-4 w-4 text-emerald-500" />
+                                        <span>تحويل إلى أمر صرف</span>
                                       </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                ) : isConverted ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                    className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
-                                  >
-                                    <FileText className="h-3.5 w-3.5" />
-                                    عرض تقرير طلب الصرف
-                                  </Button>
-                                ) : (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
-                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 text-right font-medium">
-                                      {canCreateRequest && (
-                                        <DropdownMenuItem
-                                          onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
-                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
-                                        >
-                                          <FileText className="h-4 w-4 text-gray-500" />
-                                          <span>تعديل طلب الدفعة</span>
-                                        </DropdownMenuItem>
-                                      )}
-                                      {correspondingReport && (
-                                        <DropdownMenuItem
-                                          onClick={() => navigate(`/progress-reports/${correspondingReport.id}/print`)}
-                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
-                                        >
-                                          <FileText className="h-4 w-4 text-blue-500" />
-                                          <span>عرض تقرير الإنجاز</span>
-                                        </DropdownMenuItem>
-                                      )}
-                                      {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
-                                        <DropdownMenuItem
-                                          onClick={() => handleDirectCreateOrder(request)}
-                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                        >
-                                          <Banknote className="h-4 w-4 text-emerald-500" />
-                                          <span>تحويل إلى أمر صرف</span>
-                                        </DropdownMenuItem>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
 

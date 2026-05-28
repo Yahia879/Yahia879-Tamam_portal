@@ -130,9 +130,9 @@ export default function DisbursementRequestPrint() {
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-      <div className="print-container max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-between">
+      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-between">
         {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-        <div className="print-inner border-[3px] border-[#1a5f4a] p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[280mm]">
+        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[280mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
@@ -140,7 +140,7 @@ export default function DisbursementRequestPrint() {
           <div className="relative z-10 flex-1 flex flex-col justify-between">
             <div>
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
                 <div className="flex items-center gap-3">
                   {orgSettings?.logoUrl ? (
                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto print:h-14" />
@@ -157,16 +157,16 @@ export default function DisbursementRequestPrint() {
                   </div>
                 </div>
 
-                <div className="text-xs space-y-1 text-left">
-                  <div className="flex gap-2 justify-end">
+                <div className="text-xs space-y-1 text-right sm:text-left">
+                  <div className="flex gap-2 justify-start sm:justify-end">
                     <span className="font-bold text-gray-700">التاريخ:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(requestDate)}</span>
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-start sm:justify-end">
                     <span className="font-bold text-gray-700">الموافق:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{formatGregorianDate(requestDate)} م</span>
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-start sm:justify-end">
                     <span className="font-bold text-gray-700">رقم طلب الصرف:</span>
                     <span className="border-b border-dotted border-gray-400 px-3 font-mono text-[#1a5f4a] font-bold">{request.requestNumber}</span>
                   </div>
@@ -175,7 +175,7 @@ export default function DisbursementRequestPrint() {
 
               {/* عنوان النموذج الفاخر */}
               <div className="text-center mb-6">
-                <h1 className="text-xl sm:text-2xl font-black text-[#1a5f4a] border-b-2 border-[#1a5f4a] pb-1.5 inline-block px-12 tracking-wide">
+                <h1 className="text-lg sm:text-2xl font-black text-[#1a5f4a] border-b-2 border-[#1a5f4a] pb-1.5 inline-block px-4 sm:px-12 tracking-wide">
                   طلب صرف مالي للمشروع
                 </h1>
               </div>
@@ -186,14 +186,14 @@ export default function DisbursementRequestPrint() {
                   <Landmark className="w-4 h-4" />
                   خاص بدعم المؤسسات المانحة والمسؤولية المجتمعية
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex gap-2">
                     <span className="font-semibold text-gray-600">اسم الجهة الداعمة:</span>
                     <span className="border-b border-gray-300 px-3 font-bold text-gray-800">
                       {fundingSourceName || orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
                     </span>
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-start sm:justify-end">
                     <span className="font-semibold text-gray-600">مبلغ الدعم الإجمالي للمشروع:</span>
                     <span className="border-b border-gray-300 px-3 font-mono font-bold text-emerald-700">
                       {project?.budget ? `${parseFloat(project.budget.toString()).toLocaleString()} ريال` : `${amount.toLocaleString()} ريال`}
@@ -211,18 +211,20 @@ export default function DisbursementRequestPrint() {
                   <Building className="ml-2 h-4 w-4" />
                   1. معلومات المشروع والموقع:
                 </h3>
-                <table className="w-full border border-t-0 text-xs sm:text-sm">
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-3 bg-gray-50/50 font-bold w-32 border-l text-gray-700">اسم المشروع:</td>
-                      <td className="p-3 text-gray-800 font-bold">{project?.name || "—"}</td>
-                    </tr>
-                    <tr>
-                      <td className="p-3 bg-gray-50/50 font-bold border-l text-gray-700">موقع المشروع:</td>
-                      <td className="p-3 text-gray-600 font-medium">{(project as any)?.address || "بالمملكة العربية السعودية"}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[500px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm">
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-3 bg-gray-50/50 font-bold w-32 border-l text-gray-700">اسم المشروع:</td>
+                        <td className="p-3 text-gray-800 font-bold">{project?.name || "—"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 bg-gray-50/50 font-bold border-l text-gray-700">موقع المشروع:</td>
+                        <td className="p-3 text-gray-600 font-medium">{(project as any)?.address || "بالمملكة العربية السعودية"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* وصف الأعمال المطلوبة */}
@@ -259,38 +261,40 @@ export default function DisbursementRequestPrint() {
                   <Receipt className="ml-2 h-4 w-4" />
                   3. التفاصيل المالية والميزانية:
                 </h3>
-                <table className="w-full border border-t-0 text-xs sm:text-sm text-center">
-                  <thead>
-                    <tr className="bg-gray-100 border-b">
-                      <th className="p-2.5 font-bold border-l text-gray-700">قيمة الدفعة الحالية</th>
-                      <th className="p-2.5 font-bold border-l text-gray-700">ميزانية المشروع الإجمالية</th>
-                      <th className="p-2.5 font-bold border-l text-gray-700">النسبة من الميزانية</th>
-                      <th className="p-2.5 font-bold text-gray-800">حالة طلب الصرف</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-3 border-l font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
-                      <td className="p-3 border-l font-mono text-gray-700 font-semibold">
-                        {project?.budget ? `${parseFloat(project.budget.toString()).toLocaleString()} ريال` : "—"}
-                      </td>
-                      <td className="p-3 border-l font-mono text-gray-700">
-                        {project?.budget && parseFloat(project.budget.toString()) > 0
-                          ? `${((amount / parseFloat(project.budget.toString())) * 100).toFixed(1)}%`
-                          : "—"}
-                      </td>
-                      <td className="p-3 font-bold text-gray-800">
-                        {request.status === "approved" ? (
-                          <span className="text-emerald-700">معتمد</span>
-                        ) : request.status === "pending" ? (
-                          <span className="text-amber-600">قيد الاعتماد</span>
-                        ) : (
-                          <span className="text-gray-500">مسودة</span>
-                        )}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[650px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm text-center">
+                    <thead>
+                      <tr className="bg-gray-100 border-b">
+                        <th className="p-2.5 font-bold border-l text-gray-700">قيمة الدفعة الحالية</th>
+                        <th className="p-2.5 font-bold border-l text-gray-700">ميزانية المشروع الإجمالية</th>
+                        <th className="p-2.5 font-bold border-l text-gray-700">النسبة من الميزانية</th>
+                        <th className="p-2.5 font-bold text-gray-800">حالة طلب الصرف</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-3 border-l font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
+                        <td className="p-3 border-l font-mono text-gray-700 font-semibold">
+                          {project?.budget ? `${parseFloat(project.budget.toString()).toLocaleString()} ريال` : "—"}
+                        </td>
+                        <td className="p-3 border-l font-mono text-gray-700">
+                          {project?.budget && parseFloat(project.budget.toString()) > 0
+                            ? `${((amount / parseFloat(project.budget.toString())) * 100).toFixed(1)}%`
+                            : "—"}
+                        </td>
+                        <td className="p-3 font-bold text-gray-800">
+                          {request.status === "approved" ? (
+                            <span className="text-emerald-700">معتمد</span>
+                          ) : request.status === "pending" ? (
+                            <span className="text-amber-600">قيد الاعتماد</span>
+                          ) : (
+                            <span className="text-gray-500">مسودة</span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* المقاولون والموردون المعتمدون للدفع */}
@@ -302,42 +306,44 @@ export default function DisbursementRequestPrint() {
                   <Landmark className="ml-2 h-4 w-4" />
                   4. معلومات المورد البنكية وتفاصيل الدفع:
                 </h3>
-                <table className="w-full border border-t-0 text-xs sm:text-sm text-right">
-                  <thead>
-                    <tr className="bg-gray-50 border-b text-gray-700">
-                      <th className="p-2.5 font-bold border-l w-1/3">اسم المورد / الجهة المستفيدة</th>
-                      <th className="p-2.5 font-bold border-l w-1/3">البيان المالي للدفعة</th>
-                      <th className="p-2.5 font-bold w-1/3">المبلغ المطلوب</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-3 border-l font-bold text-gray-800">{contract?.secondPartyName || "—"}</td>
-                      <td className="p-3 border-l text-gray-600 font-medium">{request.title || "—"}</td>
-                      <td className="p-3 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
-                    </tr>
-                    <tr className="bg-gray-50/30">
-                      <td className="p-3 border-l text-xs text-gray-700">
-                        <span className="font-bold text-gray-700">اسم الحساب: </span>
-                        {contract?.secondPartyAccountName || contract?.secondPartyName || "—"}
-                      </td>
-                      <td className="p-3 border-l font-mono text-[10px] sm:text-xs text-gray-600">
-                        <span className="font-bold text-gray-700">رقم الآيبان (IBAN): </span>
-                        <span className="font-semibold tracking-wider font-mono">{contract?.secondPartyIban || "—"}</span>
-                      </td>
-                      <td className="p-3 text-xs text-gray-700">
-                        <span className="font-bold text-gray-700">اسم البنك: </span>
-                        {contract?.secondPartyBankName || "—"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[650px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm text-right">
+                    <thead>
+                      <tr className="bg-gray-50 border-b text-gray-700">
+                        <th className="p-2.5 font-bold border-l w-1/3">اسم المورد / الجهة المستفيدة</th>
+                        <th className="p-2.5 font-bold border-l w-1/3">البيان المالي للدفعة</th>
+                        <th className="p-2.5 font-bold w-1/3">المبلغ المطلوب</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-3 border-l font-bold text-gray-800">{contract?.secondPartyName || "—"}</td>
+                        <td className="p-3 border-l text-gray-600 font-medium">{request.title || "—"}</td>
+                        <td className="p-3 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
+                      </tr>
+                      <tr className="bg-gray-50/30">
+                        <td className="p-3 border-l text-xs text-gray-700">
+                          <span className="font-bold text-gray-700">اسم الحساب: </span>
+                          {contract?.secondPartyAccountName || contract?.secondPartyName || "—"}
+                        </td>
+                        <td className="p-3 border-l font-mono text-[10px] sm:text-xs text-gray-600">
+                          <span className="font-bold text-gray-700">رقم الآيبان (IBAN): </span>
+                          <span className="font-semibold tracking-wider font-mono">{contract?.secondPartyIban || "—"}</span>
+                        </td>
+                        <td className="p-3 text-xs text-gray-700">
+                          <span className="font-bold text-gray-700">اسم البنك: </span>
+                          {contract?.secondPartyBankName || "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
             {/* التوقيعات والاعتماد الفاخر */}
             <div className="mt-8 break-inside-avoid">
-              <div className="grid grid-cols-2 gap-6 text-right">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-right">
                 {/* الطرف الأول - الجمعية */}
                 <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/30 relative">
                   <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-xs sm:text-sm flex items-center gap-1.5">
