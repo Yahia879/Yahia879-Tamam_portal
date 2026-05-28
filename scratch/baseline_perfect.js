@@ -2,6 +2,9 @@ import mysql from "mysql2/promise";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 async function main() {
   console.log("🚀 Starting Perfect Local Database Baselining...");
@@ -17,8 +20,8 @@ async function main() {
   console.log(`Found ${entries.length} migration entries in journal.`);
 
   // 1. Connect to original database 'temam'
-  console.log("Connecting to local 'temam' database...");
-  const connection = await mysql.createConnection("mysql://root:@localhost:3306/temam");
+  console.log("Connecting to database...");
+  const connection = await mysql.createConnection(process.env.DATABASE_URL);
 
   // Ensure __drizzle_migrations table exists
   await connection.query(`

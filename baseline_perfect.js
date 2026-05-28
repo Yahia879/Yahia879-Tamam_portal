@@ -2,6 +2,9 @@ import mysql from "mysql2/promise";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 async function main() {
   console.log("🚀 Starting Perfect Database Baselining...");
