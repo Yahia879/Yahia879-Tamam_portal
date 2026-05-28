@@ -384,7 +384,7 @@ export const projectsRouter = router({
           paidAt: p.paidAt,
           source: "manual",
           workDescription: p.description,
-          completionPercentage: 0,
+          completionPercentage: p.completionPercentage || 0,
         });
       });
 
@@ -764,6 +764,7 @@ export const projectsRouter = router({
       amount: z.number().positive(),
       paymentType: z.enum(["advance", "progress", "final", "retention"]),
       description: z.string().optional(),
+      completionPercentage: z.number().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -778,6 +779,7 @@ export const projectsRouter = router({
         amount: input.amount.toString(),
         paymentType: input.paymentType,
         description: input.description,
+        completionPercentage: input.completionPercentage,
         status: "pending",
       });
 
@@ -849,19 +851,19 @@ export const projectsRouter = router({
           completionPercentage: disb.completionPercentage || 0,
         };
       } else if (input.id.startsWith("manual-")) {
-        const actualId = parseInt(input.id.replace("manual-", ""));
-        const [payment] = await db.select().from(payments).where(eq(payments.id, actualId));
-        if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
-        return {
-          id: input.id,
-          projectId: payment.projectId || 0,
-          contractId: payment.contractId || undefined,
-          title: payment.description || "",
-          description: payment.description || "",
-          amount: parseFloat(payment.amount as string || "0"),
-          dateMiladi: new Date(payment.createdAt).toISOString().split('T')[0],
-          completionPercentage: 0,
-        };
+         const actualId = parseInt(input.id.replace("manual-", ""));
+         const [payment] = await db.select().from(payments).where(eq(payments.id, actualId));
+         if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+         return {
+           id: input.id,
+           projectId: payment.projectId || 0,
+           contractId: payment.contractId || undefined,
+           title: payment.description || "",
+           description: payment.description || "",
+           amount: parseFloat(payment.amount as string || "0"),
+           dateMiladi: new Date(payment.createdAt).toISOString().split('T')[0],
+           completionPercentage: payment.completionPercentage || 0,
+         };
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
         const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
@@ -918,6 +920,7 @@ export const projectsRouter = router({
         const actualId = parseInt(input.id.replace("manual-", ""));
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.description = input.title;
+        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
         await db.update(payments).set(updateValues).where(eq(payments.id, actualId));
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));

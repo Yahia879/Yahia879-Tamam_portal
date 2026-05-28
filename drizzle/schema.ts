@@ -473,6 +473,7 @@ export const payments = mysqlTable("payments", {
   paidAt: datetime("paidAt"),
   description: text("description"),
   documentUrl: varchar("documentUrl", { length: 500 }),
+  completionPercentage: int("completionPercentage"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

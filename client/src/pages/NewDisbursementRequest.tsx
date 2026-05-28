@@ -305,6 +305,7 @@ export default function NewDisbursementRequest() {
       amount: totalAmount,
       paymentType: "progress",
       description: formData.title,
+      completionPercentage: formData.completionPercentage,
     });
   };
   
