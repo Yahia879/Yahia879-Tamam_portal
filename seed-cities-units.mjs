@@ -9,55 +9,12 @@ dotenv.config();
 const connection = await mysql.createConnection(process.env.DATABASE_URL);
 const db = drizzle(connection, { schema, mode: 'default' });
 
-async function seedLatestUpdates() {
-  console.log("🚀 بدء حقن التعديلات والإضافات الأخيرة فقط...");
+async function seedCitiesAndUnits() {
+  console.log("🚀 بدء حقن المدن السعودية الـ 20 ووحدات القياس الـ 10 في جدول categories...");
 
   try {
-    // 1. تحديث صلاحيات الأدوار المحددة (Role Permissions Delta Updates)
-    console.log("🔗 1. تحديث صلاحيات الأدوار (الفريق الميداني ومدير المشروع)...");
-    const rolePermUpdates = [
-      { roleId: "field_team", permissionId: "requests.edit" },
-      { roleId: "project_manager", permissionId: "disbursements.create" },
-      { roleId: "project_manager", permissionId: "disbursements.edit" },
-      { roleId: "project_manager", permissionId: "contracts.view" },
-      { roleId: "project_manager", permissionId: "contracts.create" },
-      { roleId: "project_manager", permissionId: "contracts.edit" },
-      { roleId: "project_manager", permissionId: "suppliers.view" }
-    ];
-
-    for (const item of rolePermUpdates) {
-      // التأكد من وجود الصلاحية في جدول الصلاحيات أولاً لتجنب أي تعارض
-      const [permExists] = await db
-        .select()
-        .from(schema.permissions)
-        .where(eq(schema.permissions.id, item.permissionId))
-        .limit(1);
-
-      if (permExists) {
-        const [existing] = await db
-          .select()
-          .from(schema.rolePermissions)
-          .where(
-            and(
-              eq(schema.rolePermissions.roleId, item.roleId),
-              eq(schema.rolePermissions.permissionId, item.permissionId)
-            )
-          )
-          .limit(1);
-
-        if (!existing) {
-          await db.insert(schema.rolePermissions).values(item);
-          console.log(`   ✅ تم إسناد الصلاحية: ${item.permissionId} -> للدور: ${item.roleId}`);
-        } else {
-          console.log(`   ℹ️ الصلاحية ${item.permissionId} مسندة مسبقاً للدور ${item.roleId}`);
-        }
-      } else {
-        console.warn(`   ⚠️ تحذير: الصلاحية ${item.permissionId} غير موجودة بجدول الصلاحيات!`);
-      }
-    }
-
-    // 2. حقن المدن (20 مدينة سعودية) في جدول categories
-    console.log("🏙️ 2. حقن المدن السعودية الـ 20 في جدول categories...");
+    // 1. حقن المدن (20 مدينة سعودية) في جدول categories
+    console.log("🏙️ 1. حقن المدن السعودية الـ 20...");
     const citiesList = [
       { name: "Abha", nameAr: "أبها", type: "city", isActive: true },
       { name: "Khamis Mushait", nameAr: "خميس مشيط", type: "city", isActive: true },
@@ -104,8 +61,8 @@ async function seedLatestUpdates() {
       }
     }
 
-    // 3. وحدات جداول الكميات (10 وحدات) في جدول categories
-    console.log("📏 3. حقن وحدات جداول الكميات الـ 10 في جدول categories...");
+    // 2. وحدات جداول الكميات (10 وحدات) في جدول categories
+    console.log("📏 2. حقن وحدات جداول الكميات الـ 10...");
     const unitsList = [
       { name: "Meter", nameAr: "متر", type: "boq_unit", isActive: true },
       { name: "Square Meter", nameAr: "متر مربع", type: "boq_unit", isActive: true },
@@ -142,13 +99,13 @@ async function seedLatestUpdates() {
       }
     }
 
-    console.log("🎉 تم دمج وتحديث التعديلات الأخيرة بنجاح تام!");
+    console.log("🎉 تم حقن المدن والوحدات في جدول categories بنجاح تام!");
 
   } catch (error) {
-    console.error("❌ حدث خطأ أثناء حقن التحديثات الأخيرة:", error);
+    console.error("❌ حدث خطأ أثناء حقن المدن والوحدات:", error);
   } finally {
     await connection.end();
   }
 }
 
-seedLatestUpdates();
+seedCitiesAndUnits();

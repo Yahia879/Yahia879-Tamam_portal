@@ -10,7 +10,7 @@ const connection = await mysql.createConnection(process.env.DATABASE_URL);
 const db = drizzle(connection, { schema, mode: 'default' });
 
 async function seedBanksAndBOQ() {
-  console.log("🚀 بدء حقن البنوك وتصنيفات ووحدات جداول الكميات والمدن...");
+  console.log("🚀 بدء حقن البنوك وتصنيفات ووحدات جداول الكميات والمدن في جدول categories...");
 
   try {
     // 1. البنوك
@@ -87,127 +87,87 @@ async function seedBanksAndBOQ() {
       }
     }
 
-    // 3. المدن (20 مدينة سعودية)
+    // 3. المدن (20 مدينة سعودية) في جدول categories
     console.log("🏙️ حقن المدن (20 مدينة سعودية)...");
-    let cityCatId;
-    const [existingCityCat] = await db
-      .select()
-      .from(schema.categories)
-      .where(eq(schema.categories.type, "city"))
-      .limit(1);
-
-    if (!existingCityCat) {
-      const [res] = await db
-        .insert(schema.categories)
-        .values({ name: "City", nameAr: "المدن", type: "city", isActive: true });
-      cityCatId = res.insertId;
-    } else {
-      cityCatId = existingCityCat.id;
-      await db
-        .update(schema.categories)
-        .set({ isActive: true })
-        .where(eq(schema.categories.id, cityCatId));
-    }
-
     const citiesList = [
-      { categoryId: cityCatId, value: "Abha", valueAr: "أبها", isActive: true },
-      { categoryId: cityCatId, value: "Khamis Mushait", valueAr: "خميس مشيط", isActive: true },
-      { categoryId: cityCatId, value: "Riyadh", valueAr: "الرياض", isActive: true },
-      { categoryId: cityCatId, value: "Jeddah", valueAr: "جدة", isActive: true },
-      { categoryId: cityCatId, value: "Makkah", valueAr: "مكة المكرمة", isActive: true },
-      { categoryId: cityCatId, value: "Madinah", valueAr: "المدينة المنورة", isActive: true },
-      { categoryId: cityCatId, value: "Dammam", valueAr: "الدمام", isActive: true },
-      { categoryId: cityCatId, value: "Khobar", valueAr: "الخبر", isActive: true },
-      { categoryId: cityCatId, value: "Jubail", valueAr: "الجبيل", isActive: true },
-      { categoryId: cityCatId, value: "Hofuf", valueAr: "الهفوف", isActive: true },
-      { categoryId: cityCatId, value: "Taif", valueAr: "الطائف", isActive: true },
-      { categoryId: cityCatId, value: "Tabuk", valueAr: "تبوك", isActive: true },
-      { categoryId: cityCatId, value: "Buraydah", valueAr: "بريدة", isActive: true },
-      { categoryId: cityCatId, value: "Hail", valueAr: "حائل", isActive: true },
-      { categoryId: cityCatId, value: "Najran", valueAr: "نجران", isActive: true },
-      { categoryId: cityCatId, value: "Jazan", valueAr: "جازان", isActive: true },
-      { categoryId: cityCatId, value: "Al Bahah", valueAr: "الباحة", isActive: true },
-      { categoryId: cityCatId, value: "Arar", valueAr: "عرعر", isActive: true },
-      { categoryId: cityCatId, value: "Al Jouf", valueAr: "الجوف", isActive: true },
-      { categoryId: cityCatId, value: "Yanbu", valueAr: "ينبع", isActive: true }
+      { name: "Abha", nameAr: "أبها", type: "city", isActive: true },
+      { name: "Khamis Mushait", nameAr: "خميس مشيط", type: "city", isActive: true },
+      { name: "Riyadh", nameAr: "الرياض", type: "city", isActive: true },
+      { name: "Jeddah", nameAr: "جدة", type: "city", isActive: true },
+      { name: "Makkah", nameAr: "مكة المكرمة", type: "city", isActive: true },
+      { name: "Madinah", nameAr: "المدينة المنورة", type: "city", isActive: true },
+      { name: "Dammam", nameAr: "الدمام", type: "city", isActive: true },
+      { name: "Khobar", nameAr: "الخبر", type: "city", isActive: true },
+      { name: "Jubail", nameAr: "الجبيل", type: "city", isActive: true },
+      { name: "Hofuf", nameAr: "الهفوف", type: "city", isActive: true },
+      { name: "Taif", nameAr: "الطائف", type: "city", isActive: true },
+      { name: "Tabuk", nameAr: "تبوك", type: "city", isActive: true },
+      { name: "Buraydah", nameAr: "بريدة", type: "city", isActive: true },
+      { name: "Hail", nameAr: "حائل", type: "city", isActive: true },
+      { name: "Najran", nameAr: "نجران", type: "city", isActive: true },
+      { name: "Jazan", nameAr: "جازان", type: "city", isActive: true },
+      { name: "Al Bahah", nameAr: "الباحة", type: "city", isActive: true },
+      { name: "Arar", nameAr: "عرعر", type: "city", isActive: true },
+      { name: "Al Jouf", nameAr: "الجوف", type: "city", isActive: true },
+      { name: "Yanbu", nameAr: "ينبع", type: "city", isActive: true }
     ];
 
     for (const city of citiesList) {
       const [existing] = await db
         .select()
-        .from(schema.categoryValues)
+        .from(schema.categories)
         .where(
           and(
-            eq(schema.categoryValues.categoryId, city.categoryId),
-            eq(schema.categoryValues.value, city.value)
+            eq(schema.categories.type, "city"),
+            eq(schema.categories.name, city.name)
           )
         )
         .limit(1);
 
       if (!existing) {
-        await db.insert(schema.categoryValues).values(city);
+        await db.insert(schema.categories).values(city);
       } else {
         await db
-          .update(schema.categoryValues)
-          .set({ valueAr: city.valueAr, isActive: true })
-          .where(eq(schema.categoryValues.id, existing.id));
+          .update(schema.categories)
+          .set({ nameAr: city.nameAr, isActive: true })
+          .where(eq(schema.categories.id, existing.id));
       }
     }
 
-    // 4. وحدات جداول الكميات (10 وحدات)
+    // 4. وحدات جداول الكميات (10 وحدات) في جدول categories
     console.log("📏 حقن وحدات جداول الكميات (10 وحدات)...");
-    let boqUnitCatId;
-    const [existingBoqUnitCat] = await db
-      .select()
-      .from(schema.categories)
-      .where(eq(schema.categories.type, "boq_unit"))
-      .limit(1);
-
-    if (!existingBoqUnitCat) {
-      const [res] = await db
-        .insert(schema.categories)
-        .values({ name: "BOQ Unit", nameAr: "وحدات جداول الكميات", type: "boq_unit", isActive: true });
-      boqUnitCatId = res.insertId;
-    } else {
-      boqUnitCatId = existingBoqUnitCat.id;
-      await db
-        .update(schema.categories)
-        .set({ isActive: true })
-        .where(eq(schema.categories.id, boqUnitCatId));
-    }
-
     const unitsList = [
-      { categoryId: boqUnitCatId, value: "Meter", valueAr: "متر", isActive: true },
-      { categoryId: boqUnitCatId, value: "Square Meter", valueAr: "متر مربع", isActive: true },
-      { categoryId: boqUnitCatId, value: "Cubic Meter", valueAr: "متر مكعب", isActive: true },
-      { categoryId: boqUnitCatId, value: "Kilogram", valueAr: "كيلوغرام", isActive: true },
-      { categoryId: boqUnitCatId, value: "Ton", valueAr: "طن", isActive: true },
-      { categoryId: boqUnitCatId, value: "Piece", valueAr: "حبة", isActive: true },
-      { categoryId: boqUnitCatId, value: "Set", valueAr: "طقم", isActive: true },
-      { categoryId: boqUnitCatId, value: "Liter", valueAr: "لتر", isActive: true },
-      { categoryId: boqUnitCatId, value: "Lump Sum", valueAr: "مقطوعية", isActive: true },
-      { categoryId: boqUnitCatId, value: "Box", valueAr: "كرتون", isActive: true }
+      { name: "Meter", nameAr: "متر", type: "boq_unit", isActive: true },
+      { name: "Square Meter", nameAr: "متر مربع", type: "boq_unit", isActive: true },
+      { name: "Cubic Meter", nameAr: "متر مكعب", type: "boq_unit", isActive: true },
+      { name: "Kilogram", nameAr: "كيلوغرام", type: "boq_unit", isActive: true },
+      { name: "Ton", nameAr: "طن", type: "boq_unit", isActive: true },
+      { name: "Piece", nameAr: "حبة", type: "boq_unit", isActive: true },
+      { name: "Set", nameAr: "طقم", type: "boq_unit", isActive: true },
+      { name: "Liter", nameAr: "لتر", type: "boq_unit", isActive: true },
+      { name: "Lump Sum", nameAr: "مقطوعية", type: "boq_unit", isActive: true },
+      { name: "Box", nameAr: "كرتون", type: "boq_unit", isActive: true }
     ];
 
     for (const unit of unitsList) {
       const [existing] = await db
         .select()
-        .from(schema.categoryValues)
+        .from(schema.categories)
         .where(
           and(
-            eq(schema.categoryValues.categoryId, unit.categoryId),
-            eq(schema.categoryValues.value, unit.value)
+            eq(schema.categories.type, "boq_unit"),
+            eq(schema.categories.name, unit.name)
           )
         )
         .limit(1);
 
       if (!existing) {
-        await db.insert(schema.categoryValues).values(unit);
+        await db.insert(schema.categories).values(unit);
       } else {
         await db
-          .update(schema.categoryValues)
-          .set({ valueAr: unit.valueAr, isActive: true })
-          .where(eq(schema.categoryValues.id, existing.id));
+          .update(schema.categories)
+          .set({ nameAr: unit.nameAr, isActive: true })
+          .where(eq(schema.categories.id, existing.id));
       }
     }
 
