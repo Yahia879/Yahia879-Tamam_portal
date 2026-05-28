@@ -128,7 +128,7 @@ export default function EditLinkedDisbursementRequest() {
         description: request.description || "",
         completionPercentage: request.completionPercentage || 0,
         dateMiladi: request.dateMiladi ? new Date(request.dateMiladi).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        contractPaymentId: request.contractPaymentId || 0,
+        contractPaymentId: request.contractPaymentId || (request as any).paymentId || 0,
       });
 
       // تهيئة مبلغ المورد الأصلي من الطلب
@@ -276,6 +276,8 @@ export default function EditLinkedDisbursementRequest() {
       return;
     }
 
+    const isManual = paymentIdRaw.startsWith("manual-") || (!!request && !(request as any).contractPaymentId && !!(request as any).paymentId);
+    
     updateMutation.mutate({
       id: requestId,
       title: formData.title,
@@ -284,7 +286,8 @@ export default function EditLinkedDisbursementRequest() {
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
-      contractPaymentId: formData.contractPaymentId || undefined,
+      contractPaymentId: isManual ? undefined : (formData.contractPaymentId || undefined),
+      paymentId: isManual ? formData.contractPaymentId : undefined,
     });
   };
 

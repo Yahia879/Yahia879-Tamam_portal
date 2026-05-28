@@ -97,11 +97,11 @@ async function seed() {
       super_admin: "*", // كل الصلاحيات
       system_admin: "*", // كل الصلاحيات
       projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits"],
-      field_team: ["mosques.view", "requests.view", "field_visits"],
+      field_team: ["mosques.view", "requests.view", "requests.edit", "field_visits"],
       quick_response: ["requests.view", "field_visits.view", "reports.create"],
       financial: ["financial", "quotations", "disbursements", "suppliers.view"],
       financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view"],
-      project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "handovers"],
+      project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
       corporate_comm: ["requests.view", "reports.view", "settings.view", "analytics.view"],
       service_requester: ["requests.view", "requests.create", "mosques.view"]
     };

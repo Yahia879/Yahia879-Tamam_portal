@@ -91,6 +91,7 @@ export const disbursementsRouter = router({
           projectNumber: projects.projectNumber,
           requestedByName: users.name,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          paymentId: disbursementRequests.paymentId,
           rejectionReason: disbursementRequests.rejectionReason,
           orderId: disbursementOrders.id,
           orderNumber: disbursementOrders.orderNumber,
@@ -145,6 +146,7 @@ export const disbursementsRouter = router({
           projectId: disbursementRequests.projectId,
           contractId: disbursementRequests.contractId,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          paymentId: disbursementRequests.paymentId,
           requestedByName: users.name,
           dateMiladi: disbursementRequests.dateMiladi,
         })
@@ -234,6 +236,7 @@ export const disbursementsRouter = router({
         projectId: z.number(),
         contractId: z.number().optional(),
         contractPaymentId: z.number().optional(),
+        paymentId: z.number().optional(),
         title: z.string().min(1, "عنوان الطلب مطلوب"),
         description: z.string().optional(),
         amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
@@ -304,6 +307,36 @@ export const disbursementsRouter = router({
         }
       }
 
+      let validatedPaymentId = input.paymentId;
+      if (validatedPaymentId) {
+        const [paymentExists] = await db
+          .select({ id: payments.id })
+          .from(payments)
+          .where(eq(payments.id, validatedPaymentId));
+        if (!paymentExists) {
+          validatedPaymentId = undefined;
+        } else {
+          // التحقق من عدم وجود طلب صرف نشط (غير مرفوض) لنفس الدفعة اليدوية
+          const [existingRequest] = await db
+            .select({ id: disbursementRequests.id, requestNumber: disbursementRequests.requestNumber })
+            .from(disbursementRequests)
+            .where(
+              and(
+                eq(disbursementRequests.paymentId, validatedPaymentId),
+                sql`${disbursementRequests.status} != 'rejected'`
+              )
+            )
+            .limit(1);
+
+          if (existingRequest) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `هذه الدفعة مرتبطة بالفعل بطلب صرف نشط رقم ${existingRequest.requestNumber}`
+            });
+          }
+        }
+      }
+
       const requestNumber = await generateDisbursementRequestNumber(db);
 
       const [result] = await db.insert(disbursementRequests).values({
@@ -311,6 +344,7 @@ export const disbursementsRouter = router({
         projectId: input.projectId,
         contractId: input.contractId,
         contractPaymentId: validatedContractPaymentId,
+        paymentId: validatedPaymentId,
         title: input.title,
         description: input.description,
         amount: input.amount.toString(),
@@ -358,6 +392,7 @@ export const disbursementsRouter = router({
         completionPercentage: z.number().min(0).max(100).optional(),
         dateMiladi: z.string().optional(),
         contractPaymentId: z.number().optional(),
+        paymentId: z.number().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -430,6 +465,37 @@ export const disbursementsRouter = router({
         }
       }
 
+      let validatedPaymentId = input.paymentId;
+      if (validatedPaymentId) {
+        const [paymentExists] = await db
+          .select({ id: payments.id })
+          .from(payments)
+          .where(eq(payments.id, validatedPaymentId));
+        if (!paymentExists) {
+          validatedPaymentId = undefined;
+        } else {
+          // التحقق من عدم وجود طلب صرف نشط (غير مرفوض) لنفس الدفعة من قبل طلب آخر غير هذا الطلب
+          const [existingRequest] = await db
+            .select({ id: disbursementRequests.id, requestNumber: disbursementRequests.requestNumber })
+            .from(disbursementRequests)
+            .where(
+              and(
+                eq(disbursementRequests.paymentId, validatedPaymentId),
+                sql`${disbursementRequests.id} != ${input.id}`,
+                sql`${disbursementRequests.status} != 'rejected'`
+              )
+            )
+            .limit(1);
+
+          if (existingRequest) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `هذه الدفعة مرتبطة بالفعل بطلب صرف نشط رقم ${existingRequest.requestNumber}`
+            });
+          }
+        }
+      }
+
       await db
         .update(disbursementRequests)
         .set({
@@ -440,6 +506,7 @@ export const disbursementsRouter = router({
           completionPercentage: input.completionPercentage,
           dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
           contractPaymentId: validatedContractPaymentId,
+          paymentId: validatedPaymentId,
           updatedAt: new Date(),
           // Clear rejection reason when a rejected request is edited
           rejectionReason: request.status === "rejected" ? null : request.rejectionReason,
@@ -492,6 +559,52 @@ export const disbursementsRouter = router({
           approvalNotes: input.notes,
         })
         .where(eq(disbursementRequests.id, input.id));
+
+      // تحديث قيمة الدفعة المجدولة في العقد أو الدفعة اليدوية إذا كان مبلغ طلب الصرف المعتمد أقل من مبلغ الدفعة الأصلي
+      const req = request as any;
+      if (req.contractPaymentId) {
+        const [contractPayment] = await db
+          .select()
+          .from(contractPayments)
+          .where(eq(contractPayments.id, req.contractPaymentId));
+
+        if (contractPayment) {
+          const cpAmount = Number(contractPayment.amount);
+          const requestAmount = Number(req.amount);
+          if (requestAmount < cpAmount) {
+            // تحديث قيمة الدفعة في العقد لتكون مساوية للمبلغ المعتمد لطلب الصرف
+            await db
+              .update(contractPayments)
+              .set({
+                amount: req.amount,
+                updatedAt: new Date(),
+              })
+              .where(eq(contractPayments.id, req.contractPaymentId));
+          }
+        }
+      }
+
+      if (req.paymentId) {
+        const [manualPayment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, req.paymentId));
+
+        if (manualPayment) {
+          const mpAmount = Number(manualPayment.amount);
+          const requestAmount = Number(req.amount);
+          if (requestAmount < mpAmount) {
+            // تحديث قيمة الدفعة اليدوية لتكون مساوية لمبلغ طلب الصرف المعتمد
+            await db
+              .update(payments)
+              .set({
+                amount: req.amount,
+                updatedAt: new Date(),
+              })
+              .where(eq(payments.id, req.paymentId));
+          }
+        }
+      }
 
       // إرسال إشعار لمقدم الطلب
       await db.insert(notifications).values({
@@ -995,6 +1108,7 @@ export const disbursementsRouter = router({
         .select({
           orderAmount: disbursementOrders.amount,
           contractPaymentId: disbursementRequests.contractPaymentId,
+          paymentId: disbursementRequests.paymentId,
           requestId: disbursementRequests.id,
         })
         .from(disbursementOrders)
@@ -1027,7 +1141,38 @@ export const disbursementsRouter = router({
                 amount: orderWithRequest.orderAmount,
                 updatedAt: new Date(),
               })
-              .where(eq(disbursementRequests.id, orderWithRequest.requestId));
+              .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
+          }
+        }
+      }
+
+      if (orderWithRequest && orderWithRequest.paymentId) {
+        const [manualPayment] = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.id, orderWithRequest.paymentId));
+
+        if (manualPayment) {
+          const mpAmount = Number(manualPayment.amount);
+          const approvedAmount = Number(orderWithRequest.orderAmount);
+          if (approvedAmount < mpAmount) {
+            // تحديث قيمة الدفعة اليدوية لتكون مساوية للمبلغ المعتمد الفعلي
+            await db
+              .update(payments)
+              .set({
+                amount: orderWithRequest.orderAmount,
+                updatedAt: new Date(),
+              })
+              .where(eq(payments.id, orderWithRequest.paymentId));
+
+            // تحديث قيمة طلب الصرف كذلك
+            await db
+              .update(disbursementRequests)
+              .set({
+                amount: orderWithRequest.orderAmount,
+                updatedAt: new Date(),
+              })
+              .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
         }
       }
@@ -1113,6 +1258,16 @@ export const disbursementsRouter = router({
             paidBy: ctx.user.id,
           })
           .where(eq(contractPayments.id, request.contractPaymentId));
+      }
+
+      if (request?.paymentId) {
+        await db
+          .update(payments)
+          .set({
+            status: "paid",
+            paidAt: new Date(),
+          })
+          .where(eq(payments.id, request.paymentId));
       }
 
       // تحديث التكلفة الفعلية للمشروع

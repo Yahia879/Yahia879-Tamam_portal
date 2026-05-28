@@ -1019,6 +1019,7 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   projectId: int("projectId").notNull().references(() => projects.id),
   contractId: int("contractId").references(() => contractsEnhanced.id),
   contractPaymentId: int("contractPaymentId").references(() => contractPayments.id),
+  paymentId: int("paymentId").references(() => payments.id),
   
   // بيانات الطلب
   title: varchar("title", { length: 255 }),

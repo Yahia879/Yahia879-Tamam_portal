@@ -356,10 +356,13 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
     
+    const isManual = paymentIdRaw.startsWith("manual-");
+    
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
-      contractPaymentId: formData.contractPaymentId || undefined,
+      contractPaymentId: isManual ? undefined : (formData.contractPaymentId || undefined),
+      paymentId: isManual ? formData.contractPaymentId : undefined,
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
