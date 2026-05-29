@@ -110,6 +110,27 @@ export default function DisbursementRequestPrint() {
   const amount = parseFloat(request.amount?.toString() || "0");
   const project = request.project;
   const contract = request.contract;
+  
+  let customSupplier: any = null;
+  if (request?.attachmentsJson) {
+    try {
+      const attachments = JSON.parse(request.attachmentsJson);
+      if (Array.isArray(attachments)) {
+        const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+        if (infoAttachment && infoAttachment.url) {
+          customSupplier = JSON.parse(infoAttachment.url);
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing custom supplier print:", e);
+    }
+  }
+
+  const resolvedSupplierName = customSupplier?.name || contract?.secondPartyName || "—";
+  const resolvedSupplierAccountName = customSupplier?.name || contract?.secondPartyAccountName || contract?.secondPartyName || "—";
+  const resolvedSupplierIban = customSupplier?.iban || contract?.secondPartyIban || "—";
+  const resolvedSupplierBankName = customSupplier?.bank || contract?.secondPartyBankName || "—";
+
   const opportunity = (request as any).opportunity;
   const requestDate = new Date(request.requestedAt || new Date());
 
@@ -317,22 +338,22 @@ export default function DisbursementRequestPrint() {
                     </thead>
                     <tbody>
                       <tr className="border-b">
-                        <td className="p-3 border-l font-bold text-gray-800">{contract?.secondPartyName || "—"}</td>
+                        <td className="p-3 border-l font-bold text-gray-800">{resolvedSupplierName}</td>
                         <td className="p-3 border-l text-gray-600 font-medium">{request.title || "—"}</td>
                         <td className="p-3 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
                       </tr>
                       <tr className="bg-gray-50/30">
                         <td className="p-3 border-l text-xs text-gray-700">
-                          <span className="font-bold text-gray-700">اسم الحساب: </span>
-                          {contract?.secondPartyAccountName || contract?.secondPartyName || "—"}
+                           <span className="font-bold text-gray-700">اسم الحساب: </span>
+                           {resolvedSupplierAccountName}
                         </td>
                         <td className="p-3 border-l font-mono text-[10px] sm:text-xs text-gray-600">
                           <span className="font-bold text-gray-700">رقم الآيبان (IBAN): </span>
-                          <span className="font-semibold tracking-wider font-mono">{contract?.secondPartyIban || "—"}</span>
+                          <span className="font-semibold tracking-wider font-mono">{resolvedSupplierIban}</span>
                         </td>
                         <td className="p-3 text-xs text-gray-700">
                           <span className="font-bold text-gray-700">اسم البنك: </span>
-                          {contract?.secondPartyBankName || "—"}
+                          {resolvedSupplierBankName}
                         </td>
                       </tr>
                     </tbody>

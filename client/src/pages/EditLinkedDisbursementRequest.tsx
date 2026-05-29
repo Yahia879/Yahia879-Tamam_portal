@@ -118,11 +118,13 @@ export default function EditLinkedDisbursementRequest() {
   const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
   const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentIdRaw || p.id === paymentIdNumeric);
 
+  const isCustom = request ? (!request.contractId && (!request.contractPaymentId || !request.projectId || !request.project || request.project?.projectNumber === "PRJ-CUSTOM")) : false;
+
   // تعبئة البيانات الأساسية من طلب الصرف عند التحميل
   useEffect(() => {
     if (request) {
       setFormData({
-        projectId: request.projectId,
+        projectId: request.projectId || 0,
         contractId: request.contractId || 0,
         title: request.title || "",
         description: request.description || "",
@@ -144,6 +146,36 @@ export default function EditLinkedDisbursementRequest() {
             agreedAmount: parseFloat(request.amount?.toString() || "0"),
           }
         ]);
+      } else {
+        // إذا كان طلباً مخصصاً، نقوم بفك تشفير بيانات المورد من المرفقات
+        let customSupplier: any = null;
+        if (request.attachmentsJson) {
+          try {
+            const attachments = JSON.parse(request.attachmentsJson);
+            if (Array.isArray(attachments)) {
+              const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+              if (infoAttachment && infoAttachment.url) {
+                customSupplier = JSON.parse(infoAttachment.url);
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing custom supplier in edit mount:", e);
+          }
+        }
+
+        if (customSupplier) {
+          setSuppliers([
+            {
+              id: crypto.randomUUID(),
+              name: customSupplier.name || "",
+              work: customSupplier.work || request.title || "طلب صرف مخصص",
+              amount: parseFloat(request.amount?.toString() || "0"),
+              iban: customSupplier.iban || "",
+              bank: customSupplier.bank || "",
+              agreedAmount: customSupplier.agreedAmount || parseFloat(request.amount?.toString() || "0"),
+            }
+          ]);
+        }
       }
     }
   }, [request]);
@@ -234,7 +266,16 @@ export default function EditLinkedDisbursementRequest() {
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
 
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
-    setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
+    setSuppliers(suppliers.map(s => {
+      if (s.id === id) {
+        const updated = { ...s, [field]: value };
+        if (isCustom && field === "amount") {
+          updated.agreedAmount = Number(value);
+        }
+        return updated;
+      }
+      return s;
+    }));
   };
 
   // mutation لتحديث طلب الصرف
@@ -250,7 +291,7 @@ export default function EditLinkedDisbursementRequest() {
 
   // حفظ التعديلات
   const handleSubmit = () => {
-    if (!formData.projectId) {
+    if (!isCustom && !formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
     }
@@ -271,13 +312,25 @@ export default function EditLinkedDisbursementRequest() {
       return;
     }
 
-    if (suppliers.some(s => s.amount > s.agreedAmount)) {
+    if (!isCustom && suppliers.some(s => s.amount > s.agreedAmount)) {
       toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
       return;
     }
 
     const isManual = paymentIdRaw.startsWith("manual-") || (!!request && !(request as any).contractPaymentId && !!(request as any).paymentId);
     
+    const customSupplierMetadata = isCustom ? [{
+      name: "custom_supplier_info",
+      url: JSON.stringify({
+        name: suppliers[0]?.name || "",
+        bank: suppliers[0]?.bank || "",
+        iban: suppliers[0]?.iban || "",
+        work: formData.title || "طلب صرف مخصص",
+        agreedAmount: suppliers[0]?.agreedAmount || totalAmount
+      }),
+      type: "metadata"
+    }] : [];
+
     updateMutation.mutate({
       id: requestId,
       title: formData.title,
@@ -286,8 +339,9 @@ export default function EditLinkedDisbursementRequest() {
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
-      contractPaymentId: isManual ? undefined : (formData.contractPaymentId || undefined),
-      paymentId: isManual ? formData.contractPaymentId : undefined,
+      contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
+      paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
+      attachments: isCustom ? customSupplierMetadata : undefined,
     });
   };
 
@@ -521,7 +575,33 @@ export default function EditLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية التي سوف تصرف</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5 pt-6 text-right">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {!isCustom ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                      <Input
+                        type="date"
+                        value={formData.dateMiladi}
+                        onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                        required
+                        className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="100"
+                        required
+                        value={formData.completionPercentage}
+                        onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                        className="text-right border-border focus:ring-primary rounded-xl h-10 font-black text-primary bg-background"
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
                     <Input
@@ -532,20 +612,7 @@ export default function EditLinkedDisbursementRequest() {
                       className="text-right border-border focus:ring-primary rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
                     />
                   </div>
-                  
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="100"
-                      required
-                      value={formData.completionPercentage}
-                      onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                      className="text-right border-border focus:ring-primary rounded-xl h-10 font-black text-primary bg-background"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
@@ -602,14 +669,16 @@ export default function EditLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
-                          <Input
-                            value={supplier.work}
-                            onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
-                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
+                            <Input
+                              value={supplier.work}
+                              onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                              className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-background"
+                            />
+                          </div>
+                        )}
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
@@ -630,32 +699,36 @@ export default function EditLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
-                          <Input
-                            type="number"
-                            value={supplier.agreedAmount || ""}
-                            readOnly
-                            className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-0 rounded-xl h-10 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
+                            <Input
+                              type="number"
+                              value={supplier.agreedAmount || ""}
+                              readOnly
+                              className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-0 rounded-xl h-10 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                            />
+                          </div>
+                        )}
 
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
-                            onChange={(e) => {
-                              const pct = parseFloat(e.target.value) || 0;
-                              const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                              updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
-                            }}
-                            className="text-center font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                              onChange={(e) => {
+                                const pct = parseFloat(e.target.value) || 0;
+                                const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                                updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                              }}
+                              className="text-center font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            />
+                          </div>
+                        )}
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ الفعلي (ريال) *</Label>
@@ -714,22 +787,13 @@ export default function EditLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex flex-col-reverse sm:flex-row justify-between gap-2">
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-start">
                 <Button
                   onClick={handleSubmit}
                   disabled={updateMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
                   className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm w-full sm:w-auto"
                 >
                   {updateMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="border-border rounded-xl h-11 px-6 font-bold w-full sm:w-auto"
-                >
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                  السابق
                 </Button>
               </CardFooter>
             </Card>

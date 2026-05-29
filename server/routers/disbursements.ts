@@ -15,6 +15,7 @@ import {
   users,
   notifications,
   donationOpportunities,
+  mosqueRequests,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, or, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -83,6 +84,7 @@ export const disbursementsRouter = router({
           amount: disbursementRequests.amount,
           paymentType: disbursementRequests.paymentType,
           completionPercentage: disbursementRequests.completionPercentage,
+          attachmentsJson: disbursementRequests.attachmentsJson,
           status: disbursementRequests.status,
           requestedAt: disbursementRequests.requestedAt,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -159,30 +161,39 @@ export const disbursementsRouter = router({
       }
 
       // جلب بيانات المشروع
-      const [project] = await db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          projectNumber: projects.projectNumber,
-          budget: projects.budget,
-          managerName: users.name,
-        })
-        .from(projects)
-        .leftJoin(users, eq(projects.managerId, users.id))
-        .where(eq(projects.id, request.projectId));
+      let project = null;
+      const projId = request.projectId;
+      if (projId) {
+        const [projectData] = await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            projectNumber: projects.projectNumber,
+            budget: projects.budget,
+            managerName: users.name,
+          })
+          .from(projects)
+          .leftJoin(users, eq(projects.managerId, users.id))
+          .where(eq(projects.id, projId));
+        project = projectData || null;
+      }
 
       // جلب فرصة التبرع المرتبطة بالمشروع إن وجدت
-      const [opportunity] = await db
-        .select({
-          id: donationOpportunities.id,
-          title: donationOpportunities.title,
-          collectedAmount: donationOpportunities.collectedAmount,
-          targetAmount: donationOpportunities.targetAmount,
-          status: donationOpportunities.status,
-        })
-        .from(donationOpportunities)
-        .where(eq(donationOpportunities.projectId, request.projectId))
-        .limit(1);
+      let opportunity = null;
+      if (projId) {
+        const [opportunityData] = await db
+          .select({
+            id: donationOpportunities.id,
+            title: donationOpportunities.title,
+            collectedAmount: donationOpportunities.collectedAmount,
+            targetAmount: donationOpportunities.targetAmount,
+            status: donationOpportunities.status,
+          })
+          .from(donationOpportunities)
+          .where(eq(donationOpportunities.projectId, projId))
+          .limit(1);
+        opportunity = opportunityData || null;
+      }
 
       // جلب بيانات العقد إن وجد
       let contract = null;
@@ -233,7 +244,7 @@ export const disbursementsRouter = router({
   createRequest: permissionProcedure("disbursements.create")
     .input(
       z.object({
-        projectId: z.number(),
+        projectId: z.number().optional().nullable(),
         contractId: z.number().optional(),
         contractPaymentId: z.number().optional(),
         paymentId: z.number().optional(),
@@ -267,14 +278,20 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
       }
 
-      // التحقق من وجود المشروع
-      const [project] = await db
-        .select()
-        .from(projects)
-        .where(eq(projects.id, input.projectId));
+      let projectId = input.projectId;
+      let project: any = null;
 
-      if (!project) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
+      if (projectId) {
+        // التحقق من وجود المشروع
+        const [projectData] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.id, projectId));
+
+        if (!projectData) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
+        }
+        project = projectData;
       }
 
       let validatedContractPaymentId = input.contractPaymentId;
@@ -341,7 +358,7 @@ export const disbursementsRouter = router({
 
       const [result] = await db.insert(disbursementRequests).values({
         requestNumber,
-        projectId: input.projectId,
+        projectId: projectId || null,
         contractId: input.contractId,
         contractPaymentId: validatedContractPaymentId,
         paymentId: validatedPaymentId,
@@ -366,7 +383,9 @@ export const disbursementsRouter = router({
         await db.insert(notifications).values({
           userId: user.id,
           title: "طلب صرف جديد",
-          message: `تم تقديم طلب صرف جديد رقم ${requestNumber} للمشروع ${project.name}`,
+          message: `تم تقديم طلب صرف جديد رقم ${requestNumber} ${
+            project ? `للمشروع ${project.name}` : "لطلب صرف مخصص (غير مربوط بمشروع)"
+          }`,
           type: "info",
           relatedType: "disbursement_request",
           relatedId: Number(result.insertId),
@@ -393,6 +412,11 @@ export const disbursementsRouter = router({
         dateMiladi: z.string().optional(),
         contractPaymentId: z.number().optional(),
         paymentId: z.number().optional(),
+        attachments: z.array(z.object({
+          name: z.string(),
+          url: z.string(),
+          type: z.string().optional(),
+        })).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -507,6 +531,7 @@ export const disbursementsRouter = router({
           dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
           contractPaymentId: validatedContractPaymentId,
           paymentId: validatedPaymentId,
+          attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : undefined,
           updatedAt: new Date(),
           // Clear rejection reason when a rejected request is edited
           rejectionReason: request.status === "rejected" ? null : request.rejectionReason,
@@ -623,10 +648,12 @@ export const disbursementsRouter = router({
         .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
 
       // جلب بيانات المشروع
-      const [project] = await db
-        .select({ name: projects.name })
-        .from(projects)
-        .where(eq(projects.id, request.projectId));
+      const project = request.projectId
+        ? (await db
+            .select({ name: projects.name })
+            .from(projects)
+            .where(eq(projects.id, request.projectId)))[0]
+        : null;
 
       for (const user of financialUsers) {
         await db.insert(notifications).values({
@@ -884,11 +911,12 @@ export const disbursementsRouter = router({
 
       // جلب المشروع وتفاصيل العقد والمدفوعات لتقرير أمر الصرف
       let project = null;
-      if (request) {
+      const projId = request?.projectId;
+      if (request && projId) {
         const [projectData] = await db
           .select()
           .from(projects)
-          .where(eq(projects.id, request.projectId));
+          .where(eq(projects.id, projId));
         
         if (projectData) {
           // جلب بيانات العقد
@@ -1039,10 +1067,12 @@ export const disbursementsRouter = router({
         ));
 
       // جلب بيانات المشروع
-      const [project] = await db
-        .select({ name: projects.name })
-        .from(projects)
-        .where(eq(projects.id, request.projectId));
+      const project = request.projectId
+        ? (await db
+            .select({ name: projects.name })
+            .from(projects)
+            .where(eq(projects.id, request.projectId)))[0]
+        : null;
 
       for (const manager of managers) {
         await db.insert(notifications).values({
@@ -1271,14 +1301,15 @@ export const disbursementsRouter = router({
       }
 
       // تحديث التكلفة الفعلية للمشروع
-      if (request?.projectId) {
+      const pId = request?.projectId;
+      if (pId) {
         await db
           .update(projects)
           .set({
             actualCost: sql`CAST(COALESCE(${projects.actualCost}, 0) + ${request.amount} AS DECIMAL(15,2))`,
             updatedAt: new Date(),
           })
-          .where(eq(projects.id, request.projectId));
+          .where(eq(projects.id, pId));
       }
       return { success: true, message: "تم تنفيذ أمر الصرف بنجاح" };
     }),

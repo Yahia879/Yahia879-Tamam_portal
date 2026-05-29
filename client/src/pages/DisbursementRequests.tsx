@@ -369,13 +369,55 @@ export default function DisbursementRequests() {
       (p: any) => p.projectId === request.projectId
     );
     
-    if (project) {
+    let customSupplier: any = null;
+    if (request.attachmentsJson) {
+      try {
+        const attachments = JSON.parse(request.attachmentsJson);
+        if (Array.isArray(attachments)) {
+          const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+          if (infoAttachment && infoAttachment.url) {
+            customSupplier = JSON.parse(infoAttachment.url);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing custom supplier:", e);
+      }
+    }
+
+    if (customSupplier) {
+      setSelectedProjectData({
+        projectName: "طلب صرف مخصص / عام",
+        contractAmount: customSupplier.agreedAmount || 0,
+        remainingAmount: 0,
+        projectId: request.projectId,
+      });
+      setNewOrder({
+        beneficiaryName: customSupplier.name || "",
+        beneficiaryBank: customSupplier.bank || "",
+        beneficiaryIban: customSupplier.iban || "",
+        beneficiaryAccountName: customSupplier.name || "",
+        sadadNumber: "",
+        billerCode: "",
+        paymentMethod: "bank_transfer",
+      });
+    } else if (project) {
       setSelectedProjectData(project);
       setNewOrder({
         beneficiaryName: project.supplierName || "",
         beneficiaryBank: project.supplierBank || "",
         beneficiaryIban: project.supplierIban || "",
         beneficiaryAccountName: project.supplierAccountName || "",
+        sadadNumber: "",
+        billerCode: "",
+        paymentMethod: "bank_transfer",
+      });
+    } else {
+      setSelectedProjectData(null);
+      setNewOrder({
+        beneficiaryName: "",
+        beneficiaryBank: "",
+        beneficiaryIban: "",
+        beneficiaryAccountName: "",
         sadadNumber: "",
         billerCode: "",
         paymentMethod: "bank_transfer",
@@ -397,10 +439,25 @@ export default function DisbursementRequests() {
         (p: any) => p.projectId === request.projectId
       );
       
-      const beneficiaryName = project?.supplierName || request.projectName || "مستفيد غير محدد";
-      const beneficiaryBank = project?.supplierBank || "";
-      const beneficiaryIban = project?.supplierIban || "";
-      const beneficiaryAccountName = project?.supplierAccountName || "";
+      let customSupplier: any = null;
+      if (request.attachmentsJson) {
+        try {
+          const attachments = JSON.parse(request.attachmentsJson);
+          if (Array.isArray(attachments)) {
+            const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+            if (infoAttachment && infoAttachment.url) {
+              customSupplier = JSON.parse(infoAttachment.url);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing custom supplier:", e);
+        }
+      }
+      
+      const beneficiaryName = customSupplier?.name || project?.supplierName || request.projectName || "مستفيد غير حدد";
+      const beneficiaryBank = customSupplier?.bank || project?.supplierBank || "";
+      const beneficiaryIban = customSupplier?.iban || project?.supplierIban || "";
+      const beneficiaryAccountName = customSupplier?.name || project?.supplierAccountName || beneficiaryName;
 
       createOrderMutation.mutate({
         disbursementRequestId: request.id,
@@ -1297,6 +1354,52 @@ export default function DisbursementRequests() {
                     </p>
                   </div>
                 </div>
+                {(() => {
+                  let customSupplier: any = null;
+                  if (selectedRequest.attachmentsJson) {
+                    try {
+                      const attachments = JSON.parse(selectedRequest.attachmentsJson);
+                      if (Array.isArray(attachments)) {
+                        const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+                        if (infoAttachment && infoAttachment.url) {
+                          customSupplier = JSON.parse(infoAttachment.url);
+                        }
+                      }
+                    } catch (e) {}
+                  }
+                  if (customSupplier) {
+                    return (
+                      <div className="mt-4 p-4 border rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3 text-right" dir="rtl">
+                        <h4 className="font-bold text-xs text-primary border-b pb-2">تفاصيل المستفيد والبيانات البنكية</h4>
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">اسم المستفيد:</span>
+                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{customSupplier.name}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">بيان الأعمال:</span>
+                            <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.work}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">البنك:</span>
+                            <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.bank}</p>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">رقم الآيبان (IBAN):</span>
+                            <p className="font-mono font-medium text-slate-700 dark:text-slate-300 mt-0.5" dir="ltr">{customSupplier.iban}</p>
+                          </div>
+                          {customSupplier.agreedAmount > 0 && (
+                            <div>
+                              <span className="text-muted-foreground">المبلغ المتفق عليه:</span>
+                              <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.agreedAmount.toLocaleString()} ريال</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
             <DialogFooter>

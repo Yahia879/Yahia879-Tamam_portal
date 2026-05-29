@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowRight,
   Send,
@@ -104,6 +105,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // التحكم بالخطوات
   const [step, setStep] = useState(1);
+  const [isCustom, setIsCustom] = useState(false);
   
   // بيانات النموذج
   const [formData, setFormData] = useState({
@@ -123,6 +125,23 @@ export default function NewLinkedDisbursementRequest() {
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>([
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
   ]);
+
+  // إعادة ضبط النموذج وتصفيره عند تفعيل الوضع المخصص غير المربوط بمشروع
+  useEffect(() => {
+    if (isCustom) {
+      setFormData(prev => ({
+        ...prev,
+        projectId: 0,
+        contractId: 0,
+        contractPaymentId: 0,
+        title: prev.title.startsWith("طلب صرف لـ") ? "" : prev.title,
+        description: prev.description.startsWith("تقرير إنجاز") ? "" : prev.description,
+        completionPercentage: 100, // النسبة الافتراضية
+      }));
+      setSelectedReportId(null);
+      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+    }
+  }, [isCustom]);
   
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
@@ -291,7 +310,16 @@ export default function NewLinkedDisbursementRequest() {
   
   // تحديث بيانات المورد
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
-    setSuppliers(suppliers.map(s => s.id === id ? { ...s, [field]: value } : s));
+    setSuppliers(suppliers.map(s => {
+      if (s.id === id) {
+        const updated = { ...s, [field]: value };
+        if (isCustom && field === "amount") {
+          updated.agreedAmount = Number(value);
+        }
+        return updated;
+      }
+      return s;
+    }));
   };
 
   // اختيار مورد من القائمة
@@ -311,7 +339,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // إرسال للاعتماد
   const handleSubmit = () => {
-    if (!formData.projectId) {
+    if (!isCustom && !formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
     }
@@ -340,35 +368,47 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
-    if (suppliers.some(s => s.amount > s.agreedAmount)) {
+    if (!isCustom && suppliers.some(s => s.amount > s.agreedAmount)) {
       toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
       return;
     }
 
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractDetails && totalAmount > contractAmount) {
+    if (!isCustom && contractDetails && totalAmount > contractAmount) {
       toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
       return;
     }
 
-    if (contractDetails && totalAmount > remainingForDisbursement && remainingForDisbursement > 0) {
+    if (!isCustom && contractDetails && totalAmount > remainingForDisbursement && remainingForDisbursement > 0) {
       toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
       return;
     }
     
     const isManual = paymentIdRaw.startsWith("manual-");
+    const customSupplierMetadata = isCustom ? [{
+      name: "custom_supplier_info",
+      url: JSON.stringify({
+        name: suppliers[0].name,
+        bank: suppliers[0].bank,
+        iban: suppliers[0].iban,
+        work: suppliers[0].work,
+        agreedAmount: suppliers[0].agreedAmount
+      }),
+      type: "metadata"
+    }] : [];
     
     createMutation.mutate({
-      projectId: formData.projectId,
-      contractId: formData.contractId || undefined,
-      contractPaymentId: isManual ? undefined : (formData.contractPaymentId || undefined),
-      paymentId: isManual ? formData.contractPaymentId : undefined,
+      projectId: isCustom ? null : formData.projectId,
+      contractId: isCustom ? undefined : (formData.contractId || undefined),
+      contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
+      paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
+      attachments: isCustom ? customSupplierMetadata : undefined,
     });
   };
   
@@ -462,27 +502,82 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                <div className="space-y-2 text-right">
-                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع *</Label>
-                  <Select
-                    value={formData.projectId.toString()}
-                    onValueChange={(value) => {
-                      setFormData({ ...formData, projectId: parseInt(value), contractId: 0 });
-                      setSelectedReportId(null);
-                    }}
-                  >
-                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                      <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
-                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
-                          {project.name} - {project.projectNumber}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* خيار نوع طلب الصرف */}
+                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/10 mb-4 text-right">
+                  <div className="text-right">
+                    <Label className="text-sm font-bold text-primary block">نوع طلب الصرف</Label>
+                    <span className="text-xs text-muted-foreground block mt-0.5">
+                      {isCustom ? "طلب صرف مخصص ومستقل تماماً وغير مربوط بمشروع" : "طلب صرف مرتبط بمشروع وتقرير إنجاز معتمد"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-600">طلب مخصص</span>
+                    <Switch
+                      checked={isCustom}
+                      onCheckedChange={setIsCustom}
+                    />
+                  </div>
                 </div>
+
+                {!isCustom ? (
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع *</Label>
+                    <Select
+                      value={formData.projectId.toString()}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, projectId: parseInt(value), contractId: 0 });
+                        setSelectedReportId(null);
+                      }}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
+                          <SelectItem key={project.id} value={project.id.toString()} className="text-right">
+                            {project.name} - {project.projectNumber}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-slide-up text-right">
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
+                      <Input
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="أدخل عنوان طلب الصرف المالي"
+                        required
+                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الوصف وتفاصيل الأعمال *</Label>
+                      <Textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="أدخل وصفاً تفصيلياً للأعمال والمنجزات المصاحبة لطلب الصرف..."
+                        rows={4}
+                        required
+                        className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                      <Input
+                        type="date"
+                        value={formData.dateMiladi}
+                        onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                        required
+                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {formData.projectId > 0 && (
                   <div className="space-y-4 text-right animate-slide-up">
@@ -583,7 +678,7 @@ export default function NewLinkedDisbursementRequest() {
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={!selectedReportId}
+                  disabled={isCustom ? (!formData.title || !formData.description || !formData.dateMiladi) : !selectedReportId}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm"
                 >
                   التالي
@@ -621,7 +716,33 @@ export default function NewLinkedDisbursementRequest() {
                 )}
 
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {!isCustom ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                      <Input
+                        type="date"
+                        value={formData.dateMiladi}
+                        readOnly
+                        required
+                        className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="100"
+                        required
+                        value={formData.completionPercentage}
+                        readOnly
+                        className="text-right border-border focus:ring-0 rounded-xl h-10 font-black text-primary bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
                     <Input
@@ -632,20 +753,7 @@ export default function NewLinkedDisbursementRequest() {
                       className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                     />
                   </div>
-                  
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="100"
-                      required
-                      value={formData.completionPercentage}
-                      readOnly
-                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-black text-primary bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
@@ -696,29 +804,54 @@ export default function NewLinkedDisbursementRequest() {
                         {/* اسم المورد */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
-                          <Input
-                            value={supplier.name}
-                            readOnly
-                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                          />
+                          {isCustom ? (
+                            <Select
+                              value={supplier.name}
+                              onValueChange={(val) => handleSelectSupplier(supplier.id, val)}
+                            >
+                              <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background w-full" dir="rtl">
+                                <SelectValue placeholder="اختر المستفيد" />
+                              </SelectTrigger>
+                              <SelectContent dir="rtl">
+                                {allSuppliers?.map((s: any) => (
+                                  <SelectItem key={s.id} value={s.name} className="text-right">
+                                    {s.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              value={supplier.name}
+                              readOnly
+                              className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                            />
+                          )}
                         </div>
 
                         {/* الأعمال */}
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
-                          <Input
-                            value={supplier.work}
-                            readOnly
-                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">بيان الأعمال / الدفعة *</Label>
+                            <Input
+                              value={supplier.work}
+                              readOnly={!isCustom}
+                              onChange={(e) => updateSupplier(supplier.id, "work", e.target.value)}
+                              placeholder="مثال: توريد مواد بنائية"
+                              className={`text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 ${
+                                isCustom ? "bg-background" : "bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                              }`}
+                            />
+                          </div>
+                        )}
 
                         {/* البنك */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
                           <Input
                             value={supplier.bank}
-                            readOnly
+                            readOnly={true}
+                            placeholder="مثال: البنك الأهلي"
                             className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                           />
                         </div>
@@ -728,42 +861,55 @@ export default function NewLinkedDisbursementRequest() {
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
                           <Input
                             value={supplier.iban}
-                            readOnly
+                            readOnly={true}
+                            placeholder="SA0000000000000000000000"
                             className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                             dir="ltr"
                           />
                         </div>
 
                         {/* المبلغ المتفق عليه للدفعة */}
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
-                          <Input
-                            type="number"
-                            value={supplier.agreedAmount || ""}
-                            readOnly
-                            required
-                            className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-0 rounded-xl h-10 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
+                            <Input
+                              type="number"
+                              value={supplier.agreedAmount || ""}
+                              readOnly={!isCustom}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                updateSupplier(supplier.id, "agreedAmount", val);
+                                updateSupplier(supplier.id, "amount", val);
+                              }}
+                              placeholder="0.00"
+                              required
+                              className={`text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-primary rounded-xl h-10 ${
+                                isCustom ? "bg-background" : "bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                              }`}
+                            />
+                          </div>
+                        )}
 
                         {/* النسبة (%) */}
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
-                            onChange={(e) => {
-                                const pct = parseFloat(e.target.value) || 0;
-                                const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
-                                updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
-                            }}
-                            placeholder="0"
-                            className="text-right font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
-                          />
-                        </div>
+                        {!isCustom && (
+                          <div className="space-y-2 text-right">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">النسبة (%)</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
+                              onChange={(e) => {
+                                  const pct = parseFloat(e.target.value) || 0;
+                                  const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
+                                  updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
+                              }}
+                              placeholder="0"
+                              className="text-right font-bold text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            />
+                          </div>
+                        )}
 
                         {/* المبلغ */}
                         <div className="space-y-2 text-right">
@@ -797,12 +943,16 @@ export default function NewLinkedDisbursementRequest() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">{projectDetails?.name || "المشروع المحدد"}</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                      {isCustom ? "طلب صرف مخصص / عام" : (projectDetails?.name || "المشروع المحدد")}
+                    </span>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-muted-foreground block font-bold">رقم تقرير الإنجاز</span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedReport?.reportNumber || "لا يوجد"}</span>
-                  </div>
+                  {!isCustom && (
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-muted-foreground block font-bold">رقم تقرير الإنجاز</span>
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{selectedReport?.reportNumber || "لا يوجد"}</span>
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
@@ -815,7 +965,7 @@ export default function NewLinkedDisbursementRequest() {
                     </span>
                   </div>
                   
-                  {contractDetails && (
+                  {!isCustom && contractDetails && (
                     <div className="text-xs text-left">
                       <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
                       <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
@@ -829,7 +979,7 @@ export default function NewLinkedDisbursementRequest() {
             <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
+                disabled={createMutation.isPending || (!isCustom && suppliers.some(s => s.amount > s.agreedAmount))}
                 className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />
