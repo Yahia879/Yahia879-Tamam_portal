@@ -31,6 +31,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  X,
   Ban,
   ArrowRight,
   Copy,
@@ -214,7 +215,10 @@ export default function SupplierDetails() {
     try {
       const parts = previewDoc.data.split(";base64,");
       const contentType = parts[0].split(":")[1] || "application/octet-stream";
-      const ext = contentType.includes("pdf") ? "pdf" : contentType.includes("png") ? "png" : contentType.includes("jpeg") ? "jpg" : "bin";
+      
+      // الحصول على اللاحقة مباشرة من الـ mimeType لتدعم كل الأنواع (مثل webp, pdf, png, jpeg, gif)
+      const mimeSubtype = contentType.split("/")[1] || "bin";
+      const ext = mimeSubtype === "jpeg" ? "jpg" : mimeSubtype;
       
       const link = document.createElement("a");
       link.href = previewDoc.data;
@@ -898,71 +902,63 @@ export default function SupplierDetails() {
         </DialogContent>
       </Dialog>
 
-      {/* نافذة معاينة المستندات المبتكرة الداعمة للتصفح الجميل، التنزيل الفوري، والتصميم عالي الجودة */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-4xl max-h-[92vh] flex flex-col justify-between overflow-hidden" dir="rtl">
-          
-          <DialogHeader className="border-b pb-4 shrink-0">
-            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                <FileText className="h-5 w-5" />
-              </div>
-              معاينة مستند: {previewDoc ? previewDoc.title : ""}
-            </DialogTitle>
-            <DialogDescription className="text-[11px]">
-              فحص الملف المرفق المشفر وحفظه محلياً بطريقة آمنة
-            </DialogDescription>
-          </DialogHeader>
+      {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
+      {previewDoc && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div 
+            className="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center bg-slate-900/70 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button 
+              onClick={() => setPreviewDoc(null)}
+              className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full p-2 transition-all z-10 shadow-lg"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-          {previewDoc && (
-            <div className="my-6 flex-1 overflow-y-auto min-h-[50vh] flex items-center justify-center rounded-xl bg-slate-50 border border-slate-100 p-4 dark:bg-slate-900/40 dark:border-slate-800">
+            {/* Download button */}
+            <button 
+              onClick={handleDownloadPreview}
+              className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2 transition-all flex items-center gap-1.5 px-3 z-10 shadow-lg"
+              title="تحميل"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+            </button>
+
+            {/* Image or PDF container */}
+            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-auto mt-12 mb-2 min-h-[60vh]">
               {previewDoc.data.startsWith("data:application/pdf") ? (
-                <iframe
-                  src={previewDoc.data}
-                  className="w-full h-[60vh] border rounded-lg bg-white shadow-xs"
-                  title={previewDoc.title}
-                />
-              ) : previewDoc.data.startsWith("data:image/") ? (
-                <img
-                  src={previewDoc.data}
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm border bg-white"
-                  alt={previewDoc.title}
+                <iframe 
+                  src={previewDoc.data} 
+                  title={previewDoc.title} 
+                  className="w-full h-[65vh] border rounded-lg bg-white shadow-xs"
                 />
               ) : (
-                <div className="text-center py-12 space-y-4">
-                  <div className="h-14 w-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">صيغة الملف غير مدعومة للمعاينة المباشرة</h4>
-                    <p className="text-xs text-muted-foreground mt-1">يرجى تحميل الملف لعرضه على جهازك الشخصي</p>
-                  </div>
-                </div>
+                <img 
+                  src={previewDoc.data} 
+                  alt={previewDoc.title} 
+                  className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-md border bg-white"
+                />
               )}
             </div>
-          )}
 
-          <DialogFooter className="border-t pt-4 shrink-0 flex flex-row justify-between items-center gap-4">
-            <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
-              <Info className="h-4 w-4 text-slate-400" />
-              الملف مشفر ومحمي داخل بيئة الخادم الآمنة
-            </span>
-            <div className="flex gap-2 shrink-0">
-              <Button
-                className="bg-primary hover:bg-primary/95 text-primary-foreground font-semibold gap-1.5 h-9 shrink-0"
-                onClick={handleDownloadPreview}
-              >
-                <Download className="h-4 w-4" />
-                تحميل الملف لجهازك
-              </Button>
-              <Button variant="outline" onClick={() => setPreviewDoc(null)} className="font-semibold h-9 shrink-0">
-                إغلاق
-              </Button>
+            {/* Caption/Name */}
+            <div className="mt-2 text-center px-4 py-2 w-full border-t border-slate-850/60 bg-slate-950/30 flex justify-between items-center text-slate-300">
+              <p className="text-xs font-medium flex items-center gap-1">
+                <Info className="h-3.5 w-3.5 text-slate-400" />
+                معاينة مستند - {previewDoc.title}
+              </p>
+              <p className="text-xs font-bold">{previewDoc.title}</p>
             </div>
-          </DialogFooter>
-          
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
   );
