@@ -166,7 +166,7 @@ export default function ContractsList() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="overflow-x-auto pb-2 -mb-2">
+          <div className="overflow-x-auto pb-2 -mb-2 flex justify-start" dir="rtl">
             <TabsList className="flex w-max sm:w-full max-w-md sm:grid sm:grid-cols-2">
               <TabsTrigger value="contracts" className="flex items-center gap-2 whitespace-nowrap">
                 <FileText className="h-4 w-4" />
@@ -181,45 +181,17 @@ export default function ContractsList() {
 
           {/* تبويب العقود المبرمة */}
           <TabsContent value="contracts" className="space-y-4 pt-4">
-            {/* أدوات الفلترة والبحث */}
+            {/* أدوات البحث */}
             <Card>
               <CardContent className="pt-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pr-10"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full lg:w-48">
-                        <SelectValue placeholder="حالة العقد" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONTRACT_STATUSES.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
-                            {status.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={typeFilter} onValueChange={setTypeFilter}>
-                      <SelectTrigger className="w-full lg:w-48">
-                        <SelectValue placeholder="نوع العقد" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CONTRACT_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pr-10"
+                  />
                 </div>
               </CardContent>
             </Card>

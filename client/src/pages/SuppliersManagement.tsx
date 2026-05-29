@@ -188,6 +188,54 @@ export default function SuppliersManagement() {
     suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
   };
 
+  // دالة مساعدة لفتح المرفقات المشفرة بـ Base64 أو الروابط العادية في نافذة جديدة بشكل آمن
+  const handleViewAttachment = (base64Data: string, title: string) => {
+    if (!base64Data) return;
+    try {
+      // إذا كان رابطاً عادياً، نفتحه مباشرة
+      if (base64Data.startsWith("http://") || base64Data.startsWith("https://") || base64Data.startsWith("/")) {
+        window.open(base64Data, "_blank");
+        return;
+      }
+
+      // محاولة تحليل صيغة Base64
+      const parts = base64Data.split(";base64,");
+      if (parts.length !== 2) {
+        window.open(base64Data, "_blank");
+        return;
+      }
+
+      const contentType = parts[0].split(":")[1] || "application/octet-stream";
+      const raw = window.atob(parts[1]);
+      const rawLength = raw.length;
+      const uInt8Array = new Uint8Array(rawLength);
+
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
+
+      const blob = new Blob([uInt8Array], { type: contentType });
+      const blobURL = URL.createObjectURL(blob);
+      
+      // فتح في نافذة جديدة بشكل آمن لتفادي قيود المتصفح على روابط data:
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.location.href = blobURL;
+      } else {
+        // في حال تم حظر النافذة المنبثقة، يتم تحميل الملف تلقائياً
+        const link = document.createElement("a");
+        link.href = blobURL;
+        link.download = `${title}.${contentType.includes("pdf") ? "pdf" : "png"}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error("Error opening base64 attachment:", err);
+      toast.error("فشل فتح المرفق. قد يكون الملف تالفاً أو غير مدعوم.");
+    }
+  };
+
   // إحصائيات سريعة
   const suppliersList = suppliers?.suppliers || [];
   const stats = suppliers?.stats || {
@@ -544,52 +592,44 @@ export default function SuppliersManagement() {
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {selectedSupplier.commercialRegisterDoc && (
-                    <a
-                      href={selectedSupplier.commercialRegisterDoc}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => handleViewAttachment(selectedSupplier.commercialRegisterDoc, "السجل التجاري")}
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
                     >
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-sm">السجل التجاري</span>
-                      <ExternalLink className="h-3 w-3 mr-auto" />
-                    </a>
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-sm truncate">السجل التجاري</span>
+                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
+                    </button>
                   )}
                   {selectedSupplier.vatCertificateDoc && (
-                    <a
-                      href={selectedSupplier.vatCertificateDoc}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => handleViewAttachment(selectedSupplier.vatCertificateDoc, "شهادة الضريبة")}
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
                     >
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-sm">شهادة الضريبة</span>
-                      <ExternalLink className="h-3 w-3 mr-auto" />
-                    </a>
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-sm truncate">شهادة الضريبة</span>
+                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
+                    </button>
                   )}
                   {selectedSupplier.nationalAddressDoc && (
-                    <a
-                      href={selectedSupplier.nationalAddressDoc}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => handleViewAttachment(selectedSupplier.nationalAddressDoc, "العنوان الوطني")}
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
                     >
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-sm">العنوان الوطني</span>
-                      <ExternalLink className="h-3 w-3 mr-auto" />
-                    </a>
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-sm truncate">العنوان الوطني</span>
+                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
+                    </button>
                   )}
                   {selectedSupplier.bankCertificateDoc && (
-                    <a
-                      href={selectedSupplier.bankCertificateDoc}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                    <button
+                      onClick={() => handleViewAttachment(selectedSupplier.bankCertificateDoc, "الشهادة البنكية")}
+                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
                     >
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-sm">الشهادة البنكية</span>
-                      <ExternalLink className="h-3 w-3 mr-auto" />
-                    </a>
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <span className="text-sm truncate">الشهادة البنكية</span>
+                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
+                    </button>
                   )}
                 </div>
 
@@ -599,19 +639,17 @@ export default function SuppliersManagement() {
                     <h4 className="font-medium text-sm text-muted-foreground mb-3 font-semibold">مرفقات إضافية:</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {selectedSupplier.otherAttachments.map((attr: any, index: number) => (
-                        <a
+                        <button
                           key={index}
-                          href={attr.fileData}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors group"
+                          onClick={() => handleViewAttachment(attr.fileData, attr.name || `مرفق ${index + 1}`)}
+                          className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors group text-right w-full"
                         >
-                          <FileText className="h-5 w-5 text-primary" />
-                          <div className="flex flex-col overflow-hidden">
+                          <FileText className="h-5 w-5 text-primary shrink-0" />
+                          <div className="flex flex-col overflow-hidden text-right">
                             <span className="text-sm font-medium truncate">{attr.name || `مرفق ${index + 1}`}</span>
                           </div>
-                          <ExternalLink className="h-3 w-3 mr-auto opacity-50 group-hover:opacity-100" />
-                        </a>
+                          <ExternalLink className="h-3 w-3 mr-auto opacity-50 group-hover:opacity-100 shrink-0" />
+                        </button>
                       ))}
                     </div>
                   </div>
