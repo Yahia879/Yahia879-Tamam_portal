@@ -2,7 +2,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { z } from "zod";
 import { getDb } from "../db";
-import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests, notifications } from "../../drizzle/schema";
+import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
 import { eq, and, gte, lte, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -127,20 +127,6 @@ export const fieldVisitsRouter = router({
           userId: ctx.user.id,
           comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
           isRead: false,
-        });
-      }
-
-      // إرسال إشعار للموظف الميداني المعين
-      if (assignedUserId) {
-        const reqRecord = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, requestId)).limit(1);
-        const reqNum = reqRecord[0]?.requestNumber || '';
-        await db.insert(notifications).values({
-          userId: assignedUserId,
-          title: "زيارة ميدانية مجدولة",
-          message: `تم تكليفك بزيارة ميدانية للطلب رقم ${reqNum} بتاريخ ${new Date(visitDate).toLocaleDateString("ar-SA")} الساعة ${visitTime}`,
-          type: "info",
-          relatedType: "request",
-          relatedId: requestId,
         });
       }
 
