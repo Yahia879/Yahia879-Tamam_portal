@@ -1446,6 +1446,18 @@ export const requestsRouter = router({
               status: phase.phaseOrder === 1 ? 'completed' : (phase.phaseOrder === 2 ? 'in_progress' : 'pending'),
             });
           }
+
+          // إشعار مدير المشروع المعين
+          if (input.managerId) {
+            await db.insert(notifications).values({
+              userId: input.managerId,
+              title: "تم تعيينك كمدير مشروع",
+              message: `تم تعيينك كمدير للمشروع الجديد: ${projectNameToUse} (الطلب رقم ${request[0].requestNumber})`,
+              type: "info",
+              relatedType: "request",
+              relatedId: input.requestId,
+            });
+          }
         }
         // إشعار الإدارة المالية ومكتب المشاريع
         const financialTeam = await db.select({ id: users.id })

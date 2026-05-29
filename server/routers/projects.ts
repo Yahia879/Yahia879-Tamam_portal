@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, notifications } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -493,6 +493,18 @@ export const projectsRouter = router({
         .set({ status: "in_progress", currentStage: "execution" })
         .where(eq(mosqueRequests.id, input.requestId));
 
+      // إرسال إشعار للمدير المعين
+      if (input.managerId) {
+        await db.insert(notifications).values({
+          userId: input.managerId,
+          title: "تم تعيينك كمدير مشروع",
+          message: `تم تعيينك كمدير مشروع جديد: ${input.name} (رقم المشروع: ${projectNumber})`,
+          type: "info",
+          relatedType: "project",
+          relatedId: newProject.insertId,
+        });
+      }
+
       return {
         projectId: newProject.insertId,
         projectNumber,
@@ -534,6 +546,20 @@ export const projectsRouter = router({
         .update(projects)
         .set(updateValues)
         .where(eq(projects.id, id));
+
+      if (updateData.managerId) {
+        const project = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+        if (project.length > 0) {
+          await db.insert(notifications).values({
+            userId: updateData.managerId,
+            title: "تم تعيينك كمدير للمشروع",
+            message: `تم تعيينك كمدير للمشروع: ${project[0].name} (رقم المشروع: ${project[0].projectNumber})`,
+            type: "info",
+            relatedType: "project",
+            relatedId: id,
+          });
+        }
+      }
 
       return { success: true };
     }),
