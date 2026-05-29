@@ -52,6 +52,7 @@ import {
   RefreshCw,
   ExternalLink,
   Plus,
+  Download,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -92,11 +93,6 @@ export default function SuppliersManagement() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
-  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-
   // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
   const getWorkFieldsArray = (workFields: any): string[] => {
     if (!workFields) return [];
@@ -126,31 +122,6 @@ export default function SuppliersManagement() {
     search: searchQuery || undefined,
   });
 
-  // Mutations
-  const approveMutation = trpc.suppliers.approve.useMutation({
-    onSuccess: () => {
-      toast.success("تم اعتماد المورد بنجاح");
-      refetch();
-      setShowDetailsDialog(false);
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء اعتماد المورد");
-    },
-  });
-
-  const rejectMutation = trpc.suppliers.reject.useMutation({
-    onSuccess: () => {
-      toast.success("تم رفض المورد");
-      refetch();
-      setShowRejectDialog(false);
-      setShowDetailsDialog(false);
-      setRejectReason("");
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء رفض المورد");
-    },
-  });
-
   const suspendMutation = trpc.suppliers.suspend.useMutation({
     onSuccess: () => {
       toast.success("تم إيقاف المورد");
@@ -161,79 +132,14 @@ export default function SuppliersManagement() {
     },
   });
 
-  // فتح تفاصيل المورد
+  // فتح تفاصيل المورد بالانتقال لصفحة التفاصيل المنفصلة
   const openSupplierDetails = (supplier: any) => {
-    setSelectedSupplier(supplier);
-    setShowDetailsDialog(true);
-  };
-
-  // اعتماد المورد
-  const handleApprove = (id?: number) => {
-    const supplierId = id || selectedSupplier?.id;
-    if (!supplierId) return;
-    approveMutation.mutate({ id: supplierId });
-  };
-
-  // رفض المورد
-  const handleReject = () => {
-    if (!selectedSupplier || !rejectReason.trim()) {
-      toast.error("يرجى إدخال سبب الرفض");
-      return;
-    }
-    rejectMutation.mutate({ id: selectedSupplier.id, reason: rejectReason });
+    navigate(`/suppliers/${supplier.id}`);
   };
 
   // إيقاف المورد
   const handleSuspend = (supplierId: number) => {
     suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
-  };
-
-  // دالة مساعدة لفتح المرفقات المشفرة بـ Base64 أو الروابط العادية في نافذة جديدة بشكل آمن
-  const handleViewAttachment = (base64Data: string, title: string) => {
-    if (!base64Data) return;
-    try {
-      // إذا كان رابطاً عادياً، نفتحه مباشرة
-      if (base64Data.startsWith("http://") || base64Data.startsWith("https://") || base64Data.startsWith("/")) {
-        window.open(base64Data, "_blank");
-        return;
-      }
-
-      // محاولة تحليل صيغة Base64
-      const parts = base64Data.split(";base64,");
-      if (parts.length !== 2) {
-        window.open(base64Data, "_blank");
-        return;
-      }
-
-      const contentType = parts[0].split(":")[1] || "application/octet-stream";
-      const raw = window.atob(parts[1]);
-      const rawLength = raw.length;
-      const uInt8Array = new Uint8Array(rawLength);
-
-      for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
-      }
-
-      const blob = new Blob([uInt8Array], { type: contentType });
-      const blobURL = URL.createObjectURL(blob);
-      
-      // فتح في نافذة جديدة بشكل آمن لتفادي قيود المتصفح على روابط data:
-      const newWindow = window.open();
-      if (newWindow) {
-        newWindow.location.href = blobURL;
-      } else {
-        // في حال تم حظر النافذة المنبثقة، يتم تحميل الملف تلقائياً
-        const link = document.createElement("a");
-        link.href = blobURL;
-        link.download = `${title}.${contentType.includes("pdf") ? "pdf" : "png"}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (err) {
-      console.error("Error opening base64 attachment:", err);
-      toast.error("فشل فتح المرفق. قد يكون الملف تالفاً أو غير مدعوم.");
-    }
   };
 
   // إحصائيات سريعة
@@ -367,7 +273,14 @@ export default function SuppliersManagement() {
                     
                     return (
                       <TableRow key={supplier.id}>
-                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell className="font-bold text-slate-800 dark:text-slate-200">
+                          <button
+                            onClick={() => openSupplierDetails(supplier)}
+                            className="hover:text-teal-600 hover:underline text-right transition-colors"
+                          >
+                            {supplier.name}
+                          </button>
+                        </TableCell>
                         <TableCell>
                           {supplier.entityType === "company" ? "شركة" : "مؤسسة"}
                         </TableCell>
@@ -407,29 +320,6 @@ export default function SuppliersManagement() {
                                 <Eye className="h-4 w-4 ml-2" />
                                 عرض التفاصيل
                               </DropdownMenuItem>
-                              {supplier.approvalStatus === "pending" && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      handleApprove(supplier.id);
-                                    }}
-                                    className="text-green-600"
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 ml-2" />
-                                    اعتماد
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedSupplier(supplier);
-                                      setShowRejectDialog(true);
-                                    }}
-                                    className="text-red-600"
-                                  >
-                                    <XCircle className="h-4 w-4 ml-2" />
-                                    رفض
-                                  </DropdownMenuItem>
-                                </>
-                              )}
                               {supplier.approvalStatus === "approved" && (
                                 <DropdownMenuItem
                                   onClick={() => handleSuspend(supplier.id)}
@@ -451,298 +341,6 @@ export default function SuppliersManagement() {
           </CardContent>
         </Card>
       </div>
-
-      {/* نافذة تفاصيل المورد */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>تفاصيل المورد</DialogTitle>
-            <DialogDescription>
-              معلومات المورد كاملة للمراجعة والاعتماد
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedSupplier && (
-            <div className="space-y-6">
-              {/* معلومات الكيان */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  معلومات الكيان
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">اسم الكيان:</span>
-                    <p className="font-medium">{selectedSupplier.name}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">نوع الكيان:</span>
-                    <p className="font-medium">
-                      {selectedSupplier.entityType === "company" ? "شركة" : "مؤسسة"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">السجل التجاري:</span>
-                    <p className="font-medium" dir="ltr">{selectedSupplier.commercialRegister}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">سنوات الخبرة:</span>
-                    <p className="font-medium">{selectedSupplier.yearsOfExperience} سنة</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">النشاط التجاري:</span>
-                    <p className="font-medium">{selectedSupplier.commercialActivity}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">مجالات العمل:</span>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {getWorkFieldsArray(selectedSupplier.workFields).map((field: string) => (
-                        <Badge key={field} variant="secondary">
-                          {WORK_FIELD_LABELS[field] || field}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* معلومات التواصل */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-primary" />
-                  معلومات التواصل
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">العنوان:</span>
-                    <p className="font-medium">{selectedSupplier.address}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">المدينة:</span>
-                    <p className="font-medium">{selectedSupplier.city || "-"}</p>
-                  </div>
-                  {selectedSupplier.googleMapsUrl && (
-                    <div>
-                      <span className="text-muted-foreground">الموقع:</span>
-                      <a
-                        href={selectedSupplier.googleMapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <MapPin className="h-4 w-4" />
-                        عرض على الخريطة
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
-                  <div>
-                    <span className="text-muted-foreground">البريد الإلكتروني:</span>
-                    <p className="font-medium flex items-center gap-1" dir="ltr">
-                      <Mail className="h-4 w-4" />
-                      {selectedSupplier.email}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">رقم التواصل:</span>
-                    <p className="font-medium" dir="ltr">{selectedSupplier.phone}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">مسؤول التواصل:</span>
-                    <p className="font-medium">{selectedSupplier.contactPerson}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">الوظيفة:</span>
-                    <p className="font-medium">{selectedSupplier.contactPersonTitle}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* معلومات البنك */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  معلومات الحساب البنكي
-                </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">اسم الحساب:</span>
-                    <p className="font-medium">{selectedSupplier.bankAccountName}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">البنك:</span>
-                    <p className="font-medium">{selectedSupplier.bankName}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">الآيبان:</span>
-                    <p className="font-medium" dir="ltr">{selectedSupplier.iban}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">الرقم الضريبي:</span>
-                    <p className="font-medium" dir="ltr">{selectedSupplier.taxNumber}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* المرفقات */}
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  المرفقات
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {selectedSupplier.commercialRegisterDoc && (
-                    <button
-                      onClick={() => handleViewAttachment(selectedSupplier.commercialRegisterDoc, "السجل التجاري")}
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
-                    >
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm truncate">السجل التجاري</span>
-                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
-                    </button>
-                  )}
-                  {selectedSupplier.vatCertificateDoc && (
-                    <button
-                      onClick={() => handleViewAttachment(selectedSupplier.vatCertificateDoc, "شهادة الضريبة")}
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
-                    >
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm truncate">شهادة الضريبة</span>
-                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
-                    </button>
-                  )}
-                  {selectedSupplier.nationalAddressDoc && (
-                    <button
-                      onClick={() => handleViewAttachment(selectedSupplier.nationalAddressDoc, "العنوان الوطني")}
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
-                    >
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm truncate">العنوان الوطني</span>
-                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
-                    </button>
-                  )}
-                  {selectedSupplier.bankCertificateDoc && (
-                    <button
-                      onClick={() => handleViewAttachment(selectedSupplier.bankCertificateDoc, "الشهادة البنكية")}
-                      className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors text-right w-full"
-                    >
-                      <FileText className="h-5 w-5 text-primary shrink-0" />
-                      <span className="text-sm truncate">الشهادة البنكية</span>
-                      <ExternalLink className="h-3 w-3 mr-auto text-muted-foreground shrink-0" />
-                    </button>
-                  )}
-                </div>
-
-                {/* المرفقات الإضافية */}
-                {selectedSupplier.otherAttachments && Array.isArray(selectedSupplier.otherAttachments) && selectedSupplier.otherAttachments.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3 font-semibold">مرفقات إضافية:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {selectedSupplier.otherAttachments.map((attr: any, index: number) => (
-                        <button
-                          key={index}
-                          onClick={() => handleViewAttachment(attr.fileData, attr.name || `مرفق ${index + 1}`)}
-                          className="flex items-center gap-2 p-3 border rounded-lg hover:bg-gray-50 transition-colors group text-right w-full"
-                        >
-                          <FileText className="h-5 w-5 text-primary shrink-0" />
-                          <div className="flex flex-col overflow-hidden text-right">
-                            <span className="text-sm font-medium truncate">{attr.name || `مرفق ${index + 1}`}</span>
-                          </div>
-                          <ExternalLink className="h-3 w-3 mr-auto opacity-50 group-hover:opacity-100 shrink-0" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* سبب الرفض (إذا كان مرفوضاً) */}
-              {selectedSupplier.approvalStatus === "rejected" && selectedSupplier.rejectionReason && (
-                <div className="border border-red-200 bg-red-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-red-800 mb-2">سبب الرفض</h3>
-                  <p className="text-red-700">{selectedSupplier.rejectionReason}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            {selectedSupplier?.approvalStatus === "pending" && (
-              <>
-                <PermissionGuard permission="suppliers.reject">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowRejectDialog(true);
-                    }}
-                    className="text-red-600 border-red-200 hover:bg-red-50"
-                  >
-                    <XCircle className="h-4 w-4 ml-2" />
-                    رفض
-                  </Button>
-                </PermissionGuard>
-                <PermissionGuard permission="suppliers.approve">
-                  <Button
-                    onClick={() => handleApprove()}
-                    disabled={approveMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {approveMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                    ) : (
-                      <CheckCircle2 className="h-4 w-4 ml-2" />
-                    )}
-                    اعتماد المورد
-                  </Button>
-                </PermissionGuard>
-              </>
-            )}
-            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-              إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* نافذة الرفض */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>رفض المورد</DialogTitle>
-            <DialogDescription>
-              يرجى إدخال سبب رفض طلب تسجيل المورد
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>سبب الرفض *</Label>
-              <Textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="أدخل سبب رفض طلب التسجيل..."
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              إلغاء
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={rejectMutation.isPending || !rejectReason.trim()}
-            >
-              {rejectMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-              ) : (
-                <XCircle className="h-4 w-4 ml-2" />
-              )}
-              تأكيد الرفض
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
