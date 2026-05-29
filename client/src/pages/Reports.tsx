@@ -12,7 +12,10 @@ import {
   TrendingUp, 
   Loader2,
   AlertCircle,
-  Eye
+  Eye,
+  Coins,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS } from "@shared/constants";
 import { trpc } from "@/lib/trpc";
@@ -40,7 +43,50 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1', '#a4de6c'];
+const COLORS = [
+  '#0f766e', // Teal 700
+  '#4338ca', // Indigo 700
+  '#6d28d9', // Violet 700
+  '#be185d', // Pink 700
+  '#b45309', // Amber 700
+  '#047857', // Emerald 700
+  '#0369a1', // Sky 700
+  '#1d4ed8', // Blue 700
+  '#a21caf', // Fuchsia 700
+];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-xl shadow-xl text-xs font-medium opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-semibold text-foreground mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />
+          <span className="text-muted-foreground">عدد الطلبات:</span>
+          <span className="font-bold text-foreground mr-auto">{payload[0].value}</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border shadow-xl p-3 rounded-xl text-xs font-semibold text-foreground min-w-[150px] opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{data.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: payload[0].color }} />
+          <span className="text-muted-foreground">عدد الطلبات:</span>
+          <span className="font-black text-foreground mr-auto">{data.value}</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Reports() {
   const [programFilter, setProgramFilter] = useState("all");
@@ -92,6 +138,10 @@ export default function Reports() {
       value: item.count
     }));
   }, [kpiData]);
+
+  const programChartTotal = useMemo(() => {
+    return programChartData.reduce((acc, curr) => acc + curr.value, 0);
+  }, [programChartData]);
 
   const trendChartData = useMemo(() => {
     if (!kpiData?.monthlyTrend) return [];
@@ -185,65 +235,65 @@ export default function Reports() {
 
         {/* بطاقات الملخص */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm relative overflow-hidden">
+          <Card className="border border-primary/10 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-primary/5 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">إجمالي الطلبات</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">إجمالي الطلبات</p>
+                  <p className="text-3xl font-bold text-foreground mt-2">
                     {kpiLoading ? "..." : kpiData?.summary?.totalRequests.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner">
                   <FileText className="w-6 h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          <Card className="border border-emerald-500/10 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-emerald-500/5 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">المساجد المخدومة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">المساجد المخدومة</p>
+                  <p className="text-3xl font-bold text-foreground mt-2">
                     {kpiLoading ? "..." : kpiData?.summary?.benefitedMosques.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center shadow-inner">
+                  <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          <Card className="border border-amber-500/10 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-amber-500/5 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">إجمالي التكاليف</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    {kpiLoading ? "..." : (kpiData?.summary?.totalCost || 0).toLocaleString()} <span className="text-sm font-normal">ر.س</span>
+                  <p className="text-sm font-medium text-muted-foreground">إجمالي التكاليف</p>
+                  <p className="text-3xl font-bold text-foreground mt-2">
+                    {kpiLoading ? "..." : (kpiData?.summary?.totalCost || 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">ر.س</span>
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center shadow-inner">
+                  <Coins className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          <Card className="border border-violet-500/10 shadow-sm relative overflow-hidden bg-gradient-to-br from-card to-violet-500/5 hover:shadow-md hover:-translate-y-1 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">نسبة الإنجاز</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">نسبة الإنجاز</p>
+                  <p className="text-3xl font-bold text-foreground mt-2">
                     {kpiLoading ? "..." : (kpiData?.summary?.completionRate || 0)}%
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-yellow-600" />
+                <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-950/30 flex items-center justify-center shadow-inner">
+                  <TrendingUp className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
               </div>
             </CardContent>
@@ -252,13 +302,13 @@ export default function Reports() {
 
         {/* الرسوم البيانية */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>الطلبات حسب البرنامج</CardTitle>
-              <CardDescription>توزيع الطلبات على البرامج المختلفة</CardDescription>
+          <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">الطلبات حسب البرنامج</CardTitle>
+              <CardDescription>توزيع الطلبات على البرامج المختلفة ونسبتها المئوية</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-80 w-full">
+              <div className="h-80 w-full relative">
                 {!kpiLoading && programChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -266,32 +316,41 @@ export default function Reports() {
                         data={programChartData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
+                        innerRadius={65}
                         outerRadius={100}
-                        paddingAngle={5}
+                        paddingAngle={4}
                         dataKey="value"
                       >
                         {programChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="hsl(var(--background))" strokeWidth={2} />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip content={<CustomPieTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center bg-muted/30 rounded-lg text-muted-foreground">
-                    {kpiLoading ? <Loader2 className="w-8 h-8 animate-spin mb-2" /> : <BarChart3 className="w-12 h-12 mb-2" />}
-                    <p>{kpiLoading ? "جاري التحميل..." : "لا توجد بيانات للعرض"}</p>
+                  <div className="h-full flex flex-col items-center justify-center bg-muted/20 rounded-xl text-muted-foreground border border-dashed border-border/80">
+                    {kpiLoading ? <Loader2 className="w-8 h-8 animate-spin mb-2 text-primary" /> : <BarChart3 className="w-12 h-12 mb-2 text-muted-foreground/60" />}
+                    <p className="text-sm font-medium">{kpiLoading ? "جاري التحميل..." : "لا توجد بيانات للعرض"}</p>
+                  </div>
+                )}
+                {/* Total counter in the center of the doughnut */}
+                {!kpiLoading && programChartTotal > 0 && (
+                  <div className="absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[55%] text-center pointer-events-none">
+                    <p className="text-2xl font-black text-foreground">{programChartTotal}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">إجمالي الطلبات</p>
                   </div>
                 )}
               </div>
               {!kpiLoading && programChartData.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-4 max-h-32 overflow-y-auto pr-2 text-[10px] sm:text-xs">
                   {programChartData.map((item, index) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                      <span className="truncate">{item.name}</span>
-                      <span className="font-bold mr-auto">({item.value})</span>
+                    <div key={item.name} className="flex items-center gap-2 hover:bg-muted/30 p-1.5 rounded-lg transition-colors duration-150">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      <span className="truncate text-muted-foreground font-medium">{item.name}</span>
+                      <span className="font-bold text-foreground mr-auto shrink-0">
+                        {item.value} <span className="text-[10px] font-normal text-muted-foreground">({programChartTotal > 0 ? ((item.value / programChartTotal) * 100).toFixed(1) : 0}%)</span>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -299,29 +358,33 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle>تطور الطلبات</CardTitle>
-              <CardDescription>عدد الطلبات شهرياً خلال الفترة المختارة</CardDescription>
+          <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">تطور الطلبات</CardTitle>
+              <CardDescription>عدد الطلبات شهرياً وتوجهات التقديم خلال الفترة المختارة</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80 w-full">
                 {!kpiLoading && trendChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={trendChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                      />
-                      <Bar dataKey="الطلبات" fill="#0ea5e9" radius={[4, 4, 0, 0]} barSize={35} />
+                    <BarChart data={trendChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(226, 232, 240, 0.6)" />
+                      <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tickMargin={8} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis fontSize={10} tickLine={false} axisLine={false} tickMargin={8} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="الطلبات" fill="url(#barGradient)" radius={[6, 6, 0, 0]} barSize={26} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center bg-muted/30 rounded-lg text-muted-foreground">
-                    {kpiLoading ? <Loader2 className="w-8 h-8 animate-spin mb-2" /> : <BarChart3 className="w-12 h-12 mb-2" />}
-                    <p>{kpiLoading ? "جاري التحميل..." : "لا توجد بيانات للعرض"}</p>
+                  <div className="h-full flex flex-col items-center justify-center bg-muted/20 rounded-xl text-muted-foreground border border-dashed border-border/80">
+                    {kpiLoading ? <Loader2 className="w-8 h-8 animate-spin mb-2 text-primary" /> : <BarChart3 className="w-12 h-12 mb-2 text-muted-foreground/60" />}
+                    <p className="text-sm font-medium">{kpiLoading ? "جاري التحميل..." : "لا توجد بيانات للعرض"}</p>
                   </div>
                 )}
               </div>
@@ -330,25 +393,41 @@ export default function Reports() {
         </div>
 
         {/* جدول البيانات التفصيلي */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
+          <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>سجل الطلبات التفصيلي</CardTitle>
+              <CardTitle className="text-lg font-bold">سجل الطلبات التفصيلي</CardTitle>
               <CardDescription>عرض تفاصيل الطلبات بناءً على الفلاتر المختارة</CardDescription>
+            </div>
+            {/* عرض الفلاتر النشطة بجانب العنوان لربط السياق */}
+            <div className="flex flex-wrap gap-2 text-[10px] sm:text-xs">
+              <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary font-semibold border border-primary/20">
+                الفترة: {
+                  timeRange === "week" ? "آخر 7 أيام" :
+                  timeRange === "month" ? "آخر 30 يوم" :
+                  timeRange === "quarter" ? "آخر 3 أشهر" : "آخر سنة"
+                }
+              </span>
+              <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                البرنامج: {programFilter === "all" ? "جميع البرامج" : PROGRAM_LABELS[programFilter as keyof typeof PROGRAM_LABELS] || programFilter}
+              </span>
+              <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-semibold border border-amber-500/20">
+                الحالة: {statusFilter === "all" ? "جميع الحالات" : STATUS_LABELS[statusFilter as keyof typeof STATUS_LABELS] || statusFilter}
+              </span>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-inner">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/40">
                   <TableRow>
-                    <TableHead className="w-[120px]">رقم الطلب</TableHead>
-                    <TableHead>المسجد</TableHead>
-                    <TableHead>البرنامج</TableHead>
-                    <TableHead>المرحلة</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>تاريخ الطلب</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    <TableHead className="w-[120px] font-bold text-foreground py-3.5">رقم الطلب</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5">المسجد</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5">البرنامج</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5">المرحلة</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5">الحالة</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5">تاريخ الطلب</TableHead>
+                    <TableHead className="text-left font-bold text-foreground py-3.5">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -362,20 +441,38 @@ export default function Reports() {
                     ))
                   ) : requestsData?.requests && requestsData.requests.length > 0 ? (
                     requestsData.requests.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell className="font-medium">{request.requestNumber}</TableCell>
-                        <TableCell>{request.mosqueName || "بنيان (عام)"}</TableCell>
-                        <TableCell>{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</TableCell>
-                        <TableCell>{STAGE_LABELS[request.currentStage as keyof typeof STAGE_LABELS]}</TableCell>
+                      <TableRow key={request.id} className="hover:bg-muted/30 transition-colors duration-200">
+                        <TableCell className="font-mono font-bold text-primary">{request.requestNumber}</TableCell>
+                        <TableCell className="font-medium py-3.5">
+                          <span className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                            {request.mosqueName || "بنيان (عام)"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-medium text-muted-foreground">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</TableCell>
+                        <TableCell className="font-medium">
+                          <span className="px-2.5 py-1 rounded-md bg-muted text-muted-foreground text-xs font-semibold border border-border/40">
+                            {STAGE_LABELS[request.currentStage as keyof typeof STAGE_LABELS]}
+                          </span>
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={request.status === "completed" ? "default" : request.status === "rejected" ? "destructive" : "secondary"} className={request.status === "completed" ? "bg-green-600" : ""}>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              request.status === "completed" 
+                                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-semibold px-2.5 py-0.5 rounded-full" 
+                                : request.status === "rejected" 
+                                ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 font-semibold px-2.5 py-0.5 rounded-full" 
+                                : "bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800 font-semibold px-2.5 py-0.5 rounded-full"
+                            }
+                          >
                             {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS]}
                           </Badge>
                         </TableCell>
-                        <TableCell>{new Date(request.createdAt).toLocaleDateString("ar-SA")}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs font-medium">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</TableCell>
                         <TableCell className="text-left">
                           <Link href={`/requests/${request.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/15 hover:text-primary transition-all duration-200 rounded-full">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -384,7 +481,7 @@ export default function Reports() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                         لا توجد طلبات تطابق معايير البحث
                       </TableCell>
                     </TableRow>
@@ -395,26 +492,35 @@ export default function Reports() {
 
             {/* Pagination */}
             {!requestsLoading && requestsData && requestsData.total > 10 && (
-              <div className="flex items-center justify-end space-x-2 space-x-reverse py-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  السابق
-                </Button>
-                <div className="text-sm font-medium">
-                  صفحة {page} من {Math.ceil(requestsData.total / 10)}
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/60 mt-4 pt-4 gap-4">
+                <div className="text-xs text-muted-foreground font-semibold">
+                  يتم عرض {(page - 1) * 10 + 1} - {Math.min(page * 10, requestsData.total)} من أصل {requestsData.total} طلب
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page >= Math.ceil(requestsData.total / 10)}
-                >
-                  التالي
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                    السابق
+                  </Button>
+                  <div className="text-xs font-bold px-3 py-1.5 rounded-md bg-muted text-muted-foreground border border-border/40">
+                    صفحة {page} من {Math.ceil(requestsData.total / 10)}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={page >= Math.ceil(requestsData.total / 10)}
+                    className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs"
+                  >
+                    التالي
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

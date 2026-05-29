@@ -129,16 +129,28 @@ export const analyticsRouter = router({
         .where(whereClause)
         .groupBy(mosqueRequests.currentStage);
 
-      // توزيع الطلبات حسب الشهر (مفلتر)
+      // تحديد صيغة تجميع التاريخ بناءً على الفترة الزمنية (يومي للفترات القصيرة، شهري للفترات الطويلة)
+      let dateFormat = '%Y-%m';
+      if (input?.fromDate) {
+        const from = new Date(input.fromDate);
+        const to = input.toDate ? new Date(input.toDate) : new Date();
+        const diffTime = Math.abs(to.getTime() - from.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 31) {
+          dateFormat = '%Y-%m-%d';
+        }
+      }
+
+      // توزيع الطلبات حسب التاريخ (مفلتر)
       const monthlyTrend = await db
         .select({
-          month: sql<string>`DATE_FORMAT(${mosqueRequests.createdAt}, '%Y-%m')`,
+          month: sql<string>`DATE_FORMAT(${mosqueRequests.createdAt}, ${dateFormat})`,
           count: count(),
         })
         .from(mosqueRequests)
         .where(whereClause)
-        .groupBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, '%Y-%m')`)
-        .orderBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, '%Y-%m')`);
+        .groupBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, ${dateFormat})`)
+        .orderBy(sql`DATE_FORMAT(${mosqueRequests.createdAt}, ${dateFormat})`);
 
       // الطلبات الجديدة (مفلترة)
       const newRequestsResult = await db
