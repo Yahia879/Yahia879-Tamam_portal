@@ -15,7 +15,9 @@ import {
   Eye,
   Coins,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  RotateCw,
+  Wrench
 } from "lucide-react";
 import { PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS } from "@shared/constants";
 import { trpc } from "@/lib/trpc";
@@ -109,9 +111,9 @@ export default function Reports() {
       fromDate.setFullYear(now.getFullYear() - 1);
     }
     
+    // نلغي فلتر toDate للسماح بظهور أي طلبات تضاف حديثاً بعد فتح الصفحة
     return {
-      fromDate: fromDate.toISOString(),
-      toDate: now.toISOString()
+      fromDate: fromDate.toISOString()
     };
   }, [timeRange]);
 
@@ -123,7 +125,7 @@ export default function Reports() {
   });
 
   // استعلام قائمة الطلبات (للجدول)
-  const { data: requestsData, isLoading: requestsLoading } = trpc.requests.search.useQuery({
+  const { data: requestsData, isLoading: requestsLoading, refetch: refetchRequests } = trpc.requests.search.useQuery({
     programType: programFilter !== "all" ? programFilter as any : undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     ...dateRange,
@@ -135,7 +137,8 @@ export default function Reports() {
     if (!kpiData?.byProgram) return [];
     return kpiData.byProgram.map(item => ({
       name: PROGRAM_LABELS[item.programType as keyof typeof PROGRAM_LABELS] || item.programType,
-      value: item.count
+      value: item.count,
+      programType: item.programType
     }));
   }, [kpiData]);
 
@@ -151,8 +154,28 @@ export default function Reports() {
     }));
   }, [kpiData]);
 
+  // تحديث البيانات يدوياً بدون تحديث الصفحة كاملة
+  const handleRefresh = async () => {
+    toast.promise(
+      Promise.all([refetchKPI(), refetchRequests()]),
+      {
+        loading: 'جاري تحديث البيانات الإحصائية...',
+        success: 'تم تحديث البيانات بنجاح!',
+        error: 'فشل تحديث البيانات، يرجى المحاولة لاحقاً.'
+      }
+    );
+  };
+
+  // تصدير التقرير بملف PDF المنسق والجميل جداً
   const handleExport = () => {
-    toast.info("تصدير التقرير قيد التنفيذ...");
+    const params = new URLSearchParams();
+    if (dateRange.fromDate) params.append("fromDate", dateRange.fromDate);
+    if (programFilter !== "all") params.append("programType", programFilter);
+    if (statusFilter !== "all") params.append("status", statusFilter);
+
+    // توجيه المتصفح لتنزيل ملف PDF المصدّر
+    window.location.href = `/api/reports/pdf?${params.toString()}`;
+    toast.success("جاري إعداد وتحميل التقرير الإحصائي بملف PDF...");
   };
 
   const isLoading = kpiLoading || requestsLoading;
@@ -172,15 +195,21 @@ export default function Reports() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
             <p className="text-muted-foreground">عرض وتصدير بيانات الطلبات والمشاريع المباشرة</p>
           </div>
-          <Button className="flex items-center gap-2" onClick={handleExport} disabled={isLoading}>
-            <Download className="w-4 h-4" />
-            تصدير البيانات
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2 hover:bg-muted" onClick={handleRefresh} disabled={isLoading}>
+              <RotateCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              تحديث البيانات
+            </Button>
+            <Button className="flex items-center gap-2" onClick={handleExport} disabled={isLoading}>
+              <Download className="w-4 h-4" />
+              تصدير البيانات
+            </Button>
+          </div>
         </div>
 
         {/* فلاتر التقارير */}
@@ -271,13 +300,13 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">إجمالي التكاليف</p>
+                  <p className="text-sm font-medium text-muted-foreground">الطلبات قيد التنفيذ</p>
                   <p className="text-3xl font-bold text-foreground mt-2">
-                    {kpiLoading ? "..." : (kpiData?.summary?.totalCost || 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">ر.س</span>
+                    {kpiLoading ? "..." : (kpiData?.summary?.activeRequests || 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center shadow-inner">
-                  <Coins className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                  <Wrench className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
@@ -322,7 +351,7 @@ export default function Reports() {
                         dataKey="value"
                       >
                         {programChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="hsl(var(--background))" strokeWidth={2} />
+                          <Cell key={`cell-${index}`} fill={`var(--${entry.programType})`} stroke="hsl(var(--background))" strokeWidth={2} />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomPieTooltip />} />
@@ -344,9 +373,9 @@ export default function Reports() {
               </div>
               {!kpiLoading && programChartData.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mt-4 max-h-32 overflow-y-auto pr-2 text-[10px] sm:text-xs">
-                  {programChartData.map((item, index) => (
+                  {programChartData.map((item) => (
                     <div key={item.name} className="flex items-center gap-2 hover:bg-muted/30 p-1.5 rounded-lg transition-colors duration-150">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: `var(--${item.programType})` }} />
                       <span className="truncate text-muted-foreground font-medium">{item.name}</span>
                       <span className="font-bold text-foreground mr-auto shrink-0">
                         {item.value} <span className="text-[10px] font-normal text-muted-foreground">({programChartTotal > 0 ? ((item.value / programChartTotal) * 100).toFixed(1) : 0}%)</span>
@@ -370,8 +399,8 @@ export default function Reports() {
                     <BarChart data={trendChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
+                          <stop offset="0%" stopColor="var(--primary)" stopOpacity={1} />
+                          <stop offset="100%" stopColor="var(--gold)" stopOpacity={0.8} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(226, 232, 240, 0.6)" />
