@@ -633,7 +633,22 @@ export default function DisbursementRequests() {
                             <TableRow key={request.id}>
                               <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
                               <TableCell className="max-w-[200px] truncate text-right">{request.title || request.description}</TableCell>
-                              <TableCell className="max-w-[200px] truncate text-right">{request.projectName}</TableCell>
+                              <TableCell className="max-w-[200px] text-right">
+                                {request.projectId ? (
+                                  <div className="flex flex-col items-start gap-1 justify-center">
+                                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate max-w-[190px]">
+                                      {request.projectName}
+                                    </span>
+                                    <Badge variant="outline" className="text-[10px] py-0 px-2 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50">
+                                      مرتبط بمشروع
+                                    </Badge>
+                                  </div>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50 font-bold">
+                                    طلب صرف مخصص
+                                  </Badge>
+                                )}
+                              </TableCell>
                               <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex flex-col gap-1 items-start justify-start">
@@ -778,7 +793,20 @@ export default function DisbursementRequests() {
                               <div className="min-w-0 flex-1 text-right">
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
                                 <p className="font-bold text-sm truncate">{request.title || request.description}</p>
-                                <p className="text-xs text-muted-foreground truncate">{request.projectName}</p>
+                                {request.projectId ? (
+                                  <div className="flex items-center gap-1.5 mt-0.5 justify-end">
+                                    <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50">
+                                      مرتبط بمشروع
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground truncate max-w-[150px]">{request.projectName}</span>
+                                  </div>
+                                ) : (
+                                  <div className="mt-1 flex justify-end">
+                                    <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50 font-bold">
+                                      طلب صرف مخصص
+                                    </Badge>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <DisbursementStatusBadge 
@@ -964,7 +992,22 @@ export default function DisbursementRequests() {
                           <TableRow key={order.id}>
                             <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
                             <TableCell className="text-xs">{order.requestNumber}</TableCell>
-                            <TableCell className="max-w-[150px] truncate">{order.projectName}</TableCell>
+                            <TableCell className="max-w-[150px] text-right">
+                              {order.projectId ? (
+                                <div className="flex flex-col items-start gap-1 justify-center">
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate max-w-[140px]">
+                                    {order.projectName}
+                                  </span>
+                                  <Badge variant="outline" className="text-[10px] py-0 px-2 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50">
+                                    مرتبط بمشروع
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50 font-bold">
+                                  أمر صرف مخصص
+                                </Badge>
+                              )}
+                            </TableCell>
                             <TableCell className="max-w-[150px] truncate">{order.beneficiaryName}</TableCell>
                             <TableCell className="whitespace-nowrap">{Number(order.amount).toLocaleString()} ريال</TableCell>
                             <TableCell className="whitespace-nowrap">

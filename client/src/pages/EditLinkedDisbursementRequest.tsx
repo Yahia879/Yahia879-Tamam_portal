@@ -787,7 +787,7 @@ export default function EditLinkedDisbursementRequest() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-start">
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end">
                 <Button
                   onClick={handleSubmit}
                   disabled={updateMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}

@@ -476,7 +476,8 @@ export default function ContractsList() {
                     placeholder="بحث برقم العقد أو العنوان أو اسم المورد..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pr-10"
+                    className="pr-10 text-right"
+                    dir="rtl"
                   />
                 </div>
               </CardContent>
