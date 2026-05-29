@@ -178,6 +178,18 @@ export default function Reports() {
     toast.success("جاري إعداد وتحميل التقرير الإحصائي بملف PDF...");
   };
 
+  // تصدير البيانات إلى شيت إكسل مميز جداً
+  const handleExportExcel = () => {
+    const params = new URLSearchParams();
+    if (dateRange.fromDate) params.append("fromDate", dateRange.fromDate);
+    if (programFilter !== "all") params.append("programType", programFilter);
+    if (statusFilter !== "all") params.append("status", statusFilter);
+
+    // توجيه المتصفح لتنزيل ملف Excel المصدّر
+    window.location.href = `/api/reports/excel?${params.toString()}`;
+    toast.success("جاري إعداد وتحميل التقرير بصيغة Excel...");
+  };
+
   const isLoading = kpiLoading || requestsLoading;
 
   if (kpiError) {
@@ -197,17 +209,13 @@ export default function Reports() {
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
-            <p className="text-muted-foreground">عرض وتصدير بيانات الطلبات والمشاريع المباشرة</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">عرض وتصدير بيانات الطلبات والمشاريع المباشرة</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="flex items-center gap-2 hover:bg-muted" onClick={handleRefresh} disabled={isLoading}>
-              <RotateCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-              تحديث البيانات
-            </Button>
-            <Button className="flex items-center gap-2" onClick={handleExport} disabled={isLoading}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200" onClick={handleExportExcel} disabled={isLoading}>
               <Download className="w-4 h-4" />
-              تصدير البيانات
+              تصدير Excel
             </Button>
           </div>
         </div>
@@ -217,7 +225,7 @@ export default function Reports() {
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-4">
               <Select value={programFilter} onValueChange={(v) => { setProgramFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="البرنامج" />
                 </SelectTrigger>
                 <SelectContent>
@@ -229,7 +237,7 @@ export default function Reports() {
               </Select>
 
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="الحالة" />
                 </SelectTrigger>
                 <SelectContent>
@@ -241,7 +249,7 @@ export default function Reports() {
               </Select>
 
               <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="الفترة الزمنية" />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,13 +276,13 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">إجمالي الطلبات</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">إجمالي الطلبات</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 sm:mt-2">
                     {kpiLoading ? "..." : kpiData?.summary?.totalRequests.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner">
-                  <FileText className="w-6 h-6 text-primary" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/15 flex items-center justify-center shadow-inner">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -284,13 +292,13 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">المساجد المخدومة</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">المساجد المخدومة</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 sm:mt-2">
                     {kpiLoading ? "..." : kpiData?.summary?.benefitedMosques.toLocaleString() || 0}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center shadow-inner">
-                  <Building2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center shadow-inner">
+                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
             </CardContent>
@@ -300,13 +308,13 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">الطلبات قيد التنفيذ</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">الطلبات قيد التنفيذ</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 sm:mt-2">
                     {kpiLoading ? "..." : (kpiData?.summary?.activeRequests || 0).toLocaleString()}
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center shadow-inner">
-                  <Wrench className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-100 dark:bg-amber-950/30 flex items-center justify-center shadow-inner">
+                  <Wrench className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
@@ -316,13 +324,13 @@ export default function Reports() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">نسبة الإنجاز</p>
-                  <p className="text-3xl font-bold text-foreground mt-2">
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground">نسبة الإنجاز</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1 sm:mt-2">
                     {kpiLoading ? "..." : (kpiData?.summary?.completionRate || 0)}%
                   </p>
                 </div>
-                <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-950/30 flex items-center justify-center shadow-inner">
-                  <TrendingUp className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-violet-100 dark:bg-violet-950/30 flex items-center justify-center shadow-inner">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-violet-600 dark:text-violet-400" />
                 </div>
               </div>
             </CardContent>
@@ -333,8 +341,8 @@ export default function Reports() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-bold">الطلبات حسب البرنامج</CardTitle>
-              <CardDescription>توزيع الطلبات على البرامج المختلفة ونسبتها المئوية</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-bold">الطلبات حسب البرنامج</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">توزيع الطلبات على البرامج المختلفة ونسبتها المئوية</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80 w-full relative">
@@ -372,7 +380,7 @@ export default function Reports() {
                 )}
               </div>
               {!kpiLoading && programChartData.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mt-4 max-h-32 overflow-y-auto pr-2 text-[10px] sm:text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 max-h-32 overflow-y-auto pr-2 text-[10px] sm:text-xs">
                   {programChartData.map((item) => (
                     <div key={item.name} className="flex items-center gap-2 hover:bg-muted/30 p-1.5 rounded-lg transition-colors duration-150">
                       <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: `var(--${item.programType})` }} />
@@ -389,8 +397,8 @@ export default function Reports() {
 
           <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-bold">تطور الطلبات</CardTitle>
-              <CardDescription>عدد الطلبات شهرياً وتوجهات التقديم خلال الفترة المختارة</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-bold">تطور الطلبات</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">عدد الطلبات شهرياً وتوجهات التقديم خلال الفترة المختارة</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80 w-full">
@@ -425,8 +433,8 @@ export default function Reports() {
         <Card className="border border-border/60 shadow-sm bg-gradient-to-b from-card to-card/50">
           <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="text-lg font-bold">سجل الطلبات التفصيلي</CardTitle>
-              <CardDescription>عرض تفاصيل الطلبات بناءً على الفلاتر المختارة</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-bold">سجل الطلبات التفصيلي</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">عرض تفاصيل الطلبات بناءً على الفلاتر المختارة</CardDescription>
             </div>
             {/* عرض الفلاتر النشطة بجانب العنوان لربط السياق */}
             <div className="flex flex-wrap gap-2 text-[10px] sm:text-xs">
@@ -452,10 +460,10 @@ export default function Reports() {
                   <TableRow>
                     <TableHead className="w-[120px] font-bold text-foreground py-3.5">رقم الطلب</TableHead>
                     <TableHead className="font-bold text-foreground py-3.5">المسجد</TableHead>
-                    <TableHead className="font-bold text-foreground py-3.5">البرنامج</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5 hidden sm:table-cell">البرنامج</TableHead>
                     <TableHead className="font-bold text-foreground py-3.5">المرحلة</TableHead>
                     <TableHead className="font-bold text-foreground py-3.5">الحالة</TableHead>
-                    <TableHead className="font-bold text-foreground py-3.5">تاريخ الطلب</TableHead>
+                    <TableHead className="font-bold text-foreground py-3.5 hidden md:table-cell">تاريخ الطلب</TableHead>
                     <TableHead className="text-left font-bold text-foreground py-3.5">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -463,24 +471,28 @@ export default function Reports() {
                   {requestsLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <TableRow key={i}>
-                        {Array.from({ length: 7 }).map((_, j) => (
-                          <TableCell key={j}><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
-                        ))}
+                        <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell><div className="h-4 w-24 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><div className="h-4 w-16 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell><div className="h-4 w-16 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell className="hidden md:table-cell"><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
+                        <TableCell><div className="h-4 w-8 bg-muted animate-pulse rounded" /></TableCell>
                       </TableRow>
                     ))
                   ) : requestsData?.requests && requestsData.requests.length > 0 ? (
                     requestsData.requests.map((request) => (
                       <TableRow key={request.id} className="hover:bg-muted/30 transition-colors duration-200">
-                        <TableCell className="font-mono font-bold text-primary">{request.requestNumber}</TableCell>
-                        <TableCell className="font-medium py-3.5">
-                          <span className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-                            {request.mosqueName || "بنيان (عام)"}
-                          </span>
+                        <TableCell className="font-mono font-bold text-primary text-xs sm:text-sm">{request.requestNumber}</TableCell>
+                        <TableCell className="font-medium py-2 sm:py-3.5 text-xs sm:text-sm">
+                           <span className="flex items-center gap-2">
+                             <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground/60 shrink-0" />
+                             {request.mosqueName || "بنيان (عام)"}
+                           </span>
                         </TableCell>
-                        <TableCell className="font-medium text-muted-foreground">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</TableCell>
-                        <TableCell className="font-medium">
-                          <span className="px-2.5 py-1 rounded-md bg-muted text-muted-foreground text-xs font-semibold border border-border/40">
+                        <TableCell className="font-medium text-muted-foreground text-xs sm:text-sm hidden sm:table-cell">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</TableCell>
+                        <TableCell className="font-medium text-xs sm:text-sm">
+                          <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-muted text-muted-foreground text-[10px] sm:text-xs font-semibold border border-border/40">
                             {STAGE_LABELS[request.currentStage as keyof typeof STAGE_LABELS]}
                           </span>
                         </TableCell>
@@ -489,20 +501,20 @@ export default function Reports() {
                             variant="outline" 
                             className={
                               request.status === "completed" 
-                                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-semibold px-2.5 py-0.5 rounded-full" 
+                                ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-semibold text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full" 
                                 : request.status === "rejected" 
-                                ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 font-semibold px-2.5 py-0.5 rounded-full" 
-                                : "bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800 font-semibold px-2.5 py-0.5 rounded-full"
+                                ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800 font-semibold text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full" 
+                                : "bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-800 font-semibold text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full"
                             }
                           >
                             {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS]}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs font-medium">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</TableCell>
+                        <TableCell className="text-muted-foreground text-[10px] sm:text-xs font-medium hidden md:table-cell">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</TableCell>
                         <TableCell className="text-left">
                           <Link href={`/requests/${request.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary/15 hover:text-primary transition-all duration-200 rounded-full">
-                              <Eye className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-primary/15 hover:text-primary transition-all duration-200 rounded-full">
+                              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </Link>
                         </TableCell>

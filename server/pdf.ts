@@ -59,11 +59,18 @@ const PROGRAM_LABELS: Record<string, string> = {
 const ARABIC_FONT_PATH = path.join(process.cwd(), "server", "fonts", "Cairo.ttf");
 const ARABIC_FONT_BOLD_PATH = path.join(process.cwd(), "server", "fonts", "Cairo.ttf");
 
-// دالة مساعدة لعكس النص العربي (RTL)
-function rtl(text: string): string {
-  if (!text) return "";
-  // نعيد النص كما هو - PDFKit يدعم RTL بشكل محدود
-  return text;
+// دالة مساعدة لعكس الكلمات العربية لتظهر بشكل صحيح في PDFKit (RTL)
+function rtl(text: any): string {
+  if (text === null || text === undefined) return "";
+  const str = String(text).trim();
+  if (!str) return "";
+
+  // التحقق مما إذا كان النص يحتوي على حروف عربية
+  const hasArabic = /[\u0600-\u06FF]/.test(str);
+  if (!hasArabic) return str;
+
+  // عكس ترتيب الكلمات لعرضها بشكل صحيح من اليمين لليسار في PDFKit
+  return str.split(/\s+/).reverse().join(" ");
 }
 
 router.get("/request/:requestId/pdf", async (req, res) => {
@@ -194,13 +201,13 @@ router.get("/request/:requestId/pdf", async (req, res) => {
     doc.rect(0, 0, doc.page.width, 80).fill("#1a5276");
 
     doc.fillColor("white").font(boldFont).fontSize(20);
-    doc.text("منارة - بوابة العناية بالمساجد", 50, 20, {
+    doc.text(rtl("منارة - بوابة العناية بالمساجد"), 50, 20, {
       align: "right",
       width: doc.page.width - 100,
     });
 
     doc.font(regularFont).fontSize(12);
-    doc.text("تقرير الطلب الكامل", 50, 48, {
+    doc.text(rtl("تقرير الطلب الكامل"), 50, 48, {
       align: "right",
       width: doc.page.width - 100,
     });
@@ -209,7 +216,7 @@ router.get("/request/:requestId/pdf", async (req, res) => {
 
     // ===== معلومات الطلب الأساسية =====
     doc.fillColor("#1a5276").font(boldFont).fontSize(14);
-    doc.text("المعلومات الأساسية", 50, 100, {
+    doc.text(rtl("المعلومات الأساسية"), 50, 100, {
       align: "right",
       width: doc.page.width - 100,
     });
@@ -228,8 +235,8 @@ router.get("/request/:requestId/pdf", async (req, res) => {
       ["المدينة", request.mosqueCity || "-"],
       ["الحي", request.mosqueDistrict || "-"],
       ["مقدم الطلب", request.requesterName || "-"],
-      ["تاريخ التقديم", request.createdAt ? new Date(request.createdAt).toLocaleDateString("ar-SA") : "-"],
-      ["آخر تحديث", request.updatedAt ? new Date(request.updatedAt).toLocaleDateString("ar-SA") : "-"],
+      ["تاريخ التقديم", request.createdAt ? new Date(request.createdAt).toISOString().slice(0, 10) : "-"],
+      ["آخر تحديث", request.updatedAt ? new Date(request.updatedAt).toISOString().slice(0, 10) : "-"],
     ];
 
     let currentY = infoY;
@@ -238,13 +245,13 @@ router.get("/request/:requestId/pdf", async (req, res) => {
       doc.rect(50, currentY - 3, doc.page.width - 100, 20).fill(bgColor);
 
       doc.fillColor("#666").font(boldFont).fontSize(10);
-      doc.text(label + ":", doc.page.width - 200, currentY, {
+      doc.text(" :" + rtl(label), doc.page.width - 200, currentY, {
         align: "right",
         width: 140,
       });
 
       doc.fillColor("#333").font(regularFont).fontSize(10);
-      doc.text(value, 50, currentY, {
+      doc.text(rtl(value), 50, currentY, {
         align: "left",
         width: doc.page.width - 260,
       });
@@ -256,10 +263,10 @@ router.get("/request/:requestId/pdf", async (req, res) => {
     if (request.reviewNotes) {
       currentY += 10;
       doc.fillColor("#1a5276").font(boldFont).fontSize(12);
-      doc.text("ملاحظات المراجعة:", 50, currentY, { align: "right", width: doc.page.width - 100 });
+      doc.text(rtl("ملاحظات المراجعة:"), 50, currentY, { align: "right", width: doc.page.width - 100 });
       currentY += 20;
       doc.fillColor("#333").font(regularFont).fontSize(10);
-      doc.text(request.reviewNotes, 50, currentY, {
+      doc.text(rtl(request.reviewNotes), 50, currentY, {
         align: "right",
         width: doc.page.width - 100,
       });
@@ -269,7 +276,7 @@ router.get("/request/:requestId/pdf", async (req, res) => {
     // ===== مراحل التقدم =====
     doc.addPage();
     doc.fillColor("#1a5276").font(boldFont).fontSize(14);
-    doc.text("مراحل التقدم", 50, 50, {
+    doc.text(rtl("مراحل التقدم"), 50, 50, {
       align: "right",
       width: doc.page.width - 100,
     });
@@ -297,9 +304,9 @@ router.get("/request/:requestId/pdf", async (req, res) => {
       }
 
       doc.fillColor(textColor).font(isCurrent ? boldFont : regularFont).fontSize(11);
-      doc.text(stageName, 50, stageY, {
+      doc.text(rtl(stageName), 50, stageY, {
         align: "right",
-        width: doc.page.width - 100,
+        width: doc.page.width - 130,
       });
 
       stageY += 28;
@@ -611,21 +618,23 @@ router.get("/reports/pdf", async (req, res) => {
     doc.rect(0, 0, doc.page.width, 105).fill("#0D9488");
 
     doc.fillColor("white").font(boldFont).fontSize(18);
-    doc.text("بوابة تمام لخدمات المساجد", 40, 20, {
+    doc.text(rtl("بوابة تمام لخدمات المساجد"), 40, 20, {
       align: "right",
       width: doc.page.width - 80,
     });
 
     doc.font(regularFont).fontSize(11).fillColor("#e2f0ef");
-    doc.text("التقرير الإحصائي والتحليلي العام للطلبات والمشاريع المباشرة", 40, 48, {
+    doc.text(rtl("التقرير الإحصائي والتحليلي العام للطلبات والمشاريع المباشرة"), 40, 48, {
       align: "right",
       width: doc.page.width - 80,
     });
 
     // معايير الفلترة النشطة
-    let filterText = `البرنامج: ${programType && programType !== 'all' ? PROGRAM_LABELS[programType as string] || programType : 'جميع البرامج'} | `;
-    filterText += `الحالة: ${status && status !== 'all' ? STATUS_LABELS[status as string] || status : 'جميع الحالات'} | `;
-    filterText += `الفترة: ${fromDate ? new Date(fromDate as string).toLocaleDateString("ar-SA") : "الكل"} إلى ${toDate ? new Date(toDate as string).toLocaleDateString("ar-SA") : "الآن"}`;
+    const progVal = programType && programType !== 'all' ? PROGRAM_LABELS[programType as string] || programType : 'جميع البرامج';
+    const statusVal = status && status !== 'all' ? STATUS_LABELS[status as string] || status : 'جميع الحالات';
+    const dateVal = `${fromDate ? new Date(fromDate as string).toISOString().slice(0, 10) : "البداية"} - ${toDate ? new Date(toDate as string).toISOString().slice(0, 10) : "الآن"}`;
+    
+    const filterText = `${dateVal} :${rtl("الفترة")} | ${rtl(statusVal)} :${rtl("الحالة")} | ${rtl(progVal)} :${rtl("البرنامج")}`;
 
     doc.fontSize(9).fillColor("#fff9e6");
     doc.text(filterText, 40, 75, {
@@ -654,7 +663,7 @@ router.get("/reports/pdf", async (req, res) => {
       doc.roundedRect(x, cardY, cardWidth, cardHeight, 6).fillAndStroke(card.bg, card.border);
       
       doc.fillColor(card.textCol).font(boldFont).fontSize(8.5);
-      doc.text(card.label, x + 5, cardY + 12, {
+      doc.text(rtl(card.label), x + 5, cardY + 12, {
         align: "center",
         width: cardWidth - 10,
       });
@@ -670,7 +679,7 @@ router.get("/reports/pdf", async (req, res) => {
 
     // توزيع الطلبات حسب البرنامج
     doc.fillColor("#0D9488").font(boldFont).fontSize(12);
-    doc.text("توزيع الطلبات حسب البرنامج", 40, currentY, {
+    doc.text(rtl("توزيع الطلبات حسب البرنامج"), 40, currentY, {
       align: "right",
       width: doc.page.width - 80,
     });
@@ -681,9 +690,9 @@ router.get("/reports/pdf", async (req, res) => {
     doc.fillColor("#666").font(boldFont).fontSize(9);
     doc.rect(40, currentY, doc.page.width - 80, 22).fill("#f1f5f9");
     doc.fillColor("#334155");
-    doc.text("النسبة المئوية", 50, currentY + 6, { align: "left", width: 100 });
-    doc.text("عدد الطلبات", doc.page.width / 2 - 50, currentY + 6, { align: "center", width: 100 });
-    doc.text("اسم البرنامج", doc.page.width - 240, currentY + 6, { align: "right", width: 180 });
+    doc.text(rtl("النسبة المئوية"), 50, currentY + 6, { align: "left", width: 100 });
+    doc.text(rtl("عدد الطلبات"), doc.page.width / 2 - 50, currentY + 6, { align: "center", width: 100 });
+    doc.text(rtl("اسم البرنامج"), doc.page.width - 240, currentY + 6, { align: "right", width: 180 });
 
     currentY += 24;
 
@@ -701,7 +710,7 @@ router.get("/reports/pdf", async (req, res) => {
       doc.text(prog.count.toString(), doc.page.width / 2 - 50, currentY + 6, { align: "center", width: 100 });
       
       doc.font(boldFont).fillColor("#0f172a");
-      doc.text(progName, doc.page.width - 240, currentY + 6, { align: "right", width: 180 });
+      doc.text(rtl(progName), doc.page.width - 240, currentY + 6, { align: "right", width: 180 });
       
       currentY += 22;
     });
@@ -716,7 +725,7 @@ router.get("/reports/pdf", async (req, res) => {
       }
 
       doc.fillColor("#0D9488").font(boldFont).fontSize(12);
-      doc.text("سجل الطلبات التفصيلي", 40, currentY, {
+      doc.text(rtl("سجل الطلبات التفصيلي"), 40, currentY, {
         align: "right",
         width: doc.page.width - 80,
       });
@@ -724,14 +733,15 @@ router.get("/reports/pdf", async (req, res) => {
 
       currentY += 24;
 
+      // Header row
       doc.rect(40, currentY, doc.page.width - 80, 26).fill("#0D9488");
       doc.fillColor("white").font(boldFont).fontSize(8.5);
-      doc.text("تاريخ التقديم", 45, currentY + 8, { align: "left", width: 70 });
-      doc.text("الحالة", 120, currentY + 8, { align: "left", width: 60 });
-      doc.text("المرحلة الحالية", 185, currentY + 8, { align: "center", width: 90 });
-      doc.text("البرنامج", 280, currentY + 8, { align: "center", width: 70 });
-      doc.text("اسم المسجد", 355, currentY + 8, { align: "right", width: 110 });
-      doc.text("رقم الطلب", doc.page.width - 120, currentY + 8, { align: "right", width: 75 });
+      doc.text(rtl("تاريخ التقديم"), 40, currentY + 9, { align: "left", width: 70 });
+      doc.text(rtl("الحالة"), 110, currentY + 9, { align: "center", width: 65 });
+      doc.text(rtl("المرحلة الحالية"), 175, currentY + 9, { align: "center", width: 100 });
+      doc.text(rtl("البرنامج"), 275, currentY + 9, { align: "center", width: 65 });
+      doc.text(rtl("اسم المسجد"), 340, currentY + 9, { align: "right", width: 120 });
+      doc.text(rtl("رقم الطلب"), 460, currentY + 9, { align: "right", width: 95 });
 
       currentY += 28;
 
@@ -742,46 +752,65 @@ router.get("/reports/pdf", async (req, res) => {
           
           doc.rect(40, currentY, doc.page.width - 80, 26).fill("#0D9488");
           doc.fillColor("white").font(boldFont).fontSize(8.5);
-          doc.text("تاريخ التقديم", 45, currentY + 8, { align: "left", width: 70 });
-          doc.text("الحالة", 120, currentY + 8, { align: "left", width: 60 });
-          doc.text("المرحلة الحالية", 185, currentY + 8, { align: "center", width: 90 });
-          doc.text("البرنامج", 280, currentY + 8, { align: "center", width: 70 });
-          doc.text("اسم المسجد", 355, currentY + 8, { align: "right", width: 110 });
-          doc.text("رقم الطلب", doc.page.width - 120, currentY + 8, { align: "right", width: 75 });
+          doc.text(rtl("تاريخ التقديم"), 40, currentY + 9, { align: "left", width: 70 });
+          doc.text(rtl("الحالة"), 110, currentY + 9, { align: "center", width: 65 });
+          doc.text(rtl("المرحلة الحالية"), 175, currentY + 9, { align: "center", width: 100 });
+          doc.text(rtl("البرنامج"), 275, currentY + 9, { align: "center", width: 65 });
+          doc.text(rtl("اسم المسجد"), 340, currentY + 9, { align: "right", width: 120 });
+          doc.text(rtl("رقم الطلب"), 460, currentY + 9, { align: "right", width: 95 });
           
           currentY += 28;
         }
 
         const rowBg = index % 2 === 0 ? "#ffffff" : "#f8fafc";
         doc.rect(40, currentY, doc.page.width - 80, 26).fill(rowBg);
-        // رسم خط تقسيم أفقي عصري للغاية بدلاً من التظليل الكثيف
         doc.moveTo(40, currentY + 26).lineTo(doc.page.width - 40, currentY + 26).stroke("#f1f5f9");
 
-        const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toLocaleDateString("ar-SA") : "-";
+        const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toISOString().slice(0, 10) : "-";
         const statusStr = STATUS_LABELS[reqItem.status as string] || reqItem.status;
         const stageStr = STAGE_LABELS[reqItem.currentStage as string] || reqItem.currentStage;
         const progStr = PROGRAM_LABELS[reqItem.programType as string] || reqItem.programType;
 
-        // قص أسماء المساجد الطويلة للغاية لتجنب أي تداخل بصري في الأعمدة
         const rawMosqueName = reqItem.mosqueName || "بنيان (عام)";
         const mosqueName = rawMosqueName.length > 25 ? rawMosqueName.slice(0, 23) + "..." : rawMosqueName;
 
+        // Date Column
         doc.fillColor("#475569").font(regularFont).fontSize(8);
-        doc.text(dateStr, 45, currentY + 8, { align: "left", width: 70 });
+        doc.text(dateStr, 40, currentY + 9, { align: "left", width: 70 });
         
-        let statusColor = "#475569";
-        if (reqItem.status === "completed") statusColor = "#166534";
-        else if (reqItem.status === "rejected") statusColor = "#9f1239";
-        doc.fillColor(statusColor).font(boldFont);
-        doc.text(statusStr, 120, currentY + 8, { align: "left", width: 60 });
+        // Status Badge Column
+        let badgeBg = "#f1f5f9";
+        let badgeText = "#475569";
+        if (reqItem.status === "completed") {
+          badgeBg = "#dcfce7";
+          badgeText = "#15803d";
+        } else if (reqItem.status === "rejected") {
+          badgeBg = "#fee2e2";
+          badgeText = "#b91c1c";
+        } else if (["pending", "under_review", "in_progress"].includes(reqItem.status || "")) {
+          badgeBg = "#fef3c7";
+          badgeText = "#b45309";
+        }
+        doc.roundedRect(112, currentY + 5, 60, 16, 4).fill(badgeBg);
+        doc.fillColor(badgeText).font(boldFont).fontSize(7.5);
+        doc.text(rtl(statusStr), 112, currentY + 9, { align: "center", width: 60 });
         
-        doc.fillColor("#475569").font(regularFont);
-        doc.text(stageStr, 185, currentY + 8, { align: "center", width: 90 });
-        doc.text(progStr, 280, currentY + 8, { align: "center", width: 70 });
-        doc.text(mosqueName, 355, currentY + 8, { align: "right", width: 110 });
+        // Stage Badge Column
+        doc.roundedRect(180, currentY + 5, 90, 16, 4).fill("#f1f5f9");
+        doc.fillColor("#475569").font(regularFont).fontSize(7.5);
+        doc.text(rtl(stageStr), 180, currentY + 9, { align: "center", width: 90 });
         
-        doc.fillColor("#0f172a").font(boldFont);
-        doc.text(reqItem.requestNumber, doc.page.width - 120, currentY + 8, { align: "right", width: 75 });
+        // Program Column
+        doc.fillColor("#475569").font(regularFont).fontSize(8);
+        doc.text(rtl(progStr), 275, currentY + 9, { align: "center", width: 65 });
+        
+        // Mosque Column
+        doc.fillColor("#475569").font(regularFont).fontSize(8);
+        doc.text(rtl(mosqueName), 340, currentY + 9, { align: "right", width: 120 });
+        
+        // Request Number Column
+        doc.fillColor("#0f172a").font(boldFont).fontSize(8.5);
+        doc.text(reqItem.requestNumber, 460, currentY + 9, { align: "right", width: 95 });
 
         currentY += 26;
       });
@@ -794,8 +823,11 @@ router.get("/reports/pdf", async (req, res) => {
         .rect(0, doc.page.height - 25, doc.page.width, 25)
         .fill("#f1f5f9");
       doc.fillColor("#64748b").font(regularFont).fontSize(7.5);
+      
+      const dateString = new Date().toISOString().slice(0, 10);
+      const footerText = `${pageCount} ${rtl("من")} ${i + 1} ${rtl("صفحة")} | ${rtl("بوابة تمام لخدمات المساجد")} | ${dateString} :${rtl("تقرير إحصائي رسمي مصدّر في")}`;
       doc.text(
-        `صفحة ${i + 1} من ${pageCount} | بوابة تمام لخدمات المساجد | تقرير إحصائي رسمي مصدّر في: ${new Date().toLocaleString("ar-SA")}`,
+        footerText,
         40,
         doc.page.height - 18,
         { align: "center", width: doc.page.width - 80 }
@@ -807,6 +839,139 @@ router.get("/reports/pdf", async (req, res) => {
     console.error("خطأ في توليد تقرير PDF الإحصائي:", error);
     if (!res.headersSent) {
       res.status(500).json({ error: "فشل توليد التقرير الإحصائي" });
+    }
+  }
+});
+
+// ===== تصدير التقرير الإحصائي العام كـ Excel (CSV) =====
+router.get("/reports/excel", async (req, res) => {
+  try {
+    // 1. التحقق من المصادقة
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      return res.status(401).json({ error: "غير مصرح" });
+    }
+
+    // 2. التحقق من أن المستخدم إداري ولديه الصلاحية
+    const allowedRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: "ليس لديك صلاحية لعرض هذا التقرير" });
+    }
+
+    const db = await getDb();
+    if (!db) {
+      return res.status(500).json({ error: "قاعدة البيانات غير متاحة" });
+    }
+
+    // 3. جلب معايير الفلترة من الـ Query
+    const { fromDate, toDate, programType, status } = req.query;
+
+    const conditions: any[] = [];
+    if (fromDate) {
+      conditions.push(gte(mosqueRequests.createdAt, new Date(fromDate as string)));
+    }
+    if (toDate) {
+      conditions.push(lte(mosqueRequests.createdAt, new Date(toDate as string)));
+    }
+    if (programType && programType !== "all") {
+      conditions.push(eq(mosqueRequests.programType, programType as any));
+    }
+    if (status && status !== "all") {
+      conditions.push(eq(mosqueRequests.status, status as any));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // جلب مؤشرات الأداء
+    const totalRequestsResult = await db
+      .select({ count: count() })
+      .from(mosqueRequests)
+      .where(whereClause);
+    const totalRequests = totalRequestsResult[0]?.count || 0;
+
+    const closedRequestsResult = await db
+      .select({ count: count() })
+      .from(mosqueRequests)
+      .where(and(whereClause, eq(mosqueRequests.currentStage, "closed")));
+    const closedRequests = closedRequestsResult[0]?.count || 0;
+
+    const benefitedMosquesResult = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${mosqueRequests.mosqueId})` })
+      .from(mosqueRequests)
+      .where(whereClause);
+    const benefitedMosques = Number(benefitedMosquesResult[0]?.count || 0);
+
+    const activeRequestsResult = await db
+      .select({ count: count() })
+      .from(mosqueRequests)
+      .where(
+        and(
+          whereClause,
+          sql`${mosqueRequests.currentStage} NOT IN ('closed', 'submitted', 'initial_review')`
+        )
+      );
+    const activeRequests = activeRequestsResult[0]?.count || 0;
+
+    const completionRate = totalRequests > 0 ? Math.round((closedRequests / totalRequests) * 100) : 0;
+
+    const requests = await db
+      .select({
+        id: mosqueRequests.id,
+        requestNumber: mosqueRequests.requestNumber,
+        programType: mosqueRequests.programType,
+        currentStage: mosqueRequests.currentStage,
+        status: mosqueRequests.status,
+        createdAt: mosqueRequests.createdAt,
+        mosqueName: mosques.name,
+      })
+      .from(mosqueRequests)
+      .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+      .where(whereClause)
+      .orderBy(desc(mosqueRequests.createdAt))
+      .limit(1000); // تصدير جميع الطلبات لملف الإكسل
+
+    // 4. إنشاء محتوى Excel (CSV مع BOM لعرض الحروف العربية بشكل صحيح)
+    let csvContent = "\ufeff";
+    
+    const progVal = programType && programType !== 'all' ? PROGRAM_LABELS[programType as string] || programType : 'جميع البرامج';
+    const statusVal = status && status !== 'all' ? STATUS_LABELS[status as string] || status : 'جميع الحالات';
+    const dateVal = `${fromDate ? new Date(fromDate as string).toISOString().slice(0, 10) : "البداية"} - ${toDate ? new Date(toDate as string).toISOString().slice(0, 10) : "الآن"}`;
+
+    csvContent += `"التقرير الإحصائي والتحليلي العام للطلبات والمشاريع المباشرة - بوابة تمام"\n`;
+    csvContent += `"معايير التصفية النشطة:"\n`;
+    csvContent += `"الفترة:","${dateVal}"\n`;
+    csvContent += `"البرنامج:","${progVal}"\n`;
+    csvContent += `"الحالة:","${statusVal}"\n\n`;
+
+    csvContent += `"مؤشرات الأداء الرئيسية"\n`;
+    csvContent += `"إجمالي الطلبات","المساجد المخدومة","الطلبات قيد التنفيذ","نسبة الإنجاز"\n`;
+    csvContent += `"${totalRequests}","${benefitedMosques}","${activeRequests}","${completionRate}%"\n\n`;
+
+    csvContent += `"سجل الطلبات التفصيلي"\n`;
+    csvContent += `"رقم الطلب","اسم المسجد","البرنامج","المرحلة الحالية","الحالة","تاريخ التقديم"\n`;
+
+    requests.forEach((reqItem) => {
+      const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toISOString().slice(0, 10) : "-";
+      const statusStr = STATUS_LABELS[reqItem.status as string] || reqItem.status;
+      const stageStr = STAGE_LABELS[reqItem.currentStage as string] || reqItem.currentStage;
+      const progStr = PROGRAM_LABELS[reqItem.programType as string] || reqItem.programType;
+      const mosqueName = reqItem.mosqueName || "بنيان (عام)";
+      
+      csvContent += `"${reqItem.requestNumber}","${mosqueName}","${progStr}","${stageStr}","${statusStr}","${dateStr}"\n`;
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="statistical-report-${new Date().toISOString().slice(0, 10)}.csv"`
+    );
+    res.send(csvContent);
+  } catch (error) {
+    console.error("خطأ في توليد تقرير Excel الإحصائي:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "فشل توليد تقرير Excel الإحصائي" });
     }
   }
 });
