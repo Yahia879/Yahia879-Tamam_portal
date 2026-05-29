@@ -92,6 +92,8 @@ export default function ContractForm() {
   
   const projectId = projectIdFromQuery ? parseInt(projectIdFromQuery) :
                    (params.projectId ? parseInt(params.projectId) : undefined);
+                   
+  const [effectiveRequestId, setEffectiveRequestId] = useState<number | null>(requestId || null);
   
   const { user } = useAuth();
   const utils = trpc.useContext();
@@ -166,16 +168,33 @@ export default function ContractForm() {
   // جلب قائمة المفوضين
   const { data: signatoriesData } = trpc.organization.getSignatories.useQuery();
 
+  // جلب المشروع إذا تم تمرير معرفه فقط للحصول على معرف الطلب المرتبط
+  const { data: projectDetails } = trpc.projects.getById.useQuery(
+    { id: projectId! },
+    { enabled: !!projectId && !requestId }
+  );
+
+  // تحديث معرف الطلب الفعلي عند تحميل تفاصيل المشروع
+  useEffect(() => {
+    if (projectDetails?.requestId && !effectiveRequestId) {
+      setEffectiveRequestId(projectDetails.requestId);
+      setContractData(prev => ({
+        ...prev,
+        requestId: projectDetails.requestId,
+      }));
+    }
+  }, [projectDetails, effectiveRequestId]);
+
   // جلب العرض المعتمد للطلب (إن وجد)
   const { data: approvedQuotation } = trpc.projects.getQuotationsByRequest.useQuery(
-    { requestId: requestId! },
-    { enabled: !!requestId }
+    { requestId: effectiveRequestId! },
+    { enabled: !!effectiveRequestId }
   );
 
   // جلب تفاصيل الطلب للحصول على المشروع المرتبط
   const { data: requestDetails, isLoading: isLoadingRequest } = trpc.requests.getById.useQuery(
-    { id: requestId! },
-    { enabled: !!requestId }
+    { id: effectiveRequestId! },
+    { enabled: !!effectiveRequestId }
   );
 
   // جلب تفاصيل المورد المختار
@@ -624,8 +643,8 @@ export default function ContractForm() {
           </p>
         </div>
 
-        {/* بطاقة معلومات الطلب عند وجود requestId */}
-        {requestId && isLoadingRequest && (
+        {/* بطاقة معلومات الطلب عند وجود effectiveRequestId */}
+        {effectiveRequestId && isLoadingRequest && (
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardContent className="py-8">
               <div className="flex items-center justify-center gap-2 text-blue-600">
@@ -636,7 +655,7 @@ export default function ContractForm() {
           </Card>
         )}
         
-        {requestId && !isLoadingRequest && requestDetails && (
+        {effectiveRequestId && !isLoadingRequest && requestDetails && (
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -820,14 +839,14 @@ export default function ContractForm() {
                 </div>
 
                 {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}
-                {(requestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
+                {(effectiveRequestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
                   // عند وجود طلب مرتبط بمشروع أو في وضع التعديل، نعرض المشروع كقيمة ثابتة
                   <div className="space-y-2">
-                    <Label>{requestId ? "المشروع المرتبط" : "المشروع"}</Label>
+                    <Label>{effectiveRequestId ? "المشروع المرتبط" : "المشروع"}</Label>
                     <div className="p-3 bg-muted rounded-lg border">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-primary" />
-                        {requestId && requestDetails?.project ? (
+                        {effectiveRequestId && requestDetails?.project ? (
                           <>
                             <span className="font-medium">
                               {requestDetails.project.projectNumber}
@@ -855,12 +874,12 @@ export default function ContractForm() {
                           })()
                         )}
                       </div>
-                      {requestId && (
+                      {effectiveRequestId && (
                         <p className="text-xs text-muted-foreground mt-1">
                           هذا العقد مرتبط بالطلب رقم {requestDetails?.requestNumber}
                         </p>
                       )}
-                      {isEditMode && !requestId && (
+                      {isEditMode && !effectiveRequestId && (
                         <p className="text-xs text-muted-foreground mt-1">
                           لا يمكن تغيير المشروع بعد إنشاء العقد.
                         </p>

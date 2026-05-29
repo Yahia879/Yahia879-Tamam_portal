@@ -81,9 +81,11 @@ export const projectsRouter = router({
           requestId: projects.requestId,
           managerId: projects.managerId,
           managerName: users.name,
+          requestStage: mosqueRequests.currentStage,
         })
         .from(projects)
         .leftJoin(users, eq(projects.managerId, users.id))
+        .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id))
         .where(filters.length > 0 ? and(...filters) : undefined)
         .orderBy(desc(projects.createdAt))
         .limit(input?.limit || 50)

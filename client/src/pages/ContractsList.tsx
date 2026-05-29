@@ -148,6 +148,7 @@ export default function ContractsList() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const [showProjectSelectionDialog, setShowProjectSelectionDialog] = useState(false);
 
   // حالات إدارة القوالب والبنود المأخوذة من صفحة إدارة القوالب لتكون مطابقة 100%
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -222,6 +223,12 @@ export default function ContractsList() {
     contractType: typeFilter !== "all" ? typeFilter as any : undefined,
     page: currentPage,
     limit: pageSize,
+  });
+
+  // جلب جميع المشاريع وجميع العقود لفلترة المشاريع التي لا تحتوي على عقد معتمد
+  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({});
+  const { data: allContractsData, isLoading: allContractsLoading } = trpc.contracts.list.useQuery({
+    limit: 1000,
   });
 
   // جلب قوالب العقود
@@ -385,6 +392,19 @@ export default function ContractsList() {
   const totalPages = Math.ceil(totalContracts / pageSize);
   const templates = templatesData || [];
 
+  // تصفية المشاريع التي لم يتم إنشاء عقد معتمد أو مسودة أو قيد الاعتماد لها
+  const excludedProjectIds = new Set(
+    (allContractsData?.contracts || [])
+      .filter((c: any) => c.status === 'draft' || c.status === 'pending_approval' || c.status === 'approved' || c.status === 'active' || c.status === 'completed')
+      .map((c: any) => c.projectId)
+      .filter(Boolean)
+  );
+
+  // تصفية المشاريع لتكون في مرحلة التعاقد حصراً وبدون عقد مستبعد
+  const eligibleProjects = (projectsData || []).filter(
+    (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
+  );
+
   // فلترة العقود حسب البحث
   const filteredContracts = contracts.filter((contract: any) => {
     if (!searchQuery) return true;
@@ -424,7 +444,7 @@ export default function ContractsList() {
               إدارة العقود المبرمة وقوالب العقود
             </p>
           </div>
-          <Button onClick={() => navigate("/contracts/new")} className="w-full sm:w-auto">
+          <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 ml-2" />
             إنشاء عقد جديد
           </Button>
@@ -475,7 +495,7 @@ export default function ContractsList() {
                   <p className="text-muted-foreground mb-4">
                     لم يتم العثور على عقود مطابقة لمعايير البحث
                   </p>
-                  <Button onClick={() => navigate("/contracts/new")} className="w-full sm:w-auto">
+                  <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 ml-2" />
                     إنشاء عقد جديد
                   </Button>
@@ -531,18 +551,6 @@ export default function ContractsList() {
                           >
                             <Eye className="h-3.5 w-3.5 ml-1" />
                             عرض
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 sm:flex-none text-xs sm:text-sm"
-                            onClick={() => {
-                              navigate(`/contracts/${contract.id}/preview`);
-                              setTimeout(() => window.print(), 500);
-                            }}
-                          >
-                            <Printer className="h-3.5 w-3.5 ml-1" />
-                            طباعة
                           </Button>
                         </div>
                       </div>
@@ -966,6 +974,83 @@ export default function ContractsList() {
               disabled={createClauseMutation.isPending || updateClauseMutation.isPending}
             >
               {editingClause ? "حفظ التعديلات" : "إضافة البند"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة اختيار المشروع لإنشاء عقد */}
+      <Dialog open={showProjectSelectionDialog} onOpenChange={setShowProjectSelectionDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold text-xl text-primary">
+              تحديد مشروع لإنشاء عقد جديد
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right text-muted-foreground mt-2">
+              يرجى تحديد المشروع الذي ترغب في إنشاء العقد واعتماده له. تظهر هنا فقط المشاريع التي لا تحتوي على عقود معتمدة بالفعل.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            {projectsLoading || allContractsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-muted-foreground text-sm">جاري تحميل المشاريع المتاحة...</span>
+              </div>
+            ) : eligibleProjects.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع متاحة</h3>
+                <p className="text-gray-500 text-sm max-w-md mx-auto">
+                  كافة المشاريع الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد مشاريع في النظام.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                {eligibleProjects.map((project: any) => (
+                  <div
+                    key={project.id}
+                    onClick={() => {
+                      setShowProjectSelectionDialog(false);
+                      navigate(`/contracts/new?projectId=${project.id}`);
+                    }}
+                    className="flex items-center justify-between p-4 bg-white hover:bg-primary/5 border border-gray-100 hover:border-primary/20 rounded-xl cursor-pointer transition-all shadow-sm group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div className="text-right">
+                        <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
+                          {project.name}
+                        </h4>
+                        <span className="text-xs text-muted-foreground">
+                          رقم المشروع: {project.projectNumber}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-gray-50 capitalize">
+                        {project.status === "planning" ? "تخطيط" : 
+                         project.status === "in_progress" ? "قيد التنفيذ" : 
+                         project.status === "on_hold" ? "موقوف مؤقتاً" : 
+                         project.status === "completed" ? "مكتمل" : 
+                         project.status === "cancelled" ? "ملغي" : project.status}
+                      </Badge>
+                      <ChevronLeft className="h-5 w-5 text-gray-400 group-hover:translate-x-[-4px] transition-transform" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex justify-end" dir="rtl">
+            <Button
+              variant="outline"
+              onClick={() => setShowProjectSelectionDialog(false)}
+            >
+              إلغاء
             </Button>
           </DialogFooter>
         </DialogContent>
