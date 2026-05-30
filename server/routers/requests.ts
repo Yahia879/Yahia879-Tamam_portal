@@ -1727,8 +1727,9 @@ export const requestsRouter = router({
       quotationId: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
-      if (!["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام أو أي مستخدم يملك صلاحية الاعتماد المالي)
+      const hasApprovePerm = await checkPermission(ctx.user.id, "financial_approval.approve");
+      if (!hasApprovePerm && !["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاختيار عرض السعر الفائز" });
       }
 
@@ -1784,8 +1785,9 @@ export const requestsRouter = router({
       approvalNotes: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام)
-      if (!["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      // التحقق من الصلاحيات (الإدارة المالية أو المدير العام أو أي مستخدم يملك صلاحية الاعتماد المالي)
+      const hasApprovePerm = await checkPermission(ctx.user.id, "financial_approval.approve");
+      if (!hasApprovePerm && !["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية للاعتماد المالي" });
       }
 
