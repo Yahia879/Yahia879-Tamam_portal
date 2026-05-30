@@ -580,7 +580,7 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
-        { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "edit", "delete", "suspend"] },
+        { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
       ]
     },
     {
@@ -651,7 +651,8 @@ export default function RolePermissions() {
         export: "تصدير سجل المشاريع"
       },
       requesters: {
-        view: "عرض بيانات المستخدمين",
+        view: "عرض بيانات طالبي الخدمة",
+        approve: "الاعتمادات (رفض أو اعتماد الحساب)",
         edit: "تعديل بيانات الحساب",
         delete: "حذف الحساب",
         suspend: "تعليق حساب مستخدم"

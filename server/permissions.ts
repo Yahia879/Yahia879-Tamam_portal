@@ -50,6 +50,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   // UI customized keys mapping to bridge checkboxes with database granular permissions
   requesters: ["users.view", "users.edit", "users.delete"],
   "requesters.view": ["users.view"],
+  "requesters.approve": ["users.edit"],
   "requesters.edit": ["users.edit"],
   "requesters.delete": ["users.delete"],
   "requesters.suspend": ["users.edit"],
@@ -240,9 +241,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");
   }
-  if (allPermissions.has("users.view")) {
+  if (allPermissions.has("users.view") || allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
     allPermissions.add("requesters");
     allPermissions.add("service_requester_accounts");
+  }
+  if (allPermissions.has("users.view")) {
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }

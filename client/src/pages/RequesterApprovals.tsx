@@ -1,5 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { trpc } from "@/lib/trpc";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -41,6 +43,10 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 };
 
 export default function RequesterApprovals() {
+  const { user: currentUser } = useAuth();
+  const hasApprovePermission = usePermission("requesters.approve");
+  const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [confirmAction, setConfirmAction] = useState<{
@@ -236,7 +242,7 @@ export default function RequesterApprovals() {
                         <TableHead className="text-right">الهاتف</TableHead>
                         <TableHead className="text-right whitespace-nowrap">تاريخ التسجيل</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-left">الإجراءات</TableHead>
+                        {canApprove && <TableHead className="text-left">الإجراءات</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -257,32 +263,34 @@ export default function RequesterApprovals() {
                                 {statusInfo?.label ?? user.status}
                               </span>
                             </TableCell>
-                            <TableCell className="text-left">
-                              <div className="flex gap-2">
-                                {user.status !== "active" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold"
-                                    onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                                    اعتماد
-                                  </Button>
-                                )}
-                                {user.status === "active" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold"
-                                    onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                                  >
-                                    <XCircle className="w-3.5 h-3.5 ml-1" />
-                                    إيقاف
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
+                            {canApprove && (
+                              <TableCell className="text-left">
+                                <div className="flex gap-2">
+                                  {user.status !== "active" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold"
+                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
+                                      اعتماد
+                                    </Button>
+                                  )}
+                                  {user.status === "active" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold"
+                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                                    >
+                                      <XCircle className="w-3.5 h-3.5 ml-1" />
+                                      إيقاف
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })}
@@ -319,27 +327,29 @@ export default function RequesterApprovals() {
                           </div>
                         </div>
 
-                        <div className="pt-1">
-                          {user.status !== "active" && (
-                            <Button
-                              className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-lg transition-all"
-                              onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                              اعتماد الحساب
-                            </Button>
-                          )}
-                          {user.status === "active" && (
-                            <Button
-                              variant="outline"
-                              className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-lg transition-all"
-                              onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                            >
-                              <XCircle className="w-4 h-4" />
-                              إيقاف الحساب
-                            </Button>
-                          )}
-                        </div>
+                        {canApprove && (
+                          <div className="pt-1">
+                            {user.status !== "active" && (
+                              <Button
+                                className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-lg transition-all"
+                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                اعتماد الحساب
+                              </Button>
+                            )}
+                            {user.status === "active" && (
+                              <Button
+                                variant="outline"
+                                className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-lg transition-all"
+                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                              >
+                                <XCircle className="w-4 h-4" />
+                                إيقاف الحساب
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

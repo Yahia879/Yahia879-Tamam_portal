@@ -3,7 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions } from "../../drizzle/schema";
-import { calculateUserPermissions } from "../permissions";
+import { calculateUserPermissions, checkPermission } from "../permissions";
 import { eq, and, isNull, inArray, sql, or } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
@@ -389,7 +389,9 @@ export const authRouter = router({
     .input(z.object({ userId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       // التحقق من الصلاحية
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasApprovePerm = await checkPermission(ctx.user.id, "requesters.approve");
+      const isDefaultAllowedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isDefaultAllowedRole && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد المستخدمين" });
       }
 
@@ -420,7 +422,9 @@ export const authRouter = router({
   rejectUser: protectedProcedure
     .input(z.object({ userId: z.number(), reason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasApprovePerm = await checkPermission(ctx.user.id, "requesters.approve");
+      const isDefaultAllowedRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isDefaultAllowedRole && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض المستخدمين" });
       }
 

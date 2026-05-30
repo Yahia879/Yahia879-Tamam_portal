@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,6 +64,10 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function Users() {
+  const { user: currentUser } = useAuth();
+  const hasApprovePermission = usePermission("requesters.approve");
+  const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
+
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -271,7 +277,7 @@ export default function Users() {
                                 إعادة تعيين كلمة المرور
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              {user.status === "pending" && (
+                              {user.status === "pending" && canApprove && (
                                 <DropdownMenuItem 
                                   className="cursor-pointer text-green-600"
                                   onClick={() => approveMutation.mutate({ userId: user.id })}
@@ -280,7 +286,7 @@ export default function Users() {
                                   اعتماد
                                 </DropdownMenuItem>
                               )}
-                              {user.status === "active" && (
+                              {user.status === "active" && canApprove && (
                                 <DropdownMenuItem 
                                   className="cursor-pointer text-destructive"
                                   onClick={() => suspendMutation.mutate({ userId: user.id })}
