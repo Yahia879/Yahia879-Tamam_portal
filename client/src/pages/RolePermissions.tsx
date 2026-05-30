@@ -87,9 +87,29 @@ export default function RolePermissions() {
 
   const handleTogglePermission = (permId: string) => {
     if (isSuperAdmin) return;
-    setSelectedPerms(prev => 
-      prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
-    );
+    
+    // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("mosques.") && permId !== "mosques.view") {
+      if (!selectedPerms.includes("mosques.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المساجد' أولاً");
+        return;
+      }
+    }
+
+    setSelectedPerms(prev => {
+      const isAlreadySelected = prev.includes(permId);
+      
+      if (isAlreadySelected) {
+        let next = prev.filter(id => id !== permId);
+        // عند إلغاء تفعيل صلاحية 'عرض المساجد'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المساجد الأخرى
+        if (permId === "mosques.view") {
+          next = next.filter(id => !id.startsWith("mosques."));
+        }
+        return next;
+      } else {
+        return [...prev, permId];
+      }
+    });
   };
 
   const handleToggleModuleAll = (modulePerms: any[]) => {
