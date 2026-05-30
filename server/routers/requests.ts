@@ -1588,12 +1588,14 @@ export const requestsRouter = router({
       assignedTo: z.number().optional(),
     }))
     .query(async ({ input, ctx }) => {
-      if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      const hasCalendarPerm = await checkPermission(ctx.user.id, "appointments_calendar");
+      const isDefaultAllowedRole = ["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isDefaultAllowedRole && !hasCalendarPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض تقويم الزيارات" });
       }
 
       const db = await getDb();
-      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متادة" });
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // قراءة من جدول fieldVisits المنفصل (المصدر الصحيح للجدولة)
       const conditions: any[] = [sql`${fieldVisits.scheduledDate} IS NOT NULL`];
@@ -1605,11 +1607,14 @@ export const requestsRouter = router({
         conditions.push(lte(fieldVisits.scheduledDate, new Date(input.endDate)));
       }
 
-      if (ctx.user.role === 'field_team') {
-        // مستخدم الفريق الميداني: يرى الزيارات المسندة إليه فقط بناءً على طلب العميل
+      const hasViewOwn = await checkPermission(ctx.user.id, "appointments.view_own");
+      const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
+
+      if (hasViewOwn || (!hasViewAll && ctx.user.role === 'field_team')) {
+        // مستخدم لديه صلاحية رؤية مواعيده الخاصة فقط، أو هو في الفريق الميداني ولم يُمنح رؤية الكل
         conditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
       } else if (input.assignedTo) {
-        // فلترة بموظف محدد للمديرين
+        // فلترة بموظف محدد للمديرين أو من لديه صلاحية view_all
         conditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
       }
       const assignedUser = alias(users, 'assignedUser');

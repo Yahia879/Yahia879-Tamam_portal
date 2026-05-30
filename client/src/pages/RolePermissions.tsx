@@ -107,7 +107,14 @@ export default function RolePermissions() {
         }
         return next;
       } else {
-        return [...prev, permId];
+        let next = [...prev, permId];
+        // منع اختيار الصلاحيتين معاً لمواعيد تقويم المنشأة والمواعيد الخاصة
+        if (permId === "appointments.view_all") {
+          next = next.filter(id => id !== "appointments.view_own");
+        } else if (permId === "appointments.view_own") {
+          next = next.filter(id => id !== "appointments.view_all");
+        }
+        return next;
       }
     });
   };
@@ -120,8 +127,17 @@ export default function RolePermissions() {
       setSelectedPerms(prev => prev.filter(id => !permIds.includes(id)));
     } else {
       setSelectedPerms(prev => {
-        const added = permIds.filter(id => !prev.includes(id));
-        return [...prev, ...added];
+        let added = permIds.filter(id => !prev.includes(id));
+        if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
+          added = added.filter(id => id !== "appointments.view_own");
+        }
+        let next = [...prev, ...added];
+        if (added.includes("appointments.view_all")) {
+          next = next.filter(id => id !== "appointments.view_own");
+        } else if (added.includes("appointments.view_own")) {
+          next = next.filter(id => id !== "appointments.view_all");
+        }
+        return next;
       });
     }
   };
@@ -522,7 +538,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
       ]
     },
@@ -562,7 +578,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "edit", "delete", "suspend"] },
       ]
@@ -725,6 +741,8 @@ export default function RolePermissions() {
       },
       appointments: {
         view: "عرض تقويم المواعيد",
+        view_all: "عرض كافة مواعيد المنشأة",
+        view_own: "عرض المواعيد الخاصة بي",
         add: "إضافة موعد جديد",
         edit: "تعديل موعد",
         delete: "حذف موعد"
@@ -882,7 +900,14 @@ export default function RolePermissions() {
                 <div className={`grid gap-8 ${isQuickResponse ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 md:grid-cols-2"}`}>
                   {group.modules.map((module) => {
                     const Icon = (module as any).icon || Shield;
-                    const modulePerms = module.permissions || [];
+                    const rawPerms = module.permissions || [];
+                    const modulePerms = rawPerms.filter((p: any) => {
+                      // إظهار خيار "مواعيد الخاصة بي" فقط عند تخصيص الفريق الميداني
+                      if (p.id === "appointments.view_own" && roleId !== "field_team") {
+                        return false;
+                      }
+                      return true;
+                    });
                     const activePerms = isSuperAdmin 
                       ? modulePerms 
                       : modulePerms.filter((p: any) => selectedPerms.includes(p.id));

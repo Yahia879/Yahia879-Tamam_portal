@@ -28,7 +28,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
   requests: ["requests.view", "requests.create", "requests.edit", "requests.delete"],
-  appointments_calendar: ["requests.view", "field_visits.view"],
+  appointments_calendar: ["requests.view", "field_visits.view", "appointments.view"],
   projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
@@ -56,6 +56,11 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   mosque_map: ["mosque_map.view"],
   "mosque_map.view": ["mosque_map.view"],
+
+  appointments: ["requests.view", "field_visits.view"],
+  "appointments.view": ["requests.view", "field_visits.view"],
+  "appointments.view_all": ["requests.view", "field_visits.view"],
+  "appointments.view_own": ["requests.view", "field_visits.view"],
 
   staff: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
@@ -217,11 +222,57 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     }
   });
 
-  // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً إذا كان المستخدم يملك أي من صلاحياتها الدقيقة
-  for (const [simpleKey, granularPerms] of Object.entries(PERMISSION_EXPANSION)) {
-    if (granularPerms.some(gp => allPermissions.has(gp))) {
-      allPermissions.add(simpleKey);
-    }
+  // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
+  if (allPermissions.has("mosques.view")) {
+    allPermissions.add("mosques");
+  }
+  if (allPermissions.has("mosque_map.view")) {
+    allPermissions.add("mosque_map");
+    allPermissions.add("mosques_map");
+  }
+  if (allPermissions.has("requests.view")) {
+    allPermissions.add("requests");
+  }
+  if (allPermissions.has("appointments.view") || allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
+    allPermissions.add("appointments");
+    allPermissions.add("appointments_calendar");
+  }
+  if (allPermissions.has("projects.view")) {
+    allPermissions.add("projects");
+  }
+  if (allPermissions.has("users.view")) {
+    allPermissions.add("requesters");
+    allPermissions.add("service_requester_accounts");
+    allPermissions.add("staff");
+    allPermissions.add("staff_management");
+  }
+  if (allPermissions.has("suppliers.view")) {
+    allPermissions.add("suppliers");
+  }
+  if (allPermissions.has("quotations.view")) {
+    allPermissions.add("quotations");
+  }
+  if (allPermissions.has("financial.view")) {
+    allPermissions.add("financial_approval");
+  }
+  if (allPermissions.has("contracts.view")) {
+    allPermissions.add("contracts");
+  }
+  if (allPermissions.has("disbursements.view")) {
+    allPermissions.add("disbursements");
+    allPermissions.add("disbursement_requests");
+    allPermissions.add("disbursement_orders");
+  }
+  if (allPermissions.has("reports.view")) {
+    allPermissions.add("progress_reports");
+    allPermissions.add("financial_reports");
+    allPermissions.add("financial_report");
+  }
+  if (allPermissions.has("settings.view")) {
+    allPermissions.add("settings");
+    allPermissions.add("settings_center");
+    allPermissions.add("services");
+    allPermissions.add("programs_services");
   }
 
   return Array.from(allPermissions);
