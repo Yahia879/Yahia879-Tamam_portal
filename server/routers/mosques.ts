@@ -47,6 +47,11 @@ export const mosquesRouter = router({
   create: protectedProcedure
     .input(createMosqueSchema)
     .mutation(async ({ input, ctx }) => {
+      const hasCreatePerm = await checkPermission(ctx.user.id, "mosques.create");
+      if (!["super_admin", "system_admin", "projects_office", "service_requester"].includes(ctx.user.role) && !hasCreatePerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة المساجد" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 

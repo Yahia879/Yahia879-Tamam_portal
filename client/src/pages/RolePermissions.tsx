@@ -499,7 +499,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
@@ -539,7 +539,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
@@ -588,8 +588,8 @@ export default function RolePermissions() {
     const mapping: Record<string, Record<string, string>> = {
       mosques: {
         view: "عرض المساجد",
-        create: "إضافة مسجد جديد",
-        add: "إضافة مسجد جديد",
+        create: "إضافة مسجد",
+        add: "إضافة مسجد",
         edit: "تعديل المسجد",
         update: "تعديل المسجد",
         delete: "حذف المسجد",
