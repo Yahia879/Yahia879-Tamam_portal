@@ -140,6 +140,7 @@ export default function DisbursementRequests() {
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
+  const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
   
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -187,6 +188,7 @@ export default function DisbursementRequests() {
   // استعلامات البيانات
   const { data: requestsData, refetch: refetchRequests } = trpc.disbursements.listRequests.useQuery({
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    requestType: requestTypeFilter !== "all" ? requestTypeFilter : undefined,
     search: searchTerm || undefined,
     page,
     limit,
@@ -475,7 +477,7 @@ export default function DisbursementRequests() {
   // إعادة تعيين الصفحة الأولى عند تغيير الفلاتر أو البحث
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter, paymentTypeFilter]);
+  }, [searchTerm, statusFilter, paymentTypeFilter, requestTypeFilter]);
 
   const total = requestsData?.total || 0;
   const totalPages = Math.ceil(total / limit);
@@ -574,13 +576,25 @@ export default function DisbursementRequests() {
                   dir="rtl"
                 />
               </div>
-              <div className="flex w-full lg:w-auto">
+              <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                <Select value={requestTypeFilter} onValueChange={setRequestTypeFilter}>
+                  <SelectTrigger className="w-full lg:w-[180px]">
+                    <Filter className="ml-2 h-4 w-4" />
+                    <SelectValue placeholder="نوع الطلب" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all">جميع الطلبات</SelectItem>
+                    <SelectItem value="linked">طلب مرتبط بمشروع</SelectItem>
+                    <SelectItem value="custom">طلب صرف مخصص</SelectItem>
+                  </SelectContent>
+                </Select>
+
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full lg:w-[180px]">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent dir="rtl">
                     <SelectItem value="all">جميع الحالات</SelectItem>
                     <SelectItem value="pending">قيد الاعتماد</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
@@ -635,18 +649,11 @@ export default function DisbursementRequests() {
                               <TableCell className="max-w-[200px] truncate text-right">{request.title || request.description}</TableCell>
                               <TableCell className="max-w-[200px] text-right">
                                 {request.projectId ? (
-                                  <div className="flex flex-col items-start gap-1 justify-center">
-                                    <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate max-w-[190px]">
-                                      {request.projectName}
-                                    </span>
-                                    <Badge variant="outline" className="text-[10px] py-0 px-2 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50">
-                                      مرتبط بمشروع
-                                    </Badge>
-                                  </div>
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate max-w-[190px]">
+                                    {request.projectName}
+                                  </span>
                                 ) : (
-                                  <Badge variant="outline" className="text-[10px] py-0.5 px-2 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50 font-bold">
-                                    طلب صرف مخصص
-                                  </Badge>
+                                  <span className="text-muted-foreground text-xs font-medium">-</span>
                                 )}
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
@@ -794,17 +801,12 @@ export default function DisbursementRequests() {
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
                                 <p className="font-bold text-sm truncate">{request.title || request.description}</p>
                                 {request.projectId ? (
-                                  <div className="flex items-center gap-1.5 mt-0.5 justify-end">
-                                    <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/50">
-                                      مرتبط بمشروع
-                                    </Badge>
+                                  <div className="mt-0.5 flex justify-end">
                                     <span className="text-xs text-muted-foreground truncate max-w-[150px]">{request.projectName}</span>
                                   </div>
                                 ) : (
-                                  <div className="mt-1 flex justify-end">
-                                    <Badge variant="outline" className="text-[9px] py-0 px-1.5 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50 font-bold">
-                                      طلب صرف مخصص
-                                    </Badge>
+                                  <div className="mt-0.5 flex justify-end">
+                                    <span className="text-muted-foreground text-xs font-medium">-</span>
                                   </div>
                                 )}
                               </div>

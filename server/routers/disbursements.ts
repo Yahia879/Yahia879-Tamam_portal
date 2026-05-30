@@ -17,7 +17,7 @@ import {
   donationOpportunities,
   mosqueRequests,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, isNull, or, like } from "drizzle-orm";
+import { eq, desc, and, sql, isNull, isNotNull, or, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 // توليد رقم طلب صرف
@@ -49,6 +49,7 @@ export const disbursementsRouter = router({
       z.object({
         projectId: z.number().optional(),
         status: z.string().optional(),
+        requestType: z.string().optional(),
         search: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(10),
@@ -58,11 +59,17 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { projectId, status, search, page = 1, limit = 10 } = input || {};
+      const { projectId, status, requestType, search, page = 1, limit = 10 } = input || {};
 
       const conditions = [];
       if (projectId) conditions.push(eq(disbursementRequests.projectId, projectId));
       if (status && status !== "all") conditions.push(eq(disbursementRequests.status, status as any));
+      
+      if (requestType === "custom") {
+        conditions.push(isNull(disbursementRequests.projectId));
+      } else if (requestType === "linked") {
+        conditions.push(isNotNull(disbursementRequests.projectId));
+      }
 
       if (search) {
         const searchPattern = `%${search.toLowerCase()}%`;
