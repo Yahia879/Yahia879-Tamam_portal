@@ -387,10 +387,10 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية المستخدم
-      // يُسمح للمدير العام، مدير النظام، الإدارة المالية، أو أي دور مخصص لديه صلاحية suppliers.view أو suppliers.edit
+      // يُسمح للمدير العام، مدير النظام، الإدارة المالية، أو أي دور مخصص لديه صلاحية suppliers.approve أو suppliers.edit
       const isAuthorizedRole = ["super_admin", "system_admin", "financial", "financial_manager"].includes(ctx.user.role);
       const hasPermission = await checkPermission(ctx.user.id, "suppliers.edit") || 
-                            await checkPermission(ctx.user.id, "suppliers.view");
+                            await checkPermission(ctx.user.id, "suppliers.approve");
 
       if (!isAuthorizedRole && !hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد الموردين" });
@@ -437,7 +437,7 @@ export const suppliersRouter = router({
       // التحقق من صلاحية المستخدم
       const isAuthorizedRole = ["super_admin", "system_admin", "financial", "financial_manager"].includes(ctx.user.role);
       const hasPermission = await checkPermission(ctx.user.id, "suppliers.edit") || 
-                            await checkPermission(ctx.user.id, "suppliers.view");
+                            await checkPermission(ctx.user.id, "suppliers.approve");
 
       if (!isAuthorizedRole && !hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض الموردين" });

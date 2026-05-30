@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import {
   Building2,
@@ -91,6 +92,11 @@ const STATUS_CONFIG = {
 export default function SuppliersManagement() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const hasApprovePermission = usePermission("suppliers.approve");
+  const hasEditPermission = usePermission("suppliers.edit");
+  const hasViewDetailsPermission = usePermission("suppliers.view_details");
+  const canSuspend = hasApprovePermission || hasEditPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
+  const canViewDetails = hasViewDetailsPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
@@ -122,6 +128,33 @@ export default function SuppliersManagement() {
     search: searchQuery || undefined,
   });
 
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+
+  const approveMutation = trpc.suppliers.approve.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد المورد بنجاح");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء اعتماد المورد");
+    },
+  });
+
+  const rejectMutation = trpc.suppliers.reject.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض المورد");
+      refetch();
+      setShowRejectDialog(false);
+      setRejectReason("");
+      setSelectedSupplier(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء رفض المورد");
+    },
+  });
+
   const suspendMutation = trpc.suppliers.suspend.useMutation({
     onSuccess: () => {
       toast.success("تم إيقاف المورد");
@@ -131,6 +164,17 @@ export default function SuppliersManagement() {
       toast.error(error.message || "حدث خطأ أثناء إيقاف المورد");
     },
   });
+
+  // اعتماد المورد
+  const handleApprove = (supplierId: number) => {
+    approveMutation.mutate({ id: supplierId });
+  };
+
+  // رفض المورد
+  const handleReject = () => {
+    if (!selectedSupplier || !rejectReason.trim()) return;
+    rejectMutation.mutate({ id: selectedSupplier.id, reason: rejectReason });
+  };
 
   // فتح تفاصيل المورد بالانتقال لصفحة التفاصيل المنفصلة
   const openSupplierDetails = (supplier: any) => {
@@ -161,10 +205,12 @@ export default function SuppliersManagement() {
             <p className="text-sm md:text-base text-muted-foreground">مراجعة واعتماد طلبات تسجيل الموردين</p>
           </div>
           <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
-            <Button onClick={() => navigate("/supplier/register")} className="w-full sm:w-auto">
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة مورد
-            </Button>
+            <PermissionGuard permission="suppliers.add">
+              <Button onClick={() => navigate("/supplier/register")} className="w-full sm:w-auto">
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة مورد
+              </Button>
+            </PermissionGuard>
             <Button variant="outline" onClick={() => refetch()} className="w-full sm:w-auto">
               <RefreshCw className="h-4 w-4 ml-2" />
               تحديث
@@ -274,12 +320,16 @@ export default function SuppliersManagement() {
                     return (
                       <TableRow key={supplier.id}>
                         <TableCell className="font-bold text-slate-800 dark:text-slate-200">
-                          <button
-                            onClick={() => openSupplierDetails(supplier)}
-                            className="hover:text-teal-600 hover:underline text-right transition-colors"
-                          >
-                            {supplier.name}
-                          </button>
+                          {canViewDetails ? (
+                            <button
+                              onClick={() => openSupplierDetails(supplier)}
+                              className="hover:text-teal-600 hover:underline text-right transition-colors"
+                            >
+                              {supplier.name}
+                            </button>
+                          ) : (
+                            <span>{supplier.name}</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {supplier.entityType === "company" ? "شركة" : "مؤسسة"}
@@ -316,11 +366,34 @@ export default function SuppliersManagement() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
-                                <Eye className="h-4 w-4 ml-2" />
-                                عرض التفاصيل
-                              </DropdownMenuItem>
-                              {supplier.approvalStatus === "approved" && (
+                              {canViewDetails && (
+                                <DropdownMenuItem onClick={() => openSupplierDetails(supplier)}>
+                                  <Eye className="h-4 w-4 ml-2" />
+                                  عرض التفاصيل
+                                </DropdownMenuItem>
+                              )}
+                              {supplier.approvalStatus === "pending" && hasApprovePermission && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleApprove(supplier.id)}
+                                    className="text-green-600 font-bold"
+                                  >
+                                    <CheckCircle2 className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                    اعتماد المورد
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedSupplier(supplier);
+                                      setShowRejectDialog(true);
+                                    }}
+                                    className="text-red-600 font-bold"
+                                  >
+                                    <XCircle className="h-4.5 w-4.5 ml-2 text-red-600" />
+                                    رفض المورد
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {supplier.approvalStatus === "approved" && canSuspend && (
                                 <DropdownMenuItem
                                   onClick={() => handleSuspend(supplier.id)}
                                   className="text-orange-600"
@@ -341,6 +414,39 @@ export default function SuppliersManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* نافذة رفض المورد */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="w-[90vw] max-w-md rounded-2xl p-6" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right text-lg font-bold">تأكيد رفض المورد</DialogTitle>
+            <DialogDescription className="text-right text-sm mt-2">
+              يرجى إدخال سبب رفض طلب تسجيل المورد "{selectedSupplier?.name}":
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-4">
+            <Textarea
+              placeholder="اكتب سبب الرفض هنا..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full text-right"
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6">
+            <Button
+              onClick={handleReject}
+              disabled={rejectMutation.isPending || !rejectReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              {rejectMutation.isPending ? "جاري الرفض..." : "تأكيد الرفض"}
+            </Button>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

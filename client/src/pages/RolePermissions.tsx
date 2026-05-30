@@ -96,6 +96,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للموردين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("suppliers.") && permId !== "suppliers.view") {
+      if (!selectedPerms.includes("suppliers.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة الموردين' أولاً");
+        return;
+      }
+    }
+
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
       
@@ -104,6 +112,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض المساجد'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المساجد الأخرى
         if (permId === "mosques.view") {
           next = next.filter(id => !id.startsWith("mosques."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض قائمة الموردين'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الموردين الأخرى
+        if (permId === "suppliers.view") {
+          next = next.filter(id => !id.startsWith("suppliers."));
         }
         return next;
       } else {
@@ -545,7 +557,7 @@ export default function RolePermissions() {
     {
       title: "المالية والعقود",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve", "reject"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
@@ -586,7 +598,7 @@ export default function RolePermissions() {
     {
       title: "المالية والعقود",
       modules: [
-        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve", "reject"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
@@ -659,10 +671,11 @@ export default function RolePermissions() {
       },
       suppliers: {
         view: "عرض قائمة الموردين",
-        add: "إضافة مورد جديد",
+        view_details: "عرض تفاصيل المورد",
+        add: "إضافة مورد",
+        approve: "الاعتمادات (اعتماد أو رفض مورد)",
         edit: "تعديل بيانات مورد",
-        delete: "حذف مورد",
-        approve: "اعتماد الموردين"
+        delete: "حذف مورد"
       },
       quotations: {
         view: "عرض عروض الأسعار",

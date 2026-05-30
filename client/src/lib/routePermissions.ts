@@ -108,7 +108,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الموردون ──
   "/suppliers": "suppliers",
-  "/suppliers/new": "suppliers",
+  "/suppliers/new": "suppliers.add",
 
   // ── عروض الأسعار ──
   "/quotations": "quotations",
@@ -177,6 +177,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // المشاريع
   { pattern: /^\/projects\/\d+$/, permission: "projects" },
+
+  // الموردون
+  { pattern: /^\/suppliers\/\d+$/, permission: "suppliers.view_details" },
 
   // المستخدمين
   { pattern: /^\/users\/\d+\/edit$/, permission: "staff_management" },
