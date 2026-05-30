@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import {
   CheckSquare,
   Eye,
@@ -158,8 +159,10 @@ export default function FinancialApproval() {
   const hasSelectedQuotation = !!requestDetails?.selectedQuotationId || !!selectedQuotationId;
 
   // التحقق من الصلاحيات
-  const canSelectWinning = ["financial", "super_admin", "system_admin"].includes(user?.role || "");
-  const canApprove = ["financial", "super_admin", "system_admin"].includes(user?.role || "");
+  const hasApprove = usePermission("financial_approval.approve");
+  const isSuperOrSystem = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canSelectWinning = hasApprove || isSuperOrSystem;
+  const canApprove = hasApprove || isSuperOrSystem;
 
   return (
     <DashboardLayout>

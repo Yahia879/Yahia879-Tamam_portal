@@ -104,6 +104,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
+    if (permId === "financial_approval.approve") {
+      if (!selectedPerms.includes("financial_approval.view")) {
+        toast.warning("يجب تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد' أولاً");
+        return;
+      }
+    }
+
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
       
@@ -116,6 +124,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض قائمة الموردين'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الموردين الأخرى
         if (permId === "suppliers.view") {
           next = next.filter(id => !id.startsWith("suppliers."));
+        }
+        // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
+        if (permId === "financial_approval.view") {
+          next = next.filter(id => id !== "financial_approval.approve");
         }
         return next;
       } else {
@@ -327,9 +339,8 @@ export default function RolePermissions() {
           nameAr: "الاعتماد المالي",
           icon: CheckSquare,
           permissions: [
-            { id: "financial_approval.view", nameAr: "عرض طلبات الاعتماد" },
-            { id: "financial_approval.approve", nameAr: "منح الاعتماد المالي" },
-            { id: "financial_approval.reject", nameAr: "رفض الاعتماد المالي" },
+            { id: "financial_approval.view", nameAr: "مقارنة عروض الاسعار من دون اعتماد" },
+            { id: "financial_approval.approve", nameAr: "الاعتماد المالي لعرض السعر" },
           ]
         },
         {
@@ -465,9 +476,8 @@ export default function RolePermissions() {
           nameAr: "الاعتماد المالي",
           icon: CheckSquare,
           permissions: [
-            { id: "financial_approval.view", nameAr: "عرض طلبات الاعتماد" },
-            { id: "financial_approval.approve", nameAr: "منح الاعتماد المالي" },
-            { id: "financial_approval.reject", nameAr: "رفض الاعتماد المالي" },
+            { id: "financial_approval.view", nameAr: "مقارنة عروض الاسعار من دون اعتماد" },
+            { id: "financial_approval.approve", nameAr: "الاعتماد المالي لعرض السعر" },
           ]
         },
         {
@@ -559,7 +569,7 @@ export default function RolePermissions() {
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve", "reject"] },
+        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
@@ -600,7 +610,7 @@ export default function RolePermissions() {
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve", "reject"] },
+        { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
@@ -685,9 +695,8 @@ export default function RolePermissions() {
         approve: "اعتماد عروض الأسعار"
       },
       financial_approval: {
-        view: "عرض طلبات الاعتماد",
-        approve: "منح الاعتماد المالي",
-        reject: "مقارنة عروض الأسعار"
+        view: "مقارنة عروض الاسعار من دون اعتماد",
+        approve: "الاعتماد المالي لعرض السعر"
       },
       contracts: {
         view: "عرض سجل العقود",
@@ -963,20 +972,27 @@ export default function RolePermissions() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" dir="rtl">
                             {modulePerms.map((perm: any) => {
                               const isChecked = isPermissionGranted(perm.id);
+                               const isDisabled = 
+                                 (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
+                                 (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 
                                   key={perm.id} 
-                                  onClick={() => handleTogglePermission(perm.id)}
-                                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all cursor-pointer select-none text-right ${
-                                    isChecked 
-                                      ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60" 
-                                      : "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400"
+                                  onClick={() => !isDisabled && handleTogglePermission(perm.id)}
+                                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all select-none text-right ${
+                                    isDisabled
+                                      ? "border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/10 text-slate-300 dark:text-slate-600 cursor-not-allowed pointer-events-none opacity-50"
+                                      : isChecked 
+                                        ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer" 
+                                        : "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer"
                                   }`}
                                 >
                                   <div className={`w-4.5 h-4.5 rounded flex items-center justify-center border shrink-0 transition-all ${
-                                    isChecked
-                                      ? "bg-green-600 border-green-600 text-white"
-                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                    isDisabled
+                                      ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900"
+                                      : isChecked
+                                        ? "bg-green-600 border-green-600 text-white"
+                                        : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
                                   }`}>
                                     {isChecked && <CheckCircle2 className="h-3 w-3 stroke-[3]" />}
                                   </div>

@@ -300,16 +300,16 @@ export default function SuppliersManagement() {
                 <p className="text-muted-foreground">لا يوجد موردين</p>
               </div>
             ) : (
-              <Table>
+              <Table className="not-italic">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>اسم الكيان</TableHead>
-                    <TableHead>النوع</TableHead>
-                    <TableHead>السجل التجاري</TableHead>
-                    <TableHead>مجالات العمل</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>تاريخ التسجيل</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-right">اسم الكيان</TableHead>
+                    <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">السجل التجاري</TableHead>
+                    <TableHead className="text-right">مجالات العمل</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-right">تاريخ التسجيل</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -319,7 +319,7 @@ export default function SuppliersManagement() {
                     
                     return (
                       <TableRow key={supplier.id}>
-                        <TableCell className="font-bold text-slate-800 dark:text-slate-200">
+                        <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-right">
                           {canViewDetails ? (
                             <button
                               onClick={() => openSupplierDetails(supplier)}
@@ -331,12 +331,12 @@ export default function SuppliersManagement() {
                             <span>{supplier.name}</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           {supplier.entityType === "company" ? "شركة" : "مؤسسة"}
                         </TableCell>
-                        <TableCell dir="ltr">{supplier.commercialRegister}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
+                        <TableCell className="text-right" dir="ltr">{supplier.commercialRegister}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1 justify-start">
                             {getWorkFieldsArray(supplier.workFields).slice(0, 2).map((field) => (
                               <Badge key={field} variant="secondary" className="text-xs">
                                 {WORK_FIELD_LABELS[field] || field}
@@ -349,16 +349,16 @@ export default function SuppliersManagement() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           <Badge className={statusConfig.color}>
                             <StatusIcon className="h-3 w-3 ml-1" />
                             {statusConfig.label}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right">
                           {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-left">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
