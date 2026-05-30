@@ -161,27 +161,38 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                         <Badge variant="destructive">موقوف</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-left" onClick={(e) => e.stopPropagation()}>
-                      {role.id !== 'super_admin' && role.id !== 'system_admin' && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">فتح القائمة</span>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => handleToggleStatus(role.id, !role.isActive)}
-                              disabled={toggleMutation.isPending}
-                              className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer" : "text-green-600 focus:text-green-600 cursor-pointer"}
-                            >
-                              <Power className="h-4 w-4 ml-2" />
-                              {role.isActive ? "إيقاف الدور" : "تفعيل الدور"}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                     <TableCell className="text-left animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2 justify-end" dir="rtl">
+                        {role.id !== 'super_admin' && role.id !== 'system_admin' ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg hover:bg-muted">
+                                <span className="sr-only">فتح القائمة</span>
+                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 text-right font-medium">
+                              <DropdownMenuItem
+                                onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                                className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
+                              >
+                                <span>تخصيص الصلاحيات</span>
+                                <Shield className="h-4 w-4 text-primary" />
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleToggleStatus(role.id, !role.isActive)}
+                                disabled={toggleMutation.isPending}
+                                className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
+                              >
+                                <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
+                                <Power className="h-4 w-4" />
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="text-xs text-muted-foreground font-medium pl-2">-</span>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -214,41 +225,50 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                 onClick={() => setLocation(`/staff/roles/${role.id}`)}
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="flex items-center gap-3 text-right">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                       <Shield className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-bold">{role.nameAr}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-white">{role.nameAr}</h3>
                       <div className="text-xs text-muted-foreground">{role.isSystem ? "دور أساسي" : "دور مخصص"}</div>
                     </div>
                   </div>
                   
-                  {role.id !== 'super_admin' && role.id !== 'system_admin' && (
-                    <div onClick={(e) => e.stopPropagation()}>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    {role.id !== 'super_admin' && role.id !== 'system_admin' ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
+                          <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg hover:bg-muted">
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-48 text-right font-medium">
+                          <DropdownMenuItem
+                            onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                            className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
+                          >
+                            <span>تخصيص الصلاحيات</span>
+                            <Shield className="h-4 w-4 text-primary" />
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleToggleStatus(role.id, !role.isActive)}
                             disabled={toggleMutation.isPending}
-                            className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer" : "text-green-600 focus:text-green-600 cursor-pointer"}
+                            className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
                           >
-                            <Power className="h-4 w-4 ml-2" />
-                            {role.isActive ? "إيقاف الدور" : "تفعيل الدور"}
+                            <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
+                            <Power className="h-4 w-4" />
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-medium pl-2">-</span>
+                    )}
+                  </div>
                 </div>
 
                 {role.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                  <p className="text-sm text-muted-foreground line-clamp-2 text-right">
                     {role.description}
                   </p>
                 )}

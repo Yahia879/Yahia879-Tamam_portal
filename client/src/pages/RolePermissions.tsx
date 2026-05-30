@@ -1,6 +1,8 @@
+import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
 import { Button } from "../components/ui/button";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { 
   Shield, 
@@ -39,6 +41,9 @@ export default function RolePermissions() {
   const [, setLocation] = useLocation();
   const roleId = params?.id;
 
+  const utils = trpc.useUtils();
+  const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
+
   const { data: roles, isLoading: rolesLoading } = trpc.permissions.getRoles.useQuery();
   const { data: rolePermissions, isLoading: permsLoading } = trpc.permissions.getRolePermissions.useQuery(
     { roleId: roleId || "" },
@@ -48,6 +53,58 @@ export default function RolePermissions() {
 
   const role = roles?.find((r) => r.id === roleId);
   const isLoading = rolesLoading || permsLoading || structureLoading;
+
+  useEffect(() => {
+    if (rolePermissions) {
+      setSelectedPerms(rolePermissions);
+    }
+  }, [rolePermissions]);
+
+  const hasChanges = useMemo(() => {
+    if (!rolePermissions) return false;
+    if (selectedPerms.length !== rolePermissions.length) return true;
+    const setA = new Set(selectedPerms);
+    return !rolePermissions.every(p => setA.has(p));
+  }, [selectedPerms, rolePermissions]);
+
+  const updateRoleMutation = trpc.permissions.updateRole.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ وتحديث الصلاحيات بنجاح");
+      utils.permissions.getRolePermissions.invalidate({ roleId: roleId || "" });
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حفظ الصلاحيات");
+    }
+  });
+
+  const handleSaveChanges = () => {
+    if (!roleId) return;
+    updateRoleMutation.mutate({
+      roleId,
+      permissions: selectedPerms
+    });
+  };
+
+  const handleTogglePermission = (permId: string) => {
+    if (isSuperAdmin) return;
+    setSelectedPerms(prev => 
+      prev.includes(permId) ? prev.filter(id => id !== permId) : [...prev, permId]
+    );
+  };
+
+  const handleToggleModuleAll = (modulePerms: any[]) => {
+    if (isSuperAdmin) return;
+    const permIds = modulePerms.map(p => p.id);
+    const allSelected = permIds.every(id => selectedPerms.includes(id));
+    if (allSelected) {
+      setSelectedPerms(prev => prev.filter(id => !permIds.includes(id)));
+    } else {
+      setSelectedPerms(prev => {
+        const added = permIds.filter(id => !prev.includes(id));
+        return [...prev, ...added];
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -442,7 +499,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
@@ -482,7 +539,7 @@ export default function RolePermissions() {
     {
       title: "المساجد والطلبات",
       modules: [
-        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+        { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view", "add", "edit", "delete"] },
@@ -530,13 +587,13 @@ export default function RolePermissions() {
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
       mosques: {
-        view: "عرض قائمة المساجد",
+        view: "عرض المساجد",
         create: "إضافة مسجد جديد",
         add: "إضافة مسجد جديد",
-        edit: "تعديل بيانات مسجد",
-        update: "تعديل بيانات مسجد",
-        delete: "حذف مسجد",
-        approve: "اعتماد المساجد المضافة"
+        edit: "تعديل المسجد",
+        update: "تعديل المسجد",
+        delete: "حذف المسجد",
+        approve: "الاعتمادات (رفض أو اعتماد المسجد)"
       },
       requests: {
         view: "عرض قائمة الطلبات",
@@ -700,119 +757,43 @@ export default function RolePermissions() {
     },
   ];
 
-  // بناء displayGroups للأدوار المخصصة: تصفية الأقسام بحسب الصلاحيات المخزنة
-  // استخراج الصلاحيات المخزنة في حقل الوصف للأدوار المخصصة
-  let customPermissionIds: string[] = [];
-  if (isCustomRole && role.description) {
-    try {
-      const parsed = JSON.parse(role.description);
-      if (Array.isArray(parsed)) {
-        customPermissionIds = parsed;
-      }
-    } catch {
-      customPermissionIds = [];
-    }
-  }
-
-  // بناء displayGroups للأدوار المخصصة: تصفية الأقسام بحسب الصلاحيات المخزنة
-  const customRoleGroups = isCustomRole ? customRoleStructure
-    .map(section => {
-      const grantedSubs = section.subsections.filter(sub => customPermissionIds.includes(sub.id));
-      if (grantedSubs.length === 0) return null;
-      return {
-        title: section.title,
-        modules: grantedSubs.map(sub => ({
-          id: sub.id,
-          nameAr: sub.nameAr,
-          icon: Shield,
-          permissions: [{ id: sub.id, nameAr: sub.nameAr }]
-        }))
-      };
-    })
-    .filter(Boolean) as { title: string; modules: any[] }[]
-  : [];
-
-  const isSystemAdmin = roleId === "system_admin";
-
-  // تحديد المجموعات المراد عرضها بناءً على الدور
-  const displayGroups = isCustomRole
-    ? customRoleGroups
-    : isSystemAdmin
-    ? systemAdminGroups.map(group => ({
-        title: group.title,
-        modules: group.modules.map(m => ({
-          id: m.id,
-          nameAr: m.nameAr,
-          icon: m.icon,
-          permissions: m.perms.map(p => ({
-            id: `${m.id}.${p}`,
-            nameAr: getDescriptiveLabel(m.id, p),
-          }))
-        }))
+  // الهيكل الموحد الشامل لجميع الأدوار
+  const universalDisplayGroups = superAdminGroups.map(group => ({
+    title: group.title,
+    modules: group.modules.map(m => ({
+      id: m.id,
+      nameAr: m.nameAr,
+      icon: m.icon,
+      permissions: m.perms.map(p => ({
+        id: `${m.id}.${p}`,
+        nameAr: getDescriptiveLabel(m.id, p),
       }))
-    : isSuperAdmin 
-    ? superAdminGroups.map(group => ({
-        title: group.title,
-        modules: group.modules.map(m => ({
-          id: m.id,
-          nameAr: m.nameAr,
-          icon: m.icon,
-          permissions: m.perms.map(p => ({
-            id: `${m.id}.${p}`,
-            nameAr: getDescriptiveLabel(m.id, p),
-          }))
-        }))
-      }))
-    : isCorporateComm
-    ? corporateCommGroups
-    : [
-        {
-          title: isQuickResponse
-            ? "المساجد والطلبات"
-            : "",
-          modules: isQuickResponse
-            ? quickResponseModules
-            : structure?.map(m => ({
-                id: m.id,
-                nameAr: m.nameAr,
-                icon: Shield,
-                permissions: m.permissions.map(p => ({ id: p.id, nameAr: p.nameAr, description: p.description }))
-              })) || []
-        }
-      ];
+    }))
+  }));
 
-  // Adjust displayGroups for roles with group-based structure
-  const finalDisplayGroups = isProjectsOffice
-    ? projectsOfficeGroups
-    : isProjectManager
-    ? projectManagerGroups
-    : isFinance
-    ? financeGroups
-    : isFieldTeam
-    ? fieldTeamGroups
-    : displayGroups;
+  const finalDisplayGroups = universalDisplayGroups;
 
   // منطق التحقق من الصلاحية
-  const isPermissionGranted = (permId: string, moduleId: string) => {
-    if (isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin || isSystemAdmin || isProjectManager) return true;
-    return rolePermissions?.includes(permId);
+  const isPermissionGranted = (permId: string) => {
+    if (isSuperAdmin) return true;
+    return selectedPerms.includes(permId);
   };
 
   return (
     <DashboardLayout>
-      <div className="container py-8 max-w-7xl mx-auto">
+      <div className="container py-8 max-w-7xl mx-auto" dir="rtl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-10">
+          <div className="flex items-center gap-4 text-right">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setLocation("/staff")} 
-              className="rounded-full hover:bg-slate-100 transition-colors"
+              className="rounded-full hover:bg-slate-100 transition-colors shrink-0"
             >
               <ArrowRight className="h-6 w-6" />
             </Button>
-            <div className="p-3.5 bg-primary/10 rounded-2xl">
+            <div className="p-3.5 bg-primary/10 rounded-2xl shrink-0">
               <Shield className="h-8 w-8 text-primary" />
             </div>
             <div>
@@ -820,35 +801,51 @@ export default function RolePermissions() {
               <p className="text-muted-foreground font-medium text-lg">{role.nameAr}</p>
             </div>
           </div>
+
+          {!isSuperAdmin && (
+            <div className="flex justify-end items-center gap-3">
+              {hasChanges && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                  توجد تغييرات غير محفوظة *
+                </span>
+              )}
+              <Button
+                onClick={handleSaveChanges}
+                disabled={updateRoleMutation.isPending || !hasChanges}
+                className={`px-6 font-bold rounded-xl shadow-md h-11 transition-all ${
+                  hasChanges 
+                    ? "gradient-primary text-white scale-105 hover:scale-108" 
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                }`}
+              >
+                {updateRoleMutation.isPending ? (
+                  <>
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  "حفظ التغييرات"
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
-        {(isCustomRole || isCorporateComm || isFieldTeam || isFinance || isProjectsOffice || isQuickResponse || isSuperAdmin || isProjectManager) && (
-          <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-semibold mb-1">{isSuperAdmin ? "صلاحيات الوصول المطلق" : isCustomRole ? `الصلاحيات المخصصة لدور: ${role.nameAr}` : "تم ضبط النطاق المهني النهائي"}</p>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {isCustomRole
-                  ? "يعرض هذا القسم الأقسام والوحدات التي تم منح هذا الدور المخصص صلاحية الوصول إليها فقط."
-                  : isCorporateComm 
-                  ? "تم تحديد الوحدات الأساسية لقسم الاتصال المؤسسي مع منح كامل الصلاحيات لضمان الفعالية في إدارة الشركاء والهوية البصرية والتقارير."
-                  : isFieldTeam
-                  ? "تم تحديد الوحدات التشغيلية للفريق الميداني للتركيز على إدارة المساجد ومعالجة الطلبات الميدانية وتوثيق الإنجاز."
-                  : isFinance
-                  ? "تم تحديد الوحدات المالية الشاملة للإدارة المالية مع منح كامل صلاحيات المراجعة والاعتماد والتنفيذ المالي لضمان الانضباط والموثوقية."
-                  : isProjectsOffice
-                  ? "تم تحديد الوحدات الأساسية لمكتب المشاريع مع منح كامل الصلاحيات التشغيلية لإدارة دورة حياة المشاريع وتحليل الأداء العام."
-                  : isQuickResponse
-                  ? "تم تحديد وحدة الطلبات كمركز ثقل لعمل فريق الاستجابة السريعة، مع منح كامل الصلاحيات التشغيلية لضمان سرعة المعالجة والمتابعة."
-                  : isProjectManager
-                  ? "تم تحديد النطاق العملي لمدير المشاريع للتركيز حصرياً على إدارة المشاريع ومتابعة تقارير الإنجاز لضمان كفاءة التنفيذ."
-                  : "يتمتع هذا الدور بصلاحيات كاملة وشاملة عبر كافة الأنظمة التشغيلية والمالية والإدارية، بما في ذلك التحكم المطلق في إعدادات النظام وإدارة المستخدمين."}
-              </p>
-            </div>
+        <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
           </div>
-        )}
+          <div className="text-right">
+            <p className="font-semibold mb-1">
+              {isSuperAdmin ? "صلاحيات الوصول المطلق" : `تخصيص صلاحيات دور: ${role.nameAr}`}
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {isSuperAdmin
+                ? "يتمتع هذا الدور بصلاحيات كاملة وشاملة عبر كافة الأنظمة التشغيلية والمالية والإدارية بشكل تلقائي وثابت (حماية النظام)."
+                : "يمكنك الآن التحكم الدقيق وتعديل صلاحيات الوصول لهذا الدور. حدد أو ألغِ تحديد الصلاحيات حسب الأقسام (عرض، إضافة، تعديل، حذف، اعتماد) ثم انقر على حفظ التغييرات."}
+            </p>
+          </div>
+        </div>
 
         {/* Grouped Rendering */}
         <div className="space-y-12">
@@ -856,8 +853,8 @@ export default function RolePermissions() {
             finalDisplayGroups.map((group, groupIdx) => (
               <div key={groupIdx} className="space-y-6">
                 {group.title && (
-                  <div className="flex items-center gap-3 px-2">
-                    <div className="w-1.5 h-8 rounded-full bg-primary" />
+                  <div className="flex items-center gap-3 px-2 text-right">
+                    <div className="w-1.5 h-8 rounded-full bg-primary shrink-0" />
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{group.title}</h2>
                   </div>
                 )}
@@ -866,42 +863,72 @@ export default function RolePermissions() {
                   {group.modules.map((module) => {
                     const Icon = (module as any).icon || Shield;
                     const modulePerms = module.permissions || [];
-                    const grantedCount = modulePerms.length; 
+                    const activePerms = isSuperAdmin 
+                      ? modulePerms 
+                      : modulePerms.filter((p: any) => selectedPerms.includes(p.id));
+                    const grantedCount = activePerms.length; 
 
                     return (
                       <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
                         <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-between" dir="rtl">
+                            <div className="flex items-center gap-4 text-right">
                               <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
                                 <Icon className="h-5 w-5 text-primary" />
                               </div>
                               <CardTitle className="text-xl font-bold">{module.nameAr}</CardTitle>
                             </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
-                              <span>{grantedCount}</span>
-                              <span className="opacity-50">/</span>
-                              <span>{modulePerms.length}</span>
+                            <div className="flex items-center gap-4">
+                              {!isSuperAdmin && modulePerms.length > 0 && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleModuleAll(modulePerms);
+                                  }}
+                                  className="text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg font-bold"
+                                >
+                                  {modulePerms.every((p: any) => selectedPerms.includes(p.id)) ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                                </Button>
+                              )}
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
+                                <span>{grantedCount}</span>
+                                <span className="opacity-50">/</span>
+                                <span>{modulePerms.length}</span>
+                              </div>
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="p-6">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {modulePerms.map((perm: any) => (
-                              <div 
-                                key={perm.id} 
-                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-green-100 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 transition-all hover:bg-green-50/60"
-                              >
-                                <div className="p-1 bg-green-100 dark:bg-green-900/30 rounded-full shrink-0">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" dir="rtl">
+                            {modulePerms.map((perm: any) => {
+                              const isChecked = isPermissionGranted(perm.id);
+                              return (
+                                <div 
+                                  key={perm.id} 
+                                  onClick={() => handleTogglePermission(perm.id)}
+                                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all cursor-pointer select-none text-right ${
+                                    isChecked 
+                                      ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60" 
+                                      : "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400"
+                                  }`}
+                                >
+                                  <div className={`w-4.5 h-4.5 rounded flex items-center justify-center border shrink-0 transition-all ${
+                                    isChecked
+                                      ? "bg-green-600 border-green-600 text-white"
+                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                  }`}>
+                                    {isChecked && <CheckCircle2 className="h-3 w-3 stroke-[3]" />}
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-xs font-bold leading-none">
+                                      {perm.nameAr}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-bold text-green-900 dark:text-green-400">
-                                    {perm.nameAr}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </CardContent>
                       </Card>

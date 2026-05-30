@@ -46,6 +46,50 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view"],
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
+
+  // UI customized keys mapping to bridge checkboxes with database granular permissions
+  requesters: ["users.view", "users.edit", "users.delete"],
+  "requesters.view": ["users.view"],
+  "requesters.edit": ["users.edit"],
+  "requesters.delete": ["users.delete"],
+  "requesters.suspend": ["users.edit"],
+
+  staff: [
+    "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
+    "users.view", "users.edit", "users.create", "users.delete",
+  ],
+  "staff.view": ["users.view", "permissions.view"],
+  "staff.add": ["users.create", "permissions.create"],
+  "staff.edit": ["users.edit", "permissions.edit"],
+  "staff.delete": ["users.delete", "permissions.delete"],
+  "staff.manage_users": ["users.edit"],
+  "staff.manage_custom_roles": ["permissions.edit"],
+
+  settings: ["settings.view", "settings.edit"],
+  "settings.view": ["settings.view"],
+  "settings.add": ["settings.edit"],
+  "settings.edit": ["settings.edit"],
+  "settings.delete": ["settings.edit"],
+
+  services: ["settings.view", "settings.edit"],
+  "services.view": ["settings.view"],
+  "services.add": ["settings.edit"],
+  "services.edit": ["settings.edit"],
+  "services.delete": ["settings.edit"],
+
+  "financial_approval.view": ["financial.view"],
+  "financial_approval.approve": ["financial.approve"],
+  "financial_approval.reject": ["financial.reject"],
+
+  "disbursement_orders.view": ["disbursements.view"],
+  "disbursement_orders.create": ["disbursements.create"],
+  "disbursement_orders.execute": ["disbursements.approve"],
+  "disbursement_orders.cancel": ["disbursements.approve"],
+
+  financial_reports: ["reports.view"],
+  "financial_reports.view": ["reports.view"],
+  "financial_reports.export": ["reports.view"],
+  "financial_reports.analytics": ["reports.view"],
 };
 
 /**
@@ -95,23 +139,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
   if (userData?.role === "service_requester") {
     rolePermissionsData.push("requests.create", "requests.view");
-  }
-  if (userData?.role === "field_team") {
-    rolePermissionsData.push("field_visits", "requests.view", "requests.edit", "mosques.view");
-  }
-  if (userData?.role === "project_manager") {
-    rolePermissionsData.push(
-      "projects.view", 
-      "projects.edit", 
-      "contracts.view", 
-      "contracts.create", 
-      "contracts.edit",
-      "requests.view",
-      "suppliers.view",
-      "disbursements.view",
-      "disbursements.create",
-      "disbursements.edit"
-    );
   }
 
   if (roleIds.length > 0) {
@@ -186,6 +213,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       allPermissions.delete(perm.permissionId); // سحب الصلاحية
     }
   });
+
+  // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً إذا كان المستخدم يملك أي من صلاحياتها الدقيقة
+  for (const [simpleKey, granularPerms] of Object.entries(PERMISSION_EXPANSION)) {
+    if (granularPerms.some(gp => allPermissions.has(gp))) {
+      allPermissions.add(simpleKey);
+    }
+  }
 
   return Array.from(allPermissions);
 }
@@ -330,7 +364,27 @@ export const permissionsRouter = router({
         .from(rolePermissions)
         .where(eq(rolePermissions.roleId, input.roleId));
 
-      return rolePerms.map(rp => rp.permissionId);
+      const permsSet = new Set(rolePerms.map(rp => rp.permissionId));
+
+      // Also load from roles.description JSON array to handle UI customized checkbox values
+      const [roleData] = await db
+        .select({ description: roles.description })
+        .from(roles)
+        .where(eq(roles.id, input.roleId))
+        .limit(1);
+
+      if (roleData?.description) {
+        try {
+          const parsed = JSON.parse(roleData.description);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(p => permsSet.add(p));
+          }
+        } catch {
+          // Ignore JSON parsing errors
+        }
+      }
+
+      return Array.from(permsSet);
     }),
 
   /**

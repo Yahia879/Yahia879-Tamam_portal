@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque } from "../../drizzle/schema";
 import { eq, and, like, desc, sql } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval } from "./notifications";
+import { checkPermission } from "../permissions";
 
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
@@ -105,7 +106,8 @@ export const mosquesRouter = router({
 
       // التحقق من الصلاحية
       const isOwner = existingMosque[0].registeredBy === ctx.user.id;
-      const isAdmin = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+      const hasEditPerm = await checkPermission(ctx.user.id, "mosques.edit");
+      const isAdmin = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) || hasEditPerm;
       
       if (!isOwner && !isAdmin) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل هذا المسجد" });
@@ -235,7 +237,8 @@ export const mosquesRouter = router({
   approve: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasApprovePerm = await checkPermission(ctx.user.id, "mosques.approve");
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد المساجد" });
       }
 
@@ -273,7 +276,8 @@ export const mosquesRouter = router({
   reject: protectedProcedure
     .input(z.object({ id: z.number(), reason: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasApprovePerm = await checkPermission(ctx.user.id, "mosques.approve");
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض المساجد" });
       }
 
@@ -300,7 +304,8 @@ export const mosquesRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasDeletePerm = await checkPermission(ctx.user.id, "mosques.delete");
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasDeletePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف المساجد" });
       }
 
@@ -349,7 +354,8 @@ export const mosquesRouter = router({
       imamEmail: z.string().email().optional().or(z.literal('')),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const hasEditPerm = await checkPermission(ctx.user.id, "mosques.edit");
+      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasEditPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بيانات الإمام" });
       }
 
@@ -424,7 +430,8 @@ export const mosquesRouter = router({
 
   // الحصول على المساجد قيد الاعتماد
   getPendingMosques: protectedProcedure.query(async ({ ctx }) => {
-    if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+    const hasApprovePerm = await checkPermission(ctx.user.id, "mosques.approve");
+    if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) && !hasApprovePerm) {
       throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المساجد قيد الاعتماد" });
     }
 

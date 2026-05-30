@@ -23,6 +23,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { PROGRAM_LABELS, STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 const approvalLabels: Record<string, string> = {
   pending: "قيد المراجعة",
@@ -104,10 +105,12 @@ export default function MosqueDetails() {
           }`}>
             {approvalLabels[mosque.approvalStatus || 'pending']}
           </span>
-          <Button variant="outline" onClick={() => toast.info("قريباً")}>
-            <Edit className="w-4 h-4 ml-2" />
-            تعديل
-          </Button>
+          <PermissionGuard permission="mosques.edit">
+            <Button variant="outline" onClick={() => toast.info("قريباً")}>
+              <Edit className="w-4 h-4 ml-2" />
+              تعديل
+            </Button>
+          </PermissionGuard>
         </div>
 
         {/* بطاقات الملخص */}

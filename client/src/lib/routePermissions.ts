@@ -299,27 +299,22 @@ export function hasRouteAccess(
   // لا توجد قيود صلاحية خاصة على هذا المسار (معفى أو مسار طالب خدمة)
   if (required === null) return true;
 
-  // ─── مستخدم بدور مخصص ───
-  if (hasCustomRole) {
-    // دعم الصلاحية الكاملة للأدوار المخصصة أيضاً (إذا كانت موجودة في مصفوفة الصلاحيات)
-    if (userPermissions.includes("*")) return true;
-
+  // ─── الأدوار غير القابلة للتخصيص (طالب الخدمة) ───
+  if (userRole === "service_requester") {
+    const basePerms = BASE_ROLE_PERMISSIONS[userRole] || [];
     if (Array.isArray(required)) {
-      // OR logic: يجب أن يملك أي صلاحية منها
-      return required.some(p => userPermissions.includes(p));
+      return required.some(p => basePerms.includes(p));
     }
-    return userPermissions.includes(required);
+    return basePerms.includes(required);
   }
 
-  // ─── مستخدم بدور أساسي ───
-  const basePerms = BASE_ROLE_PERMISSIONS[userRole];
-  if (!basePerms) return false;
-
-  // الأدوار ذات الصلاحيات الكاملة
-  if (basePerms.includes("*")) return true;
+  // ─── الأدوار القابلة للتخصيص (الأدوار الأساسية المخصصة والأدوار المبتكرة) ───
+  // نتحقق من الصلاحيات الفعلية المحسوبة من قاعدة البيانات
+  if (userPermissions.includes("*")) return true;
 
   if (Array.isArray(required)) {
-    return required.some(p => basePerms.includes(p));
+    // OR logic: يجب أن يملك أي صلاحية منها
+    return required.some(p => userPermissions.includes(p));
   }
-  return basePerms.includes(required);
+  return userPermissions.includes(required);
 }

@@ -334,10 +334,15 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  // إذا كان للمستخدم دور مخصص، نبني القائمة من صلاحياته الفعلية فقط
+  // إذا كان للمستخدم دور قابل للتخصيص (أي دور غير super_admin و system_admin و service_requester)،
+  // نبني القائمة الجانبية من صلاحياته الفعلية المسجلة
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const hasCustomRole = !!(user as any)?.customRole;
-  const menuGroups = hasCustomRole
+  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const isServiceRequester = user?.role === "service_requester";
+  const hasDynamicPermissions = hasCustomRole || (!isSuperOrSystemAdmin && !isServiceRequester);
+
+  const menuGroups = hasDynamicPermissions
     ? getMenuGroupsFromPermissions(userPermissions)
     : getMenuGroups(user?.role || "");
   const menuItems = menuGroups.flatMap(g => g.items);
