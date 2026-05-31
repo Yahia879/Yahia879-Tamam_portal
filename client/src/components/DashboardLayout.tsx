@@ -173,6 +173,11 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       label: "الإعدادات",
       items: [
         { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
+      ],
+    });
+    groups.push({
+      label: "البرامج والخدمات",
+      items: [
         { icon: Layers, label: "البرامج والخدمات", path: "/program-customization" },
       ],
     });
@@ -222,7 +227,6 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   // الإعدادات
   const settingsItems: MenuItem[] = [];
   const canViewSettingsCenter = 
-    has("settings_center") || 
     has("settings_org.view") || 
     has("settings_org.edit_basic") || 
     has("settings_org.edit_signers") || 
@@ -235,20 +239,22 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
     has("settings_categories.view") || 
     has("settings_categories.edit") || 
     has("settings.stages_view") || 
-    has("settings.actions_view") || 
-    has("services.view") ||
-    has("services.add") ||
-    has("services.edit") ||
-    has("services.delete");
+    has("settings.actions_view");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
   }
-  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete")) {
-    settingsItems.push({ icon: Layers, label: "البرامج والخدمات", path: "/program-customization" });
-  }
   if (settingsItems.length > 0) {
     groups.push({ label: "الإعدادات", items: settingsItems });
+  }
+
+  // البرامج والخدمات
+  const servicesItems: MenuItem[] = [];
+  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete")) {
+    servicesItems.push({ icon: Layers, label: "البرامج والخدمات", path: "/program-customization" });
+  }
+  if (servicesItems.length > 0) {
+    groups.push({ label: "البرامج والخدمات", items: servicesItems });
   }
 
   return groups;
@@ -368,9 +374,10 @@ function DashboardLayoutContent({
   const isServiceRequester = user?.role === "service_requester";
   const hasDynamicPermissions = hasCustomRole || (!isSuperOrSystemAdmin && !isServiceRequester);
 
-  const menuGroups = hasDynamicPermissions
+  const menuGroups = (hasDynamicPermissions
     ? getMenuGroupsFromPermissions(userPermissions)
-    : getMenuGroups(user?.role || "");
+    : getMenuGroups(user?.role || "")
+  ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);
   // عنوان الدور المعروض في تذييل القائمة
@@ -456,7 +463,7 @@ function DashboardLayoutContent({
                 {groupIdx > 0 && !isCollapsed && (
                   <div className="mx-3 my-1 border-t border-sidebar-border" />
                 )}
-                {!isCollapsed && menuGroups.length > 1 && (
+                {!isCollapsed && group.label && (
                   <p className="px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
                     {group.label}
                   </p>

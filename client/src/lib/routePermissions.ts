@@ -154,10 +154,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings_contracts.edit",
     "settings_categories.view",
     "settings_categories.edit",
-    "services.view",
-    "services.add",
-    "services.edit",
-    "services.delete",
     "settings.stages_view",
     "settings.actions_view"
   ],
