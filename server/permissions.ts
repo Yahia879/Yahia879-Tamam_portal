@@ -549,11 +549,6 @@ export const permissionsRouter = router({
       isActive: z.boolean()
     }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من الصلاحية: فقط المدير العام أو مدير النظام
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل حالة الأدوار" });
-      }
-
       // منع إيقاف أدوار الإدارة العليا (حماية النظام)
       if ((input.roleId === 'super_admin' || input.roleId === 'system_admin') && !input.isActive) {
         throw new TRPCError({ code: "FORBIDDEN", message: "لا يمكن إيقاف هذا الدور الإداري الأساسي (حماية النظام)" });
@@ -645,11 +640,6 @@ export const permissionsRouter = router({
   deleteRole: permissionProcedure("permissions.delete")
     .input(z.object({ roleId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      // التحقق من صلاحية المنفذ
-      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحذف الأدوار" });
-      }
-
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
