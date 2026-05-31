@@ -27,7 +27,16 @@ const categoryTypeNames: Record<string, string> = {
   boq_unit: "الوحدات",
 };
 
+import { useAuth } from "@/_core/hooks/useAuth";
+
 export default function CategoriesManagement() {
+  const { user } = useAuth();
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions = (user as any)?.permissions ?? [];
+  const canAdd = isAdmin || userPermissions.includes("settings_categories.add");
+  const canEdit = isAdmin || userPermissions.includes("settings_categories.edit");
+  const canDelete = isAdmin || userPermissions.includes("settings_categories.delete");
+
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [isAddValueOpen, setIsAddValueOpen] = useState(false);
   const [isEditValueOpen, setIsEditValueOpen] = useState(false);
@@ -254,14 +263,16 @@ export default function CategoriesManagement() {
                       >
                         رجوع
                       </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={openAddValue}
-                        className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-8 text-xs sm:text-sm"
-                      >
-                        <Plus className="w-4 h-4 ml-1" />
-                        إضافة قيمة
-                      </Button>
+                      {canAdd && (
+                        <Button 
+                          size="sm" 
+                          onClick={openAddValue}
+                          className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 h-8 text-xs sm:text-sm"
+                        >
+                          <Plus className="w-4 h-4 ml-1" />
+                          إضافة قيمة
+                        </Button>
+                      )}
                       <Dialog open={isAddValueOpen} onOpenChange={setIsAddValueOpen}>
                         <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
                           <DialogHeader>
@@ -316,27 +327,31 @@ export default function CategoriesManagement() {
                                 <TableCell className="font-medium">{value.nameAr}</TableCell>
                                 <TableCell>
                                   <div className="flex items-center justify-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openEditValue(value)}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Edit2 className="w-4 h-4 text-blue-500" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                          deleteCategoryMutation.mutate({ id: value.id });
-                                        }
-                                      }}
-                                      disabled={deleteCategoryMutation.isPending}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Trash2 className="w-4 h-4 text-red-500" />
-                                    </Button>
+                                    {canEdit && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => openEditValue(value)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Edit2 className="w-4 h-4 text-blue-500" />
+                                      </Button>
+                                    )}
+                                    {canDelete && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
+                                            deleteCategoryMutation.mutate({ id: value.id });
+                                          }
+                                        }}
+                                        disabled={deleteCategoryMutation.isPending}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -352,27 +367,31 @@ export default function CategoriesManagement() {
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
                               <div className="flex items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditValue(value)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Edit2 className="w-4 h-4 text-blue-500" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                      deleteCategoryMutation.mutate({ id: value.id });
-                                    }
-                                  }}
-                                  disabled={deleteCategoryMutation.isPending}
-                                  className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
-                                >
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                </Button>
+                                {canEdit && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditValue(value)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Edit2 className="w-4 h-4 text-blue-500" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
+                                        deleteCategoryMutation.mutate({ id: value.id });
+                                      }
+                                    }}
+                                    disabled={deleteCategoryMutation.isPending}
+                                    className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             <div>

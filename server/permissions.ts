@@ -118,7 +118,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   settings_categories: ["settings.view", "settings.edit"],
   "settings_categories.view": ["settings.view"],
+  "settings_categories.add": ["settings.edit"],
   "settings_categories.edit": ["settings.edit"],
+  "settings_categories.delete": ["settings.edit"],
 
   services: ["settings.view", "settings.edit"],
   "services.view": ["settings.view"],

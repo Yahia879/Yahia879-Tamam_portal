@@ -116,8 +116,14 @@ export const categoriesRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+      const allowedRoles = ["super_admin", "system_admin", "projects_office"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasAddPerm = userPermissions.includes("settings_categories.add");
+        if (!hasAddPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
       await db.insert(categories).values({
         name: input.name,
@@ -145,7 +151,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasAddPerm = userPermissions.includes("settings_categories.add");
+        if (!hasAddPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       await db.insert(categories).values({
@@ -186,7 +197,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        if (!hasEditPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       const { id, ...data } = input;
@@ -205,7 +221,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasDeletePerm = userPermissions.includes("settings_categories.delete");
+        if (!hasDeletePerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       // حذف ناعم (تعطيل التصنيف)
@@ -233,7 +254,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasAddPerm = userPermissions.includes("settings_categories.add");
+        if (!hasAddPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       // التحقق من وجود التصنيف
@@ -283,7 +309,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        if (!hasEditPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       const { id, ...data } = input;
@@ -302,7 +333,12 @@ export const categoriesRouter = router({
 
       // التحقق من الصلاحيات
       if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasDeletePerm = userPermissions.includes("settings_categories.delete");
+        if (!hasDeletePerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
       }
 
       // حذف ناعم (تعطيل القيمة)

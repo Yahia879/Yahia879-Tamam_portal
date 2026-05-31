@@ -122,6 +122,14 @@ export default function Settings() {
   const hasPermission = (perm?: string) => {
     if (isAdmin) return true;
     if (!perm) return true;
+    if (perm === "settings_categories.view") {
+      return (
+        userPermissions.includes("settings_categories.view") ||
+        userPermissions.includes("settings_categories.add") ||
+        userPermissions.includes("settings_categories.edit") ||
+        userPermissions.includes("settings_categories.delete")
+      );
+    }
     return userPermissions.includes(perm);
   };
 

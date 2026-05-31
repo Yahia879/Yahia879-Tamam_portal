@@ -236,7 +236,9 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
     has("settings_contracts.view") ||  
     has("settings_contracts.edit") || 
     has("settings_categories.view") || 
+    has("settings_categories.add") || 
     has("settings_categories.edit") || 
+    has("settings_categories.delete") || 
     has("settings.stages_view") || 
     has("settings.actions_view");
 

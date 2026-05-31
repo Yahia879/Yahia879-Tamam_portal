@@ -152,7 +152,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings_contracts.view",
     "settings_contracts.edit",
     "settings_categories.view",
+    "settings_categories.add",
     "settings_categories.edit",
+    "settings_categories.delete",
     "settings.stages_view",
     "settings.actions_view"
   ],
@@ -160,7 +162,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/organization-settings": ["settings_center", "settings_org.view"],
   "/stage-settings": ["settings_center", "settings.stages_view"],
   "/action-settings": ["settings_center", "settings.actions_view"],
-  "/categories": ["settings_center", "settings_categories.view"],
+  "/categories": [
+    "settings_center",
+    "settings_categories.view",
+    "settings_categories.add",
+    "settings_categories.edit",
+    "settings_categories.delete"
+  ],
   "/contract-templates": ["settings_center", "settings_contracts.view"],
   "/program-customization": "programs_services",
   "/partners": "settings_center",

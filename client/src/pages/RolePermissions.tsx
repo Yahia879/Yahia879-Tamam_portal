@@ -57,16 +57,23 @@ export default function RolePermissions() {
 
   useEffect(() => {
     if (rolePermissions) {
-      setSelectedPerms(rolePermissions);
+      if (roleId === "project_manager") {
+        setSelectedPerms(rolePermissions.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts.")));
+      } else {
+        setSelectedPerms(rolePermissions);
+      }
     }
-  }, [rolePermissions]);
+  }, [rolePermissions, roleId]);
 
   const hasChanges = useMemo(() => {
     if (!rolePermissions) return false;
-    if (selectedPerms.length !== rolePermissions.length) return true;
+    const initialPerms = roleId === "project_manager" 
+      ? rolePermissions.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."))
+      : rolePermissions;
+    if (selectedPerms.length !== initialPerms.length) return true;
     const setA = new Set(selectedPerms);
-    return !rolePermissions.every(p => setA.has(p));
-  }, [selectedPerms, rolePermissions]);
+    return !initialPerms.every(p => setA.has(p));
+  }, [selectedPerms, rolePermissions, roleId]);
 
   const updateRoleMutation = trpc.permissions.updateRole.useMutation({
     onSuccess: () => {
@@ -80,9 +87,13 @@ export default function RolePermissions() {
 
   const handleSaveChanges = () => {
     if (!roleId) return;
+    let finalPerms = selectedPerms;
+    if (roleId === "project_manager") {
+      finalPerms = finalPerms.filter(p => !p.startsWith("financial_reports.") && !p.startsWith("settings_contracts."));
+    }
     updateRoleMutation.mutate({
       roleId,
-      permissions: selectedPerms
+      permissions: finalPerms
     });
   };
 
@@ -712,7 +723,7 @@ export default function RolePermissions() {
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
-        { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
+        { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
       ]
     },
     {
@@ -861,8 +872,10 @@ export default function RolePermissions() {
         edit: "تعديل قوالب العقود"
       },
       settings_categories: {
-        view: "عرض إدارة التصنيفات",
-        edit: "تعديل إدارة التصنيفات"
+        view: "عرض التصنيفات",
+        add: "إضافة تصنيف جديد",
+        edit: "تعديل التصنيفات",
+        delete: "حذف التصنيفات"
       },
       services: {
         view: "عرض البرامج",
@@ -943,7 +956,16 @@ export default function RolePermissions() {
     }))
   }));
 
-  const finalDisplayGroups = universalDisplayGroups;
+  const finalDisplayGroups = universalDisplayGroups.map(group => {
+    let filteredModules = group.modules;
+    if (isProjectManager) {
+      filteredModules = filteredModules.filter(m => m.id !== "financial_reports" && m.id !== "settings_contracts");
+    }
+    return {
+      ...group,
+      modules: filteredModules
+    };
+  }).filter(group => group.modules.length > 0);
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
