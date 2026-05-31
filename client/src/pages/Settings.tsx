@@ -5,15 +5,12 @@ import {
   Settings as SettingsIcon,
   Building2,
   Palette,
-  FileText,
   GitBranch,
   Tag,
   Users,
-  ShieldCheck,
   ChevronLeft,
   BarChart3,
   Wrench,
-  ClipboardList,
   Layers,
 } from "lucide-react";
 
@@ -71,16 +68,6 @@ const settingCards: SettingCard[] = [
     group: "العمليات",
     permission: "settings.actions_view",
   },
-  {
-    icon: FileText,
-    title: "قوالب العقود",
-    description: "إنشاء وإدارة قوالب العقود القياسية للمشاريع",
-    path: "/contract-templates",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
-    group: "العمليات",
-    permission: "settings_contracts.view",
-  },
   // مجموعة: إدارة البيانات
   {
     icon: Tag,
@@ -102,27 +89,6 @@ const settingCards: SettingCard[] = [
     group: "البيانات",
     permission: "services.view",
   },
-  // مجموعة: المستخدمون والصلاحيات
-  {
-    icon: Users,
-    title: "إدارة المستخدمين",
-    description: "إضافة وتعديل وإدارة حسابات موظفي الجمعية",
-    path: "/users",
-    color: "text-indigo-600",
-    bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
-    group: "المستخدمون",
-    permission: "staff_users.view",
-  },
-  {
-    icon: ShieldCheck,
-    title: "الأدوار والصلاحيات",
-    description: "تعريف الأدوار الوظيفية وتخصيص الصلاحيات لكل دور",
-    path: "/roles",
-    color: "text-rose-600",
-    bgColor: "bg-rose-50 dark:bg-rose-950/30",
-    group: "المستخدمون",
-    permission: "staff_roles.view",
-  },
   // مجموعة: التقارير والأداء
   {
     icon: BarChart3,
@@ -133,16 +99,6 @@ const settingCards: SettingCard[] = [
     bgColor: "bg-green-50 dark:bg-green-950/30",
     group: "التقارير",
     permission: "financial_reports.analytics",
-  },
-  {
-    icon: ClipboardList,
-    title: "التقارير",
-    description: "التقارير الإدارية والمالية وتقارير الإنجاز",
-    path: "/reports",
-    color: "text-slate-600",
-    bgColor: "bg-slate-50 dark:bg-slate-950/30",
-    group: "التقارير",
-    permission: "reports.view",
   },
 ];
 

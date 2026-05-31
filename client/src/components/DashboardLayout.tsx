@@ -224,16 +224,22 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   const canViewSettingsCenter = 
     has("settings_center") || 
     has("settings_org.view") || 
+    has("settings_org.edit_basic") || 
+    has("settings_org.edit_signers") || 
+    has("settings_org.edit_banks") || 
+    has("settings_org.edit_contracts") || 
     has("settings_branding.view") || 
+    has("settings_branding.edit") || 
     has("settings_contracts.view") || 
-    has("settings_categories.view") ||
-    has("settings.stages_view") ||
-    has("settings.actions_view") ||
+    has("settings_contracts.edit") || 
+    has("settings_categories.view") || 
+    has("settings_categories.edit") || 
+    has("settings.stages_view") || 
+    has("settings.actions_view") || 
     has("services.view") ||
-    has("staff_users.view") ||
-    has("staff_roles.view") ||
-    has("financial_reports.analytics") ||
-    has("reports.view");
+    has("services.add") ||
+    has("services.edit") ||
+    has("services.delete");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
