@@ -116,7 +116,8 @@ export const organizationRouter = router({
           userPermissions.includes("settings_org.edit_basic") ||
           userPermissions.includes("settings_org.edit_signers") ||
           userPermissions.includes("settings_org.edit_banks") ||
-          userPermissions.includes("settings_org.edit_contracts");
+          userPermissions.includes("settings_org.edit_contracts") ||
+          userPermissions.includes("settings_branding.edit");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
         }
@@ -201,7 +202,8 @@ export const organizationRouter = router({
           userPermissions.includes("settings_org.edit_basic") ||
           userPermissions.includes("settings_org.edit_signers") ||
           userPermissions.includes("settings_org.edit_banks") ||
-          userPermissions.includes("settings_org.edit_contracts");
+          userPermissions.includes("settings_org.edit_contracts") ||
+          userPermissions.includes("settings_branding.edit");
         if (!hasEditPerm) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
         }

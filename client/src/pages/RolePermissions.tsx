@@ -710,7 +710,7 @@ export default function RolePermissions() {
           icon: Building2, 
           perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
         },
-        { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
+        { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
       ]
@@ -854,8 +854,7 @@ export default function RolePermissions() {
         edit_contracts: "تعديل إعدادات العقود"
       },
       settings_branding: {
-        view: "عرض الهوية البصرية",
-        edit: "تعديل الهوية البصرية"
+        edit: "تعديل الهوية البصرية للمنصة"
       },
       settings_contracts: {
         view: "عرض قوالب العقود",

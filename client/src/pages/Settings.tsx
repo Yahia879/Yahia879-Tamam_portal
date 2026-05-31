@@ -45,7 +45,7 @@ const settingCards: SettingCard[] = [
     color: "text-purple-600",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     group: "الجمعية",
-    permission: "settings_branding.view",
+    permission: "settings_branding.edit",
   },
   // مجموعة: إعدادات العمليات
   {

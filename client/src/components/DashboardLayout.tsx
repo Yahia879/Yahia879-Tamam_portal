@@ -232,9 +232,8 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
     has("settings_org.edit_signers") || 
     has("settings_org.edit_banks") || 
     has("settings_org.edit_contracts") || 
-    has("settings_branding.view") || 
     has("settings_branding.edit") || 
-    has("settings_contracts.view") || 
+    has("settings_contracts.view") ||  
     has("settings_contracts.edit") || 
     has("settings_categories.view") || 
     has("settings_categories.edit") || 

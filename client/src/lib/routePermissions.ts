@@ -148,7 +148,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings_org.edit_signers",
     "settings_org.edit_banks",
     "settings_org.edit_contracts",
-    "settings_branding.view",
     "settings_branding.edit",
     "settings_contracts.view",
     "settings_contracts.edit",
@@ -157,7 +156,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings.stages_view",
     "settings.actions_view"
   ],
-  "/branding": ["settings_center", "settings_branding.view"],
+  "/branding": ["settings_center", "settings_branding.edit"],
   "/organization-settings": ["settings_center", "settings_org.view"],
   "/stage-settings": ["settings_center", "settings.stages_view"],
   "/action-settings": ["settings_center", "settings.actions_view"],
