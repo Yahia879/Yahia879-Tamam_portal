@@ -94,6 +94,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_approval.view": ["financial.view"],
   "financial_approval.approve": ["financial.approve"],
 
+  "quotations.view": ["quotations.view"],
+  "quotations.add": ["quotations.create"],
+  "quotations.approve": ["quotations.approve"],
+
   "disbursement_orders.view": ["disbursements.view"],
   "disbursement_orders.create": ["disbursements.create"],
   "disbursement_orders.execute": ["disbursements.approve"],

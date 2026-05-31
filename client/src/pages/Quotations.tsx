@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -642,10 +643,12 @@ export default function Quotations() {
             )}
             {selectedRequestId && (
               <div className="mt-4 flex justify-end">
-                <Button onClick={() => setShowAddDialog(true)}>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة عرض سعر للطلب المحدد
-                </Button>
+                <PermissionGuard permission="quotations.add">
+                  <Button onClick={() => setShowAddDialog(true)}>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة عرض سعر للطلب المحدد
+                  </Button>
+                </PermissionGuard>
               </div>
             )}
           </CardContent>
@@ -787,56 +790,58 @@ export default function Quotations() {
                             </TableCell>
                             <TableCell>
                               <div className="flex gap-2 justify-start">
-                                {/* حالة قيد المراجعة أو التفاوض */}
-                                {(quotation.status === "pending" || quotation.status === "negotiating") && (
-                                  <>
+                                <PermissionGuard permission="quotations.approve">
+                                  {/* حالة قيد المراجعة أو التفاوض */}
+                                  {(quotation.status === "pending" || quotation.status === "negotiating") && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600"
+                                        onClick={() => openApproveDialog(quotation)}
+                                        disabled={hasAcceptedQuotation}
+                                      >
+                                        <CheckCircle2 className="h-4 w-4 ml-1" />
+                                        اعتماد
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-600"
+                                        onClick={() => handleRejectQuotation(quotation.id)}
+                                        disabled={hasAcceptedQuotation}
+                                      >
+                                        <XCircle className="h-4 w-4 ml-1" />
+                                        رفض
+                                      </Button>
+                                    </>
+                                  )}
+                                  {/* حالة معتمد */}
+                                  {quotation.status === "accepted" && (
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="text-green-600"
-                                      onClick={() => openApproveDialog(quotation)}
-                                      disabled={hasAcceptedQuotation}
-                                    >
-                                      <CheckCircle2 className="h-4 w-4 ml-1" />
-                                      اعتماد
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-600"
-                                      onClick={() => handleRejectQuotation(quotation.id)}
-                                      disabled={hasAcceptedQuotation}
+                                      className="text-orange-600"
+                                      onClick={() => handleCancelApproval(quotation.id)}
                                     >
                                       <XCircle className="h-4 w-4 ml-1" />
-                                      رفض
+                                      إلغاء الاعتماد
                                     </Button>
-                                  </>
-                                )}
-                                {/* حالة معتمد */}
-                                {quotation.status === "accepted" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-orange-600"
-                                    onClick={() => handleCancelApproval(quotation.id)}
-                                  >
-                                    <XCircle className="h-4 w-4 ml-1" />
-                                    إلغاء الاعتماد
-                                  </Button>
-                                )}
-                                {/* حالة مرفوض */}
-                                {quotation.status === "rejected" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => handleReactivateQuotation(quotation.id)}
-                                    disabled={hasAcceptedQuotation}
-                                  >
-                                    <Clock className="h-4 w-4 ml-1" />
-                                    إعادة للمراجعة
-                                  </Button>
-                                )}
+                                  )}
+                                  {/* حالة مرفوض */}
+                                  {quotation.status === "rejected" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-blue-600"
+                                      onClick={() => handleReactivateQuotation(quotation.id)}
+                                      disabled={hasAcceptedQuotation}
+                                    >
+                                      <Clock className="h-4 w-4 ml-1" />
+                                      إعادة للمراجعة
+                                    </Button>
+                                  )}
+                                </PermissionGuard>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -849,14 +854,16 @@ export default function Quotations() {
                 <div className="text-center py-8 text-muted-foreground">
                   <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا توجد عروض أسعار لهذا الطلب</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => setShowAddDialog(true)}
-                  >
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة أول عرض سعر
-                  </Button>
+                  <PermissionGuard permission="quotations.add">
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => setShowAddDialog(true)}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة أول عرض سعر
+                    </Button>
+                  </PermissionGuard>
                 </div>
               )}
             </CardContent>

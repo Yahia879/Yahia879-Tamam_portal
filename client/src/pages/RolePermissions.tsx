@@ -104,6 +104,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("quotations.") && permId !== "quotations.view") {
+      if (!selectedPerms.includes("quotations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة عروض الأسعار' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -124,6 +132,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض قائمة الموردين'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الموردين الأخرى
         if (permId === "suppliers.view") {
           next = next.filter(id => !id.startsWith("suppliers."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض قائمة عروض الأسعار'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات عروض الأسعار الأخرى
+        if (permId === "quotations.view") {
+          next = next.filter(id => !id.startsWith("quotations."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -568,7 +580,7 @@ export default function RolePermissions() {
       title: "المالية والعقود",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
@@ -609,7 +621,7 @@ export default function RolePermissions() {
       title: "المالية والعقود",
       modules: [
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
-        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "edit", "delete", "approve"] },
+        { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
@@ -688,11 +700,9 @@ export default function RolePermissions() {
         delete: "حذف مورد"
       },
       quotations: {
-        view: "عرض عروض الأسعار",
+        view: "عرض قائمة عروض الأسعار",
         add: "إضافة عرض سعر",
-        edit: "تعديل عرض سعر",
-        delete: "حذف عرض سعر",
-        approve: "اعتماد عروض الأسعار"
+        approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
       },
       financial_approval: {
         view: "مقارنة عروض الاسعار من دون اعتماد",
@@ -974,6 +984,8 @@ export default function RolePermissions() {
                               const isChecked = isPermissionGranted(perm.id);
                                const isDisabled = 
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
+                                 (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
+                                 (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 
