@@ -432,8 +432,9 @@ export default function RolePermissions() {
           icon: Banknote,
           permissions: [
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
-            { id: "disbursement_orders.create", nameAr: "إنشاء أمر صرف" },
-            { id: "disbursement_orders.execute", nameAr: "تنفيذ أمر الصرف" },
+            { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
+            { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
+            { id: "disbursement_orders.view_details", nameAr: "عرض تفاصيل أوامر الصرف" },
           ]
         },
         {
@@ -572,8 +573,9 @@ export default function RolePermissions() {
           icon: Banknote,
           permissions: [
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
-            { id: "disbursement_orders.create", nameAr: "إنشاء أمر صرف" },
-            { id: "disbursement_orders.execute", nameAr: "تنفيذ أمر الصرف" },
+            { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
+            { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
+            { id: "disbursement_orders.view_details", nameAr: "عرض تفاصيل أوامر الصرف" },
           ]
         },
         {
@@ -636,7 +638,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "view_details"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
       ]
@@ -679,7 +681,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "view_details"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
       ]
@@ -781,9 +783,9 @@ export default function RolePermissions() {
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
-        create: "إنشاء أمر صرف",
-        execute: "تنفيذ أمر الصرف",
-        cancel: "إلغاء أمر الصرف"
+        approve: "اعتماد أوامر الصرف",
+        reject: "رفض أوامر الصرف",
+        view_details: "عرض تفاصيل أوامر الصرف"
       },
       progress_reports: {
         view: "عرض تقارير الإنجاز",

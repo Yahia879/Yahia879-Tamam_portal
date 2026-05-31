@@ -121,9 +121,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "contracts.clause_add": ["contracts.create"],
 
   "disbursement_orders.view": ["disbursements.view"],
-  "disbursement_orders.create": ["disbursements.create"],
-  "disbursement_orders.execute": ["disbursements.approve"],
-  "disbursement_orders.cancel": ["disbursements.approve"],
+  "disbursement_orders.approve": ["financial.approve"],
+  "disbursement_orders.reject": ["financial.approve"],
+  "disbursement_orders.view_details": ["disbursements.view"],
 
   financial_reports: ["reports.view"],
   "financial_reports.view": ["reports.view"],
@@ -304,7 +304,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   ) {
     allPermissions.add("contracts");
   }
-  if (allPermissions.has("disbursements.view")) {
+  if (
+    allPermissions.has("disbursements.view") ||
+    allPermissions.has("disbursement_orders.view") ||
+    allPermissions.has("disbursement_orders.approve") ||
+    allPermissions.has("disbursement_orders.reject") ||
+    allPermissions.has("disbursement_orders.view_details")
+  ) {
     allPermissions.add("disbursements");
     allPermissions.add("disbursement_requests");
     allPermissions.add("disbursement_orders");
