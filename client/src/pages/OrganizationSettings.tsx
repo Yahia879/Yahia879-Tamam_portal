@@ -430,6 +430,25 @@ function SignatoriesSection() {
 export default function OrganizationSettings() {
   const { user } = useAuth();
   
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasPerm = (p: string) => 
+    isAdmin || 
+    userPermissions.includes(p);
+
+  const canShowBasic = hasPerm("settings_org.edit_basic");
+  const canShowSigners = hasPerm("settings_org.edit_signers");
+  const canShowBanks = hasPerm("settings_org.edit_banks");
+  const canShowContracts = hasPerm("settings_org.edit_contracts");
+
+  const defaultTab = canShowBasic 
+    ? "basic" 
+    : canShowSigners 
+      ? "signatory" 
+      : canShowBanks 
+        ? "bank" 
+        : "contracts";
+  
   // بيانات الجمعية
   const [orgSettings, setOrgSettings] = useState({
     // معلومات الجمعية الأساسية
@@ -571,38 +590,50 @@ export default function OrganizationSettings() {
           </Button>
         </div>
 
-        <Tabs defaultValue="basic" className="space-y-6">
+        <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
           <div className="w-full overflow-x-auto overflow-y-hidden pb-3 scrollbar-thin">
-            <TabsList className="bg-muted/60 p-1 inline-flex md:grid w-auto md:w-full md:grid-cols-4 min-w-full md:min-w-0 border shadow-sm rounded-xl h-auto">
-              <TabsTrigger 
-                value="basic" 
-                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              >
-                معلومات أساسية
-              </TabsTrigger>
-              <TabsTrigger 
-                value="signatory" 
-                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              >
-                مفوضو التوقيع
-              </TabsTrigger>
-              <TabsTrigger 
-                value="bank" 
-                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              >
-                البيانات البنكية
-              </TabsTrigger>
-              <TabsTrigger 
-                value="contracts" 
-                className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              >
-                إعدادات العقود
-              </TabsTrigger>
+            <TabsList 
+              className="bg-muted/60 p-1 inline-flex md:grid w-auto md:w-full border shadow-sm rounded-xl h-auto"
+              style={{ gridTemplateColumns: `repeat(${[canShowBasic, canShowSigners, canShowBanks, canShowContracts].filter(Boolean).length}, minmax(0, 1fr))` }}
+            >
+              {canShowBasic && (
+                <TabsTrigger 
+                  value="basic" 
+                  className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  معلومات أساسية
+                </TabsTrigger>
+              )}
+              {canShowSigners && (
+                <TabsTrigger 
+                  value="signatory" 
+                  className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  مفوضو التوقيع
+                </TabsTrigger>
+              )}
+              {canShowBanks && (
+                <TabsTrigger 
+                  value="bank" 
+                  className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  البيانات البنكية
+                </TabsTrigger>
+              )}
+              {canShowContracts && (
+                <TabsTrigger 
+                  value="contracts" 
+                  className="px-6 py-2.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm whitespace-nowrap focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                >
+                  إعدادات العقود
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
           {/* معلومات الجمعية الأساسية */}
-          <TabsContent value="basic" className="space-y-6">
+          {canShowBasic && (
+            <TabsContent value="basic" className="space-y-6">
             <Card className="border-0 shadow-sm overflow-hidden">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -765,15 +796,19 @@ export default function OrganizationSettings() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* مفوضو التوقيع */}
-          <TabsContent value="signatory">
-            <SignatoriesSection />
-          </TabsContent>
+          {canShowSigners && (
+            <TabsContent value="signatory">
+              <SignatoriesSection />
+            </TabsContent>
+          )}
 
           {/* البيانات البنكية */}
-          <TabsContent value="bank">
+          {canShowBanks && (
+            <TabsContent value="bank">
             <Card className="border-0 shadow-sm overflow-hidden">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -833,10 +868,12 @@ export default function OrganizationSettings() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </TabsContent>
+          )}
 
           {/* إعدادات العقود */}
-          <TabsContent value="contracts" className="space-y-6">
+          {canShowContracts && (
+            <TabsContent value="contracts" className="space-y-6">
             <Card className="border-0 shadow-sm overflow-hidden">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -887,7 +924,8 @@ export default function OrganizationSettings() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>

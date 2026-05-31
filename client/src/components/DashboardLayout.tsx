@@ -221,9 +221,29 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
 
   // الإعدادات
   const settingsItems: MenuItem[] = [];
-  if (has("settings_center"))    settingsItems.push({ icon: Settings, label: "مركز الإعدادات",   path: "/settings" });
-  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete"))  settingsItems.push({ icon: Layers,   label: "البرامج والخدمات", path: "/program-customization" });
-  if (settingsItems.length > 0) groups.push({ label: "الإعدادات", items: settingsItems });
+  const canViewSettingsCenter = 
+    has("settings_center") || 
+    has("settings_org.view") || 
+    has("settings_branding.view") || 
+    has("settings_contracts.view") || 
+    has("settings_categories.view") ||
+    has("settings.stages_view") ||
+    has("settings.actions_view") ||
+    has("services.view") ||
+    has("staff_users.view") ||
+    has("staff_roles.view") ||
+    has("financial_reports.analytics") ||
+    has("reports.view");
+
+  if (canViewSettingsCenter) {
+    settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
+  }
+  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete")) {
+    settingsItems.push({ icon: Layers, label: "البرامج والخدمات", path: "/program-customization" });
+  }
+  if (settingsItems.length > 0) {
+    groups.push({ label: "الإعدادات", items: settingsItems });
+  }
 
   return groups;
 };

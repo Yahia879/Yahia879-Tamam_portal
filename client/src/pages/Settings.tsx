@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Settings as SettingsIcon,
   Building2,
@@ -24,6 +25,7 @@ interface SettingCard {
   color: string;
   bgColor: string;
   group: string;
+  permission?: string;
 }
 
 const settingCards: SettingCard[] = [
@@ -36,6 +38,7 @@ const settingCards: SettingCard[] = [
     color: "text-teal-600",
     bgColor: "bg-teal-50 dark:bg-teal-950/30",
     group: "الجمعية",
+    permission: "settings_org.view",
   },
   {
     icon: Palette,
@@ -45,6 +48,7 @@ const settingCards: SettingCard[] = [
     color: "text-purple-600",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     group: "الجمعية",
+    permission: "settings_branding.view",
   },
   // مجموعة: إعدادات العمليات
   {
@@ -55,6 +59,7 @@ const settingCards: SettingCard[] = [
     color: "text-blue-600",
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     group: "العمليات",
+    permission: "settings.stages_view",
   },
   {
     icon: Wrench,
@@ -64,6 +69,7 @@ const settingCards: SettingCard[] = [
     color: "text-orange-600",
     bgColor: "bg-orange-50 dark:bg-orange-950/30",
     group: "العمليات",
+    permission: "settings.actions_view",
   },
   {
     icon: FileText,
@@ -73,6 +79,7 @@ const settingCards: SettingCard[] = [
     color: "text-emerald-600",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
     group: "العمليات",
+    permission: "settings_contracts.view",
   },
   // مجموعة: إدارة البيانات
   {
@@ -83,6 +90,7 @@ const settingCards: SettingCard[] = [
     color: "text-amber-600",
     bgColor: "bg-amber-50 dark:bg-amber-950/30",
     group: "البيانات",
+    permission: "settings_categories.view",
   },
   {
     icon: Layers,
@@ -92,6 +100,7 @@ const settingCards: SettingCard[] = [
     color: "text-cyan-600",
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
     group: "البيانات",
+    permission: "services.view",
   },
   // مجموعة: المستخدمون والصلاحيات
   {
@@ -102,6 +111,7 @@ const settingCards: SettingCard[] = [
     color: "text-indigo-600",
     bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
     group: "المستخدمون",
+    permission: "staff_users.view",
   },
   {
     icon: ShieldCheck,
@@ -111,6 +121,7 @@ const settingCards: SettingCard[] = [
     color: "text-rose-600",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",
     group: "المستخدمون",
+    permission: "staff_roles.view",
   },
   // مجموعة: التقارير والأداء
   {
@@ -121,6 +132,7 @@ const settingCards: SettingCard[] = [
     color: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-950/30",
     group: "التقارير",
+    permission: "financial_reports.analytics",
   },
   {
     icon: ClipboardList,
@@ -130,6 +142,7 @@ const settingCards: SettingCard[] = [
     color: "text-slate-600",
     bgColor: "bg-slate-50 dark:bg-slate-950/30",
     group: "التقارير",
+    permission: "reports.view",
   },
 ];
 
@@ -145,12 +158,26 @@ const groupIcons: Record<string, React.ElementType> = {
 
 export default function Settings() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
-  const grouped = groupOrder.map(group => ({
-    group,
-    icon: groupIcons[group],
-    cards: settingCards.filter(c => c.group === group),
-  }));
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+
+  const hasPermission = (perm?: string) => {
+    if (isAdmin) return true;
+    if (!perm) return true;
+    return userPermissions.includes(perm);
+  };
+
+  const filteredCards = settingCards.filter(card => hasPermission(card.permission));
+
+  const grouped = groupOrder
+    .map(group => ({
+      group,
+      icon: groupIcons[group],
+      cards: filteredCards.filter(c => c.group === group),
+    }))
+    .filter(g => g.cards.length > 0);
 
   return (
     <DashboardLayout>

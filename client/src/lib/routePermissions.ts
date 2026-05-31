@@ -119,7 +119,6 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── العقود ──
   "/contracts": "contracts",
   "/contracts/new": "contracts",
-  "/contract-templates": "contracts",
 
   // ── طلبات وأوامر الصرف ──
   "/financial-dashboard": ["disbursement_requests", "financial_report"],
@@ -142,12 +141,26 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/financial-report": "financial_report",
 
   // ── الإعدادات ──
-  "/settings": "settings_center",
-  "/branding": "settings_center",
-  "/organization-settings": "settings_center",
-  "/stage-settings": "settings_center",
-  "/action-settings": "settings_center",
-  "/categories": "settings_center",
+  "/settings": [
+    "settings_center",
+    "settings_org.view",
+    "settings_branding.view",
+    "settings_contracts.view",
+    "settings_categories.view",
+    "settings.stages_view",
+    "settings.actions_view",
+    "services.view",
+    "staff_users.view",
+    "staff_roles.view",
+    "financial_reports.analytics",
+    "reports.view"
+  ],
+  "/branding": ["settings_center", "settings_branding.view"],
+  "/organization-settings": ["settings_center", "settings_org.view"],
+  "/stage-settings": ["settings_center", "settings.stages_view"],
+  "/action-settings": ["settings_center", "settings.actions_view"],
+  "/categories": ["settings_center", "settings_categories.view"],
+  "/contract-templates": ["settings_center", "settings_contracts.view"],
   "/program-customization": "programs_services",
   "/partners": "settings_center",
 };

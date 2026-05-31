@@ -100,6 +100,26 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "settings.edit": ["settings.edit"],
   "settings.delete": ["settings.edit"],
 
+  settings_org: ["settings.view", "settings.edit"],
+  "settings_org.view": ["settings.view"],
+  "settings_org.edit": ["settings.edit"],
+  "settings_org.edit_basic": ["settings.edit"],
+  "settings_org.edit_signers": ["settings.edit"],
+  "settings_org.edit_banks": ["settings.edit"],
+  "settings_org.edit_contracts": ["settings.edit"],
+
+  settings_branding: ["settings.view", "settings.edit"],
+  "settings_branding.view": ["settings.view"],
+  "settings_branding.edit": ["settings.edit"],
+
+  settings_contracts: ["settings.view", "settings.edit"],
+  "settings_contracts.view": ["settings.view"],
+  "settings_contracts.edit": ["settings.edit"],
+
+  settings_categories: ["settings.view", "settings.edit"],
+  "settings_categories.view": ["settings.view"],
+  "settings_categories.edit": ["settings.edit"],
+
   services: ["settings.view", "settings.edit"],
   "services.view": ["settings.view"],
   "services.add": ["settings.edit"],

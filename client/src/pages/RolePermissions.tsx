@@ -32,7 +32,8 @@ import {
   FileSignature,
   Settings,
   Briefcase,
-  Layers
+  Layers,
+  Tag
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -652,7 +653,15 @@ export default function RolePermissions() {
     {
       title: "الإعدادات",
       modules: [
-        { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "add", "edit", "delete"] },
+        { 
+          id: "settings_org", 
+          nameAr: "إعدادات الجمعية", 
+          icon: Building2, 
+          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
+        },
+        { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
+        { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
+        { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
     }
@@ -695,7 +704,15 @@ export default function RolePermissions() {
     {
       title: "الإعدادات",
       modules: [
-        { id: "settings", nameAr: "مركز الإعدادات", icon: Settings, perms: ["view", "add", "edit", "delete"] },
+        { 
+          id: "settings_org", 
+          nameAr: "إعدادات الجمعية", 
+          icon: Building2, 
+          perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
+        },
+        { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
+        { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
+        { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
     }
@@ -824,11 +841,24 @@ export default function RolePermissions() {
         view: "عرض سجل العمليات",
         export: "تصدير سجل العمليات"
       },
-      settings: {
-        view: "عرض الإعدادات العامة",
-        add: "إضافة إعداد جديد",
-        edit: "تعديل الإعدادات",
-        delete: "حذف إعداد"
+      settings_org: {
+        view: "عرض إعدادات الجمعية",
+        edit_basic: "تعديل معلومات أساسية",
+        edit_signers: "تعديل مفوضي التوقيع",
+        edit_banks: "تعديل البيانات البنكية",
+        edit_contracts: "تعديل إعدادات العقود"
+      },
+      settings_branding: {
+        view: "عرض الهوية البصرية",
+        edit: "تعديل الهوية البصرية"
+      },
+      settings_contracts: {
+        view: "عرض قوالب العقود",
+        edit: "تعديل قوالب العقود"
+      },
+      settings_categories: {
+        view: "عرض إدارة التصنيفات",
+        edit: "تعديل إدارة التصنيفات"
       },
       services: {
         view: "عرض البرامج",
