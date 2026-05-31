@@ -408,7 +408,7 @@ export default function RolePermissions() {
           nameAr: "العقود",
           icon: FileSignature,
           permissions: [
-            { id: "contracts.view", nameAr: "عرض العقود" },
+            { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
@@ -434,7 +434,6 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
             { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
-            { id: "disbursement_orders.view_details", nameAr: "عرض تفاصيل أوامر الصرف" },
           ]
         },
         {
@@ -548,7 +547,7 @@ export default function RolePermissions() {
           nameAr: "العقود",
           icon: FileSignature,
           permissions: [
-            { id: "contracts.view", nameAr: "عرض العقود" },
+            { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
@@ -575,7 +574,6 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
             { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
-            { id: "disbursement_orders.view_details", nameAr: "عرض تفاصيل أوامر الصرف" },
           ]
         },
         {
@@ -638,7 +636,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "view_details"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
       ]
@@ -681,7 +679,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "view_details"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
       ]
@@ -767,7 +765,7 @@ export default function RolePermissions() {
         approve: "الاعتماد المالي لعرض السعر"
       },
       contracts: {
-        view: "عرض العقود",
+        view: "عرض العقود وقالب العقود",
         create: "إنشاء عقود",
         template_add: "إضافة قالب للعقود",
         template_edit: "تعديل قالب العقد",

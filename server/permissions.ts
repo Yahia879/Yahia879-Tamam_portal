@@ -120,7 +120,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "contracts.template_delete": ["contracts.delete"],
   "contracts.clause_add": ["contracts.create"],
 
-  "disbursement_orders.view": ["disbursements.view"],
+  "disbursement_orders.view": ["disbursements.view", "disbursement_orders.view_details"],
   "disbursement_orders.approve": ["financial.approve"],
   "disbursement_orders.reject": ["financial.approve"],
   "disbursement_orders.view_details": ["disbursements.view"],
@@ -258,6 +258,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
   }
+  if (allPermissions.has("disbursement_orders.view")) {
+    allPermissions.add("disbursement_orders.view_details");
+  }
   if (allPermissions.has("mosque_map.view")) {
     allPermissions.add("mosque_map");
     allPermissions.add("mosques_map");
@@ -306,13 +309,20 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (
     allPermissions.has("disbursements.view") ||
+    allPermissions.has("disbursements.add") ||
+    allPermissions.has("disbursements.edit") ||
+    allPermissions.has("disbursements.delete") ||
+    allPermissions.has("disbursements.approve")
+  ) {
+    allPermissions.add("disbursements");
+    allPermissions.add("disbursement_requests");
+  }
+  if (
     allPermissions.has("disbursement_orders.view") ||
     allPermissions.has("disbursement_orders.approve") ||
     allPermissions.has("disbursement_orders.reject") ||
     allPermissions.has("disbursement_orders.view_details")
   ) {
-    allPermissions.add("disbursements");
-    allPermissions.add("disbursement_requests");
     allPermissions.add("disbursement_orders");
   }
   if (allPermissions.has("reports.view")) {

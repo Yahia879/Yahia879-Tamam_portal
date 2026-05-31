@@ -1114,7 +1114,11 @@ export const disbursementsRouter = router({
 
       const allowedRoles = ["super_admin", "system_admin", "general_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد أمر الصرف" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.approve")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد أمر الصرف" });
+        }
       }
 
       const [order] = await db
@@ -1335,7 +1339,11 @@ export const disbursementsRouter = router({
 
       const allowedRoles = ["super_admin", "system_admin", "general_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض أمر الصرف" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.reject")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض أمر الصرف" });
+        }
       }
 
       const [order] = await db

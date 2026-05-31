@@ -13,7 +13,7 @@ async function main() {
   }
 
   const updates = [
-    { id: "contracts.view", nameAr: "عرض العقود" },
+    { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
     { id: "contracts.create", nameAr: "إنشاء عقود" },
     { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
   ];
