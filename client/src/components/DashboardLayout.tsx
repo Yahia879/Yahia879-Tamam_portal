@@ -222,7 +222,7 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   // الإعدادات
   const settingsItems: MenuItem[] = [];
   if (has("settings_center"))    settingsItems.push({ icon: Settings, label: "مركز الإعدادات",   path: "/settings" });
-  if (has("programs_services"))  settingsItems.push({ icon: Layers,   label: "البرامج والخدمات", path: "/program-customization" });
+  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete"))  settingsItems.push({ icon: Layers,   label: "البرامج والخدمات", path: "/program-customization" });
   if (settingsItems.length > 0) groups.push({ label: "الإعدادات", items: settingsItems });
 
   return groups;

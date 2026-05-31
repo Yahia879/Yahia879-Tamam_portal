@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield } from 'lucide-react';
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface ProgramCustomization {
   id: string;
@@ -21,6 +22,12 @@ interface ProgramCustomization {
 }
 
 export default function ProgramCustomization() {
+  const { user } = useAuth();
+  const { isLoading: permissionsLoading } = trpc.permissions.getUserPermissions.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user, staleTime: 5 * 60 * 1000 }
+  );
+
   const canView = usePermission("services.view");
   const canAdd = usePermission("services.add");
   const canEdit = usePermission("services.edit");
@@ -122,6 +129,16 @@ export default function ProgramCustomization() {
     'bg-teal-500',
     'bg-gray-500',
   ];
+
+  if (permissionsLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!canView) {
     return (
