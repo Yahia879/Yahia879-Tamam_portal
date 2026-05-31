@@ -106,10 +106,20 @@ export const organizationRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية المستخدم (مدير النظام أو المدير العام أو مكتب المشاريع)
+      // التحقق من صلاحية المستخدم (مدير النظام أو المدير العام أو مكتب المشاريع أو من لديه صلاحية التعديل)
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasEditPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_basic") ||
+          userPermissions.includes("settings_org.edit_signers") ||
+          userPermissions.includes("settings_org.edit_banks") ||
+          userPermissions.includes("settings_org.edit_contracts");
+        if (!hasEditPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل إعدادات الجمعية" });
+        }
       }
 
       // التحقق من وجود إعدادات سابقة
@@ -184,7 +194,17 @@ export const organizationRouter = router({
       // التحقق من صلاحية المستخدم
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasEditPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_basic") ||
+          userPermissions.includes("settings_org.edit_signers") ||
+          userPermissions.includes("settings_org.edit_banks") ||
+          userPermissions.includes("settings_org.edit_contracts");
+        if (!hasEditPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفع الشعارات" });
+        }
       }
 
       // استيراد دالة التخزين
@@ -273,7 +293,14 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة مفوضين" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasSignersPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_signers");
+        if (!hasSignersPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة مفوضين" });
+        }
       }
 
       // إذا كان المفوض الجديد افتراضي، ألغِ الافتراضي من الآخرين
@@ -321,7 +348,14 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل المفوضين" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasSignersPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_signers");
+        if (!hasSignersPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل المفوضين" });
+        }
       }
 
       // إذا كان المفوض افتراضي، ألغِ الافتراضي من الآخرين
@@ -355,7 +389,14 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف المفوضين" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasSignersPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_signers");
+        if (!hasSignersPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية حذف المفوضين" });
+        }
       }
 
       // تعطيل بدلاً من الحذف
@@ -376,7 +417,14 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعيين المفوض الافتراضي" });
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasSignersPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_signers");
+        if (!hasSignersPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعيين المفوض الافتراضي" });
+        }
       }
 
       // إلغاء الافتراضي من الجميع
