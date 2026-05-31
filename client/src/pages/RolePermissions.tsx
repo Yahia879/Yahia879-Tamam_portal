@@ -671,7 +671,6 @@ export default function RolePermissions() {
           perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
-        { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
@@ -701,7 +700,6 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
-        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
       ]
     },
     {
@@ -722,7 +720,6 @@ export default function RolePermissions() {
           perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
-        { id: "settings_contracts", nameAr: "قوالب العقود", icon: FileText, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
       ]
     },
@@ -956,16 +953,7 @@ export default function RolePermissions() {
     }))
   }));
 
-  const finalDisplayGroups = universalDisplayGroups.map(group => {
-    let filteredModules = group.modules;
-    if (isProjectManager) {
-      filteredModules = filteredModules.filter(m => m.id !== "financial_reports" && m.id !== "settings_contracts");
-    }
-    return {
-      ...group,
-      modules: filteredModules
-    };
-  }).filter(group => group.modules.length > 0);
+  const finalDisplayGroups = universalDisplayGroups;
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
@@ -1053,7 +1041,7 @@ export default function RolePermissions() {
                   </div>
                 )}
                 
-                <div className={`grid gap-8 ${isQuickResponse ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 md:grid-cols-2"}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {group.modules.map((module) => {
                     const Icon = (module as any).icon || Shield;
                     const rawPerms = module.permissions || [];
