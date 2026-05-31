@@ -136,6 +136,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للخدمات والبرامج إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("services.") && permId !== "services.view") {
+      if (!selectedPerms.includes("services.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض البرامج' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -172,6 +180,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض الأدوار المخصصة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الأدوار المخصصة الأخرى
         if (permId === "staff_custom_roles.view") {
           next = next.filter(id => !id.startsWith("staff_custom_roles."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض البرامج'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات البرامج الأخرى
+        if (permId === "services.view") {
+          next = next.filter(id => !id.startsWith("services."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -815,9 +827,9 @@ export default function RolePermissions() {
       },
       services: {
         view: "عرض البرامج",
-        add: "إضافة برنامج جديد",
-        edit: "تعديل بيانات البرنامج",
-        delete: "حذف البرامج"
+        add: "اضافة برامج",
+        edit: "تعديل برامج",
+        delete: "حذف برامج"
       },
       mosque_map: {
         view: "عرض الخريطة التفاعلية"
@@ -1039,6 +1051,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
                                  (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
                                  (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
+                                 (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 

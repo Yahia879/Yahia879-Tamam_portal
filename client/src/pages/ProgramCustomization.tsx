@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { usePermission } from "@/hooks/usePermission";
+import { PermissionGuard } from "@/components/PermissionGuard";
 
 interface ProgramCustomization {
   id: string;
@@ -19,6 +21,11 @@ interface ProgramCustomization {
 }
 
 export default function ProgramCustomization() {
+  const canView = usePermission("services.view");
+  const canAdd = usePermission("services.add");
+  const canEdit = usePermission("services.edit");
+  const canDelete = usePermission("services.delete");
+
   const utils = trpc.useUtils();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
   const createMutation = trpc.programs.create.useMutation({
@@ -116,6 +123,17 @@ export default function ProgramCustomization() {
     'bg-gray-500',
   ];
 
+  if (!canView) {
+    return (
+      <DashboardLayout>
+        <div className="container py-20 text-center flex flex-col items-center justify-center">
+          <Shield className="w-16 h-16 text-destructive mb-4" />
+          <h2 className="text-2xl font-bold text-destructive">عذراً، لا تملك صلاحية لعرض البرامج</h2>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -127,13 +145,15 @@ export default function ProgramCustomization() {
               إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
             </p>
           </div>
-          <Button
-            onClick={() => setShowAddNew(true)}
-            className="gradient-primary text-white w-full sm:w-auto h-10"
-          >
-            <Plus className="w-4 h-4 ml-2" />
-            إضافة برنامج جديد
-          </Button>
+          <PermissionGuard permission="services.add">
+            <Button
+              onClick={() => setShowAddNew(true)}
+              className="gradient-primary text-white w-full sm:w-auto h-10"
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة برنامج جديد
+            </Button>
+          </PermissionGuard>
         </div>
 
         {/* تنبيه */}
@@ -368,33 +388,38 @@ export default function ProgramCustomization() {
                       </div>
 
                       <div className="flex items-center gap-3 self-end sm:self-center bg-muted/50 p-1 rounded-lg">
-                        <label className="flex items-center gap-2 cursor-pointer px-2">
+                        <label className={`flex items-center gap-2 px-2 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                           <input
                             type="checkbox"
                             checked={program.isActive}
-                            onChange={() => toggleActive(program.id, program.isActive)}
+                            disabled={!canEdit}
+                            onChange={() => canEdit && toggleActive(program.id, program.isActive)}
                             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                           />
                           <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
                         </label>
-                        <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />
+                        {(canEdit || canDelete) && <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />}
                         <div className="flex items-center">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(program)}
-                            className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(program.id)}
-                            className="h-8 w-8 text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <PermissionGuard permission="services.edit">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(program)}
+                              className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                          </PermissionGuard>
+                          <PermissionGuard permission="services.delete">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(program.id)}
+                              className="h-8 w-8 text-red-500 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </PermissionGuard>
                         </div>
                       </div>
                     </div>

@@ -212,7 +212,7 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   if (finItems.length > 0) groups.push({ label: "المالية والعقود", items: finItems });
 
   // إدارة المستخدمين
-  if (has("staff_management")) {
+  if (has("staff_users.view") || has("staff_roles.view") || has("staff_custom_roles.view")) {
     groups.push({
       label: "إدارة المستخدمين",
       items: [{ icon: Users, label: "إدارة المستخدمين", path: "/staff" }],

@@ -300,7 +300,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("financial_reports");
     allPermissions.add("financial_report");
   }
-  if (allPermissions.has("settings.view")) {
+  if (
+    allPermissions.has("settings.view") ||
+    allPermissions.has("services.view") ||
+    allPermissions.has("services.add") ||
+    allPermissions.has("services.edit") ||
+    allPermissions.has("services.delete")
+  ) {
     allPermissions.add("settings");
     allPermissions.add("settings_center");
     allPermissions.add("services");
