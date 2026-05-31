@@ -3,6 +3,8 @@ import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePermission } from "@/hooks/usePermission";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import {
   Table,
   TableBody,
@@ -27,6 +29,7 @@ export interface RolesTabProps {
 
 export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProps) {
   const [, setLocation] = useLocation();
+  const canCustomize = usePermission("staff_roles.customize");
 
   const utils = trpc.useContext();
   const { data: allRoles, isLoading } = trpc.permissions.getRoles.useQuery();
@@ -136,8 +139,8 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                 roles.map((role) => (
                   <TableRow 
                     key={role.id}
-                    onClick={() => setLocation(`/staff/roles/${role.id}`)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
+                    className={`${canCustomize ? "cursor-pointer" : "cursor-default"} hover:bg-muted/50 transition-colors`}
                   >
                     <TableCell className="font-medium text-right">
                       {role.nameAr}
@@ -172,21 +175,25 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48 text-right font-medium">
-                              <DropdownMenuItem
-                                onClick={() => setLocation(`/staff/roles/${role.id}`)}
-                                className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
-                              >
-                                <span>تخصيص الصلاحيات</span>
-                                <Shield className="h-4 w-4 text-primary" />
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleToggleStatus(role.id, !role.isActive)}
-                                disabled={toggleMutation.isPending}
-                                className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
-                              >
-                                <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
-                                <Power className="h-4 w-4" />
-                              </DropdownMenuItem>
+                              <PermissionGuard permission="staff_roles.customize">
+                                <DropdownMenuItem
+                                  onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                                  className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
+                                >
+                                  <span>تخصيص الصلاحيات</span>
+                                  <Shield className="h-4 w-4 text-primary" />
+                                </DropdownMenuItem>
+                              </PermissionGuard>
+                              <PermissionGuard permission="staff_roles.suspend">
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleStatus(role.id, !role.isActive)}
+                                  disabled={toggleMutation.isPending}
+                                  className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
+                                >
+                                  <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
+                                  <Power className="h-4 w-4" />
+                                </DropdownMenuItem>
+                              </PermissionGuard>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (
@@ -221,8 +228,8 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
             roles.map((role) => (
               <Card 
                 key={role.id} 
-                className="p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                className={`p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all ${canCustomize ? "cursor-pointer" : "cursor-default"}`}
+                onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3 text-right">
@@ -237,28 +244,32 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                   
                   <div onClick={(e) => e.stopPropagation()}>
                     {role.id !== 'super_admin' && role.id !== 'system_admin' ? (
-                      <DropdownMenu>
+                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0 rounded-lg hover:bg-muted">
                             <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48 text-right font-medium">
-                          <DropdownMenuItem
-                            onClick={() => setLocation(`/staff/roles/${role.id}`)}
-                            className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
-                          >
-                            <span>تخصيص الصلاحيات</span>
-                            <Shield className="h-4 w-4 text-primary" />
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleStatus(role.id, !role.isActive)}
-                            disabled={toggleMutation.isPending}
-                            className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
-                          >
-                            <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
-                            <Power className="h-4 w-4" />
-                          </DropdownMenuItem>
+                          <PermissionGuard permission="staff_roles.customize">
+                            <DropdownMenuItem
+                              onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                              className="cursor-pointer flex items-center justify-end gap-2 hover:bg-primary/5 focus:bg-primary/5 text-slate-700 font-bold"
+                            >
+                              <span>تخصيص الصلاحيات</span>
+                              <Shield className="h-4 w-4 text-primary" />
+                            </DropdownMenuItem>
+                          </PermissionGuard>
+                          <PermissionGuard permission="staff_roles.suspend">
+                            <DropdownMenuItem
+                              onClick={() => handleToggleStatus(role.id, !role.isActive)}
+                              disabled={toggleMutation.isPending}
+                              className={role.isActive ? "text-destructive focus:text-destructive cursor-pointer flex items-center justify-end gap-2" : "text-green-600 focus:text-green-600 cursor-pointer flex items-center justify-end gap-2"}
+                            >
+                              <span>{role.isActive ? "إيقاف الدور" : "تفعيل الدور"}</span>
+                              <Power className="h-4 w-4" />
+                            </DropdownMenuItem>
+                          </PermissionGuard>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (

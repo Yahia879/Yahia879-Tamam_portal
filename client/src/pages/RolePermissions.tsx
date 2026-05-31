@@ -112,6 +112,30 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمستخدمين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_users.") && permId !== "staff_users.view") {
+      if (!selectedPerms.includes("staff_users.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة المستخدمين' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للأدوار والصلاحيات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_roles.") && permId !== "staff_roles.view") {
+      if (!selectedPerms.includes("staff_roles.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الأدوار والصلاحيات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للأدوار المخصصة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_custom_roles.") && permId !== "staff_custom_roles.view") {
+      if (!selectedPerms.includes("staff_custom_roles.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الأدوار المخصصة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -136,6 +160,18 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض قائمة عروض الأسعار'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات عروض الأسعار الأخرى
         if (permId === "quotations.view") {
           next = next.filter(id => !id.startsWith("quotations."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض قائمة المستخدمين'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المستخدمين الأخرى
+        if (permId === "staff_users.view") {
+          next = next.filter(id => !id.startsWith("staff_users."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض الأدوار والصلاحيات'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الأدوار والصلاحيات الأخرى
+        if (permId === "staff_roles.view") {
+          next = next.filter(id => !id.startsWith("staff_roles."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض الأدوار المخصصة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الأدوار المخصصة الأخرى
+        if (permId === "staff_custom_roles.view") {
+          next = next.filter(id => !id.startsWith("staff_custom_roles."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -592,7 +628,9 @@ export default function RolePermissions() {
     {
       title: "إدارة المستخدمين",
       modules: [
-        { id: "staff", nameAr: "إدارة المستخدمين", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users"] }
+        { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+        { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
+        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] }
       ]
     },
     {
@@ -633,7 +671,9 @@ export default function RolePermissions() {
     {
       title: "إدارة المستخدمين",
       modules: [
-        { id: "staff", nameAr: "إدارة المستخدمين", icon: Briefcase, perms: ["view", "add", "edit", "delete", "manage_users", "manage_custom_roles"] }
+        { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+        { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
+        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] }
       ]
     },
     {
@@ -739,13 +779,23 @@ export default function RolePermissions() {
         export: "تصدير البيانات المالية",
         analytics: "تحليل مؤشرات الأداء"
       },
-      staff: {
-        view: "عرض الكادر الإداري",
+      staff_users: {
+        view: "عرض قائمة المستخدمين",
         add: "إضافة موظف جديد",
-        edit: "تعديل بيانات موظف",
-        delete: "حذف موظف",
-        manage_users: "إدارة المستخدمين",
-        manage_custom_roles: "إدارة الأدوار المخصصة"
+        edit: "تعديل البيانات",
+        suspend: "إيقاف الحساب",
+        delete: "حذف"
+      },
+      staff_roles: {
+        view: "عرض الأدوار والصلاحيات",
+        customize: "تخصيص الدور",
+        suspend: "إيقاف الدور"
+      },
+      staff_custom_roles: {
+        view: "عرض الأدوار المخصصة",
+        add: "إضافة دور",
+        edit: "تعديل الدور",
+        delete: "حذف الدور"
       },
       roles: {
         view: "عرض قائمة الأدوار",
@@ -986,6 +1036,9 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                  (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                                  (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
+                                 (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
+                                 (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
+                                 (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 

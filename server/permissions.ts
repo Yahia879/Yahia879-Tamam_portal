@@ -79,6 +79,21 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "staff.manage_users": ["users.edit"],
   "staff.manage_custom_roles": ["permissions.edit"],
 
+  "staff_users.view": ["users.view"],
+  "staff_users.add": ["users.create"],
+  "staff_users.edit": ["users.edit"],
+  "staff_users.suspend": ["users.edit"],
+  "staff_users.delete": ["users.delete"],
+
+  "staff_roles.view": ["permissions.view"],
+  "staff_roles.customize": ["permissions.edit"],
+  "staff_roles.suspend": ["permissions.edit"],
+
+  "staff_custom_roles.view": ["permissions.view"],
+  "staff_custom_roles.add": ["permissions.create"],
+  "staff_custom_roles.edit": ["permissions.edit"],
+  "staff_custom_roles.delete": ["permissions.delete"],
+
   settings: ["settings.view", "settings.edit"],
   "settings.view": ["settings.view"],
   "settings.add": ["settings.edit"],
@@ -129,6 +144,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة
     const expandedSet = new Set(allPerms.map(p => p.id));
+    Object.keys(PERMISSION_EXPANSION).forEach(k => expandedSet.add(k));
     Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => expandedSet.add(s)));
     return Array.from(expandedSet);
   }
@@ -253,7 +269,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("requesters");
     allPermissions.add("service_requester_accounts");
   }
-  if (allPermissions.has("users.view")) {
+  if (
+    allPermissions.has("users.view") ||
+    allPermissions.has("staff_users.view") ||
+    allPermissions.has("staff_roles.view") ||
+    allPermissions.has("staff_custom_roles.view")
+  ) {
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }

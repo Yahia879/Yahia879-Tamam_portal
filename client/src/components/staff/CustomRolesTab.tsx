@@ -3,6 +3,8 @@ import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePermission } from "@/hooks/usePermission";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import {
   Table,
   TableBody,
@@ -38,6 +40,7 @@ export interface CustomRolesTabProps {
 
 export default function CustomRolesTab({ openAddModal, setOpenAddModal }: CustomRolesTabProps) {
   const [, setLocation] = useLocation();
+  const canCustomize = usePermission("staff_roles.customize");
   const [roleToDelete, setRoleToDelete] = useState<{ id: string; nameAr: string } | null>(null);
 
   const utils = trpc.useContext();
@@ -113,8 +116,8 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                 roles.map((role) => (
                   <TableRow 
                     key={role.id}
-                    onClick={() => setLocation(`/staff/roles/${role.id}`)}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
+                    className={`${canCustomize ? "cursor-pointer" : "cursor-default"} hover:bg-muted/50 transition-colors`}
                   >
                     <TableCell className="font-medium text-right">
                       {role.nameAr}
@@ -140,20 +143,24 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() => setLocation(`/roles/${role.id}/edit`)}
-                            className="cursor-pointer"
-                          >
-                            <Pencil className="h-4 w-4 ml-2" />
-                            تعديل الدور
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
-                            className="text-destructive focus:text-destructive cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4 ml-2" />
-                            حذف الدور
-                          </DropdownMenuItem>
+                          <PermissionGuard permission="staff_custom_roles.edit">
+                            <DropdownMenuItem
+                              onClick={() => setLocation(`/roles/${role.id}/edit`)}
+                              className="cursor-pointer"
+                            >
+                              <Pencil className="h-4 w-4 ml-2" />
+                              تعديل الدور
+                            </DropdownMenuItem>
+                          </PermissionGuard>
+                          <PermissionGuard permission="staff_custom_roles.delete">
+                            <DropdownMenuItem
+                              onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="h-4 w-4 ml-2" />
+                              حذف الدور
+                            </DropdownMenuItem>
+                          </PermissionGuard>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -172,13 +179,15 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                           تُستخدم هذه المساحة لإدارة الأدوار التي تقوم بإنشائها خصيصاً لمنظمتك، وهي منفصلة عن الأدوار الأساسية للنظام.
                         </p>
                       </div>
-                      <Button 
-                        className="mt-4 gap-2"
-                        onClick={() => setLocation("/roles/new")}
-                      >
-                        <Plus className="h-4 w-4" />
-                        إضافة دور مخصص
-                      </Button>
+                      <PermissionGuard permission="staff_custom_roles.add">
+                        <Button 
+                          className="mt-4 gap-2"
+                          onClick={() => setLocation("/roles/new")}
+                        >
+                          <Plus className="h-4 w-4" />
+                          إضافة دور مخصص
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -201,22 +210,24 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                     إدارة الأدوار التي تقوم بإنشائها خصيصاً لمنظمتك.
                   </p>
                 </div>
-                <Button 
-                  size="sm"
-                  className="mt-2 gap-2"
-                  onClick={() => setLocation("/roles/new")}
-                >
-                  <Plus className="h-4 w-4" />
-                  إضافة دور مخصص
-                </Button>
+                <PermissionGuard permission="staff_custom_roles.add">
+                  <Button 
+                    size="sm"
+                    className="mt-2 gap-2"
+                    onClick={() => setLocation("/roles/new")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة دور مخصص
+                  </Button>
+                </PermissionGuard>
               </div>
             </Card>
           ) : (
             roles.map((role) => (
               <Card 
                 key={role.id} 
-                className="p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all cursor-pointer"
-                onClick={() => setLocation(`/staff/roles/${role.id}`)}
+                className={`p-4 space-y-4 border-sidebar-border/10 hover:shadow-md transition-all ${canCustomize ? "cursor-pointer" : "cursor-default"}`}
+                onClick={() => canCustomize && setLocation(`/staff/roles/${role.id}`)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
@@ -237,20 +248,24 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                          onClick={() => setLocation(`/roles/${role.id}/edit`)}
-                          className="cursor-pointer"
-                        >
-                          <Pencil className="h-4 w-4 ml-2" />
-                          تعديل الدور
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
-                          className="text-destructive focus:text-destructive cursor-pointer"
-                        >
-                          <Trash2 className="h-4 w-4 ml-2" />
-                          حذف الدور
-                        </DropdownMenuItem>
+                        <PermissionGuard permission="staff_custom_roles.edit">
+                          <DropdownMenuItem
+                            onClick={() => setLocation(`/roles/${role.id}/edit`)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="h-4 w-4 ml-2" />
+                            تعديل الدور
+                          </DropdownMenuItem>
+                        </PermissionGuard>
+                        <PermissionGuard permission="staff_custom_roles.delete">
+                          <DropdownMenuItem
+                            onClick={() => setRoleToDelete({ id: role.id, nameAr: role.nameAr })}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4 ml-2" />
+                            حذف الدور
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

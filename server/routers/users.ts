@@ -269,6 +269,15 @@ export const usersRouter = router({
 
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
+
+      // التحقق لمنع إيقاف حساب المدير العام
+      const [targetUser] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser && targetUser.role === 'super_admin') {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "لا يمكن إيقاف أو تنشيط حساب المدير العام" 
+        });
+      }
       await db
         .update(users)
         .set({ status: input.status })
@@ -293,6 +302,24 @@ export const usersRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
+
+      // التحقق لمنع تغيير دور أو حالة حساب المدير العام
+      const [targetUser] = await db.select().from(users).where(eq(users.id, input.id)).limit(1);
+      if (targetUser && targetUser.role === 'super_admin') {
+        if (input.role && input.role !== 'super_admin') {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "لا يمكن تغيير دور المدير العام"
+          });
+        }
+        if (input.status && input.status !== 'active') {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "لا يمكن إيقاف حساب المدير العام"
+          });
+        }
+      }
+
       const { id, department, position, ...updateData } = input;
       await db.update(users).set(updateData as any).where(eq(users.id, id));
 
@@ -327,6 +354,16 @@ export const usersRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
+
+      // التحقق لمنع تغيير دور المدير العام
+      const [targetUser] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+      if (targetUser && targetUser.role === 'super_admin' && input.role !== 'super_admin') {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "لا يمكن تغيير دور المدير العام"
+        });
+      }
+
       await db.update(users).set({ role: input.role as any }).where(eq(users.id, input.userId));
       return { success: true };
     }),
@@ -344,6 +381,15 @@ export const usersRouter = router({
 
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
+
+      // التحقق لمنع حذف حساب المدير العام
+      const [targetUser] = await db.select().from(users).where(eq(users.id, input.id)).limit(1);
+      if (targetUser && targetUser.role === 'super_admin') {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "لا يمكن حذف حساب المدير العام" 
+        });
+      }
       
       // تنفيذ الحذف النهائي (Hard Delete)
       // بفضل قيود SET NULL في قاعدة البيانات، سيتم تصفير حقول المستخدم في السجلات المرتبطة تلقائياً

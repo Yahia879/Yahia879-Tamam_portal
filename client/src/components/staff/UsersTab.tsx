@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PermissionGuard } from "@/components/PermissionGuard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -366,29 +367,35 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/users/${user.id}/edit`}>
-                                <Edit className="ml-2 h-4 w-4" />
-                                تعديل البيانات
-                              </Link>
-                            </DropdownMenuItem>
-                            {user.id !== currentUser?.id && (
-                              <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                                {user.status === "active" ? (
-                                  <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                                ) : (
-                                  <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                                )}
+                            <PermissionGuard permission="staff_users.edit">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/users/${user.id}/edit`}>
+                                  <Edit className="ml-2 h-4 w-4" />
+                                  تعديل البيانات
+                                </Link>
                               </DropdownMenuItem>
+                            </PermissionGuard>
+                            {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                              <PermissionGuard permission="staff_users.suspend">
+                                <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                                  {user.status === "active" ? (
+                                    <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                                  ) : (
+                                    <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                                  )}
+                                </DropdownMenuItem>
+                              </PermissionGuard>
                             )}
-                            {user.id !== currentUser?.id && (
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(user.id, user.name)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="ml-2 h-4 w-4" />
-                                حذف
-                              </DropdownMenuItem>
+                            {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                              <PermissionGuard permission="staff_users.delete">
+                                <DropdownMenuItem
+                                  onClick={() => handleDelete(user.id, user.name)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="ml-2 h-4 w-4" />
+                                  حذف
+                                </DropdownMenuItem>
+                              </PermissionGuard>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -429,29 +436,35 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/users/${user.id}/edit`}>
-                          <Edit className="ml-2 h-4 w-4" />
-                          تعديل البيانات
-                        </Link>
-                      </DropdownMenuItem>
-                      {user.id !== currentUser?.id && (
-                        <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
-                          {user.status === "active" ? (
-                            <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
-                          ) : (
-                            <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
-                          )}
+                      <PermissionGuard permission="staff_users.edit">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/users/${user.id}/edit`}>
+                            <Edit className="ml-2 h-4 w-4" />
+                            تعديل البيانات
+                          </Link>
                         </DropdownMenuItem>
+                      </PermissionGuard>
+                      {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                        <PermissionGuard permission="staff_users.suspend">
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                            {user.status === "active" ? (
+                              <><UserX className="ml-2 h-4 w-4" />إيقاف الحساب</>
+                            ) : (
+                              <><UserCheck className="ml-2 h-4 w-4" />تنشيط الحساب</>
+                            )}
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       )}
-                      {user.id !== currentUser?.id && (
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(user.id, user.name)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="ml-2 h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
+                      {user.id !== currentUser?.id && user.role !== "super_admin" && (
+                        <PermissionGuard permission="staff_users.delete">
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(user.id, user.name)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="ml-2 h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </PermissionGuard>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -551,7 +551,8 @@ export const authRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       // التحقق من الصلاحية
-      if (!['super_admin', 'system_admin', 'projects_office'].includes(ctx.user.role)) {
+      const hasViewPermission = await checkPermission(ctx.user.id, "users.view");
+      if (!['super_admin', 'system_admin', 'projects_office'].includes(ctx.user.role) && !hasViewPermission) {
         throw new TRPCError({ code: 'FORBIDDEN', message: 'ليس لديك صلاحية لعرض بيانات المستخدمين' });
       }
 
