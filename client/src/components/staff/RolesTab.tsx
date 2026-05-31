@@ -57,7 +57,7 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
   };
 
   const roles = allRoles
-    ?.filter(role => role.id !== 'service_requester' && role.isSystem)
+    ?.filter(role => role.id !== 'service_requester' && role.id !== 'financial_manager' && role.isSystem)
     .sort((a, b) => (rolePriority[a.id] || 99) - (rolePriority[b.id] || 99));
 
   useEffect(() => {
