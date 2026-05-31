@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { usePermission } from "@/hooks/usePermission";
 import {
   Dialog,
   DialogContent,
@@ -142,6 +143,13 @@ function getContractTypeLabel(type: string) {
 
 export default function ContractsList() {
   const [, navigate] = useLocation();
+  const canCreateContract = usePermission("contracts.create");
+  const canViewContract = usePermission("contracts.view");
+  const canTemplateAdd = usePermission("contracts.template_add");
+  const canTemplateEdit = usePermission("contracts.template_edit");
+  const canTemplateDelete = usePermission("contracts.template_delete");
+  const canClauseAdd = usePermission("contracts.clause_add");
+
   const [activeTab, setActiveTab] = useState("contracts");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -444,10 +452,12 @@ export default function ContractsList() {
               إدارة العقود المبرمة وقوالب العقود
             </p>
           </div>
-          <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
-            <Plus className="h-4 w-4 ml-2" />
-            إنشاء عقد جديد
-          </Button>
+          {canCreateContract && (
+            <Button onClick={() => setShowProjectSelectionDialog(true)} className="w-full sm:w-auto">
+              <Plus className="h-4 w-4 ml-2" />
+              إنشاء عقد جديد
+            </Button>
+          )}
         </div>
 
         {/* التبويبات */}
@@ -602,17 +612,19 @@ export default function ContractsList() {
                   إدارة قوالب العقود وتخصيص البنود الخاصة بها
                 </p>
               </div>
-              <Button
-                onClick={() => {
-                  setEditingTemplate(null);
-                  resetTemplateForm();
-                  setShowTemplateDialog(true);
-                }}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة قالب جديد
-              </Button>
+              {canTemplateAdd && (
+                <Button
+                  onClick={() => {
+                    setEditingTemplate(null);
+                    resetTemplateForm();
+                    setShowTemplateDialog(true);
+                  }}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة قالب جديد
+                </Button>
+              )}
             </div>
 
             {templatesLoading ? (
@@ -629,16 +641,18 @@ export default function ContractsList() {
                   <p className="text-gray-500 mb-4">
                     ابدأ بإنشاء قالب عقد جديد
                   </p>
-                  <Button
-                    onClick={() => {
-                      setEditingTemplate(null);
-                      resetTemplateForm();
-                      setShowTemplateDialog(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة قالب
-                  </Button>
+                  {canTemplateAdd && (
+                    <Button
+                      onClick={() => {
+                        setEditingTemplate(null);
+                        resetTemplateForm();
+                        setShowTemplateDialog(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة قالب
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -685,28 +699,32 @@ export default function ContractsList() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditTemplate(template);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
-                                deleteTemplateMutation.mutate({ id: template.id });
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {canTemplateEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditTemplate(template);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canTemplateDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("هل أنت متأكد من حذف هذا القالب؟")) {
+                                  deleteTemplateMutation.mutate({ id: template.id });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
                           {expandedTemplates.includes(template.id) ? (
                             <ChevronUp className="h-5 w-5 text-gray-400" />
                           ) : (
@@ -724,17 +742,19 @@ export default function ContractsList() {
                               <ListOrdered className="h-4 w-4" />
                               بنود العقد ({selectedTemplate?.clauses?.length || 0})
                             </h4>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setEditingClause(null);
-                                resetClauseForm();
-                                setShowClauseDialog(true);
-                              }}
-                            >
-                              <Plus className="h-4 w-4 ml-1" />
-                              إضافة بند
-                            </Button>
+                            {canClauseAdd && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setEditingClause(null);
+                                  resetClauseForm();
+                                  setShowClauseDialog(true);
+                                }}
+                              >
+                                <Plus className="h-4 w-4 ml-1" />
+                                إضافة بند
+                              </Button>
+                            )}
                           </div>
 
                           {selectedTemplate?.clauses?.length === 0 ? (
@@ -790,24 +810,28 @@ export default function ContractsList() {
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <div className="flex items-center gap-1 justify-start">
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleEditClause(clause)}
-                                          >
-                                            <Edit className="h-4 w-4" />
-                                          </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                              if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
-                                                deleteClauseMutation.mutate({ id: clause.id });
-                                              }
-                                            }}
-                                          >
-                                            <Trash2 className="h-4 w-4 text-red-500" />
-                                          </Button>
+                                          {canTemplateEdit && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => handleEditClause(clause)}
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                          {canTemplateDelete && (
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={() => {
+                                                if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+                                                  deleteClauseMutation.mutate({ id: clause.id });
+                                                }
+                                              }}
+                                            >
+                                              <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                          )}
                                         </div>
                                       </TableCell>
                                     </TableRow>

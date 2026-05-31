@@ -408,10 +408,12 @@ export default function RolePermissions() {
           nameAr: "العقود",
           icon: FileSignature,
           permissions: [
-            { id: "contracts.view", nameAr: "عرض سجل العقود" },
-            { id: "contracts.create", nameAr: "إنشاء عقد جديد" },
-            { id: "contracts.edit", nameAr: "تعديل بيانات العقد" },
-            { id: "contracts.sign", nameAr: "توقيع واعتماد العقد" },
+            { id: "contracts.view", nameAr: "عرض العقود" },
+            { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
+            { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
+            { id: "contracts.template_delete", nameAr: "حذف قالب العقد" },
+            { id: "contracts.clause_add", nameAr: "إضافة بند للعقد" },
           ]
         },
         {
@@ -545,10 +547,12 @@ export default function RolePermissions() {
           nameAr: "العقود",
           icon: FileSignature,
           permissions: [
-            { id: "contracts.view", nameAr: "عرض سجل العقود" },
-            { id: "contracts.create", nameAr: "إنشاء عقد جديد" },
-            { id: "contracts.edit", nameAr: "تعديل بيانات العقد" },
-            { id: "contracts.sign", nameAr: "توقيع واعتماد العقد" },
+            { id: "contracts.view", nameAr: "عرض العقود" },
+            { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
+            { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
+            { id: "contracts.template_delete", nameAr: "حذف قالب العقد" },
+            { id: "contracts.clause_add", nameAr: "إضافة بند للعقد" },
           ]
         },
         {
@@ -630,7 +634,7 @@ export default function RolePermissions() {
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
@@ -673,7 +677,7 @@ export default function RolePermissions() {
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit", "delete", "sign"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create", "execute", "cancel"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
@@ -761,11 +765,12 @@ export default function RolePermissions() {
         approve: "الاعتماد المالي لعرض السعر"
       },
       contracts: {
-        view: "عرض سجل العقود",
-        create: "إنشاء عقد جديد",
-        edit: "تعديل بيانات العقد",
-        delete: "حذف عقد",
-        sign: "توقيع العقد"
+        view: "عرض العقود",
+        create: "إنشاء عقود",
+        template_add: "إضافة قالب للعقود",
+        template_edit: "تعديل قالب العقد",
+        template_delete: "حذف قالب العقد",
+        clause_add: "إضافة بند للعقد"
       },
       disbursements: {
         view: "عرض طلبات الصرف",
