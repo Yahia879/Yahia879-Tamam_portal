@@ -76,6 +76,10 @@ export default function Requests({
   const [page, setPage] = useState(1);
   const limit = 20;
 
+  const userPermissions = (user as any)?.permissions ?? [];
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canViewDetails = isAdmin || userPermissions.includes("requests.view_details");
+
   // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
   useEffect(() => {
     const params = new URLSearchParams(searchParamsStr);
@@ -285,8 +289,8 @@ export default function Requests({
                   return (
                     <div
                       key={request.id}
-                      className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors cursor-pointer items-center"
-                      onClick={() => navigate(`/requests/${request.id}`)}
+                      className={`grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
+                      onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
                     >
                       {/* Desktop: Program Icon */}
                       <div className="hidden md:flex w-8 justify-center">
@@ -357,12 +361,14 @@ export default function Requests({
                       </div>
 
                       {/* Desktop Action */}
-                      <div className="hidden md:flex justify-center" onClick={(e) => e.stopPropagation()}>
-                        <Link href={`/requests/${request.id}`}>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                      <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
+                        {canViewDetails && (
+                          <Link href={`/requests/${request.id}`}>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                              <ChevronLeft className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );

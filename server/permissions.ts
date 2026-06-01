@@ -27,7 +27,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details"],
+  "requests.view": ["requests.view"],
+  "requests.create": ["requests.create"],
+  "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
   appointments_calendar: ["requests.view", "field_visits.view", "appointments.view"],
   projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
   service_requester_accounts: ["users.view", "users.edit"],
@@ -152,6 +155,95 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_reports.export": ["reports.view"],
   "financial_reports.analytics": ["reports.view"],
 };
+
+/**
+ * دالة للتأكد من وجود صلاحيات الطلبات الجديدة في قاعدة البيانات
+ */
+async function ensureRequestsPermissionsExist(db: any) {
+  try {
+    const reqPerms = [
+      {
+        id: "requests.view",
+        moduleId: "requests",
+        action: "view",
+        nameAr: "عرض كافة الطلبات",
+        nameEn: "View requests"
+      },
+      {
+        id: "requests.create",
+        moduleId: "requests",
+        action: "create",
+        nameAr: "اضافة طلب",
+        nameEn: "Create request"
+      },
+      {
+        id: "requests.view_details",
+        moduleId: "requests",
+        action: "view_details",
+        nameAr: "عرض تفاصيل الطلب وادارته",
+        nameEn: "View request details and manage"
+      }
+    ];
+
+    // 1. إدخال أو تحديث الصلاحيات في جدول الصلاحيات
+    let isFirstTime = false;
+    for (const p of reqPerms) {
+      const existing = await db.select({ id: permissions.id })
+        .from(permissions)
+        .where(eq(permissions.id, p.id))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(permissions).values(p);
+        console.log(`Inserted missing permission: ${p.id}`);
+        isFirstTime = true;
+      } else {
+        await db.update(permissions).set({
+          nameAr: p.nameAr,
+          nameEn: p.nameEn,
+          moduleId: p.moduleId,
+          action: p.action
+        }).where(eq(permissions.id, p.id));
+      }
+    }
+
+    // 2. تحديث صلاحيات الأدوار الافتراضية
+    // نقوم بذلك فقط في المرة الأولى (إذا كانت الصلاحيات غير موجودة مسبقاً) لتجنب الكتابة فوق اختيارات المستخدمين لاحقاً
+    if (isFirstTime) {
+      const defaultMappings: Record<string, string[]> = {
+        projects_office: ["requests.view", "requests.create", "requests.view_details"],
+        field_team: ["requests.view", "requests.view_details"],
+        quick_response: ["requests.view", "requests.view_details"],
+        financial_manager: ["requests.view", "requests.view_details"],
+        project_manager: ["requests.view", "requests.create", "requests.view_details"],
+        corporate_comm: ["requests.view", "requests.view_details"],
+      };
+
+      for (const [roleId, permIds] of Object.entries(defaultMappings)) {
+        const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+        if (!roleExists) continue;
+
+        const existingRolePerms = await db.select()
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, roleId),
+            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details"])
+          ));
+
+        if (existingRolePerms.length === 0) {
+          const valuesToInsert = permIds.map(permId => ({
+            roleId,
+            permissionId: permId
+          }));
+          await db.insert(rolePermissions).values(valuesToInsert);
+          console.log(`Migrated role ${roleId} with permissions: ${permIds.join(", ")}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error in ensureRequestsPermissionsExist:", err);
+  }
+}
 
 /**
  * حساب الصلاحيات النهائية للمستخدم
@@ -286,9 +378,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("mosque_map.view")) {
     allPermissions.add("mosque_map");
     allPermissions.add("mosques_map");
-  }
-  if (allPermissions.has("requests.view")) {
-    allPermissions.add("requests");
   }
   if (allPermissions.has("appointments.view") || allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
     allPermissions.add("appointments");
@@ -430,6 +519,8 @@ export const permissionsRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+    await ensureRequestsPermissionsExist(db);
+
     const modulesData = await db.select().from(modules).where(eq(modules.isActive, true)).orderBy(modules.displayOrder);
     const permissionsData = await db.select().from(permissions);
 
@@ -502,6 +593,8 @@ export const permissionsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await ensureRequestsPermissionsExist(db);
 
       const rolePerms = await db
         .select({ permissionId: rolePermissions.permissionId })
@@ -645,6 +738,8 @@ export const permissionsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await ensureRequestsPermissionsExist(db);
 
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
       if (!existingRole) {

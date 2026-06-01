@@ -89,9 +89,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // /mosques/:id و /mosques/:id/edit تُعالج بنمط regex
 
   // ── الطلبات ──
-  "/requests": "requests",
-  "/requests/new": "requests",
-  "/field-visits": "requests",
+  "/requests": "requests.view",
+  "/requests/new": "requests.create",
+  "/field-visits": "requests.view",
   "/field-visits/calendar": "appointments_calendar",
 
   // ── المشاريع ──
@@ -131,13 +131,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
-  "/final-report/new": ["projects", "requests"],
+  "/final-report/new": ["projects", "requests.view_details"],
 
   // ── مؤشرات الأداء ──
-  "/kpi-dashboard": ["projects", "requests"],
+  "/kpi-dashboard": ["projects", "requests.view_details"],
 
   // ── التقارير ──
-  "/reports": ["progress_reports", "financial_report", "requests"],
+  "/reports": ["progress_reports", "financial_report", "requests.view"],
   "/financial-report": "financial_report",
 
   // ── الإعدادات ──
@@ -188,14 +188,14 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/mosques\/\d+$/, permission: "mosques" },
 
   // الطلبات
-  { pattern: /^\/requests\/\d+\/edit$/, permission: "requests" },
-  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: "requests" },
-  { pattern: /^\/requests\/\d+\/quick-response$/, permission: "requests" },
-  { pattern: /^\/requests\/\d+$/, permission: "requests" },
+  { pattern: /^\/requests\/\d+\/edit$/, permission: "requests.view_details" },
+  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: "requests.view_details" },
+  { pattern: /^\/requests\/\d+\/quick-response$/, permission: "requests.view_details" },
+  { pattern: /^\/requests\/\d+$/, permission: "requests.view_details" },
 
   // الزيارات الميدانية
   { pattern: /^\/field-visits\/schedule\/\d+$/, permission: "appointments_calendar" },
-  { pattern: /^\/field-visits\/report\/\d+$/, permission: "requests" },
+  { pattern: /^\/field-visits\/report\/\d+$/, permission: "requests.view_details" },
 
   // المشاريع
   { pattern: /^\/projects\/\d+$/, permission: "projects" },
@@ -220,7 +220,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
 
   // BOQ
-  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests"] },
+  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details"] },
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
@@ -237,7 +237,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: "disbursement_orders" },
 
   // التقارير الختامية
-  { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests"] },
+  { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
 ];
 
 /**

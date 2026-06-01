@@ -156,6 +156,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requests.") && permId !== "requests.view") {
+      if (!selectedPerms.includes("requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -196,6 +204,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض البرامج'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات البرامج الأخرى
         if (permId === "services.view") {
           next = next.filter(id => !id.startsWith("services."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض كافة الطلبات'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الطلبات الأخرى
+        if (permId === "requests.view") {
+          next = next.filter(id => !id.startsWith("requests."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -635,7 +647,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
       ]
@@ -684,7 +696,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "edit", "delete", "approve", "follow_up"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
@@ -752,14 +764,9 @@ export default function RolePermissions() {
         approve: "الاعتمادات (رفض أو اعتماد المسجد)"
       },
       requests: {
-        view: "عرض قائمة الطلبات",
-        create: "إنشاء طلب جديد",
-        add: "إنشاء طلب جديد",
-        edit: "تعديل بيانات الطلب",
-        update: "تعديل بيانات الطلب",
-        delete: "حذف الطلب",
-        approve: "اعتماد الطلب",
-        follow_up: "متابعة حالة الطلبات"
+        view: "عرض كافة الطلبات",
+        create: "إضافة طلب",
+        view_details: "عرض تفاصيل الطلب وإدارته"
       },
       projects: {
         view: "عرض سجل المشاريع",
@@ -1101,6 +1108,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
                                  (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                                  (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
+                                 (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 

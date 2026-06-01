@@ -224,20 +224,21 @@ describe("Constants", () => {
     expect(Object.keys(STAGE_LABELS).length).toBeGreaterThanOrEqual(10);
   });
 
-  it("should have all 9 roles defined", async () => {
+  it("should have all 10 roles defined", async () => {
     const { ROLE_LABELS } = await import("../shared/constants");
     
     const expectedRoles = [
       "super_admin", "system_admin", "projects_office",
       "field_team", "quick_response", "financial",
-      "project_manager", "corporate_comm", "service_requester"
+      "project_manager", "corporate_comm", "service_requester",
+      "financial_manager"
     ];
     
     expectedRoles.forEach(role => {
       expect(ROLE_LABELS).toHaveProperty(role);
     });
     
-    expect(Object.keys(ROLE_LABELS)).toHaveLength(9);
+    expect(Object.keys(ROLE_LABELS)).toHaveLength(10);
   });
 });
 
