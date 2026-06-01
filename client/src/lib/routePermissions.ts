@@ -95,8 +95,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/field-visits/calendar": "appointments_calendar",
 
   // ── المشاريع ──
-  "/projects": "projects",
-  "/project-management": "projects",
+  "/projects": "projects.view",
+  "/project-management": "projects.view",
 
   // ── إدارة المستخدمين ──
   "/staff": "staff_management",
@@ -198,7 +198,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/field-visits\/report\/\d+$/, permission: "requests.view_details" },
 
   // المشاريع
-  { pattern: /^\/projects\/\d+$/, permission: "projects" },
+  { pattern: /^\/projects\/\d+$/, permission: "projects.view_details" },
 
   // الموردون
   { pattern: /^\/suppliers\/\d+$/, permission: "suppliers.view_details" },

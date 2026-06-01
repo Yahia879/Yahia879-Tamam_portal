@@ -77,6 +77,10 @@ export default function Projects() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
+  const userPermissions = (user as any)?.permissions ?? [];
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canViewDetails = isAdmin || userPermissions.includes("projects.view_details");
+
   // جلب المشاريع من قاعدة البيانات باستخدام الإجراء الجديد search
   const { data, isLoading } = trpc.projects.search.useQuery({
     search: search || undefined,
@@ -284,12 +288,14 @@ export default function Projects() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <Link href={`/projects/${project.id}`}>
-                                  <DropdownMenuItem>
-                                    <Eye className="w-4 h-4 ml-2" />
-                                    عرض التفاصيل
-                                  </DropdownMenuItem>
-                                </Link>
+                                 {canViewDetails && (
+                                   <Link href={`/projects/${project.id}`}>
+                                     <DropdownMenuItem>
+                                       <Eye className="w-4 h-4 ml-2" />
+                                       عرض التفاصيل
+                                     </DropdownMenuItem>
+                                   </Link>
+                                 )}
                                 {project.requestId && user?.role !== "project_manager" && (
                                   <Link href={`/requests/${project.requestId}`}>
                                     <DropdownMenuItem>
@@ -328,12 +334,14 @@ export default function Projects() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <Link href={`/projects/${project.id}`}>
-                              <DropdownMenuItem>
-                                <Eye className="w-4 h-4 ml-2" />
-                                عرض التفاصيل
-                              </DropdownMenuItem>
-                            </Link>
+                            {canViewDetails && (
+                              <Link href={`/projects/${project.id}`}>
+                                <DropdownMenuItem>
+                                  <Eye className="w-4 h-4 ml-2" />
+                                  عرض التفاصيل
+                                </DropdownMenuItem>
+                              </Link>
+                            )}
                             {project.requestId && user?.role !== "project_manager" && (
                               <Link href={`/requests/${project.requestId}`}>
                                 <DropdownMenuItem>

@@ -17,7 +17,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
+  projects: ["projects.view", "projects.view_details"],
+  "projects.view": ["projects.view"],
+  "projects.view_details": ["projects.view", "projects.view_details"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
     "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 

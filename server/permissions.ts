@@ -32,7 +32,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
+  projects: ["projects.view", "projects.view_details"],
+  "projects.view": ["projects.view"],
+  "projects.view_details": ["projects.view", "projects.view_details"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
     "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
@@ -240,8 +242,84 @@ async function ensureRequestsPermissionsExist(db: any) {
         }
       }
     }
+    await ensureProjectsPermissionsExist(db);
   } catch (err) {
     console.error("Error in ensureRequestsPermissionsExist:", err);
+  }
+}
+
+/**
+ * دالة للتأكد من وجود صلاحيات المشاريع الجديدة في قاعدة البيانات
+ */
+async function ensureProjectsPermissionsExist(db: any) {
+  try {
+    const projPerms = [
+      {
+        id: "projects.view",
+        moduleId: "projects",
+        action: "view",
+        nameAr: "عرض المشاريع",
+        nameEn: "View projects"
+      },
+      {
+        id: "projects.view_details",
+        moduleId: "projects",
+        action: "view_details",
+        nameAr: "عرض تفاصيل المشروع وادارته",
+        nameEn: "View project details and manage"
+      }
+    ];
+
+    let isFirstTime = false;
+    for (const p of projPerms) {
+      const existing = await db.select({ id: permissions.id })
+        .from(permissions)
+        .where(eq(permissions.id, p.id))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(permissions).values(p);
+        console.log(`Inserted missing permission: ${p.id}`);
+        isFirstTime = true;
+      } else {
+        await db.update(permissions).set({
+          nameAr: p.nameAr,
+          nameEn: p.nameEn,
+          moduleId: p.moduleId,
+          action: p.action
+        }).where(eq(permissions.id, p.id));
+      }
+    }
+
+    if (isFirstTime) {
+      const defaultMappings: Record<string, string[]> = {
+        projects_office: ["projects.view", "projects.view_details"],
+        project_manager: ["projects.view", "projects.view_details"],
+      };
+
+      for (const [roleId, permIds] of Object.entries(defaultMappings)) {
+        const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+        if (!roleExists) continue;
+
+        const existingRolePerms = await db.select()
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, roleId),
+            inArray(rolePermissions.permissionId, ["projects.view", "projects.view_details"])
+          ));
+
+        if (existingRolePerms.length === 0) {
+          const valuesToInsert = permIds.map(permId => ({
+            roleId,
+            permissionId: permId
+          }));
+          await db.insert(rolePermissions).values(valuesToInsert);
+          console.log(`Migrated role ${roleId} with projects permissions: ${permIds.join(", ")}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error in ensureProjectsPermissionsExist:", err);
   }
 }
 

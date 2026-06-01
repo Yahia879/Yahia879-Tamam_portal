@@ -164,6 +164,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمشاريع إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("projects.") && permId !== "projects.view") {
+      if (!selectedPerms.includes("projects.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المشاريع' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -208,6 +216,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض كافة الطلبات'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الطلبات الأخرى
         if (permId === "requests.view") {
           next = next.filter(id => !id.startsWith("requests."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض سجل المشاريع'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المشاريع الأخرى
+        if (permId === "projects.view") {
+          next = next.filter(id => !id.startsWith("projects."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -649,7 +661,7 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
       ]
     },
     {
@@ -698,7 +710,7 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "create", "edit", "delete", "export"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
       ]
     },
@@ -769,13 +781,8 @@ export default function RolePermissions() {
         view_details: "عرض تفاصيل الطلب وإدارته"
       },
       projects: {
-        view: "عرض سجل المشاريع",
-        create: "إضافة مشروع جديد",
-        add: "إضافة مشروع جديد",
-        edit: "تعديل بيانات المشروع",
-        update: "تعديل بيانات المشروع",
-        delete: "حذف مشروع",
-        export: "تصدير سجل المشاريع"
+        view: "عرض المشاريع",
+        view_details: "عرض تفاصيل المشروع وادارته"
       },
       requesters: {
         view: "عرض بيانات طالبي الخدمة",
@@ -1109,6 +1116,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                                  (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                                  (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
+                                 (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 

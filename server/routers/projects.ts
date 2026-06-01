@@ -56,6 +56,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin && !userPermissions.includes("projects.view")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل المشاريع" });
+      }
+
       const filters = [];
       if (input?.status) {
         filters.push(eq(projects.status, input.status));
@@ -132,6 +139,13 @@ export const projectsRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin && !userPermissions.includes("projects.view")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل المشاريع" });
+      }
 
       const conditions = [];
       if (ctx.user?.role === "project_manager") {
@@ -248,9 +262,16 @@ export const projectsRouter = router({
   // الحصول على مشروع بالتفاصيل
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      if (!isAdmin && !userPermissions.includes("projects.view_details")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل هذا المشروع" });
+      }
 
       const [project] = await db
         .select({
