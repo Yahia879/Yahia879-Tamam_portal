@@ -128,6 +128,9 @@ export default function UserDetails() {
   // التحقق من صلاحية منح الاستثناء
   const canManageExemptions = currentUser && ["super_admin", "system_admin", "projects_office"].includes(currentUser.role);
 
+  // التحقق من صلاحية إدارة الصلاحيات للمستخدم
+  const canManagePermissions = currentUser && ["super_admin", "system_admin"].includes(currentUser.role);
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -181,6 +184,14 @@ export default function UserDetails() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            {canManagePermissions && (
+              <Link href={`/users/${userId}/permissions`} className="flex-1 sm:flex-initial">
+                <Button variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10 border-primary text-primary hover:bg-primary/5">
+                  <Shield className="w-4 h-4 ml-2" />
+                  تخصيص الصلاحيات
+                </Button>
+              </Link>
+            )}
             <Link href={`/users/${userId}/edit`} className="flex-1 sm:flex-initial">
               <Button variant="outline" className="w-full text-xs sm:text-sm h-9 sm:h-10">
                 <Edit className="w-4 h-4 ml-2" />

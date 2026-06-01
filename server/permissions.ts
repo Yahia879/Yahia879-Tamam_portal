@@ -338,14 +338,16 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     .where(eq(users.id, userId))
     .limit(1);
 
-  // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات مباشرة
+  let rolePermissionsData: string[] = [];
+
+  // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة
     const expandedSet = new Set(allPerms.map(p => p.id));
     Object.keys(PERMISSION_EXPANSION).forEach(k => expandedSet.add(k));
     Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => expandedSet.add(s)));
-    return Array.from(expandedSet);
+    rolePermissionsData.push(...Array.from(expandedSet));
   }
 
   // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
@@ -366,8 +368,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (userData?.role && !hasCustomRole) {
     roleIds.push(userData.role);
   }
-  
-  let rolePermissionsData: string[] = [];
 
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
   if (userData?.role === "service_requester" && !hasCustomRole) {
@@ -1088,6 +1088,56 @@ export const permissionsRouter = router({
     }),
 
   /**
+   * تعيين الصلاحيات الفردية للمستخدم بالكامل (تزامن الأوفررايد)
+   */
+  setUserDirectPermissions: permissionProcedure("users.edit")
+    .input(z.object({
+      userId: z.number(),
+      permissions: z.array(z.object({
+        permissionId: z.string(),
+        granted: z.boolean(),
+        reason: z.string().optional()
+      }))
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // التحقق من صلاحية المنفذ
+      if (ctx.user.role !== 'super_admin' && ctx.user.role !== 'system_admin') {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل الصلاحيات" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await db.transaction(async (tx) => {
+        // 1. حذف جميع الصلاحيات الفردية الحالية للمستخدم
+        await tx.delete(userPermissions).where(eq(userPermissions.userId, input.userId));
+
+        // 2. إدخال الصلاحيات الفردية الجديدة إذا وُجدت
+        if (input.permissions.length > 0) {
+          const valuesToInsert = input.permissions.map(p => ({
+            userId: input.userId,
+            permissionId: p.permissionId,
+            granted: p.granted,
+            grantedBy: ctx.user.id,
+            reason: p.reason || "تخصيص صلاحيات المستخدم المباشرة"
+          }));
+          await tx.insert(userPermissions).values(valuesToInsert);
+        }
+
+        // 3. تسجيل الإجراء في سجل التدقيق
+        await tx.insert(permissionsAuditLog).values({
+          actionType: "sync_user_permissions",
+          targetUserId: input.userId,
+          performedBy: ctx.user.id,
+          reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
+          newValue: JSON.stringify(input.permissions)
+        });
+      });
+
+      return { success: true };
+    }),
+
+  /**
    * منح صلاحية فردية لمستخدم
    */
   grantPermission: permissionProcedure("users.edit")
@@ -1105,12 +1155,6 @@ export const permissionsRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-      // منع منح صلاحيات للمدير العام (لديه كل شيء)
-      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
-      if (targetUser?.role === 'super_admin') {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "المدير العام لديه كافة الصلاحيات بالفعل" });
-      }
 
       await db.insert(userPermissions).values({
         userId: input.userId,
@@ -1149,15 +1193,6 @@ export const permissionsRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-      // التحقق من أن المستخدم الهدف ليس super_admin
-      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
-      if (targetUser?.role === 'super_admin') {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "لا يمكن سحب صلاحيات من المدير العام"
-        });
-      }
 
       await db.insert(userPermissions).values({
         userId: input.userId,

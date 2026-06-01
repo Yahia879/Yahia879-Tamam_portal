@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -59,6 +59,7 @@ import {
   EyeOff,
   ChevronRight,
   ChevronLeft,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -80,6 +81,7 @@ export interface UsersTabProps {
 
 export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProps) {
   const { user: currentUser } = useAuth();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -113,11 +115,14 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   }, [searchQuery]);
 
   const createUser = trpc.users.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("تم إنشاء الحساب بنجاح");
       setOpenAddModal(false);
       resetForm();
       refetch();
+      if (data && data.userId) {
+        setLocation(`/users/${data.userId}/permissions`);
+      }
     },
     onError: (error: any) => {
       let errorMessage = "فشل إنشاء الحساب";
@@ -375,6 +380,14 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                                 </Link>
                               </DropdownMenuItem>
                             </PermissionGuard>
+                            <PermissionGuard permission="staff_users.edit">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/users/${user.id}/permissions`}>
+                                  <Shield className="ml-2 h-4 w-4" />
+                                  تخصيص الصلاحيات
+                                </Link>
+                              </DropdownMenuItem>
+                            </PermissionGuard>
                             {user.id !== currentUser?.id && user.role !== "super_admin" && (
                               <PermissionGuard permission="staff_users.suspend">
                                 <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
@@ -441,6 +454,14 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                           <Link href={`/users/${user.id}/edit`}>
                             <Edit className="ml-2 h-4 w-4" />
                             تعديل البيانات
+                          </Link>
+                        </DropdownMenuItem>
+                      </PermissionGuard>
+                      <PermissionGuard permission="staff_users.edit">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/users/${user.id}/permissions`}>
+                            <Shield className="ml-2 h-4 w-4" />
+                            تخصيص الصلاحيات
                           </Link>
                         </DropdownMenuItem>
                       </PermissionGuard>
