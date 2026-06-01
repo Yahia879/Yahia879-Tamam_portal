@@ -1515,12 +1515,12 @@ export const disbursementsRouter = router({
         .from(projects)
         .leftJoin(sql`${allProjectFinancials} as f`, eq(projects.id, sql`f.projectId`))
         .groupBy(projects.id, projects.name, projects.projectNumber)
-        .orderBy(desc(sql`totalRequested`));
+        .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
       // إجمالي المصروفات حسب الشهر
       const monthRequests = db
         .select({
-          month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+          month: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m')`.as('month'),
           amount: disbursementRequests.amount,
           status: disbursementRequests.status,
         })
@@ -1528,7 +1528,7 @@ export const disbursementsRouter = router({
 
       const monthManual = db
         .select({
-          month: sql<string>`DATE_FORMAT(createdAt, '%Y-%m')`,
+          month: sql<string>`DATE_FORMAT(${payments.createdAt}, '%Y-%m')`.as('month'),
           amount: payments.amount,
           status: payments.status,
         })
@@ -1575,7 +1575,7 @@ export const disbursementsRouter = router({
         })
         .from(sql`${allTypeFinancials} as f`)
         .groupBy(sql`f.paymentType`)
-        .orderBy(desc(sql`totalRequested`));
+        .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
       // إجمالي أوامر الصرف حسب الحالة
       const ordersByStatus = await db

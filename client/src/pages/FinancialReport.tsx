@@ -99,88 +99,68 @@ export default function FinancialReport() {
         </div>
 
         {/* بطاقات الإحصائيات الرئيسية */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي طلبات الصرف</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/* كرت إجمالي طلبات الصرف */}
+          <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50/50 to-indigo-50/30 dark:from-blue-950/20 dark:to-indigo-950/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">إجمالي طلبات الصرف</CardTitle>
+              <div className="p-2 bg-blue-100/80 dark:bg-blue-900/40 rounded-xl text-blue-600 dark:text-blue-300">
+                <FileText className="h-5 w-5" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalRequests || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                بقيمة {formatAmount(summary?.totalRequestedAmount || 0)} ريال
-              </p>
+              <div className="text-3xl font-extrabold text-blue-950 dark:text-blue-100 tracking-tight">
+                {summary?.totalRequests || 0}
+                <span className="text-xs font-normal text-muted-foreground mr-1.5">(طلب)</span>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">المبالغ المدفوعة</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
+          {/* كرت إجمالي العقود */}
+          <Card className="border-0 shadow-md bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-amber-900 dark:text-amber-200">إجمالي العقود</CardTitle>
+              <div className="p-2 bg-amber-100/80 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-300">
+                <ScrollText className="h-5 w-5" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatAmount(summary?.totalPaidAmount || 0)} ريال
+              <div className="text-3xl font-extrabold text-amber-950 dark:text-amber-100 tracking-tight">
+                {summary?.totalContracts || 0}
+                <span className="text-xs font-normal text-muted-foreground mr-1.5">(عقد)</span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {summary?.totalRequestedAmount ? 
-                  `${((summary.totalPaidAmount / summary.totalRequestedAmount) * 100).toFixed(1)}% من الإجمالي` 
-                  : "0%"}
-              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">المبالغ المعلقة</CardTitle>
-              <TrendingDown className="h-4 w-4 text-yellow-500" />
+          {/* كرت إجمالي أوامر الصرف */}
+          <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50/50 to-violet-50/30 dark:from-purple-950/20 dark:to-violet-950/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-purple-900 dark:text-purple-200">إجمالي أوامر الصرف</CardTitle>
+              <div className="p-2 bg-purple-100/80 dark:bg-purple-900/40 rounded-xl text-purple-600 dark:text-purple-300">
+                <Wallet className="h-5 w-5" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {formatAmount(summary?.pendingAmount || 0)} ريال
+              <div className="text-3xl font-extrabold text-purple-950 dark:text-purple-100 tracking-tight">
+                {summary?.totalOrders || 0}
+                <span className="text-xs font-normal text-muted-foreground mr-1.5">(أمر)</span>
               </div>
-              <p className="text-xs text-muted-foreground">قيد المراجعة أو الاعتماد</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">أوامر الصرف</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalOrders || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                منفذ: {formatAmount(summary?.executedAmount || 0)} ريال
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي العقود</CardTitle>
-              <ScrollText className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary?.totalContracts || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {formatAmount(summary?.totalContractAmount || 0)} ريال
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">نسبة الصرف من العقود</CardTitle>
-              <Percent className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {summary?.totalContractAmount ? 
-                  `${((( summary.totalPaidAmount) / summary.totalContractAmount) * 100).toFixed(1)}%`
-                  : "0%"}
+          {/* كرت المبالغ التي صرفت */}
+          <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50/50 to-teal-50/30 dark:from-emerald-950/20 dark:to-teal-950/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">المبالغ التي صرفت</CardTitle>
+              <div className="p-2 bg-emerald-100/80 dark:bg-emerald-900/40 rounded-xl text-emerald-600 dark:text-emerald-300">
+                <DollarSign className="h-5 w-5" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                متبقي: {formatAmount((summary?.totalContractAmount || 0) - (summary?.totalPaidAmount || 0))} ريال
-              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-extrabold text-emerald-950 dark:text-emerald-100 tracking-tight flex items-baseline">
+                {formatAmount(summary?.totalOrderAmount || 0)}
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mr-1.5">ريال</span>
+              </div>
             </CardContent>
           </Card>
         </div>
