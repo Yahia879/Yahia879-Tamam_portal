@@ -31,7 +31,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
-  appointments_calendar: ["requests.view", "field_visits.view", "appointments.view"],
+  appointments_calendar: ["field_visits.view", "appointments.view"],
   projects: ["projects.view", "projects.create", "projects.edit", "projects.delete"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
@@ -66,10 +66,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   mosque_map: ["mosque_map.view"],
   "mosque_map.view": ["mosque_map.view"],
 
-  appointments: ["requests.view", "field_visits.view"],
-  "appointments.view": ["requests.view", "field_visits.view"],
-  "appointments.view_all": ["requests.view", "field_visits.view"],
-  "appointments.view_own": ["requests.view", "field_visits.view"],
+  appointments: ["field_visits.view"],
+  "appointments.view": ["field_visits.view"],
+  "appointments.view_all": ["field_visits.view"],
+  "appointments.view_own": ["field_visits.view"],
 
   staff: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
