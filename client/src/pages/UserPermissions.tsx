@@ -627,15 +627,17 @@ export default function UserPermissions() {
                   {userData?.name}
                 </span>
                 <span className="text-slate-300 dark:text-slate-700">|</span>
-                <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold">الدور الأساسي:</span>
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold">
+                  {userRoles && userRoles.length > 0 ? "الدور المخصص:" : "الدور الأساسي:"}
+                </span>
                 <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
-                  {userData?.role ? getRoleLabelAr(userData.role) : ""}
+                  {roleNameAr}
                 </Badge>
-                {userRoles && userRoles.length > 0 && (
+                {userRoles && userRoles.length > 1 && (
                   <>
                     <span className="text-slate-300 dark:text-slate-700">|</span>
                     <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold">الأدوار الإضافية:</span>
-                    {userRoles.map((ur) => (
+                    {userRoles.slice(1).map((ur) => (
                       <Badge key={ur.id} variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 font-medium">
                         {ur.roleName}
                       </Badge>
