@@ -582,7 +582,11 @@ export const requestsRouter = router({
 
       // التحقق من صلاحية تحويل المرحلة حسب المرحلة الحالية والدور
       const allowedRoles = STAGE_TRANSITION_PERMISSIONS[oldStage] || [];
-      if (!allowedRoles.includes(ctx.user.role)) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+
+      if (!allowedRoles.includes(ctx.user.role) && !hasViewDetailsPermission) {
         const currentStageName = STAGE_LABELS[oldStage] || oldStage;
         throw new TRPCError({ 
           code: "FORBIDDEN", 
@@ -910,7 +914,13 @@ export const requestsRouter = router({
       }
 
       const allowedRoles = ["super_admin", "system_admin", "projects_office"];
-      const isAllowed = allowedRoles.includes(ctx.user.role) || (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id);
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+
+      const isAllowed = allowedRoles.includes(ctx.user.role) || 
+                        (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id) ||
+                        hasViewDetailsPermission;
       if (!isAllowed) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث حالة الطلب" });
       }
@@ -1275,9 +1285,14 @@ export const requestsRouter = router({
       }
 
       // التحقق من الصلاحيات
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+
       const option = TECHNICAL_EVAL_OPTIONS[input.decision];
       const isAllowedRole = (option.allowedRoles as readonly string[]).includes(ctx.user.role) ||
-        (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id);
+        (ctx.user.role === 'project_manager' && request[0].assignedTo === ctx.user.id) ||
+        hasViewDetailsPermission;
       if (!isAllowedRole) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 

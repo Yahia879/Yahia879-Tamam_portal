@@ -198,7 +198,7 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   const mosqueItems: MenuItem[] = [];
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
-  if (has("requests") || has("requests.view"))                     mosqueItems.push({ icon: FileText,      label: "الطلبات",               path: "/requests" });
+  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: "الطلبات",               path: "/requests" });
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
   if (has("projects"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });

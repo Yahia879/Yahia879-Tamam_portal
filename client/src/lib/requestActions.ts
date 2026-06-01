@@ -22,6 +22,7 @@ export function getActiveAction(
     userId?: number;
     requestTrack?: string | null;
     quickReports?: any[];
+    userPermissions?: string[];
   }
 ): ActiveAction | null {
   const config = ACTION_CONFIGS[currentStage as keyof typeof ACTION_CONFIGS];
@@ -30,14 +31,18 @@ export function getActiveAction(
     return null;
   }
 
+  const userPerms = requestData?.userPermissions || [];
+  const hasViewDetails = userPerms.includes("requests.view_details");
+
   // التحقق من الصلاحيات
-  let hasRole = userRole && config.allowedRoles.some(role => role === userRole);
+  let hasRole = (userRole && config.allowedRoles.some(role => role === userRole)) || hasViewDetails;
 
   // التحقق من الإسناد (إذا كان الطلب مسنداً لشخص معين)
   let isAssignedToUser =
     !requestData?.assignedTo ||
     requestData.assignedTo === requestData.userId ||
-    (userRole && ['super_admin', 'system_admin', 'projects_office'].includes(userRole));
+    (userRole && ['super_admin', 'system_admin', 'projects_office'].includes(userRole)) ||
+    hasViewDetails;
 
   let title = config.title;
   let description = config.description;

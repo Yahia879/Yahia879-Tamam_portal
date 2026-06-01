@@ -303,11 +303,17 @@ export default function RequestDetailsNew() {
   // تحديد ما إذا كان المستخدم مستفيداً
   const isRequester = user?.role === 'service_requester';
 
+  const userRole = user?.role ?? "";
+  const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
+  const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
   const isManagementUser = user && (
     ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
-    (user.role === 'project_manager' && request.assignedTo === user.id)
+    (user.role === 'project_manager' && request.assignedTo === user.id) ||
+    userPermissions.includes("requests.view_details")
   );
 
   // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام
@@ -318,6 +324,7 @@ export default function RequestDetailsNew() {
         userId: user?.id,
         requestTrack: request.requestTrack,
         quickReports: request.quickReports,
+        userPermissions,
       });
 
   // تخصيص الإجراء النشط للمشروع المغلق أو المرفوض
@@ -469,10 +476,6 @@ export default function RequestDetailsNew() {
     ? request.quickReports[request.quickReports.length - 1]
     : null;
 
-  const userRole = user?.role ?? "";
-  const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
-  const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
   const canAccessRequestDetails = Boolean(
     user &&
     userRole !== "service_requester" &&
@@ -827,13 +830,13 @@ export default function RequestDetailsNew() {
                         onClick: () => setLocation('/quotations'),
                         variant: 'outline' as const,
                       }
-                    : request.currentStage === 'contracting' && hasApprovedContract && canTransitionStage(user?.role || '', 'contracting')
+                    : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details"))
                     ? {
                         label: "الانتقال إلى مرحلة التنفيذ",
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                         variant: 'default' as const,
                       }
-                    : request.currentStage === 'execution' && canTransitionStage(user?.role || '', 'execution')
+                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details"))
                       ? request.requestTrack === 'quick_response'
                         ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
                           ? {
@@ -848,7 +851,7 @@ export default function RequestDetailsNew() {
                             variant: 'default' as const,
                             disabled: !!latestFinalReport,
                           }
-                    : request.currentStage === 'handover' && canTransitionStage(user?.role || '', 'handover')
+                    : request.currentStage === 'handover' && (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details"))
                     ? {
                         label: "إغلاق الطلب رسمياً",
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
