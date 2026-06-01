@@ -353,3 +353,63 @@ export function hasRouteAccess(
   }
   return userPermissions.includes(required);
 }
+
+/**
+ * تحديد الصفحة الرئيسية المناسبة للمستخدم بناءً على دوره وصلاحياته المتاحة فعلياً
+ */
+export function getUserHomeRoute(user: any): string {
+  if (!user) return "/login";
+  if (user.role === "service_requester") return "/requester";
+  if (user.role === "super_admin" || user.role === "system_admin") return "/dashboard";
+
+  const userPerms: string[] = user.permissions ?? [];
+  const isBaseRole = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
+  const hasCustom = !!user.customRole || !isBaseRole;
+
+  // 1. التحقق من المسار الافتراضي المخصص للدور أولاً
+  const roleDefaultRoutes: Record<string, string> = {
+    projects_office: "/mosques",
+    field_team: "/field-visits",
+    quick_response: "/requests",
+    financial: "/suppliers",
+    financial_manager: "/suppliers",
+    project_manager: "/projects",
+    corporate_comm: "/reports",
+  };
+
+  const defaultRoute = roleDefaultRoutes[user.role];
+  if (defaultRoute && hasRouteAccess(defaultRoute, user.role, userPerms, hasCustom)) {
+    return defaultRoute;
+  }
+
+  // 2. التحقق من بقية المسارات حسب الأولوية
+  const fallbackPaths = [
+    "/mosques",
+    "/requests",
+    "/projects",
+    "/suppliers",
+    "/staff",
+    "/settings",
+    "/field-visits",
+    "/program-customization",
+    "/field-visits/calendar",
+    "/quotations",
+    "/financial-approval",
+    "/contracts",
+    "/disbursements",
+    "/disbursement-orders",
+    "/progress-reports",
+    "/financial-report",
+    "/partners",
+  ];
+
+  for (const path of fallbackPaths) {
+    if (hasRouteAccess(path, user.role, userPerms, hasCustom)) {
+      return path;
+    }
+  }
+
+  // 3. الملاذ الأخير هو الملف الشخصي العام
+  return "/profile";
+}
+

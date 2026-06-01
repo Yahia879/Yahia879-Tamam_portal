@@ -219,7 +219,7 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية فرعية للمشاريع إذا كانت صلاحية العرض معطلة
+     // منع تفعيل أي صلاحية فرعية للمشاريع إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("projects.") && permId !== "projects.view") {
       if (!isChecked("projects.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض المشاريع' أولاً");

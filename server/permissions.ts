@@ -575,9 +575,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("mosque_map");
     allPermissions.add("mosques_map");
   }
-  if (allPermissions.has("appointments.view") || allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
+  if (allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
     allPermissions.add("appointments");
+    allPermissions.add("appointments.view");
     allPermissions.add("appointments_calendar");
+  } else {
+    allPermissions.delete("appointments");
+    allPermissions.delete("appointments.view");
+    allPermissions.delete("appointments_calendar");
   }
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");

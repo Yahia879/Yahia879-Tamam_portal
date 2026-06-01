@@ -27,6 +27,7 @@ import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
+import { getUserHomeRoute } from "@/lib/routePermissions";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -38,27 +39,12 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
 
-    // توجيه طالب الخدمة إلى لوحة تحكمه الخاصة
-    if (user.role === "service_requester") {
-      navigate("/requester/dashboard");
-      return;
-    }
-
-    // توجيه أي مستخدم غير إداري إلى صفحته الوظيفية
+    // توجيه طالب الخدمة أو أي مستخدم غير إداري إلى صفحته الوظيفية المصرحة
     if (!isAdmin) {
-      // تحديد وجهة مناسبة حسب الدور
-      const redirectMap: Record<string, string> = {
-        projects_office: "/mosques",
-        field_team: "/field-visits",
-        quick_response: "/requests",
-        financial: "/suppliers",
-        financial_manager: "/suppliers",
-        project_manager: "/projects",
-        corporate_comm: "/reports",
-      };
-      navigate(redirectMap[user.role] || "/profile");
+      navigate(getUserHomeRoute(user), { replace: true });
     }
   }, [user, navigate, isAdmin]);
+
   
   // جلب الإحصائيات
   const { data: requestStats } = trpc.requests.getStats.useQuery();

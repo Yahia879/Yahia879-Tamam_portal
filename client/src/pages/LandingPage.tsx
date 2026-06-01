@@ -4,6 +4,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { FileText, Users, CheckCircle2, Building2, MapPin, ArrowLeft, Loader2 } from "lucide-react";
+import { getUserHomeRoute } from "@/lib/routePermissions";
 
 // إحصائيات البوابة
 const stats = [
@@ -32,11 +33,11 @@ export default function LandingPage() {
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل عند فتح الموقع
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      const path = user?.role === "service_requester" ? "/requester" : "/dashboard";
-      setLocation(path, { replace: true });
+    if (!loading && isAuthenticated && user) {
+      setLocation(getUserHomeRoute(user), { replace: true });
     }
   }, [isAuthenticated, loading, user, setLocation]);
+
 
   if (loading || isAuthenticated) {
     return (

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ShieldOff, ArrowRight, Home } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { hasRouteAccess } from "@/lib/routePermissions";
+import { getUserHomeRoute } from "@/lib/routePermissions";
 
 /**
  * صفحة 403 - غير مصرح بالوصول
@@ -15,58 +15,21 @@ export default function Unauthorized() {
 
   const handleGoBack = () => {
     if (!user) {
-      setLocation("/login");
+      window.location.href = "/login";
       return;
     }
-    if (user.role === "service_requester") {
-      setLocation("/requester");
-      return;
-    }
-    if (user.role === "super_admin" || user.role === "system_admin") {
-      setLocation("/dashboard");
-      return;
-    }
-
-    const userPerms: string[] = (user as any)?.permissions ?? [];
-    const isBaseRole = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
-    const hasCustom = !!(user as any)?.customRole || !isBaseRole;
-
-    // قائمة الصفحات المرتبة حسب الأولوية للتحقق من الصلاحية والتحويل إليها
-    const fallbackPaths = [
-      "/dashboard",
-      "/mosques",
-      "/requests",
-      "/projects",
-      "/suppliers",
-      "/staff",
-      "/settings",
-      "/field-visits",
-      "/program-customization",
-      "/field-visits/calendar",
-      "/quotations",
-      "/financial-approval",
-      "/contracts",
-      "/disbursements",
-      "/disbursement-orders",
-      "/progress-reports",
-      "/financial-report",
-      "/partners",
-    ];
-
-    for (const path of fallbackPaths) {
-      if (hasRouteAccess(path, user.role, userPerms, hasCustom)) {
-        setLocation(path);
-        return;
-      }
-    }
-
-    // إذا لم يملك صلاحية لأي صفحة إدارية، نرجعه لصفحة الملف الشخصي العامة
-    setLocation("/profile");
+    // استخدام window.location.href لضمان تنظيف الكاش وإعادة بناء الصفحة بالصلاحيات الجديدة
+    window.location.href = getUserHomeRoute(user);
   };
 
   const handleGoHome = () => {
-    setLocation("/");
+    if (!user) {
+      window.location.href = "/";
+      return;
+    }
+    window.location.href = getUserHomeRoute(user);
   };
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-0">
