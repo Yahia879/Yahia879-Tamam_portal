@@ -362,14 +362,15 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     );
 
   const roleIds = userRolesData.map(r => r.roleId);
-  if (userData?.role) {
+  const hasCustomRole = roleIds.some(r => r.startsWith("custom_role_"));
+  if (userData?.role && !hasCustomRole) {
     roleIds.push(userData.role);
   }
   
   let rolePermissionsData: string[] = [];
 
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
-  if (userData?.role === "service_requester") {
+  if (userData?.role === "service_requester" && !hasCustomRole) {
     rolePermissionsData.push("requests.create", "requests.view");
   }
 

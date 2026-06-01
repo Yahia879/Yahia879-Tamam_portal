@@ -1,82 +1,281 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
 import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Checkbox } from "../components/ui/checkbox";
-import { Shield, Save, ArrowRight, CheckSquare, Square, FileText, Users, Settings } from "lucide-react";
-import { toast } from "sonner";
+import { 
+  Shield, 
+  ArrowRight, 
+  Loader2, 
+  CheckCircle2, 
+  LayoutDashboard, 
+  Handshake, 
+  Palette, 
+  FileText,
+  AlertCircle,
+  MapPin,
+  CalendarDays,
+  ClipboardList,
+  Users,
+  Receipt,
+  CheckSquare,
+  Wallet,
+  Banknote,
+  FileBarChart,
+  LayoutGrid,
+  Zap,
+  Map,
+  Calendar,
+  ClipboardCheck,
+  Building2,
+  FileSignature,
+  Settings,
+  Briefcase,
+  Layers,
+  Tag,
+  Save
+} from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
-// ==================== الهيكل الثابت للصلاحيات ====================
-const PERMISSIONS_STRUCTURE = [
+// ==================== الهيكل التفصيلي للصلاحيات الموحد ====================
+// مأخوذ من superAdminGroups في RolePermissions.tsx لتوحيد الواجهات بالكامل
+const superAdminGroups = [
   {
     title: "المساجد والطلبات",
-    icon: "🕌",
-    subsections: [
-      { id: "mosques", nameAr: "المساجد" },
-      { id: "mosques_map", nameAr: "خريطة المساجد" },
-      { id: "requests", nameAr: "الطلبات" },
-      { id: "appointments_calendar", nameAr: "تقويم المواعيد" },
-      { id: "projects", nameAr: "المشاريع" },
-      { id: "service_requester_accounts", nameAr: "حسابات طالبي الخدمة" },
-    ],
+    modules: [
+      { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
+      { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
+      { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
+      { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+      { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
+      { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
+    ]
   },
   {
     title: "المالية والعقود",
-    icon: "💰",
-    subsections: [
-      { id: "suppliers", nameAr: "الموردون" },
-      { id: "quotations", nameAr: "عروض الأسعار" },
-      { id: "financial_approval", nameAr: "الاعتماد المالي" },
-      { id: "contracts", nameAr: "العقود" },
-      { id: "disbursement_requests", nameAr: "طلبات الصرف" },
-      { id: "disbursement_orders", nameAr: "أوامر الصرف" },
-      { id: "progress_reports", nameAr: "تقارير الإنجاز" },
-      { id: "financial_report", nameAr: "التقرير المالي" },
-    ],
+    modules: [
+      { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
+      { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
+      { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
+      { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
+      { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+    ]
   },
   {
     title: "إدارة المستخدمين",
-    icon: "👥",
-    subsections: [
-      { id: "staff_management", nameAr: "إدارة المستخدمين" },
-    ],
+    modules: [
+      { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
+      { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
+      { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] }
+    ]
   },
   {
     title: "الإعدادات",
-    icon: "⚙️",
-    subsections: [
-      { id: "settings_center", nameAr: "مركز الإعدادات" },
-      { id: "programs_services", nameAr: "البرامج والخدمات" },
-    ],
+    modules: [
+      { 
+        id: "settings_org", 
+        nameAr: "إعدادات الجمعية", 
+        icon: Building2, 
+        perms: ["view", "edit_basic", "edit_signers", "edit_banks", "edit_contracts"] 
+      },
+      { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
+      { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
+    ]
   },
+  {
+    title: "البرامج والخدمات",
+    modules: [
+      { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
+    ]
+  }
 ];
 
-// استخراج جميع معرّفات الصلاحيات من الهيكل الثابت
-const ALL_PERMISSION_IDS = PERMISSIONS_STRUCTURE.flatMap(s => s.subsections.map(sub => sub.id));
+const getDescriptiveLabel = (moduleId: string, action: string) => {
+  const mapping: Record<string, Record<string, string>> = {
+    mosques: {
+      view: "عرض المساجد",
+      create: "إضافة مسجد",
+      add: "إضافة مسجد",
+      edit: "تعديل المسجد",
+      update: "تعديل المسجد",
+      delete: "حذف المسجد",
+      approve: "الاعتمادات (رفض أو اعتماد المسجد)"
+    },
+    requests: {
+      view: "عرض كافة الطلبات",
+      create: "إضافة طلب",
+      view_details: "عرض تفاصيل الطلب وإدارته"
+    },
+    projects: {
+      view: "عرض المشاريع",
+      view_details: "عرض تفاصيل المشروع وادارته"
+    },
+    requesters: {
+      view: "عرض بيانات طالبي الخدمة",
+      approve: "الاعتمادات (رفض أو اعتماد الحساب)",
+      edit: "تعديل بيانات الحساب",
+      delete: "حذف الحساب",
+      suspend: "تعليق حساب مستخدم"
+    },
+    suppliers: {
+      view: "عرض قائمة الموردين",
+      view_details: "عرض تفاصيل المورد",
+      add: "إضافة مورد",
+      approve: "الاعتمادات (اعتماد أو رفض مورد)",
+      edit: "تعديل بيانات مورد",
+      delete: "حذف مورد"
+    },
+    quotations: {
+      view: "عرض قائمة عروض الأسعار",
+      add: "إضافة عرض سعر",
+      approve: "الاعتمادات (اعتماد أو رفض طلب صرف)"
+    },
+    financial_approval: {
+      view: "مقارنة عروض الاسعار من دون اعتماد",
+      approve: "الاعتماد المالي لعرض السعر"
+    },
+    contracts: {
+      view: "عرض العقود وقالب العقود",
+      create: "إنشاء عقود",
+      template_add: "إضافة قالب للعقود",
+      template_edit: "تعديل قالب العقد",
+      template_delete: "حذف قالب العقد",
+      clause_add: "إضافة بند للعقد"
+    },
+    disbursements: {
+      view: "عرض طلبات الصرف",
+      add: "إنشاء طلب صرف",
+      edit: "تعديل طلب الصرف",
+      delete: "حذف طلب صرف",
+      approve: "اعتماد طلبات الصرف"
+    },
+    disbursement_orders: {
+      view: "عرض أوامر الصرف",
+      approve: "اعتماد أوامر الصرف",
+      reject: "رفض أوامر الصرف",
+      view_details: "عرض تفاصيل أوامر الصرف"
+    },
+    progress_reports: {
+      view: "عرض تقارير الإنجاز",
+      add: "إضافة تقرير إنجاز",
+      edit: "تعديل التقرير",
+      approve: "اعتماد التقارير"
+    },
+    financial_reports: {
+      view: "عرض التقارير المالية",
+      export: "تصدير البيانات المالية",
+      analytics: "تحليل مؤشرات الأداء"
+    },
+    staff_users: {
+      view: "عرض قائمة المستخدمين",
+      add: "إضافة موظف جديد",
+      edit: "تعديل البيانات",
+      suspend: "إيقاف الحساب",
+      delete: "حذف"
+    },
+    staff_roles: {
+      view: "عرض الأدوار والصلاحيات",
+      customize: "تخصيص الدور",
+      suspend: "إيقاف الدور"
+    },
+    staff_custom_roles: {
+      view: "عرض الأدوار المخصصة",
+      add: "إضافة دور",
+      edit: "تعديل الدور",
+      delete: "حذف الدور"
+    },
+    roles: {
+      view: "عرض قائمة الأدوار",
+      create: "إنشاء دور جديد",
+      edit: "تعديل صلاحيات الدور",
+      delete: "حذف دور"
+    },
+    logs: {
+      view: "عرض سجل العمليات",
+      export: "تصدير سجل العمليات"
+    },
+    settings_org: {
+      view: "عرض إعدادات الجمعية",
+      edit_basic: "تعديل معلومات أساسية",
+      edit_signers: "تعديل مفوضي التوقيع",
+      edit_banks: "تعديل البيانات البنكية",
+      edit_contracts: "تعديل إعدادات العقود"
+    },
+    settings_branding: {
+      edit: "تعديل الهوية البصرية للمنصة"
+    },
+    settings_contracts: {
+      view: "عرض قوالب العقود",
+      edit: "تعديل قوالب العقود"
+    },
+    settings_categories: {
+      view: "عرض التصنيفات",
+      add: "إضافة تصنيف جديد",
+      edit: "تعديل التصنيفات",
+      delete: "حذف التصنيفات"
+    },
+    services: {
+      view: "عرض البرامج",
+      add: "اضافة برامج",
+      edit: "تعديل برامج",
+      delete: "حذف برامج"
+    },
+    mosque_map: {
+      view: "عرض الخريطة التفاعلية"
+    },
+    appointments: {
+      view: "عرض تقويم المواعيد",
+      view_all: "عرض كافة مواعيد المنشأة",
+      view_own: "عرض المواعيد الخاصة بي",
+      add: "إضافة موعد جديد",
+      edit: "تعديل موعد",
+      delete: "حذف موعد"
+    }
+  };
+
+  return mapping[moduleId]?.[action] || action;
+};
 
 export default function RoleEdit() {
   const [match, params] = useRoute("/roles/:id/:action?");
   const [, setLocation] = useLocation();
   const roleId = params?.id;
   const isNew = roleId === "new";
-  const action = params?.action;
 
   const [nameAr, setNameAr] = useState("");
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
 
-  // جلب بيانات الدور (الاسم والصلاحيات المخزنة كـ JSON)
-  const { data: roleData } = trpc.permissions.getRole.useQuery(
+  // جلب بيانات الدور (الاسم والصلاحيات)
+  const { data: roleData, isLoading: roleLoading } = trpc.permissions.getRole.useQuery(
+    { roleId: roleId! },
+    { enabled: !isNew && !!roleId }
+  );
+
+  const { data: rolePermissions, isLoading: permsLoading } = trpc.permissions.getRolePermissions.useQuery(
     { roleId: roleId! },
     { enabled: !isNew && !!roleId }
   );
 
   const utils = trpc.useUtils();
 
-  const createRole = trpc.permissions.createRole.useMutation({
+  useEffect(() => {
+    if (roleData) {
+      setNameAr(roleData.nameAr);
+    }
+  }, [roleData]);
+
+  useEffect(() => {
+    if (rolePermissions) {
+      setSelectedPerms(rolePermissions);
+    }
+  }, [rolePermissions]);
+
+  const createRoleMutation = trpc.permissions.createRole.useMutation({
     onSuccess: () => {
       toast.success("تم إنشاء الدور بنجاح");
       utils.permissions.getRoles.invalidate();
@@ -87,7 +286,7 @@ export default function RoleEdit() {
     },
   });
 
-  const updateRole = trpc.permissions.updateRole.useMutation({
+  const updateRoleMutation = trpc.permissions.updateRole.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الدور بنجاح");
       utils.permissions.getRoles.invalidate();
@@ -98,237 +297,430 @@ export default function RoleEdit() {
     },
   });
 
-  useEffect(() => {
-    if (roleData) {
-      setNameAr(roleData.nameAr);
-      
-      // للأدوار المخصصة، يتم تخزين معرّفات الصلاحيات (UI IDs) في حقل الوصف كـ JSON
-      if (roleData.description) {
-        try {
-          const parsed = JSON.parse(roleData.description);
-          if (Array.isArray(parsed)) {
-            setSelectedPermissions(parsed);
-          }
-        } catch (e) {
-          // قد يكون وصفاً نصياً عادياً للأدوار الأساسية
-          console.debug("Role description is not a JSON array, skipping permission hydration from description");
-        }
-      }
-    }
-  }, [roleData]);
-
-  const handlePermissionToggle = (permissionId: string) => {
-    setSelectedPermissions((prev) =>
-      prev.includes(permissionId)
-        ? prev.filter((p) => p !== permissionId)
-        : [...prev, permissionId]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // التحقق من صحة البيانات
+  const handleSaveChanges = () => {
     if (!nameAr.trim()) {
       toast.error("يرجى إدخال اسم الدور المخصص");
       return;
     }
-    if (selectedPermissions.length === 0) {
+    if (selectedPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
       return;
     }
 
     if (isNew) {
       const id = `custom_role_${Date.now()}`;
-      createRole.mutate({
+      createRoleMutation.mutate({
         id,
         nameAr: nameAr.trim(),
         nameEn: nameAr.trim(),
-        description: "",
-        permissions: selectedPermissions,
+        description: JSON.stringify(selectedPerms),
+        permissions: selectedPerms,
       });
     } else if (roleId) {
-      updateRole.mutate({
+      updateRoleMutation.mutate({
         roleId,
         nameAr: nameAr.trim(),
-        permissions: selectedPermissions,
+        permissions: selectedPerms,
       });
     }
   };
 
-  // تحديد الكل / إلغاء تحديد الكل
-  const allGlobalSelected = ALL_PERMISSION_IDS.every(id => selectedPermissions.includes(id));
-
-  const handleToggleAll = () => {
-    if (allGlobalSelected) {
-      setSelectedPermissions([]);
-    } else {
-      setSelectedPermissions([...ALL_PERMISSION_IDS]);
+  const handleTogglePermission = (permId: string) => {
+    // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("mosques.") && permId !== "mosques.view") {
+      if (!selectedPerms.includes("mosques.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المساجد' أولاً");
+        return;
+      }
     }
+
+    // منع تفعيل أي صلاحية فرعية للموردين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("suppliers.") && permId !== "suppliers.view") {
+      if (!selectedPerms.includes("suppliers.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة الموردين' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لعروض الأسعار إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("quotations.") && permId !== "quotations.view") {
+      if (!selectedPerms.includes("quotations.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة عروض الأسعار' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للمستخدمين إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_users.") && permId !== "staff_users.view") {
+      if (!selectedPerms.includes("staff_users.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض قائمة المستخدمين' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للأدوار والصلاحيات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_roles.") && permId !== "staff_roles.view") {
+      if (!selectedPerms.includes("staff_roles.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الأدوار والصلاحيات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للأدوار المخصصة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("staff_custom_roles.") && permId !== "staff_custom_roles.view") {
+      if (!selectedPerms.includes("staff_custom_roles.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض الأدوار المخصصة' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للخدمات والبرامج إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("services.") && permId !== "services.view") {
+      if (!selectedPerms.includes("services.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض البرامج' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requests.") && permId !== "requests.view") {
+      if (!selectedPerms.includes("requests.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للمشاريع إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("projects.") && permId !== "projects.view") {
+      if (!selectedPerms.includes("projects.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المشاريع' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
+    if (permId === "financial_approval.approve") {
+      if (!selectedPerms.includes("financial_approval.view")) {
+        toast.warning("يجب تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد' أولاً");
+        return;
+      }
+    }
+
+    setSelectedPerms(prev => {
+      const isAlreadySelected = prev.includes(permId);
+      
+      if (isAlreadySelected) {
+        let next = prev.filter(id => id !== permId);
+        if (permId === "mosques.view") {
+          next = next.filter(id => !id.startsWith("mosques."));
+        }
+        if (permId === "suppliers.view") {
+          next = next.filter(id => !id.startsWith("suppliers."));
+        }
+        if (permId === "quotations.view") {
+          next = next.filter(id => !id.startsWith("quotations."));
+        }
+        if (permId === "staff_users.view") {
+          next = next.filter(id => !id.startsWith("staff_users."));
+        }
+        if (permId === "staff_roles.view") {
+          next = next.filter(id => !id.startsWith("staff_roles."));
+        }
+        if (permId === "staff_custom_roles.view") {
+          next = next.filter(id => !id.startsWith("staff_custom_roles."));
+        }
+        if (permId === "services.view") {
+          next = next.filter(id => !id.startsWith("services."));
+        }
+        if (permId === "requests.view") {
+          next = next.filter(id => !id.startsWith("requests."));
+        }
+        if (permId === "projects.view") {
+          next = next.filter(id => !id.startsWith("projects."));
+        }
+        if (permId === "financial_approval.view") {
+          next = next.filter(id => id !== "financial_approval.approve");
+        }
+        return next;
+      } else {
+        let next = [...prev, permId];
+        if (permId === "appointments.view_all") {
+          next = next.filter(id => id !== "appointments.view_own");
+        } else if (permId === "appointments.view_own") {
+          next = next.filter(id => id !== "appointments.view_all");
+        }
+        return next;
+      }
+    });
   };
 
-  // تبديل قسم كامل
-  const handleToggleSection = (sectionIds: string[]) => {
-    const allSelected = sectionIds.every(id => selectedPermissions.includes(id));
+  const handleToggleModuleAll = (modulePerms: any[]) => {
+    const permIds = modulePerms.map(p => p.id);
+    const allSelected = permIds.every(id => selectedPerms.includes(id));
     if (allSelected) {
-      setSelectedPermissions(prev => prev.filter(id => !sectionIds.includes(id)));
+      setSelectedPerms(prev => prev.filter(id => !permIds.includes(id)));
     } else {
-      setSelectedPermissions(prev => {
-        const merged = [...prev];
-        sectionIds.forEach(id => { if (!merged.includes(id)) merged.push(id); });
-        return merged;
+      setSelectedPerms(prev => {
+        let added = permIds.filter(id => !prev.includes(id));
+        if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
+          added = added.filter(id => id !== "appointments.view_own");
+        }
+        let next = [...prev, ...added];
+        if (added.includes("appointments.view_all")) {
+          next = next.filter(id => id !== "appointments.view_own");
+        } else if (added.includes("appointments.view_own")) {
+          next = next.filter(id => id !== "appointments.view_all");
+        }
+        return next;
       });
     }
   };
+
+  const isPermissionGranted = (permId: string) => {
+    return selectedPerms.includes(permId);
+  };
+
+  const universalDisplayGroups = useMemo(() => {
+    return superAdminGroups.map(group => ({
+      title: group.title,
+      modules: group.modules.map(m => ({
+        id: m.id,
+        nameAr: m.nameAr,
+        icon: m.icon,
+        permissions: m.perms.map(p => ({
+          id: `${m.id}.${p}`,
+          nameAr: getDescriptiveLabel(m.id, p),
+        }))
+      }))
+    }));
+  }, []);
+
+  const isLoading = (!isNew && roleLoading) || (!isNew && permsLoading);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="container py-24 flex flex-col items-center justify-center">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground animate-pulse">جاري تحميل بيانات الدور والصلاحيات...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-    <div className="container py-8 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setLocation("/staff")}
-          className="gap-1 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowRight className="h-4 w-4" />
-          رجوع
-        </Button>
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Shield className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold">
-            {isNew ? "إنشاء دور مخصص" : "تعديل الدور"}
-          </h1>
-          <p className="text-muted-foreground">
-            {isNew
-              ? "حدد اسم الدور والصلاحيات المطلوبة"
-              : "عدّل اسم وصلاحيات الدور"}
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info - Name Only */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">المعلومات الأساسية</h2>
-          <div>
-            <Label htmlFor="nameAr" className="pb-2 block">اسم الدور المخصص *</Label>
-            <Input
-              id="nameAr"
-              value={nameAr}
-              onChange={(e) => setNameAr(e.target.value)}
-              required
-              placeholder="مثال: مسؤول المشاريع"
-              className="text-lg py-6"
-            />
-          </div>
-        </Card>
-
-        {/* Permissions Tree - Hardcoded Structure */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-primary">تحديد الصلاحيات</h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleToggleAll}
+      <div className="container py-8 max-w-7xl mx-auto" dir="rtl">
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-10">
+          <div className="flex items-center gap-4 text-right">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setLocation("/staff")} 
+              className="rounded-full hover:bg-slate-100 transition-colors shrink-0"
             >
-              {allGlobalSelected
-                ? <><Square className="h-4 w-4 ml-1" />إلغاء تحديد الكل</>
-                : <><CheckSquare className="h-4 w-4 ml-1" />تحديد الكل</>}
+              <ArrowRight className="h-6 w-6" />
+            </Button>
+            <div className="p-3.5 bg-primary/10 rounded-2xl shrink-0">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {isNew ? "إنشاء دور مخصص جديد" : "تعديل الدور المخصص"}
+              </h1>
+              <p className="text-muted-foreground font-medium text-lg">
+                {isNew ? "قم بتعيين الصلاحيات التفصيلية للدور الجديد" : nameAr}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end items-center gap-3">
+            <Button
+              onClick={handleSaveChanges}
+              disabled={createRoleMutation.isPending || updateRoleMutation.isPending}
+              className="px-6 font-bold rounded-xl shadow-md h-11 transition-all gradient-primary text-white scale-105 hover:scale-108"
+            >
+              {createRoleMutation.isPending || updateRoleMutation.isPending ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5 ml-2" />
+                  {isNew ? "إنشاء الدور" : "حفظ التغييرات"}
+                </>
+              )}
             </Button>
           </div>
-          
-          <div className="space-y-8">
-            {PERMISSIONS_STRUCTURE.map(section => {
-              const sectionIds = section.subsections.map(s => s.id);
-              const allSectionSelected = sectionIds.every(id => selectedPermissions.includes(id));
-              const someSectionSelected = sectionIds.some(id => selectedPermissions.includes(id)) && !allSectionSelected;
+        </div>
 
-              return (
-                <Card key={section.title} className="p-6 overflow-hidden border-2 border-muted/50 shadow-sm hover:shadow-md transition-shadow">
-                  {/* Section Header with Master Checkbox */}
-                  <div className="flex items-center justify-between mb-6 border-b pb-4">
-                    <div className="flex items-center gap-3">
-                      <Checkbox 
-                        id={`section-${section.title}`}
-                        checked={allSectionSelected}
-                        onCheckedChange={() => handleToggleSection(sectionIds)}
-                        className="w-5 h-5 data-[state=checked]:bg-primary"
-                      />
-                      <span className="text-2xl">{section.icon}</span>
-                      <Label htmlFor={`section-${section.title}`} className="text-xl font-bold cursor-pointer text-primary">
-                        {section.title}
-                      </Label>
-                      {someSectionSelected && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                          جزئي
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {sectionIds.filter(id => selectedPermissions.includes(id)).length} / {sectionIds.length}
-                    </span>
-                  </div>
-                  
-                  {/* Sub-sections Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {section.subsections.map(sub => {
-                      const isChecked = selectedPermissions.includes(sub.id);
-                      
-                      return (
-                        <label 
-                          key={sub.id}
-                          htmlFor={`perm-${sub.id}`}
-                          className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all select-none ${
-                            isChecked 
-                              ? "bg-primary/5 border-primary/30 shadow-sm" 
-                              : "bg-muted/20 border-muted hover:bg-muted/40"
-                          }`}
-                        >
-                          <Checkbox
-                            id={`perm-${sub.id}`}
-                            checked={isChecked}
-                            onCheckedChange={() => handlePermissionToggle(sub.id)}
-                            className="data-[state=checked]:bg-primary pointer-events-none"
-                          />
-                          <span 
-                            className={`font-medium text-base transition-colors ${
-                              isChecked ? "text-primary" : "text-muted-foreground"
-                            }`}
-                          >
-                            {sub.nameAr}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+        {/* Basic Info Card */}
+        <Card className="border-slate-200/60 dark:border-slate-800 shadow-md mb-8 rounded-2xl">
+          <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+            <CardTitle className="text-xl font-bold">المعلومات الأساسية</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 text-right">
+            <div>
+              <Label htmlFor="nameAr" className="pb-2 block font-semibold text-slate-700 dark:text-slate-300">اسم الدور المخصص *</Label>
+              <Input
+                id="nameAr"
+                value={nameAr}
+                onChange={(e) => setNameAr(e.target.value)}
+                required
+                placeholder="مثال: منسق المشاريع والمتابعة"
+                className="text-lg py-5 px-4 rounded-xl border-slate-200 focus-visible:ring-primary"
+              />
+            </div>
+          </CardContent>
         </Card>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
+        {/* Info Tip */}
+        <div className="border rounded-2xl p-5 mb-10 flex items-start gap-4 shadow-sm bg-primary/5 border-primary/10">
+          <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+          </div>
+          <div className="text-right">
+            <p className="font-semibold mb-1">
+              تخصيص الصلاحيات التفصيلية
+            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              تتيح لك هذه الصفحة إسناد صلاحيات تفصيلية ودقيقة لهذا الدور المخصص. اختر الصلاحيات المطلوبة من الأقسام التالية ثم انقر على حفظ التغييرات.
+            </p>
+          </div>
+        </div>
+
+        {/* Grouped Rendering */}
+        <div className="space-y-12">
+          {universalDisplayGroups.map((group, groupIdx) => (
+            <div key={groupIdx} className="space-y-6">
+              {group.title && (
+                <div className="flex items-center gap-3 px-2 text-right">
+                  <div className="w-1.5 h-8 rounded-full bg-primary shrink-0" />
+                  <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{group.title}</h2>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {group.modules.map((module) => {
+                  const Icon = (module as any).icon || Shield;
+                  const modulePerms = module.permissions || [];
+                  const activePerms = modulePerms.filter((p: any) => selectedPerms.includes(p.id));
+                  const grantedCount = activePerms.length; 
+
+                  return (
+                    <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
+                      <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
+                        <div className="flex items-center justify-between" dir="rtl">
+                          <div className="flex items-center gap-4 text-right">
+                            <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                              <Icon className="h-5 w-5 text-primary" />
+                            </div>
+                            <CardTitle className="text-xl font-bold">{module.nameAr}</CardTitle>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {modulePerms.length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleModuleAll(modulePerms);
+                                }}
+                                className="text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg font-bold"
+                              >
+                                {modulePerms.every((p: any) => selectedPerms.includes(p.id)) ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                              </Button>
+                            )}
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
+                              <span>{grantedCount}</span>
+                              <span className="opacity-50">/</span>
+                              <span>{modulePerms.length}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" dir="rtl">
+                          {modulePerms.map((perm: any) => {
+                            const isChecked = isPermissionGranted(perm.id);
+                            const isDisabled = 
+                              (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
+                              (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
+                              (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
+                              (perm.id.startsWith("staff_users.") && perm.id !== "staff_users.view" && !selectedPerms.includes("staff_users.view")) ||
+                              (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
+                              (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
+                              (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
+                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
+                              (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                              (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
+                            return (
+                              <div 
+                                key={perm.id} 
+                                onClick={() => !isDisabled && handleTogglePermission(perm.id)}
+                                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all select-none text-right ${
+                                  isDisabled
+                                    ? "border-slate-100 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/10 text-slate-300 dark:text-slate-600 cursor-not-allowed pointer-events-none opacity-50"
+                                    : isChecked 
+                                      ? "border-green-200 bg-green-50/40 dark:bg-green-900/10 dark:border-green-900/20 text-green-950 dark:text-green-400 hover:bg-green-50/60 cursor-pointer" 
+                                      : "border-slate-200 dark:border-slate-800 bg-background hover:bg-slate-50 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-pointer"
+                                }`}
+                              >
+                                <div className={`w-4.5 h-4.5 rounded flex items-center justify-center border shrink-0 transition-all ${
+                                  isDisabled
+                                    ? "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900"
+                                    : isChecked
+                                      ? "bg-green-600 border-green-600 text-white"
+                                      : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                }`}>
+                                  {isChecked && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3 h-3">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className="text-sm font-semibold select-none">{perm.nameAr}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex justify-end gap-3 mt-12 mb-8">
           <Button
             type="button"
             variant="outline"
-            onClick={() => setLocation("/staff")}
+            onClick={() => setLocation("/staff?tab=custom-roles")}
+            className="px-6 rounded-xl h-11 font-semibold"
           >
             إلغاء
           </Button>
-          <Button type="submit" disabled={createRole.isPending || updateRole.isPending}>
-            <Save className="h-4 w-4 ml-2" />
-            {isNew ? "إنشاء الدور" : "حفظ التغييرات"}
+          <Button 
+            onClick={handleSaveChanges} 
+            disabled={createRoleMutation.isPending || updateRoleMutation.isPending}
+            className="px-8 font-bold rounded-xl shadow-md h-11 transition-all gradient-primary text-white scale-105 hover:scale-108"
+          >
+            {createRoleMutation.isPending || updateRoleMutation.isPending ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                جاري الحفظ...
+              </>
+            ) : (
+              "حفظ التغييرات"
+            )}
           </Button>
         </div>
-      </form>
-    </div>
+      </div>
     </DashboardLayout>
   );
 }
