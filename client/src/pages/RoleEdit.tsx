@@ -535,25 +535,6 @@ export default function RoleEdit() {
             </div>
           </div>
 
-          <div className="flex justify-end items-center gap-3">
-            <Button
-              onClick={handleSaveChanges}
-              disabled={createRoleMutation.isPending || updateRoleMutation.isPending}
-              className="px-6 font-bold rounded-xl shadow-md h-11 transition-all gradient-primary text-white scale-105 hover:scale-108"
-            >
-              {createRoleMutation.isPending || updateRoleMutation.isPending ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحفظ...
-                </>
-              ) : (
-                <>
-                  <Save className="h-5 w-5 ml-2" />
-                  {isNew ? "إنشاء الدور" : "حفظ التغييرات"}
-                </>
-              )}
-            </Button>
-          </div>
         </div>
 
         {/* Basic Info Card */}
@@ -716,7 +697,7 @@ export default function RoleEdit() {
                 جاري الحفظ...
               </>
             ) : (
-              "حفظ التغييرات"
+              isNew ? "إنشاء الدور" : "حفظ التغييرات"
             )}
           </Button>
         </div>
