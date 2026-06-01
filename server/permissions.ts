@@ -537,6 +537,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   userPermsData.forEach(perm => {
     if (perm.granted) {
       allPermissions.add(perm.permissionId);
+      // توسيع الصلاحية المباشرة الممنوحة لتفادي أخطاء الصلاحيات الدقيقة في الواجهة
+      const expanded = PERMISSION_EXPANSION[perm.permissionId];
+      if (expanded) {
+        expanded.forEach(sub => allPermissions.add(sub));
+      }
     } else {
       allPermissions.delete(perm.permissionId); // سحب الصلاحية
       revokedPermissions.add(perm.permissionId);
