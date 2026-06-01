@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import {
   DollarSign,
   FileText,
-  Printer,
   ScrollText,
   Wallet,
+  Download,
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -174,9 +175,78 @@ export default function FinancialReport() {
     }).format(amount);
   };
 
-  // طباعة التقرير
-  const handlePrint = () => {
-    window.print();
+  // تصدير التقرير المالي الشامل إلى ملف Excel (CSV مع BOM)
+  const handleExportExcel = () => {
+    if (!reportData) return;
+
+    let csvContent = "\ufeff";
+
+    // 1. الترويسة الرئيسية للتقرير
+    csvContent += `"التقرير المالي الشامل - بوابة تمام"\n`;
+    csvContent += `"تاريخ التصدير:","${new Date().toLocaleDateString("ar-SA")}"\n\n`;
+
+    // 2. بطاقات الإحصائيات الرئيسية
+    csvContent += `"ملخص الإحصائيات الرئيسية"\n`;
+    csvContent += `"إجمالي طلبات الصرف","إجمالي العقود","إجمالي أوامر الصرف","المبالغ التي صرفت"\n`;
+    csvContent += `"${summary?.totalRequests || 0}","${summary?.totalContracts || 0}","${summary?.totalOrders || 0}","${formatAmount(summary?.totalOrderAmount || 0)} ريال"\n\n`;
+
+
+
+    // 4. جدول أوامر الصرف حسب الحالة
+    csvContent += `"أوامر الصرف حسب الحالة"\n`;
+    csvContent += `"الحالة","عدد أوامر الصرف","إجمالي المبالغ"\n`;
+    const filteredOrders = (reportData.ordersByStatus || [])
+      .filter((item: any) => ["approved", "pending", "rejected", "edited"].includes(item.status));
+    if (filteredOrders.length > 0) {
+      filteredOrders.forEach((item: any) => {
+        const label = ORDER_STATUS_MAP[item.status]?.label || item.status;
+        csvContent += `"${label}","${item.count || 0}","${formatAmount(Number(item.totalAmount || 0))} ريال"\n`;
+      });
+    } else {
+      csvContent += `"لا توجد بيانات أوامر صرف"\n`;
+    }
+    csvContent += `\n`;
+
+    // 5. طلبات الصرف حسب الحالة
+    csvContent += `"طلبات الصرف حسب الحالة"\n`;
+    csvContent += `"الحالة","عدد الطلبات"\n`;
+    const filteredRequests = (reportData.requestsByStatus || [])
+      .filter((item: any) => ["pending", "approved", "rejected"].includes(item.status));
+    if (filteredRequests.length > 0) {
+      filteredRequests.forEach((item: any) => {
+        const label = REQUEST_STATUS_MAP[item.status]?.label || item.status;
+        csvContent += `"${label}","${item.count || 0}"\n`;
+      });
+    } else {
+      csvContent += `"لا توجد بيانات طلبات صرف"\n`;
+    }
+    csvContent += `\n`;
+
+    // 6. العقود حسب الحالة
+    csvContent += `"العقود حسب الحالة"\n`;
+    csvContent += `"الحالة","عدد العقود"\n`;
+    const filteredContracts = (reportData.contractsByStatus || [])
+      .filter((item: any) => item.status !== "active");
+    if (filteredContracts.length > 0) {
+      filteredContracts.forEach((item: any) => {
+        const label = CONTRACT_STATUS_MAP[item.status]?.label || item.status;
+        csvContent += `"${label}","${item.count || 0}"\n`;
+      });
+    } else {
+      csvContent += `"لا توجد بيانات عقود"\n`;
+    }
+
+    // 7. إنشاء تحميل الملف وتنزيله تلقائياً
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `financial-report-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("تم تصدير التقرير المالي بصيغة Excel (CSV) بنجاح!");
   };
 
   const summary = reportData?.summary;
@@ -249,9 +319,9 @@ export default function FinancialReport() {
             <p className="text-muted-foreground">ملخص المصروفات وأوامر الصرف</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handlePrint}>
-              <Printer className="ml-2 h-4 w-4" />
-              طباعة
+            <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200">
+              <Download className="ml-2 h-4 w-4" />
+              تصدير Excel
             </Button>
           </div>
         </div>
