@@ -33,6 +33,8 @@ export default function UserEdit() {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = trpc.users.getById.useQuery({ id: userId });
+
+
   const utils = trpc.useUtils();
 
   const [formData, setFormData] = useState({

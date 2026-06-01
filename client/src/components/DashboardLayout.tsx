@@ -188,11 +188,18 @@ const getMenuGroups = (role: string): MenuGroup[] => {
 
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
-const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
+// معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
+const getMenuGroupsFromPermissions = (permissions: string[], role: string): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
-  // لوحة التحكم محصورة على الإدارة العليا فقط — لا تظهر للأدوار المخصصة
+  // الرئيسية - متاحة فقط للإدارة العليا
+  if (["super_admin", "system_admin"].includes(role)) {
+    groups.push({
+      label: "الرئيسية",
+      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+    });
+  }
 
   // المساجد والطلبات
   const mosqueItems: MenuItem[] = [];
@@ -202,6 +209,7 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
   if (has("projects") || has("projects.view") || has("projects.view_details"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
+  if (has("reports"))                      mosqueItems.push({ icon: BarChart3,     label: "التقارير",              path: "/reports" });
   if (mosqueItems.length > 0) groups.push({ label: "المساجد والطلبات", items: mosqueItems });
 
   // المالية والعقود
@@ -215,6 +223,12 @@ const getMenuGroupsFromPermissions = (permissions: string[]): MenuGroup[] => {
   if (has("progress_reports"))    finItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
   if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
   if (finItems.length > 0) groups.push({ label: "المالية والعقود", items: finItems });
+
+  // الاتصال المؤسسي والشركاء
+  const commItems: MenuItem[] = [];
+  if (has("partners") || has("partners.view")) commItems.push({ icon: Handshake, label: "الشركاء", path: "/partners" });
+  if (has("settings_branding") || has("settings_branding.edit")) commItems.push({ icon: Palette, label: "الهوية البصرية", path: "/branding" });
+  if (commItems.length > 0) groups.push({ label: "الاتصال المؤسسي", items: commItems });
 
   // إدارة المستخدمين
   if (has("staff_users.view") || has("staff_roles.view") || has("staff_custom_roles.view")) {
@@ -373,10 +387,10 @@ function DashboardLayoutContent({
   const hasCustomRole = !!(user as any)?.customRole;
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const isServiceRequester = user?.role === "service_requester";
-  const hasDynamicPermissions = hasCustomRole || (!isSuperOrSystemAdmin && !isServiceRequester);
-
+  const hasDynamicPermissions = !isServiceRequester;
+ 
   const menuGroups = (hasDynamicPermissions
-    ? getMenuGroupsFromPermissions(userPermissions)
+    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "")
     : getMenuGroups(user?.role || "")
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);

@@ -37,8 +37,11 @@ import {
   Layers,
   Tag,
   Save,
-  RotateCcw
+  RotateCcw,
+  X,
+  Plus
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
 
 const getRoleLabelAr = (role: string) => {
@@ -86,10 +89,10 @@ export default function UserPermissions() {
     ? userRoles[0].roleName
     : (userData?.role ? getRoleLabelAr(userData.role) : "");
 
-  // جلب الصلاحيات الافتراضية للدور النشط للمستخدم
-  const { data: rolePermissions, isLoading: rolePermissionsLoading } = trpc.permissions.getRolePermissions.useQuery(
-    { roleId: activeRoleId || "" },
-    { enabled: !!activeRoleId }
+  // جلب الصلاحيات الافتراضية المورثة من جميع أدوار المستخدم
+  const { data: rolePermissions, isLoading: rolePermissionsLoading } = trpc.permissions.getUserRolePermissions.useQuery(
+    { userId: userId! },
+    { enabled: !!userId }
   );
 
   // جلب الصلاحيات النهائية (المدمجة) الممنوحة فعلياً للمستخدم
@@ -317,6 +320,56 @@ export default function UserPermissions() {
       return updated;
     });
   };
+
+  // إدارة الأدوار المخصصة للمستخدم
+  const { data: allRoles } = trpc.permissions.getRoles.useQuery();
+  const [selectedRoleId, setSelectedRoleId] = useState<string>("");
+
+  const assignRoleMutation = trpc.permissions.assignRole.useMutation({
+    onSuccess: () => {
+      toast.success("تم إسناد الدور للمستخدم بنجاح");
+      utils.permissions.getUserRoles.invalidate({ userId: userId! });
+      utils.permissions.getUserRolePermissions.invalidate({ userId: userId! });
+      setSelectedRoleId("");
+    },
+    onError: (error: any) => {
+      toast.error(`فشل إسناد الدور: ${error.message}`);
+    }
+  });
+
+  const removeRoleMutation = trpc.permissions.removeRole.useMutation({
+    onSuccess: () => {
+      toast.success("تم إزالة الدور من المستخدم بنجاح");
+      utils.permissions.getUserRoles.invalidate({ userId: userId! });
+      utils.permissions.getUserRolePermissions.invalidate({ userId: userId! });
+    },
+    onError: (error: any) => {
+      toast.error(`فشل إزالة الدور: ${error.message}`);
+    }
+  });
+
+  const handleAssignRole = () => {
+    if (!selectedRoleId) return;
+    assignRoleMutation.mutate({
+      userId: userId!,
+      roleId: selectedRoleId
+    });
+  };
+
+  const handleRemoveRole = (roleId: string) => {
+    if (confirm("هل أنت متأكد من إزالة هذا الدور من المستخدم؟")) {
+      removeRoleMutation.mutate({
+        userId: userId!,
+        roleId
+      });
+    }
+  };
+
+  const assignableRoles = allRoles?.filter(role => {
+    const isPrimary = role.id === userData?.role;
+    const isAssigned = userRoles?.some(ur => ur.roleId === role.id);
+    return !isPrimary && !isAssigned && role.isActive;
+  }) || [];
 
   // حفظ الصلاحيات الفردية
   const syncMutation = trpc.permissions.setUserDirectPermissions.useMutation({
@@ -574,9 +627,21 @@ export default function UserPermissions() {
                   {userData?.name}
                 </span>
                 <span className="text-slate-300 dark:text-slate-700">|</span>
-                <Badge variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                  الدور: {roleNameAr || userData?.role}
+                <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold">الدور الأساسي:</span>
+                <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
+                  {userData?.role ? getRoleLabelAr(userData.role) : ""}
                 </Badge>
+                {userRoles && userRoles.length > 0 && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-700">|</span>
+                    <span className="text-slate-500 dark:text-slate-400 text-xs font-semibold">الأدوار الإضافية:</span>
+                    {userRoles.map((ur) => (
+                      <Badge key={ur.id} variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 font-medium">
+                        {ur.roleName}
+                      </Badge>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -616,6 +681,7 @@ export default function UserPermissions() {
             </Button>
           </div>
         </div>
+
 
         {/* Informative Tip */}
         <div className="border border-primary/10 bg-primary/5 rounded-2xl p-5 mb-10 flex items-start gap-4 text-right">

@@ -313,8 +313,18 @@ export function hasRouteAccess(
   userPermissions: string[],
   hasCustomRole: boolean,
 ): boolean {
-  // super_admin و system_admin لهما كل الصلاحيات دائماً
-  if (userRole === "super_admin" || userRole === "system_admin") return true;
+  // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
+  if (userRole === "super_admin" || userRole === "system_admin") {
+    const required = getRequiredPermission(pathname);
+    if (required !== null) {
+      if (Array.isArray(required)) {
+        if (required.every(p => !userPermissions.includes(p))) return false;
+      } else {
+        if (!userPermissions.includes(required)) return false;
+      }
+    }
+    return true;
+  }
 
   // السماح بالوصول لصفحة التقرير الختامي لأي مستخدم مسجل
   if (/^\/final-report\/\d+$/.test(pathname)) return true;

@@ -321,6 +321,91 @@ async function ensureProjectsPermissionsExist(db: any) {
   } catch (err) {
     console.error("Error in ensureProjectsPermissionsExist:", err);
   }
+  await ensureAllCustomPermissionsExist(db);
+}
+
+/**
+ * دالة للتأكد من وجود جميع الصلاحيات المخصصة الأخرى في قاعدة البيانات لتجنب أخطاء المفاتيح الأجنبية
+ */
+async function ensureAllCustomPermissionsExist(db: any) {
+  try {
+    const customPerms = [
+      { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
+      { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
+      { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
+      { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
+      { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
+      { id: "requesters.view", moduleId: "users", action: "view", nameAr: "عرض بيانات طالبي الخدمة", nameEn: "View Requesters" },
+      { id: "requesters.approve", moduleId: "users", action: "approve", nameAr: "الاعتمادات (رفض أو اعتماد الحساب)", nameEn: "Approve Requesters" },
+      { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
+      { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
+      { id: "quotations.add", moduleId: "finance", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
+      { id: "financial_approval.view", moduleId: "finance", action: "view", nameAr: "مقارنة عروض الاسعار من دون اعتماد", nameEn: "Compare Quotations" },
+      { id: "financial_approval.approve", moduleId: "finance", action: "approve", nameAr: "الاعتماد المالي لعرض السعر", nameEn: "Approve Quotation Financially" },
+      { id: "contracts.template_add", moduleId: "settings", action: "template_add", nameAr: "إضافة قالب للعقود", nameEn: "Add Contract Template" },
+      { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
+      { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
+      { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
+      { id: "disbursements.add", moduleId: "finance", action: "add", nameAr: "إنشاء طلب صرف", nameEn: "Create Disbursement" },
+      { id: "disbursement_orders.view", moduleId: "finance", action: "view", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
+      { id: "disbursement_orders.approve", moduleId: "finance", action: "approve", nameAr: "اعتماد أوامر الصرف", nameEn: "Approve Disbursement Orders" },
+      { id: "disbursement_orders.reject", moduleId: "finance", action: "reject", nameAr: "رفض أوامر الصرف", nameEn: "Reject Disbursement Orders" },
+      { id: "progress_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير الإنجاز", nameEn: "View Progress Reports" },
+      { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
+      { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
+      { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
+      { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض التقارير المالية", nameEn: "View Financial Reports" },
+      { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير البيانات المالية", nameEn: "Export Financial Reports" },
+      { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
+      { id: "staff_users.view", moduleId: "users", action: "view", nameAr: "عرض قائمة المستخدمين", nameEn: "View Staff Users" },
+      { id: "staff_users.add", moduleId: "users", action: "add", nameAr: "إضافة موظف جديد", nameEn: "Add Staff User" },
+      { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات الأساسية", nameEn: "Edit Staff User" },
+      { id: "staff_users.suspend", moduleId: "users", action: "suspend", nameAr: "إيقاف الحساب", nameEn: "Suspend Staff User" },
+      { id: "staff_users.delete", moduleId: "users", action: "delete", nameAr: "حذف الحساب", nameEn: "Delete Staff User" },
+      { id: "staff_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار والصلاحيات", nameEn: "View Staff Roles" },
+      { id: "staff_roles.customize", moduleId: "permissions", action: "customize", nameAr: "تخصيص صلاحيات الدور الأساسي", nameEn: "Customize Staff Roles" },
+      { id: "staff_roles.suspend", moduleId: "permissions", action: "suspend", nameAr: "إيقاف الدور الأساسي", nameEn: "Suspend Staff Role" },
+      { id: "staff_custom_roles.view", moduleId: "permissions", action: "view", nameAr: "عرض الأدوار المخصصة", nameEn: "View Custom Roles" },
+      { id: "staff_custom_roles.add", moduleId: "permissions", action: "add", nameAr: "إضافة دور مخصص جديد", nameEn: "Add Custom Role" },
+      { id: "staff_custom_roles.edit", moduleId: "permissions", action: "edit", nameAr: "تعديل الدور المخصص", nameEn: "Edit Custom Role" },
+      { id: "staff_custom_roles.delete", moduleId: "permissions", action: "delete", nameAr: "حذف الدور المخصص", nameEn: "Delete Custom Role" },
+      { id: "settings_org.view", moduleId: "settings", action: "view", nameAr: "عرض إعدادات الجمعية", nameEn: "View Org Settings" },
+      { id: "settings_org.edit_basic", moduleId: "settings", action: "edit_basic", nameAr: "تعديل معلومات الجمعية الأساسية", nameEn: "Edit Org Basic Info" },
+      { id: "settings_org.edit_signers", moduleId: "settings", action: "edit_signers", nameAr: "تعديل المفوضين بالتوقيع", nameEn: "Edit Org Signers" },
+      { id: "settings_org.edit_banks", moduleId: "settings", action: "edit_banks", nameAr: "تعديل الحسابات البنكية المعتمدة", nameEn: "Edit Org Banks" },
+      { id: "settings_org.edit_contracts", moduleId: "settings", action: "edit_contracts", nameAr: "تعديل إعدادات وصياغة العقود", nameEn: "Edit Org Contracts Settings" },
+      { id: "settings_branding.edit", moduleId: "settings", action: "edit", nameAr: "تعديل الهوية البصرية وشعارات البوابة", nameEn: "Edit Branding Settings" },
+      { id: "settings_categories.view", moduleId: "settings", action: "view", nameAr: "عرض وتحديث تصنيفات الخدمات", nameEn: "View Categories" },
+      { id: "settings_categories.add", moduleId: "settings", action: "add", nameAr: "إضافة تصنيف جديد للخدمات", nameEn: "Add Category" },
+      { id: "settings_categories.edit", moduleId: "settings", action: "edit", nameAr: "تعديل وحفظ تصنيف الخدمات", nameEn: "Edit Category" },
+      { id: "settings_categories.delete", moduleId: "settings", action: "delete", nameAr: "حذف تصنيف الخدمات", nameEn: "Delete Category" },
+      { id: "services.view", moduleId: "settings", action: "view", nameAr: "عرض قائمة البرامج والخدمات", nameEn: "View Services" },
+      { id: "services.add", moduleId: "settings", action: "add", nameAr: "إضافة برنامج أو خدمة جديدة", nameEn: "Add Service" },
+      { id: "services.edit", moduleId: "settings", action: "edit", nameAr: "تعديل مواصفات البرامج والخدمات", nameEn: "Edit Service" },
+      { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
+    ];
+
+    for (const p of customPerms) {
+      const existing = await db.select({ id: permissions.id })
+        .from(permissions)
+        .where(eq(permissions.id, p.id))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(permissions).values(p);
+        console.log(`Inserted missing custom permission: ${p.id}`);
+      } else {
+        await db.update(permissions).set({
+          nameAr: p.nameAr,
+          nameEn: p.nameEn,
+          moduleId: p.moduleId,
+          action: p.action
+        }).where(eq(permissions.id, p.id));
+      }
+    }
+  } catch (err) {
+    console.error("Error in ensureAllCustomPermissionsExist:", err);
+  }
 }
 
 /**
@@ -439,11 +524,38 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
 
   // 6. تطبيق الصلاحيات الفردية (منح أو سحب)
+  // بناء خريطة عكسية: من الصلاحية الدقيقة إلى مفاتيح التوسيع الأب
+  const reverseExpansionMap: Record<string, string[]> = {};
+  for (const [parentKey, childPerms] of Object.entries(PERMISSION_EXPANSION)) {
+    for (const child of childPerms) {
+      if (!reverseExpansionMap[child]) reverseExpansionMap[child] = [];
+      reverseExpansionMap[child].push(parentKey);
+    }
+  }
+
+  const revokedPermissions = new Set<string>();
   userPermsData.forEach(perm => {
     if (perm.granted) {
       allPermissions.add(perm.permissionId);
     } else {
       allPermissions.delete(perm.permissionId); // سحب الصلاحية
+      revokedPermissions.add(perm.permissionId);
+    }
+  });
+
+  // إزالة المفاتيح الأب/البديلة التي تعتمد على صلاحيات محجوبة
+  // مثلاً: حجب mosque_map.view يزيل أيضاً mosque_map و mosques_map
+  revokedPermissions.forEach(revokedPerm => {
+    const parentKeys = reverseExpansionMap[revokedPerm] || [];
+    for (const parentKey of parentKeys) {
+      // نحذف المفتاح الأب فقط إذا كانت كل صلاحياته الفرعية محجوبة أو غير موجودة
+      const siblingPerms = PERMISSION_EXPANSION[parentKey] || [];
+      const hasRemainingGranted = siblingPerms.some(
+        sibling => sibling !== revokedPerm && allPermissions.has(sibling) && !revokedPermissions.has(sibling)
+      );
+      if (!hasRemainingGranted) {
+        allPermissions.delete(parentKey);
+      }
     }
   });
 
@@ -1013,6 +1125,98 @@ export const permissionsRouter = router({
     }),
 
   /**
+   * عرض الصلاحيات الموروثة من جميع أدوار المستخدم (الدور الأساسي + الأدوار الإضافية)
+   */
+  getUserRolePermissions: protectedProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // 1. الحصول على الدور الأساسي للمستخدم من جدول المستخدمين
+      const [userData] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      // 2. جمع صلاحيات جميع الأدوار المسندة للمستخدم (الدور الأساسي + الأدوار الإضافية)
+      const userRolesData = await db
+        .select({
+          roleId: userRoleAssignments.roleId,
+        })
+        .from(userRoleAssignments)
+        .where(
+          and(
+            eq(userRoleAssignments.userId, input.userId),
+            sql`(${userRoleAssignments.expiresAt} IS NULL OR ${userRoleAssignments.expiresAt} > NOW())`
+          )
+        );
+
+      const roleIds = userRolesData.map(r => r.roleId);
+      const hasCustomRole = roleIds.some(r => r.startsWith("custom_role_"));
+      if (userData?.role && !hasCustomRole && !roleIds.includes(userData.role)) {
+        roleIds.push(userData.role);
+      }
+
+      if (roleIds.length === 0) return [];
+
+      const permsSet = new Set<string>();
+
+      // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً
+      if (roleIds.includes('super_admin') || roleIds.includes('system_admin')) {
+        const allPerms = await db.select({ id: permissions.id }).from(permissions);
+        allPerms.forEach(p => permsSet.add(p.id));
+        Object.keys(PERMISSION_EXPANSION).forEach(k => permsSet.add(k));
+        Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => permsSet.add(s)));
+      }
+
+      // إسناد صلاحيات تلقائية للأدوار الأساسية
+      if (roleIds.includes("service_requester")) {
+        permsSet.add("requests.create");
+        permsSet.add("requests.view");
+      }
+
+      // جلب صلاحيات من جدول rolePermissions
+      const rolePerms = await db
+        .select({ permissionId: rolePermissions.permissionId })
+        .from(rolePermissions)
+        .where(inArray(rolePermissions.roleId, roleIds));
+      
+      rolePerms.forEach(rp => permsSet.add(rp.permissionId));
+
+      // جلب صلاحيات من حقل description في جدول roles (للأدوار المخصصة)
+      const rolesData = await db
+        .select({ id: roles.id, description: roles.description })
+        .from(roles)
+        .where(inArray(roles.id, roleIds));
+
+      for (const role of rolesData) {
+        if (role.description) {
+          try {
+            const parsed = JSON.parse(role.description);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(p => permsSet.add(p));
+            }
+          } catch {
+            // Ignore
+          }
+        }
+      }
+
+      // توسيع الصلاحيات البسيطة
+      const permsArray = Array.from(permsSet);
+      for (const perm of permsArray) {
+        const expanded = PERMISSION_EXPANSION[perm];
+        if (expanded) {
+          expanded.forEach(sub => permsSet.add(sub));
+        }
+      }
+
+      return Array.from(permsSet);
+    }),
+
+  /**
    * إسناد دور لمستخدم
    */
   assignRole: permissionProcedure("users.edit")
@@ -1107,6 +1311,8 @@ export const permissionsRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await ensureRequestsPermissionsExist(db);
 
       await db.transaction(async (tx) => {
         // 1. حذف جميع الصلاحيات الفردية الحالية للمستخدم
