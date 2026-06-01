@@ -17,7 +17,7 @@ import {
   donationOpportunities,
   mosqueRequests,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, isNull, isNotNull, or, like } from "drizzle-orm";
+import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 // توليد رقم طلب صرف
@@ -1538,7 +1538,7 @@ export const disbursementsRouter = router({
 
       const byMonth = await db
         .select({
-          month: sql`f.month`,
+          month: sql<string>`f.month`,
           totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
           requestCount: sql<number>`COUNT(*)`,
           totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
@@ -1568,7 +1568,7 @@ export const disbursementsRouter = router({
 
       const byFundingSource = await db
         .select({
-          fundingSource: sql`f.paymentType`,
+          fundingSource: sql<string>`f.paymentType`,
           totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
           requestCount: sql<number>`COUNT(*)`,
           totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
@@ -1577,7 +1577,7 @@ export const disbursementsRouter = router({
         .groupBy(sql`f.paymentType`)
         .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
-      // إجمالي أوامر الصرف حسب الحالة
+      // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل)
       const ordersByStatus = await db
         .select({
           status: disbursementOrders.status,
@@ -1585,9 +1585,10 @@ export const disbursementsRouter = router({
           totalAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
         })
         .from(disbursementOrders)
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
         .groupBy(disbursementOrders.status);
 
-      // إجماليات عامة
+      // إجماليات عامة (مصفاة حسب الحالات النشطة: قيد الاعتماد، معتمد، مرفوض)
       const [totals] = await db
         .select({
           totalRequests: sql<number>`COUNT(*)`,
@@ -1595,7 +1596,8 @@ export const disbursementsRouter = router({
           totalPaidAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} = 'paid' THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
           pendingAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementRequests.status} IN ('pending', 'approved') THEN ${disbursementRequests.amount} ELSE 0 END), 0)`,
         })
-        .from(disbursementRequests);
+        .from(disbursementRequests)
+        .where(inArray(disbursementRequests.status, ['pending', 'approved', 'rejected']));
 
       const [manualTotals] = await db
         .select({
@@ -1609,16 +1611,18 @@ export const disbursementsRouter = router({
           totalOrderAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
           executedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementOrders.status} IN ('executed', 'paid') THEN ${disbursementOrders.amount} ELSE 0 END), 0)`,
         })
-        .from(disbursementOrders);
+        .from(disbursementOrders)
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']));
 
-      // إجماليات العقود
+      // إجماليات العقود (مع استبعاد حالة "نشط")
       const [contractTotals] = await db
         .select({
           totalContracts: sql<number>`COUNT(*)`,
           totalContractAmount: sql<number>`COALESCE(SUM(CAST(${contractsEnhanced.contractAmount} AS DECIMAL(15,2))), 0)`,
-          activeContracts: sql<number>`SUM(CASE WHEN ${contractsEnhanced.status} IN ('active', 'approved') THEN 1 ELSE 0 END)`,
+          activeContracts: sql<number>`SUM(CASE WHEN ${contractsEnhanced.status} = 'approved' THEN 1 ELSE 0 END)`,
         })
-        .from(contractsEnhanced);
+        .from(contractsEnhanced)
+        .where(ne(contractsEnhanced.status, 'active'));
       // ملخص العقود مع نسبة الصرف
       const contractsSummary = await db
         .select({
@@ -1633,6 +1637,7 @@ export const disbursementsRouter = router({
         })
         .from(contractsEnhanced)
         .leftJoin(projects, eq(contractsEnhanced.projectId, projects.id))
+        .where(ne(contractsEnhanced.status, 'active'))
         .orderBy(desc(contractsEnhanced.createdAt))
         .limit(20);
       // حساب المصروف لكل عقد
@@ -1665,12 +1670,72 @@ export const disbursementsRouter = router({
           };
         })
       );
+
+      // إحصائيات العقود للرسم البياني (مع استبعاد حالة "نشط")
+      const contractsTimeline = await db
+        .select({
+          date: sql<string>`DATE_FORMAT(${contractsEnhanced.createdAt}, '%Y-%m-%d')`,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(contractsEnhanced)
+        .where(ne(contractsEnhanced.status, 'active'))
+        .groupBy(sql`DATE(${contractsEnhanced.createdAt})`)
+        .orderBy(sql`DATE(${contractsEnhanced.createdAt})`)
+        .limit(30);
+
+      const contractsByStatus = await db
+        .select({
+          status: contractsEnhanced.status,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(contractsEnhanced)
+        .where(ne(contractsEnhanced.status, 'active'))
+        .groupBy(contractsEnhanced.status);
+
+      // إحصائيات طلبات الصرف للرسم البياني (فقط الحالات: قيد الاعتماد، معتمد، مرفوض)
+      const requestsTimeline = await db
+        .select({
+          date: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m-%d')`,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(disbursementRequests)
+        .where(inArray(disbursementRequests.status, ['pending', 'approved', 'rejected']))
+        .groupBy(sql`DATE(${disbursementRequests.createdAt})`)
+        .orderBy(sql`DATE(${disbursementRequests.createdAt})`)
+        .limit(30);
+
+      const requestsByStatus = await db
+        .select({
+          status: disbursementRequests.status,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(disbursementRequests)
+        .where(inArray(disbursementRequests.status, ['pending', 'approved', 'rejected']))
+        .groupBy(disbursementRequests.status);
+
+      // إحصائيات أوامر الصرف للرسم البياني (فقط الحالات: معتمد، قيد الاعتماد، مرفوض، تم التعديل)
+      const ordersTimeline = await db
+        .select({
+          date: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m-%d')`,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(disbursementOrders)
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
+        .groupBy(sql`DATE(${disbursementOrders.createdAt})`)
+        .orderBy(sql`DATE(${disbursementOrders.createdAt})`)
+        .limit(30);
+
       return {
         byProject,
         byMonth,
         byFundingSource,
         ordersByStatus,
         contractsSummary: contractsWithDisbursements,
+        contractsTimeline,
+        contractsByStatus,
+        requestsTimeline,
+        requestsByStatus,
+        ordersTimeline,
         summary: {
           totalRequests: totals?.totalRequests || 0,
           totalRequestedAmount: Number(totals?.totalRequestedAmount || 0),

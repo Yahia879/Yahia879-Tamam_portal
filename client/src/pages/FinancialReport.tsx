@@ -1,33 +1,31 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   FileText,
-  Calendar,
-  Building2,
-  Wallet,
-  Download,
   Printer,
   ScrollText,
-  Percent,
+  Wallet,
 } from "lucide-react";
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell 
+} from "recharts";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   draft: { label: "مسودة", color: "bg-gray-100 text-gray-800" },
@@ -39,9 +37,130 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   cancelled: { label: "ملغي", color: "bg-gray-100 text-gray-800" },
 };
 
+const CONTRACT_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  draft: { label: "مسودة", color: "#64748b" }, // Slate 500
+  pending_approval: { label: "بانتظار الاعتماد", color: "#eab308" }, // Yellow 500
+  approved: { label: "معتمد", color: "#3b82f6" }, // Blue 500
+  completed: { label: "مكتمل", color: "#22c55e" }, // Green 500
+  terminated: { label: "منتهي", color: "#ef4444" }, // Red 500
+  cancelled: { label: "ملغي", color: "#94a3b8" }, // Slate 400
+};
+
+const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  pending: { label: "قيد الاعتماد", color: "#eab308" },
+  approved: { label: "معتمد", color: "#3b82f6" },
+  rejected: { label: "مرفوض", color: "#ef4444" },
+};
+
+const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  pending: { label: "قيد الاعتماد", color: "#eab308" },
+  approved: { label: "معتمد", color: "#3b82f6" },
+  rejected: { label: "مرفوض", color: "#ef4444" },
+  edited: { label: "تم التعديل", color: "#f97316" },
+};
+
+const CustomTimelineTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-xl shadow-xl text-xs font-semibold text-foreground opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-teal-600 shrink-0" />
+          <span className="text-muted-foreground">العقود المنشأة:</span>
+          <span className="font-black text-foreground mr-auto">{payload[0].value} عقد</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieStatusTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border shadow-xl p-3 rounded-xl text-xs font-semibold text-foreground min-w-[150px] opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{data.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: payload[0].color }} />
+          <span className="text-muted-foreground">عدد العقود:</span>
+          <span className="font-black text-foreground mr-auto">{data.value} عقد</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomRequestsTimelineTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-xl shadow-xl text-xs font-semibold text-foreground opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+          <span className="text-muted-foreground">الطلبات المنشأة:</span>
+          <span className="font-black text-foreground mr-auto">{payload[0].value} طلب</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieRequestsStatusTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border shadow-xl p-3 rounded-xl text-xs font-semibold text-foreground min-w-[150px] opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{data.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: payload[0].color }} />
+          <span className="text-muted-foreground">عدد الطلبات:</span>
+          <span className="font-black text-foreground mr-auto">{data.value} طلب</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomOrdersTimelineTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-xl shadow-xl text-xs font-semibold text-foreground opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-purple-600 shrink-0" />
+          <span className="text-muted-foreground">الأوامر المنشأة:</span>
+          <span className="font-black text-foreground mr-auto">{payload[0].value} أمر</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border shadow-xl p-3 rounded-xl text-xs font-semibold text-foreground min-w-[150px] opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{data.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: payload[0].color }} />
+          <span className="text-muted-foreground">عدد الأوامر:</span>
+          <span className="font-black text-foreground mr-auto">{data.value} أمر</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function FinancialReport() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("contracts");
 
   // جلب بيانات التقرير المالي
   const { data: reportData, isLoading } = trpc.disbursements.getFinancialReport.useQuery({});
@@ -60,6 +179,53 @@ export default function FinancialReport() {
     window.print();
   };
 
+  const summary = reportData?.summary;
+
+  const contractsByStatusData = useMemo(() => {
+    if (!reportData?.contractsByStatus) return [];
+    return reportData.contractsByStatus
+      .filter((item: any) => item.status !== "active")
+      .map((item: any) => {
+        const statusInfo = CONTRACT_STATUS_MAP[item.status || "draft"] || { label: item.status, color: "#cbd5e1" };
+        return {
+          name: statusInfo.label,
+          value: Number(item.count || 0),
+          color: statusInfo.color,
+          percentage: summary?.totalContracts ? Math.round((Number(item.count) / summary.totalContracts) * 100) : 0,
+        };
+      });
+  }, [reportData?.contractsByStatus, summary?.totalContracts]);
+
+  const requestsByStatusData = useMemo(() => {
+    if (!reportData?.requestsByStatus) return [];
+    return reportData.requestsByStatus
+      .filter((item: any) => ["pending", "approved", "rejected"].includes(item.status))
+      .map((item: any) => {
+        const statusInfo = REQUEST_STATUS_MAP[item.status || "draft"] || { label: item.status, color: "#cbd5e1" };
+        return {
+          name: statusInfo.label,
+          value: Number(item.count || 0),
+          color: statusInfo.color,
+          percentage: summary?.totalRequests ? Math.round((Number(item.count) / summary.totalRequests) * 100) : 0,
+        };
+      });
+  }, [reportData?.requestsByStatus, summary?.totalRequests]);
+
+  const ordersByStatusData = useMemo(() => {
+    if (!reportData?.ordersByStatus) return [];
+    return reportData.ordersByStatus
+      .filter((item: any) => ["approved", "pending", "rejected", "edited"].includes(item.status))
+      .map((item: any) => {
+        const statusInfo = ORDER_STATUS_MAP[item.status || "pending"] || { label: item.status, color: "#cbd5e1" };
+        return {
+          name: statusInfo.label,
+          value: Number(item.count || 0),
+          color: statusInfo.color,
+          percentage: summary?.totalOrders ? Math.round((Number(item.count) / summary.totalOrders) * 100) : 0,
+        };
+      });
+  }, [reportData?.ordersByStatus, summary?.totalOrders]);
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -72,8 +238,6 @@ export default function FinancialReport() {
       </DashboardLayout>
     );
   }
-
-  const summary = reportData?.summary;
 
   return (
     <DashboardLayout>
@@ -165,295 +329,408 @@ export default function FinancialReport() {
           </Card>
         </div>
 
-        {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="print:hidden">
-          <TabsList>
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="contracts">العقود ونسبة الصرف</TabsTrigger>
-            <TabsTrigger value="byProject">حسب المشروع</TabsTrigger>
-            <TabsTrigger value="byMonth">حسب الشهر</TabsTrigger>
-            <TabsTrigger value="byFunding">حسب مصدر الدعم</TabsTrigger>
-            <TabsTrigger value="orders">أوامر الصرف</TabsTrigger>
-          </TabsList>
+        {/* أسلوب التبويبات الفاخر المطور */}
+        <div className="flex justify-start mb-8 print:hidden">
+          <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 max-w-full overflow-x-auto no-scrollbar">
+            {[
+              { id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" },
+              { id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" },
+              { id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" },
+            ].map((tab) => {
+              const IsActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 focus:outline-none select-none shrink-0 ${
+                    IsActive
+                      ? "text-white shadow-md shadow-slate-950/10"
+                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/40 dark:hover:bg-slate-800/30"
+                  }`}
+                >
+                  {IsActive && (
+                    <motion.div
+                      layoutId="activeTabPill"
+                      className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.activeColor}`}
+                      transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center">
+                    <Icon className={`h-4.5 w-4.5 ml-2 transition-transform duration-300 ${IsActive ? "scale-110" : "scale-100"}`} />
+                    {tab.label}
+                  </span>
+                  <span
+                    className={`relative z-10 text-[10px] px-2 py-0.5 rounded-full font-black transition-all duration-300 border ${
+                      IsActive
+                        ? "bg-white/20 border-white/10 text-white"
+                        : "bg-slate-200/50 dark:bg-slate-800/50 border-slate-300/30 dark:border-slate-700/30 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          {/* تبويب العقود ونسبة الصرف */}
-          <TabsContent value="contracts">
-            <Card>
-              <CardHeader>
-                <CardTitle>ملخص العقود ونسبة الصرف</CardTitle>
-                <CardDescription>مقارنة قيمة العقود بالمبالغ المصروفة فعلياً</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>رقم العقد</TableHead>
-                        <TableHead>عنوان العقد</TableHead>
-                        <TableHead>المشروع</TableHead>
-                        <TableHead>المورد / المقاول</TableHead>
-                        <TableHead>قيمة العقد</TableHead>
-                        <TableHead>المصروف</TableHead>
-                        <TableHead>المتبقي</TableHead>
-                        <TableHead>نسبة الصرف</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData?.contractsSummary?.map((contract) => (
-                        <TableRow key={contract.contractId}>
-                          <TableCell className="font-mono text-sm">{contract.contractNumber}</TableCell>
-                          <TableCell className="font-medium">{contract.contractTitle}</TableCell>
-                          <TableCell>{contract.projectName || "-"}</TableCell>
-                          <TableCell>{contract.supplierName || "-"}</TableCell>
-                          <TableCell>{formatAmount(contract.contractAmount)} ريال</TableCell>
-                          <TableCell className="text-green-600">{formatAmount(contract.totalPaid)} ريال</TableCell>
-                          <TableCell className="text-orange-600">{formatAmount(contract.remainingAmount)} ريال</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-16">
-                                <div
-                                  className="bg-primary h-2 rounded-full"
-                                  style={{ width: `${Math.min(contract.disbursementPercentage, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-sm font-medium w-10">{contract.disbursementPercentage}%</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {(!reportData?.contractsSummary || reportData.contractsSummary.length === 0) && (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                            لا توجد عقود مسجلة
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+        <Tabs dir="rtl" value={activeTab} onValueChange={setActiveTab} className="print:hidden">
+          {/* تبويب العقود */}
+          <TabsContent value="contracts" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* رسوم بيانية للعقود */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* مخطط سير العقود عبر الأيام */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">سير العقود المنشأة</CardTitle>
+                    <CardDescription>عدد العقود التي تم عملها خلال الأيام الماضية</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72">
+                    {reportData?.contractsTimeline && reportData.contractsTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={reportData.contractsTimeline}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorContracts" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#0f766e" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#0f766e" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+                          <XAxis 
+                            dataKey="date" 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                          />
+                          <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomTimelineTooltip />} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#0f766e" 
+                            strokeWidth={2.5} 
+                            fillOpacity={1} 
+                            fill="url(#colorContracts)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-          {/* نظرة عامة */}
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* أعلى المشاريع إنفاقاً */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">أعلى المشاريع إنفاقاً</CardTitle>
-                  <CardDescription>المشاريع الأكثر طلباً للصرف</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {reportData?.byProject?.slice(0, 5).map((project, index) => (
-                      <div key={project.projectId} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <p className="font-medium">{project.projectName}</p>
-                            <p className="text-xs text-muted-foreground">{project.projectNumber}</p>
+                {/* مخطط توزيع حالات العقود */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">حالات العقود</CardTitle>
+                    <CardDescription>توزيع العقود الإجمالي بين مسودة ومعتمد وغيرها</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {reportData?.contractsByStatus && reportData.contractsByStatus.length > 0 ? (
+                      <>
+                        <div className="relative w-44 h-44 flex-shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip content={<CustomPieStatusTooltip />} />
+                              <Pie
+                                data={contractsByStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={3}
+                                dataKey="value"
+                              >
+                                {contractsByStatusData.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                            <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{summary?.totalContracts || 0}</span>
+                            <span className="text-[10px] text-muted-foreground font-bold mt-1">إجمالي العقود</span>
                           </div>
                         </div>
-                        <div className="text-left">
-                          <p className="font-medium">{formatAmount(Number(project.totalRequested))} ريال</p>
-                          <p className="text-xs text-green-600">
-                            مدفوع: {formatAmount(Number(project.totalPaid))} ريال
-                          </p>
+                        
+                        {/* الليجند الجانبي للتوزيع */}
+                        <div className="flex-1 w-full space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                          {contractsByStatusData.map((item: any) => (
+                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
+                                <span className="text-muted-foreground">{item.name}</span>
+                              </div>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold">{item.value} ({item.percentage}%)</span>
+                            </div>
+                          ))}
                         </div>
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات حالات كافية
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          </TabsContent>
 
-              {/* حالة أوامر الصرف */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">حالة أوامر الصرف</CardTitle>
-                  <CardDescription>توزيع الأوامر حسب الحالة</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {reportData?.ordersByStatus?.map((item) => (
-                      <div key={item.status} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className={STATUS_MAP[item.status || "draft"]?.color}>
-                            {STATUS_MAP[item.status || "draft"]?.label}
-                          </Badge>
-                        </div>
-                        <div className="text-left">
-                          <p className="font-medium">{item.count} أمر</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatAmount(Number(item.totalAmount))} ريال
-                          </p>
-                        </div>
+          {/* تبويب طلبات الصرف */}
+          <TabsContent value="requests" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* رسوم بيانية لطلبات الصرف */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* مخطط سير طلبات الصرف عبر الأيام */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">سير طلبات الصرف</CardTitle>
+                    <CardDescription>عدد طلبات الصرف التي تم عملها خلال الأيام الماضية</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72">
+                    {reportData?.requestsTimeline && reportData.requestsTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={reportData.requestsTimeline}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+                          <XAxis 
+                            dataKey="date" 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                          />
+                          <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomRequestsTimelineTooltip />} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#3b82f6" 
+                            strokeWidth={2.5} 
+                            fillOpacity={1} 
+                            fill="url(#colorRequests)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* مخطط توزيع حالات طلبات الصرف */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">حالات طلبات الصرف</CardTitle>
+                    <CardDescription>توزيع طلبات الصرف بين مسودة ومعتمد ومرفوض وقيد الاعتماد</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {reportData?.requestsByStatus && reportData.requestsByStatus.length > 0 ? (
+                      <>
+                        <div className="relative w-44 h-44 flex-shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip content={<CustomPieRequestsStatusTooltip />} />
+                              <Pie
+                                data={requestsByStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={3}
+                                dataKey="value"
+                              >
+                                {requestsByStatusData.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                            <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{summary?.totalRequests || 0}</span>
+                            <span className="text-[10px] text-muted-foreground font-bold mt-1">إجمالي الطلبات</span>
+                          </div>
+                        </div>
+                        
+                        {/* الليجند الجانبي للتوزيع */}
+                        <div className="flex-1 w-full space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                          {requestsByStatusData.map((item: any) => (
+                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
+                                <span className="text-muted-foreground">{item.name}</span>
+                              </div>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold">{item.value} ({item.percentage}%)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات حالات كافية
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
           </TabsContent>
 
-          {/* حسب المشروع */}
-          <TabsContent value="byProject">
-            <Card>
-              <CardHeader>
-                <CardTitle>المصروفات حسب المشروع</CardTitle>
-                <CardDescription>تفصيل طلبات الصرف لكل مشروع</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المشروع</TableHead>
-                        <TableHead>رقم المشروع</TableHead>
-                        <TableHead>عدد الطلبات المعتمدة</TableHead>
-                        <TableHead>إجمالي المطلوب</TableHead>
-                        <TableHead>إجمالي المدفوع</TableHead>
-                        <TableHead>المتبقي</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData?.byProject?.map((project) => (
-                        <TableRow key={project.projectId}>
-                          <TableCell className="font-medium">{project.projectName}</TableCell>
-                          <TableCell>{project.projectNumber}</TableCell>
-                          <TableCell>{project.approvedCount}</TableCell>
-                          <TableCell>{formatAmount(Number(project.totalRequested))} ريال</TableCell>
-                          <TableCell className="text-green-600">
-                            {formatAmount(Number(project.totalPaid))} ريال
-                          </TableCell>
-                          <TableCell className="text-yellow-600">
-                            {formatAmount(Number(project.totalRequested) - Number(project.totalPaid))} ريال
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* تبويب أوامر الصرف */}
+          <TabsContent value="orders" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* رسوم بيانية لأوامر الصرف */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* مخطط سير أوامر الصرف عبر الأيام */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">سير أوامر الصرف</CardTitle>
+                    <CardDescription>عدد أوامر الصرف التي تم عملها خلال الأيام الماضية</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72">
+                    {reportData?.ordersTimeline && reportData.ordersTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={reportData.ordersTimeline}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+                          <XAxis 
+                            dataKey="date" 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                          />
+                          <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomOrdersTimelineTooltip />} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#8b5cf6" 
+                            strokeWidth={2.5} 
+                            fillOpacity={1} 
+                            fill="url(#colorOrders)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-          {/* حسب الشهر */}
-          <TabsContent value="byMonth">
-            <Card>
-              <CardHeader>
-                <CardTitle>المصروفات حسب الشهر</CardTitle>
-                <CardDescription>تفصيل طلبات الصرف الشهرية</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>الشهر</TableHead>
-                        <TableHead>عدد الطلبات</TableHead>
-                        <TableHead>إجمالي المطلوب</TableHead>
-                        <TableHead>إجمالي المدفوع</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData?.byMonth?.map((item) => (
-                        <TableRow key={item.month}>
-                          <TableCell className="font-medium">{item.month}</TableCell>
-                          <TableCell>{item.requestCount}</TableCell>
-                          <TableCell>{formatAmount(Number(item.totalRequested))} ريال</TableCell>
-                          <TableCell className="text-green-600">
-                            {formatAmount(Number(item.totalPaid))} ريال
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* حسب مصدر الدعم */}
-          <TabsContent value="byFunding">
-            <Card>
-              <CardHeader>
-                <CardTitle>المصروفات حسب مصدر الدعم</CardTitle>
-                <CardDescription>تفصيل طلبات الصرف حسب الجهة الداعمة</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>مصدر الدعم</TableHead>
-                        <TableHead>عدد الطلبات</TableHead>
-                        <TableHead>إجمالي المطلوب</TableHead>
-                        <TableHead>إجمالي المدفوع</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData?.byFundingSource?.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {item.fundingSource || "غير محدد"}
-                          </TableCell>
-                          <TableCell>{item.requestCount}</TableCell>
-                          <TableCell>{formatAmount(Number(item.totalRequested))} ريال</TableCell>
-                          <TableCell className="text-green-600">
-                            {formatAmount(Number(item.totalPaid))} ريال
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* أوامر الصرف */}
-          <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>ملخص أوامر الصرف</CardTitle>
-                <CardDescription>توزيع أوامر الصرف حسب الحالة</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>عدد الأوامر</TableHead>
-                        <TableHead>إجمالي المبالغ</TableHead>
-                        <TableHead>النسبة</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reportData?.ordersByStatus?.map((item) => (
-                        <TableRow key={item.status}>
-                          <TableCell>
-                            <Badge className={STATUS_MAP[item.status || "draft"]?.color}>
-                              {STATUS_MAP[item.status || "draft"]?.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{item.count}</TableCell>
-                          <TableCell>{formatAmount(Number(item.totalAmount))} ريال</TableCell>
-                          <TableCell>
-                            {summary?.totalOrderAmount ? 
-                              `${((Number(item.totalAmount) / summary.totalOrderAmount) * 100).toFixed(1)}%` 
-                              : "0%"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+                {/* مخطط توزيع حالات أوامر الصرف */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">حالات أوامر الصرف</CardTitle>
+                    <CardDescription>توزيع أوامر الصرف بين مسودة ومعتمد ومرفوض وقيد الاعتماد ومعدل</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {reportData?.ordersByStatus && reportData.ordersByStatus.length > 0 ? (
+                      <>
+                        <div className="relative w-44 h-44 flex-shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip content={<CustomPieOrdersStatusTooltip />} />
+                              <Pie
+                                data={ordersByStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={3}
+                                dataKey="value"
+                              >
+                                {ordersByStatusData.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                            <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{summary?.totalOrders || 0}</span>
+                            <span className="text-[10px] text-muted-foreground font-bold mt-1">إجمالي الأوامر</span>
+                          </div>
+                        </div>
+                        
+                        {/* الليجند الجانبي للتوزيع */}
+                        <div className="flex-1 w-full space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                          {ordersByStatusData.map((item: any) => (
+                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
+                                <span className="text-muted-foreground">{item.name}</span>
+                              </div>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold">{item.value} ({item.percentage}%)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات حالات كافية
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
           </TabsContent>
         </Tabs>
 
