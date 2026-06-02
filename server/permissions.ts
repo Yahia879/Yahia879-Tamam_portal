@@ -592,18 +592,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");
   }
-  if (allPermissions.has("users.view") || allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
+  if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
     allPermissions.add("requesters");
     allPermissions.add("service_requester_accounts");
   }
-  // Mapping granular database permissions back to UI keys for compatibility
-  if (allPermissions.has("users.view")) {
-    allPermissions.add("staff_users.view");
-  }
-  if (allPermissions.has("permissions.view")) {
-    allPermissions.add("staff_roles.view");
-    allPermissions.add("staff_custom_roles.view");
-  }
+
 
   if (
     allPermissions.has("users.view") ||
@@ -1322,14 +1315,7 @@ export const permissionsRouter = router({
         }
       }
 
-      // Mapping granular database permissions back to UI keys for compatibility
-      if (permsSet.has("users.view")) {
-        permsSet.add("staff_users.view");
-      }
-      if (permsSet.has("permissions.view")) {
-        permsSet.add("staff_roles.view");
-        permsSet.add("staff_custom_roles.view");
-      }
+
 
       return Array.from(permsSet);
     }),
