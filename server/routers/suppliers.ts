@@ -320,7 +320,7 @@ export const suppliersRouter = router({
     }),
 
   // جلب جميع الموردين النشطين (لعروض الأسعار)
-  getActiveSuppliers: permissionProcedure("suppliers.view")
+  getActiveSuppliers: protectedProcedure
     .input(
       z.object({
         workField: z.enum(workFields).optional(),
@@ -328,9 +328,19 @@ export const suppliersRouter = router({
         includeUnapproved: z.boolean().optional(), // إظهار غير المعتمدين أيضاً
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const hasViewPermission = await checkPermission(ctx.user.id, "suppliers.view");
+      const hasQuoteCreatePermission = await checkPermission(ctx.user.id, "quotations.create");
+      const hasContractCreatePermission = await checkPermission(ctx.user.id, "contracts.create");
+      const hasDisbursementCreatePermission = await checkPermission(ctx.user.id, "disbursements.create");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!isAdmin && !hasViewPermission && !hasQuoteCreatePermission && !hasContractCreatePermission && !hasDisbursementCreatePermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة الموردين النشطين" });
+      }
 
       const conditions: any[] = [eq(suppliers.status, "active")];
       
