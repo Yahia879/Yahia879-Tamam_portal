@@ -457,7 +457,7 @@ export default function Branding() {
                   )}
                   <div className="text-white min-w-0">
                     <p className="font-bold text-xs sm:text-base truncate">{orgSettings?.organizationName || "بوابة تمام"}</p>
-                    <p className="text-[10px] sm:text-xs opacity-70 truncate">{orgSettings?.organizationShortName || "للعناية بالمساجد"}</p>
+                    <p className="text-[10px] sm:text-xs opacity-70 truncate">{orgSettings?.organizationNameShort || "للعناية بالمساجد"}</p>
                   </div>
                 </div>
               </div>

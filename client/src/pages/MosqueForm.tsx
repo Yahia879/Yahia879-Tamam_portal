@@ -74,7 +74,7 @@ export default function MosqueForm() {
     if (mosque) {
       setFormData({
         name: mosque.name || "",
-        mosqueType: mosque.mosqueType || "",
+        mosqueType: (mosque as any).mosqueType || "",
         city: mosque.city || "",
         governorate: mosque.governorate || "",
         center: mosque.center || "",

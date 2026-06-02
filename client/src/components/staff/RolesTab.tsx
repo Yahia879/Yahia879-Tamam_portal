@@ -22,6 +22,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Shield, Plus, Users, Loader2, Power, MoreVertical, ShieldOff, ChevronLeft } from "lucide-react";
 
+export const SYSTEM_ROLE_DESCRIPTIONS: Record<string, string> = {
+  super_admin: "التحكم الكامل والإشراف الشامل على كافة جوانب النظام والجمعية، بما في ذلك إدارة الصلاحيات، الاعتمادات المالية والتقارير.",
+  system_admin: "إدارة النظام تقنياً وتخصيص صلاحيات المستخدمين والأدوار المخصصة، ومراقبة سجلات النظام وإدارة الموظفين.",
+  projects_office: "إدارة المشاريع الإنشائية والصيانة، دراسة طلبات الصيانة والترميم، إعداد جداول الكميات، وإسناد الزيارات الميدانية.",
+  project_manager: "الإشراف المباشر على التنفيذ الميداني للمشاريع، رفع تقارير الإنجاز، وإدارة طلبات الصرف المالي المرتبطة بالعقود الميدانية.",
+  financial: "إجراء التقييم المالي، مراجعة طلبات الصرف، التحقق من الميزانيات المعتمدة، وإصدار أوامر الدفع وصرف المستحقات المالية.",
+  field_team: "تنفيذ المعاينات والزيارات الميدانية للمساجد، تشخيص الحالة الإنشائية والفنية، وإعداد تقارير التقييم وتحديد الاحتياجات.",
+  quick_response: "الاستجابة الفورية للبلاغات العاجلة، تشخيص الأعطال الطارئة في المساجد، وإجراء الصيانة الفورية والوقائية السريعة.",
+  corporate_comm: "متابعة التقارير العامة للجمعية، تنسيق ونشر الفرص التبرعية والمساهمات المجتمعية، والتواصل العام مع المصلين والمساجد.",
+};
+
 export interface RolesTabProps {
   openAddModal: boolean;
   setOpenAddModal: (open: boolean) => void;
@@ -145,8 +156,8 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                     <TableCell className="font-medium text-right">
                       {role.nameAr}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-right">
-                      {role.description || "-"}
+                    <TableCell className="text-muted-foreground text-right text-xs max-w-sm leading-relaxed">
+                      {SYSTEM_ROLE_DESCRIPTIONS[role.id] || (role.description && !role.description.startsWith("[") ? role.description : "-")}
                     </TableCell>
                     <TableCell className="text-right">
                       {role.isSystem ? (
@@ -278,9 +289,9 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
                   </div>
                 </div>
 
-                {role.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2 text-right">
-                    {role.description}
+                {(SYSTEM_ROLE_DESCRIPTIONS[role.id] || (role.description && !role.description.startsWith("["))) && (
+                  <p className="text-xs text-muted-foreground line-clamp-3 text-right leading-relaxed">
+                    {SYSTEM_ROLE_DESCRIPTIONS[role.id] || role.description}
                   </p>
                 )}
 
