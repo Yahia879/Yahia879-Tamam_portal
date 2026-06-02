@@ -228,7 +228,7 @@ export default function Projects() {
                         <TableHead className="text-right">التقدم</TableHead>
                         <TableHead className="text-right">الميزانية</TableHead>
                         <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-                        <TableHead className="text-right">الإجراءات</TableHead>
+                        {canViewDetails && <TableHead className="text-right">الإجراءات</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -280,33 +280,33 @@ export default function Projects() {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                 {canViewDetails && (
-                                   <Link href={`/projects/${project.id}`}>
-                                     <DropdownMenuItem>
-                                       <Eye className="w-4 h-4 ml-2" />
-                                       عرض التفاصيل
-                                     </DropdownMenuItem>
-                                   </Link>
-                                 )}
-                                {project.requestId && user?.role !== "project_manager" && (
-                                  <Link href={`/requests/${project.requestId}`}>
+                          {canViewDetails && (
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <Link href={`/projects/${project.id}`}>
                                     <DropdownMenuItem>
-                                      <FileText className="w-4 h-4 ml-2" />
-                                      عرض الطلب
+                                      <Eye className="w-4 h-4 ml-2" />
+                                      عرض التفاصيل
                                     </DropdownMenuItem>
                                   </Link>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+                                  {project.requestId && user?.role !== "project_manager" && (
+                                    <Link href={`/requests/${project.requestId}`}>
+                                      <DropdownMenuItem>
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        عرض الطلب
+                                      </DropdownMenuItem>
+                                    </Link>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -327,31 +327,31 @@ export default function Projects() {
                             <p className="text-xs font-mono text-muted-foreground">{project.projectNumber}</p>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {canViewDetails && (
+                        {canViewDetails && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
                               <Link href={`/projects/${project.id}`}>
                                 <DropdownMenuItem>
                                   <Eye className="w-4 h-4 ml-2" />
                                   عرض التفاصيل
                                 </DropdownMenuItem>
                               </Link>
-                            )}
-                            {project.requestId && user?.role !== "project_manager" && (
-                              <Link href={`/requests/${project.requestId}`}>
-                                <DropdownMenuItem>
-                                  <FileText className="w-4 h-4 ml-2" />
-                                  عرض الطلب
-                                </DropdownMenuItem>
-                              </Link>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {project.requestId && user?.role !== "project_manager" && (
+                                <Link href={`/requests/${project.requestId}`}>
+                                  <DropdownMenuItem>
+                                    <FileText className="w-4 h-4 ml-2" />
+                                    عرض الطلب
+                                  </DropdownMenuItem>
+                                </Link>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
