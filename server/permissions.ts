@@ -600,30 +600,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("users.view")) {
     allPermissions.add("staff_users.view");
   }
-  if (allPermissions.has("users.create")) {
-    allPermissions.add("staff_users.add");
-  }
-  if (allPermissions.has("users.edit")) {
-    allPermissions.add("staff_users.edit");
-    allPermissions.add("staff_users.suspend");
-  }
-  if (allPermissions.has("users.delete")) {
-    allPermissions.add("staff_users.delete");
-  }
   if (allPermissions.has("permissions.view")) {
     allPermissions.add("staff_roles.view");
     allPermissions.add("staff_custom_roles.view");
-  }
-  if (allPermissions.has("permissions.create")) {
-    allPermissions.add("staff_custom_roles.add");
-  }
-  if (allPermissions.has("permissions.edit")) {
-    allPermissions.add("staff_roles.customize");
-    allPermissions.add("staff_roles.suspend");
-    allPermissions.add("staff_custom_roles.edit");
-  }
-  if (allPermissions.has("permissions.delete")) {
-    allPermissions.add("staff_custom_roles.delete");
   }
 
   if (
@@ -1347,30 +1326,9 @@ export const permissionsRouter = router({
       if (permsSet.has("users.view")) {
         permsSet.add("staff_users.view");
       }
-      if (permsSet.has("users.create")) {
-        permsSet.add("staff_users.add");
-      }
-      if (permsSet.has("users.edit")) {
-        permsSet.add("staff_users.edit");
-        permsSet.add("staff_users.suspend");
-      }
-      if (permsSet.has("users.delete")) {
-        permsSet.add("staff_users.delete");
-      }
       if (permsSet.has("permissions.view")) {
         permsSet.add("staff_roles.view");
         permsSet.add("staff_custom_roles.view");
-      }
-      if (permsSet.has("permissions.create")) {
-        permsSet.add("staff_custom_roles.add");
-      }
-      if (permsSet.has("permissions.edit")) {
-        permsSet.add("staff_roles.customize");
-        permsSet.add("staff_roles.suspend");
-        permsSet.add("staff_custom_roles.edit");
-      }
-      if (permsSet.has("permissions.delete")) {
-        permsSet.add("staff_custom_roles.delete");
       }
 
       return Array.from(permsSet);
