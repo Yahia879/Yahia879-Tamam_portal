@@ -330,6 +330,8 @@ export default function UserPermissions() {
       toast.success("تم إسناد الدور للمستخدم بنجاح");
       utils.permissions.getUserRoles.invalidate({ userId: userId! });
       utils.permissions.getUserRolePermissions.invalidate({ userId: userId! });
+      utils.permissions.getUserPermissions.invalidate({ userId: userId! });
+      utils.auth.me.invalidate();
       setSelectedRoleId("");
     },
     onError: (error: any) => {
@@ -342,6 +344,8 @@ export default function UserPermissions() {
       toast.success("تم إزالة الدور من المستخدم بنجاح");
       utils.permissions.getUserRoles.invalidate({ userId: userId! });
       utils.permissions.getUserRolePermissions.invalidate({ userId: userId! });
+      utils.permissions.getUserPermissions.invalidate({ userId: userId! });
+      utils.auth.me.invalidate();
     },
     onError: (error: any) => {
       toast.error(`فشل إزالة الدور: ${error.message}`);
@@ -378,6 +382,8 @@ export default function UserPermissions() {
       refetchFinal();
       refetchDirect();
       utils.permissions.getUserPermissions.invalidate({ userId: userId! });
+      utils.permissions.getUserRolePermissions.invalidate({ userId: userId! });
+      utils.auth.me.invalidate();
     },
     onError: (error: any) => {
       toast.error(`فشل تحديث الصلاحيات: ${error.message}`);

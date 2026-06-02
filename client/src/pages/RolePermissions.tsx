@@ -79,6 +79,9 @@ export default function RolePermissions() {
     onSuccess: () => {
       toast.success("تم حفظ وتحديث الصلاحيات بنجاح");
       utils.permissions.getRolePermissions.invalidate({ roleId: roleId || "" });
+      utils.permissions.getUserPermissions.invalidate();
+      utils.permissions.getUserRolePermissions.invalidate();
+      utils.auth.me.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ الصلاحيات");
@@ -90,6 +93,9 @@ export default function RolePermissions() {
       toast.success("تم إعادة الصلاحيات الافتراضية للدور بنجاح");
       utils.permissions.getRolePermissions.invalidate({ roleId: roleId || "" });
       utils.permissions.getRoles.invalidate();
+      utils.permissions.getUserPermissions.invalidate();
+      utils.permissions.getUserRolePermissions.invalidate();
+      utils.auth.me.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء استعادة الصلاحيات الافتراضية");

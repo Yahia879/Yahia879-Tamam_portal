@@ -279,6 +279,9 @@ export default function RoleEdit() {
     onSuccess: () => {
       toast.success("تم إنشاء الدور بنجاح");
       utils.permissions.getRoles.invalidate();
+      utils.permissions.getUserPermissions.invalidate();
+      utils.permissions.getUserRolePermissions.invalidate();
+      utils.auth.me.invalidate();
       setLocation("/staff?tab=custom-roles");
     },
     onError: (error) => {
@@ -290,6 +293,9 @@ export default function RoleEdit() {
     onSuccess: () => {
       toast.success("تم تحديث الدور بنجاح");
       utils.permissions.getRoles.invalidate();
+      utils.permissions.getUserPermissions.invalidate();
+      utils.permissions.getUserRolePermissions.invalidate();
+      utils.auth.me.invalidate();
       setLocation("/staff?tab=custom-roles");
     },
     onError: (error) => {
