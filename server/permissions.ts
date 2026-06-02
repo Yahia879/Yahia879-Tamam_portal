@@ -1008,12 +1008,12 @@ export const permissionsRouter = router({
         super_admin: "*",
         system_admin: "*",
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits"],
-        field_team: ["mosques.view", "requests.view", "requests.edit", "field_visits"],
-        quick_response: ["requests.view", "field_visits.view", "reports.create"],
+        field_team: ["mosques.view", "requests.view", "requests.edit", "requests.view_details", "field_visits"],
+        quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view"],
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view"],
         project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
-        corporate_comm: ["requests.view", "reports.view", "settings.view", "analytics.view"],
+        corporate_comm: ["requests.view", "requests.view_details", "reports.view", "settings.view", "analytics.view"],
         service_requester: ["requests.view", "requests.create", "mosques.view"]
       };
 
@@ -1030,9 +1030,9 @@ export const permissionsRouter = router({
 
       if (permList === "*") {
         targetPermIds = allPermIds;
-      } else {
+      } else if (Array.isArray(permList)) {
         targetPermIds = allPermIds.filter(pId =>
-          permList.some(key => pId === key || pId.startsWith(key + "."))
+          permList.some((key: string) => pId === key || pId.startsWith(key + "."))
         );
       }
 
