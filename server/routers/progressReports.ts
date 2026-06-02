@@ -232,11 +232,10 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
       const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
-      if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
+      if (!isAdmin && !hasEdit && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير إنجاز" });
       }
 

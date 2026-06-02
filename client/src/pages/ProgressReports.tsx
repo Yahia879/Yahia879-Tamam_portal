@@ -438,6 +438,10 @@ export default function ProgressReports() {
 
   // فتح صفحة التعديل وملء البيانات
   const handleEditReportClick = (report: any) => {
+    if (!canEditReport) {
+      toast.error("ليس لديك صلاحية لتعديل تقارير الإنجاز");
+      return;
+    }
     if (isReportConverted(report)) {
       toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
       return;
@@ -629,8 +633,10 @@ export default function ProgressReports() {
 
   // التحقق من الصلاحيات
   const hasAddPermission = usePermission("progress_reports.add");
+  const hasEditPermission = usePermission("progress_reports.edit");
   const hasApprovePermission = usePermission("progress_reports.approve");
   const canCreateReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasAddPermission;
+  const canEditReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasEditPermission;
   const canReviewReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasApprovePermission;
 
   if (activeTab === "create" || activeTab === "edit") {
@@ -1222,7 +1228,7 @@ export default function ProgressReports() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                                  {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && (
+                                  {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
                                     <DropdownMenuItem 
                                       onClick={() => {
                                         handleEditReportClick(report);
@@ -1321,7 +1327,7 @@ export default function ProgressReports() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                              {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && (
+                              {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
                                 <DropdownMenuItem 
                                   onClick={() => {
                                     handleEditReportClick(report);
