@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import {
   disbursementRequests,
@@ -728,7 +728,7 @@ export const disbursementsRouter = router({
   // ==================== أوامر الصرف ====================
 
   // جلب قائمة أوامر الصرف
-  listOrders: permissionProcedure("disbursements.view")
+  listOrders: protectedProcedure
     .input(
       z.object({
         status: z.enum(disbursementOrderStatuses).optional(),
@@ -737,7 +737,15 @@ export const disbursementsRouter = router({
         limit: z.number().default(10),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
+      const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
+
+      if (!isAdmin && !hasViewRequests && !hasViewOrders) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل أوامر الصرف" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -895,9 +903,17 @@ export const disbursementsRouter = router({
     }),
 
   // جلب أمر صرف بالتفصيل
-  getOrderById: permissionProcedure("disbursements.view")
+  getOrderById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
+      const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
+
+      if (!isAdmin && !hasViewRequests && !hasViewOrders) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل أمر الصرف" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -1470,7 +1486,7 @@ export const disbursementsRouter = router({
   }),
 
   // التقرير المالي الشامل
-  getFinancialReport: permissionProcedure("reports.view")
+  getFinancialReport: protectedProcedure
     .input(
       z.object({
         startDate: z.string().optional(),
@@ -1479,7 +1495,15 @@ export const disbursementsRouter = router({
         groupBy: z.enum(["project", "month", "fundingSource"]).default("project"),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasView = await checkPermission(ctx.user.id, "financial_reports.view");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasView && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض التقرير المالي" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 

@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { eq, desc, and, sql, or, like } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import { progressReports, projects, users } from "../../drizzle/schema";
 
 export const progressReportsRouter = router({
   // قائمة تقارير الإنجاز
-  list: permissionProcedure("reports.view")
+  list: protectedProcedure
     .input(
       z.object({
         projectId: z.number().optional(),
@@ -17,7 +18,16 @@ export const progressReportsRouter = router({
         offset: z.number().default(0),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير الإنجاز" });
+      }
+
       const db = await getDb();
       if (!db) return [];
 
@@ -75,9 +85,18 @@ export const progressReportsRouter = router({
     }),
 
   // تفاصيل تقرير
-  getById: permissionProcedure("reports.view")
+  getById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير الإنجاز" });
+      }
+
       const db = await getDb();
       if (!db) return null;
 
@@ -117,7 +136,7 @@ export const progressReportsRouter = router({
     }),
 
   // إنشاء تقرير جديد
-  create: permissionProcedure("reports.create")
+  create: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -138,6 +157,14 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
+
+      if (!isAdmin && !hasAdd && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير إنجاز" });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -186,7 +213,7 @@ export const progressReportsRouter = router({
     }),
 
   // تحديث تقرير
-  update: permissionProcedure("reports.create")
+  update: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -203,7 +230,16 @@ export const progressReportsRouter = router({
         photos: z.array(z.string()).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
+
+      if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير إنجاز" });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -243,9 +279,18 @@ export const progressReportsRouter = router({
     }),
 
   // تقديم التقرير للمراجعة
-  submit: permissionProcedure("reports.create")
+  submit: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
+
+      if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير الإنجاز" });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -258,7 +303,7 @@ export const progressReportsRouter = router({
     }),
 
   // مراجعة التقرير
-  review: permissionProcedure("reports.view")
+  review: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -267,6 +312,14 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasApprove && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير الإنجاز" });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
@@ -284,9 +337,18 @@ export const progressReportsRouter = router({
     }),
 
   // إحصائيات التقارير
-  getStats: permissionProcedure("reports.view")
+  getStats: protectedProcedure
     .input(z.object({ projectId: z.number().optional() }).optional())
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض إحصائيات تقارير الإنجاز" });
+      }
+
       const db = await getDb();
       if (!db) return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
 

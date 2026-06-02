@@ -147,15 +147,20 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "contracts.template_delete": ["contracts.delete"],
   "contracts.clause_add": ["contracts.create"],
 
-  "disbursement_orders.view": ["disbursements.view", "disbursement_orders.view_details"],
+  "disbursement_orders.view": ["disbursement_orders.view_details"],
   "disbursement_orders.approve": ["financial.approve"],
   "disbursement_orders.reject": ["financial.approve"],
-  "disbursement_orders.view_details": ["disbursements.view"],
+  "disbursement_orders.view_details": ["disbursement_orders.view_details"],
 
-  financial_reports: ["reports.view"],
-  "financial_reports.view": ["reports.view"],
-  "financial_reports.export": ["reports.view"],
-  "financial_reports.analytics": ["reports.view"],
+  financial_reports: ["financial_reports.view"],
+  "financial_reports.view": ["financial_reports.view"],
+  "financial_reports.export": ["financial_reports.export"],
+  "financial_reports.analytics": ["financial_reports.analytics"],
+
+  "progress_reports.view": ["progress_reports.view"],
+  "progress_reports.add": ["progress_reports.add"],
+  "progress_reports.edit": ["progress_reports.edit"],
+  "progress_reports.approve": ["progress_reports.approve"],
 };
 
 /**
@@ -637,8 +642,21 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   ) {
     allPermissions.add("disbursement_orders");
   }
-  if (allPermissions.has("reports.view")) {
+  if (
+    allPermissions.has("reports.view") ||
+    allPermissions.has("progress_reports.view") ||
+    allPermissions.has("progress_reports.add") ||
+    allPermissions.has("progress_reports.edit") ||
+    allPermissions.has("progress_reports.approve")
+  ) {
     allPermissions.add("progress_reports");
+  }
+  if (
+    allPermissions.has("reports.view") ||
+    allPermissions.has("financial_reports.view") ||
+    allPermissions.has("financial_reports.export") ||
+    allPermissions.has("financial_reports.analytics")
+  ) {
     allPermissions.add("financial_reports");
     allPermissions.add("financial_report");
   }

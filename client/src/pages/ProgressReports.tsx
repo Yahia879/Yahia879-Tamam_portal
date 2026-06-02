@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -627,8 +628,10 @@ export default function ProgressReports() {
   };
 
   // التحقق من الصلاحيات
-  const canCreateReport = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
-  const canReviewReport = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
+  const hasAddPermission = usePermission("progress_reports.add");
+  const hasApprovePermission = usePermission("progress_reports.approve");
+  const canCreateReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasAddPermission;
+  const canReviewReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasApprovePermission;
 
   if (activeTab === "create" || activeTab === "edit") {
     return (
