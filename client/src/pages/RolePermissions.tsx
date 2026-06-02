@@ -85,6 +85,17 @@ export default function RolePermissions() {
     }
   });
 
+  const restoreDefaultMutation = trpc.permissions.restoreDefaultPermissions.useMutation({
+    onSuccess: () => {
+      toast.success("تم إعادة الصلاحيات الافتراضية للدور بنجاح");
+      utils.permissions.getRolePermissions.invalidate({ roleId: roleId || "" });
+      utils.permissions.getRoles.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء استعادة الصلاحيات الافتراضية");
+    }
+  });
+
   const handleSaveChanges = () => {
     if (!roleId) return;
     let finalPerms = selectedPerms;
@@ -1004,6 +1015,27 @@ export default function RolePermissions() {
                 <span className="text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse">
                   توجد تغييرات غير محفوظة *
                 </span>
+              )}
+              {role?.isSystem && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (confirm("هل أنت متأكد من رغبتك في إعادة الصلاحيات الافتراضية لهذا الدور؟ سيتم إلغاء أي تخصيص قمت به.")) {
+                      restoreDefaultMutation.mutate({ roleId: roleId || "" });
+                    }
+                  }}
+                  disabled={restoreDefaultMutation.isPending}
+                  className="px-5 font-bold rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 h-11 text-slate-700 dark:text-slate-200 shrink-0"
+                >
+                  {restoreDefaultMutation.isPending ? (
+                    <>
+                      <Loader2 className="ml-2 h-4 w-4 animate-spin animate-fade-in" />
+                      جاري الاستعادة...
+                    </>
+                  ) : (
+                    "إعادة الصلاحيات الافتراضية"
+                  )}
+                </Button>
               )}
               <Button
                 onClick={handleSaveChanges}

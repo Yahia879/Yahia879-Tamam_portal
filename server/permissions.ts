@@ -989,6 +989,78 @@ export const permissionsRouter = router({
     }),
 
   /**
+   * إعادة الصلاحيات الافتراضية للدور
+   */
+  restoreDefaultPermissions: permissionProcedure("permissions.edit")
+    .input(z.object({
+      roleId: z.string()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!existingRole) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+
+      const rolePermissionsMapping: Record<string, string[] | string> = {
+        super_admin: "*",
+        system_admin: "*",
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits"],
+        field_team: ["mosques.view", "requests.view", "requests.edit", "field_visits"],
+        quick_response: ["requests.view", "field_visits.view", "reports.create"],
+        financial: ["financial", "quotations", "disbursements", "suppliers.view"],
+        financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view"],
+        project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
+        corporate_comm: ["requests.view", "reports.view", "settings.view", "analytics.view"],
+        service_requester: ["requests.view", "requests.create", "mosques.view"]
+      };
+
+      const permList = rolePermissionsMapping[input.roleId];
+      if (!permList) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الدور ليس له صلاحيات افتراضية محددة بالنظام" });
+      }
+
+      // جلب جميع الصلاحيات من جدول الصلاحيات
+      const allPermissions = await db.select({ id: permissions.id }).from(permissions);
+      const allPermIds = allPermissions.map(p => p.id);
+
+      let targetPermIds: string[] = [];
+
+      if (permList === "*") {
+        targetPermIds = allPermIds;
+      } else {
+        targetPermIds = allPermIds.filter(pId =>
+          permList.some(key => pId === key || pId.startsWith(key + "."))
+        );
+      }
+
+      // حذف الصلاحيات الحالية وتصفية حقل description بالدور
+      await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
+      await db.update(roles).set({ description: null }).where(eq(roles.id, input.roleId));
+
+      if (targetPermIds.length > 0) {
+        await db.insert(rolePermissions).values(
+          targetPermIds.map(pId => ({
+            roleId: input.roleId,
+            permissionId: pId
+          }))
+        );
+      }
+
+      await logAudit({
+        actionType: "restore_default_permissions",
+        targetUserId: ctx.user.id,
+        targetRoleId: input.roleId,
+        performedBy: ctx.user.id,
+        newValue: JSON.stringify({ roleId: input.roleId, permissionsCount: targetPermIds.length })
+      });
+
+      return { success: true };
+    }),
+
+  /**
    * حذف دور (الأدوار الافتراضية لا يمكن حذفها)
    */
   deleteRole: permissionProcedure("permissions.delete")
