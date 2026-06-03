@@ -98,7 +98,7 @@ const settingCards: SettingCard[] = [
     color: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-950/30",
     group: "التقارير",
-    permission: "financial_reports.analytics",
+    permission: "financial_reports.view",
   },
 ];
 

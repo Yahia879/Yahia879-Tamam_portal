@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -161,7 +162,19 @@ const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
 
 export default function FinancialReport() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("contracts");
+
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canView = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.view");
+  const canExport = isSuperOrSystemAdmin || userPermissions.includes("financial_reports.export");
+
+  useEffect(() => {
+    if (user && !canView) {
+      setLocation("/403");
+    }
+  }, [user, canView, setLocation]);
 
   // جلب بيانات التقرير المالي
   const { data: reportData, isLoading } = trpc.disbursements.getFinancialReport.useQuery({});
@@ -296,6 +309,10 @@ export default function FinancialReport() {
       });
   }, [reportData?.ordersByStatus, summary?.totalOrders]);
 
+  if (!user || !canView) {
+    return null;
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -318,12 +335,14 @@ export default function FinancialReport() {
             <h1 className="text-2xl font-bold">التقرير المالي الشامل</h1>
             <p className="text-muted-foreground">ملخص المصروفات وأوامر الصرف</p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200">
-              <Download className="ml-2 h-4 w-4" />
-              تصدير Excel
-            </Button>
-          </div>
+          {canExport && (
+            <div className="flex gap-2">
+              <Button onClick={handleExportExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200">
+                <Download className="ml-2 h-4 w-4" />
+                تصدير Excel
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* عنوان الطباعة */}

@@ -167,9 +167,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "اعتماد التقارير"
     },
     financial_reports: {
-      view: "عرض التقارير المالية",
-      export: "تصدير البيانات المالية",
-      analytics: "تحليل مؤشرات الأداء"
+      view: "عرض تقرير المالية والإحصائيات",
+      export: "تصدير البيانات"
     },
     staff_users: {
       view: "عرض قائمة المستخدمين",
@@ -404,6 +403,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
+      if (!selectedPerms.includes("financial_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -443,6 +450,10 @@ export default function RoleEdit() {
         }
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
+        if (permId === "financial_reports.view") {
+          next = next.filter(id => !id.startsWith("financial_reports."));
         }
         if (permId === "financial_approval.view") {
           next = next.filter(id => id !== "financial_approval.approve");

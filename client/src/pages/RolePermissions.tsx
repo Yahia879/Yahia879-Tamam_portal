@@ -189,6 +189,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
+      if (!selectedPerms.includes("financial_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -237,6 +245,10 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض سجل المشاريع'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المشاريع الأخرى
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
+        if (permId === "financial_reports.view") {
+          next = next.filter(id => !id.startsWith("financial_reports."));
         }
         // عند إلغاء تفعيل صلاحية 'مقارنة عروض الاسعار من دون اعتماد'، نقوم تلقائياً بإلغاء تفعيل الاعتماد المالي
         if (permId === "financial_approval.view") {
@@ -644,9 +656,8 @@ export default function RolePermissions() {
           nameAr: "التقرير المالي",
           icon: FileBarChart,
           permissions: [
-            { id: "financial_reports.view", nameAr: "عرض التقارير المالية" },
-            { id: "financial_reports.export", nameAr: "تصدير البيانات المالية" },
-            { id: "financial_reports.analytics", nameAr: "تحليل مؤشرات الأداء" },
+            { id: "financial_reports.view", nameAr: "عرض تقرير المالية والإحصائيات" },
+            { id: "financial_reports.export", nameAr: "تصدير البيانات" },
           ]
         }
       ]
@@ -853,9 +864,8 @@ export default function RolePermissions() {
         approve: "اعتماد التقارير"
       },
       financial_reports: {
-        view: "عرض التقارير المالية",
-        export: "تصدير البيانات المالية",
-        analytics: "تحليل مؤشرات الأداء"
+        view: "عرض تقرير المالية والإحصائيات",
+        export: "تصدير البيانات",
       },
       staff_users: {
         view: "عرض قائمة المستخدمين",

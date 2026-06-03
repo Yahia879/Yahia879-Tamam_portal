@@ -227,6 +227,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
+      if (!isChecked("financial_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!isChecked("financial_approval.view")) {
@@ -273,6 +281,7 @@ export default function UserPermissions() {
         if (permId === "services.view") cascadeRevoke("services.");
         if (permId === "requests.view") cascadeRevoke("requests.");
         if (permId === "projects.view") cascadeRevoke("projects.");
+        if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "financial_approval.view") {
           const defVal = rolePermissions?.includes("financial_approval.approve") || false;
           if (defVal) {
@@ -475,9 +484,8 @@ export default function UserPermissions() {
         approve: "اعتماد تقارير المتابعة"
       },
       financial_reports: {
-        view: "عرض التقارير المالية",
-        export: "تصدير البيانات المالية",
-        analytics: "تحليل مؤشرات الأداء"
+        view: "عرض تقرير المالية والإحصائيات",
+        export: "تصدير البيانات",
       },
       staff_users: {
         view: "عرض قائمة المستخدمين",
@@ -554,7 +562,7 @@ export default function UserPermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
-        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export", "analytics"] },
+        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
     {
