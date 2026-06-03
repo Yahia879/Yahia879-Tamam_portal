@@ -43,17 +43,16 @@ async function seedRolePermissions() {
         "requests.edit" // لتحديث تقرير الزيارة الميدانية
       ],
       
-      // الإدارة المالية (الموردون، عروض الأسعار، الاعتماد المالي، طلبات الصرف، أوامر الصرف، التقرير المالي)
+      // الإدارة المالية (الموردون، عروض الأسعار، الاعتماد المالي، العقود، طلبات الصرف، أوامر الصرف، تقارير الإنجاز، التقرير المالي)
       financial: [
-        "financial", 
-        "quotations", 
-        "disbursements", 
+        "suppliers",
+        "quotations",
+        "financial_approval",
+        "contracts",
+        "disbursements",
         "disbursement_orders",
-        "suppliers.view", 
-        "suppliers.view_details",
-        "financial_reports",
-        "requests.view",
-        "requests.view_details"
+        "progress_reports",
+        "financial_reports"
       ],
 
       // المدير المالي (غير مذكور بالصورة بشكل مستقل ولكنه دور نظامي أساسي بالمسارات المالية)

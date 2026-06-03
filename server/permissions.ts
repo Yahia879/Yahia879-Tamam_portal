@@ -652,7 +652,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("disbursement_orders");
   }
   if (
-    allPermissions.has("reports.view") ||
     allPermissions.has("progress_reports.view") ||
     allPermissions.has("progress_reports.add") ||
     allPermissions.has("progress_reports.edit") ||
