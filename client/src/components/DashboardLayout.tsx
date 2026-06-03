@@ -227,7 +227,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   // الاتصال المؤسسي والشركاء
   const commItems: MenuItem[] = [];
   if (has("partners") || has("partners.view")) commItems.push({ icon: Handshake, label: "الشركاء", path: "/partners" });
-  if (has("settings_branding") || has("settings_branding.edit")) commItems.push({ icon: Palette, label: "الهوية البصرية", path: "/branding" });
   if (commItems.length > 0) groups.push({ label: "الاتصال المؤسسي", items: commItems });
 
   // إدارة المستخدمين

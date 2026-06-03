@@ -313,7 +313,7 @@ export default function RequestDetailsNew() {
   const isManagementUser = user && (
     ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
     (user.role === 'project_manager' && request.assignedTo === user.id) ||
-    userPermissions.includes("requests.view_details")
+    (userPermissions.includes("requests.view_details") && !['quick_response', 'field_team', 'financial', 'financial_manager', 'corporate_comm'].includes(user.role))
   );
 
   // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام

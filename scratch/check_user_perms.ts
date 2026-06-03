@@ -12,7 +12,7 @@ async function checkUserPerms() {
   const db = drizzle(connection, { schema, mode: 'default' });
 
   try {
-    const rolesToCheck = ["financial"];
+    const rolesToCheck = ["corporate_comm"];
     for (const roleId of rolesToCheck) {
       console.log(`\n=========================================`);
       console.log(`Role: ${roleId}`);

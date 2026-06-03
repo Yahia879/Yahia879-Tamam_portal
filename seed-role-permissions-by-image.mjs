@@ -87,8 +87,6 @@ async function seedRolePermissions() {
       
       // الاتصال المؤسسي (الشركاء، الهوية البصرية، التقارير)
       corporate_comm: [
-        "requests.view", 
-        "requests.view_details", 
         "reports.view", 
         "settings.view", // للشركاء والهوية البصرية
         "settings_branding.edit",
