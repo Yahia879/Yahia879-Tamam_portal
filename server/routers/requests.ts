@@ -1625,12 +1625,14 @@ export const requestsRouter = router({
       const hasViewOwn = await checkPermission(ctx.user.id, "appointments.view_own");
       const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
 
-      if (hasViewOwn || (!hasViewAll && ctx.user.role === 'field_team')) {
-        // مستخدم لديه صلاحية رؤية مواعيده الخاصة فقط، أو هو في الفريق الميداني ولم يُمنح رؤية الكل
+      if (hasViewAll) {
+        if (input.assignedTo) {
+          conditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
+        }
+      } else if (hasViewOwn || ctx.user.role === 'field_team') {
         conditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
-      } else if (input.assignedTo) {
-        // فلترة بموظف محدد للمديرين أو من لديه صلاحية view_all
-        conditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
+      } else {
+        conditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
       }
       const assignedUser = alias(users, 'assignedUser');
       const visits = await db.select({

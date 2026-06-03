@@ -126,6 +126,9 @@ async function seedRolePermissions() {
     for (const [roleId, permList] of Object.entries(rolePermissionsMapping)) {
       if (permList === "*") {
         allPermIds.forEach(pId => {
+          if ((roleId === "super_admin" || roleId === "system_admin") && pId === "appointments.view_own") {
+            return;
+          }
           rolePermsToInsert.push({ roleId, permissionId: pId });
         });
       } else {
