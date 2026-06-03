@@ -335,6 +335,74 @@ export async function notifyProjectManagerAssigned(
   });
 }
 
+// دالة لإرسال إشعار للمسؤولين الآخرين عند تغيير مرحلة الطلب من قبل مسؤول آخر
+export async function notifyRequestStageChangeToOfficers(
+  requestId: number,
+  requestNumber: string,
+  fromStage: string,
+  toStage: string,
+  changerId: number
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [changer] = await db
+      .select({ name: users.name, role: users.role })
+      .from(users)
+      .where(eq(users.id, changerId))
+      .limit(1);
+
+    const roleLabels: Record<string, string> = {
+      super_admin: "المدير العام",
+      system_admin: "مدير النظام",
+      projects_office: "مكتب المشاريع",
+    };
+    const changerRoleLabel = changer ? (roleLabels[changer.role] || changer.role) : "المسؤول";
+    const changerName = changer ? changer.name : "";
+
+    const stageLabels: Record<string, string> = {
+      submitted: "تقديم الطلب",
+      initial_review: "المراجعة الأولية",
+      field_visit: "الزيارة الميدانية",
+      technical_eval: "التقييم الفني",
+      boq_preparation: "إعداد جدول الكميات",
+      financial_eval: "التقييم المالي",
+      financial_eval_and_approval: "التقييم المالي واعتماد العرض",
+      quotation_approval: "اعتماد العرض",
+      contracting: "التعاقد",
+      execution: "التنفيذ",
+      handover: "الاستلام",
+      closed: "الإغلاق",
+    };
+
+    const newStageLabel = stageLabels[toStage] || toStage;
+
+    const targetRoles = ["super_admin", "system_admin", "projects_office"];
+    const targetUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(inArray(users.role, targetRoles as any), ne(users.id, changerId)));
+
+    const title = "تحديث مرحلة الطلب";
+    const message = `قام ${changerRoleLabel} ${changerName} بنقل الطلب رقم ${requestNumber} إلى مرحلة: ${newStageLabel}`;
+
+    for (const targetUser of targetUsers) {
+      await createNotification({
+        userId: targetUser.id,
+        type: "request_update",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyRequestStageChangeToOfficers:", error);
+  }
+}
+
+
 export const notificationsRouter = router({
   // جلب إشعارات المستخدم الحالي
   getMyNotifications: protectedProcedure
@@ -364,11 +432,13 @@ export const notificationsRouter = router({
           or(
             like(notifications.title, "%تم استلام طلبك%"),
             like(notifications.title, "%طلب جديد%"),
+            like(notifications.title, "%تحديث مرحلة الطلب%"),
             like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
             like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
             like(notifications.message, "%تم استلام طلبك%"),
             like(notifications.message, "%طلب جديد%"),
             like(notifications.message, "%بإنشاء طلب%"),
+            like(notifications.message, "%بنقل الطلب%"),
             like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
             like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
             like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
@@ -411,11 +481,13 @@ export const notificationsRouter = router({
         or(
           like(notifications.title, "%تم استلام طلبك%"),
           like(notifications.title, "%طلب جديد%"),
+          like(notifications.title, "%تحديث مرحلة الطلب%"),
           like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
           like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
           like(notifications.message, "%تم استلام طلبك%"),
           like(notifications.message, "%طلب جديد%"),
           like(notifications.message, "%بإنشاء طلب%"),
+          like(notifications.message, "%بنقل الطلب%"),
           like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
           like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
           like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
@@ -463,11 +535,13 @@ export const notificationsRouter = router({
         or(
           like(notifications.title, "%تم استلام طلبك%"),
           like(notifications.title, "%طلب جديد%"),
+          like(notifications.title, "%تحديث مرحلة الطلب%"),
           like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
           like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
           like(notifications.message, "%تم استلام طلبك%"),
           like(notifications.message, "%طلب جديد%"),
           like(notifications.message, "%بإنشاء طلب%"),
+          like(notifications.message, "%بنقل الطلب%"),
           like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
           like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
           like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")

@@ -41,7 +41,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole, createNotification } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -868,14 +868,32 @@ export const requestsRouter = router({
               .replace('{stageName}', newStageName)
           : defaultMsg.message,
       };
-      await db.insert(notifications).values({
-        userId: request[0].userId,
-        title: stageMsg.title,
-        message: stageMsg.message,
-        type: "request_update",
-        relatedType: "request",
-        relatedId: input.requestId,
-      });
+      // إرسال إشعار مخصص لمقدم الطلب بناءً على المرحلة الجديدة (فقط إذا كان طالب خدمة)
+      const [ownerUser] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, request[0].userId))
+        .limit(1);
+
+      if (ownerUser && ownerUser.role === "service_requester") {
+        await db.insert(notifications).values({
+          userId: request[0].userId,
+          title: stageMsg.title,
+          message: stageMsg.message,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      // إرسال إشعار للمسؤولين الآخرين بتغيير مرحلة الطلب
+      await notifyRequestStageChangeToOfficers(
+        input.requestId,
+        request[0].requestNumber,
+        oldStage,
+        input.newStage,
+        ctx.user.id
+      );
 
       // تسجيل بداية المرحلة الجديدة للتتبع
       const [stageSetting] = await db.select().from(stageSettings)
@@ -943,15 +961,23 @@ export const requestsRouter = router({
         notes: input.notes || `تم تغيير الحالة من ${oldStatus} إلى ${input.newStatus}`,
       });
 
-      // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request[0].userId,
-        title: "تحديث حالة الطلب",
-        message: `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى ${input.newStatus}`,
-        type: "request_update",
-        relatedType: "request",
-        relatedId: input.requestId,
-      });
+      // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
+      const [ownerUser] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, request[0].userId))
+        .limit(1);
+
+      if (ownerUser && ownerUser.role === "service_requester") {
+        await db.insert(notifications).values({
+          userId: request[0].userId,
+          title: "تحديث حالة الطلب",
+          message: `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى ${input.newStatus}`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
 
       return { success: true, message: "تم تحديث حالة الطلب بنجاح" };
     }),
@@ -1438,14 +1464,32 @@ export const requestsRouter = router({
           break;
       }
 
-      await createNotification({
-        userId: request[0].userId,
-        title: `تحديث التقييم الفني`,
-        message: notificationMessage,
-        type: "request_update",
-        relatedType: "request",
-        relatedId: input.requestId,
-      });
+      // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
+      const [ownerUser] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, request[0].userId))
+        .limit(1);
+
+      if (ownerUser && ownerUser.role === "service_requester") {
+        await createNotification({
+          userId: request[0].userId,
+          title: `تحديث التقييم الفني`,
+          message: notificationMessage,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      // إرسال إشعار للمسؤولين الآخرين بتغيير مرحلة الطلب
+      await notifyRequestStageChangeToOfficers(
+        input.requestId,
+        request[0].requestNumber,
+        request[0].currentStage,
+        option.nextStage || request[0].currentStage,
+        ctx.user.id
+      );
 
       // إرسال إشعارات للفريق المختص حسب المسار
       if (input.decision === 'quick_response') {
@@ -1618,15 +1662,23 @@ export const requestsRouter = router({
         fieldVisitContactPhone: input.contactPhone || null,
       }).where(eq(mosqueRequests.id, input.requestId));
 
-      // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request[0].userId,
-        title: 'تم جدولة زيارة ميدانية',
-        message: `تم جدولة زيارة ميدانية لطلبك رقم ${request[0].requestNumber} بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')}`,
-        type: 'info',
-        relatedType: 'request',
-        relatedId: input.requestId,
-      });
+      // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
+      const [ownerUser] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, request[0].userId))
+        .limit(1);
+
+      if (ownerUser && ownerUser.role === "service_requester") {
+        await db.insert(notifications).values({
+          userId: request[0].userId,
+          title: 'تم جدولة زيارة ميدانية',
+          message: `تم جدولة زيارة ميدانية لطلبك رقم ${request[0].requestNumber} بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')}`,
+          type: 'info',
+          relatedType: 'request',
+          relatedId: input.requestId,
+        });
+      }
 
       // إضافة سجل في تاريخ الطلب
       await db.insert(requestHistory).values({
@@ -1926,15 +1978,32 @@ export const requestsRouter = router({
         notes,
       });
 
-      // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request[0].userId,
-        title: "تم اعتماد طلبك مالياً",
-        message: `تم اعتماد طلبك رقم ${request[0].requestNumber} مالياً بمبلغ ${finalAmount.toLocaleString("ar-SA")} ريال وتم الانتقال لمرحلة التعاقد`,
-        type: "request_update",
-        relatedType: "request",
-        relatedId: input.requestId,
-      });
+      // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
+      const [ownerUser] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, request[0].userId))
+        .limit(1);
+
+      if (ownerUser && ownerUser.role === "service_requester") {
+        await db.insert(notifications).values({
+          userId: request[0].userId,
+          title: "تم اعتماد طلبك مالياً",
+          message: `تم اعتماد طلبك رقم ${request[0].requestNumber} مالياً بمبلغ ${finalAmount.toLocaleString("ar-SA")} ريال وتم الانتقال لمرحلة التعاقد`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      // إرسال إشعار للمسؤولين الآخرين بتغيير مرحلة الطلب (الاعتماد المالي والتحويل للتعاقد)
+      await notifyRequestStageChangeToOfficers(
+        input.requestId,
+        request[0].requestNumber,
+        "financial_eval_and_approval",
+        "contracting",
+        ctx.user.id
+      );
 
       return { success: true, message: "تم الاعتماد المالي بنجاح وتم الانتقال لمرحلة التعاقد" };
     }),
@@ -2058,6 +2127,15 @@ export const requestsRouter = router({
         action: 'stage_reverted',
         notes: `تم الرجوع من مرحلة "${currStageName}" إلى مرحلة "${prevStageName}". السبب: ${input.reason}`,
       });
+
+      // إرسال إشعار للمسؤولين الآخرين بتغيير مرحلة الطلب (الرجوع للمرحلة السابقة)
+      await notifyRequestStageChangeToOfficers(
+        input.requestId,
+        request[0].requestNumber,
+        currentStage,
+        previousStage,
+        ctx.user.id
+      );
 
       return { 
         success: true, 
