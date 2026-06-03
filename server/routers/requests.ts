@@ -41,7 +41,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -1272,6 +1272,28 @@ export const requestsRouter = router({
       }
       */
 
+      // إرسال إشعار للمسؤولين عن قسم الطلبات
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (req) {
+        try {
+          await notifyUsersByRole(
+            ["super_admin", "system_admin", "projects_office"],
+            "request_update",
+            "تم رفع تقرير الاستجابة السريعة",
+            `تم رفع تقرير الاستجابة السريعة من قبل ${ctx.user.name || "عضو الاستجابة السريعة"} للطلب رقم ${req.requestNumber}`,
+            "request",
+            input.requestId
+          );
+        } catch (error) {
+          console.error("Failed to send quick response report notification:", error);
+        }
+      }
+
       return { success: true, message: "تم إضافة تقرير الاستجابة السريعة بنجاح" };
     }),
 
@@ -1416,7 +1438,7 @@ export const requestsRouter = router({
           break;
       }
 
-      await db.insert(notifications).values({
+      await createNotification({
         userId: request[0].userId,
         title: `تحديث التقييم الفني`,
         message: notificationMessage,
@@ -1429,7 +1451,7 @@ export const requestsRouter = router({
       if (input.decision === 'quick_response') {
         if (input.assignedToId) {
           // إشعار الشخص المسؤول فقط
-          await db.insert(notifications).values({
+          await createNotification({
             userId: input.assignedToId,
             title: 'طلب جديد للاستجابة السريعة',
             message: `تم تكليفك بالطلب رقم ${request[0].requestNumber} للاستجابة السريعة`,
