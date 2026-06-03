@@ -224,8 +224,10 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/new-linked$/, permission: "disbursement_requests" },
   { pattern: /^\/disbursements\/new\/\d+$/, permission: "disbursement_requests" },
   { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: "disbursement_requests" },
   { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: "disbursement_requests" },
   { pattern: /^\/payments\/edit\/[^/]+$/, permission: "disbursement_requests" },
 
