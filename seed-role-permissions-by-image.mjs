@@ -28,7 +28,10 @@ async function seedRolePermissions() {
         "contracts", 
         "disbursements", 
         "field_visits", 
-        "financial_reports"
+        "financial_reports",
+        "financial_approval",
+        "disbursement_orders",
+        "progress_reports"
       ],
       
       // الفريق الميداني (الزيارات الميدانية، التقويم، طلباتي)
@@ -72,13 +75,6 @@ async function seedRolePermissions() {
         "projects.view_details", 
         "projects.edit", 
         "reports", 
-        "disbursements.view", 
-        "disbursements.create", 
-        "disbursements.edit", 
-        "contracts.view", 
-        "contracts.create", 
-        "contracts.edit", 
-        "suppliers.view", 
         "handovers"
       ],
       
