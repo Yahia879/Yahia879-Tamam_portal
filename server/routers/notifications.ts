@@ -232,6 +232,23 @@ export async function notifyFieldVisitScheduled(
   });
 }
 
+// دالة لإرسال إشعار عند تعيين مدير للمشروع
+export async function notifyProjectManagerAssigned(
+  projectId: number,
+  projectNumber: string,
+  projectName: string,
+  managerId: number
+) {
+  await createNotification({
+    userId: managerId,
+    type: "info",
+    title: "تعيينك مديراً للمشروع",
+    message: `تم تكليفك كمدير للمشروع: "${projectName}" (رقم المشروع: ${projectNumber})`,
+    relatedType: "project",
+    relatedId: projectId,
+  });
+}
+
 export const notificationsRouter = router({
   // جلب إشعارات المستخدم الحالي
   getMyNotifications: protectedProcedure

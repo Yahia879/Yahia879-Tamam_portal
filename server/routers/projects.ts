@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { notifyProjectManagerAssigned } from "./notifications";
 
 // توليد رقم مشروع بمنهجية سنوية
 async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -516,6 +517,20 @@ export const projectsRouter = router({
         .set({ status: "in_progress", currentStage: "execution" })
         .where(eq(mosqueRequests.id, input.requestId));
 
+      // إرسال إشعار لمدير المشروع إذا تم تعيينه عند الإنشاء
+      if (input.managerId) {
+        try {
+          await notifyProjectManagerAssigned(
+            newProject.insertId,
+            projectNumber,
+            input.name,
+            input.managerId
+          );
+        } catch (error) {
+          console.error("Failed to send project manager assignment notification on create:", error);
+        }
+      }
+
       return {
         projectId: newProject.insertId,
         projectNumber,
@@ -541,6 +556,17 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { id, ...updateData } = input;
+
+      // جلب مدير المشروع الحالي واسم المشروع وتفاصيله قبل التحديث
+      const [oldProject] = await db
+        .select({
+          managerId: projects.managerId,
+          name: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(projects)
+        .where(eq(projects.id, id))
+        .limit(1);
       
       const updateValues: any = {};
       if (updateData.name) updateValues.name = updateData.name;
@@ -557,6 +583,20 @@ export const projectsRouter = router({
         .update(projects)
         .set(updateValues)
         .where(eq(projects.id, id));
+
+      // إرسال إشعار لمدير المشروع إذا تم تعيين مدير جديد ومختلف عن السابق
+      if (updateData.managerId && oldProject && oldProject.managerId !== updateData.managerId) {
+        try {
+          await notifyProjectManagerAssigned(
+            id,
+            oldProject.projectNumber,
+            oldProject.name,
+            updateData.managerId
+          );
+        } catch (error) {
+          console.error("Failed to send project manager assignment notification:", error);
+        }
+      }
 
       return { success: true };
     }),
