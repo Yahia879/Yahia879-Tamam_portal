@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { notifications, users } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, ne, or, like } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
 
@@ -115,25 +115,68 @@ export async function notifyRequestCreation(
   requestNumber: string,
   requesterId: number
 ) {
-  // إشعار لمقدم الطلب
-  await createNotification({
-    userId: requesterId,
-    type: "request",
-    title: "طلب جديد",
-    message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
-    relatedType: "request",
-    relatedId: requestId,
-  });
+  const db = await getDb();
+  if (!db) return;
 
-  // إشعار للمدراء
-  await notifyUsersByRole(
-    ["super_admin", "system_admin", "projects_office"],
-    "request",
-    "طلب جديد",
-    `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`,
-    "request",
-    requestId
-  );
+  try {
+    const [creator] = await db
+      .select({ name: users.name, role: users.role })
+      .from(users)
+      .where(eq(users.id, requesterId))
+      .limit(1);
+
+    const isCreatorAdmin = creator && ["super_admin", "system_admin", "projects_office"].includes(creator.role);
+
+    if (!isCreatorAdmin) {
+      // إشعار لمقدم الطلب
+      await createNotification({
+        userId: requesterId,
+        type: "request",
+        title: "طلب جديد",
+        message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
+        relatedType: "request",
+        relatedId: requestId,
+      });
+
+      // إشعار للمدراء
+      await notifyUsersByRole(
+        ["super_admin", "system_admin", "projects_office"],
+        "request",
+        "طلب جديد",
+        `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`,
+        "request",
+        requestId
+      );
+    } else {
+      // إذا كان مقدم الطلب أحد المسؤولين، لا نرسل له إشعاراً بل نرسل للآخرين فقط
+      const targetRoles = ["super_admin", "system_admin", "projects_office"];
+      const targetUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(inArray(users.role, targetRoles as any), ne(users.id, requesterId)));
+
+      const roleLabels: Record<string, string> = {
+        super_admin: "المدير العام",
+        system_admin: "مدير النظام",
+        projects_office: "مكتب المشاريع",
+      };
+      const roleName = creator ? (roleLabels[creator.role] || creator.role) : "المسؤول";
+      const creatorName = creator ? creator.name : "";
+
+      for (const targetUser of targetUsers) {
+        await createNotification({
+          userId: targetUser.id,
+          type: "request",
+          title: "طلب جديد مضاف من مسؤول",
+          message: `قام ${roleName} ${creatorName} بإنشاء طلب جديد رقم ${requestNumber}`,
+          relatedType: "request",
+          relatedId: requestId,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in notifyRequestCreation:", error);
+  }
 }
 
 // دالة لإرسال إشعار عند تسجيل مسجد جديد
@@ -142,25 +185,68 @@ export async function notifyNewMosque(
   mosqueName: string,
   requesterId: number
 ) {
-  // إشعار للمدراء
-  await notifyUsersByRole(
-    ["super_admin", "system_admin", "projects_office"],
-    "mosque",
-    "مسجد جديد",
-    `تم تسجيل مسجد جديد "${mosqueName}" وهو بانتظار الاعتماد`,
-    "mosque",
-    mosqueId
-  );
+  const db = await getDb();
+  if (!db) return;
 
-  // إشعار لمقدم الطلب لتأكيد استلام طلبه
-  await createNotification({
-    userId: requesterId,
-    type: "mosque",
-    title: "مسجد جديد",
-    message: "تم إضافة مسجد جديد وهو بانتظار الموافقة",
-    relatedType: "mosque",
-    relatedId: mosqueId,
-  });
+  try {
+    const [creator] = await db
+      .select({ name: users.name, role: users.role })
+      .from(users)
+      .where(eq(users.id, requesterId))
+      .limit(1);
+
+    const isCreatorAdmin = creator && ["super_admin", "system_admin", "projects_office"].includes(creator.role);
+
+    if (!isCreatorAdmin) {
+      // إشعار للمدراء
+      await notifyUsersByRole(
+        ["super_admin", "system_admin", "projects_office"],
+        "mosque",
+        "مسجد جديد",
+        `تم تسجيل مسجد جديد "${mosqueName}" وهو بانتظار الاعتماد`,
+        "mosque",
+        mosqueId
+      );
+
+      // إشعار لمقدم الطلب لتأكيد استلام طلبه
+      await createNotification({
+        userId: requesterId,
+        type: "mosque",
+        title: "مسجد جديد",
+        message: "تم إضافة مسجد جديد وهو بانتظار الموافقة",
+        relatedType: "mosque",
+        relatedId: mosqueId,
+      });
+    } else {
+      // إذا كان مقدم الطلب مسؤولاً، لا نرسل له إشعاراً بل نرسل للآخرين فقط
+      const targetRoles = ["super_admin", "system_admin", "projects_office"];
+      const targetUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(inArray(users.role, targetRoles as any), ne(users.id, requesterId)));
+
+      const roleLabels: Record<string, string> = {
+        super_admin: "المدير العام",
+        system_admin: "مدير النظام",
+        projects_office: "مكتب المشاريع",
+      };
+      const roleName = creator ? (roleLabels[creator.role] || creator.role) : "المسؤول";
+      const creatorName = creator ? creator.name : "";
+
+      for (const targetUser of targetUsers) {
+        await createNotification({
+          userId: targetUser.id,
+          type: "mosque",
+          title: "تسجيل مسجد من قبل مسؤول",
+          message: `قام ${roleName} ${creatorName} بتسجيل مسجد جديد "${mosqueName}"`,
+          relatedType: "mosque",
+          relatedId: mosqueId,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in notifyNewMosque:", error);
+  }
 }
 
 // دالة لإرسال إشعار عند اعتماد مسجد
@@ -272,6 +358,24 @@ export const notificationsRouter = router({
         conditions.push(eq(notifications.isRead, false));
       }
 
+      const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+      if (isRequestOfficer) {
+        conditions.push(
+          or(
+            like(notifications.title, "%تم استلام طلبك%"),
+            like(notifications.title, "%طلب جديد%"),
+            like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
+            like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
+            like(notifications.message, "%تم استلام طلبك%"),
+            like(notifications.message, "%طلب جديد%"),
+            like(notifications.message, "%بإنشاء طلب%"),
+            like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
+            like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
+            like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
+          ) as any
+        );
+      }
+
       const [notificationsList, countResult] = await Promise.all([
         db
           .select()
@@ -299,10 +403,30 @@ export const notificationsRouter = router({
     const db = await getDb();
     if (!db) return 0;
 
+    const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
+    
+    const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+    if (isRequestOfficer) {
+      conditions.push(
+        or(
+          like(notifications.title, "%تم استلام طلبك%"),
+          like(notifications.title, "%طلب جديد%"),
+          like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
+          like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
+          like(notifications.message, "%تم استلام طلبك%"),
+          like(notifications.message, "%طلب جديد%"),
+          like(notifications.message, "%بإنشاء طلب%"),
+          like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
+          like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
+          like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
+        ) as any
+      );
+    }
+
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(notifications)
-      .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)));
+      .where(and(...conditions));
 
     return result[0]?.count || 0;
   }),
@@ -331,10 +455,30 @@ export const notificationsRouter = router({
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
     }
 
+    const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
+
+    const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+    if (isRequestOfficer) {
+      conditions.push(
+        or(
+          like(notifications.title, "%تم استلام طلبك%"),
+          like(notifications.title, "%طلب جديد%"),
+          like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
+          like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
+          like(notifications.message, "%تم استلام طلبك%"),
+          like(notifications.message, "%طلب جديد%"),
+          like(notifications.message, "%بإنشاء طلب%"),
+          like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
+          like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
+          like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
+        ) as any
+      );
+    }
+
     await db
       .update(notifications)
       .set({ isRead: true, readAt: new Date() })
-      .where(and(eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)));
+      .where(and(...conditions));
 
     return { success: true };
   }),
