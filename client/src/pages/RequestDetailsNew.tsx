@@ -592,7 +592,7 @@ export default function RequestDetailsNew() {
               </Button>
             </div>
           </div>
-        ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && (latestQuickReport.status === 'partially_solved' || latestQuickReport.status === 'not_solved') && isManagementUser ? (
+        ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && isManagementUser ? (
           <div className="mb-6 space-y-6">
             <ActiveActionCard
               title="تم تقديم تقرير الاستجابة السريعة"
