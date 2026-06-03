@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
 import { eq, and, gte, lte, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { notifyFieldVisitScheduled } from "./notifications";
 
 export const fieldVisitsRouter = router({
   // جدولة الزيارة الميدانية
@@ -128,6 +129,28 @@ export const fieldVisitsRouter = router({
           comment: `📅 تعليق من جدولة الزيارة الميدانية:\n${notes}`,
           isRead: false,
         });
+      }
+
+      // إرسال إشعار للموظف المعين للزيارة الميدانية
+      if (assignedUserId) {
+        const [request] = await db
+          .select({ requestNumber: mosqueRequests.requestNumber })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, requestId))
+          .limit(1);
+
+        if (request) {
+          try {
+            await notifyFieldVisitScheduled(
+              requestId,
+              request.requestNumber,
+              new Date(visitDate),
+              assignedUserId
+            );
+          } catch (error) {
+            console.error("Failed to send field visit notification:", error);
+          }
+        }
       }
 
       return { success: true, visitId };

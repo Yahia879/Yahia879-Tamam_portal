@@ -41,7 +41,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -1193,6 +1193,28 @@ export const requestsRouter = router({
         action: "stage_updated",
         notes: "تم رفع تقرير الزيارة الميدانية والتحويل للتقييم الفني",
       });
+
+      // إرسال إشعار للمسؤولين عن قسم الطلبات
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (req) {
+        try {
+          await notifyUsersByRole(
+            ["super_admin", "system_admin", "projects_office"],
+            "request_update",
+            "تم رفع تقرير المعاينة الميدانية",
+            `تم رفع تقرير زيارة ميدانية من قبل ${ctx.user.name || "عضو الفريق الميداني"} للطلب رقم ${req.requestNumber}`,
+            "request",
+            input.requestId
+          );
+        } catch (error) {
+          console.error("Failed to send field visit report notification:", error);
+        }
+      }
 
       return { success: true, message: "تم إضافة تقرير الزيارة الميدانية بنجاح" };
     }),

@@ -402,6 +402,10 @@ function DashboardLayoutContent({
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+  const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
   // الشعار الأبيض (للقائمة الجانبية الداكنة) أو الرئيسي كاحتياط
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الرئيسي (للهيدر في الموبايل)
@@ -510,11 +514,16 @@ function DashboardLayoutContent({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
-                  <Avatar className="h-9 w-9 border border-sidebar-border shrink-0">
-                    <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
-                      {user?.name?.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative shrink-0">
+                    <Avatar className="h-9 w-9 border border-sidebar-border">
+                      <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
+                        {user?.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {unreadCount && unreadCount > 0 ? (
+                      <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-sidebar" />
+                    ) : null}
+                  </div>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
                       {user?.name || "-"}
@@ -536,9 +545,16 @@ function DashboardLayoutContent({
                   <UserCog className="ml-2 h-4 w-4" />
                   <span>الملف الشخصي</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setLocation("/notifications")} className="cursor-pointer">
-                  <Bell className="ml-2 h-4 w-4" />
-                  <span>الإشعارات</span>
+                <DropdownMenuItem onClick={() => setLocation("/notifications")} className="cursor-pointer flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Bell className="ml-2 h-4 w-4" />
+                    <span>الإشعارات</span>
+                  </div>
+                  {unreadCount && unreadCount > 0 ? (
+                    <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {unreadCount}
+                    </span>
+                  ) : null}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {switchable && toggleTheme && (

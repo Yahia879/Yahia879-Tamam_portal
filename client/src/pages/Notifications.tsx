@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
 const notificationIcons: Record<string, any> = {
@@ -104,7 +104,7 @@ export default function Notifications() {
                             {notification.title}
                           </p>
                           <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
-                            {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: ar }) : ""}
+                            {notification.createdAt ? format(new Date(notification.createdAt), 'dd MMM yyyy, hh:mm a', { locale: ar }) : ""}
                           </span>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none leading-relaxed">
