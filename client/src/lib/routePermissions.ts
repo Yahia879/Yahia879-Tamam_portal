@@ -53,7 +53,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   corporate_comm: [
-    "requests", "settings_center", "financial_report",
+    "requests", "settings_center",
   ],
 
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية

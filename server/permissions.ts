@@ -592,6 +592,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");
   }
+  if (allPermissions.has("reports.view")) {
+    allPermissions.add("reports");
+  }
   if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
     allPermissions.add("requesters");
     allPermissions.add("service_requester_accounts");
@@ -654,7 +657,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("progress_reports");
   }
   if (
-    allPermissions.has("reports.view") ||
     allPermissions.has("financial_reports.view") ||
     allPermissions.has("financial_reports.export") ||
     allPermissions.has("financial_reports.analytics")
@@ -1027,11 +1029,11 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
-        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits"],
+        projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.view_details", "field_visits"],
         quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
-        financial: ["financial", "quotations", "disbursements", "suppliers.view"],
-        financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view"],
+        financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
+        financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
         project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
         corporate_comm: ["requests.view", "requests.view_details", "reports.view", "settings.view", "analytics.view"],
         service_requester: ["requests.view", "requests.create", "mosques.view"]
