@@ -256,6 +256,25 @@ export default function UserPermissions() {
         updated[permId] = newState;
       }
 
+      // منع اختيار الصلاحيتين معاً لمواعيد تقويم المنشأة والمواعيد الخاصة
+      if (newState) {
+        if (permId === "appointments.view_all") {
+          const defaultOwn = rolePermissions?.includes("appointments.view_own") || false;
+          if (defaultOwn) {
+            updated["appointments.view_own"] = false;
+          } else {
+            delete updated["appointments.view_own"];
+          }
+        } else if (permId === "appointments.view_own") {
+          const defaultAll = rolePermissions?.includes("appointments.view_all") || false;
+          if (defaultAll) {
+            updated["appointments.view_all"] = false;
+          } else {
+            delete updated["appointments.view_all"];
+          }
+        }
+      }
+
       // شلال الإلغاءات (Cascading Revokes)
       if (!newState) {
         const cascadeRevoke = (prefix: string) => {
