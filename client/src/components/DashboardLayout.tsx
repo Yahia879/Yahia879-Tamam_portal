@@ -247,7 +247,11 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
     has("settings_categories.edit") || 
     has("settings_categories.delete") || 
     has("settings.stages_view") || 
-    has("settings.actions_view");
+    has("settings.actions_view") ||
+    has("services.view") || 
+    has("services.add") || 
+    has("services.edit") || 
+    has("services.delete");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
