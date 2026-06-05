@@ -537,29 +537,28 @@ export default function RoleEdit() {
     <DashboardLayout>
       <div className="container py-8 max-w-7xl mx-auto" dir="rtl">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-10">
-          <div className="flex items-center gap-4 text-right">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-8 sm:mb-10">
+          <div className="flex items-center gap-3 sm:gap-4 text-right min-w-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setLocation("/staff")} 
-              className="rounded-full hover:bg-slate-100 transition-colors shrink-0"
+              className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
             >
-              <ArrowRight className="h-6 w-6" />
+              <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
             </Button>
-            <div className="p-3.5 bg-primary/10 rounded-2xl shrink-0">
-              <Shield className="h-8 w-8 text-primary" />
+            <div className="p-2 sm:p-3 bg-primary/10 rounded-xl sm:rounded-2xl shrink-0">
+              <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             </div>
-            <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
                 {isNew ? "إنشاء دور مخصص جديد" : "تعديل الدور المخصص"}
               </h1>
-              <p className="text-muted-foreground font-medium text-lg">
+              <p className="text-muted-foreground font-medium text-sm sm:text-base md:text-lg truncate">
                 {isNew ? "قم بتعيين الصلاحيات التفصيلية للدور الجديد" : nameAr}
               </p>
             </div>
           </div>
-
         </div>
 
         {/* Basic Info Card */}
@@ -617,15 +616,15 @@ export default function RoleEdit() {
 
                   return (
                     <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
-                      <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-6 py-5">
-                        <div className="flex items-center justify-between" dir="rtl">
-                          <div className="flex items-center gap-4 text-right">
-                            <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                      <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-4 py-4 sm:px-6 sm:py-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" dir="rtl">
+                          <div className="flex items-center gap-3 sm:gap-4 text-right">
+                            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm shrink-0">
                               <Icon className="h-5 w-5 text-primary" />
                             </div>
-                            <CardTitle className="text-xl font-bold">{module.nameAr}</CardTitle>
+                            <CardTitle className="text-lg sm:text-xl font-bold truncate">{module.nameAr}</CardTitle>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-1 sm:mt-0">
                             {modulePerms.length > 0 && (
                               <Button
                                 variant="ghost"
@@ -634,12 +633,12 @@ export default function RoleEdit() {
                                   e.stopPropagation();
                                   handleToggleModuleAll(modulePerms);
                                 }}
-                                className="text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg font-bold"
+                                className="text-[11px] sm:text-xs text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg font-bold py-1 h-auto"
                               >
                                 {modulePerms.every((p: any) => selectedPerms.includes(p.id)) ? "إلغاء تحديد الكل" : "تحديد الكل"}
                               </Button>
                             )}
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-bold text-sm">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-xl font-bold text-xs sm:text-sm">
                               <span>{grantedCount}</span>
                               <span className="opacity-50">/</span>
                               <span>{modulePerms.length}</span>
@@ -687,7 +686,7 @@ export default function RoleEdit() {
                                     </svg>
                                   )}
                                 </div>
-                                <span className="text-sm font-semibold select-none">{perm.nameAr}</span>
+                                <span className="text-xs sm:text-sm font-semibold select-none leading-snug">{perm.nameAr}</span>
                               </div>
                             );
                           })}
