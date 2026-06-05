@@ -307,6 +307,7 @@ export default function RequestDetailsNew() {
   const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
   const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const isFieldTeam = ((user?.role as string) === 'field_team' || userPermissions.includes("requests.manage_as_field_team")) && !userPermissions.includes("requests.view_details");
 
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
@@ -410,7 +411,7 @@ export default function RequestDetailsNew() {
           label: 'جدولة الزيارة الميدانية',
           redirectUrl: '/field-visits/schedule/:requestId',
         },
-        canPerformAction: (user?.role as string) !== 'field_team',
+        canPerformAction: !isFieldTeam,
       };
     } else if (!fieldVisit?.reportSubmitted) {
       // تم الجدولة، الآن يجب رفع التقرير
@@ -422,10 +423,10 @@ export default function RequestDetailsNew() {
           label: 'رفع التقرير',
           redirectUrl: '/field-visits/report/:requestId',
         },
-        canPerformAction: (user?.role as string) === 'field_team',
+        canPerformAction: isFieldTeam,
       };
     } else {
-      if ((user?.role as string) === 'field_team') {
+      if (isFieldTeam) {
         activeAction = {
           ...activeAction,
           title: 'تم تقديم تقرير الزيارة الميدانية',
@@ -446,7 +447,7 @@ export default function RequestDetailsNew() {
             label: 'الانتقال للتقييم الفني',
             redirectUrl: undefined, // سيستخدم handleStageTransition الافتراضي
           },
-          canPerformAction: (user?.role as string) !== 'field_team',
+          canPerformAction: !isFieldTeam,
         };
       }
     }
@@ -454,7 +455,7 @@ export default function RequestDetailsNew() {
 
   // Override active action for field_team if they have submitted the report (regardless of currentStage)
   const hasFieldReport = request?.fieldReports && request.fieldReports.length > 0;
-  if ((user?.role as string) === 'field_team' && (hasFieldReport || fieldVisit?.reportSubmitted)) {
+  if (isFieldTeam && (hasFieldReport || fieldVisit?.reportSubmitted)) {
     activeAction = {
       stage: request.currentStage,
       title: 'تم تقديم تقرير الزيارة الميدانية',
@@ -465,7 +466,7 @@ export default function RequestDetailsNew() {
         label: 'عرض تقرير الزيارة الميدانية',
         openModal: 'field_visit_report',
       },
-      allowedRoles: ['field_team'],
+      allowedRoles: ['field_team', 'requests.manage_as_field_team'],
       canPerformAction: true,
     };
   }
@@ -486,7 +487,7 @@ export default function RequestDetailsNew() {
     isQuickResponse &&
     (isRequester || canAccessRequestDetails)
   );
-  const showQuickResponseReportShortcut = canViewQuickResponseReport && userRole !== "quick_response";
+  const showQuickResponseReportShortcut = canViewQuickResponseReport && userRole !== "quick_response" && !userPermissions.includes("requests.manage_as_field_team");
 
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
@@ -782,7 +783,7 @@ export default function RequestDetailsNew() {
                   percentage: progress,
                 }}
                 fieldReportButton={
-                  (user?.role as string) !== 'field_team' && hasFieldReport &&
+                  !isFieldTeam && hasFieldReport &&
                   !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                   !(isQuickResponse && (
                     (user?.role as string) !== 'quick_response' ||
@@ -811,7 +812,7 @@ export default function RequestDetailsNew() {
                     : undefined
                 }
                 secondaryButton={
-                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
+                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && !isFieldTeam
                     ? {
                         label: "الانتقال إلى التقييم المالي",
                         onClick: () => {
@@ -824,7 +825,7 @@ export default function RequestDetailsNew() {
                         variant: 'default' as const,
                         disabled: !hasBoqItems || updateStageMutation.isPending,
                       }
-                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team'
+                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && !isFieldTeam
                     ? {
                         label: "إدارة عروض الأسعار",
                         onClick: () => setLocation('/quotations'),
@@ -891,7 +892,7 @@ export default function RequestDetailsNew() {
               )}
 
               {/* خيارات التقييم الفني */}
-              {request.currentStage === 'technical_eval' && activeAction.canPerformAction && (user?.role as string) !== 'field_team' && (
+              {request.currentStage === 'technical_eval' && activeAction.canPerformAction && !isFieldTeam && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* التحويل إلى مشروع */}
                   <button 

@@ -27,10 +27,11 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team"],
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
+  "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
   projects: ["projects.view", "projects.view_details"],
   "projects.view": ["projects.view"],
@@ -189,6 +190,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "view_details",
         nameAr: "عرض تفاصيل الطلب وادارته",
         nameEn: "View request details and manage"
+      },
+      {
+        id: "requests.manage_as_field_team",
+        moduleId: "requests",
+        action: "manage_as_field_team",
+        nameAr: "ادارة الطلبات كفريق ميداني",
+        nameEn: "Manage requests as field team"
       }
     ];
 
@@ -219,8 +227,8 @@ async function ensureRequestsPermissionsExist(db: any) {
     if (isFirstTime) {
       const defaultMappings: Record<string, string[]> = {
         projects_office: ["requests.view", "requests.create", "requests.view_details"],
-        field_team: ["requests.view", "requests.view_details"],
-        quick_response: ["requests.view", "requests.view_details"],
+        field_team: ["requests.view", "requests.manage_as_field_team"],
+        quick_response: ["requests.view", "requests.manage_as_field_team"],
         financial_manager: ["requests.view", "requests.view_details"],
         project_manager: ["requests.view", "requests.create", "requests.view_details"],
         corporate_comm: ["requests.view", "requests.view_details"],
@@ -234,7 +242,7 @@ async function ensureRequestsPermissionsExist(db: any) {
           .from(rolePermissions)
           .where(and(
             eq(rolePermissions.roleId, roleId),
-            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details"])
+            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details", "requests.manage_as_field_team"])
           ));
 
         if (existingRolePerms.length === 0) {
@@ -576,6 +584,13 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
+  }
+  if (
+    allPermissions.has("requests.view") ||
+    allPermissions.has("requests.view_details") ||
+    allPermissions.has("requests.manage_as_field_team")
+  ) {
+    allPermissions.add("requests");
   }
   if (allPermissions.has("disbursement_orders.view")) {
     allPermissions.add("disbursement_orders.view_details");
@@ -1033,8 +1048,8 @@ export const permissionsRouter = router({
         super_admin: "*",
         system_admin: "*",
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
-        field_team: ["mosques.view", "requests.view", "requests.edit", "requests.view_details", "field_visits"],
-        quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
+        field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
+        quick_response: ["requests.view", "requests.manage_as_field_team", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
         project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],

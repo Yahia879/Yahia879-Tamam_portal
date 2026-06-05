@@ -272,6 +272,20 @@ export default function UserPermissions() {
           } else {
             delete updated["appointments.view_all"];
           }
+        } else if (permId === "requests.view_details") {
+          const defaultField = rolePermissions?.includes("requests.manage_as_field_team") || false;
+          if (defaultField) {
+            updated["requests.manage_as_field_team"] = false;
+          } else {
+            delete updated["requests.manage_as_field_team"];
+          }
+        } else if (permId === "requests.manage_as_field_team") {
+          const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
+          if (defaultDetails) {
+            updated["requests.view_details"] = false;
+          } else {
+            delete updated["requests.view_details"];
+          }
         }
       }
 
@@ -451,7 +465,8 @@ export default function UserPermissions() {
       requests: {
         view: "عرض كافة الطلبات",
         create: "إضافة طلب",
-        view_details: "عرض تفاصيل الطلب وإدارته"
+        view_details: "عرض تفاصيل الطلب وإدارته",
+        manage_as_field_team: "ادارة الطلبات كفريق ميداني"
       },
       projects: {
         view: "عرض المشاريع",
@@ -565,7 +580,14 @@ export default function UserPermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
+        { 
+          id: "requests", 
+          nameAr: "الطلبات", 
+          icon: Zap, 
+          perms: activeRoleId === "field_team" 
+            ? ["view", "create", "view_details", "manage_as_field_team"] 
+            : ["view", "create", "view_details"] 
+        },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },

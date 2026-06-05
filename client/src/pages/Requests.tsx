@@ -78,7 +78,7 @@ export default function Requests({
 
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canViewDetails = isAdmin || userPermissions.includes("requests.view_details");
+  const canViewDetails = isAdmin || userPermissions.includes("requests.view_details") || userPermissions.includes("requests.manage_as_field_team");
 
   // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
   useEffect(() => {

@@ -189,13 +189,13 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // الطلبات
   { pattern: /^\/requests\/\d+\/edit$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+\/quick-response$/, permission: "requests.view_details" },
-  { pattern: /^\/requests\/\d+$/, permission: "requests.view_details" },
+  { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
+  { pattern: /^\/requests\/\d+\/quick-response$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
+  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // الزيارات الميدانية
   { pattern: /^\/field-visits\/schedule\/\d+$/, permission: "appointments_calendar" },
-  { pattern: /^\/field-visits\/report\/\d+$/, permission: "requests.view_details" },
+  { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع
   { pattern: /^\/projects\/\d+$/, permission: "projects.view_details" },

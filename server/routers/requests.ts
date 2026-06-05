@@ -226,7 +226,7 @@ export const requestsRouter = router({
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
       const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm"].includes(ctx.user.role);
-      const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details");
+      const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || await checkPermission(ctx.user.id, "requests.manage_as_field_team");
 
       if (!isOwner && !isAssigned && !hasDetailsPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });

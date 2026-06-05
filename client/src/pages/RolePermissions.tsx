@@ -262,6 +262,10 @@ export default function RolePermissions() {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
+        } else if (permId === "requests.view_details") {
+          next = next.filter(id => id !== "requests.manage_as_field_team");
+        } else if (permId === "requests.manage_as_field_team") {
+          next = next.filter(id => id !== "requests.view_details");
         }
         return next;
       }
@@ -280,11 +284,19 @@ export default function RolePermissions() {
         if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
           added = added.filter(id => id !== "appointments.view_own");
         }
+        if (added.includes("requests.view_details") && added.includes("requests.manage_as_field_team")) {
+          added = added.filter(id => id !== "requests.manage_as_field_team");
+        }
         let next = [...prev, ...added];
         if (added.includes("appointments.view_all")) {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (added.includes("appointments.view_own")) {
           next = next.filter(id => id !== "appointments.view_all");
+        }
+        if (added.includes("requests.view_details")) {
+          next = next.filter(id => id !== "requests.manage_as_field_team");
+        } else if (added.includes("requests.manage_as_field_team")) {
+          next = next.filter(id => id !== "requests.view_details");
         }
         return next;
       });
@@ -686,7 +698,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
       ]
@@ -735,7 +747,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
@@ -801,7 +813,8 @@ export default function RolePermissions() {
       requests: {
         view: "عرض كافة الطلبات",
         create: "إضافة طلب",
-        view_details: "عرض تفاصيل الطلب وإدارته"
+        view_details: "عرض تفاصيل الطلب وإدارته",
+        manage_as_field_team: "ادارة الطلبات كفريق ميداني"
       },
       projects: {
         view: "عرض المشاريع",
@@ -978,15 +991,21 @@ export default function RolePermissions() {
   // الهيكل الموحد الشامل لجميع الأدوار
   const universalDisplayGroups = superAdminGroups.map(group => ({
     title: group.title,
-    modules: group.modules.map(m => ({
-      id: m.id,
-      nameAr: m.nameAr,
-      icon: m.icon,
-      permissions: m.perms.map(p => ({
-        id: `${m.id}.${p}`,
-        nameAr: getDescriptiveLabel(m.id, p),
-      }))
-    }))
+    modules: group.modules.map(m => {
+      let perms = m.perms;
+      if (m.id === "requests" && roleId !== "field_team") {
+        perms = perms.filter(p => p !== "manage_as_field_team");
+      }
+      return {
+        id: m.id,
+        nameAr: m.nameAr,
+        icon: m.icon,
+        permissions: perms.map(p => ({
+          id: `${m.id}.${p}`,
+          nameAr: getDescriptiveLabel(m.id, p),
+        }))
+      };
+    })
   }));
 
   const finalDisplayGroups = universalDisplayGroups;
