@@ -175,12 +175,6 @@ const getMenuGroups = (role: string): MenuGroup[] => {
         { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
       ],
     });
-    groups.push({
-      label: "البرامج والخدمات",
-      items: [
-        { icon: Layers, label: "البرامج والخدمات", path: "/program-customization" },
-      ],
-    });
   }
 
   return groups;
@@ -260,15 +254,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   }
   if (settingsItems.length > 0) {
     groups.push({ label: "الإعدادات", items: settingsItems });
-  }
-
-  // البرامج والخدمات
-  const servicesItems: MenuItem[] = [];
-  if (has("services.view") || has("services.add") || has("services.edit") || has("services.delete")) {
-    servicesItems.push({ icon: Layers, label: "البرامج والخدمات", path: "/program-customization" });
-  }
-  if (servicesItems.length > 0) {
-    groups.push({ label: "البرامج والخدمات", items: servicesItems });
   }
 
   return groups;
