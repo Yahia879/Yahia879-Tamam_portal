@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { FileText, Users, CheckCircle2, Building2, MapPin, ArrowLeft, Loader2 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
+import { trpc } from "@/lib/trpc";
 
 // إحصائيات البوابة
 const stats = [
@@ -31,6 +32,9 @@ export default function LandingPage() {
   const { isAuthenticated, user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
+  // جلب إعدادات الهوية البصرية
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل عند فتح الموقع
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
@@ -56,10 +60,10 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16">
             {/* الشعار */}
             <div className="flex items-center gap-3">
-              <img src="/logo.svg" alt="شعار بوابة تمام" className="w-10 h-10" />
+              <img src={orgSettings?.logoUrl || "/logo.svg"} alt="شعار بوابة تمام" className="w-10 h-10 object-contain" />
               <div>
-                <h1 className="font-bold text-base text-foreground leading-tight">بوابة تمام</h1>
-                <p className="text-xs text-muted-foreground">للعناية بالمساجد</p>
+                <h1 className="font-bold text-base text-foreground leading-tight">{orgSettings?.organizationName || "بوابة تمام"}</h1>
+                <p className="text-xs text-muted-foreground">{orgSettings?.organizationNameShort || "للعناية بالمساجد"}</p>
               </div>
             </div>
 
@@ -90,14 +94,14 @@ export default function LandingPage() {
             {/* الشعار الكبير */}
             <div className="flex justify-center mb-6 md:mb-8">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
-                <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16" />
+                <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
               </div>
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
-              بوابة تمام
+              {orgSettings?.organizationName || "بوابة تمام"}
               <span className="block text-white/80 text-xl sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
-                للعناية بالمساجد
+                {orgSettings?.organizationNameShort || "للعناية بالمساجد"}
               </span>
             </h1>
 
@@ -232,10 +236,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src="/logo.svg" alt="شعار بوابة تمام" className="w-8 h-8" />
+              <img src={orgSettings?.logoUrl || "/logo.svg"} alt="شعار بوابة تمام" className="w-8 h-8 object-contain" />
               <div>
-                <span className="font-bold text-foreground">بوابة تمام</span>
-                <span className="text-muted-foreground text-sm mr-2">للعناية بالمساجد</span>
+                <span className="font-bold text-foreground">{orgSettings?.organizationName || "بوابة تمام"}</span>
+                <span className="text-muted-foreground text-sm mr-2">{orgSettings?.organizationNameShort || "للعناية بالمساجد"}</span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">

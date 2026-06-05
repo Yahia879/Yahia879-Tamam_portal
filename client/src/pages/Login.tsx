@@ -34,6 +34,9 @@ export default function Login() {
     }
   }, [isAuthenticated, loading, user, setLocation]);
 
+  // جلب إعدادات الجمعية لعرض الشعار والألوان
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       toast.success("تم تسجيل الدخول بنجاح");
@@ -83,15 +86,23 @@ export default function Login() {
     });
   };
 
+  const primaryColor = orgSettings?.colorPrimary1 || "#0d9488";
+  const secondaryColor = orgSettings?.colorPrimary2 || "#0f766e";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-500 via-teal-600 to-blue-600 flex items-center justify-center p-4 sm:p-6">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
+      }}
+    >
       <Card className="w-full max-w-md p-6 sm:p-8 bg-white/95 shadow-xl">
         {/* الشعار */}
         <div className="text-center mb-6 sm:mb-8">
           <img 
-            src="/logo.svg" 
+            src={orgSettings?.logoUrl || "/logo.svg"} 
             alt="شعار بوابة تمام" 
-            className="h-16 sm:h-20 mx-auto mb-4"
+            className="h-16 sm:h-20 mx-auto mb-4 object-contain"
           />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
             تسجيل دخول المستفيدين
@@ -162,8 +173,15 @@ export default function Login() {
           {/* زر تسجيل الدخول */}
           <Button
             type="submit"
-            className="w-full bg-teal-500 hover:bg-teal-600 text-white"
+            className="w-full text-white"
+            style={{ backgroundColor: primaryColor }}
             disabled={loginMutation.isPending}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = secondaryColor;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = primaryColor;
+            }}
           >
             {loginMutation.isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
           </Button>
@@ -173,7 +191,7 @@ export default function Login() {
         <div className="mt-6 space-y-3 text-center">
           <p className="text-gray-600 text-sm">
             ليس لديك حساب؟{" "}
-            <a href="/register" className="text-teal-600 hover:text-teal-700 font-medium">
+            <a href="/register" className="font-medium hover:underline" style={{ color: primaryColor }}>
               سجل الآن
             </a>
           </p>
