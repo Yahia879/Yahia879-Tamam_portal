@@ -1,7 +1,8 @@
+import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2 } from "lucide-react";
+import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -18,9 +19,12 @@ const notificationIcons: Record<string, any> = {
 
 export default function Notifications() {
   const utils = trpc.useContext();
+  const [page, setPage] = useState(1);
+  const limit = 10;
   
   const { data, isLoading, error } = trpc.notifications.getMyNotifications.useQuery({
-    limit: 50,
+    page,
+    limit,
   });
 
   const markAsReadMutation = trpc.notifications.markAsRead.useMutation({
@@ -86,37 +90,82 @@ export default function Notifications() {
                 <p className="text-xs sm:text-sm text-muted-foreground">جاري تحميل الإشعارات...</p>
               </div>
             ) : notifications.length > 0 ? (
-              <div className="divide-y divide-border">
-                {notifications.map((notification) => {
-                  const Icon = notificationIcons[notification.type || "info"] || Bell;
-                  return (
-                    <div 
-                      key={notification.id} 
-                      className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.isRead ? "bg-primary/5" : ""}`}
-                      onClick={() => handleMarkAsRead(notification.id, !!notification.isRead)}
-                    >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${!notification.isRead ? "bg-primary/10" : "bg-muted"}`}>
-                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!notification.isRead ? "text-primary" : "text-muted-foreground"}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`} title={notification.title}>
-                            {notification.title}
-                          </p>
-                          <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
-                            {notification.createdAt ? format(new Date(notification.createdAt), 'dd MMM yyyy, hh:mm a', { locale: ar }) : ""}
-                          </span>
+              <div className="flex flex-col">
+                <div className="divide-y divide-border">
+                  {notifications.map((notification) => {
+                    const Icon = notificationIcons[notification.type || "info"] || Bell;
+                    return (
+                      <div 
+                        key={notification.id} 
+                        className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.isRead ? "bg-primary/5" : ""}`}
+                        onClick={() => handleMarkAsRead(notification.id, !!notification.isRead)}
+                      >
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${!notification.isRead ? "bg-primary/10" : "bg-muted"}`}>
+                          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!notification.isRead ? "text-primary" : "text-muted-foreground"}`} />
                         </div>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none leading-relaxed">
-                          {notification.message}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`} title={notification.title}>
+                              {notification.title}
+                            </p>
+                            <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
+                              {notification.createdAt ? (() => {
+                                const d = new Date(notification.createdAt);
+                                const localDate = new Date(
+                                  d.getUTCFullYear(),
+                                  d.getUTCMonth(),
+                                  d.getUTCDate(),
+                                  d.getUTCHours(),
+                                  d.getUTCMinutes(),
+                                  d.getUTCSeconds()
+                                );
+                                return format(localDate, 'dd MMM yyyy, hh:mm a', { locale: ar });
+                              })() : ""}
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none leading-relaxed">
+                            {notification.message}
+                          </p>
+                        </div>
+                        {!notification.isRead && (
+                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary mt-1.5 sm:mt-2 shrink-0" />
+                        )}
                       </div>
-                      {!notification.isRead && (
-                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary mt-1.5 sm:mt-2 shrink-0" />
-                      )}
+                    );
+                  })}
+                </div>
+                {data && data.total > limit && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between border-t border-border/60 p-4 gap-4 bg-slate-50/50 dark:bg-slate-900/20" dir="rtl">
+                    <div className="text-xs text-muted-foreground font-semibold">
+                      يتم عرض {(page - 1) * limit + 1} - {Math.min(page * limit, data.total)} من أصل {data.total} إشعار
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs font-semibold"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                        السابق
+                      </Button>
+                      <div className="text-xs font-bold px-3 py-1.5 rounded-md bg-muted text-muted-foreground border border-border/40">
+                        صفحة {page} من {data.totalPages}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                        disabled={page >= data.totalPages}
+                        className="h-8 flex items-center gap-1.5 hover:bg-muted/80 transition-colors rounded-lg text-xs font-semibold"
+                      >
+                        التالي
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-6 sm:p-8 text-center">

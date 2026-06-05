@@ -971,10 +971,24 @@ export const requestsRouter = router({
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
+        const statusLabelsAr: Record<string, string> = {
+          pending: "قيد الانتظار",
+          under_review: "قيد المراجعة",
+          approved: "معتمد",
+          rejected: "مرفوض",
+          suspended: "معلق",
+          in_progress: "قيد التنفيذ",
+          completed: "مكتمل",
+        };
+        const statusLabel = statusLabelsAr[input.newStatus] || input.newStatus;
+        const msg = input.newStatus === "in_progress" 
+          ? `تم استئناف طلبك رقم ${request[0].requestNumber}`
+          : `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى: ${statusLabel}`;
+
         await db.insert(notifications).values({
           userId: request[0].userId!,
           title: "تحديث حالة الطلب",
-          message: `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى ${input.newStatus}`,
+          message: msg,
           type: "request_update",
           relatedType: "request",
           relatedId: input.requestId,
