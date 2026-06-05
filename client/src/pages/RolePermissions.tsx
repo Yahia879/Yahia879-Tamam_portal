@@ -773,11 +773,6 @@ export default function RolePermissions() {
         },
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
-      ]
-    },
-    {
-      title: "البرامج والخدمات",
-      modules: [
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       ]
     }
