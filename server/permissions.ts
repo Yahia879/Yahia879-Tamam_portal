@@ -27,11 +27,12 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response"],
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
+  "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
   projects: ["projects.view", "projects.view_details"],
   "projects.view": ["projects.view"],
@@ -197,6 +198,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "manage_as_field_team",
         nameAr: "ادارة الطلبات كفريق ميداني",
         nameEn: "Manage requests as field team"
+      },
+      {
+        id: "requests.manage_as_quick_response",
+        moduleId: "requests",
+        action: "manage_as_quick_response",
+        nameAr: "ادارة الطلبات كفريق استجابة سريعة",
+        nameEn: "Manage requests as quick response team"
       }
     ];
 
@@ -228,7 +236,7 @@ async function ensureRequestsPermissionsExist(db: any) {
       const defaultMappings: Record<string, string[]> = {
         projects_office: ["requests.view", "requests.create", "requests.view_details"],
         field_team: ["requests.view", "requests.manage_as_field_team"],
-        quick_response: ["requests.view", "requests.manage_as_field_team"],
+        quick_response: ["requests.view", "requests.manage_as_quick_response"],
         financial_manager: ["requests.view", "requests.view_details"],
         project_manager: ["requests.view", "requests.create", "requests.view_details"],
         corporate_comm: ["requests.view", "requests.view_details"],
@@ -242,7 +250,7 @@ async function ensureRequestsPermissionsExist(db: any) {
           .from(rolePermissions)
           .where(and(
             eq(rolePermissions.roleId, roleId),
-            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details", "requests.manage_as_field_team"])
+            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response"])
           ));
 
         if (existingRolePerms.length === 0) {
@@ -588,7 +596,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (
     allPermissions.has("requests.view") ||
     allPermissions.has("requests.view_details") ||
-    allPermissions.has("requests.manage_as_field_team")
+    allPermissions.has("requests.manage_as_field_team") ||
+    allPermissions.has("requests.manage_as_quick_response")
   ) {
     allPermissions.add("requests");
   }
@@ -1049,7 +1058,7 @@ export const permissionsRouter = router({
         system_admin: "*",
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
-        quick_response: ["requests.view", "requests.manage_as_field_team", "field_visits.view", "reports.create"],
+        quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
         project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],

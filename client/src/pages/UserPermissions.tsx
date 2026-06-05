@@ -274,12 +274,25 @@ export default function UserPermissions() {
           }
         } else if (permId === "requests.view_details") {
           const defaultField = rolePermissions?.includes("requests.manage_as_field_team") || false;
+          const defaultQR = rolePermissions?.includes("requests.manage_as_quick_response") || false;
           if (defaultField) {
             updated["requests.manage_as_field_team"] = false;
           } else {
             delete updated["requests.manage_as_field_team"];
           }
+          if (defaultQR) {
+            updated["requests.manage_as_quick_response"] = false;
+          } else {
+            delete updated["requests.manage_as_quick_response"];
+          }
         } else if (permId === "requests.manage_as_field_team") {
+          const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
+          if (defaultDetails) {
+            updated["requests.view_details"] = false;
+          } else {
+            delete updated["requests.view_details"];
+          }
+        } else if (permId === "requests.manage_as_quick_response") {
           const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
           if (defaultDetails) {
             updated["requests.view_details"] = false;
@@ -466,7 +479,8 @@ export default function UserPermissions() {
         view: "عرض كافة الطلبات",
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
-        manage_as_field_team: "ادارة الطلبات كفريق ميداني"
+        manage_as_field_team: "ادارة الطلبات كفريق ميداني",
+        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة"
       },
       projects: {
         view: "عرض المشاريع",
@@ -586,7 +600,9 @@ export default function UserPermissions() {
           icon: Zap, 
           perms: activeRoleId === "field_team" 
             ? ["view", "create", "view_details", "manage_as_field_team"] 
-            : ["view", "create", "view_details"] 
+            : activeRoleId === "quick_response"
+              ? ["view", "create", "view_details", "manage_as_quick_response"]
+              : ["view", "create", "view_details"] 
         },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },

@@ -263,8 +263,10 @@ export default function RolePermissions() {
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
         } else if (permId === "requests.view_details") {
-          next = next.filter(id => id !== "requests.manage_as_field_team");
+          next = next.filter(id => id !== "requests.manage_as_field_team" && id !== "requests.manage_as_quick_response");
         } else if (permId === "requests.manage_as_field_team") {
+          next = next.filter(id => id !== "requests.view_details");
+        } else if (permId === "requests.manage_as_quick_response") {
           next = next.filter(id => id !== "requests.view_details");
         }
         return next;
@@ -287,6 +289,9 @@ export default function RolePermissions() {
         if (added.includes("requests.view_details") && added.includes("requests.manage_as_field_team")) {
           added = added.filter(id => id !== "requests.manage_as_field_team");
         }
+        if (added.includes("requests.view_details") && added.includes("requests.manage_as_quick_response")) {
+          added = added.filter(id => id !== "requests.manage_as_quick_response");
+        }
         let next = [...prev, ...added];
         if (added.includes("appointments.view_all")) {
           next = next.filter(id => id !== "appointments.view_own");
@@ -294,8 +299,10 @@ export default function RolePermissions() {
           next = next.filter(id => id !== "appointments.view_all");
         }
         if (added.includes("requests.view_details")) {
-          next = next.filter(id => id !== "requests.manage_as_field_team");
+          next = next.filter(id => id !== "requests.manage_as_field_team" && id !== "requests.manage_as_quick_response");
         } else if (added.includes("requests.manage_as_field_team")) {
+          next = next.filter(id => id !== "requests.view_details");
+        } else if (added.includes("requests.manage_as_quick_response")) {
           next = next.filter(id => id !== "requests.view_details");
         }
         return next;
@@ -698,7 +705,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
       ]
@@ -747,7 +754,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
@@ -814,7 +821,8 @@ export default function RolePermissions() {
         view: "عرض كافة الطلبات",
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
-        manage_as_field_team: "ادارة الطلبات كفريق ميداني"
+        manage_as_field_team: "ادارة الطلبات كفريق ميداني",
+        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة"
       },
       projects: {
         view: "عرض المشاريع",
@@ -993,8 +1001,13 @@ export default function RolePermissions() {
     title: group.title,
     modules: group.modules.map(m => {
       let perms = m.perms;
-      if (m.id === "requests" && roleId !== "field_team") {
-        perms = perms.filter(p => p !== "manage_as_field_team");
+      if (m.id === "requests") {
+        if (roleId !== "field_team") {
+          perms = perms.filter(p => p !== "manage_as_field_team");
+        }
+        if (roleId !== "quick_response") {
+          perms = perms.filter(p => p !== "manage_as_quick_response");
+        }
       }
       return {
         id: m.id,

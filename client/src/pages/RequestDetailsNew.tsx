@@ -308,13 +308,14 @@ export default function RequestDetailsNew() {
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isFieldTeam = ((user?.role as string) === 'field_team' || userPermissions.includes("requests.manage_as_field_team")) && !userPermissions.includes("requests.view_details");
+  const isQuickResponseUser = ((user?.role as string) === 'quick_response' || userPermissions.includes("requests.manage_as_quick_response")) && !userPermissions.includes("requests.view_details");
 
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
   const isManagementUser = user && (
     ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
     (user.role === 'project_manager' && request.assignedTo === user.id) ||
-    (userPermissions.includes("requests.view_details") && !['quick_response', 'field_team', 'financial', 'financial_manager', 'corporate_comm'].includes(user.role))
+    (userPermissions.includes("requests.view_details") && !['financial', 'financial_manager', 'corporate_comm'].includes(user.role))
   );
 
   // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام
@@ -352,7 +353,7 @@ export default function RequestDetailsNew() {
       actionButton: latestFinalReport ? {
         label: "عرض التقرير النهائي",
         onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
-      } : undefined,
+      } as any : undefined,
       canPerformAction: !!latestFinalReport,
     };
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
@@ -477,6 +478,51 @@ export default function RequestDetailsNew() {
     ? request.quickReports[request.quickReports.length - 1]
     : null;
 
+  // Override active action for quick_response user if they have submitted the report (regardless of currentStage)
+  if (isQuickResponseUser && latestQuickReport) {
+    activeAction = {
+      stage: request.currentStage,
+      title: 'تم تقديم تقرير الاستجابة السريعة',
+      description: 'تم تقديم ورفع تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.',
+      icon: 'Zap',
+      iconColor: 'text-emerald-600',
+      actionButton: {
+        label: 'عرض تقرير الاستجابة السريعة',
+        openModal: 'quick_response_report',
+      },
+      allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
+      canPerformAction: true,
+    };
+  } else if (isQuickResponseUser) {
+    // If they haven't submitted the report yet, they can only do it if the request is in execution stage and has quick_response track
+    if (request.currentStage === 'execution' && request.requestTrack === 'quick_response') {
+      activeAction = {
+        stage: 'execution',
+        title: 'تقديم تقرير الاستجابة السريعة',
+        description: 'يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.',
+        icon: 'Zap',
+        iconColor: 'text-purple-600',
+        actionButton: {
+          label: 'رفع تقرير الاستجابة السريعة',
+          redirectUrl: `/requests/:requestId/quick-response`,
+        },
+        allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
+        canPerformAction: true,
+      };
+    } else {
+      // In any other stage/track, they cannot perform any action
+      activeAction = {
+        stage: request.currentStage,
+        title: 'بانتظار الإجراء الفني',
+        description: 'هذا الطلب بانتظار استكمال الإجراءات الإدارية أو الفنية من قبل فريق العمل.',
+        icon: 'Clock',
+        iconColor: 'text-amber-500',
+        allowedRoles: [],
+        canPerformAction: false,
+      };
+    }
+  }
+
   const canAccessRequestDetails = Boolean(
     user &&
     userRole !== "service_requester" &&
@@ -487,7 +533,10 @@ export default function RequestDetailsNew() {
     isQuickResponse &&
     (isRequester || canAccessRequestDetails)
   );
-  const showQuickResponseReportShortcut = canViewQuickResponseReport && userRole !== "quick_response" && !userPermissions.includes("requests.manage_as_field_team");
+  const showQuickResponseReportShortcut = canViewQuickResponseReport && 
+                                          userRole !== "quick_response" && 
+                                          !userPermissions.includes("requests.manage_as_field_team") &&
+                                          !userPermissions.includes("requests.manage_as_quick_response");
 
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
@@ -783,7 +832,7 @@ export default function RequestDetailsNew() {
                   percentage: progress,
                 }}
                 fieldReportButton={
-                  !isFieldTeam && hasFieldReport &&
+                  !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
                   !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                   !(isQuickResponse && (
                     (user?.role as string) !== 'quick_response' ||
@@ -806,13 +855,13 @@ export default function RequestDetailsNew() {
                   )
                     ? {
                         label: activeAction.actionButton.label,
-                        onClick: activeAction.actionButton.onClick || handleStageTransition,
+                        onClick: (activeAction.actionButton as any).onClick || handleStageTransition,
                         disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
                       }
                     : undefined
                 }
                 secondaryButton={
-                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && !isFieldTeam
+                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                     ? {
                         label: "الانتقال إلى التقييم المالي",
                         onClick: () => {
@@ -825,19 +874,19 @@ export default function RequestDetailsNew() {
                         variant: 'default' as const,
                         disabled: !hasBoqItems || updateStageMutation.isPending,
                       }
-                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && !isFieldTeam
+                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                     ? {
                         label: "إدارة عروض الأسعار",
                         onClick: () => setLocation('/quotations'),
                         variant: 'outline' as const,
                       }
-                    : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details"))
+                    : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                     ? {
                         label: "الانتقال إلى مرحلة التنفيذ",
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                         variant: 'default' as const,
                       }
-                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details"))
+                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                       ? request.requestTrack === 'quick_response'
                         ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
                           ? {
@@ -852,7 +901,7 @@ export default function RequestDetailsNew() {
                             variant: 'default' as const,
                             disabled: !!latestFinalReport,
                           }
-                    : request.currentStage === 'handover' && (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details"))
+                    : request.currentStage === 'handover' && (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                     ? {
                         label: "إغلاق الطلب رسمياً",
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
@@ -892,7 +941,7 @@ export default function RequestDetailsNew() {
               )}
 
               {/* خيارات التقييم الفني */}
-              {request.currentStage === 'technical_eval' && activeAction.canPerformAction && !isFieldTeam && (
+              {request.currentStage === 'technical_eval' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {/* التحويل إلى مشروع */}
                   <button 

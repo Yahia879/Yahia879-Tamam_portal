@@ -34,9 +34,13 @@ export function getActiveAction(
   const userPerms = requestData?.userPermissions || [];
   const hasViewDetails = userPerms.includes("requests.view_details");
   const hasFieldTeamPerm = userPerms.includes("requests.manage_as_field_team");
+  const hasQuickResponsePerm = userPerms.includes("requests.manage_as_quick_response");
 
   // التحقق من الصلاحيات
-  let hasRole = (userRole && config.allowedRoles.some(role => role === userRole)) || hasViewDetails || (hasFieldTeamPerm && (config.allowedRoles.includes("field_team") || config.allowedRoles.includes("quick_response")));
+  let hasRole = (userRole && config.allowedRoles.some(role => role === userRole)) || 
+                 hasViewDetails || 
+                 (hasFieldTeamPerm && config.allowedRoles.includes("field_team")) ||
+                 (hasQuickResponsePerm && config.allowedRoles.includes("quick_response"));
 
   // التحقق من الإسناد (إذا كان الطلب مسنداً لشخص معين)
   let isAssignedToUser =
@@ -44,7 +48,8 @@ export function getActiveAction(
     requestData.assignedTo === requestData.userId ||
     (userRole && ['super_admin', 'system_admin', 'projects_office'].includes(userRole)) ||
     hasViewDetails ||
-    hasFieldTeamPerm;
+    hasFieldTeamPerm ||
+    hasQuickResponsePerm;
 
   let title = config.title;
   let description = config.description;
@@ -68,7 +73,7 @@ export function getActiveAction(
       };
       
       const allowedQRRoles = ["quick_response", "super_admin", "system_admin", "projects_office"];
-      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole));
+      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasQuickResponsePerm;
       isAssignedToUser = true;
       allowedRoles = allowedQRRoles;
     } else {
@@ -83,7 +88,7 @@ export function getActiveAction(
       
       // الأدوار المسموح لها برفع التقرير في الاستجابة السريعة
       const allowedQRRoles = ["quick_response"];
-      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasFieldTeamPerm;
+      hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasQuickResponsePerm;
       
       // يجب أن يكون المستخدم هو المسؤول المسند إليه الطلب
       isAssignedToUser = Boolean(requestData && requestData.assignedTo === requestData.userId);
@@ -103,7 +108,7 @@ export function getActiveAction(
     };
     
     const allowedQRRoles = ["quick_response", "super_admin", "system_admin", "projects_office"];
-    hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasFieldTeamPerm;
+    hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasQuickResponsePerm;
     isAssignedToUser = true;
     allowedRoles = allowedQRRoles;
   }

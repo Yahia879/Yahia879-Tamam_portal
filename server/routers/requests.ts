@@ -226,7 +226,9 @@ export const requestsRouter = router({
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
       const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm"].includes(ctx.user.role);
-      const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || await checkPermission(ctx.user.id, "requests.manage_as_field_team");
+      const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || 
+                             await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
+                             await checkPermission(ctx.user.id, "requests.manage_as_quick_response");
 
       if (!isOwner && !isAssigned && !hasDetailsPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
@@ -872,12 +874,12 @@ export const requestsRouter = router({
       const [ownerUser] = await db
         .select({ role: users.role })
         .from(users)
-        .where(eq(users.id, request[0].userId))
+        .where(eq(users.id, request[0].userId!))
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
         await db.insert(notifications).values({
-          userId: request[0].userId,
+          userId: request[0].userId!,
           title: stageMsg.title,
           message: stageMsg.message,
           type: "request_update",
@@ -965,12 +967,12 @@ export const requestsRouter = router({
       const [ownerUser] = await db
         .select({ role: users.role })
         .from(users)
-        .where(eq(users.id, request[0].userId))
+        .where(eq(users.id, request[0].userId!))
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
         await db.insert(notifications).values({
-          userId: request[0].userId,
+          userId: request[0].userId!,
           title: "تحديث حالة الطلب",
           message: `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى ${input.newStatus}`,
           type: "request_update",
@@ -1468,12 +1470,12 @@ export const requestsRouter = router({
       const [ownerUser] = await db
         .select({ role: users.role })
         .from(users)
-        .where(eq(users.id, request[0].userId))
+        .where(eq(users.id, request[0].userId!))
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
         await createNotification({
-          userId: request[0].userId,
+          userId: request[0].userId!,
           title: `تحديث التقييم الفني`,
           message: notificationMessage,
           type: "request_update",
@@ -1666,12 +1668,12 @@ export const requestsRouter = router({
       const [ownerUser] = await db
         .select({ role: users.role })
         .from(users)
-        .where(eq(users.id, request[0].userId))
+        .where(eq(users.id, request[0].userId!))
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
         await db.insert(notifications).values({
-          userId: request[0].userId,
+          userId: request[0].userId!,
           title: 'تم جدولة زيارة ميدانية',
           message: `تم جدولة زيارة ميدانية لطلبك رقم ${request[0].requestNumber} بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')}`,
           type: 'info',
@@ -1982,12 +1984,12 @@ export const requestsRouter = router({
       const [ownerUser] = await db
         .select({ role: users.role })
         .from(users)
-        .where(eq(users.id, request[0].userId))
+        .where(eq(users.id, request[0].userId!))
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
         await db.insert(notifications).values({
-          userId: request[0].userId,
+          userId: request[0].userId!,
           title: "تم اعتماد طلبك مالياً",
           message: `تم اعتماد طلبك رقم ${request[0].requestNumber} مالياً بمبلغ ${finalAmount.toLocaleString("ar-SA")} ريال وتم الانتقال لمرحلة التعاقد`,
           type: "request_update",
