@@ -52,6 +52,7 @@ const superAdminGroups = [
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
       { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
+      { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
     ]
   },
   {
@@ -165,6 +166,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     financial_reports: {
       view: "عرض تقرير المالية والإحصائيات",
       export: "تصدير البيانات"
+    },
+    reports: {
+      view_stats: "عرض احصائيات الطلبات",
+      export_data: "تصدير البيانات"
     },
     staff_users: {
       view: "عرض قائمة المستخدمين",
@@ -407,6 +412,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
+      if (!selectedPerms.includes("reports.view_stats")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض احصائيات الطلبات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -450,6 +463,9 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
         if (permId === "financial_reports.view") {
           next = next.filter(id => !id.startsWith("financial_reports."));
+        }
+        if (permId === "reports.view_stats") {
+          next = next.filter(id => !id.startsWith("reports."));
         }
         if (permId === "financial_approval.view") {
           next = next.filter(id => id !== "financial_approval.approve");
@@ -660,6 +676,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                              (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                               (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                             return (
                               <div 

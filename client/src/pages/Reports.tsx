@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { usePermission } from "@/hooks/usePermission";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   BarChart3, 
@@ -91,6 +92,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 };
 
 export default function Reports() {
+  const canExport = usePermission("reports.export_data");
   const [programFilter, setProgramFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [timeRange, setTimeRange] = useState("year");
@@ -212,12 +214,14 @@ export default function Reports() {
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">عرض وتصدير بيانات الطلبات والمشاريع المباشرة</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200" onClick={handleExportExcel} disabled={isLoading}>
-              <Download className="w-4 h-4" />
-              تصدير Excel
-            </Button>
-          </div>
+          {canExport && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-0 shadow-sm transition-all duration-200" onClick={handleExportExcel} disabled={isLoading}>
+                <Download className="w-4 h-4" />
+                تصدير Excel
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* فلاتر التقارير */}

@@ -235,6 +235,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
+      if (!isChecked("reports.view_stats")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض احصائيات الطلبات' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!isChecked("financial_approval.view")) {
@@ -328,6 +336,7 @@ export default function UserPermissions() {
         if (permId === "requests.view") cascadeRevoke("requests.");
         if (permId === "projects.view") cascadeRevoke("projects.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
+        if (permId === "reports.view_stats") cascadeRevoke("reports.");
         if (permId === "financial_approval.view") {
           const defVal = rolePermissions?.includes("financial_approval.approve") || false;
           if (defVal) {
@@ -535,6 +544,10 @@ export default function UserPermissions() {
         view: "عرض تقرير المالية والإحصائيات",
         export: "تصدير البيانات",
       },
+      reports: {
+        view_stats: "عرض احصائيات الطلبات",
+        export_data: "تصدير البيانات"
+      },
       staff_users: {
         view: "عرض قائمة المستخدمين",
         add: "إضافة موظف جديد",
@@ -607,6 +620,7 @@ export default function UserPermissions() {
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
+        { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
     },
     {

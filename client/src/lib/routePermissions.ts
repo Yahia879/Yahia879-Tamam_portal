@@ -25,7 +25,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders",
-    "progress_reports", "financial_report",
+    "progress_reports", "financial_report", "reports",
   ],
 
   field_team: [
@@ -137,7 +137,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/kpi-dashboard": ["projects", "requests.view_details"],
 
   // ── التقارير ──
-  "/reports": ["reports.view", "progress_reports", "financial_report", "requests.view"],
+  "/reports": ["reports.view_stats", "reports.export_data", "reports.view", "progress_reports", "financial_report", "requests.view"],
   "/financial-report": "financial_report",
 
   // ── الإعدادات ──

@@ -15,6 +15,7 @@ import {
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
+import { checkPermission } from "./permissions";
 
 const router = Router();
 
@@ -500,7 +501,8 @@ router.get("/reports/pdf", async (req, res) => {
 
     // 2. التحقق من أن المستخدم إداري ولديه الصلاحية
     const allowedRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
-    if (!allowedRoles.includes(user.role)) {
+    const hasViewPermission = (await checkPermission(user.id, "reports.view_stats")) || (await checkPermission(user.id, "reports.export_data"));
+    if (!allowedRoles.includes(user.role) && !hasViewPermission) {
       return res.status(403).json({ error: "ليس لديك صلاحية لعرض هذا التقرير" });
     }
 
@@ -856,7 +858,8 @@ router.get("/reports/excel", async (req, res) => {
 
     // 2. التحقق من أن المستخدم إداري ولديه الصلاحية
     const allowedRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
-    if (!allowedRoles.includes(user.role)) {
+    const hasExportPermission = await checkPermission(user.id, "reports.export_data");
+    if (!allowedRoles.includes(user.role) && !hasExportPermission) {
       return res.status(403).json({ error: "ليس لديك صلاحية لعرض هذا التقرير" });
     }
 
