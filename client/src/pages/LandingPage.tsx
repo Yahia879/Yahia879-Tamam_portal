@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,22 @@ export default function LandingPage() {
 
   // جلب إعدادات الهوية البصرية
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+  const primaryColor = orgSettings?.colorPrimary1 || "#0d9488";
+  const secondaryColor = orgSettings?.colorPrimary2 || "#0f766e";
+
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل عند فتح الموقع
   useEffect(() => {
@@ -55,27 +71,77 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-background" dir="rtl">
 
       {/* ═══════════════ الهيدر ═══════════════ */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-sm">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled 
+            ? "bg-background/95 backdrop-blur border-b border-border shadow-sm py-2" 
+            : "bg-transparent border-transparent py-4"
+        }`}
+      >
+        <div className="container mx-auto px-3 sm:px-6">
+          <div className="flex items-center justify-between h-16 gap-2">
             {/* الشعار */}
-            <div className="flex items-center gap-3">
-              <img src={orgSettings?.logoUrl || "/logo.svg"} alt="شعار بوابة تمام" className="w-10 h-10 object-contain" />
-              <div>
-                <h1 className="font-bold text-base text-foreground leading-tight">{orgSettings?.organizationName || "بوابة تمام"}</h1>
-                <p className="text-xs text-muted-foreground">{orgSettings?.organizationNameShort || "للعناية بالمساجد"}</p>
+            <div className="flex items-center gap-1.5 xs:gap-3 min-w-0">
+              <img 
+                src={
+                  isScrolled 
+                    ? (orgSettings?.logoUrl || "/logo.svg") 
+                    : (orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg")
+                } 
+                alt="شعار بوابة تمام" 
+                className="w-8 h-8 xs:w-10 xs:h-10 shrink-0 object-contain transition-all duration-300" 
+              />
+              <div className="min-w-0">
+                <h1 className={`font-bold text-xs xs:text-sm sm:text-base leading-tight transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-foreground" : "text-white"}`}>
+                  {orgSettings?.organizationName || "بوابة تمام"}
+                </h1>
+                <p className={`text-[9px] xs:text-xs transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-muted-foreground" : "text-white/80"}`}>
+                  {orgSettings?.organizationNameShort || "للعناية بالمساجد"}
+                </p>
               </div>
             </div>
 
             {/* أزرار الدخول */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
               <Link href="/login">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground px-2 sm:px-4 text-[10px] xs:text-xs sm:text-sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 ${
+                    isScrolled 
+                      ? "text-muted-foreground hover:text-foreground" 
+                      : "text-white/90 hover:text-white hover:bg-white/10"
+                  }`}
+                >
                   دخول المستفيدين
                 </Button>
               </Link>
               <Link href="/admin/login">
-                <Button size="sm" className="gradient-primary text-white shadow-sm px-2 sm:px-4 text-[10px] xs:text-xs sm:text-sm">
+                <Button 
+                  size="sm" 
+                  className={`shadow-sm px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm border-0 transition-all duration-300 ${
+                    isScrolled ? "text-white" : ""
+                  }`}
+                  style={
+                    isScrolled 
+                      ? { background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }
+                      : { backgroundColor: "#ffffff", color: primaryColor }
+                  }
+                  onMouseEnter={(e) => {
+                    if (isScrolled) {
+                      e.currentTarget.style.filter = "brightness(1.1)";
+                    } else {
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (isScrolled) {
+                      e.currentTarget.style.filter = "none";
+                    } else {
+                      e.currentTarget.style.backgroundColor = "#ffffff";
+                    }
+                  }}
+                >
                   دخول الموظفين
                 </Button>
               </Link>
@@ -89,7 +155,7 @@ export default function LandingPage() {
         className="relative overflow-hidden islamic-pattern"
         style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #1e40af 100%)' }}
       >
-        <div className="container mx-auto px-4 xs:px-6 py-12 md:py-28">
+        <div className="container mx-auto px-4 xs:px-6 pt-24 pb-12 md:pt-36 md:pb-28">
           <div className="max-w-3xl mx-auto text-center">
             {/* الشعار الكبير */}
             <div className="flex justify-center mb-6 md:mb-8">
@@ -114,7 +180,8 @@ export default function LandingPage() {
               <Link href="/register">
                 <Button
                   size="lg"
-                  className="bg-white text-primary hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                  className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                  style={{ color: primaryColor }}
                 >
                   <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
                   طلب خدمة جديدة
