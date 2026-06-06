@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { notifications, users } from "../../drizzle/schema";
+import { notifications, users, roles } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -119,17 +119,21 @@ async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<nu
     const candidateUsers = await db
       .select({ id: users.id })
       .from(users)
+      .leftJoin(roles, eq(users.role, roles.id))
       .where(
         and(
           isNull(users.deletedAt),
-          eq(users.receiveBeneficiaryNotifications, true)
+          or(
+            eq(users.receiveBeneficiaryNotifications, true),
+            eq(roles.receiveBeneficiaryNotifications, true)
+          )
         )
       );
 
     const officerIds: number[] = [];
-    for (const u of candidateUsers) {
-      if (excludeUserId && u.id === excludeUserId) continue;
-      officerIds.push(u.id);
+    for (const row of candidateUsers) {
+      if (excludeUserId && row.id === excludeUserId) continue;
+      officerIds.push(row.id);
     }
 
     return officerIds;
