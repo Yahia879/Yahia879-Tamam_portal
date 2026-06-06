@@ -564,28 +564,7 @@ export const notificationsRouter = router({
         conditions.push(eq(notifications.isRead, false));
       }
 
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isRequestOfficer =
-        ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
-        userPerms.includes("requests.view_details");
-      if (isRequestOfficer) {
-        conditions.push(
-          or(
-            like(notifications.title, "%تم استلام طلبك%"),
-            like(notifications.title, "%طلب جديد%"),
-            like(notifications.title, "%تحديث مرحلة الطلب%"),
-            like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
-            like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
-            like(notifications.message, "%تم استلام طلبك%"),
-            like(notifications.message, "%طلب جديد%"),
-            like(notifications.message, "%بإنشاء طلب%"),
-            like(notifications.message, "%بنقل الطلب%"),
-            like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
-            like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
-            like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
-          ) as any
-        );
-      }
+      // Removed restrictive title/message filtering for request officers to ensure all notifications (e.g. comments, status changes, assignments) are visible.
 
       const [notificationsList, countResult] = await Promise.all([
         db
@@ -616,28 +595,7 @@ export const notificationsRouter = router({
 
     const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
     
-    const userPerms = await calculateUserPermissions(ctx.user.id);
-    const isRequestOfficer =
-      ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
-      userPerms.includes("requests.view_details");
-    if (isRequestOfficer) {
-      conditions.push(
-        or(
-          like(notifications.title, "%تم استلام طلبك%"),
-          like(notifications.title, "%طلب جديد%"),
-          like(notifications.title, "%تحديث مرحلة الطلب%"),
-          like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
-          like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
-          like(notifications.message, "%تم استلام طلبك%"),
-          like(notifications.message, "%طلب جديد%"),
-          like(notifications.message, "%بإنشاء طلب%"),
-          like(notifications.message, "%بنقل الطلب%"),
-          like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
-          like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
-          like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
-        ) as any
-      );
-    }
+    // Removed restrictive title/message filtering for request officers to ensure accurate unread count.
 
     const result = await db
       .select({ count: sql<number>`count(*)` })
@@ -673,28 +631,7 @@ export const notificationsRouter = router({
 
     const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
 
-    const userPerms = await calculateUserPermissions(ctx.user.id);
-    const isRequestOfficer =
-      ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
-      userPerms.includes("requests.view_details");
-    if (isRequestOfficer) {
-      conditions.push(
-        or(
-          like(notifications.title, "%تم استلام طلبك%"),
-          like(notifications.title, "%طلب جديد%"),
-          like(notifications.title, "%تحديث مرحلة الطلب%"),
-          like(notifications.title, "%تم رفع تقرير المعاينة الميدانية%"),
-          like(notifications.title, "%تم رفع تقرير الاستجابة السريعة%"),
-          like(notifications.message, "%تم استلام طلبك%"),
-          like(notifications.message, "%طلب جديد%"),
-          like(notifications.message, "%بإنشاء طلب%"),
-          like(notifications.message, "%بنقل الطلب%"),
-          like(notifications.message, "%تم رفع تقرير زيارة ميدانية%"),
-          like(notifications.message, "%تم رفع تقرير المعاينة الميدانية%"),
-          like(notifications.message, "%تم رفع تقرير الاستجابة السريعة%")
-        ) as any
-      );
-    }
+    // Removed restrictive title/message filtering for request officers.
 
     await db
       .update(notifications)

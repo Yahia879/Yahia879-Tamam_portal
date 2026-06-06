@@ -2,42 +2,18 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { getDb } from "../server/db";
-import { notifications, users } from "../drizzle/schema";
+import { notifications } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
-async function main() {
+async function run() {
   const db = await getDb();
   if (!db) {
-    console.error("No DB connection");
-    process.exit(1);
+    console.error("DB connection failed");
+    return;
   }
-
-  try {
-    const list = await db
-      .select({
-        id: notifications.id,
-        userId: notifications.userId,
-        userName: users.name,
-        userRole: users.role,
-        title: notifications.title,
-        message: notifications.message,
-        type: notifications.type,
-        createdAt: notifications.createdAt,
-      })
-      .from(notifications)
-      .leftJoin(users, eq(notifications.userId, users.id))
-      .limit(100);
-
-    console.log("Found notifications count:", list.length);
-    for (const item of list) {
-      console.log(`\nID: ${item.id} | UserID: ${item.userId} | Role: ${item.userRole} | Name: ${item.userName}`);
-      console.log(`Title: ${item.title}`);
-      console.log(`Message: ${item.message}`);
-    }
-  } catch (err) {
-    console.error("DB error:", err);
-  }
-  process.exit(0);
+  const list = await db.select().from(notifications).where(eq(notifications.userId, 68));
+  console.log("User 68 Notifications count:", list.length);
+  console.log("Notifications:", JSON.stringify(list, null, 2));
 }
 
-main();
+run().catch(console.error);
