@@ -315,7 +315,7 @@ export default function NotificationCustomization() {
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
                 <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين، الطلبات والمالية للأدوار</CardTitle>
                 <CardDescription className="text-sm">
-                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين.
+                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين، وعروض الأسعار، والعقود، وتقارير الإنجاز، وإنشاء طلبات وأوامر الصرف.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
@@ -401,7 +401,7 @@ export default function NotificationCustomization() {
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
                 <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين، الطلبات والمالية للأشخاص</CardTitle>
                 <CardDescription className="text-sm">
-                  حدد الموظفين الذين يتلقون إشعارات عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين.
+                  حدد الموظفين الذين يتلقون إشعارات عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين، وعروض الأسعار، والعقود، وتقارير الإنجاز، وإنشاء طلبات وأوامر الصرف.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">

@@ -19,7 +19,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification } from "./notifications";
+import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation } from "./notifications";
 
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -380,6 +380,14 @@ export const disbursementsRouter = router({
         status: "pending",
         requestedBy: ctx.user.id,
       });
+
+      await notifyDisbursementRequestCreation(
+        result.insertId,
+        requestNumber,
+        input.title,
+        input.amount.toString(),
+        projectId || null
+      );
 
       // إرسال إشعار للإدارة المالية
       const financialUsers = await db
@@ -1084,6 +1092,14 @@ export const disbursementsRouter = router({
         status: "pending",
         createdBy: ctx.user.id,
       });
+
+      await notifyDisbursementOrderCreation(
+        Number(result.insertId),
+        orderNumber,
+        request.requestNumber,
+        request.amount,
+        request.projectId
+      );
 
       // إرسال إشعار للمدير العام لاعتماد أمر الصرف
       const managers = await db

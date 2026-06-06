@@ -25,6 +25,7 @@ import {
   requestHistory,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, asc, ne } from "drizzle-orm";
+import { notifyContractCreation, notifyContractApproval } from "./notifications";
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
 async function syncProjectActualCost(db: any, projectId: number) {
@@ -470,6 +471,16 @@ export const contractsRouter = router({
       const [result] = await db.insert(contractsEnhanced).values(contractData);
       
       const contractId = result.insertId;
+
+      await notifyContractCreation(
+        contractId,
+        contractData.contractNumber,
+        contractData.contractTitle,
+        contractData.secondPartyName,
+        contractData.contractAmount,
+        contractData.requestId,
+        contractData.projectId
+      );
       
       // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
       if (input.projectId) {
@@ -739,6 +750,16 @@ export const contractsRouter = router({
           approvedAt: new Date(),
         })
         .where(eq(contractsEnhanced.id, input.id));
+
+      await notifyContractApproval(
+        contract.id,
+        contract.contractNumber,
+        contract.contractTitle,
+        contract.secondPartyName,
+        contract.contractAmount,
+        contract.requestId,
+        contract.projectId
+      );
       // تحديث حالة المشروع إلى "قيد التنفيذ" عند اعتماد العقد وتحديث الميزانية
       console.log('[Contract Approve] Starting stage update - projectId:', contract.projectId, 'requestId:', contract.requestId);
       if (contract.projectId) {

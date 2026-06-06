@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { notifications, users, roles as rolesTable, suppliers, mosqueRequests } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -945,3 +945,279 @@ export async function notifyQuotationApproval(
     console.error("Error in notifyQuotationApproval:", error);
   }
 }
+
+export async function notifyContractCreation(
+  contractId: number,
+  contractNumber: string,
+  contractTitle: string,
+  secondPartyName: string,
+  contractAmount: string,
+  requestId: number | null,
+  projectId: number | null
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "إنشاء عقد مع مورد";
+    const message = `تم إنشاء عقد جديد رقم "${contractNumber}" مع المورد "${secondPartyName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""} بقيمة ${contractAmount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "info",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyContractCreation:", error);
+  }
+}
+
+export async function notifyContractApproval(
+  contractId: number,
+  contractNumber: string,
+  contractTitle: string,
+  secondPartyName: string,
+  contractAmount: string,
+  requestId: number | null,
+  projectId: number | null
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "اعتماد عقد مع مورد";
+    const message = `تم اعتماد العقد رقم "${contractNumber}" للمورد "${secondPartyName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""} بقيمة ${contractAmount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyContractApproval:", error);
+  }
+}
+
+export async function notifyProgressReportCreation(
+  reportId: number,
+  reportNumber: string,
+  reportTitle: string,
+  projectId: number
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [project] = await db
+      .select({ name: projects.name, requestId: projects.requestId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    const projectName = project ? project.name : "غير معروف";
+    const requestId = project ? project.requestId : null;
+
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "إنشاء تقرير إنجاز";
+    const message = `تم إنشاء تقرير إنجاز جديد رقم "${reportNumber}" للمشروع "${projectName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "info",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyProgressReportCreation:", error);
+  }
+}
+
+export async function notifyProgressReportApproval(
+  reportId: number,
+  reportNumber: string,
+  reportTitle: string,
+  projectId: number
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [project] = await db
+      .select({ name: projects.name, requestId: projects.requestId })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    const projectName = project ? project.name : "غير معروف";
+    const requestId = project ? project.requestId : null;
+
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "اعتماد تقرير إنجاز";
+    const message = `تم اعتماد تقرير الإنجاز رقم "${reportNumber}" للمشروع "${projectName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyProgressReportApproval:", error);
+  }
+}
+
+export async function notifyDisbursementRequestCreation(
+  requestId: number,
+  requestNumber: string,
+  title: string,
+  amount: string,
+  projectId: number | null
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let projectName = "";
+    if (projectId) {
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+      if (project) {
+        projectName = project.name;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const notificationTitle = "إنشاء طلب صرف";
+    const message = `تم إنشاء طلب صرف جديد رقم "${requestNumber}" ("${title}")${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "info",
+        title: notificationTitle,
+        message,
+        relatedType: "disbursement_request",
+        relatedId: requestId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyDisbursementRequestCreation:", error);
+  }
+}
+
+export async function notifyDisbursementOrderCreation(
+  orderId: number,
+  orderNumber: string,
+  requestNumber: string,
+  amount: string,
+  projectId: number | null
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let projectName = "";
+    if (projectId) {
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+      if (project) {
+        projectName = project.name;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const notificationTitle = "تحويل إلى أمر صرف";
+    const message = `تم تحويل طلب الصرف رقم "${requestNumber}" إلى أمر صرف رقم "${orderNumber}"${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title: notificationTitle,
+        message,
+        relatedType: "disbursement_order",
+        relatedId: orderId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyDisbursementOrderCreation:", error);
+  }
+}
+
+
+
+

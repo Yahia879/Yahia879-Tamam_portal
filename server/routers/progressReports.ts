@@ -5,6 +5,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import { progressReports, projects, users } from "../../drizzle/schema";
+import { notifyProgressReportCreation, notifyProgressReportApproval } from "./notifications";
 
 export const progressReportsRouter = router({
   // قائمة تقارير الإنجاز
@@ -202,6 +203,8 @@ export const progressReportsRouter = router({
           createdBy: ctx.user.id,
         });
 
+        await notifyProgressReportCreation(result.insertId, reportNumber, input.title, input.projectId);
+
         return { id: result.insertId, reportNumber };
       } catch (error: any) {
         console.error("Error creating progress report:", error);
@@ -322,6 +325,20 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
+      const [report] = await db
+        .select({
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          projectId: progressReports.projectId,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.id, input.id))
+        .limit(1);
+
+      if (!report) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+      }
+
       await db
         .update(progressReports)
         .set({
@@ -331,6 +348,10 @@ export const progressReportsRouter = router({
           reviewNotes: input.reviewNotes,
         })
         .where(eq(progressReports.id, input.id));
+
+      if (input.status === "approved") {
+        await notifyProgressReportApproval(input.id, report.reportNumber, report.title, report.projectId);
+      }
 
       return { success: true };
     }),
