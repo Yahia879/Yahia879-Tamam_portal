@@ -4,7 +4,7 @@ import { getDb } from "../db";
 import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { notifyProjectManagerAssigned } from "./notifications";
+import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
 // توليد رقم مشروع بمنهجية سنوية
 async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -1061,7 +1061,16 @@ export const projectsRouter = router({
         discountAmount: input.discountAmount?.toString() || null,
       } as any);
 
-      return { id: result[0].insertId, quotationNumber };
+      const quotationId = result[0].insertId;
+      await notifyQuotationCreation(
+        quotationId,
+        quotationNumber,
+        input.requestId || null,
+        input.projectId || null,
+        input.supplierId
+      );
+
+      return { id: quotationId, quotationNumber };
     }),
 
   // جلب عروض الأسعار للطلب
@@ -1110,10 +1119,31 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [quotation] = await db
+        .select()
+        .from(quotations)
+        .where(eq(quotations.id, input.id))
+        .limit(1);
+
+      if (!quotation) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "عرض السعر غير موجود" });
+      }
+
       await db
         .update(quotations)
         .set({ status: input.status })
         .where(eq(quotations.id, input.id));
+
+      if (input.status === "accepted") {
+        await notifyQuotationApproval(
+          quotation.id,
+          quotation.quotationNumber,
+          quotation.requestId,
+          quotation.projectId,
+          quotation.supplierId,
+          quotation.approvedAmount || quotation.finalAmount || quotation.totalAmount
+        );
+      }
 
       return { success: true };
     }),
@@ -1200,6 +1230,15 @@ export const projectsRouter = router({
           notes: input.notes || null
         })
         .where(eq(quotations.id, input.id));
+
+      await notifyQuotationApproval(
+        quotation.id,
+        quotation.quotationNumber,
+        quotation.requestId,
+        quotation.projectId,
+        quotation.supplierId,
+        approvedAmount
+      );
 
       return { 
         success: true,

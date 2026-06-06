@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { notifications, users, roles as rolesTable } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable, suppliers, mosqueRequests } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -842,5 +842,106 @@ export async function notifySupplierRejection(supplierId: number, supplierName: 
     }
   } catch (error) {
     console.error("Error in notifySupplierRejection:", error);
+  }
+}
+
+export async function notifyQuotationCreation(
+  quotationId: number,
+  quotationNumber: string,
+  requestId: number | null,
+  projectId: number | null,
+  supplierId: number
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [supplier] = await db
+      .select({ name: suppliers.name })
+      .from(suppliers)
+      .where(eq(suppliers.id, supplierId))
+      .limit(1);
+
+    const supplierName = supplier ? supplier.name : "غير معروف";
+
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "إضافة عرض سعر جديد";
+    const message = `تم إضافة عرض سعر جديد رقم "${quotationNumber}" من قبل المورد "${supplierName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "info",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyQuotationCreation:", error);
+  }
+}
+
+export async function notifyQuotationApproval(
+  quotationId: number,
+  quotationNumber: string,
+  requestId: number | null,
+  projectId: number | null,
+  supplierId: number,
+  approvedAmount: string
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [supplier] = await db
+      .select({ name: suppliers.name })
+      .from(suppliers)
+      .where(eq(suppliers.id, supplierId))
+      .limit(1);
+
+    const supplierName = supplier ? supplier.name : "غير معروف";
+
+    let requestNumber = "";
+    if (requestId) {
+      const [req] = await db
+        .select({ requestNumber: mosqueRequests.requestNumber })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, requestId))
+        .limit(1);
+      if (req) {
+        requestNumber = req.requestNumber;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "اعتماد عرض سعر";
+    const message = `تم اعتماد عرض السعر رقم "${quotationNumber}" للمورد "${supplierName}" ${requestNumber ? `للطلب رقم ${requestNumber}` : ""} بقيمة ${approvedAmount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId || undefined,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyQuotationApproval:", error);
   }
 }

@@ -41,7 +41,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -1966,6 +1966,15 @@ export const requestsRouter = router({
       await db.update(quotations).set({
         status: "accepted",
       }).where(eq(quotations.quotationNumber, request[0].selectedQuotationId));
+
+      await notifyQuotationApproval(
+        quotation[0].id,
+        quotation[0].quotationNumber,
+        quotation[0].requestId,
+        quotation[0].projectId,
+        quotation[0].supplierId,
+        (quotation[0].finalAmount || quotation[0].totalAmount || "0").toString()
+      );
 
       // تحديث تقدم المشروع المرتبط: 3/6 مراحل مكتملة
       const [linkedProject] = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
