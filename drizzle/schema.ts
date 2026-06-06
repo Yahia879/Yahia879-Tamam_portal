@@ -1744,6 +1744,7 @@ export const roles = mysqlTable("roles", {
   description: text("description"),
   isSystem: boolean("is_system").default(false).notNull(), // true للأدوار الافتراضية
   isActive: boolean("is_active").default(true).notNull(),
+  receiveBeneficiaryNotifications: boolean("receiveBeneficiaryNotifications").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

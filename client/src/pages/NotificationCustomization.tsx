@@ -46,6 +46,22 @@ export default function NotificationCustomization() {
     updateNotifSettingMutation.mutate({ userId, enabled });
   };
 
+  // جلب قائمة الأدوار وتخصيص إشعاراتها
+  const { data: dbRoles, isLoading: isLoadingRoles, refetch: refetchRoles } = trpc.permissions.getRoles.useQuery();
+  const updateRoleNotifSettingMutation = trpc.permissions.updateRoleReceiveBeneficiaryNotifications.useMutation({
+    onSuccess: () => {
+      refetchRoles();
+      toast.success("تم تحديث إعدادات استقبال إشعارات الدور بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleRoleNotifications = (roleId: string, enabled: boolean) => {
+    updateRoleNotifSettingMutation.mutate({ roleId, enabled });
+  };
+
   // الأدوار المتاحة في النظام لتخصيص الإشعارات
   const roles = [
     { id: "super_admin", nameAr: "المدير العام", color: "bg-red-500/10 text-red-500 border-red-500/20" },
@@ -241,64 +257,66 @@ export default function NotificationCustomization() {
           <TabsContent value="roles" className="space-y-6 focus-visible:outline-none">
             <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
-                <CardTitle className="text-lg font-bold text-foreground">مصفوفة صلاحيات الإشعارات</CardTitle>
+                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين للأدوار</CardTitle>
                 <CardDescription className="text-sm">
-                  حدد أي الأدوار تتلقى إشعارات تلقائية عند حدوث الأحداث التشغيلية للطلبات والمساجد.
+                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند قيام المستفيدين بتقديم طلبات جديدة أو تسجيل مساجد جديدة في البوابة.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
-                <Table className="min-w-[800px]">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                      <TableHead className="w-[300px] text-right font-bold py-4 text-foreground">الحدث / منشئ الإشعار</TableHead>
-                      {roles.map(role => (
-                        <TableHead key={role.id} className="text-center font-bold py-4 text-foreground">
-                          <div className="flex flex-col items-center gap-1.5">
-                            <span>{role.nameAr}</span>
-                            <Badge variant="outline" className={`text-[10px] py-0 px-2 rounded-full border font-normal ${role.color}`}>
-                              {role.id}
-                            </Badge>
-                          </div>
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="divide-y divide-border/40">
-                    {triggers.map(trigger => (
-                      <TableRow key={trigger.id} className="hover:bg-muted/20 transition-colors">
-                        <TableCell className="py-4 pr-6">
-                          <div className="space-y-1">
-                            <p className="font-semibold text-sm text-foreground">{trigger.nameAr}</p>
-                            <p className="text-xs text-muted-foreground max-w-sm leading-normal">{trigger.description}</p>
-                          </div>
-                        </TableCell>
-                        {roles.map(role => (
-                          <TableCell key={role.id} className="text-center py-4">
-                            <div className="flex justify-center">
-                              <Switch
-                                checked={trigger.roles[role.id] || false}
-                                onCheckedChange={() => handleToggleTrigger(trigger.id, role.id)}
-                                className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
-                              />
-                            </div>
-                          </TableCell>
-                        ))}
+                {isLoadingRoles ? (
+                  <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    <span>جاري تحميل قائمة الأدوار...</span>
+                  </div>
+                ) : dbRoles && dbRoles.length > 0 ? (
+                  <Table className="min-w-[700px]">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                        <TableHead className="text-right font-bold py-4 text-foreground pr-6">الدور الوظيفي</TableHead>
+                        <TableHead className="text-right font-bold py-4 text-foreground">نوع الدور</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المستفيدين</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-border/40">
+                      {dbRoles
+                        .filter(role => role.id !== "service_requester")
+                        .sort((a, b) => {
+                          if (a.isSystem && !b.isSystem) return -1;
+                          if (!a.isSystem && b.isSystem) return 1;
+                          return 0;
+                        })
+                        .map(role => {
+                          const roleStyle = roles.find(r => r.id === role.id) || { color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
+                          
+                          return (
+                            <TableRow key={role.id} className="hover:bg-muted/20 transition-colors">
+                              <TableCell className="py-4 pr-6 font-semibold text-sm text-foreground">
+                                {role.nameAr}
+                              </TableCell>
+                              <TableCell className="py-4 text-sm">
+                                <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
+                                  {role.isSystem ? "أساسي" : "مخصص"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center py-4 pl-6">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={role.receiveBeneficiaryNotifications || false}
+                                    onCheckedChange={(checked) => handleToggleRoleNotifications(role.id, checked)}
+                                    className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                  />
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">لا توجد أدوار متاحة حالياً.</div>
+                )}
               </CardContent>
             </Card>
-            
-            <div className="bg-amber-50/50 dark:bg-amber-950/15 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-amber-800 dark:text-amber-400">ملاحظة هامة حول الصلاحيات</p>
-                <p className="text-xs text-amber-700/80 dark:text-amber-500 leading-relaxed">
-                  يتطلب استقبال الإشعارات العامة لطلبات المساجد أن يمتلك المستخدم أو الدور صلاحية <b>"عرض تفاصيل الطلب وإدارته" (requests.view_details)</b> بشكل أساسي. الأدوار التي لا تملك هذه الصلاحية ستستقبل فقط الإشعارات الموجهة إليها بصفة شخصية (مثل التكليف المباشر).
-                </p>
-              </div>
-            </div>
           </TabsContent>
 
           {/* تبويب: التخصيص حسب الأشخاص */}

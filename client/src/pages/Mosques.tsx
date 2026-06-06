@@ -19,7 +19,16 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+} from "@/components/ui/pagination";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -62,6 +71,8 @@ export default function Mosques() {
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const limit = 10;
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMosqueId, setSelectedMosqueId] = useState<number | null>(null);
@@ -73,10 +84,15 @@ export default function Mosques() {
     search: search || undefined,
     city: cityFilter !== "all" ? cityFilter : undefined,
     approvalStatus: statusFilter !== "all" ? statusFilter as "pending" | "approved" | "rejected" : undefined,
+    page,
+    limit,
   });
   const mosques = mosquesData?.mosques || [];
+  const total = mosquesData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   const { data: stats } = trpc.mosques.getStats.useQuery();
+  const { data: dbCities } = trpc.mosques.getCities.useQuery();
 
   // mutations للاعتماد والرفض
   const approveMutation = trpc.mosques.approve.useMutation({
@@ -120,7 +136,7 @@ export default function Mosques() {
   // التحقق من صلاحيات الاعتماد - استبدل بـ PermissionGuard
 
   // استخراج المدن الفريدة
-  const cities = Array.from(new Set(mosques.map((m: { city: string }) => m.city).filter(Boolean))) as string[];
+  const cities = dbCities || [];
 
   // عدد المساجد قيد المراجعة
   const pendingCount = stats?.byApprovalStatus?.pending || 0;
@@ -204,7 +220,10 @@ export default function Mosques() {
                     variant="outline"
                     size="sm"
                     className="mt-3 w-full text-xs md:text-sm text-yellow-600 border-yellow-300 hover:bg-yellow-50"
-                    onClick={() => setStatusFilter("pending")}
+                    onClick={() => {
+                      setStatusFilter("pending");
+                      setPage(1);
+                    }}
                   >
                     عرض المساجد المعلقة
                   </Button>
@@ -251,11 +270,17 @@ export default function Mosques() {
                 <Input
                   placeholder="البحث عن مسجد..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="pr-10 h-10"
                 />
               </div>
-              <Select value={cityFilter} onValueChange={setCityFilter}>
+              <Select value={cityFilter} onValueChange={(val) => {
+                setCityFilter(val);
+                setPage(1);
+              }}>
                 <SelectTrigger className="w-full h-10">
                   <SelectValue placeholder="المدينة" />
                 </SelectTrigger>
@@ -267,7 +292,10 @@ export default function Mosques() {
                 </SelectContent>
               </Select>
               <PermissionGuard permission="mosques.approve">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(val) => {
+                  setStatusFilter(val);
+                  setPage(1);
+                }}>
                   <SelectTrigger className="w-full h-10">
                     <SelectValue placeholder="حالة الاعتماد" />
                   </SelectTrigger>
@@ -516,6 +544,65 @@ export default function Mosques() {
                     );
                   })}
                 </div>
+
+                {/* Pagination UI */}
+                {totalPages > 1 && (
+                  <div className="py-6 flex justify-center border-t border-border/40 bg-slate-50/20 dark:bg-slate-900/10">
+                    <Pagination className="w-auto">
+                      <PaginationContent className="flex-nowrap gap-1 sm:gap-2">
+                        <PaginationItem>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="gap-1 h-9 px-2 sm:px-4"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                            <span className="hidden sm:inline">السابق</span>
+                          </Button>
+                        </PaginationItem>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                            if (totalPages > 5) {
+                              if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
+                                if (p === 2 && page > 3) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
+                                if (p === totalPages - 1 && page < totalPages - 2) return <PaginationItem key={p}><PaginationEllipsis className="w-6" /></PaginationItem>;
+                                return null;
+                              }
+                            }
+                            
+                            return (
+                              <PaginationItem key={p}>
+                                <PaginationLink
+                                  onClick={() => setPage(p)}
+                                  isActive={page === p}
+                                  className="cursor-pointer w-8 h-8 sm:w-9 sm:h-9 text-xs sm:text-sm p-0 flex items-center justify-center"
+                                >
+                                  {p}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                        </div>
+
+                        <PaginationItem>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="gap-1 h-9 px-2 sm:px-4"
+                          >
+                            <span className="hidden sm:inline">التالي</span>
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
               </>
             ) : (
               <div className="p-8 text-center">

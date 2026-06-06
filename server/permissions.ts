@@ -843,6 +843,24 @@ export const permissionsRouter = router({
     return await db.select().from(roles);
   }),
 
+  // تحديث حالة استقبال إشعارات المستفيدين لدور وظيفي
+  updateRoleReceiveBeneficiaryNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      roleId: z.string(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await db
+        .update(roles)
+        .set({ receiveBeneficiaryNotifications: input.enabled })
+        .where(eq(roles.id, input.roleId));
+
+      return { success: true };
+    }),
+
   /**
    * عرض صلاحيات دور محدد
    */
