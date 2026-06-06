@@ -164,6 +164,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       label: "إدارة المستخدمين",
       items: [
         { icon: Users, label: "إدارة المستخدمين", path: "/staff" },
+        { icon: Bell, label: "تخصيص الإشعارات", path: "/notifications/customization" },
       ],
     });
   }
@@ -224,10 +225,17 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   if (commItems.length > 0) groups.push({ label: "الاتصال المؤسسي", items: commItems });
 
   // إدارة المستخدمين
+  const userManagementItems: MenuItem[] = [];
   if (has("staff_users.view") || has("staff_roles.view") || has("staff_custom_roles.view")) {
+    userManagementItems.push({ icon: Users, label: "إدارة المستخدمين", path: "/staff" });
+  }
+  if (has("staff_notifications.edit") || ["super_admin", "system_admin"].includes(role)) {
+    userManagementItems.push({ icon: Bell, label: "تخصيص الإشعارات", path: "/notifications/customization" });
+  }
+  if (userManagementItems.length > 0) {
     groups.push({
       label: "إدارة المستخدمين",
-      items: [{ icon: Users, label: "إدارة المستخدمين", path: "/staff" }],
+      items: userManagementItems,
     });
   }
 

@@ -52,6 +52,7 @@ import Branding from "./pages/Branding";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import NotificationCustomization from "./pages/NotificationCustomization";
 import Reports from "./pages/Reports";
 
 // صفحات الموردين
@@ -323,6 +324,7 @@ function Router() {
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
+      <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
       
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />

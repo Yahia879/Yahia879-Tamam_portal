@@ -36,7 +36,8 @@ import {
   Briefcase,
   Layers,
   Tag,
-  Save
+  Save,
+  Bell
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -72,7 +73,8 @@ const superAdminGroups = [
     modules: [
       { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
       { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
-      { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] }
+      { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
+      { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] }
     ]
   },
   {
@@ -188,6 +190,9 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       add: "إضافة دور",
       edit: "تعديل الدور",
       delete: "حذف الدور"
+    },
+    staff_notifications: {
+      edit: "تعديل تخصيص الإشعارات"
     },
     roles: {
       view: "عرض قائمة الأدوار",

@@ -105,6 +105,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/job-positions": "staff_management",
   "/requester-approvals": ["staff_management", "service_requester_accounts"],
   "/permissions-audit": "staff_management",
+  "/notifications/customization": "staff_notifications.edit",
 
   // ── الموردون ──
   "/suppliers": "suppliers",

@@ -39,7 +39,8 @@ import {
   Save,
   RotateCcw,
   X,
-  Plus
+  Plus,
+  Bell
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -566,6 +567,9 @@ export default function UserPermissions() {
         edit: "تعديل الدور المخصص",
         delete: "حذف الدور المخصص"
       },
+      staff_notifications: {
+        edit: "تعديل تخصيص الإشعارات"
+      },
       settings_org: {
         view: "عرض إعدادات الجمعية",
         edit_basic: "تعديل معلومات الجمعية الأساسية",
@@ -641,7 +645,8 @@ export default function UserPermissions() {
       modules: [
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
         { id: "staff_roles", nameAr: "الأدوار والصلاحيات", icon: Shield, perms: ["view", "customize", "suspend"] },
-        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] }
+        { id: "staff_custom_roles", nameAr: "الأدوار المخصصة", icon: Briefcase, perms: ["view", "add", "edit", "delete"] },
+        { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] }
       ]
     },
     {
