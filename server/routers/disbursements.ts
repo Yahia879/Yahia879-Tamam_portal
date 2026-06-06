@@ -19,6 +19,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { createNotification } from "./notifications";
 
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -387,7 +388,7 @@ export const disbursementsRouter = router({
         .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
 
       for (const user of financialUsers) {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: user.id,
           title: "طلب صرف جديد",
           message: `تم تقديم طلب صرف جديد رقم ${requestNumber} ${
@@ -639,14 +640,16 @@ export const disbursementsRouter = router({
       }
 
       // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request.requestedBy,
-        title: "تم اعتماد طلب الصرف",
-        message: `تم اعتماد طلب الصرف رقم ${request.requestNumber}`,
-        type: "success",
-        relatedType: "disbursement_request",
-        relatedId: input.id,
-      });
+      if (request.requestedBy) {
+        await createNotification({
+          userId: request.requestedBy,
+          title: "تم اعتماد طلب الصرف",
+          message: `تم اعتماد طلب الصرف رقم ${request.requestNumber}`,
+          type: "success",
+          relatedType: "disbursement_request",
+          relatedId: input.id,
+        });
+      }
 
       // إرسال إشعار للإدارة المالية لإنشاء أمر الصرف
       const financialUsers = await db
@@ -663,7 +666,7 @@ export const disbursementsRouter = router({
         : null;
 
       for (const user of financialUsers) {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: user.id,
           title: "طلب صرف معتمد - يحتاج إنشاء أمر صرف",
           message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى إنشاء أمر الصرف.`,
@@ -713,14 +716,16 @@ export const disbursementsRouter = router({
         .where(eq(disbursementRequests.id, input.id));
 
       // إرسال إشعار لمقدم الطلب
-      await db.insert(notifications).values({
-        userId: request.requestedBy,
-        title: "تم رفض طلب الصرف",
-        message: `تم رفض طلب الصرف رقم ${request.requestNumber}: ${input.reason}`,
-        type: "error",
-        relatedType: "disbursement_request",
-        relatedId: input.id,
-      });
+      if (request.requestedBy) {
+        await createNotification({
+          userId: request.requestedBy,
+          title: "تم رفض طلب الصرف",
+          message: `تم رفض طلب الصرف رقم ${request.requestNumber}: ${input.reason}`,
+          type: "error",
+          relatedType: "disbursement_request",
+          relatedId: input.id,
+        });
+      }
 
       return { success: true, message: "تم رفض طلب الصرف" };
     }),
@@ -1098,7 +1103,7 @@ export const disbursementsRouter = router({
         : null;
 
       for (const manager of managers) {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: manager.id,
           title: "أمر صرف جديد يحتاج اعتماد",
           message: `تم إنشاء أمر صرف رقم ${orderNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى الاعتماد.`,
@@ -1241,7 +1246,7 @@ export const disbursementsRouter = router({
         .where(eq(users.role, "financial"));
 
       for (const user of financialUsers) {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: user.id,
           title: "أمر صرف معتمد - جاهز للتنفيذ",
           message: `تم اعتماد أمر الصرف رقم ${order.orderNumber} بمبلغ ${Number(order.amount).toLocaleString("ar-SA")} ريال. يرجى تنفيذ الدفع.`,

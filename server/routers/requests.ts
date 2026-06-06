@@ -878,7 +878,7 @@ export const requestsRouter = router({
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: request[0].userId!,
           title: stageMsg.title,
           message: stageMsg.message,
@@ -985,7 +985,7 @@ export const requestsRouter = router({
           ? `تم استئناف طلبك رقم ${request[0].requestNumber}`
           : `تم تحديث حالة طلبك رقم ${request[0].requestNumber} إلى: ${statusLabel}`;
 
-        await db.insert(notifications).values({
+        await createNotification({
           userId: request[0].userId!,
           title: "تحديث حالة الطلب",
           message: msg,
@@ -1020,7 +1020,7 @@ export const requestsRouter = router({
       // إرسال إشعار للموظف المسند إليه
       const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
       if (request.length > 0) {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: input.userId,
           title: "طلب جديد مسند إليك",
           message: `تم إسناد الطلب رقم ${request[0].requestNumber} إليك`,
@@ -1572,7 +1572,7 @@ export const requestsRouter = router({
           .where(inArray(users.role, ['financial', 'projects_office']));
         
         for (const member of financialTeam) {
-          await db.insert(notifications).values({
+          await createNotification({
             userId: member.id,
             title: 'مشروع جديد للتقييم المالي',
             message: `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مشروع ويحتاج للتقييم المالي`,
@@ -1624,7 +1624,7 @@ export const requestsRouter = router({
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إرسال إشعار للموظف المسند إليه
-      await db.insert(notifications).values({
+      await createNotification({
         userId: input.assignedTo,
         title: 'مهمة زيارة ميدانية جديدة',
         message: `تم إسناد الطلب رقم ${request[0].requestNumber} إليك للزيارة الميدانية`,
@@ -1686,7 +1686,7 @@ export const requestsRouter = router({
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: request[0].userId!,
           title: 'تم جدولة زيارة ميدانية',
           message: `تم جدولة زيارة ميدانية لطلبك رقم ${request[0].requestNumber} بتاريخ ${new Date(input.scheduledDate).toLocaleDateString('ar-SA')}`,
@@ -2002,7 +2002,7 @@ export const requestsRouter = router({
         .limit(1);
 
       if (ownerUser && ownerUser.role === "service_requester") {
-        await db.insert(notifications).values({
+        await createNotification({
           userId: request[0].userId!,
           title: "تم اعتماد طلبك مالياً",
           message: `تم اعتماد طلبك رقم ${request[0].requestNumber} مالياً بمبلغ ${finalAmount.toLocaleString("ar-SA")} ريال وتم الانتقال لمرحلة التعاقد`,

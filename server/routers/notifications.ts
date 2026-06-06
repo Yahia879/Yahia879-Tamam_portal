@@ -2,9 +2,10 @@ import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { notifications, users } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray, ne, or, like } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
+import { calculateUserPermissions } from "../permissions";
 
 // أنواع الإشعارات (مطابقة للـ schema)
 export const NOTIFICATION_TYPES = {
@@ -20,7 +21,55 @@ export const NOTIFICATION_TYPES = {
 
 export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque" | "request";
 
-// ... (createNotification function)
+async function sendWhatsApp(phone: string, title: string, message: string) {
+  const token = process.env.MOTTASL_API_TOKEN;
+  const baseUrl = process.env.MOTTASL_API_URL || "https://api.mottasl.ai/v1";
+
+  if (!token) {
+    console.warn("WhatsApp notification skipped: MOTTASL_API_TOKEN is not configured in .env");
+    return;
+  }
+
+  // Format phone number: strip '+', '00', spaces, and make sure it has the country code.
+  let formattedPhone = phone.replace(/[\s+-]/g, "");
+  if (formattedPhone.startsWith("00")) {
+    formattedPhone = formattedPhone.substring(2);
+  }
+  // If phone starts with '05' (Saudi mobile without country code), prepend '966'
+  if (formattedPhone.startsWith("05") && formattedPhone.length === 10) {
+    formattedPhone = "966" + formattedPhone.substring(1);
+  }
+
+  const url = `${baseUrl}/message/send?create=true`;
+  const body = JSON.stringify({
+    to: formattedPhone,
+    type: "text",
+    text: {
+      body: `${title}\n\n${message}`
+    }
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body
+    });
+
+    const resText = await response.text();
+    if (!response.ok) {
+      console.error(`Failed to send WhatsApp message. Status: ${response.status}, Response: ${resText}`);
+    } else {
+      console.log(`WhatsApp message sent successfully to ${formattedPhone}. Response: ${resText}`);
+    }
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+  }
+}
+
 export async function createNotification(data: {
   userId: number;
   type: NotificationType;
@@ -29,7 +78,6 @@ export async function createNotification(data: {
   relatedType?: string;
   relatedId?: number;
 }) {
-// ... (rest of function)
   const db = await getDb();
   if (!db) return null;
 
@@ -44,10 +92,66 @@ export async function createNotification(data: {
       isRead: false,
     });
 
+    // Fetch user role and phone to send WhatsApp message to service_requesters
+    const [user] = await db
+      .select({ role: users.role, phone: users.phone })
+      .from(users)
+      .where(eq(users.id, data.userId))
+      .limit(1);
+
+    if (user && user.role === "service_requester" && user.phone) {
+      sendWhatsApp(user.phone, data.title, data.message).catch((err) => {
+        console.error("Async WhatsApp error:", err);
+      });
+    }
+
     return result;
   } catch (error) {
     console.error("Error creating notification:", error);
     return null;
+  }
+}
+
+// دالة لجلب معرفات جميع المسؤولين عن الطلبات (الذين لديهم أدوار افتراضية أو صلاحية requests.view_details)
+async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<number[]> {
+  try {
+    // جلب المرشحين فقط (المستخدمين الذين ليس دورهم هو service_requester أو لديهم أدوار مخصصة أو صلاحيات مباشرة)
+    const candidateUsers = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(
+        and(
+          isNull(users.deletedAt),
+          or(
+            ne(users.role, "service_requester"),
+            sql`exists (select 1 from user_roles where user_roles.user_id = ${users.id})`,
+            sql`exists (select 1 from user_permissions where user_permissions.user_id = ${users.id})`
+          )
+        )
+      );
+
+    const officerIds: number[] = [];
+    const defaultOfficerRoles = ["super_admin", "system_admin", "projects_office"];
+
+    for (const u of candidateUsers) {
+      if (excludeUserId && u.id === excludeUserId) continue;
+
+      if (defaultOfficerRoles.includes(u.role)) {
+        officerIds.push(u.id);
+        continue;
+      }
+
+      // التحقق من صلاحية "عرض تفاصيل الطلب وإدارته" للمستخدم
+      const userPerms = await calculateUserPermissions(u.id);
+      if (userPerms.includes("requests.view_details")) {
+        officerIds.push(u.id);
+      }
+    }
+
+    return officerIds;
+  } catch (error) {
+    console.error("Error in getRequestOfficerIds:", error);
+    return [];
   }
 }
 
@@ -64,16 +168,29 @@ export async function notifyUsersByRole(
   if (!db) return;
 
   try {
+    const userIds = new Set<number>();
+
     // جلب المستخدمين حسب الأدوار
-    const targetUsers = await db
+    const targetUsersByRole = await db
       .select({ id: users.id })
       .from(users)
-      .where(inArray(users.role, roles as any));
+      .where(and(inArray(users.role, roles as any), isNull(users.deletedAt)));
+
+    targetUsersByRole.forEach(u => userIds.add(u.id));
+
+    // إذا كانت الأدوار المستهدفة تشمل مسؤولي الطلبات الافتراضيين، نقوم بإضافة المسؤولين ذوي الصلاحية المباشرة أيضاً
+    const defaultOfficerRoles = ["super_admin", "system_admin", "projects_office"];
+    const targetsRequestOfficers = roles.some(r => defaultOfficerRoles.includes(r));
+    
+    if (targetsRequestOfficers) {
+      const extraOfficers = await getRequestOfficerIds(db);
+      extraOfficers.forEach(id => userIds.add(id));
+    }
 
     // إنشاء إشعارات لجميع المستخدمين
-    for (const user of targetUsers) {
+    for (const userId of userIds) {
       await createNotification({
-        userId: user.id,
+        userId,
         type,
         title,
         message,
@@ -99,14 +216,33 @@ export async function notifyNewRequest(
   programName: string,
   mosqueName: string
 ) {
-  await notifyUsersByRole(
-    ["super_admin", "system_admin", "projects_office"],
-    "request_update",
-    "طلب جديد",
-    `تم تقديم طلب جديد رقم ${requestNumber} لبرنامج ${programName} - ${mosqueName}`,
-    "request",
-    requestId
-  );
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const officerIds = await getRequestOfficerIds(db);
+    const title = "طلب جديد";
+    const message = `تم تقديم طلب جديد رقم ${requestNumber} لبرنامج ${programName} - ${mosqueName}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "request_update",
+        title,
+        message,
+        relatedType: "request",
+        relatedId: requestId,
+      });
+    }
+
+    // إرسال إشعار للمالك أيضاً
+    await notifyOwner({
+      title,
+      content: message,
+    });
+  } catch (error) {
+    console.error("Error in notifyNewRequest:", error);
+  }
 }
 
 // دالة لإرسال إشعار عند إنشاء طلب جديد (للمستفيد والمدراء)
@@ -125,7 +261,11 @@ export async function notifyRequestCreation(
       .where(eq(users.id, requesterId))
       .limit(1);
 
-    const isCreatorAdmin = creator && ["super_admin", "system_admin", "projects_office"].includes(creator.role);
+    const creatorPerms = await calculateUserPermissions(requesterId);
+    const isCreatorAdmin = creator && (
+      ["super_admin", "system_admin", "projects_office"].includes(creator.role) ||
+      creatorPerms.includes("requests.view_details")
+    );
 
     if (!isCreatorAdmin) {
       // إشعار لمقدم الطلب
@@ -138,22 +278,24 @@ export async function notifyRequestCreation(
         relatedId: requestId,
       });
 
-      // إشعار للمدراء
-      await notifyUsersByRole(
-        ["super_admin", "system_admin", "projects_office"],
-        "request",
-        "طلب جديد",
-        `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`,
-        "request",
-        requestId
-      );
+      // إشعار للمدراء والمسؤولين
+      const officerIds = await getRequestOfficerIds(db, requesterId);
+      const title = "طلب جديد";
+      const message = `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`;
+
+      for (const userId of officerIds) {
+        await createNotification({
+          userId,
+          type: "request",
+          title,
+          message,
+          relatedType: "request",
+          relatedId: requestId,
+        });
+      }
     } else {
       // إذا كان مقدم الطلب أحد المسؤولين، لا نرسل له إشعاراً بل نرسل للآخرين فقط
-      const targetRoles = ["super_admin", "system_admin", "projects_office"];
-      const targetUsers = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(and(inArray(users.role, targetRoles as any), ne(users.id, requesterId)));
+      const officerIds = await getRequestOfficerIds(db, requesterId);
 
       const roleLabels: Record<string, string> = {
         super_admin: "المدير العام",
@@ -163,9 +305,9 @@ export async function notifyRequestCreation(
       const roleName = creator ? (roleLabels[creator.role] || creator.role) : "المسؤول";
       const creatorName = creator ? creator.name : "";
 
-      for (const targetUser of targetUsers) {
+      for (const userId of officerIds) {
         await createNotification({
-          userId: targetUser.id,
+          userId,
           type: "request",
           title: "طلب جديد مضاف من مسؤول",
           message: `قام ${roleName} ${creatorName} بإنشاء طلب جديد رقم ${requestNumber}`,
@@ -378,18 +520,14 @@ export async function notifyRequestStageChangeToOfficers(
 
     const newStageLabel = stageLabels[toStage] || toStage;
 
-    const targetRoles = ["super_admin", "system_admin", "projects_office"];
-    const targetUsers = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(inArray(users.role, targetRoles as any), ne(users.id, changerId)));
+    const officerIds = await getRequestOfficerIds(db, changerId);
 
     const title = "تحديث مرحلة الطلب";
     const message = `قام ${changerRoleLabel} ${changerName} بنقل الطلب رقم ${requestNumber} إلى مرحلة: ${newStageLabel}`;
 
-    for (const targetUser of targetUsers) {
+    for (const userId of officerIds) {
       await createNotification({
-        userId: targetUser.id,
+        userId,
         type: "request_update",
         title,
         message,
@@ -426,7 +564,10 @@ export const notificationsRouter = router({
         conditions.push(eq(notifications.isRead, false));
       }
 
-      const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isRequestOfficer =
+        ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
+        userPerms.includes("requests.view_details");
       if (isRequestOfficer) {
         conditions.push(
           or(
@@ -475,7 +616,10 @@ export const notificationsRouter = router({
 
     const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
     
-    const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+    const userPerms = await calculateUserPermissions(ctx.user.id);
+    const isRequestOfficer =
+      ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
+      userPerms.includes("requests.view_details");
     if (isRequestOfficer) {
       conditions.push(
         or(
@@ -529,7 +673,10 @@ export const notificationsRouter = router({
 
     const conditions = [eq(notifications.userId, ctx.user.id), eq(notifications.isRead, false)];
 
-    const isRequestOfficer = ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+    const userPerms = await calculateUserPermissions(ctx.user.id);
+    const isRequestOfficer =
+      ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role) ||
+      userPerms.includes("requests.view_details");
     if (isRequestOfficer) {
       conditions.push(
         or(
