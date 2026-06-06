@@ -188,7 +188,7 @@ export async function notifyUsersByRole(
     }
 
     // إنشاء إشعارات لجميع المستخدمين
-    for (const userId of userIds) {
+    for (const userId of Array.from(userIds)) {
       await createNotification({
         userId,
         type,

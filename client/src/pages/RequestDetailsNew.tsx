@@ -583,29 +583,7 @@ export default function RequestDetailsNew() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:py-8">
-        {/* بانر المشروع - يظهر عند وجود مشروع مرتبط */}
-        {linkedProject && (
-          <div className="mb-6 bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-3 sm:p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0">
-                  <Building2 className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">مشروع مرتبط بهذا الطلب</p>
-                  <p className="font-bold text-sm sm:text-base text-emerald-800 dark:text-emerald-200 truncate">{linkedProject.name || 'مشروع غير محدد'}</p>
-                  <p className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-mono">{linkedProject.projectNumber}</p>
-                </div>
-              </div>
-              <Link href={`/projects/${linkedProject.id}`} className="w-full sm:w-auto">
-                <Button variant="outline" size="sm" className="bg-white dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50 w-full font-bold">
-                  <Building2 className="w-4 h-4 ml-2 shrink-0" />
-                  عرض صفحة المشروع
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
+
 
         {/* Progress Stepper */}
         <ProgressStepper

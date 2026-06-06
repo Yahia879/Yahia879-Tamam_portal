@@ -365,34 +365,41 @@ export const requestsRouter = router({
         return { requests: [], total: 0 };
       }
 
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+
       const conditions = [];
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
       const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
       
-      // طالب الخدمة يرى فقط طلباته
-      if (ctx.user.role === "service_requester") {
-        conditions.push(eq(mosqueRequests.userId, ctx.user.id));
-      }
+      // إذا لم يكن يملك صلاحية requests.view_details، نطبق شروط التصفية حسب الأدوار
+      if (!hasViewDetailsPermission) {
+        // طالب الخدمة يرى فقط طلباته
+        if (ctx.user.role === "service_requester") {
+          conditions.push(eq(mosqueRequests.userId, ctx.user.id));
+        }
 
-      // الفريق الميداني يرى الطلبات المسندة إليه فقط (سواء كمسؤول عام أو مسؤول زيارة ميدانية)
-      if (ctx.user.role === "field_team") {
-        conditions.push(
-          or(
-            eq(mosqueRequests.assignedTo, ctx.user.id),
-            eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)
-          )
-        );
-      }
+        // الفريق الميداني يرى الطلبات المسندة إليه فقط (سواء كمسؤول عام أو مسؤول زيارة ميدانية)
+        if (ctx.user.role === "field_team") {
+          conditions.push(
+            or(
+              eq(mosqueRequests.assignedTo, ctx.user.id),
+              eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)
+            )
+          );
+        }
 
-      // فريق الاستجابة السريعة
-      if (ctx.user.role === "quick_response") {
-        conditions.push(
-          sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.priority} = 'urgent')`
-        );
+        // فريق الاستجابة السريعة
+        if (ctx.user.role === "quick_response") {
+          conditions.push(
+            sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.priority} = 'urgent')`
+          );
+        }
       }
       
-      // الأدوار الإدارية ترى جميع الطلبات (لا تضيف شروط)
+      // الأدوار الإدارية أو من يملك صلاحية requests.view_details يرون جميع الطلبات (لا تضيف شروط)
 
       if (input.search) {
         conditions.push(
@@ -404,14 +411,14 @@ export const requestsRouter = router({
       }
       if (input.currentStage) {
         // إذا كان المستخدم من الفريق الميداني وطلب مرحلة الزيارة الميدانية، لا نفلتر بها لكي لا تختفي طلباته بعد رفع التقرير
-        if (ctx.user.role === "field_team" && input.currentStage === "field_visit") {
+        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.currentStage === "field_visit") {
           // لا تفعل شيئاً
         } else {
           conditions.push(eq(mosqueRequests.currentStage, input.currentStage));
         }
       }
       if (input.status) {
-        if (ctx.user.role === "field_team" && input.status === "completed") {
+        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.status === "completed") {
           const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"] as const;
           conditions.push(
             or(
@@ -419,16 +426,16 @@ export const requestsRouter = router({
               and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, postStages))
             )
           );
-        } else if (ctx.user.role === "field_team" && input.status === "in_progress") {
+        } else if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.status === "in_progress") {
           const preStages = ["submitted", "initial_review", "field_visit"] as const;
           conditions.push(
             and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, preStages))
           );
-        } else if (ctx.user.role === "quick_response" && input.status === "completed") {
+        } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission && input.status === "completed") {
           conditions.push(
             sql`exists(select 1 from quick_response_reports where quick_response_reports.requestId = ${mosqueRequests.id})`
           );
-        } else if (ctx.user.role === "quick_response" && input.status === "in_progress") {
+        } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission && input.status === "in_progress") {
           conditions.push(
             sql`not exists(select 1 from quick_response_reports where quick_response_reports.requestId = ${mosqueRequests.id})`
           );
@@ -502,9 +509,9 @@ export const requestsRouter = router({
       
       for (const s of statsResult) {
         let effectiveStatus = s.status || 'unknown';
-        if (ctx.user.role === "field_team" && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
+        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
           effectiveStatus = "completed";
-        } else if (ctx.user.role === "quick_response") {
+        } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
           effectiveStatus = s.hasReport ? "completed" : "in_progress";
         }
         stats[effectiveStatus] = (stats[effectiveStatus] || 0) + s.count;
@@ -515,9 +522,9 @@ export const requestsRouter = router({
       return {
         requests: results.map(r => {
           let effectiveStatus = r.request.status;
-          if (ctx.user.role === "field_team" && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
+          if (ctx.user.role === "field_team" && !hasViewDetailsPermission && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
             effectiveStatus = "completed" as any;
-          } else if (ctx.user.role === "quick_response") {
+          } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
             effectiveStatus = r.hasQuickReport ? "completed" as any : "in_progress" as any;
           }
           return {
