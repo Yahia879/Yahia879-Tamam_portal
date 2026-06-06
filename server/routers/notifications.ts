@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { notifications, users, roles } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -119,13 +119,13 @@ async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<nu
     const candidateUsers = await db
       .select({ id: users.id })
       .from(users)
-      .leftJoin(roles, eq(users.role, roles.id))
+      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
       .where(
         and(
           isNull(users.deletedAt),
           or(
             eq(users.receiveBeneficiaryNotifications, true),
-            eq(roles.receiveBeneficiaryNotifications, true)
+            eq(rolesTable.receiveBeneficiaryNotifications, true)
           )
         )
       );
@@ -139,6 +139,66 @@ async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<nu
     return officerIds;
   } catch (error) {
     console.error("Error in getRequestOfficerIds:", error);
+    return [];
+  }
+}
+
+// دالة لجلب معرفات المسؤولين الذين لديهم خيار receiveRequestNotifications مفعل
+async function getRequestNotificationOfficerIds(db: any, excludeUserId?: number): Promise<number[]> {
+  try {
+    const candidateUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
+      .where(
+        and(
+          isNull(users.deletedAt),
+          or(
+            eq(users.receiveRequestNotifications, true),
+            eq(rolesTable.receiveRequestNotifications, true)
+          )
+        )
+      );
+
+    const officerIds: number[] = [];
+    for (const row of candidateUsers) {
+      if (excludeUserId && row.id === excludeUserId) continue;
+      officerIds.push(row.id);
+    }
+
+    return officerIds;
+  } catch (error) {
+    console.error("Error in getRequestNotificationOfficerIds:", error);
+    return [];
+  }
+}
+
+// دالة لجلب معرفات المسؤولين الذين لديهم خيار receiveFinancialAndContractNotifications مفعل
+async function getFinancialNotificationOfficerIds(db: any, excludeUserId?: number): Promise<number[]> {
+  try {
+    const candidateUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
+      .where(
+        and(
+          isNull(users.deletedAt),
+          or(
+            eq(users.receiveFinancialAndContractNotifications, true),
+            eq(rolesTable.receiveFinancialAndContractNotifications, true)
+          )
+        )
+      );
+
+    const officerIds: number[] = [];
+    for (const row of candidateUsers) {
+      if (excludeUserId && row.id === excludeUserId) continue;
+      officerIds.push(row.id);
+    }
+
+    return officerIds;
+  } catch (error) {
+    console.error("Error in getFinancialNotificationOfficerIds:", error);
     return [];
   }
 }
@@ -171,12 +231,36 @@ export async function notifyUsersByRole(
     const targetsRequestOfficers = roles.some(r => defaultOfficerRoles.includes(r));
     
     if (targetsRequestOfficers) {
-      const extraOfficers = await getRequestOfficerIds(db);
+      const extraOfficers = await getRequestNotificationOfficerIds(db);
       extraOfficers.forEach(id => userIds.add(id));
     }
 
     // إنشاء إشعارات لجميع المستخدمين
     for (const userId of Array.from(userIds)) {
+      if (relatedType === "request") {
+        const [userSetting] = await db
+          .select({
+            receiveRequestNotifications: users.receiveRequestNotifications,
+            role: users.role,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        if (userSetting) {
+          const [roleSetting] = await db
+            .select({ receiveRequestNotifications: rolesTable.receiveRequestNotifications })
+            .from(rolesTable)
+            .where(eq(rolesTable.id, userSetting.role))
+            .limit(1);
+
+          const enabled = userSetting.receiveRequestNotifications || (roleSetting && roleSetting.receiveRequestNotifications);
+          if (!enabled) {
+            continue;
+          }
+        }
+      }
+
       await createNotification({
         userId,
         type,
@@ -208,7 +292,7 @@ export async function notifyNewRequest(
   if (!db) return;
 
   try {
-    const officerIds = await getRequestOfficerIds(db);
+    const officerIds = await getRequestNotificationOfficerIds(db);
     const title = "طلب جديد";
     const message = `تم تقديم طلب جديد رقم ${requestNumber} لبرنامج ${programName} - ${mosqueName}`;
 
@@ -267,7 +351,7 @@ export async function notifyRequestCreation(
       });
 
       // إشعار للمدراء والمسؤولين
-      const officerIds = await getRequestOfficerIds(db, requesterId);
+      const officerIds = await getRequestNotificationOfficerIds(db, requesterId);
       const title = "طلب جديد";
       const message = `تم إنشاء طلب جديد رقم ${requestNumber} وهو بانتظار المعالجة`;
 
@@ -283,7 +367,7 @@ export async function notifyRequestCreation(
       }
     } else {
       // إذا كان مقدم الطلب أحد المسؤولين، لا نرسل له إشعاراً بل نرسل للآخرين فقط
-      const officerIds = await getRequestOfficerIds(db, requesterId);
+      const officerIds = await getRequestNotificationOfficerIds(db, requesterId);
 
       const roleLabels: Record<string, string> = {
         super_admin: "المدير العام",
@@ -508,7 +592,7 @@ export async function notifyRequestStageChangeToOfficers(
 
     const newStageLabel = stageLabels[toStage] || toStage;
 
-    const officerIds = await getRequestOfficerIds(db, changerId);
+    const officerIds = await getRequestNotificationOfficerIds(db, changerId);
 
     const title = "تحديث مرحلة الطلب";
     const message = `قام ${changerRoleLabel} ${changerName} بنقل الطلب رقم ${requestNumber} إلى مرحلة: ${newStageLabel}`;
@@ -688,3 +772,75 @@ export const notificationsRouter = router({
       return { success: true };
     }),
 });
+
+export async function notifySupplierRegistration(supplierId: number, supplierName: string) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "مورد جديد قيد المراجعة";
+    const message = `تم تسجيل مورد جديد في البوابة: "${supplierName}" وهو بانتظار المراجعة والاعتماد`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "info",
+        title,
+        message,
+        relatedType: "supplier",
+        relatedId: supplierId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifySupplierRegistration:", error);
+  }
+}
+
+export async function notifySupplierApproval(supplierId: number, supplierName: string, approverName: string) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "اعتماد مورد";
+    const message = `قام المسؤول ${approverName} باعتماد المورد: "${supplierName}" بنجاح`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title,
+        message,
+        relatedType: "supplier",
+        relatedId: supplierId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifySupplierApproval:", error);
+  }
+}
+
+export async function notifySupplierRejection(supplierId: number, supplierName: string, rejecterName: string, reason: string) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const title = "رفض مورد";
+    const message = `قام المسؤول ${rejecterName} برفض المورد: "${supplierName}" بسبب: ${reason}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "error",
+        title,
+        message,
+        relatedType: "supplier",
+        relatedId: supplierId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifySupplierRejection:", error);
+  }
+}

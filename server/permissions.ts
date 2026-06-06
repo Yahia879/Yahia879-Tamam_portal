@@ -861,6 +861,42 @@ export const permissionsRouter = router({
       return { success: true };
     }),
 
+  // تحديث حالة استقبال إشعارات الطلبات لدور وظيفي
+  updateRoleReceiveRequestNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      roleId: z.string(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await db
+        .update(roles)
+        .set({ receiveRequestNotifications: input.enabled })
+        .where(eq(roles.id, input.roleId));
+
+      return { success: true };
+    }),
+
+  // تحديث حالة استقبال إشعارات المالية والعقود لدور وظيفي
+  updateRoleReceiveFinancialAndContractNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      roleId: z.string(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      await db
+        .update(roles)
+        .set({ receiveFinancialAndContractNotifications: input.enabled })
+        .where(eq(roles.id, input.roleId));
+
+      return { success: true };
+    }),
+
   /**
    * عرض صلاحيات دور محدد
    */

@@ -131,6 +131,8 @@ export const users = mysqlTable("users", {
   proofDocument: varchar("proofDocument", { length: 500 }), // إثبات الصفة
   mosqueExemptions: int("mosqueExemptions").default(0), // عدد الاستثناءات الممنوحة لتسجيل مساجد إضافية
   receiveBeneficiaryNotifications: boolean("receiveBeneficiaryNotifications").default(false),
+  receiveRequestNotifications: boolean("receiveRequestNotifications").default(false),
+  receiveFinancialAndContractNotifications: boolean("receiveFinancialAndContractNotifications").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -1745,6 +1747,8 @@ export const roles = mysqlTable("roles", {
   isSystem: boolean("is_system").default(false).notNull(), // true للأدوار الافتراضية
   isActive: boolean("is_active").default(true).notNull(),
   receiveBeneficiaryNotifications: boolean("receiveBeneficiaryNotifications").default(false),
+  receiveRequestNotifications: boolean("receiveRequestNotifications").default(false),
+  receiveFinancialAndContractNotifications: boolean("receiveFinancialAndContractNotifications").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });

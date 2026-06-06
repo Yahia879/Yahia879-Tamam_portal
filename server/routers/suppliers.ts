@@ -11,6 +11,7 @@ import {
   workFields,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, like, or } from "drizzle-orm";
+import { notifySupplierRegistration, notifySupplierApproval, notifySupplierRejection } from "./notifications";
 
 // مخطط تسجيل المورد - الخطوة 1: معلومات الكيان
 const entityInfoSchema = z.object({
@@ -116,7 +117,10 @@ export const suppliersRouter = router({
         createdBy: ctx.user.id,
       });
 
-      return { success: true, id: result.insertId };
+      const supplierId = result.insertId;
+      await notifySupplierRegistration(supplierId, input.name);
+
+      return { success: true, id: supplierId };
     }),
 
   // إضافة مورد جديد بواسطة المسؤول (نموذج مبسط)
@@ -429,6 +433,8 @@ export const suppliersRouter = router({
         })
         .where(eq(suppliers.id, input.id));
 
+      await notifySupplierApproval(input.id, supplier.name, ctx.user.name || "المسؤول");
+
       return { success: true };
     }),
 
@@ -469,6 +475,8 @@ export const suppliersRouter = router({
           rejectionReason: input.reason,
         })
         .where(eq(suppliers.id, input.id));
+
+      await notifySupplierRejection(input.id, supplier.name, ctx.user.name || "المسؤول", input.reason);
 
       return { success: true };
     }),

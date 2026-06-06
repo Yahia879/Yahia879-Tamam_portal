@@ -46,6 +46,34 @@ export default function NotificationCustomization() {
     updateNotifSettingMutation.mutate({ userId, enabled });
   };
 
+  const updateRequestNotifSettingMutation = trpc.users.updateReceiveRequestNotifications.useMutation({
+    onSuccess: () => {
+      refetchStaff();
+      toast.success("تم تحديث إعدادات استقبال الإشعارات بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleUserRequestNotifications = (userId: number, enabled: boolean) => {
+    updateRequestNotifSettingMutation.mutate({ userId, enabled });
+  };
+
+  const updateFinancialNotifSettingMutation = trpc.users.updateReceiveFinancialAndContractNotifications.useMutation({
+    onSuccess: () => {
+      refetchStaff();
+      toast.success("تم تحديث إعدادات استقبال الإشعارات بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleUserFinancialNotifications = (userId: number, enabled: boolean) => {
+    updateFinancialNotifSettingMutation.mutate({ userId, enabled });
+  };
+
   // جلب قائمة الأدوار وتخصيص إشعاراتها
   const { data: dbRoles, isLoading: isLoadingRoles, refetch: refetchRoles } = trpc.permissions.getRoles.useQuery();
   const updateRoleNotifSettingMutation = trpc.permissions.updateRoleReceiveBeneficiaryNotifications.useMutation({
@@ -60,6 +88,34 @@ export default function NotificationCustomization() {
 
   const handleToggleRoleNotifications = (roleId: string, enabled: boolean) => {
     updateRoleNotifSettingMutation.mutate({ roleId, enabled });
+  };
+
+  const updateRoleRequestNotifSettingMutation = trpc.permissions.updateRoleReceiveRequestNotifications.useMutation({
+    onSuccess: () => {
+      refetchRoles();
+      toast.success("تم تحديث إعدادات استقبال إشعارات الدور بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleRoleRequestNotifications = (roleId: string, enabled: boolean) => {
+    updateRoleRequestNotifSettingMutation.mutate({ roleId, enabled });
+  };
+
+  const updateRoleFinancialNotifSettingMutation = trpc.permissions.updateRoleReceiveFinancialAndContractNotifications.useMutation({
+    onSuccess: () => {
+      refetchRoles();
+      toast.success("تم تحديث إعدادات استقبال إشعارات الدور بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleRoleFinancialNotifications = (roleId: string, enabled: boolean) => {
+    updateRoleFinancialNotifSettingMutation.mutate({ roleId, enabled });
   };
 
   // الأدوار المتاحة في النظام لتخصيص الإشعارات
@@ -257,9 +313,9 @@ export default function NotificationCustomization() {
           <TabsContent value="roles" className="space-y-6 focus-visible:outline-none">
             <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
-                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين للأدوار</CardTitle>
+                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين، الطلبات والمالية للأدوار</CardTitle>
                 <CardDescription className="text-sm">
-                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند قيام المستفيدين بتقديم طلبات جديدة أو تسجيل مساجد جديدة في البوابة.
+                  حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
@@ -274,7 +330,9 @@ export default function NotificationCustomization() {
                       <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
                         <TableHead className="text-right font-bold py-4 text-foreground pr-6">الدور الوظيفي</TableHead>
                         <TableHead className="text-right font-bold py-4 text-foreground">نوع الدور</TableHead>
-                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المستفيدين</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground">وصول إشعارات المستفيدين</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground">وصول إشعارات الطلبات</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المالية والعقود</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border/40">
@@ -298,11 +356,29 @@ export default function NotificationCustomization() {
                                   {role.isSystem ? "أساسي" : "مخصص"}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-center py-4 pl-6">
+                              <TableCell className="text-center py-4">
                                 <div className="flex justify-center">
                                   <Switch
                                     checked={role.receiveBeneficiaryNotifications || false}
                                     onCheckedChange={(checked) => handleToggleRoleNotifications(role.id, checked)}
+                                    className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center py-4">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={role.receiveRequestNotifications || false}
+                                    onCheckedChange={(checked) => handleToggleRoleRequestNotifications(role.id, checked)}
+                                    className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center py-4 pl-6">
+                                <div className="flex justify-center">
+                                  <Switch
+                                    checked={role.receiveFinancialAndContractNotifications || false}
+                                    onCheckedChange={(checked) => handleToggleRoleFinancialNotifications(role.id, checked)}
                                     className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
                                   />
                                 </div>
@@ -323,9 +399,9 @@ export default function NotificationCustomization() {
           <TabsContent value="users" className="space-y-6 focus-visible:outline-none">
             <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
-                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين</CardTitle>
+                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين، الطلبات والمالية للأشخاص</CardTitle>
                 <CardDescription className="text-sm">
-                  حدد الموظفين الذين يتلقون إشعارات عند قيام المستفيدين بتقديم طلبات جديدة أو تسجيل مساجد جديدة في البوابة.
+                  حدد الموظفين الذين يتلقون إشعارات عند قيام المستفيدين بتقديم طلبات وتمريرها بمراحل سير العمل، أو تسجيل مساجد جديدة، أو عند إضافة واعتماد الموردين.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -341,7 +417,9 @@ export default function NotificationCustomization() {
                         <TableHead className="text-right font-bold py-4 text-foreground pr-6">الموظف</TableHead>
                         <TableHead className="text-right font-bold py-4 text-foreground">البريد الإلكتروني</TableHead>
                         <TableHead className="text-right font-bold py-4 text-foreground">الدور الأساسي</TableHead>
-                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المستفيدين</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground">وصول إشعارات المستفيدين</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground">وصول إشعارات الطلبات</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المالية والعقود</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border/40">
@@ -358,11 +436,29 @@ export default function NotificationCustomization() {
                                 {roleLabel}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-center py-4 pl-6">
+                            <TableCell className="text-center py-4">
                               <div className="flex justify-center">
                                 <Switch
                                   checked={user.receiveBeneficiaryNotifications || false}
                                   onCheckedChange={(checked) => handleToggleUserNotifications(user.id, checked)}
+                                  className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center py-4">
+                              <div className="flex justify-center">
+                                <Switch
+                                  checked={user.receiveRequestNotifications || false}
+                                  onCheckedChange={(checked) => handleToggleUserRequestNotifications(user.id, checked)}
+                                  className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center py-4 pl-6">
+                              <div className="flex justify-center">
+                                <Switch
+                                  checked={user.receiveFinancialAndContractNotifications || false}
+                                  onCheckedChange={(checked) => handleToggleUserFinancialNotifications(user.id, checked)}
                                   className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
                                 />
                               </div>

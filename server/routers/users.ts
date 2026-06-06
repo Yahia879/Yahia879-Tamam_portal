@@ -410,6 +410,8 @@ export const usersRouter = router({
         role: users.role,
         status: users.status,
         receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
+        receiveRequestNotifications: users.receiveRequestNotifications,
+        receiveFinancialAndContractNotifications: users.receiveFinancialAndContractNotifications,
       })
       .from(users)
       .where(eq(users.status, "active"));
@@ -429,6 +431,42 @@ export const usersRouter = router({
       await db
         .update(users)
         .set({ receiveBeneficiaryNotifications: input.enabled })
+        .where(eq(users.id, input.userId));
+
+      return { success: true };
+    }),
+
+  // تحديث حالة استقبال إشعارات الطلبات لمستخدم
+  updateReceiveRequestNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      userId: z.number(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      await db
+        .update(users)
+        .set({ receiveRequestNotifications: input.enabled })
+        .where(eq(users.id, input.userId));
+
+      return { success: true };
+    }),
+
+  // تحديث حالة استقبال إشعارات المالية والعقود لمستخدم
+  updateReceiveFinancialAndContractNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      userId: z.number(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      await db
+        .update(users)
+        .set({ receiveFinancialAndContractNotifications: input.enabled })
         .where(eq(users.id, input.userId));
 
       return { success: true };
