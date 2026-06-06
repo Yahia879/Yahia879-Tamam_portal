@@ -6,9 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, HelpCircle, Save, Check, RotateCcw, AlertTriangle } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, HelpCircle, Save, Check, RotateCcw, AlertTriangle, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { trpc } from "@/lib/trpc";
 
 interface NotificationTrigger {
   id: string;
@@ -28,6 +29,22 @@ interface ChannelConfig {
 
 export default function NotificationCustomization() {
   const [isSaving, setIsSaving] = useState(false);
+
+  // جلب قائمة الموظفين وتخصيص إشعاراتهم
+  const { data: staffUsers, isLoading: isLoadingStaff, refetch: refetchStaff } = trpc.users.getStaffUsers.useQuery();
+  const updateNotifSettingMutation = trpc.users.updateReceiveBeneficiaryNotifications.useMutation({
+    onSuccess: () => {
+      refetchStaff();
+      toast.success("تم تحديث إعدادات استقبال الإشعارات بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleUserNotifications = (userId: number, enabled: boolean) => {
+    updateNotifSettingMutation.mutate({ userId, enabled });
+  };
 
   // الأدوار المتاحة في النظام لتخصيص الإشعارات
   const roles = [
@@ -205,10 +222,14 @@ export default function NotificationCustomization() {
 
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
-          <TabsList className="bg-muted/50 p-1 rounded-xl w-full sm:w-auto max-w-md border border-border/30">
+          <TabsList className="bg-muted/50 p-1 rounded-xl w-full sm:w-auto max-w-lg border border-border/30">
             <TabsTrigger value="roles" className="rounded-lg py-2 text-sm font-medium flex items-center gap-2">
               <Shield className="w-4 h-4" />
               <span>تخصيص حسب الأدوار</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="rounded-lg py-2 text-sm font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span>تخصيص حسب الأشخاص</span>
             </TabsTrigger>
             <TabsTrigger value="channels" className="rounded-lg py-2 text-sm font-medium flex items-center gap-2">
               <Smartphone className="w-4 h-4" />
@@ -278,6 +299,66 @@ export default function NotificationCustomization() {
                 </p>
               </div>
             </div>
+          </TabsContent>
+
+          {/* تبويب: التخصيص حسب الأشخاص */}
+          <TabsContent value="users" className="space-y-6 focus-visible:outline-none">
+            <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-6">
+                <CardTitle className="text-lg font-bold text-foreground">تخصيص استقبال إشعارات المستفيدين</CardTitle>
+                <CardDescription className="text-sm">
+                  حدد الموظفين الذين يتلقون إشعارات عند قيام المستفيدين بتقديم طلبات جديدة أو تسجيل مساجد جديدة في البوابة.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoadingStaff ? (
+                  <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+                    <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    <span>جاري تحميل قائمة الموظفين...</span>
+                  </div>
+                ) : staffUsers && staffUsers.length > 0 ? (
+                  <Table className="min-w-[700px]">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                        <TableHead className="text-right font-bold py-4 text-foreground pr-6">الموظف</TableHead>
+                        <TableHead className="text-right font-bold py-4 text-foreground">البريد الإلكتروني</TableHead>
+                        <TableHead className="text-right font-bold py-4 text-foreground">الدور الأساسي</TableHead>
+                        <TableHead className="text-center font-bold py-4 text-foreground pl-6">وصول إشعارات المستفيدين</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-border/40">
+                      {staffUsers.map(user => {
+                        const roleColor = roles.find(r => r.id === user.role)?.color || "bg-slate-500/10 text-slate-600 border-slate-500/20";
+                        const roleLabel = roles.find(r => r.id === user.role)?.nameAr || user.role;
+                        
+                        return (
+                          <TableRow key={user.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-4 pr-6 font-semibold text-sm text-foreground">{user.name}</TableCell>
+                            <TableCell className="py-4 text-sm text-muted-foreground">{user.email}</TableCell>
+                            <TableCell className="py-4">
+                              <Badge variant="outline" className={`text-xs py-0.5 px-2.5 rounded-full border font-medium ${roleColor}`}>
+                                {roleLabel}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center py-4 pl-6">
+                              <div className="flex justify-center">
+                                <Switch
+                                  checked={user.receiveBeneficiaryNotifications || false}
+                                  onCheckedChange={(checked) => handleToggleUserNotifications(user.id, checked)}
+                                  className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-95"
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">لا يوجد موظفون متاحون حالياً.</div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* تبويب: قنوات الإرسال */}

@@ -113,39 +113,23 @@ export async function createNotification(data: {
 }
 
 // دالة لجلب معرفات جميع المسؤولين عن الطلبات (الذين لديهم أدوار افتراضية أو صلاحية requests.view_details)
+// دالة لجلب معرفات جميع المسؤولين عن الطلبات (الذين لديهم خيار receiveBeneficiaryNotifications مفعل)
 async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<number[]> {
   try {
-    // جلب المرشحين فقط (المستخدمين الذين ليس دورهم هو service_requester أو لديهم أدوار مخصصة أو صلاحيات مباشرة)
     const candidateUsers = await db
-      .select({ id: users.id, role: users.role })
+      .select({ id: users.id })
       .from(users)
       .where(
         and(
           isNull(users.deletedAt),
-          or(
-            ne(users.role, "service_requester"),
-            sql`exists (select 1 from user_roles where user_roles.user_id = ${users.id})`,
-            sql`exists (select 1 from user_permissions where user_permissions.user_id = ${users.id})`
-          )
+          eq(users.receiveBeneficiaryNotifications, true)
         )
       );
 
     const officerIds: number[] = [];
-    const defaultOfficerRoles = ["super_admin", "system_admin", "projects_office"];
-
     for (const u of candidateUsers) {
       if (excludeUserId && u.id === excludeUserId) continue;
-
-      if (defaultOfficerRoles.includes(u.role)) {
-        officerIds.push(u.id);
-        continue;
-      }
-
-      // التحقق من صلاحية "عرض تفاصيل الطلب وإدارته" للمستخدم
-      const userPerms = await calculateUserPermissions(u.id);
-      if (userPerms.includes("requests.view_details")) {
-        officerIds.push(u.id);
-      }
+      officerIds.push(u.id);
     }
 
     return officerIds;
@@ -322,6 +306,7 @@ export async function notifyRequestCreation(
 }
 
 // دالة لإرسال إشعار عند تسجيل مسجد جديد
+// دالة لإرسال إشعار عند تسجيل مسجد جديد
 export async function notifyNewMosque(
   mosqueId: number,
   mosqueName: string,
@@ -340,15 +325,18 @@ export async function notifyNewMosque(
     const isCreatorAdmin = creator && ["super_admin", "system_admin", "projects_office"].includes(creator.role);
 
     if (!isCreatorAdmin) {
-      // إشعار للمدراء
-      await notifyUsersByRole(
-        ["super_admin", "system_admin", "projects_office"],
-        "mosque",
-        "مسجد جديد",
-        `تم تسجيل مسجد جديد "${mosqueName}" وهو بانتظار الاعتماد`,
-        "mosque",
-        mosqueId
-      );
+      // إشعار للمسؤولين
+      const officerIds = await getRequestOfficerIds(db, requesterId);
+      for (const userId of officerIds) {
+        await createNotification({
+          userId,
+          type: "mosque",
+          title: "مسجد جديد",
+          message: `تم تسجيل مسجد جديد "${mosqueName}" وهو بانتظار الاعتماد`,
+          relatedType: "mosque",
+          relatedId: mosqueId,
+        });
+      }
 
       // إشعار لمقدم الطلب لتأكيد استلام طلبه
       await createNotification({
@@ -361,11 +349,7 @@ export async function notifyNewMosque(
       });
     } else {
       // إذا كان مقدم الطلب مسؤولاً، لا نرسل له إشعاراً بل نرسل للآخرين فقط
-      const targetRoles = ["super_admin", "system_admin", "projects_office"];
-      const targetUsers = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(and(inArray(users.role, targetRoles as any), ne(users.id, requesterId)));
+      const officerIds = await getRequestOfficerIds(db, requesterId);
 
       const roleLabels: Record<string, string> = {
         super_admin: "المدير العام",
@@ -375,9 +359,9 @@ export async function notifyNewMosque(
       const roleName = creator ? (roleLabels[creator.role] || creator.role) : "المسؤول";
       const creatorName = creator ? creator.name : "";
 
-      for (const targetUser of targetUsers) {
+      for (const targetId of officerIds) {
         await createNotification({
-          userId: targetUser.id,
+          userId: targetId,
           type: "mosque",
           title: "تسجيل مسجد من قبل مسؤول",
           message: `قام ${roleName} ${creatorName} بتسجيل مسجد جديد "${mosqueName}"`,

@@ -409,9 +409,28 @@ export const usersRouter = router({
         email: users.email,
         role: users.role,
         status: users.status,
+        receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
       })
       .from(users)
       .where(eq(users.status, "active"));
     return staffUsers.filter(user => user.role !== "service_requester");
   }),
+
+  // تحديث حالة استقبال إشعارات المستفيدين لمستخدم
+  updateReceiveBeneficiaryNotifications: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      userId: z.number(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      await db
+        .update(users)
+        .set({ receiveBeneficiaryNotifications: input.enabled })
+        .where(eq(users.id, input.userId));
+
+      return { success: true };
+    }),
 });
