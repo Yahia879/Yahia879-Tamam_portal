@@ -27,6 +27,8 @@ export default function Notifications() {
     limit,
   });
 
+  const { data: unreadCountData } = trpc.notifications.getUnreadCount.useQuery();
+
   const markAsReadMutation = trpc.notifications.markAsRead.useMutation({
     onSuccess: () => {
       utils.notifications.getMyNotifications.invalidate();
@@ -68,7 +70,7 @@ export default function Notifications() {
             variant="outline" 
             className="flex items-center gap-2 w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm"
             onClick={() => markAllAsReadMutation.mutate()}
-            disabled={markAllAsReadMutation.isPending || notifications.every(n => n.isRead)}
+            disabled={markAllAsReadMutation.isPending || !unreadCountData || unreadCountData === 0}
           >
             <CheckCheck className="w-4 h-4" />
             تحديد الكل كمقروء
