@@ -1,5 +1,9 @@
 import { z } from "zod";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
+
+dotenv.config();
 import { getDb } from "../db";
 import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
@@ -20,6 +24,84 @@ export const NOTIFICATION_TYPES = {
 } as const;
 
 export type NotificationType = "info" | "success" | "warning" | "error" | "request_update" | "system" | "mosque" | "request";
+
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter() {
+  if (transporter) return transporter;
+
+  const host = process.env.SMTP_HOST;
+  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
+  const secure = process.env.SMTP_SECURE === "true";
+  const user = process.env.SMTP_USER || "tryahia.208@gmail.com";
+  const pass = process.env.SMTP_PASS || "nsuy qryz uwvo okzf";
+  const service = process.env.SMTP_SERVICE;
+
+  if (service) {
+    transporter = nodemailer.createTransport({
+      service,
+      auth: {
+        user,
+        pass,
+      },
+    });
+  } else if (host) {
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user,
+        pass,
+      },
+      tls: {
+        ciphers: "SSLv3",
+        rejectUnauthorized: false,
+      },
+    });
+  } else {
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user,
+        pass,
+      },
+    });
+  }
+
+  return transporter;
+}
+
+export async function sendEmailNotification(to: string, title: string, message: string) {
+  const user = process.env.SMTP_USER || "tryahia.208@gmail.com";
+  
+  try {
+    const mailOptions = {
+      from: `"بوابة تمام" <${user}>`,
+      to,
+      subject: title,
+      text: message,
+      html: `
+        <div style="direction: rtl; font-family: Tahoma, Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 10px;">إشعار جديد من بوابة تمام</h2>
+          <p style="font-size: 16px; line-height: 1.6; color: #333;"><strong>${title}</strong></p>
+          <p style="font-size: 14px; line-height: 1.5; color: #555; background-color: #f9f9f9; padding: 15px; border-radius: 4px; border-right: 4px solid #0d9488;">
+            ${message}
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #999; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لبوابة تمام.</p>
+        </div>
+      `,
+    };
+
+    const info = await getTransporter().sendMail(mailOptions);
+    console.log(`Email sent successfully to ${to}: ${info.messageId}`);
+    return true;
+  } catch (error) {
+    console.error("Error sending email notification:", error);
+    return false;
+  }
+}
 
 async function sendWhatsApp(phone: string, title: string, message: string) {
   const token = process.env.MOTTASL_API_TOKEN;
@@ -82,24 +164,115 @@ export async function createNotification(data: {
   if (!db) return null;
 
   try {
-    const result = await db.insert(notifications).values({
-      userId: data.userId,
-      type: data.type as any,
-      title: data.title,
-      message: data.message,
-      relatedType: data.relatedType,
-      relatedId: data.relatedId,
-      isRead: false,
-    });
-
-    // Fetch user role and phone to send WhatsApp message to service_requesters
+    // 1. Fetch user details first
     const [user] = await db
-      .select({ role: users.role, phone: users.phone })
+      .select({ 
+        role: users.role, 
+        phone: users.phone,
+        email: users.email,
+        receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
+        receiveBeneficiaryEmail: users.receiveBeneficiaryEmail,
+        receiveBeneficiaryWhatsapp: users.receiveBeneficiaryWhatsapp,
+        receiveBeneficiarySms: users.receiveBeneficiarySms,
+        receiveRequestNotifications: users.receiveRequestNotifications,
+        receiveRequestEmail: users.receiveRequestEmail,
+        receiveRequestWhatsapp: users.receiveRequestWhatsapp,
+        receiveRequestSms: users.receiveRequestSms,
+        receiveFinancialAndContractNotifications: users.receiveFinancialAndContractNotifications,
+        receiveFinancialEmail: users.receiveFinancialEmail,
+        receiveFinancialWhatsapp: users.receiveFinancialWhatsapp,
+        receiveFinancialSms: users.receiveFinancialSms,
+      })
       .from(users)
       .where(eq(users.id, data.userId))
       .limit(1);
 
-    if (user && user.role === "service_requester" && user.phone) {
+    if (!user) return null;
+
+    // 2. Fetch role settings
+    const [roleSetting] = await db
+      .select({
+        receiveBeneficiaryNotifications: rolesTable.receiveBeneficiaryNotifications,
+        receiveBeneficiaryEmail: rolesTable.receiveBeneficiaryEmail,
+        receiveBeneficiaryWhatsapp: rolesTable.receiveBeneficiaryWhatsapp,
+        receiveBeneficiarySms: rolesTable.receiveBeneficiarySms,
+        
+        receiveRequestNotifications: rolesTable.receiveRequestNotifications,
+        receiveRequestEmail: rolesTable.receiveRequestEmail,
+        receiveRequestWhatsapp: rolesTable.receiveRequestWhatsapp,
+        receiveRequestSms: rolesTable.receiveRequestSms,
+        
+        receiveFinancialAndContractNotifications: rolesTable.receiveFinancialAndContractNotifications,
+        receiveFinancialEmail: rolesTable.receiveFinancialEmail,
+        receiveFinancialWhatsapp: rolesTable.receiveFinancialWhatsapp,
+        receiveFinancialSms: rolesTable.receiveFinancialSms,
+      })
+      .from(rolesTable)
+      .where(eq(rolesTable.id, user.role))
+      .limit(1);
+
+    let isInAppEnabled = false;
+    let isEmailEnabled = false;
+    let isWhatsappEnabled = false;
+    let isSmsEnabled = false;
+
+    const isFinancial = 
+      data.relatedType?.startsWith("disbursement") || 
+      data.relatedType === "contract" || 
+      (data.type as string) === "financial";
+
+    const isRequest = 
+      data.relatedType === "request" || 
+      data.type === "request" || 
+      data.type === "request_update" ||
+      data.type === "mosque";
+
+    if (isFinancial) {
+      isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
+      isEmailEnabled = !!user.receiveFinancialEmail || !!(roleSetting && roleSetting.receiveFinancialEmail);
+      isWhatsappEnabled = !!user.receiveFinancialWhatsapp || !!(roleSetting && roleSetting.receiveFinancialWhatsapp);
+      isSmsEnabled = !!user.receiveFinancialSms || !!(roleSetting && roleSetting.receiveFinancialSms);
+    } else if (isRequest) {
+      isInAppEnabled = !!user.receiveRequestNotifications || !!(roleSetting && roleSetting.receiveRequestNotifications);
+      isEmailEnabled = !!user.receiveRequestEmail || !!(roleSetting && roleSetting.receiveRequestEmail);
+      isWhatsappEnabled = !!user.receiveRequestWhatsapp || !!(roleSetting && roleSetting.receiveRequestWhatsapp);
+      isSmsEnabled = !!user.receiveRequestSms || !!(roleSetting && roleSetting.receiveRequestSms);
+    } else {
+      isInAppEnabled = !!user.receiveBeneficiaryNotifications || !!(roleSetting && roleSetting.receiveBeneficiaryNotifications);
+      isEmailEnabled = !!user.receiveBeneficiaryEmail || !!(roleSetting && roleSetting.receiveBeneficiaryEmail);
+      isWhatsappEnabled = !!user.receiveBeneficiaryWhatsapp || !!(roleSetting && roleSetting.receiveBeneficiaryWhatsapp);
+      isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
+    }
+
+    let result = null;
+
+    // 3. Only insert into database notifications table if in-app notifications are enabled
+    if (isInAppEnabled) {
+      result = await db.insert(notifications).values({
+        userId: data.userId,
+        type: data.type as any,
+        title: data.title,
+        message: data.message,
+        relatedType: data.relatedType,
+        relatedId: data.relatedId,
+        isRead: false,
+      });
+    }
+
+    // 4. Send external notifications (Email and WhatsApp)
+    if (user.role === "service_requester" && user.phone) {
+      sendWhatsApp(user.phone, data.title, data.message).catch((err) => {
+        console.error("Async WhatsApp error:", err);
+      });
+    }
+
+    if (isEmailEnabled && user.email) {
+      sendEmailNotification(user.email, data.title, data.message).catch((err) => {
+        console.error("Async Email error:", err);
+      });
+    }
+
+    if (isWhatsappEnabled && user.phone && user.role !== "service_requester") {
       sendWhatsApp(user.phone, data.title, data.message).catch((err) => {
         console.error("Async WhatsApp error:", err);
       });
@@ -155,7 +328,13 @@ async function getRequestNotificationOfficerIds(db: any, excludeUserId?: number)
           isNull(users.deletedAt),
           or(
             eq(users.receiveRequestNotifications, true),
-            eq(rolesTable.receiveRequestNotifications, true)
+            eq(rolesTable.receiveRequestNotifications, true),
+            eq(users.receiveRequestEmail, true),
+            eq(rolesTable.receiveRequestEmail, true),
+            eq(users.receiveRequestWhatsapp, true),
+            eq(rolesTable.receiveRequestWhatsapp, true),
+            eq(users.receiveRequestSms, true),
+            eq(rolesTable.receiveRequestSms, true)
           )
         )
       );
@@ -185,7 +364,13 @@ async function getFinancialNotificationOfficerIds(db: any, excludeUserId?: numbe
           isNull(users.deletedAt),
           or(
             eq(users.receiveFinancialAndContractNotifications, true),
-            eq(rolesTable.receiveFinancialAndContractNotifications, true)
+            eq(rolesTable.receiveFinancialAndContractNotifications, true),
+            eq(users.receiveFinancialEmail, true),
+            eq(rolesTable.receiveFinancialEmail, true),
+            eq(users.receiveFinancialWhatsapp, true),
+            eq(rolesTable.receiveFinancialWhatsapp, true),
+            eq(users.receiveFinancialSms, true),
+            eq(rolesTable.receiveFinancialSms, true)
           )
         )
       );
@@ -240,8 +425,11 @@ export async function notifyUsersByRole(
       if (relatedType === "request") {
         const [userSetting] = await db
           .select({
-            receiveRequestNotifications: users.receiveRequestNotifications,
             role: users.role,
+            receiveRequestNotifications: users.receiveRequestNotifications,
+            receiveRequestEmail: users.receiveRequestEmail,
+            receiveRequestWhatsapp: users.receiveRequestWhatsapp,
+            receiveRequestSms: users.receiveRequestSms,
           })
           .from(users)
           .where(eq(users.id, userId))
@@ -249,12 +437,22 @@ export async function notifyUsersByRole(
 
         if (userSetting) {
           const [roleSetting] = await db
-            .select({ receiveRequestNotifications: rolesTable.receiveRequestNotifications })
+            .select({
+              receiveRequestNotifications: rolesTable.receiveRequestNotifications,
+              receiveRequestEmail: rolesTable.receiveRequestEmail,
+              receiveRequestWhatsapp: rolesTable.receiveRequestWhatsapp,
+              receiveRequestSms: rolesTable.receiveRequestSms,
+            })
             .from(rolesTable)
             .where(eq(rolesTable.id, userSetting.role))
             .limit(1);
 
-          const enabled = userSetting.receiveRequestNotifications || (roleSetting && roleSetting.receiveRequestNotifications);
+          const inAppEnabled = userSetting.receiveRequestNotifications || (roleSetting && roleSetting.receiveRequestNotifications);
+          const emailEnabled = userSetting.receiveRequestEmail || (roleSetting && roleSetting.receiveRequestEmail);
+          const whatsappEnabled = userSetting.receiveRequestWhatsapp || (roleSetting && roleSetting.receiveRequestWhatsapp);
+          const smsEnabled = userSetting.receiveRequestSms || (roleSetting && roleSetting.receiveRequestSms);
+
+          const enabled = inAppEnabled || emailEnabled || whatsappEnabled || smsEnabled;
           if (!enabled) {
             continue;
           }
@@ -1217,6 +1415,92 @@ export async function notifyDisbursementOrderCreation(
     console.error("Error in notifyDisbursementOrderCreation:", error);
   }
 }
+
+export async function notifyDisbursementOrderApproval(
+  orderId: number,
+  orderNumber: string,
+  requestNumber: string,
+  amount: string,
+  projectId: number | null
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let projectName = "";
+    if (projectId) {
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+      if (project) {
+        projectName = project.name;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const notificationTitle = "اعتماد أمر صرف";
+    const message = `تم اعتماد أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}")${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "success",
+        title: notificationTitle,
+        message,
+        relatedType: "disbursement_order",
+        relatedId: orderId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyDisbursementOrderApproval:", error);
+  }
+}
+
+export async function notifyDisbursementOrderRejection(
+  orderId: number,
+  orderNumber: string,
+  requestNumber: string,
+  amount: string,
+  projectId: number | null,
+  reason: string
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    let projectName = "";
+    if (projectId) {
+      const [project] = await db
+        .select({ name: projects.name })
+        .from(projects)
+        .where(eq(projects.id, projectId))
+        .limit(1);
+      if (project) {
+        projectName = project.name;
+      }
+    }
+
+    const officerIds = await getFinancialNotificationOfficerIds(db);
+    const notificationTitle = "رفض أمر صرف";
+    const message = `تم رفض أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}")${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال بسبب: ${reason}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "error",
+        title: notificationTitle,
+        message,
+        relatedType: "disbursement_order",
+        relatedId: orderId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyDisbursementOrderRejection:", error);
+  }
+}
+
 
 
 

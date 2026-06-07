@@ -412,6 +412,15 @@ export const usersRouter = router({
         receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
         receiveRequestNotifications: users.receiveRequestNotifications,
         receiveFinancialAndContractNotifications: users.receiveFinancialAndContractNotifications,
+        receiveBeneficiaryEmail: users.receiveBeneficiaryEmail,
+        receiveRequestEmail: users.receiveRequestEmail,
+        receiveFinancialEmail: users.receiveFinancialEmail,
+        receiveBeneficiaryWhatsapp: users.receiveBeneficiaryWhatsapp,
+        receiveRequestWhatsapp: users.receiveRequestWhatsapp,
+        receiveFinancialWhatsapp: users.receiveFinancialWhatsapp,
+        receiveBeneficiarySms: users.receiveBeneficiarySms,
+        receiveRequestSms: users.receiveRequestSms,
+        receiveFinancialSms: users.receiveFinancialSms,
       })
       .from(users)
       .where(eq(users.status, "active"));
@@ -467,6 +476,48 @@ export const usersRouter = router({
       await db
         .update(users)
         .set({ receiveFinancialAndContractNotifications: input.enabled })
+        .where(eq(users.id, input.userId));
+
+      return { success: true };
+    }),
+
+  updateUserChannelSetting: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      userId: z.number(),
+      category: z.enum(['beneficiary', 'request', 'financial']),
+      channel: z.enum(['in_app', 'whatsapp', 'sms', 'email']),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      const fieldMap = {
+        beneficiary: {
+          in_app: "receiveBeneficiaryNotifications",
+          email: "receiveBeneficiaryEmail",
+          whatsapp: "receiveBeneficiaryWhatsapp",
+          sms: "receiveBeneficiarySms"
+        },
+        request: {
+          in_app: "receiveRequestNotifications",
+          email: "receiveRequestEmail",
+          whatsapp: "receiveRequestWhatsapp",
+          sms: "receiveRequestSms"
+        },
+        financial: {
+          in_app: "receiveFinancialAndContractNotifications",
+          email: "receiveFinancialEmail",
+          whatsapp: "receiveFinancialWhatsapp",
+          sms: "receiveFinancialSms"
+        }
+      } as const;
+
+      const field = fieldMap[input.category][input.channel];
+
+      await db
+        .update(users)
+        .set({ [field]: input.enabled })
         .where(eq(users.id, input.userId));
 
       return { success: true };

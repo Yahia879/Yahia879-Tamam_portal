@@ -19,7 +19,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation } from "./notifications";
+import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
 
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -1188,6 +1188,8 @@ export const disbursementsRouter = router({
           contractPaymentId: disbursementRequests.contractPaymentId,
           paymentId: disbursementRequests.paymentId,
           requestId: disbursementRequests.id,
+          requestNumber: disbursementRequests.requestNumber,
+          projectId: disbursementRequests.projectId,
         })
         .from(disbursementOrders)
         .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
@@ -1253,6 +1255,16 @@ export const disbursementsRouter = router({
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
         }
+      }
+
+      if (orderWithRequest) {
+        await notifyDisbursementOrderApproval(
+          input.id,
+          order.orderNumber,
+          orderWithRequest.requestNumber || "",
+          orderWithRequest.orderAmount,
+          orderWithRequest.projectId
+        );
       }
 
       // إرسال إشعار للإدارة المالية لتنفيذ أمر الصرف
@@ -1384,8 +1396,15 @@ export const disbursementsRouter = router({
       }
 
       const [order] = await db
-        .select({ disbursementRequestId: disbursementOrders.disbursementRequestId })
+        .select({
+          orderNumber: disbursementOrders.orderNumber,
+          amount: disbursementOrders.amount,
+          disbursementRequestId: disbursementOrders.disbursementRequestId,
+          requestNumber: disbursementRequests.requestNumber,
+          projectId: disbursementRequests.projectId,
+        })
         .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
         .where(eq(disbursementOrders.id, input.id));
 
       await db
@@ -1408,6 +1427,17 @@ export const disbursementsRouter = router({
             rejectionReason: input.reason,
           })
           .where(eq(disbursementRequests.id, order.disbursementRequestId));
+      }
+
+      if (order) {
+        await notifyDisbursementOrderRejection(
+          input.id,
+          order.orderNumber,
+          order.requestNumber || "",
+          order.amount,
+          order.projectId,
+          input.reason
+        );
       }
 
       return { success: true, message: "تم رفض أمر الصرف" };

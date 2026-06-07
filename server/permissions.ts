@@ -897,6 +897,48 @@ export const permissionsRouter = router({
       return { success: true };
     }),
 
+  updateRoleChannelSetting: permissionProcedure("staff_notifications.edit")
+    .input(z.object({
+      roleId: z.string(),
+      category: z.enum(['beneficiary', 'request', 'financial']),
+      channel: z.enum(['in_app', 'whatsapp', 'sms', 'email']),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const fieldMap = {
+        beneficiary: {
+          in_app: "receiveBeneficiaryNotifications",
+          email: "receiveBeneficiaryEmail",
+          whatsapp: "receiveBeneficiaryWhatsapp",
+          sms: "receiveBeneficiarySms"
+        },
+        request: {
+          in_app: "receiveRequestNotifications",
+          email: "receiveRequestEmail",
+          whatsapp: "receiveRequestWhatsapp",
+          sms: "receiveRequestSms"
+        },
+        financial: {
+          in_app: "receiveFinancialAndContractNotifications",
+          email: "receiveFinancialEmail",
+          whatsapp: "receiveFinancialWhatsapp",
+          sms: "receiveFinancialSms"
+        }
+      } as const;
+
+      const field = fieldMap[input.category][input.channel];
+
+      await db
+        .update(roles)
+        .set({ [field]: input.enabled })
+        .where(eq(roles.id, input.roleId));
+
+      return { success: true };
+    }),
+
   /**
    * عرض صلاحيات دور محدد
    */
