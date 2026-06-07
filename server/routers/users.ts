@@ -407,7 +407,7 @@ export const usersRouter = router({
         id: users.id,
         name: users.name,
         email: users.email,
-        role: users.role,
+        role: sql<string>`coalesce(${userRoleAssignments.roleId}, ${users.role})`,
         status: users.status,
         receiveBeneficiaryNotifications: users.receiveBeneficiaryNotifications,
         receiveRequestNotifications: users.receiveRequestNotifications,
@@ -423,6 +423,7 @@ export const usersRouter = router({
         receiveFinancialSms: users.receiveFinancialSms,
       })
       .from(users)
+      .leftJoin(userRoleAssignments, eq(users.id, userRoleAssignments.userId))
       .where(eq(users.status, "active"));
     return staffUsers.filter(user => user.role !== "service_requester");
   }),

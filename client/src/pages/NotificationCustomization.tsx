@@ -92,15 +92,6 @@ interface NotificationTrigger {
   roles: Record<string, boolean>; // roleId -> active
 }
 
-interface ChannelConfig {
-  id: string;
-  nameAr: string;
-  description: string;
-  enabled: boolean;
-  status: "active" | "configured" | "inactive";
-  apiStatus: string;
-}
-
 const ChannelToggles = ({
   inApp,
   whatsapp,
@@ -199,12 +190,117 @@ const ChannelToggles = ({
   );
 };
 
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) => {
+  if (totalPages <= 1) return null;
+  
+  return (
+    <div className="flex items-center justify-between border-t border-border/40 px-4 py-3.5 bg-slate-50/30 dark:bg-slate-900/5 sm:px-6">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+        >
+          السابق
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-md border border-border bg-background px-4 py-2 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+        >
+          التالي
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between" dir="rtl">
+        <div>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            عرض الصفحة <span className="font-semibold text-foreground">{currentPage}</span> من{" "}
+            <span className="font-semibold text-foreground">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-border/60 bg-background p-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 transition-colors"
+            >
+              السابق
+            </button>
+            {Array.from({ length: totalPages }).map((_, idx) => {
+              const pageNum = idx + 1;
+              const isActive = pageNum === currentPage;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange(pageNum)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
+                    isActive
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "border border-border/60 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-border/60 bg-background p-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50 transition-colors"
+            >
+              التالي
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function NotificationCustomization() {
 
   // جلب قائمة الموظفين وتخصيص إشعاراتهم
   const { data: staffUsers, isLoading: isLoadingStaff, refetch: refetchStaff } = trpc.users.getStaffUsers.useQuery();
   // جلب قائمة الأدوار وتخصيص إشعاراتها
   const { data: dbRoles, isLoading: isLoadingRoles, refetch: refetchRoles } = trpc.permissions.getRoles.useQuery();
+
+  const [rolesPage, setRolesPage] = useState(1);
+  const [usersPage, setUsersPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // الأدوار المفلترة والمصنفة والمقسمة
+  const filteredRoles = dbRoles
+    ? dbRoles
+        .filter(role => role.id !== "service_requester")
+        .sort((a, b) => {
+          if (a.isSystem && !b.isSystem) return -1;
+          if (!a.isSystem && b.isSystem) return 1;
+          return 0;
+        })
+    : [];
+  
+  const rolesTotalPages = Math.ceil(filteredRoles.length / itemsPerPage);
+  const paginatedRoles = filteredRoles.slice(
+    (rolesPage - 1) * itemsPerPage,
+    rolesPage * itemsPerPage
+  );
+
+  // الموظفون المقسمون
+  const filteredStaffUsers = staffUsers || [];
+  const usersTotalPages = Math.ceil(filteredStaffUsers.length / itemsPerPage);
+  const paginatedStaffUsers = filteredStaffUsers.slice(
+    (usersPage - 1) * itemsPerPage,
+    usersPage * itemsPerPage
+  );
 
   const getRoleChannelState = (roleId: string, category: 'beneficiary' | 'request' | 'financial') => {
     const roleObj = dbRoles?.find(r => r.id === roleId);
@@ -401,42 +497,6 @@ export default function NotificationCustomization() {
     }
   ]);
 
-  // قنوات الإرسال المتاحة
-  const [channels, setChannels] = useState<ChannelConfig[]>([
-    {
-      id: "in_app",
-      nameAr: "الإشعارات الداخلية (In-App)",
-      description: "ظهور التنبيهات في جرس الإشعارات بالبوابة والنافذة العلوية",
-      enabled: true,
-      status: "active",
-      apiStatus: "يعمل بشكل تلقائي"
-    },
-    {
-      id: "whatsapp",
-      nameAr: "رسائل الواتساب (WhatsApp)",
-      description: "إرسال رسائل آلية للمستفيدين والمسؤولين عبر بوابة Mottasl.ai",
-      enabled: true,
-      status: "configured",
-      apiStatus: "متصل بـ Mottasl API"
-    },
-    {
-      id: "email",
-      nameAr: "البريد الإلكتروني (SMTP Email)",
-      description: "إرسال إشعارات وتفاصيل مع التحليلات والمرفقات عبر البريد",
-      enabled: false,
-      status: "inactive",
-      apiStatus: "غير مهيأ - يتطلب إعداد SMTP"
-    },
-    {
-      id: "sms",
-      nameAr: "الرسائل النصية القصيرة (SMS)",
-      description: "إرسال رسائل نصية قصيرة على الهواتف الجوالة للتحقق السريع والتنبيهات العاجلة",
-      enabled: false,
-      status: "inactive",
-      apiStatus: "غير نشط - يتطلب شحن رصيد وبوابة إرسال"
-    }
-  ]);
-
   const handleToggleTrigger = (triggerId: string, roleId: string) => {
     setTriggers(prev => prev.map(t => {
       if (t.id === triggerId) {
@@ -452,44 +512,28 @@ export default function NotificationCustomization() {
     }));
   };
 
-  const handleToggleChannel = (channelId: string) => {
-    setChannels(prev => prev.map(c => {
-      if (c.id === channelId) {
-        return { ...c, enabled: !c.enabled };
-      }
-      return c;
-    }));
-  };
-
 
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-7xl mx-auto px-1 pt-4">
+      <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
-          <div className="flex justify-center sm:justify-start">
-            <TabsList className="bg-muted/40 p-1.5 sm:p-2 rounded-2xl border border-border/20 flex gap-2 w-full sm:w-auto overflow-x-auto shadow-inner">
+          <div className="flex justify-center w-full mb-8">
+            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-3 w-full max-w-xl shadow-inner backdrop-blur-md">
               <TabsTrigger 
                 value="roles" 
-                className="flex-1 sm:flex-none rounded-xl py-3 px-6 sm:px-8 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-md transition-all duration-300"
+                className="flex-1 rounded-xl py-3.5 px-6 sm:px-10 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Shield className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأدوار</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="users" 
-                className="flex-1 sm:flex-none rounded-xl py-3 px-6 sm:px-8 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-md transition-all duration-300"
+                className="flex-1 rounded-xl py-3.5 px-6 sm:px-10 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأشخاص</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="channels" 
-                className="flex-1 sm:flex-none rounded-xl py-3 px-6 sm:px-8 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-md transition-all duration-300"
-              >
-                <Smartphone className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
-                <span>قنوات الإرسال</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -503,82 +547,84 @@ export default function NotificationCustomization() {
                   حدد الأدوار الأساسية والمخصصة في النظام التي تتلقى إشعارات تلقائية عند إنشاء وتغيير حالة وتحديث طلبات المستفيدين والمساجد (بما في ذلك إسناد الزيارات الميدانية وتقارير الاستجابة السريعة)، أو عند تحديثات الشؤون المالية والعقود والمشاريع.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-0 overflow-x-auto">
+              <CardContent className="p-0">
                 {isLoadingRoles ? (
                   <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
                     <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                     <span>جاري تحميل قائمة الأدوار...</span>
                   </div>
-                ) : dbRoles && dbRoles.length > 0 ? (
-                  <Table className="min-w-[700px]">
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الدور الوظيفي</TableHead>
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">نوع الدور</TableHead>
-                        <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
-                                    <Info className="w-3.5 h-3.5" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
-                                  <RequestNotificationsTooltip />
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-border/40">
-                      {dbRoles
-                        .filter(role => role.id !== "service_requester")
-                        .sort((a, b) => {
-                          if (a.isSystem && !b.isSystem) return -1;
-                          if (!a.isSystem && b.isSystem) return 1;
-                          return 0;
-                        })
-                        .map(role => {
-                          const roleStyle = roles.find(r => r.id === role.id) || { color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
-                          
-                          return (
-                            <TableRow key={role.id} className="hover:bg-muted/20 transition-colors">
-                              <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">
-                                {role.nameAr}
-                              </TableCell>
-                              <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
-                                <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
-                                  {role.isSystem ? "أساسي" : "مخصص"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center py-3 sm:py-4">
-                                <ChannelToggles
-                                  inApp={role.receiveRequestNotifications || false}
-                                  whatsapp={getRoleChannelState(role.id, 'request').whatsapp}
-                                  sms={getRoleChannelState(role.id, 'request').sms}
-                                  email={getRoleChannelState(role.id, 'request').email}
-                                  onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'request', channel, val)}
-                                />
-                              </TableCell>
-                              <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                                <ChannelToggles
-                                  inApp={role.receiveFinancialAndContractNotifications || false}
-                                  whatsapp={getRoleChannelState(role.id, 'financial').whatsapp}
-                                  sms={getRoleChannelState(role.id, 'financial').sms}
-                                  email={getRoleChannelState(role.id, 'financial').email}
-                                  onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'financial', channel, val)}
-                                />
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                    </TableBody>
-                  </Table>
+                ) : paginatedRoles && paginatedRoles.length > 0 ? (
+                  <>
+                    <div className="w-full overflow-x-auto scrollbar-thin">
+                      <Table className="min-w-[700px]">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الدور الوظيفي</TableHead>
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">نوع الدور</TableHead>
+                            <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
+                                        <Info className="w-3.5 h-3.5" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
+                                      <RequestNotificationsTooltip />
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-border/40">
+                          {paginatedRoles.map(role => {
+                            const roleStyle = roles.find(r => r.id === role.id) || { color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
+                            
+                            return (
+                              <TableRow key={role.id} className="hover:bg-muted/20 transition-colors">
+                                <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">
+                                  {role.nameAr}
+                                </TableCell>
+                                <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
+                                  <Badge variant="secondary" className={`text-[10px] py-0.5 px-2 rounded font-bold ${role.isSystem ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" : "bg-purple-500/10 text-purple-600 border border-purple-500/20"}`}>
+                                    {role.isSystem ? "أساسي" : "مخصص"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center py-3 sm:py-4">
+                                  <ChannelToggles
+                                    inApp={role.receiveRequestNotifications || false}
+                                    whatsapp={getRoleChannelState(role.id, 'request').whatsapp}
+                                    sms={getRoleChannelState(role.id, 'request').sms}
+                                    email={getRoleChannelState(role.id, 'request').email}
+                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'request', channel, val)}
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                  <ChannelToggles
+                                    inApp={role.receiveFinancialAndContractNotifications || false}
+                                    whatsapp={getRoleChannelState(role.id, 'financial').whatsapp}
+                                    sms={getRoleChannelState(role.id, 'financial').sms}
+                                    email={getRoleChannelState(role.id, 'financial').email}
+                                    onToggle={(channel, val) => handleToggleRoleChannel(role.id, 'financial', channel, val)}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <Pagination
+                      currentPage={rolesPage}
+                      totalPages={rolesTotalPages}
+                      onPageChange={setRolesPage}
+                    />
+                  </>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground">لا توجد أدوار متاحة حالياً.</div>
                 )}
@@ -601,82 +647,91 @@ export default function NotificationCustomization() {
                     <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                     <span>جاري تحميل قائمة الموظفين...</span>
                   </div>
-                ) : staffUsers && staffUsers.length > 0 ? (
-                  <Table className="min-w-[700px]">
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الموظف</TableHead>
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">البريد الإلكتروني</TableHead>
-                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">الدور الأساسي</TableHead>
-                        <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
-                          <div className="flex items-center justify-center gap-1">
-                            <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
-                                    <Info className="w-3.5 h-3.5" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
-                                  <RequestNotificationsTooltip />
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-border/40">
-                      {staffUsers.map(user => {
-                        const roleColor = roles.find(r => r.id === user.role)?.color || "bg-slate-500/10 text-slate-600 border-slate-500/20";
-                        const roleLabel = roles.find(r => r.id === user.role)?.nameAr || user.role;
-                        
-                        return (
-                          <TableRow key={user.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">{user.name}</TableCell>
-                            <TableCell className="py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">{user.email}</TableCell>
-                            <TableCell className="py-3 sm:py-4">
-                              <Badge variant="outline" className={`text-[10px] sm:text-xs py-0.5 px-2 sm:px-2.5 rounded-full border font-medium ${roleColor}`}>
-                                {roleLabel}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4">
-                              <ChannelToggles
-                                inApp={getUserChannelState(user.id, 'request').inApp}
-                                whatsapp={getUserChannelState(user.id, 'request').whatsapp}
-                                sms={getUserChannelState(user.id, 'request').sms}
-                                email={getUserChannelState(user.id, 'request').email}
-                                onToggle={(channel, val) => handleToggleUserChannel(user.id, 'request', channel, val)}
-                                inherited={{
-                                  inApp: getUserChannelState(user.id, 'request').isInherited.inApp,
-                                  whatsapp: getUserChannelState(user.id, 'request').isInherited.whatsapp,
-                                  sms: getUserChannelState(user.id, 'request').isInherited.sms,
-                                  email: getUserChannelState(user.id, 'request').isInherited.email,
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                              <ChannelToggles
-                                inApp={getUserChannelState(user.id, 'financial').inApp}
-                                whatsapp={getUserChannelState(user.id, 'financial').whatsapp}
-                                sms={getUserChannelState(user.id, 'financial').sms}
-                                email={getUserChannelState(user.id, 'financial').email}
-                                onToggle={(channel, val) => handleToggleUserChannel(user.id, 'financial', channel, val)}
-                                inherited={{
-                                  inApp: getUserChannelState(user.id, 'financial').isInherited.inApp,
-                                  whatsapp: getUserChannelState(user.id, 'financial').isInherited.whatsapp,
-                                  sms: getUserChannelState(user.id, 'financial').isInherited.sms,
-                                  email: getUserChannelState(user.id, 'financial').isInherited.email,
-                                }}
-                              />
-                            </TableCell>
+                ) : paginatedStaffUsers && paginatedStaffUsers.length > 0 ? (
+                  <>
+                    <div className="w-full overflow-x-auto scrollbar-thin">
+                      <Table className="min-w-[700px]">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الموظف</TableHead>
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">البريد الإلكتروني</TableHead>
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">الدور الأساسي</TableHead>
+                            <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
+                              <div className="flex items-center justify-center gap-1">
+                                <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
+                                        <Info className="w-3.5 h-3.5" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
+                                      <RequestNotificationsTooltip />
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-border/40">
+                          {paginatedStaffUsers.map(user => {
+                            const roleColor = roles.find(r => r.id === user.role)?.color || "bg-slate-500/10 text-slate-600 border-slate-500/20";
+                            const roleLabel = dbRoles?.find(r => r.id === user.role)?.nameAr || user.role;
+                            
+                            return (
+                              <TableRow key={user.id} className="hover:bg-muted/20 transition-colors">
+                                <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 font-semibold text-xs sm:text-sm text-foreground">{user.name}</TableCell>
+                                <TableCell className="py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">{user.email}</TableCell>
+                                <TableCell className="py-3 sm:py-4">
+                                  <Badge variant="outline" className={`text-[10px] sm:text-xs py-0.5 px-2 sm:px-2.5 rounded-full border font-medium ${roleColor}`}>
+                                    {roleLabel}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-center py-3 sm:py-4">
+                                  <ChannelToggles
+                                    inApp={getUserChannelState(user.id, 'request').inApp}
+                                    whatsapp={getUserChannelState(user.id, 'request').whatsapp}
+                                    sms={getUserChannelState(user.id, 'request').sms}
+                                    email={getUserChannelState(user.id, 'request').email}
+                                    onToggle={(channel, val) => handleToggleUserChannel(user.id, 'request', channel, val)}
+                                    inherited={{
+                                      inApp: getUserChannelState(user.id, 'request').isInherited.inApp,
+                                      whatsapp: getUserChannelState(user.id, 'request').isInherited.whatsapp,
+                                      sms: getUserChannelState(user.id, 'request').isInherited.sms,
+                                      email: getUserChannelState(user.id, 'request').isInherited.email,
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                  <ChannelToggles
+                                    inApp={getUserChannelState(user.id, 'financial').inApp}
+                                    whatsapp={getUserChannelState(user.id, 'financial').whatsapp}
+                                    sms={getUserChannelState(user.id, 'financial').sms}
+                                    email={getUserChannelState(user.id, 'financial').email}
+                                    onToggle={(channel, val) => handleToggleUserChannel(user.id, 'financial', channel, val)}
+                                    inherited={{
+                                      inApp: getUserChannelState(user.id, 'financial').isInherited.inApp,
+                                      whatsapp: getUserChannelState(user.id, 'financial').isInherited.whatsapp,
+                                      sms: getUserChannelState(user.id, 'financial').isInherited.sms,
+                                      email: getUserChannelState(user.id, 'financial').isInherited.email,
+                                    }}
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <Pagination
+                      currentPage={usersPage}
+                      totalPages={usersTotalPages}
+                      onPageChange={setUsersPage}
+                    />
+                  </>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground">لا يوجد موظفون متاحون حالياً.</div>
                 )}
@@ -684,51 +739,6 @@ export default function NotificationCustomization() {
             </Card>
           </TabsContent>
 
-          {/* تبويب: قنوات الإرسال */}
-          <TabsContent value="channels" className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 focus-visible:outline-none">
-            {channels.map(channel => {
-              const Icon = channel.id === "in_app" ? Bell : channel.id === "whatsapp" ? MessageSquare : channel.id === "email" ? Mail : Smartphone;
-              return (
-                <Card key={channel.id} className="border border-border/50 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden group">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex gap-3 sm:gap-4">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${channel.enabled ? "bg-teal-500/10 text-teal-600" : "bg-muted text-muted-foreground"}`}>
-                          <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <h3 className="font-bold text-sm sm:text-base text-foreground">{channel.nameAr}</h3>
-                            <Badge 
-                              variant="secondary" 
-                              className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full ${
-                                channel.status === "active" ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" :
-                                channel.status === "configured" ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" :
-                                "bg-slate-500/10 text-slate-600 border border-slate-500/20"
-                              }`}
-                            >
-                              {channel.status === "active" ? "نشط" : channel.status === "configured" ? "مهيأ" : "غير نشط"}
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] sm:text-xs md:text-sm text-muted-foreground leading-relaxed">{channel.description}</p>
-                        </div>
-                      </div>
-                      <Switch
-                        checked={channel.enabled}
-                        onCheckedChange={() => handleToggleChannel(channel.id)}
-                        className="data-[state=checked]:bg-teal-600 dark:data-[state=checked]:bg-teal-500 scale-90 sm:scale-100"
-                      />
-                    </div>
-                    
-                    <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-border/40 flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
-                      <span className="font-medium">الحالة الفنية:</span>
-                      <span className={`font-semibold ${channel.enabled ? "text-foreground" : "text-muted-foreground"}`}>{channel.apiStatus}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
