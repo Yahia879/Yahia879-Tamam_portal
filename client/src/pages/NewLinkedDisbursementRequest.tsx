@@ -183,11 +183,15 @@ export default function NewLinkedDisbursementRequest() {
     const match = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
     if (!match) return false;
     const paymentIdRaw = match[1];
+    const isManual = paymentIdRaw.startsWith("manual-");
     const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
     
-    return projectRequests.requests.some(
-      (req: any) => req.contractPaymentId === paymentIdNumeric && req.status !== "rejected"
-    );
+    return projectRequests.requests.some((req: any) => {
+      if (req.status === "rejected") return false;
+      return isManual 
+        ? req.paymentId === paymentIdNumeric 
+        : req.contractPaymentId === paymentIdNumeric;
+    });
   };
 
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
@@ -607,7 +611,17 @@ export default function NewLinkedDisbursementRequest() {
                       </Select>
                     </div>
 
-                    {selectedReport && (
+                    {selectedReport && isReportLinked(selectedReport) && (
+                      <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 dark:bg-red-950/20 dark:border-red-900 dark:text-red-200 text-right space-y-2 mt-4">
+                        <div className="flex items-center gap-2 text-red-600 font-bold">
+                          <AlertCircle className="w-5 h-5" />
+                          <span>تنبيه: تم تقديم طلب صرف لهذا التقرير مسبقاً</span>
+                        </div>
+                        <p className="text-xs">لقد تم إنشاء طلب صرف مرتبط بتقرير الإنجاز هذا بالفعل. يرجى اختيار تقرير إنجاز آخر لم يصرف له بعد.</p>
+                      </div>
+                    )}
+
+                    {selectedReport && !isReportLinked(selectedReport) && (
                       <div className="space-y-4 animate-slide-up text-right">
                         {/* Premium Linked Report Stats Card */}
                         <div className="p-5 rounded-xl border border-emerald-100 bg-emerald-50/10 dark:bg-emerald-950/5 text-right space-y-4 shadow-inner">
@@ -678,7 +692,11 @@ export default function NewLinkedDisbursementRequest() {
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={isCustom ? (!formData.title || !formData.description || !formData.dateMiladi) : !selectedReportId}
+                  disabled={
+                    isCustom 
+                      ? (!formData.title || !formData.description || !formData.dateMiladi) 
+                      : (!selectedReportId || (selectedReport && isReportLinked(selectedReport)))
+                  }
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm"
                 >
                   التالي

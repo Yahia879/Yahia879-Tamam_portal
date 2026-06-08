@@ -565,26 +565,43 @@ export default function ProgressReports() {
   const isReportConverted = (report: any) => {
     if (!report || !disbursementRequestsData?.requests) return false;
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
-    const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
-    if (isNaN(parsedId)) return false;
-    return disbursementRequestsData.requests.some((req: any) => req.contractPaymentId === parsedId);
+    if (!paymentIdMatch) return false;
+    const paymentIdRaw = paymentIdMatch[1];
+    const isManual = paymentIdRaw.startsWith("manual-");
+    const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+    
+    return disbursementRequestsData.requests.some((req: any) => {
+      if (req.status === "rejected") return false;
+      return isManual 
+        ? req.paymentId === paymentIdNumeric 
+        : req.contractPaymentId === paymentIdNumeric;
+    });
   };
 
   // التحقق مما إذا كان طلب الصرف المرتبط معتمداً أو مصروفاً
   const isDisbursementApproved = (report: any) => {
     if (!report || !disbursementRequestsData?.requests) return false;
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
-    const parsedId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
-    if (isNaN(parsedId)) return false;
-    const associatedReq = disbursementRequestsData.requests.find((req: any) => req.contractPaymentId === parsedId);
+    if (!paymentIdMatch) return false;
+    const paymentIdRaw = paymentIdMatch[1];
+    const isManual = paymentIdRaw.startsWith("manual-");
+    const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+    
+    const associatedReq = disbursementRequestsData.requests.find((req: any) => {
+      return isManual 
+        ? req.paymentId === paymentIdNumeric 
+        : req.contractPaymentId === paymentIdNumeric;
+    });
     return associatedReq ? (associatedReq.status === "approved" || associatedReq.status === "paid") : false;
   };
 
   // اعتماد التقرير والتحويل المباشر لطلب صرف
   const handleApproveAndConvert = (report: any) => {
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
-    const parsedPaymentId = paymentIdMatch ? parseInt(paymentIdMatch[1]) : NaN;
-    const contractPaymentId = isNaN(parsedPaymentId) ? undefined : parsedPaymentId;
+    if (!paymentIdMatch) return;
+    const paymentIdRaw = paymentIdMatch[1];
+    const isManual = paymentIdRaw.startsWith("manual-");
+    const parsedPaymentId = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
     const amountVal = parseFloat(report.budgetSpent || "0");
     const amount = amountVal > 0 ? amountVal : 1;
 
@@ -595,7 +612,8 @@ export default function ProgressReports() {
         amount: amount,
         paymentType: "progress",
         completionPercentage: report.plannedProgress || report.overallProgress || 0,
-        contractPaymentId,
+        contractPaymentId: isManual ? undefined : parsedPaymentId,
+        paymentId: isManual ? parsedPaymentId : undefined,
         description: report.workSummary || "",
       });
     };
