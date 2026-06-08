@@ -1223,6 +1223,16 @@ export const disbursementsRouter = router({
               })
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
+
+          // تحديث حالة دفعة العقد إلى مسددة عند اعتماد أمر الصرف
+          await db
+            .update(contractPayments)
+            .set({
+              status: "paid",
+              paidAt: new Date(),
+              paidBy: ctx.user.id,
+            })
+            .where(eq(contractPayments.id, orderWithRequest.contractPaymentId));
         }
       }
 
@@ -1254,6 +1264,15 @@ export const disbursementsRouter = router({
               })
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
+
+          // تحديث حالة الدفعة اليدوية إلى مسددة عند اعتماد أمر الصرف
+          await db
+            .update(payments)
+            .set({
+              status: "paid",
+              paidAt: new Date(),
+            })
+            .where(eq(payments.id, orderWithRequest.paymentId));
         }
       }
 

@@ -996,7 +996,7 @@ export default function ProjectDetailsPage() {
                             }>
                               {payment.status === "pending" ? "قيد الانتظار" :
                                payment.status === "approved" ? "معتمد" :
-                               payment.status === "paid" ? "مدفوع" : 
+                               payment.status === "paid" ? "مسدد" : 
                                payment.status === "due" ? "مستحق" : "مرفوض"}
                             </Badge>
                           </TableCell>
