@@ -4,6 +4,7 @@ import { eq, desc, inArray } from "drizzle-orm";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { finalReports, mosqueRequests, projects, mosques, users, contractsEnhanced, contractPayments, payments } from "../../drizzle/schema";
+import { calculateUserPermissions } from "../permissions";
 
 export const finalReportsRouter = router({
   // إنشاء تقرير ختامي جديد
@@ -30,9 +31,11 @@ export const finalReportsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
 
-      // التحقق من الصلاحية
+      // التحقق من الصلاحية - الأدوار الأساسية أو صلاحية رفع التقرير الختامي (الاتصال المؤسسي)
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasUploadFinalReportPerm = userPerms.includes("requests.upload_final_report");
+      if (!allowedRoles.includes(ctx.user.role) && !hasUploadFinalReportPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفع التقرير الختامي" });
       }
 

@@ -1130,7 +1130,7 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
       nextStage: "execution", // يبقى في نفس المرحلة
       redirectUrl: "/projects/:projectId", // فتح صفحة تفاصيل المشروع
     },
-    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager", "corporate_comm"],
   },
   handover: {
     title: "مرحلة الاستلام والتسليم",
@@ -1142,7 +1142,7 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
       nextStage: "handover",
       redirectUrl: "/final-report/new?requestId=:requestId",
     },
-    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager"],
+    allowedRoles: ["super_admin", "system_admin", "projects_office", "project_manager", "corporate_comm"],
   },
   closed: {
     title: "المشروع مكتمل",

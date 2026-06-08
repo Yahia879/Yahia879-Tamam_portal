@@ -726,7 +726,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
@@ -777,7 +777,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
@@ -847,7 +847,8 @@ export default function RolePermissions() {
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
-        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة"
+        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
+        upload_final_report: "رفع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
@@ -1039,6 +1040,10 @@ export default function RolePermissions() {
         }
         if (roleId !== "quick_response") {
           perms = perms.filter(p => p !== "manage_as_quick_response");
+        }
+        // إظهار صلاحية رفع التقرير الختامي فقط للأدوار المعنية
+        if (roleId === "field_team" || roleId === "quick_response") {
+          perms = perms.filter(p => p !== "upload_final_report");
         }
       }
       return {

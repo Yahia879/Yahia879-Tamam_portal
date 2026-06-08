@@ -490,7 +490,8 @@ export default function UserPermissions() {
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
-        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة"
+        manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
+        upload_final_report: "رفع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
@@ -619,7 +620,7 @@ export default function UserPermissions() {
             ? ["view", "create", "view_details", "manage_as_field_team"] 
             : activeRoleId === "quick_response"
               ? ["view", "create", "view_details", "manage_as_quick_response"]
-              : ["view", "create", "view_details"] 
+              : ["view", "create", "view_details", "upload_final_report"] 
         },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },

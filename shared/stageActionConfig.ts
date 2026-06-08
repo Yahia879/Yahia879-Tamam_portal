@@ -295,7 +295,7 @@ export const STAGE_ACTION_CONFIG: StageConfig[] = [
         key: 'final_report',
         label: 'التقرير الختامي',
         description: 'إعداد التقرير الختامي للمشروع',
-        requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'project_manager'],
+        requiredRoles: ['super_admin', 'system_admin', 'projects_office', 'project_manager', 'corporate_comm'],
         prerequisite: 'final_handover',
         nextAction: 'final_payment',
         relation: 'after',

@@ -35,12 +35,14 @@ export function getActiveAction(
   const hasViewDetails = userPerms.includes("requests.view_details");
   const hasFieldTeamPerm = userPerms.includes("requests.manage_as_field_team");
   const hasQuickResponsePerm = userPerms.includes("requests.manage_as_quick_response");
+  const hasFinalReportPerm = userPerms.includes("requests.upload_final_report");
 
   // التحقق من الصلاحيات
   let hasRole = (userRole && config.allowedRoles.some(role => role === userRole)) || 
                  hasViewDetails || 
                  (hasFieldTeamPerm && config.allowedRoles.includes("field_team")) ||
-                 (hasQuickResponsePerm && config.allowedRoles.includes("quick_response"));
+                 (hasQuickResponsePerm && config.allowedRoles.includes("quick_response")) ||
+                 (hasFinalReportPerm && config.allowedRoles.includes("corporate_comm"));
 
   // التحقق من الإسناد (إذا كان الطلب مسنداً لشخص معين)
   let isAssignedToUser =
@@ -49,7 +51,8 @@ export function getActiveAction(
     (userRole && ['super_admin', 'system_admin', 'projects_office'].includes(userRole)) ||
     hasViewDetails ||
     hasFieldTeamPerm ||
-    hasQuickResponsePerm;
+    hasQuickResponsePerm ||
+    hasFinalReportPerm;
 
   let title = config.title;
   let description = config.description;

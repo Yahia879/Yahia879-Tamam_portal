@@ -27,7 +27,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report"],
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
@@ -54,7 +54,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "reports.export_data": ["reports.export_data", "reports.view"],
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
-  corporate_comm: ["requests.view", "reports.view", "settings.view"],
+  corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
+  "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 
   // UI customized keys mapping to bridge checkboxes with database granular permissions
@@ -209,6 +210,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "manage_as_quick_response",
         nameAr: "ادارة الطلبات كفريق استجابة سريعة",
         nameEn: "Manage requests as quick response team"
+      },
+      {
+        id: "requests.upload_final_report",
+        moduleId: "requests",
+        action: "upload_final_report",
+        nameAr: "رفع التقرير الختامي",
+        nameEn: "Upload final report"
       }
     ];
 
@@ -243,7 +251,7 @@ async function ensureRequestsPermissionsExist(db: any) {
         quick_response: ["requests.view", "requests.manage_as_quick_response"],
         financial_manager: ["requests.view", "requests.view_details"],
         project_manager: ["requests.view", "requests.create", "requests.view_details"],
-        corporate_comm: ["requests.view", "requests.view_details"],
+        corporate_comm: ["requests.view", "requests.upload_final_report"],
       };
 
       for (const [roleId, permIds] of Object.entries(defaultMappings)) {
@@ -411,6 +419,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "services.add", moduleId: "settings", action: "add", nameAr: "إضافة برنامج أو خدمة جديدة", nameEn: "Add Service" },
       { id: "services.edit", moduleId: "settings", action: "edit", nameAr: "تعديل مواصفات البرامج والخدمات", nameEn: "Edit Service" },
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
+      { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
     ];
 
     for (const p of customPerms) {
@@ -1166,7 +1175,7 @@ export const permissionsRouter = router({
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
         project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
-        corporate_comm: ["requests.view", "requests.view_details", "reports.view", "settings.view", "analytics.view"],
+        corporate_comm: ["requests.view", "requests.upload_final_report", "reports.view", "settings.view", "analytics.view"],
         service_requester: ["requests.view", "requests.create", "mosques.view"]
       };
 

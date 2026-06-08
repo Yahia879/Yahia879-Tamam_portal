@@ -312,6 +312,9 @@ export default function RequestDetailsNew() {
 
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
 
+  // التحقق من صلاحية رفع التقرير الختامي (خاصة بالاتصال المؤسسي)
+  const hasFinalReportPerm = userPermissions.includes("requests.upload_final_report");
+
   const isManagementUser = user && (
     ['super_admin', 'system_admin', 'projects_office'].includes(user.role) ||
     (user.role === 'project_manager' && request.assignedTo === user.id) ||
@@ -876,7 +879,7 @@ export default function RequestDetailsNew() {
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                         variant: 'default' as const,
                       }
-                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details") || hasFinalReportPerm) && !isQuickResponseUser
                       ? request.requestTrack === 'quick_response'
                         ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
                           ? {
@@ -886,11 +889,11 @@ export default function RequestDetailsNew() {
                             }
                           : undefined
                         : {
-                            label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
+                            label: latestFinalReport ? "تم رفع التقرير الختامي" : (hasFinalReportPerm && !isManagementUser) ? "رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
                             onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
                             variant: 'default' as const,
-                            disabled: !!latestFinalReport || cannotTransitionToHandover,
-                            title: cannotTransitionToHandover
+                            disabled: !!latestFinalReport || (cannotTransitionToHandover && !hasFinalReportPerm),
+                            title: (cannotTransitionToHandover && !hasFinalReportPerm)
                               ? !hasPayments
                                 ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
                                 : !allPaymentsPaid
