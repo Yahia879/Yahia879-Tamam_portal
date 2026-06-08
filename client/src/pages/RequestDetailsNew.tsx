@@ -538,6 +538,18 @@ export default function RequestDetailsNew() {
                                           !userPermissions.includes("requests.manage_as_field_team") &&
                                           !userPermissions.includes("requests.manage_as_quick_response");
 
+  // حسابات التحقق من شروط الدفعات للانتقال لمرحلة الاستلام
+  const projectContracts = (linkedProject as any)?.contracts || [];
+  const projectPayments = (linkedProject as any)?.payments || [];
+
+  const totalPaymentsSum = projectPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
+  const totalContractsSum = projectContracts.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0);
+
+  const hasPayments = projectPayments.length > 0;
+  const allPaymentsPaid = hasPayments && projectPayments.every((p: any) => p.status === 'paid');
+  const paymentsMatchContracts = hasPayments && Math.abs(totalPaymentsSum - totalContractsSum) < 0.01;
+  const cannotTransitionToHandover = !allPaymentsPaid || !paymentsMatchContracts;
+
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
 
@@ -877,7 +889,14 @@ export default function RequestDetailsNew() {
                             label: latestFinalReport ? "تم رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
                             onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
                             variant: 'default' as const,
-                            disabled: !!latestFinalReport,
+                            disabled: !!latestFinalReport || cannotTransitionToHandover,
+                            title: cannotTransitionToHandover
+                              ? !hasPayments
+                                ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
+                                : !allPaymentsPaid
+                                  ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
+                                  : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
+                              : undefined,
                           }
                     : request.currentStage === 'handover' && (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                     ? {

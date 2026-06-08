@@ -52,6 +52,12 @@ export default function FinalReportForm() {
     { enabled: !!requestId }
   );
 
+  // جلب المشروع المرتبط بالطلب للتحقق من الدفعات والعقود
+  const { data: linkedProject, isLoading: projectLoading } = trpc.projects.getByRequestId.useQuery(
+    { requestId: requestId! },
+    { enabled: !!requestId }
+  );
+
   const hasExistingReport = existingReports && existingReports.length > 0;
   const existingReport = existingReports?.[0];
 
@@ -85,18 +91,32 @@ export default function FinalReportForm() {
     },
   });
 
+  const projectContracts = (linkedProject as any)?.contracts || [];
+  const projectPayments = (linkedProject as any)?.payments || [];
+
+  const totalPaymentsSum = projectPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
+  const totalContractsSum = projectContracts.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0);
+
+  const hasPayments = projectPayments.length > 0;
+  const allPaymentsPaid = hasPayments && projectPayments.every((p: any) => p.status === 'paid');
+  const paymentsMatchContracts = hasPayments && Math.abs(totalPaymentsSum - totalContractsSum) < 0.01;
+
+  const isTransitionDisabled = request?.currentStage === "execution" && (!allPaymentsPaid || !paymentsMatchContracts);
+
   const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
-  const isDisabled = isNotInExecution;
+  const isDisabled = isNotInExecution || isTransitionDisabled;
 
   // توجيه تلقائي في حالة عدم الصلاحية
   useEffect(() => {
-    if (!requestLoading && !reportsLoading) {
+    if (!requestLoading && !reportsLoading && !projectLoading) {
       if (isNotInExecution) {
         toast.error("الطلب ليس في مرحلة التنفيذ أو الاستلام");
         setLocation(`/requests/${requestId}`);
+      } else if (isTransitionDisabled) {
+        toast.error("لا يمكن الانتقال لمرحلة الاستلام: شروط الدفعات غير مستوفاة");
       }
     }
-  }, [requestLoading, reportsLoading, isNotInExecution, requestId, setLocation]);
+  }, [requestLoading, reportsLoading, projectLoading, isNotInExecution, isTransitionDisabled, requestId, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,11 +157,11 @@ export default function FinalReportForm() {
     );
   }
 
-  if (requestLoading || reportsLoading) {
+  if (requestLoading || reportsLoading || projectLoading) {
     return (
       <div className="container mx-auto py-12 text-center">
         <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-        <p className="mt-2 text-muted-foreground">جاري تحميل بيانات الطلب...</p>
+        <p className="mt-2 text-muted-foreground">جاري تحميل البيانات...</p>
       </div>
     );
   }
@@ -188,6 +208,20 @@ export default function FinalReportForm() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             هذا الطلب ليس في مرحلة التنفيذ حالياً. لا يمكن رفع التقرير الختامي إلا في مرحلة التنفيذ.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isTransitionDisabled && (
+        <Alert className="mb-6 bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="font-semibold">
+            لا يمكن إرسال التقرير والانتقال لمرحلة الاستلام:
+            {!hasPayments
+              ? " لا توجد دفعات مسجلة للمشروع."
+              : !allPaymentsPaid
+                ? " يجب سداد جميع الدفعات أولاً."
+                : ` إجمالي قيم المدفوعات (${totalPaymentsSum.toLocaleString()}) لا يساوي إجمالي قيمة العقد (${totalContractsSum.toLocaleString()}).`}
           </AlertDescription>
         </Alert>
       )}

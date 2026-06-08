@@ -27,6 +27,8 @@ import {
   requestNumberSequence,
   fieldVisits,
   programs,
+  contractPayments,
+  payments,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray, or, gte, lte } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -620,6 +622,79 @@ export const requestsRouter = router({
           code: "BAD_REQUEST", 
           message: "يمكن فقط التحويل للمرحلة التالية مباشرة" 
         });
+      }
+
+      // التحقق من شروط الدفعات للانتقال لمرحلة الاستلام
+      if (input.newStage === 'handover') {
+        const projectResult = await db.select({ id: projects.id }).from(projects)
+          .where(eq(projects.requestId, input.requestId)).limit(1);
+        if (projectResult.length > 0) {
+          const projId = projectResult[0].id;
+
+          // 1. جلب العقود
+          const projectContracts = await db
+            .select({
+              id: contractsEnhanced.id,
+              amount: contractsEnhanced.contractAmount,
+            })
+            .from(contractsEnhanced)
+            .where(eq(contractsEnhanced.projectId, projId));
+
+          // 2. جلب الدفعات المجدولة
+          const contractIds = projectContracts.map(c => c.id);
+          const allContractPayments = contractIds.length > 0
+            ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+            : [];
+
+          // 3. جلب الدفعات اليدوية
+          const manualPayments = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.projectId, projId));
+
+          // 4. توحيد الدفعات وحساب الإجماليات
+          const unifiedPayments: { amount: string; status: string }[] = [];
+          allContractPayments.forEach(cp => {
+            unifiedPayments.push({
+              amount: cp.amount,
+              status: cp.status === "paid" ? "paid" : "pending"
+            });
+          });
+          manualPayments.forEach(p => {
+            unifiedPayments.push({
+              amount: p.amount,
+              status: p.status || "pending"
+            });
+          });
+
+          const totalPaymentsSum = unifiedPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+          const totalContractsSum = projectContracts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+
+          // التحقق من وجود دفعات أولاً
+          if (unifiedPayments.length === 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+            });
+          }
+
+          // التحقق من أن جميع الدفعات مسددة
+          const allPaid = unifiedPayments.every(p => p.status === "paid");
+          if (!allPaid) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
+            });
+          }
+
+          // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد
+          if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
+            });
+          }
+        }
       }
 
       // التحقق من الشروط المسبقة للانتقال

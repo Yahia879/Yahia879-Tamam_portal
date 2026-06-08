@@ -384,11 +384,15 @@ export default function ProgressReports() {
     }
 
     const paymentTitle = `تقرير إنجاز - ${payment.description || payment.paymentNumber}`;
-    const isAlreadyReported = reportsData?.some((report: any) => 
-      report.projectId === newReport.projectId && 
-      (report.title === paymentTitle || report.title.includes(payment.description || payment.paymentNumber) ||
-       (report.workSummary && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`)))
-    );
+    const paymentKey = payment.description || payment.paymentNumber;
+    const isAlreadyReported = reportsData?.some((report: any) => {
+      if (report.projectId !== newReport.projectId) return false;
+      const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
+      if (hasPaymentIdTag) {
+        return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
+      }
+      return !!(paymentKey && paymentKey.trim() !== "" && report.title === paymentTitle);
+    });
 
     if (isAlreadyReported) {
       toast.error("عذراً، تم تقديم تقرير إنجاز سابق لهذه الدفعة بالفعل ولا يمكن تكراره.");
@@ -742,12 +746,16 @@ export default function ProgressReports() {
                             !payment.workDescription || 
                             payment.workDescription.trim() === ""
                           );
-                          const isAlreadyReported = reportsData?.some((report: any) => 
-                            report.projectId === newReport.projectId && 
-                            (report.title === `تقرير إنجاز - ${payment.description || payment.paymentNumber}` || 
-                             report.title.includes(payment.description || payment.paymentNumber) ||
-                             (report.workSummary && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`)))
-                          );
+                          const paymentKey = payment.description || payment.paymentNumber;
+                          const isAlreadyReported = reportsData?.some((report: any) => {
+                            if (report.projectId !== newReport.projectId) return false;
+                            const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
+                            if (hasPaymentIdTag) {
+                              return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
+                            }
+                            const expectedTitle = `تقرير إنجاز - ${paymentKey}`;
+                            return !!(paymentKey && paymentKey.trim() !== "" && report.title === expectedTitle);
+                          });
                           
                           const statusStyles = isIncomplete
                             ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"

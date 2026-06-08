@@ -19,6 +19,7 @@ interface ActiveActionCardProps {
     onClick: () => void;
     variant?: "default" | "destructive" | "outline" | "secondary";
     disabled?: boolean;
+    title?: string;
   };
   fieldReportButton?: {
     label: string;
@@ -166,6 +167,7 @@ export function ActiveActionCard({
                   variant={secondaryButton.variant || "outline"}
                   onClick={secondaryButton.onClick}
                   disabled={secondaryButton.disabled}
+                  title={secondaryButton.title}
                   className="w-full h-11 sm:h-12 text-sm sm:text-base"
                 >
                   {secondaryButton.label}

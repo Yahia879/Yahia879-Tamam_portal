@@ -1439,6 +1439,79 @@ export const projectsRouter = router({
         .where(eq(projects.requestId, input.requestId))
         .limit(1);
 
-      return project[0] || null;
+      if (project.length === 0) return null;
+      const proj = project[0];
+
+      // جلب العقود (من جدول contracts_enhanced)
+      const projectContracts = await db
+        .select({
+          id: contractsEnhanced.id,
+          contractNumber: contractsEnhanced.contractNumber,
+          contractType: contractsEnhanced.contractType,
+          amount: contractsEnhanced.contractAmount,
+          status: contractsEnhanced.status,
+          startDate: contractsEnhanced.startDate,
+          endDate: contractsEnhanced.endDate,
+          supplierName: contractsEnhanced.secondPartyName,
+        })
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.projectId, proj.id));
+
+      const contractIds = projectContracts.map(c => c.id);
+
+      // جلب دفعات العقود
+      const allContractPayments = contractIds.length > 0 
+        ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+        : [];
+
+      // جلب الدفعات اليدوية
+      const manualPayments = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.projectId, proj.id))
+        .orderBy(desc(payments.createdAt));
+
+      // توحيد الدفعات
+      const unifiedPayments: any[] = [];
+
+      // 1. إضافة دفعات العقود المجدولة
+      allContractPayments.forEach(cp => {
+        unifiedPayments.push({
+          id: `cp-${cp.id}`,
+          paymentNumber: `PLAN-${cp.id}`,
+          paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
+          amount: cp.amount,
+          status: cp.status === "paid" ? "paid" : "pending",
+          description: cp.phaseName,
+          date: cp.dueDate || cp.createdAt,
+          paidAt: cp.paidAt,
+          source: "contract",
+          workDescription: cp.notes,
+          completionPercentage: cp.completionPercentage || 0,
+        });
+      });
+
+      // 2. إضافة الدفعات اليدوية
+      manualPayments.forEach(p => {
+        unifiedPayments.push({
+          id: `manual-${p.id}`,
+          paymentNumber: p.paymentNumber,
+          paymentType: p.paymentType,
+          amount: p.amount,
+          status: p.status,
+          description: p.description,
+          date: p.createdAt,
+          paidAt: p.paidAt,
+          source: "manual",
+          workDescription: p.description,
+          completionPercentage: p.completionPercentage || 0,
+        });
+      });
+
+      return {
+        ...proj,
+        contracts: projectContracts,
+        payments: unifiedPayments,
+      };
     }),
 });

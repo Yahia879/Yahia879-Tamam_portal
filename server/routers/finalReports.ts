@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { finalReports, mosqueRequests, projects, mosques, users } from "../../drizzle/schema";
+import { finalReports, mosqueRequests, projects, mosques, users, contractsEnhanced, contractPayments, payments } from "../../drizzle/schema";
 
 export const finalReportsRouter = router({
   // إنشاء تقرير ختامي جديد
@@ -52,6 +52,80 @@ export const finalReportsRouter = router({
           .where(eq(projects.requestId, input.requestId)).limit(1);
         if (projectResult.length > 0) {
           projectId = projectResult[0].id;
+        }
+      }
+
+      // إذا كان الطلب في مرحلة التنفيذ، يجب التحقق من شروط الدفعات قبل الانتقال لمرحلة الاستلام
+      if (currentRequest.currentStage === "execution") {
+        if (!projectId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لم يتم العثور على مشروع مرتبط بالطلب للتحقق من شروط الدفعات.",
+          });
+        }
+
+        // 1. جلب العقود
+        const projectContracts = await db
+          .select({
+            id: contractsEnhanced.id,
+            amount: contractsEnhanced.contractAmount,
+          })
+          .from(contractsEnhanced)
+          .where(eq(contractsEnhanced.projectId, projectId));
+
+        // 2. جلب الدفعات المجدولة
+        const contractIds = projectContracts.map(c => c.id);
+        const allContractPayments = contractIds.length > 0
+          ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+          : [];
+
+        // 3. جلب الدفعات اليدوية
+        const manualPayments = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.projectId, projectId));
+
+        // 4. توحيد الدفعات وحساب الإجماليات
+        const unifiedPayments: { amount: string; status: string }[] = [];
+        allContractPayments.forEach(cp => {
+          unifiedPayments.push({
+            amount: cp.amount,
+            status: cp.status === "paid" ? "paid" : "pending"
+          });
+        });
+        manualPayments.forEach(p => {
+          unifiedPayments.push({
+            amount: p.amount,
+            status: p.status || "pending"
+          });
+        });
+
+        const totalPaymentsSum = unifiedPayments.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0);
+        const totalContractsSum = projectContracts.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0);
+
+        // التحقق من وجود دفعات أولاً
+        if (unifiedPayments.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع.",
+          });
+        }
+
+        // التحقق من أن جميع الدفعات مسددة
+        const allPaid = unifiedPayments.every(p => p.status === "paid");
+        if (!allPaid) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن الانتقال لمرحلة الاستلام: يجب أن تكون جميع الدفعات حالتها 'مسدد'.",
+          });
+        }
+
+        // التحقق من تساوي إجمالي قيم المدفوعات مع إجمالي قيمة العقد
+        if (Math.abs(totalPaymentsSum - totalContractsSum) >= 0.01) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات (${totalPaymentsSum}) لا يساوي إجمالي قيمة العقد (${totalContractsSum}).`,
+          });
         }
       }
 
