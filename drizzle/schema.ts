@@ -244,6 +244,7 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   
   // بيانات الزيارة الميدانية
   fieldVisitAssignedTo: int("fieldVisitAssignedTo").references(() => users.id, { onDelete: "set null" }), // الموظف المسند إليه الزيارة
+  finalReportAssignedTo: int("finalReportAssignedTo").references(() => users.id, { onDelete: "set null" }), // موظف الاتصال المؤسسي المسند إليه التقرير الختامي
   fieldVisitScheduledDate: datetime("fieldVisitScheduledDate"), // تاريخ الزيارة المجدولة
   fieldVisitScheduledTime: varchar("fieldVisitScheduledTime", { length: 10 }), // وقت الزيارة المجدولة
   fieldVisitNotes: text("fieldVisitNotes"), // ملاحظات الزيارة

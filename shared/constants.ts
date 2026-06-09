@@ -917,7 +917,7 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
       type: 'final_report',
       name: 'تقرير الإنجاز',
       description: 'يجب رفع تقرير إنجاز 100% قبل الانتقال للاستلام',
-      required: true,
+      required: false,
       checkTable: 'progress_reports',
       checkField: 'projectId',
     },
@@ -1121,8 +1121,8 @@ export const ACTION_CONFIGS: Record<string, ActionConfig> = {
     allowedRoles: ["super_admin", "system_admin", "projects_office"],
   },
   execution: {
-    title: "متابعة تنفيذ المشروع",
-    description: "تابع تقدم تنفيذ المشروع وتأكد من سير العمل وفقاً للعقد والجدول الزمني المحدد. بعد اكتمال التنفيذ، اضغط 'الانتقال إلى الاستلام' لرفع التقرير الختامي.",
+    title: "متابعة تنفيذ المشروع وسداد الدفعات",
+    description: "تابع تقدم أعمال التنفيذ الميدانية وقم بإضافة وسداد الدفعات المالية المستحقة للمقاول من خلال صفحة تفاصيل المشروع. بعد سداد جميع الدفعات ومطابقتها لقيمة العقد، يمكنك الضغط على 'الانتقال إلى مرحلة الاستلام'.",
     icon: "Hammer",
     iconColor: "text-amber-600",
     actionButton: {

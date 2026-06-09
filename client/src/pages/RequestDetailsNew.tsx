@@ -69,6 +69,8 @@ export default function RequestDetailsNew() {
   const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
   const [showRejectionReportDialog, setShowRejectionReportDialog] = useState(false);
 
+
+
   const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
     enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
   });
@@ -132,6 +134,7 @@ export default function RequestDetailsNew() {
       toast.error(error.message || "حدث خطأ أثناء الانتقال");
     },
   });
+
 
   const addCommentMutation = trpc.requests.addComment.useMutation({
     onSuccess: () => {
@@ -361,15 +364,79 @@ export default function RequestDetailsNew() {
     };
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
     activeAction = null;
-  } else if (activeAction && request.currentStage === 'handover' && latestFinalReport) {
-    activeAction = {
-      ...activeAction,
-      actionButton: {
-        label: "عرض التقرير النهائي",
-        onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
-      } as any,
-      canPerformAction: true,
-    };
+  } else if (activeAction && request.currentStage === 'handover') {
+    const isAssignedCorpComm = user && request.finalReportAssignedTo && user.id === request.finalReportAssignedTo;
+    const isCorpCommFallback = user && !request.finalReportAssignedTo && (user.role === 'corporate_comm' || hasFinalReportPerm);
+    const isCorpComm = isAssignedCorpComm || isCorpCommFallback;
+
+    if (!request.finalReportAssignedTo) {
+      if (isManagementUser || (user?.role && canTransitionStage(user.role, 'handover'))) {
+        activeAction = {
+          ...activeAction,
+          title: "تعيين موظف الاتصال المؤسسي",
+          description: "يرجى تعيين موظف الاتصال المؤسسي المسؤول عن إعداد ورفع التقرير الختامي للمشروع لبدء إجراءات الاستلام والتسليم.",
+          actionButton: {
+            label: "تعيين الموظف المسؤول",
+            redirectUrl: "/requests/:requestId/assign-final-report",
+          } as any,
+          canPerformAction: true,
+        };
+      } else {
+        activeAction = {
+          ...activeAction,
+          title: "بانتظار تعيين موظف الاتصال المؤسسي",
+          description: "بانتظار قيام مكتب المشاريع بتعيين موظف الاتصال المؤسسي المسؤول عن رفع التقرير الختامي للمشروع.",
+          actionButton: {
+            label: "بانتظار تعيين موظف الاتصال المؤسسي",
+            onClick: () => {},
+            disabled: true,
+          } as any,
+          canPerformAction: false,
+        };
+      }
+    } else {
+      if (!latestFinalReport) {
+        if (isCorpComm) {
+          activeAction = {
+            ...activeAction,
+            title: "رفع التقرير الختامي للمشروع",
+            description: "يرجى تعبئة ورفع التقرير الختامي للمشروع لإتمام مرحلة الاستلام والتسليم.",
+            actionButton: {
+              label: "رفع التقرير الختامي",
+              onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
+            } as any,
+            canPerformAction: true,
+          };
+        } else {
+          activeAction = {
+            ...activeAction,
+            title: "بانتظار التقرير الختامي",
+            description: request.finalReportAssignedToUser
+              ? `تم الانتهاء من أعمال الاستلام وفي انتظار قيام الموظف المعين (${request.finalReportAssignedToUser.name}) برفع التقرير الختامي للمشروع.`
+              : "تم الانتهاء من أعمال الاستلام وفي انتظار قيام مسؤولي الاتصال المؤسسي برفع التقرير الختامي للمشروع.",
+            actionButton: {
+              label: request.finalReportAssignedToUser
+                ? `بانتظار رفع التقرير الختامي من قبل ${request.finalReportAssignedToUser.name}`
+                : "بانتظار رفع التقرير الختامي من قبل مسؤولي الاتصال المؤسسي",
+              onClick: () => {},
+              disabled: true,
+            } as any,
+            canPerformAction: false,
+          };
+        }
+      } else {
+        activeAction = {
+          ...activeAction,
+          title: "تم رفع التقرير الختامي",
+          description: "تم تقديم التقرير الختامي للمشروع بنجاح. يمكنك استعراض التقرير بالضغط على الزر أدناه.",
+          actionButton: {
+            label: "عرض التقرير الختامي",
+            onClick: () => setLocation(`/final-report/${latestFinalReport.id}?requestId=${requestId}`),
+          } as any,
+          canPerformAction: true,
+        };
+      }
+    }
   }
 
   // Override active action for contracting stage based on contract status
@@ -811,8 +878,7 @@ export default function RequestDetailsNew() {
                   </Button>
                 </div>
               </div>
-            ) : (
-              activeAction && (
+            ) : activeAction && (
                 <div className="space-y-6">
                   <ActiveActionCard
                 title={activeAction.title}
@@ -879,7 +945,7 @@ export default function RequestDetailsNew() {
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
                         variant: 'default' as const,
                       }
-                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details") || hasFinalReportPerm) && !isQuickResponseUser
+                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                       ? request.requestTrack === 'quick_response'
                         ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
                           ? {
@@ -889,11 +955,11 @@ export default function RequestDetailsNew() {
                             }
                           : undefined
                         : {
-                            label: latestFinalReport ? "تم رفع التقرير الختامي" : (hasFinalReportPerm && !isManagementUser) ? "رفع التقرير الختامي" : "الانتقال إلى مرحلة الاستلام",
-                            onClick: () => setLocation(`/final-report/new?requestId=${requestId}`),
+                            label: "الانتقال إلى مرحلة الاستلام",
+                            onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
                             variant: 'default' as const,
-                            disabled: !!latestFinalReport || (cannotTransitionToHandover && !hasFinalReportPerm),
-                            title: (cannotTransitionToHandover && !hasFinalReportPerm)
+                            disabled: cannotTransitionToHandover,
+                            title: cannotTransitionToHandover
                               ? !hasPayments
                                 ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
                                 : !allPaymentsPaid
@@ -901,9 +967,13 @@ export default function RequestDetailsNew() {
                                   : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
                               : undefined,
                           }
-                    : request.currentStage === 'handover' && (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                    : request.currentStage === 'handover' &&
+                      latestFinalReport &&
+                      user?.role !== 'corporate_comm' &&
+                      (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) &&
+                      !isQuickResponseUser
                     ? {
-                        label: "إغلاق الطلب رسمياً",
+                        label: "الانتقال إلى مرحلة الإغلاق",
                         onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
                         variant: 'default' as const,
                       }
@@ -1025,8 +1095,7 @@ export default function RequestDetailsNew() {
                 </div>
               )}
             </div>
-          )
-        )}
+          )}
       </div>
     )
   }

@@ -81,7 +81,8 @@ export default function Requests({
   const canViewDetails = isAdmin || 
                          userPermissions.includes("requests.view_details") || 
                          userPermissions.includes("requests.manage_as_field_team") ||
-                         userPermissions.includes("requests.manage_as_quick_response");
+                         userPermissions.includes("requests.manage_as_quick_response") ||
+                         userPermissions.includes("requests.upload_final_report");
 
   // تحديث الفلاتر عند تغيير Query Params (مثلاً عند الانتقال من لوحة التحكم)
   useEffect(() => {

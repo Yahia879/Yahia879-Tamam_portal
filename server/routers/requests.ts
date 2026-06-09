@@ -227,12 +227,14 @@ export const requestsRouter = router({
 
       const isOwner = request.userId === ctx.user.id;
       const isAssigned = request.assignedTo === ctx.user.id;
+      const isFinalReportAssignee = request.finalReportAssignedTo === ctx.user.id;
       const isInternal = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm"].includes(ctx.user.role);
       const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || 
                              await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
-                             await checkPermission(ctx.user.id, "requests.manage_as_quick_response");
+                             await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
+                             (ctx.user.role === 'corporate_comm' && isFinalReportAssignee);
 
-      if (!isOwner && !isAssigned && !hasDetailsPerm) {
+      if (!isOwner && !isAssigned && !isFinalReportAssignee && !hasDetailsPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
@@ -273,6 +275,18 @@ export const requestsRouter = router({
           phone: users.phone,
         }).from(users).where(eq(users.id, request.assignedTo)).limit(1);
         assignedToUser = assignedUserResult[0] || null;
+      }
+
+      // الحصول على بيانات المسؤول عن التقرير الختامي
+      let finalReportAssignedToUser = null;
+      if (request.finalReportAssignedTo) {
+        const assignedUserResult = await db.select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+        }).from(users).where(eq(users.id, request.finalReportAssignedTo)).limit(1);
+        finalReportAssignedToUser = assignedUserResult[0] || null;
       }
 
       // الحصول على المرفقات
@@ -352,6 +366,7 @@ export const requestsRouter = router({
         isOwner,
         fieldVisitAssignedToUser,
         assignedToUser,
+        finalReportAssignedToUser,
       };
     }),
 
@@ -374,7 +389,7 @@ export const requestsRouter = router({
       const conditions = [];
 
       // المدير العام ومكتب المشاريع يرون جميع الطلبات
-      const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor", "corporate_comm"];
+      const adminRoles = ["super_admin", "system_admin", "projects_office", "financial_manager", "executive_director", "technical_supervisor"];
       
       // إذا لم يكن يملك صلاحية requests.view_details، نطبق شروط التصفية حسب الأدوار
       if (!hasViewDetailsPermission) {
@@ -398,6 +413,11 @@ export const requestsRouter = router({
           conditions.push(
             sql`(${mosqueRequests.assignedTo} = ${ctx.user.id} OR ${mosqueRequests.priority} = 'urgent')`
           );
+        }
+
+        // موظف الاتصال المؤسسي يرى فقط الطلبات المسندة إليه للتقرير الختامي
+        if (ctx.user.role === "corporate_comm") {
+          conditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
         }
       }
       
@@ -578,6 +598,7 @@ export const requestsRouter = router({
       newStage: z.enum(requestStages),
       notes: z.string().optional(),
       skipPrerequisites: z.boolean().optional(), // للاستخدام في حالات خاصة فقط
+      finalReportAssignedTo: z.number().optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -795,18 +816,28 @@ export const requestsRouter = router({
         financial_eval_and_approval: "الإدارة المالية",
         contracting: "مكتب المشاريع",
         execution: requestTrack === 'quick_response' ? "فريق الاستجابة السريعة" : "مدير المشروع",
-        handover: "مكتب المشاريع",
+        handover: "الاتصال المؤسسي",
         closed: "مكتب المشاريع",
       };
       
       currentResponsibleDepartment = stageDepartmentMap[input.newStage] || "مكتب المشاريع";
 
-      await db.update(mosqueRequests).set({
+      if (input.newStage === 'handover' && input.finalReportAssignedTo) {
+        currentResponsible = input.finalReportAssignedTo;
+      }
+
+      const updateData: any = {
         currentStage: input.newStage,
         status: input.newStage === "closed" ? "completed" : "in_progress",
         currentResponsible: currentResponsible,
         currentResponsibleDepartment: currentResponsibleDepartment,
-      }).where(eq(mosqueRequests.id, input.requestId));
+      };
+
+      if (input.finalReportAssignedTo !== undefined) {
+        updateData.finalReportAssignedTo = input.finalReportAssignedTo;
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
       // تحديث تقدم المشروع المرتبط عند الانتقال للتقييم المالي
       if (input.newStage === 'financial_eval_and_approval') {
@@ -1113,6 +1144,43 @@ export const requestsRouter = router({
       }
 
       return { success: true, message: "تم إسناد الطلب بنجاح" };
+    }),
+
+  // إسناد التقرير الختامي لموظف الاتصال المؤسسي
+  assignFinalReport: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      userId: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد التقرير الختامي" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.update(mosqueRequests).set({
+        finalReportAssignedTo: input.userId,
+        currentResponsible: input.userId,
+        currentResponsibleDepartment: "الاتصال المؤسسي",
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // إرسال إشعار للموظف المسند إليه
+      const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request.length > 0) {
+        await createNotification({
+          userId: input.userId,
+          title: "تقرير ختامي بانتظار الرفع",
+          message: `تم إسناد مهمة رفع التقرير الختامي للطلب رقم ${request[0].requestNumber} إليك`,
+          type: "request_update",
+          relatedType: "request",
+          relatedId: input.requestId,
+        });
+      }
+
+      return { success: true, message: "تم إسناد التقرير الختامي بنجاح" };
     }),
 
   // إضافة تعليق

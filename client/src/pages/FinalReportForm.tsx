@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 
 export default function FinalReportForm() {
+  const { user } = useAuth();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const requestIdStr = params.get("requestId");
@@ -104,7 +106,16 @@ export default function FinalReportForm() {
   const isTransitionDisabled = request?.currentStage === "execution" && (!allPaymentsPaid || !paymentsMatchContracts);
 
   const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
-  const isDisabled = isNotInExecution || isTransitionDisabled;
+  
+  // التحقق من الصلاحيات والتعيين
+  const isAssigned = !request?.finalReportAssignedTo || (user && request.finalReportAssignedTo === user.id);
+  const userPermissions = (user as any)?.permissions || [];
+  const isCorpComm = user?.role === 'corporate_comm' || 
+                     userPermissions.includes("requests.upload_final_report") || 
+                     ['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '');
+  const hasAccess = isAssigned && isCorpComm;
+
+  const isDisabled = isNotInExecution || isTransitionDisabled || !hasAccess;
 
   // توجيه تلقائي في حالة عدم الصلاحية
   useEffect(() => {
@@ -114,9 +125,12 @@ export default function FinalReportForm() {
         setLocation(`/requests/${requestId}`);
       } else if (isTransitionDisabled) {
         toast.error("لا يمكن الانتقال لمرحلة الاستلام: شروط الدفعات غير مستوفاة");
+      } else if (request && !hasAccess) {
+        toast.error("غير مصرح لك برفع التقرير الختامي لهذا الطلب");
+        setLocation(`/requests/${requestId}`);
       }
     }
-  }, [requestLoading, reportsLoading, projectLoading, isNotInExecution, isTransitionDisabled, requestId, setLocation]);
+  }, [requestLoading, reportsLoading, projectLoading, isNotInExecution, isTransitionDisabled, request, hasAccess, requestId, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

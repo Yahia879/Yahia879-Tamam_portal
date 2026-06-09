@@ -132,7 +132,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
-  "/final-report/new": ["projects", "requests.view_details"],
+  "/final-report/new": ["projects", "requests.view_details", "requests.upload_final_report"],
 
   // ── مؤشرات الأداء ──
   "/kpi-dashboard": ["projects", "requests.view_details"],
@@ -192,7 +192,8 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/requests\/\d+\/edit$/, permission: "requests.view_details" },
   { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
   { pattern: /^\/requests\/\d+\/quick-response$/, permission: ["requests.view_details", "requests.manage_as_quick_response"] },
-  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response"] },
+  { pattern: /^\/requests\/\d+\/assign-final-report$/, permission: "requests.view_details" },
+  { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report"] },
 
   // الزيارات الميدانية
   { pattern: /^\/field-visits\/schedule\/\d+$/, permission: "appointments_calendar" },

@@ -77,6 +77,7 @@ import DisbursementRequests from "./pages/DisbursementRequests";
 import Handovers from "./pages/Handovers";
 import FinalReportForm from "./pages/FinalReportForm";
 import FinalReportView from "./pages/FinalReportView";
+import AssignFinalReport from "./pages/AssignFinalReport";
 import KPIDashboard from "./pages/KPIDashboard";
 import NewDisbursementRequest from "./pages/NewDisbursementRequest";
 import NewLinkedDisbursementRequest from "./pages/NewLinkedDisbursementRequest";
@@ -226,6 +227,7 @@ function Router() {
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
+      <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
       <Route path="/field-visits">{() => <AdminRoute component={() => <Requests initialStage="field_visit" />} />}</Route>
       <Route path="/field-visits/calendar">{() => <AdminRoute component={FieldVisitsCalendar} />}</Route>
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>

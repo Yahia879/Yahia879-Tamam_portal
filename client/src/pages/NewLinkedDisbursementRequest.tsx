@@ -155,7 +155,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
-    { projectId: formData.projectId },
+    { projectId: formData.projectId, status: "approved" },
     { enabled: formData.projectId > 0 }
   );
   
@@ -209,16 +209,25 @@ export default function NewLinkedDisbursementRequest() {
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
       const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
+      
+      const reportDateFormatted = selectedReport.reportDate 
+        ? new Date(selectedReport.reportDate).toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
 
       setFormData(prev => {
-        if (prev.contractPaymentId === targetPaymentId && prev.completionPercentage === selectedReport.plannedProgress) {
+        if (
+          prev.contractPaymentId === targetPaymentId && 
+          prev.completionPercentage === selectedReport.actualProgress &&
+          prev.dateMiladi === reportDateFormatted
+        ) {
           return prev;
         }
         return {
           ...prev,
           title: `طلب صرف لـ ${selectedReport.title}`,
           description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-          completionPercentage: selectedReport.plannedProgress || 0,
+          completionPercentage: selectedReport.actualProgress || 0,
+          dateMiladi: reportDateFormatted,
           contractPaymentId: targetPaymentId,
         };
       });
@@ -251,19 +260,27 @@ export default function NewLinkedDisbursementRequest() {
   // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
   useEffect(() => {
     if (contractDetails && contractDetails.contract) {
-      const targetAmount = paymentInfo 
-        ? parseFloat(paymentInfo.amount || "0") 
+      // المبلغ الفعلي للدفعة ينجاب من تقرير الإنجاز
+      const actualAmount = selectedReport 
+        ? parseFloat(String(selectedReport.budgetSpent || "0")) 
+        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
+
+      // المبلغ المتفق عليه للدفعة ينجاب من الدفعة بتفاصيل المشروع
+      const agreedAmount = paymentInfo
+        ? parseFloat(String(paymentInfo.amount || "0"))
         : parseFloat(String(contractDetails.contract.contractAmount || "0"));
       
-      const targetWork = paymentInfo
-        ? paymentInfo.description || ""
+      // بيان الأعمال ينجاب من تقرير الإنجاز
+      const targetWork = selectedReport
+        ? selectedReport.title || ""
         : contractDetails.contract.contractTitle || "";
 
       if (
         suppliers.length === 1 &&
         suppliers[0].name === contractDetails.contract.secondPartyName &&
         suppliers[0].iban === contractDetails.contract.secondPartyIban &&
-        suppliers[0].agreedAmount === targetAmount &&
+        suppliers[0].amount === actualAmount &&
+        suppliers[0].agreedAmount === agreedAmount &&
         suppliers[0].work === targetWork
       ) {
         return;
@@ -273,14 +290,14 @@ export default function NewLinkedDisbursementRequest() {
         id: suppliers.length === 1 ? suppliers[0].id : crypto.randomUUID(),
         name: contractDetails.contract.secondPartyName || "",
         work: targetWork,
-        amount: targetAmount,
-        agreedAmount: targetAmount,
+        amount: actualAmount,
+        agreedAmount: agreedAmount,
         iban: contractDetails.contract.secondPartyIban || "",
         bank: contractDetails.contract.secondPartyBankName || "",
       };
       setSuppliers([supplierFromContract]);
     }
-  }, [contractDetails, paymentInfo]);
+  }, [contractDetails, selectedReport, paymentInfo]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
   useEffect(() => {
