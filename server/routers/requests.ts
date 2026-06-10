@@ -1570,6 +1570,12 @@ export const requestsRouter = router({
           updateData.assignedTo = input.assignedToId;
           updateData.currentResponsible = input.assignedToId;
         }
+        if (input.startDate) {
+          updateData.quickResponseStartDate = new Date(input.startDate);
+        }
+        if (input.endDate) {
+          updateData.quickResponseEndDate = new Date(input.endDate);
+        }
       }
 
       // إذا كان القرار هو التحويل لمشروع، إعادة تعيين المسار لـ standard وتحديد المسؤول

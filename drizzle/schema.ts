@@ -261,6 +261,8 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   // قرار التقييم الفني (apologize, suspend, quick_response, convert_to_project)
   technicalEvalDecision: varchar("technicalEvalDecision", { length: 50 }),
   technicalEvalJustification: text("technicalEvalJustification"),
+  quickResponseStartDate: datetime("quickResponseStartDate"), // تاريخ بدء الاستجابة السريعة
+  quickResponseEndDate: datetime("quickResponseEndDate"), // تاريخ الانتهاء المتوقع للاستجابة السريعة
   
   // التكلفة والميزانية
   estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }),

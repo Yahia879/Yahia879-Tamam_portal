@@ -1136,6 +1136,32 @@ export default function RequestDetailsNew() {
                     <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ التقديم</p>
                     <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
                   </div>
+                  {request.requestTrack === 'quick_response' && (
+                    <>
+                      {request.assignedToUser && (
+                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">المسؤول عن الاستجابة السريعة</p>
+                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{(request.assignedToUser as any).name}</p>
+                        </div>
+                      )}
+                      {(request as any).quickResponseStartDate && (
+                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ بدء الاستجابة السريعة</p>
+                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
+                            {new Date((request as any).quickResponseStartDate).toLocaleDateString("ar-SA")}
+                          </p>
+                        </div>
+                      )}
+                      {(request as any).quickResponseEndDate && (
+                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ الانتهاء المتوقع</p>
+                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
+                            {new Date((request as any).quickResponseEndDate).toLocaleDateString("ar-SA")}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                   {request.mosque && (
                     <>
                       <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
@@ -1924,22 +1950,44 @@ export default function RequestDetailsNew() {
             )}
             {/* تحديد المسؤول للاستجابة السريعة */}
             {selectedDecision === 'quick_response' && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  الشخص المسؤول <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedQuickResponseMemberId || ''}
-                  onChange={(e) => setSelectedQuickResponseMemberId(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  <option value="" disabled>-- اختر الشخص المسؤول --</option>
-                  {quickResponseTeamMembers?.map((member) => (
-                    <option key={member.id} value={member.id.toString()}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">
+                    الشخص المسؤول <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedQuickResponseMemberId || ''}
+                    onChange={(e) => setSelectedQuickResponseMemberId(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="" disabled>-- اختر الشخص المسؤول --</option>
+                    {quickResponseTeamMembers?.map((member) => (
+                      <option key={member.id} value={member.id.toString()}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">
+                    المدة المتوقعة للإنجاز (بالأيام) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative flex items-center">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={durationDays}
+                      onChange={(e) => setDurationDays(e.target.value)}
+                      placeholder="مثال: 7"
+                      className="w-full pl-12 text-right"
+                    />
+                    <span className="absolute left-3 text-sm text-muted-foreground font-medium pointer-events-none">
+                      يوم
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز أعمال الاستجابة السريعة</p>
+                </div>
               </div>
             )}
 
@@ -1986,10 +2034,14 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
                     return;
                   }
+                  if (selectedDecision === 'quick_response' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
+                    toast.error("يجب إدخال المدة المتوقعة للإنجاز بالأيام");
+                    return;
+                  }
                   
                   let calculatedStartDate = undefined;
                   let calculatedEndDate = undefined;
-                  if (selectedDecision === 'convert_to_project') {
+                  if (selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') {
                     const start = new Date();
                     const end = new Date();
                     const days = parseInt(durationDays || "0", 10);
@@ -2013,7 +2065,7 @@ export default function RequestDetailsNew() {
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
                   (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
-                  (selectedDecision === 'quick_response' && !selectedQuickResponseMemberId)
+                  (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
