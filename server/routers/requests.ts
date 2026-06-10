@@ -1151,6 +1151,8 @@ export const requestsRouter = router({
     .input(z.object({
       requestId: z.number(),
       userId: z.number(),
+      scheduledDate: z.string().optional(),
+      scheduledTime: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
@@ -1165,6 +1167,8 @@ export const requestsRouter = router({
         finalReportAssignedTo: input.userId,
         currentResponsible: input.userId,
         currentResponsibleDepartment: "الاتصال المؤسسي",
+        finalReportScheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : null,
+        finalReportScheduledTime: input.scheduledTime || null,
       }).where(eq(mosqueRequests.id, input.requestId));
 
       // إرسال إشعار للموظف المسند إليه
@@ -1312,7 +1316,7 @@ export const requestsRouter = router({
       programData: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== "field_team") {
+      if (ctx.user.role !== "field_team" && !["super_admin", "system_admin"].includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير ميدانية" });
       }
 
@@ -1501,6 +1505,8 @@ export const requestsRouter = router({
       assignedToId: z.number().optional(), // المسؤول عن الاستجابة السريعة
       startDate: z.string().optional(), // تاريخ البدء
       endDate: z.string().optional(), // تاريخ الانتهاء المتوقع
+      scheduledDate: z.string().optional(), // تاريخ الاستجابة السريعة المجدولة
+      scheduledTime: z.string().optional(), // وقت الاستجابة السريعة المجدولة
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1575,6 +1581,12 @@ export const requestsRouter = router({
         }
         if (input.endDate) {
           updateData.quickResponseEndDate = new Date(input.endDate);
+        }
+        if (input.scheduledDate) {
+          updateData.quickResponseScheduledDate = new Date(input.scheduledDate);
+        }
+        if (input.scheduledTime) {
+          updateData.quickResponseScheduledTime = input.scheduledTime;
         }
       }
 
@@ -1967,6 +1979,35 @@ export const requestsRouter = router({
         .orderBy(users.name);
 
       return members;
+    }),
+
+  // الحصول على الساعات المحجوزة لمسؤول الاستجابة السريعة في تاريخ معين
+  getTechnicianBusyHours: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+      date: z.string(), // YYYY-MM-DD
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const scheduledRequests = await db.select({
+        scheduledTime: mosqueRequests.quickResponseScheduledTime,
+      })
+      .from(mosqueRequests)
+      .where(
+        and(
+          eq(mosqueRequests.assignedTo, input.userId),
+          eq(mosqueRequests.requestTrack, 'quick_response'),
+          sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = ${input.date}`
+        )
+      );
+
+      const busyHours = scheduledRequests
+        .map(r => r.scheduledTime)
+        .filter(Boolean) as string[];
+
+      return busyHours;
     }),
 
   // الحصول على طلب برقم الطلب (للتتبع العام)
@@ -2406,5 +2447,172 @@ export const requestsRouter = router({
       });
 
       return { success: true, message: "تم تحديث السعر بنجاح" };
+    }),
+
+  // الحصول على التقارير المعلقة
+  getPendingReports: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذه الصفحة" });
+      }
+
+      // Fetch all requests that might have reports
+      const activeRequests = await db.select({
+        request: mosqueRequests,
+        mosque: mosques,
+      })
+      .from(mosqueRequests)
+      .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+      .where(
+        and(
+          or(
+            sql`${mosqueRequests.fieldVisitAssignedTo} IS NOT NULL`,
+            and(
+              eq(mosqueRequests.requestTrack, 'quick_response'),
+              sql`${mosqueRequests.assignedTo} IS NOT NULL`
+            ),
+            sql`${mosqueRequests.finalReportAssignedTo} IS NOT NULL`
+          ),
+          sql`${mosqueRequests.currentStage} != 'closed'`,
+          sql`${mosqueRequests.status} != 'rejected'`
+        )
+      );
+
+      if (activeRequests.length === 0) {
+        return { fieldVisits: [], quickResponses: [], finalReports: [] };
+      }
+
+      const requestIds = activeRequests.map(r => r.request.id);
+
+      // Fetch all reports for these request IDs
+      const fvReports = await db.select().from(fieldVisitReports).where(inArray(fieldVisitReports.requestId, requestIds));
+      const qrReports = await db.select().from(quickResponseReports).where(inArray(quickResponseReports.requestId, requestIds));
+      const fnReports = await db.select().from(finalReports).where(inArray(finalReports.requestId, requestIds));
+
+      // Fetch all unique user IDs involved
+      const userIds = new Set<number>();
+      activeRequests.forEach(r => {
+        if (r.request.fieldVisitAssignedTo) userIds.add(r.request.fieldVisitAssignedTo);
+        if (r.request.assignedTo) userIds.add(r.request.assignedTo);
+        if (r.request.finalReportAssignedTo) userIds.add(r.request.finalReportAssignedTo);
+      });
+
+      let usersList: any[] = [];
+      if (userIds.size > 0) {
+        usersList = await db.select({
+          id: users.id,
+          name: users.name,
+          phone: users.phone,
+          email: users.email,
+        })
+        .from(users)
+        .where(inArray(users.id, Array.from(userIds)));
+      }
+
+      const userMap = new Map(usersList.map(u => [u.id, u]));
+      const fvReportMap = new Set(fvReports.map(r => r.requestId));
+      const qrReportMap = new Set(qrReports.map(r => r.requestId));
+      const fnReportMap = new Set(fnReports.map(r => r.requestId));
+
+      const pendingFieldVisits: any[] = [];
+      const pendingQuickResponses: any[] = [];
+      const pendingFinalReports: any[] = [];
+
+      const now = new Date();
+
+      activeRequests.forEach(({ request, mosque }) => {
+        // 1. Check Field Visit Report
+        if (request.fieldVisitAssignedTo && !fvReportMap.has(request.id) && request.currentStage === 'field_visit') {
+          // Check if late (after 2 days have passed from the scheduled date)
+          let isLate = false;
+          if (request.fieldVisitScheduledDate) {
+            const scheduledDate = new Date(request.fieldVisitScheduledDate);
+            if (request.fieldVisitScheduledTime) {
+              const [hours, minutes] = request.fieldVisitScheduledTime.split(':').map(Number);
+              if (!isNaN(hours)) scheduledDate.setHours(hours, minutes || 0, 0, 0);
+            }
+            const limitDate = new Date(scheduledDate);
+            limitDate.setDate(limitDate.getDate() + 2);
+            isLate = now > limitDate;
+          }
+
+          pendingFieldVisits.push({
+            id: request.id,
+            requestNumber: request.requestNumber,
+            mosqueName: mosque?.name || "مسجد غير محدد",
+            mosqueCity: mosque?.city || "غير محدد",
+            assignedTo: userMap.get(request.fieldVisitAssignedTo) || null,
+            scheduledDate: request.fieldVisitScheduledDate,
+            scheduledTime: request.fieldVisitScheduledTime,
+            isLate,
+          });
+        }
+
+        // 2. Check Quick Response Report
+        const isQuickResponseTrack = request.requestTrack === 'quick_response';
+        if (isQuickResponseTrack && request.assignedTo && !qrReportMap.has(request.id) && request.currentStage === 'execution') {
+          let isLate = false;
+          // Check if late (after 2 days have passed from the scheduled date)
+          if (request.quickResponseScheduledDate) {
+            const scheduledDate = new Date(request.quickResponseScheduledDate);
+            if (request.quickResponseScheduledTime) {
+              const [hours, minutes] = request.quickResponseScheduledTime.split(':').map(Number);
+              if (!isNaN(hours)) scheduledDate.setHours(hours, minutes || 0, 0, 0);
+            }
+            const limitDate = new Date(scheduledDate);
+            limitDate.setDate(limitDate.getDate() + 2);
+            isLate = now > limitDate;
+          }
+
+          pendingQuickResponses.push({
+            id: request.id,
+            requestNumber: request.requestNumber,
+            mosqueName: mosque?.name || "مسجد غير محدد",
+            mosqueCity: mosque?.city || "غير محدد",
+            assignedTo: userMap.get(request.assignedTo) || null,
+            startDate: request.quickResponseStartDate,
+            endDate: request.quickResponseEndDate,
+            scheduledDate: request.quickResponseScheduledDate,
+            scheduledTime: request.quickResponseScheduledTime,
+            isLate,
+          });
+        }
+
+        // 3. Check Corporate Communication Final Report
+        if (request.finalReportAssignedTo && !fnReportMap.has(request.id)) {
+          let isLate = false;
+          // Check if late (after 2 days have passed from the scheduled date)
+          if (request.finalReportScheduledDate) {
+            const scheduledDate = new Date(request.finalReportScheduledDate);
+            if (request.finalReportScheduledTime) {
+              const [hours, minutes] = request.finalReportScheduledTime.split(':').map(Number);
+              if (!isNaN(hours)) scheduledDate.setHours(hours, minutes || 0, 0, 0);
+            }
+            const limitDate = new Date(scheduledDate);
+            limitDate.setDate(limitDate.getDate() + 2);
+            isLate = now > limitDate;
+          }
+
+          pendingFinalReports.push({
+            id: request.id,
+            requestNumber: request.requestNumber,
+            mosqueName: mosque?.name || "مسجد غير محدد",
+            mosqueCity: mosque?.city || "غير محدد",
+            assignedTo: userMap.get(request.finalReportAssignedTo) || null,
+            scheduledDate: request.finalReportScheduledDate,
+            scheduledTime: request.finalReportScheduledTime,
+            isLate,
+          });
+        }
+      });
+
+      return {
+        fieldVisits: pendingFieldVisits,
+        quickResponses: pendingQuickResponses,
+        finalReports: pendingFinalReports,
+      };
     }),
 });

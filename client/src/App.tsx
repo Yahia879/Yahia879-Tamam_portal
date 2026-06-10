@@ -54,6 +54,7 @@ import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import NotificationCustomization from "./pages/NotificationCustomization";
 import Reports from "./pages/Reports";
+import PendingReports from "./pages/PendingReports";
 
 // صفحات الموردين
 import SupplierRegistration from "./pages/SupplierRegistration";
@@ -257,6 +258,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/reports">{() => <AdminRoute component={Reports} />}</Route>
+      <Route path="/pending-reports">{() => <AdminRoute component={PendingReports} />}</Route>
       
       {/* الموردين - إدارية */}
       <Route path="/supplier/register" component={SupplierRegistration} />

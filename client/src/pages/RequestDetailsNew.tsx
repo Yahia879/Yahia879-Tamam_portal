@@ -66,6 +66,8 @@ export default function RequestDetailsNew() {
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
   const [durationDays, setDurationDays] = useState("");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
   const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
   const [showRejectionReportDialog, setShowRejectionReportDialog] = useState(false);
 
@@ -74,6 +76,17 @@ export default function RequestDetailsNew() {
   const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
     enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
   });
+
+  const { data: busyHours } = trpc.requests.getTechnicianBusyHours.useQuery(
+    {
+      userId: selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : 0,
+      date: scheduledDate,
+    },
+    {
+      enabled: selectedDecision === 'quick_response' && !!selectedQuickResponseMemberId && !!scheduledDate,
+      refetchOnWindowFocus: true,
+    }
+  );
   const managers: any[] = [];
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
@@ -365,9 +378,10 @@ export default function RequestDetailsNew() {
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
     activeAction = null;
   } else if (activeAction && request.currentStage === 'handover') {
+    const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
     const isAssignedCorpComm = user && request.finalReportAssignedTo && user.id === request.finalReportAssignedTo;
     const isCorpCommFallback = user && !request.finalReportAssignedTo && (user.role === 'corporate_comm' || hasFinalReportPerm);
-    const isCorpComm = isAssignedCorpComm || isCorpCommFallback;
+    const isCorpComm = isAssignedCorpComm || isCorpCommFallback || isAdmin;
 
     if (!request.finalReportAssignedTo) {
       if (isManagementUser || (user?.role && canTransitionStage(user.role, 'handover'))) {
@@ -1957,7 +1971,11 @@ export default function RequestDetailsNew() {
                   </label>
                   <select
                     value={selectedQuickResponseMemberId || ''}
-                    onChange={(e) => setSelectedQuickResponseMemberId(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedQuickResponseMemberId(e.target.value);
+                      setScheduledDate("");
+                      setScheduledTime("");
+                    }}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     <option value="" disabled>-- اختر الشخص المسؤول --</option>
@@ -1969,25 +1987,46 @@ export default function RequestDetailsNew() {
                   </select>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    المدة المتوقعة للإنجاز (بالأيام) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={durationDays}
-                      onChange={(e) => setDurationDays(e.target.value)}
-                      placeholder="مثال: 7"
-                      className="w-full pl-12 text-right"
-                    />
-                    <span className="absolute left-3 text-sm text-muted-foreground font-medium pointer-events-none">
-                      يوم
-                    </span>
+                {selectedQuickResponseMemberId && (
+                  <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        تاريخ الاستجابة السريعة <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => {
+                          setScheduledDate(e.target.value);
+                          setScheduledTime("");
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        وقت الاستجابة السريعة <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={scheduledTime || ''}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        disabled={!scheduledDate}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="" disabled>-- اختر الساعة --</option>
+                        {Array.from({ length: 24 }, (_, i) => {
+                          const hourStr = String(i).padStart(2, '0') + ":00";
+                          const isBusy = busyHours?.includes(hourStr);
+                          return (
+                            <option key={hourStr} value={hourStr} disabled={isBusy}>
+                              {hourStr} {isBusy ? "(محجوز)" : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز أعمال الاستجابة السريعة</p>
-                </div>
+                )}
               </div>
             )}
 
@@ -2016,6 +2055,8 @@ export default function RequestDetailsNew() {
                   setStartDate("");
                   setExpectedEndDate("");
                   setDurationDays("");
+                  setScheduledDate("");
+                  setScheduledTime("");
                 }}
               >
                 إلغاء
@@ -2034,14 +2075,18 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
                     return;
                   }
-                  if (selectedDecision === 'quick_response' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
-                    toast.error("يجب إدخال المدة المتوقعة للإنجاز بالأيام");
+                  if (selectedDecision === 'quick_response' && !scheduledDate) {
+                    toast.error("يجب تحديد تاريخ الاستجابة السريعة");
+                    return;
+                  }
+                  if (selectedDecision === 'quick_response' && !scheduledTime) {
+                    toast.error("يجب تحديد وقت الاستجابة السريعة");
                     return;
                   }
                   
                   let calculatedStartDate = undefined;
                   let calculatedEndDate = undefined;
-                  if (selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') {
+                  if (selectedDecision === 'convert_to_project') {
                     const start = new Date();
                     const end = new Date();
                     const days = parseInt(durationDays || "0", 10);
@@ -2056,8 +2101,10 @@ export default function RequestDetailsNew() {
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
                     managerId: undefined,
                     assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
-                    startDate: calculatedStartDate,
-                    endDate: calculatedEndDate,
+                    startDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedStartDate,
+                    endDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedEndDate,
+                    scheduledDate: selectedDecision === 'quick_response' ? scheduledDate : undefined,
+                    scheduledTime: selectedDecision === 'quick_response' ? scheduledTime : undefined,
                     justification: justification || undefined,
                   });
                 }}
@@ -2065,7 +2112,7 @@ export default function RequestDetailsNew() {
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
                   (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
-                  (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0))
+                  (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !scheduledDate || !scheduledTime))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :

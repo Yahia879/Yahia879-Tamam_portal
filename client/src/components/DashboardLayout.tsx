@@ -48,6 +48,7 @@ import {
   Shield,
   Briefcase,
   Layers,
+  ShieldAlert,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -74,17 +75,21 @@ const getMenuGroups = (role: string): MenuGroup[] => {
 
   // المساجد والطلبات
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+    const items = [
+      { icon: Building2, label: "المساجد", path: "/mosques" },
+      { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
+      { icon: FileText, label: "الطلبات", path: "/requests" },
+      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
+      { icon: ClipboardList, label: "المشاريع", path: "/projects" },
+      { icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" },
+      { icon: BarChart3, label: "التقارير", path: "/reports" },
+    ];
+    if (["super_admin", "system_admin"].includes(role)) {
+      items.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
+    }
     groups.push({
       label: "المساجد والطلبات",
-      items: [
-        { icon: Building2, label: "المساجد", path: "/mosques" },
-        { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
-        { icon: FileText, label: "الطلبات", path: "/requests" },
-        { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-        { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-        { icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" },
-        { icon: BarChart3, label: "التقارير", path: "/reports" },
-      ],
+      items,
     });
     groups.push({
       label: "المالية والعقود",
@@ -205,6 +210,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   if (has("projects") || has("projects.view") || has("projects.view_details"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
   if (has("reports"))                      mosqueItems.push({ icon: BarChart3,     label: "التقارير",              path: "/reports" });
+  if (["super_admin", "system_admin"].includes(role)) {
+    mosqueItems.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
+  }
   if (mosqueItems.length > 0) groups.push({ label: "المساجد والطلبات", items: mosqueItems });
 
   // المالية والعقود

@@ -263,6 +263,10 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   technicalEvalJustification: text("technicalEvalJustification"),
   quickResponseStartDate: datetime("quickResponseStartDate"), // تاريخ بدء الاستجابة السريعة
   quickResponseEndDate: datetime("quickResponseEndDate"), // تاريخ الانتهاء المتوقع للاستجابة السريعة
+  quickResponseScheduledDate: datetime("quickResponseScheduledDate"), // تاريخ الاستجابة السريعة المجدولة
+  quickResponseScheduledTime: varchar("quickResponseScheduledTime", { length: 10 }), // وقت الاستجابة السريعة المجدولة
+  finalReportScheduledDate: datetime("finalReportScheduledDate"), // تاريخ التقرير الختامي المجدول
+  finalReportScheduledTime: varchar("finalReportScheduledTime", { length: 10 }), // وقت التقرير الختامي المجدول
   
   // التكلفة والميزانية
   estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }),

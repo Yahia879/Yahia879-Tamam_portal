@@ -108,7 +108,8 @@ export default function FinalReportForm() {
   const isNotInExecution = request && request.currentStage !== "execution" && request.currentStage !== "handover";
   
   // التحقق من الصلاحيات والتعيين
-  const isAssigned = !request?.finalReportAssignedTo || (user && request.finalReportAssignedTo === user.id);
+  const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
+  const isAssigned = !request?.finalReportAssignedTo || (user && request.finalReportAssignedTo === user.id) || isAdmin;
   const userPermissions = (user as any)?.permissions || [];
   const isCorpComm = user?.role === 'corporate_comm' || 
                      userPermissions.includes("requests.upload_final_report") || 

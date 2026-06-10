@@ -190,7 +190,7 @@ export default function FieldInspectionForm() {
       if (!isAuthenticated) {
         toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
         navigate("/login");
-      } else if (user?.role !== 'field_team') {
+      } else if (user?.role !== 'field_team' && !['super_admin', 'system_admin'].includes(user?.role || "")) {
         toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
         navigate(`/requests/${requestId}`);
       }

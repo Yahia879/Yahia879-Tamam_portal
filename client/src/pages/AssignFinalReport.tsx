@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Users, ArrowRight } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -31,6 +32,8 @@ export default function AssignFinalReport() {
   const [formData, setFormData] = useState({
     assignedUserId: "",
     notes: "",
+    scheduledDate: "",
+    scheduledTime: "",
   });
 
   // جلب قائمة المستخدمين وتصفيتهم ليظهر فقط موظفي الاتصال المؤسسي
@@ -64,9 +67,16 @@ export default function AssignFinalReport() {
       return;
     }
 
+    if (!formData.scheduledDate) {
+      toast.error("يرجى تحديد تاريخ التقرير الختامي");
+      return;
+    }
+
     assignMutation.mutate({
       requestId: Number(requestId),
       userId: Number(formData.assignedUserId),
+      scheduledDate: formData.scheduledDate,
+      scheduledTime: formData.scheduledTime || undefined,
     });
   };
 
@@ -134,6 +144,28 @@ export default function AssignFinalReport() {
               <p className="text-sm text-muted-foreground">
                 سيتم إسناد مهمة إعداد ورفع التقرير الختامي للمسؤول المختار
               </p>
+            </div>
+
+            {/* تاريخ ووقت التقرير الختامي */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="scheduledDate">تاريخ التقرير الختامي *</Label>
+                <Input
+                  id="scheduledDate"
+                  type="date"
+                  value={formData.scheduledDate}
+                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="scheduledTime">وقت التقرير الختامي</Label>
+                <Input
+                  id="scheduledTime"
+                  type="time"
+                  value={formData.scheduledTime}
+                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
+                />
+              </div>
             </div>
 
             {/* ملاحظات */}
