@@ -59,17 +59,14 @@ export default function PendingReports() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const hasAccess = user && (
-    ["super_admin", "system_admin"].includes(user.role) ||
-    ((user as any).permissions ?? []).includes("reports.pending")
-  );
+  const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
 
   const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery(undefined, {
-    enabled: !!hasAccess,
+    enabled: !!isAdmin,
     refetchOnWindowFocus: true,
   });
 
-  if (!hasAccess) {
+  if (!isAdmin) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">

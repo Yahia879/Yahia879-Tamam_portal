@@ -210,7 +210,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   if (has("projects") || has("projects.view") || has("projects.view_details"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
   if (has("reports"))                      mosqueItems.push({ icon: BarChart3,     label: "التقارير",              path: "/reports" });
-  if (has("reports.pending")) {
+  if (["super_admin", "system_admin"].includes(role)) {
     mosqueItems.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
   }
   if (mosqueItems.length > 0) groups.push({ label: "المساجد والطلبات", items: mosqueItems });
