@@ -212,6 +212,18 @@ export const organizationRouter = router({
       // استيراد دالة التخزين
       const { storagePut } = await import("../storage");
 
+      // التحقق من نوع الملف المرفوع ليكون صورة صالحة فقط
+      const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png"];
+      const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "";
+
+      if (!allowedImageMimes.includes(input.mimeType) || !allowedImageExtensions.includes(extension)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP."
+        });
+      }
+
       // تحويل Base64 إلى Buffer
       const base64Data = input.fileData.replace(/^data:[^;]+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
@@ -219,7 +231,6 @@ export const organizationRouter = router({
       // إنشاء اسم فريد للملف
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const extension = input.fileName.split(".").pop() || "png";
       const fileKey = `organization/${input.type}-${timestamp}-${randomSuffix}.${extension}`;
 
       // رفع الملف

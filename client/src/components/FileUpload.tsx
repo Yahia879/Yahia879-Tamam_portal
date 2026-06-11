@@ -32,7 +32,6 @@ const DEFAULT_ACCEPTED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/gif",
   "application/pdf",
 ];
 
@@ -106,8 +105,11 @@ export function FileUpload({
 
 
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
-    // التحقق من نوع الملف
-    if (!acceptedTypes.includes(file.type)) {
+    // التحقق من نوع الملف وامتداده
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf"];
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+
+    if (!acceptedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
       return {
         fileName: file.name,
         fileData: "",

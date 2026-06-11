@@ -115,6 +115,15 @@ export default function Branding() {
     type: "logo" | "secondaryLogo" | "stamp",
     setLogo: (url: string | null) => void
   ) => {
+    const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
+    const extension = file.name.split(".").pop()?.toLowerCase() || "";
+
+    if (!allowedImageMimes.includes(file.type) || !allowedImageExtensions.includes(extension)) {
+      toast.error("الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP.");
+      return;
+    }
+
     if (file.size > 2 * 1024 * 1024) {
       toast.error("حجم الملف يجب أن يكون أقل من 2MB");
       return;

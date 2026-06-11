@@ -1,4 +1,25 @@
 import { Request, Response, NextFunction } from "express";
+import { sdk } from "./sdk";
+
+const protectedPaths = [
+  "/suppliers",
+  "/dashboard",
+  "/mosques",
+  "/requests",
+  "/field-visits",
+  "/staff",
+  "/users",
+  "/roles",
+  "/job-positions",
+  "/requester-approvals",
+  "/projects",
+  "/project-management",
+  "/partners",
+  "/branding",
+  "/settings",
+  "/reports",
+  "/pending-reports"
+];
 
 /**
  * Parses and returns the list of allowed origins defined in the environment.
@@ -41,7 +62,7 @@ function isSameOrigin(req: Request, origin: string): boolean {
 /**
  * Global middleware for CORS policy validation and Security Headers injection.
  */
-export function securityMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function securityMiddleware(req: Request, res: Response, next: NextFunction) {
   // 1. Inject Global Security Hardening Headers to ALL responses
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -126,6 +147,31 @@ export function securityMiddleware(req: Request, res: Response, next: NextFuncti
     if (req.method === "OPTIONS") {
       res.sendStatus(200);
       return;
+    }
+  }
+
+  // 4. Session-Based Page Route Protection (Redirect unauthenticated to /login)
+  const isPageRequest = req.method === "GET" && 
+                        !req.path.startsWith("/api/") && 
+                        !req.path.startsWith("/uploads/") && 
+                        !req.path.includes(".");
+
+  if (isPageRequest) {
+    const isProtected = protectedPaths.some(
+      (p) => req.path === p || req.path.startsWith(p + "/")
+    );
+
+    if (isProtected) {
+      try {
+        const user = await sdk.authenticateRequest(req);
+        if (!user) {
+          console.warn(`[Route Protection] No user session found for ${req.path}. Redirecting to /login`);
+          return res.redirect("/login");
+        }
+      } catch (error) {
+        console.warn(`[Route Protection] Unauthenticated direct access to ${req.path}. Redirecting to /login.`);
+        return res.redirect("/login");
+      }
     }
   }
 

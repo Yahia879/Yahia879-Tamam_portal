@@ -6,16 +6,10 @@ import { requestAttachments } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-// أنواع الملفات المسموح بها
+// أنواع الملفات المسموح بها (الصور وملفات PDF فقط)
 const ALLOWED_FILE_TYPES = {
-  image: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/jpg", "image/pjpeg", "image/x-png"],
-  document: [
-    "application/pdf", 
-    "application/msword", 
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  ],
+  image: ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png"],
+  document: ["application/pdf"],
 };
 
 const ALL_ALLOWED_TYPES = [...ALLOWED_FILE_TYPES.image, ...ALLOWED_FILE_TYPES.document];
@@ -23,10 +17,8 @@ const ALL_ALLOWED_TYPES = [...ALLOWED_FILE_TYPES.image, ...ALLOWED_FILE_TYPES.do
 // الحد الأقصى لحجم الملف (10MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// القائمة السوداء للامتدادات الخطيرة
-const FORBIDDEN_EXTENSIONS = [
-  'exe', 'bat', 'sh', 'js', 'vbs', 'msi', 'cmd', 'ps1', 'php', 'py', 'rb', 'pl', 'jsp', 'asp', 'aspx'
-];
+// القائمة البيضاء للامتدادات المسموح بها
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"];
 
 // توليد معرف فريد للملف
 function generateFileKey(userId: number, originalName: string, folder: string): string {
@@ -42,7 +34,7 @@ function generateFileKey(userId: number, originalName: string, folder: string): 
 // دالة التحقق من الامتداد
 function isExtensionAllowed(fileName: string): boolean {
   const extension = fileName.split('.').pop()?.toLowerCase() || '';
-  return extension !== '' && !FORBIDDEN_EXTENSIONS.includes(extension);
+  return ALLOWED_EXTENSIONS.includes(extension);
 }
 
 // تحديد نوع الملف

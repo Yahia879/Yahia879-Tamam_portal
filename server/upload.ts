@@ -13,6 +13,7 @@ const ALLOWED_MIME_TYPES = [
   "image/webp",
   "application/pdf"
 ];
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -20,7 +21,8 @@ const upload = multer({
     fileSize: MAX_FILE_SIZE,
   },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    const extension = file.originalname.split(".").pop()?.toLowerCase() || "";
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(extension)) {
       cb(null, true);
     } else {
       cb(new Error("نوع الملف غير مسموح به. يسمح فقط بالصور (JPEG, PNG, WEBP) وملفات PDF."));
