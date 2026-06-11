@@ -40,7 +40,8 @@ import {
   RotateCcw,
   X,
   Plus,
-  Bell
+  Bell,
+  ShieldAlert
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -237,7 +238,7 @@ export default function UserPermissions() {
     }
 
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
+    if (permId.startsWith("reports.") && permId !== "reports.view_stats" && permId !== "reports.pending") {
       if (!isChecked("reports.view_stats")) {
         toast.warning("يجب تفعيل صلاحية 'عرض احصائيات الطلبات' أولاً");
         return;
@@ -316,7 +317,7 @@ export default function UserPermissions() {
         const cascadeRevoke = (prefix: string) => {
           const allModulePerms = structure?.flatMap(g => g.permissions).filter(p => p.id.startsWith(prefix)) || [];
           allModulePerms.forEach(p => {
-            if (p.id !== permId) {
+            if (p.id !== permId && p.id !== "reports.pending") {
               const defVal = rolePermissions?.includes(p.id) || false;
               if (defVal) {
                 updated[p.id] = false;
@@ -548,7 +549,8 @@ export default function UserPermissions() {
       },
       reports: {
         view_stats: "عرض احصائيات الطلبات",
-        export_data: "تصدير البيانات"
+        export_data: "تصدير البيانات",
+        pending: "متابعة التقارير المعلقة"
       },
       staff_users: {
         view: "عرض قائمة المستخدمين",
@@ -626,6 +628,7 @@ export default function UserPermissions() {
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
+        { id: "reports", nameAr: "متابعة التقارير المعلقة", icon: ShieldAlert, perms: ["pending"] },
       ]
     },
     {
@@ -812,7 +815,7 @@ export default function UserPermissions() {
                   const grantedCount = activePerms.length; 
 
                   return (
-                    <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
+                    <Card key={`${module.id}-${module.nameAr}`} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
                       <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-4 py-4 sm:px-6 sm:py-5">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" dir="rtl">
                             <div className="flex items-center gap-3 sm:gap-4 text-right">
@@ -857,6 +860,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !isChecked("staff_roles.view")) ||
                               (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !isChecked("staff_custom_roles.view")) ||
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
+                              (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && perm.id !== "reports.pending" && !isChecked("reports.view_stats")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));

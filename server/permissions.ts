@@ -49,9 +49,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   disbursement_orders: ["disbursements.view", "disbursements.create", "disbursements.approve"],
   progress_reports: ["reports.view", "reports.create"],
   financial_report: ["reports.view"],
-  reports: ["reports.view_stats", "reports.export_data"],
+  reports: ["reports.view_stats", "reports.export_data", "reports.pending"],
   "reports.view_stats": ["reports.view_stats", "reports.view"],
   "reports.export_data": ["reports.export_data", "reports.view"],
+  "reports.pending": ["reports.pending", "reports.view"],
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
@@ -392,6 +393,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
       { id: "reports.view_stats", moduleId: "reports", action: "view_stats", nameAr: "عرض احصائيات الطلبات", nameEn: "View Request Statistics" },
       { id: "reports.export_data", moduleId: "reports", action: "export_data", nameAr: "تصدير البيانات", nameEn: "Export Data" },
+      { id: "reports.pending", moduleId: "reports", action: "pending", nameAr: "متابعة التقارير المعلقة", nameEn: "Track Pending Reports" },
       { id: "staff_users.view", moduleId: "users", action: "view", nameAr: "عرض قائمة المستخدمين", nameEn: "View Staff Users" },
       { id: "staff_users.add", moduleId: "users", action: "add", nameAr: "إضافة موظف جديد", nameEn: "Add Staff User" },
       { id: "staff_users.edit", moduleId: "users", action: "edit", nameAr: "تعديل البيانات الأساسية", nameEn: "Edit Staff User" },
@@ -636,7 +638,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");
   }
-  if (allPermissions.has("reports.view") || allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
+  if (allPermissions.has("reports.view") || allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data") || allPermissions.has("reports.pending")) {
     allPermissions.add("reports");
   }
   if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {

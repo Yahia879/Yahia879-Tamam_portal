@@ -2455,7 +2455,9 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      if (!["super_admin", "system_admin"].includes(ctx.user.role) && !userPermissions.includes("reports.pending")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذه الصفحة" });
       }
 

@@ -37,7 +37,8 @@ import {
   Layers,
   Tag,
   Save,
-  Bell
+  Bell,
+  ShieldAlert
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -54,6 +55,7 @@ const superAdminGroups = [
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
       { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
       { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
+      { id: "reports", nameAr: "متابعة التقارير المعلقة", icon: ShieldAlert, perms: ["pending"] },
     ]
   },
   {
@@ -171,7 +173,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     },
     reports: {
       view_stats: "عرض احصائيات الطلبات",
-      export_data: "تصدير البيانات"
+      export_data: "تصدير البيانات",
+      pending: "متابعة التقارير المعلقة"
     },
     staff_users: {
       view: "عرض قائمة المستخدمين",
@@ -418,7 +421,7 @@ export default function RoleEdit() {
     }
 
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
+    if (permId.startsWith("reports.") && permId !== "reports.view_stats" && permId !== "reports.pending") {
       if (!selectedPerms.includes("reports.view_stats")) {
         toast.warning("يجب تفعيل صلاحية 'عرض احصائيات الطلبات' أولاً");
         return;
@@ -470,7 +473,7 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("financial_reports."));
         }
         if (permId === "reports.view_stats") {
-          next = next.filter(id => !id.startsWith("reports."));
+          next = next.filter(id => !id.startsWith("reports.") || id === "reports.pending");
         }
         if (permId === "financial_approval.view") {
           next = next.filter(id => id !== "financial_approval.approve");
@@ -636,7 +639,7 @@ export default function RoleEdit() {
                   const grantedCount = activePerms.length; 
 
                   return (
-                    <Card key={module.id} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
+                    <Card key={`${module.id}-${module.nameAr}`} className="overflow-hidden border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl transition-all hover:shadow-xl hover:shadow-slate-200/40">
                       <CardHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 px-4 py-4 sm:px-6 sm:py-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3" dir="rtl">
                           <div className="flex items-center gap-3 sm:gap-4 text-right">
@@ -681,7 +684,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
-                              (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
+                              (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && perm.id !== "reports.pending" && !selectedPerms.includes("reports.view_stats")) ||
                               (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                             return (
                               <div 
