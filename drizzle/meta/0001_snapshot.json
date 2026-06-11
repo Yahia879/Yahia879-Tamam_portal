@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "57b59f88-457f-483b-b8f6-5cbbd581ed97",
-  "prevId": "7c1809a8-c5b6-4511-8adf-596e78a12647",
+  "id": "c6aa54f2-9ea7-4b97-88ef-19231985b954",
+  "prevId": "57b59f88-457f-483b-b8f6-5cbbd581ed97",
   "tables": {
     "action_settings": {
       "name": "action_settings",
@@ -4705,6 +4705,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "finalReportAssignedTo": {
+          "name": "finalReportAssignedTo",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "fieldVisitScheduledDate": {
           "name": "fieldVisitScheduledDate",
           "type": "datetime",
@@ -4772,6 +4779,48 @@
         "technicalEvalJustification": {
           "name": "technicalEvalJustification",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "quickResponseStartDate": {
+          "name": "quickResponseStartDate",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "quickResponseEndDate": {
+          "name": "quickResponseEndDate",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "quickResponseScheduledDate": {
+          "name": "quickResponseScheduledDate",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "quickResponseScheduledTime": {
+          "name": "quickResponseScheduledTime",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "finalReportScheduledDate": {
+          "name": "finalReportScheduledDate",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "finalReportScheduledTime": {
+          "name": "finalReportScheduledTime",
+          "type": "varchar(10)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -4904,6 +4953,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "fieldVisitAssignedTo"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "mosque_requests_finalReportAssignedTo_users_id_fk": {
+          "name": "mosque_requests_finalReportAssignedTo_users_id_fk",
+          "tableFrom": "mosque_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "finalReportAssignedTo"
           ],
           "columnsTo": [
             "id"
@@ -8270,6 +8332,102 @@
           "autoincrement": false,
           "default": true
         },
+        "receiveBeneficiaryNotifications": {
+          "name": "receiveBeneficiaryNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestNotifications": {
+          "name": "receiveRequestNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialAndContractNotifications": {
+          "name": "receiveFinancialAndContractNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiaryEmail": {
+          "name": "receiveBeneficiaryEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestEmail": {
+          "name": "receiveRequestEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialEmail": {
+          "name": "receiveFinancialEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiaryWhatsapp": {
+          "name": "receiveBeneficiaryWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestWhatsapp": {
+          "name": "receiveRequestWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialWhatsapp": {
+          "name": "receiveFinancialWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiarySms": {
+          "name": "receiveBeneficiarySms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestSms": {
+          "name": "receiveRequestSms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialSms": {
+          "name": "receiveFinancialSms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -9464,6 +9622,102 @@
           "notNull": false,
           "autoincrement": false,
           "default": 0
+        },
+        "receiveBeneficiaryNotifications": {
+          "name": "receiveBeneficiaryNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestNotifications": {
+          "name": "receiveRequestNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialAndContractNotifications": {
+          "name": "receiveFinancialAndContractNotifications",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiaryEmail": {
+          "name": "receiveBeneficiaryEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestEmail": {
+          "name": "receiveRequestEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialEmail": {
+          "name": "receiveFinancialEmail",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiaryWhatsapp": {
+          "name": "receiveBeneficiaryWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestWhatsapp": {
+          "name": "receiveRequestWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialWhatsapp": {
+          "name": "receiveFinancialWhatsapp",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveBeneficiarySms": {
+          "name": "receiveBeneficiarySms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveRequestSms": {
+          "name": "receiveRequestSms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "receiveFinancialSms": {
+          "name": "receiveFinancialSms",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",

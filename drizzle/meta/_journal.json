@@ -8,6 +8,13 @@
       "when": 1779957696188,
       "tag": "0000_dark_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1781133195764,
+      "tag": "0001_stormy_rockslide",
+      "breakpoints": true
     }
   ]
 }
