@@ -381,7 +381,7 @@ export default function RequestDetailsNew() {
     const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
     const isAssignedCorpComm = user && request.finalReportAssignedTo && user.id === request.finalReportAssignedTo;
     const isCorpCommFallback = user && !request.finalReportAssignedTo && (user.role === 'corporate_comm' || hasFinalReportPerm);
-    const isCorpComm = isAssignedCorpComm || isCorpCommFallback || isAdmin;
+    const isCorpComm = request.finalReportAssignedTo ? !!isAssignedCorpComm : (isCorpCommFallback || isAdmin);
 
     if (!request.finalReportAssignedTo) {
       if (isManagementUser || (user?.role && canTransitionStage(user.role, 'handover'))) {
