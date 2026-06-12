@@ -564,18 +564,6 @@ export default function NotificationCustomization() {
                             <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
                               <div className="flex items-center justify-center gap-1">
                                 <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
-                                        <Info className="w-3.5 h-3.5" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
-                                      <RequestNotificationsTooltip />
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
                               </div>
                             </TableHead>
                             <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
@@ -659,18 +647,6 @@ export default function NotificationCustomization() {
                             <TableHead className="text-center py-3 sm:py-4 text-xs sm:text-sm">
                               <div className="flex items-center justify-center gap-1">
                                 <span className="font-bold text-foreground">وصول إشعارات الطلبات والمساجد</span>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button className="text-muted-foreground hover:text-foreground focus:outline-none transition-colors">
-                                        <Info className="w-3.5 h-3.5" />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-[340px] sm:max-w-md p-3 sm:p-4 bg-popover text-popover-foreground border border-border/50 rounded-xl shadow-lg" side="bottom">
-                                      <RequestNotificationsTooltip />
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
                               </div>
                             </TableHead>
                             <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">وصول إشعارات المالية والعقود</TableHead>
