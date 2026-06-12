@@ -5,7 +5,7 @@ import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 
 dotenv.config();
 import { getDb } from "../db";
-import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects, notificationTriggerSettings } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -244,6 +244,57 @@ export async function createNotification(data: {
       isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
     }
 
+    // الكشف عن الـ triggerId بناءً على بيانات الإشعار
+    let triggerId: string | null = null;
+    if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
+      triggerId = "request_created_admin";
+    } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
+      triggerId = "request_created_beneficiary";
+    } else if (data.message.includes("المراجعة الأولية")) {
+      triggerId = "stage_initial_review";
+    } else if (data.message.includes("الزيارة الميدانية")) {
+      triggerId = "stage_field_visit";
+    } else if (data.title === "تم رفع تقرير المعاينة الميدانية" || data.message.includes("تقرير زيارة ميدانية")) {
+      triggerId = "field_visit_report_submitted";
+    } else if (data.title === "تم رفع تقرير الاستجابة السريعة" || data.message.includes("تقرير الاستجابة السريعة")) {
+      triggerId = "quick_report_submitted";
+    } else if (data.title === "مشروع جديد للتقييم المالي" || data.message.includes("إلى مشروع ويحتاج للتقييم المالي")) {
+      triggerId = "converted_to_project";
+    } else if (data.message.includes("التقييم المالي واعتماد العرض")) {
+      triggerId = "stage_financial_eval";
+    } else if (data.message.includes("التعاقد")) {
+      triggerId = "stage_contracting";
+    } else if (data.message.includes("التنفيذ")) {
+      triggerId = "stage_execution";
+    } else if (data.message.includes("الإغلاق") || data.message.includes("closed") || data.message.includes("إغلاق")) {
+      triggerId = "stage_closed";
+    }
+
+    // تطبيق قيم تخصيص مشغلات الإشعارات التفصيلية إذا تم العثور عليها
+    if (triggerId) {
+      const triggerOverrides = await db
+        .select()
+        .from(notificationTriggerSettings)
+        .where(
+          and(
+            eq(notificationTriggerSettings.triggerId, triggerId),
+            eq(notificationTriggerSettings.roleId, user.role)
+          )
+        );
+
+      if (triggerOverrides && triggerOverrides.length > 0) {
+        const inAppOverride = triggerOverrides.find(ts => ts.channel === "in_app");
+        const emailOverride = triggerOverrides.find(ts => ts.channel === "email");
+        const whatsappOverride = triggerOverrides.find(ts => ts.channel === "whatsapp");
+        const smsOverride = triggerOverrides.find(ts => ts.channel === "sms");
+
+        if (inAppOverride !== undefined) isInAppEnabled = inAppOverride.enabled;
+        if (emailOverride !== undefined) isEmailEnabled = emailOverride.enabled;
+        if (whatsappOverride !== undefined) isWhatsappEnabled = whatsappOverride.enabled;
+        if (smsOverride !== undefined) isSmsEnabled = smsOverride.enabled;
+      }
+    }
+
     let result = null;
 
     // 3. Only insert into database notifications table if in-app notifications are enabled
@@ -292,14 +343,10 @@ async function getRequestOfficerIds(db: any, excludeUserId?: number): Promise<nu
     const candidateUsers = await db
       .select({ id: users.id })
       .from(users)
-      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
       .where(
         and(
           isNull(users.deletedAt),
-          or(
-            eq(users.receiveBeneficiaryNotifications, true),
-            eq(rolesTable.receiveBeneficiaryNotifications, true)
-          )
+          ne(users.role, "service_requester")
         )
       );
 
@@ -322,20 +369,10 @@ async function getRequestNotificationOfficerIds(db: any, excludeUserId?: number)
     const candidateUsers = await db
       .select({ id: users.id })
       .from(users)
-      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
       .where(
         and(
           isNull(users.deletedAt),
-          or(
-            eq(users.receiveRequestNotifications, true),
-            eq(rolesTable.receiveRequestNotifications, true),
-            eq(users.receiveRequestEmail, true),
-            eq(rolesTable.receiveRequestEmail, true),
-            eq(users.receiveRequestWhatsapp, true),
-            eq(rolesTable.receiveRequestWhatsapp, true),
-            eq(users.receiveRequestSms, true),
-            eq(rolesTable.receiveRequestSms, true)
-          )
+          ne(users.role, "service_requester")
         )
       );
 
@@ -358,20 +395,10 @@ async function getFinancialNotificationOfficerIds(db: any, excludeUserId?: numbe
     const candidateUsers = await db
       .select({ id: users.id })
       .from(users)
-      .leftJoin(rolesTable, eq(users.role, rolesTable.id))
       .where(
         and(
           isNull(users.deletedAt),
-          or(
-            eq(users.receiveFinancialAndContractNotifications, true),
-            eq(rolesTable.receiveFinancialAndContractNotifications, true),
-            eq(users.receiveFinancialEmail, true),
-            eq(rolesTable.receiveFinancialEmail, true),
-            eq(users.receiveFinancialWhatsapp, true),
-            eq(rolesTable.receiveFinancialWhatsapp, true),
-            eq(users.receiveFinancialSms, true),
-            eq(rolesTable.receiveFinancialSms, true)
-          )
+          ne(users.role, "service_requester")
         )
       );
 
@@ -966,6 +993,49 @@ export const notificationsRouter = router({
       await db
         .delete(notifications)
         .where(and(eq(notifications.id, input.id), eq(notifications.userId, ctx.user.id)));
+
+      return { success: true };
+    }),
+
+  // جلب إعدادات مشغلات الإشعارات لجميع الأدوار
+  getTriggerSettings: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+      return db.select().from(notificationTriggerSettings);
+    }),
+
+  // تحديث إعدادات مشغلات الإشعارات
+  updateTriggerSetting: protectedProcedure
+    .input(
+      z.object({
+        triggerId: z.string(),
+        roleId: z.string(),
+        channel: z.enum(["in_app", "email", "whatsapp", "sms"]),
+        enabled: z.boolean(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      await db
+        .insert(notificationTriggerSettings)
+        .values({
+          triggerId: input.triggerId,
+          roleId: input.roleId,
+          channel: input.channel,
+          enabled: input.enabled,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            enabled: input.enabled,
+          },
+        });
 
       return { success: true };
     }),

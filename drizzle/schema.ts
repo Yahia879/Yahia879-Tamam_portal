@@ -1887,3 +1887,18 @@ export const jobPositions = mysqlTable("job_positions", {
 });
 export type JobPosition = typeof jobPositions.$inferSelect;
 export type InsertJobPosition = typeof jobPositions.$inferInsert;
+
+// ==================== إعدادات مشغلات الإشعارات التفصيلية ====================
+export const notificationTriggerSettings = mysqlTable("notification_trigger_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  triggerId: varchar("triggerId", { length: 100 }).notNull(),
+  roleId: varchar("roleId", { length: 50 }).notNull(),
+  channel: varchar("channel", { length: 50 }).notNull(), // 'in_app' | 'email' | 'whatsapp' | 'sms'
+  enabled: boolean("enabled").default(false).notNull(),
+}, (table) => ({
+  uniqueTriggerRoleChannel: unique("unique_trigger_role_channel").on(table.triggerId, table.roleId, table.channel),
+}));
+
+export type NotificationTriggerSetting = typeof notificationTriggerSettings.$inferSelect;
+export type InsertNotificationTriggerSetting = typeof notificationTriggerSettings.$inferInsert;
+

@@ -15,6 +15,13 @@
       "when": 1781133195764,
       "tag": "0001_stormy_rockslide",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781276140524,
+      "tag": "0002_curvy_micromax",
+      "breakpoints": true
     }
   ]
 }

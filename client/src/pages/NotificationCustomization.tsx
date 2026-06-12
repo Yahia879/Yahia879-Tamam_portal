@@ -451,65 +451,78 @@ export default function NotificationCustomization() {
     { id: "financial_manager", nameAr: "الإدارة المالية", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   ];
 
-  // الأحداث/المشغلات التي ترسل إشعارات
-  const [triggers, setTriggers] = useState<NotificationTrigger[]>([
-    {
-      id: "request_created",
-      nameAr: "إنشاء طلب جديد",
-      description: "إشعار عند قيام مستفيد بتقديم طلب جديد في البوابة",
-      roles: { super_admin: true, system_admin: true, projects_office: true, field_team: false, quick_response: false, financial_manager: false }
-    },
-    {
-      id: "stage_transition",
-      nameAr: "تغيير مرحلة الطلب",
-      description: "إشعار عند انتقال الطلب من مرحلة إلى أخرى بسير العمل",
-      roles: { super_admin: true, system_admin: true, projects_office: true, field_team: true, quick_response: true, financial_manager: false }
-    },
-    {
-      id: "status_changed",
-      nameAr: "تغيير حالة الطلب",
-      description: "إشعار عند تحديث الحالة (معتمد، معلق، مرفوض، إلخ)",
-      roles: { super_admin: true, system_admin: true, projects_office: true, field_team: false, quick_response: false, financial_manager: false }
-    },
-    {
-      id: "comment_added",
-      nameAr: "إضافة تعليق جديد",
-      description: "إشعار عند إضافة تعليق داخلي من أحد الموظفين",
-      roles: { super_admin: false, system_admin: false, projects_office: true, field_team: true, quick_response: true, financial_manager: false }
-    },
-    {
-      id: "field_visit_scheduled",
-      nameAr: "جدولة زيارة ميدانية",
-      description: "إشعار عند تحديد موعد زيارة وتكليف فريق المعاينة",
-      roles: { super_admin: false, system_admin: false, projects_office: true, field_team: true, quick_response: false, financial_manager: false }
-    },
-    {
-      id: "quick_report_submitted",
-      nameAr: "رفع تقرير الاستجابة السريعة",
-      description: "إشعار عند تقديم تقرير الاستجابة السريعة بعد الانتهاء",
-      roles: { super_admin: true, system_admin: false, projects_office: true, field_team: false, quick_response: true, financial_manager: false }
-    },
-    {
-      id: "financial_approval_needed",
-      nameAr: "طلب اعتماد مالي",
-      description: "إشعار عند الحاجة للاعتماد المالي لعرض السعر الفائز",
-      roles: { super_admin: true, system_admin: false, projects_office: false, field_team: false, quick_response: false, financial_manager: true }
-    }
-  ]);
+  // المشغلات/الأحداث التفصيلية التي ترسل إشعارات
+  const NOTIFICATION_TRIGGERS = [
+    { id: "request_created_admin", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },
+    { id: "request_created_beneficiary", nameAr: "إنشاء طلب من قبل المستفيد", description: "تم إنشاء طلب جديد وهو بانتظار المعالجة" },
+    { id: "stage_initial_review", nameAr: "تغير حالة الطلب لـ المراجعة الأولية", description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية" },
+    { id: "stage_field_visit", nameAr: "تغير حالة الطلب لـ الزيارة الميدانية", description: "قام المسؤول بنقل الطلب إلى مرحلة: الزيارة الميدانية" },
+    { id: "field_visit_report_submitted", nameAr: "رفع تقرير الزيارة الميدانية من قبل فريق الزيارة الميدانية", description: "تم رفع تقرير زيارة ميدانية من قبل فريق ميداني جديد" },
+    { id: "quick_report_submitted", nameAr: "رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة", description: "تم رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة" },
+    { id: "converted_to_project", nameAr: "تحويل الطلب لمشروع", description: "تم تحويل الطلب إلى مشروع ويحتاج للتقييم المالي" },
+    { id: "stage_financial_eval", nameAr: "تغير حالة الطلب لـ التقييم المالي واعتماد العرض", description: "قام المسؤول بنقل الطلب إلى مرحلة: التقييم المالي واعتماد العرض" },
+    { id: "stage_contracting", nameAr: "تغير حالة الطلب لـ التعاقد", description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد" },
+    { id: "stage_execution", nameAr: "تغير حالة الطلب لـ التنفيذ", description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ" },
+    { id: "stage_closed", nameAr: "تغير حالة الطلب لـ الإغلاق", description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق" },
+  ];
 
-  const handleToggleTrigger = (triggerId: string, roleId: string) => {
-    setTriggers(prev => prev.map(t => {
-      if (t.id === triggerId) {
-        return {
-          ...t,
-          roles: {
-            ...t.roles,
-            [roleId]: !t.roles[roleId]
-          }
-        };
-      }
-      return t;
-    }));
+  const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("field_team");
+
+  // جلب إعدادات مشغلات الإشعارات التفصيلية من الباكيند
+  const { data: triggerSettings, refetch: refetchTriggerSettings } = trpc.notifications.getTriggerSettings.useQuery();
+
+  const updateTriggerSettingMutation = trpc.notifications.updateTriggerSetting.useMutation({
+    onSuccess: () => {
+      refetchTriggerSettings();
+      toast.success("تم تحديث إعدادات الحدث بنجاح");
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const handleToggleTriggerSetting = (
+    triggerId: string,
+    channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
+    val: boolean
+  ) => {
+    updateTriggerSettingMutation.mutate({
+      triggerId,
+      roleId: selectedTriggerRoleId,
+      channel,
+      enabled: val
+    });
+  };
+
+  const getTriggerChannelState = (triggerId: string, channel: 'in_app' | 'email' | 'whatsapp' | 'sms') => {
+    // 1. التحقق من وجود تخصيص مخزن في قاعدة البيانات
+    const override = triggerSettings?.find(
+      ts => ts.triggerId === triggerId && 
+            ts.roleId === selectedTriggerRoleId && 
+            ts.channel === channel
+    );
+    if (override !== undefined) {
+      return { enabled: !!override.enabled, isInherited: false };
+    }
+
+    // 2. إذا لم يوجد تخصيص، نرث القيمة الافتراضية من إعدادات الدور العامة
+    const roleObj = dbRoles?.find(r => r.id === selectedTriggerRoleId);
+    const isFinancial = false;
+    
+    let inherited = false;
+    if (isFinancial) {
+      if (channel === 'in_app') inherited = !!roleObj?.receiveFinancialAndContractNotifications;
+      if (channel === 'email') inherited = !!roleObj?.receiveFinancialEmail;
+      if (channel === 'whatsapp') inherited = !!roleObj?.receiveFinancialWhatsapp;
+      if (channel === 'sms') inherited = !!roleObj?.receiveFinancialSms;
+    } else {
+      if (channel === 'in_app') inherited = !!roleObj?.receiveRequestNotifications;
+      if (channel === 'email') inherited = !!roleObj?.receiveRequestEmail;
+      if (channel === 'whatsapp') inherited = !!roleObj?.receiveRequestWhatsapp;
+      if (channel === 'sms') inherited = !!roleObj?.receiveRequestSms;
+    }
+
+    return { enabled: inherited, isInherited: true };
   };
 
 
@@ -616,6 +629,76 @@ export default function NotificationCustomization() {
                 ) : (
                   <div className="p-8 text-center text-muted-foreground">لا توجد أدوار متاحة حالياً.</div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl mt-6">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">تخصيص تفصيلي للإشعارات حسب نوع الحدث</CardTitle>
+                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
+                      اختر دوراً وظيفياً وخصص بدقة الأحداث التي يرغب في استلام إشعاراتها والقنوات المستخدمة لكل حدث.
+                    </CardDescription>
+                  </div>
+                  <div className="w-full sm:w-64">
+                    <select
+                      value={selectedTriggerRoleId}
+                      onChange={(e) => setSelectedTriggerRoleId(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    >
+                      {dbRoles?.filter(role => role.id !== "service_requester").map(role => (
+                        <option key={role.id} value={role.id}>
+                          {role.nameAr}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="w-full overflow-x-auto scrollbar-thin">
+                  <Table className="min-w-[600px]">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                        <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الحدث / المشغل</TableHead>
+                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">قنوات الإرسال المحددة للحدث</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-border/40">
+                      {NOTIFICATION_TRIGGERS.map(trig => {
+                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                        const emailState = getTriggerChannelState(trig.id, 'email');
+                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                        const smsState = getTriggerChannelState(trig.id, 'sms');
+
+                        return (
+                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4">
+                              <ChannelToggles
+                                inApp={inAppState.enabled}
+                                whatsapp={whatsappState.enabled}
+                                sms={smsState.enabled}
+                                email={emailState.enabled}
+                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                inherited={{
+                                  inApp: inAppState.isInherited,
+                                  whatsapp: whatsappState.isInherited,
+                                  sms: smsState.isInherited,
+                                  email: emailState.isInherited,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
