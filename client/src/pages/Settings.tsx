@@ -47,27 +47,6 @@ const settingCards: SettingCard[] = [
     group: "الجمعية",
     permission: "settings_branding.edit",
   },
-  // مجموعة: إعدادات العمليات
-  {
-    icon: GitBranch,
-    title: "إعدادات المراحل",
-    description: "تخصيص مراحل سير العمل ورسائل الإشعارات لكل مرحلة",
-    path: "/stage-settings",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    group: "العمليات",
-    permission: "settings.stages_view",
-  },
-  {
-    icon: Wrench,
-    title: "إعدادات الإجراءات",
-    description: "ضبط الإجراءات والأتمتة في كل مرحلة من مراحل العمل",
-    path: "/action-settings",
-    color: "text-orange-600",
-    bgColor: "bg-orange-50 dark:bg-orange-950/30",
-    group: "العمليات",
-    permission: "settings.actions_view",
-  },
   // مجموعة: إدارة البيانات
   {
     icon: Tag,
@@ -88,17 +67,6 @@ const settingCards: SettingCard[] = [
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
     group: "البيانات",
     permission: "services.view",
-  },
-  // مجموعة: التقارير والأداء
-  {
-    icon: BarChart3,
-    title: "مؤشرات الأداء",
-    description: "لوحة مؤشرات الأداء الرئيسية (KPI) ومتابعة الإنجاز",
-    path: "/kpi-dashboard",
-    color: "text-green-600",
-    bgColor: "bg-green-50 dark:bg-green-950/30",
-    group: "التقارير",
-    permission: "financial_reports.view",
   },
 ];
 
