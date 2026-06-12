@@ -73,6 +73,29 @@ const createEmployeeSchema = z.object({
 });
 
 export const authRouter = router({
+  // التحقق من توفر البريد الإلكتروني ورقم الجوال
+  checkCredentialsAvailable: publicProcedure
+    .input(z.object({
+      email: z.string().email("البريد الإلكتروني غير صالح"),
+      phone: z.string().regex(/^05[0-9]{8}$/, "رقم الجوال غير صالح")
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const existingUserByEmail = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      if (existingUserByEmail.length > 0) {
+        return { available: false, reason: "email" };
+      }
+
+      const existingUserByPhone = await db.select().from(users).where(eq(users.phone, input.phone)).limit(1);
+      if (existingUserByPhone.length > 0) {
+        return { available: false, reason: "phone" };
+      }
+
+      return { available: true };
+    }),
+
   // تسجيل طالب خدمة جديد
   register: publicProcedure
     .input(registerSchema)

@@ -21,12 +21,28 @@ const requesterTypes = [
 
 
 
+function formatErrorMessage(message: string): string {
+  try {
+    if (message.startsWith('[') && message.endsWith(']')) {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((err: any) => err.message || "خطأ في المدخلات").join(" \n");
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return message;
+}
+
 export default function Register() {
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   const { isAuthenticated, user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
@@ -59,7 +75,7 @@ export default function Register() {
       setIsSuccess(true);
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ في التسجيل");
+      toast.error(formatErrorMessage(error.message) || "حدث خطأ في التسجيل");
     },
   });
 
@@ -81,10 +97,26 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // التحقق من طول الاسم (مع مسح المسافات الزائدة)
+    // التحقق من الاسم
     const trimmedName = formData.name.trim();
+    if (trimmedName.length < 2) {
+      toast.error("الاسم يجب أن يكون حرفين على الأقل");
+      return;
+    }
     if (trimmedName.length > 60) {
       toast.error("الاسم يجب ألا يتجاوز 60 حرف");
+      return;
+    }
+
+    // التحقق من البريد الإلكتروني
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast.error("البريد الإلكتروني غير صالح");
+      return;
+    }
+
+    // التحقق من طول كلمة المرور
+    if (formData.password.length < 8) {
+      toast.error("كلمة المرور يجب أن تكون 8 أحرف على الأقل");
       return;
     }
 
@@ -112,40 +144,65 @@ export default function Register() {
       return;
     }
 
-    // رفع الملف إلى S3 إذا كان موجوداً
-    let proofFileUrl: string | undefined = undefined;
-    if (formData.proofFile) {
-      try {
-        const formDataForUpload = new FormData();
-        formDataForUpload.append('file', formData.proofFile);
+    setIsSubmitting(true);
+    try {
+      // 1. التحقق من توفر البريد الإلكتروني ورقم الجوال في قاعدة البيانات قبل رفع المرفق
+      const availability = await utils.client.auth.checkCredentialsAvailable.query({
+        email: formData.email,
+        phone: formData.phone,
+      });
 
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formDataForUpload,
-        });
-
-        if (!response.ok) {
-          throw new Error('فشل رفع الملف');
+      if (!availability.available) {
+        if (availability.reason === "email") {
+          toast.error("البريد الإلكتروني مسجل مسبقاً");
+        } else if (availability.reason === "phone") {
+          toast.error("رقم الجوال مسجل مسبقاً");
         }
-
-        const data = await response.json();
-        proofFileUrl = data.url;
-      } catch (error) {
-        toast.error("حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى.");
+        setIsSubmitting(false);
         return;
       }
-    }
 
-    registerMutation.mutate({
-      name: trimmedName,
-      email: formData.email,
-      password: formData.password,
-      phone: formData.phone,
-      nationalId: formData.nationalId || undefined,
-      city: formData.city || undefined,
-      requesterType: formData.requesterType === "other" ? formData.otherType : formData.requesterType || undefined,
-      proofDocument: proofFileUrl,
-    });
+      // 2. رفع الملف بعد الاطمئنان لعدم وجود أخطاء في المدخلات أو تكرار بالبيانات
+      let proofFileUrl: string | undefined = undefined;
+      if (formData.proofFile) {
+        try {
+          const formDataForUpload = new FormData();
+          formDataForUpload.append('file', formData.proofFile);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataForUpload,
+          });
+
+          if (!response.ok) {
+            throw new Error('فشل رفع الملف');
+          }
+
+          const data = await response.json();
+          proofFileUrl = data.url;
+        } catch (uploadErr) {
+          toast.error("حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // 3. إتمام عملية التسجيل في قاعدة البيانات
+      await registerMutation.mutateAsync({
+        name: trimmedName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        nationalId: formData.nationalId || undefined,
+        city: formData.city || undefined,
+        requesterType: formData.requesterType === "other" ? formData.otherType : formData.requesterType || undefined,
+        proofDocument: proofFileUrl,
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSuccess) {
@@ -397,9 +454,9 @@ export default function Register() {
                 <Button
                   type="submit"
                   className="w-full gradient-primary text-white h-10 sm:h-11 font-bold shadow-md hover:shadow-lg transition-all"
-                  disabled={registerMutation.isPending}
+                  disabled={isSubmitting || registerMutation.isPending}
                 >
-                  {registerMutation.isPending ? (
+                  {isSubmitting || registerMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 ml-2 animate-spin" />
                       جاري التسجيل...
