@@ -141,6 +141,56 @@ const getPaymentStatusStyles = (status: string) => {
       return "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700";
   }
 };
+function formatErrorMessage(message: string): string {
+  try {
+    if (message.startsWith('[') && message.endsWith(']')) {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((err: any) => err.message || "خطأ في المدخلات").join(" \n");
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return message;
+}
+
+const uploadFile = async (fileObj: { name: string; base64: string }): Promise<string> => {
+  if (!fileObj.base64.startsWith("data:")) {
+    return fileObj.base64; // It is already a URL (e.g. from an existing report)
+  }
+  
+  try {
+    const parts = fileObj.base64.split(",");
+    const mime = parts[0].match(/:(.*?);/)?.[1] || "application/octet-stream";
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    const file = new File([u8arr], fileObj.name, { type: mime });
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await fetch("/api/upload?folder=progress-reports", {
+      method: "POST",
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`فشل رفع الملف: ${errText}`);
+    }
+    
+    const data = await response.json();
+    return data.url;
+  } catch (err: any) {
+    throw new Error(err.message || `حدث خطأ أثناء معالجة الملف ${fileObj.name}`);
+  }
+};
 
 export default function ProgressReports() {
   const { user } = useAuth();
@@ -150,6 +200,7 @@ export default function ProgressReports() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 10;
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // نوافذ الحوار
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -267,7 +318,7 @@ export default function ProgressReports() {
       refetchAllReports();
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء إنشاء التقرير");
+      toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء إنشاء التقرير");
     },
   });
 
@@ -305,7 +356,7 @@ export default function ProgressReports() {
       refetchAllReports();
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تحديث التقرير");
+      toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء تحديث التقرير");
     },
   });
 
@@ -401,12 +452,13 @@ export default function ProgressReports() {
 
     setSelectedPaymentId(payment.id);
     
+    const completionPercentage = Math.min(100, Math.max(0, payment.completionPercentage || 0));
     setNewReport(prev => ({
       ...prev,
       title: paymentTitle,
-      plannedProgress: payment.completionPercentage || 0,
-      actualProgress: payment.completionPercentage || 0,
-      overallProgress: payment.completionPercentage || 0,
+      plannedProgress: completionPercentage,
+      actualProgress: completionPercentage,
+      overallProgress: completionPercentage,
       budgetSpent: payment.amount?.toString() || "0",
       workSummary: payment.workDescription || payment.description || "",
       agreedPaymentAmount: payment.amount?.toString() || "0",
@@ -487,10 +539,10 @@ export default function ProgressReports() {
         }
         if (Array.isArray(parsedPhotos)) {
           setUploadedFiles(parsedPhotos.map((photo, i) => ({
-            name: `مرفق_${i + 1}`,
+            name: photo.startsWith("data:") ? `مرفق_${i + 1}` : photo.split("/").pop() || `مرفق_${i + 1}`,
             size: 0,
             base64: photo,
-            type: photo.startsWith("data:image/") ? "image/png" : "application/pdf"
+            type: (photo.startsWith("data:image/") || /\.(png|jpe?g|webp)$/i.test(photo)) ? "image/png" : "application/pdf"
           })));
         } else {
           setUploadedFiles([]);
@@ -508,7 +560,7 @@ export default function ProgressReports() {
   };
 
   // إنشاء أو تعديل تقرير
-  const handleCreateReport = () => {
+  const handleCreateReport = async () => {
     if (!newReport.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
@@ -521,37 +573,66 @@ export default function ProgressReports() {
       toast.error("يرجى إدخال الأعمال المنجزة فعلياً");
       return;
     }
+    if (newReport.actualProgress > 100 || newReport.plannedProgress > 100 || newReport.overallProgress > 100) {
+      toast.error("نسبة الإنجاز لا يمكن أن تتجاوز 100%");
+      return;
+    }
 
     const combinedWorkSummary = `الأعمال المجدولة للدفعة:\n${newReport.workSummary}\n\nالأعمال المنفذة فعلياً:\n${newReport.actualWorkDone}\n\n[معرف الدفعة: ${selectedPaymentId}]`;
     
-    if (editingReportId) {
-      updateMutation.mutate({
-        id: editingReportId,
-        title: newReport.title,
-        overallProgress: newReport.overallProgress,
-        plannedProgress: newReport.plannedProgress,
-        actualProgress: newReport.actualProgress,
-        workSummary: combinedWorkSummary,
-        challenges: newReport.challenges,
-        nextSteps: newReport.nextSteps,
-        recommendations: newReport.recommendations,
-        budgetSpent: "0",
-        budgetRemaining: "0",
-        photos: uploadedFiles.map(f => f.base64),
-      });
-    } else {
-      if (hasIncompleteSchedule) {
-        toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
-        return;
+    setIsSubmitting(true);
+    try {
+      // 1. رفع كافة المرفقات الجديدة للـ OneDrive عبر REST API
+      const uploadedUrls: string[] = [];
+      for (const fileObj of uploadedFiles) {
+        if (fileObj.base64.startsWith("data:")) {
+          try {
+            const url = await uploadFile(fileObj);
+            uploadedUrls.push(url);
+          } catch (uploadErr: any) {
+            toast.error(uploadErr.message || `حدث خطأ أثناء رفع الملف ${fileObj.name}`);
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          uploadedUrls.push(fileObj.base64);
+        }
       }
 
-      createMutation.mutate({
-        ...newReport,
-        budgetSpent: "0",
-        budgetRemaining: "0",
-        workSummary: combinedWorkSummary,
-        photos: uploadedFiles.map(f => f.base64),
-      });
+      if (editingReportId) {
+        await updateMutation.mutateAsync({
+          id: editingReportId,
+          title: newReport.title,
+          overallProgress: newReport.overallProgress,
+          plannedProgress: newReport.plannedProgress,
+          actualProgress: newReport.actualProgress,
+          workSummary: combinedWorkSummary,
+          challenges: newReport.challenges,
+          nextSteps: newReport.nextSteps,
+          recommendations: newReport.recommendations,
+          budgetSpent: "0",
+          budgetRemaining: "0",
+          photos: uploadedUrls,
+        });
+      } else {
+        if (hasIncompleteSchedule) {
+          toast.error("لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع");
+          setIsSubmitting(false);
+          return;
+        }
+
+        await createMutation.mutateAsync({
+          ...newReport,
+          budgetSpent: "0",
+          budgetRemaining: "0",
+          workSummary: combinedWorkSummary,
+          photos: uploadedUrls,
+        });
+      }
+    } catch (error) {
+      console.error("Error creating/updating report:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -917,7 +998,7 @@ export default function ProgressReports() {
                             max="100"
                             value={newReport.actualProgress}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value) || 0;
+                              const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
                               setNewReport(prev => ({
                                 ...prev,
                                 actualProgress: val,
@@ -1037,7 +1118,7 @@ export default function ProgressReports() {
                             {uploadedFiles.map((file, idx) => (
                               <div key={idx} className="flex items-center justify-between border border-border/80 bg-background rounded-lg p-2.5 shadow-xs relative">
                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                  {file.type.startsWith("image/") ? (
+                                  {file.type.startsWith("image/") || file.type === "" ? (
                                     <img src={file.base64} alt={file.name} className="w-10 h-10 object-cover rounded-md flex-shrink-0" />
                                   ) : (
                                     <div className="w-10 h-10 flex items-center justify-center bg-primary/5 text-primary rounded-md flex-shrink-0">
@@ -1584,7 +1665,7 @@ export default function ProgressReports() {
                           </h3>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {photosArr.map((photo: string, index: number) => {
-                              const isImage = photo.startsWith("data:image/") || photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp"));
+                              const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") || photo.startsWith("/uploads")) && (photo.toLowerCase().endsWith(".png") || photo.toLowerCase().endsWith(".jpg") || photo.toLowerCase().endsWith(".jpeg") || photo.toLowerCase().endsWith(".webp") || photo.toLowerCase().includes("site_photo") || photo.toLowerCase().includes("proof-documents"));
                               return (
                                 <div key={index} className="border rounded-lg p-2 flex flex-col items-center justify-center bg-muted/20 relative group hover:bg-muted/40 transition-colors">
                                   {isImage ? (

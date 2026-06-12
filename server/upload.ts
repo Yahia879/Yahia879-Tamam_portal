@@ -50,7 +50,8 @@ router.post("/upload", (req, res) => {
       // إنشاء اسم ملف فريد
       const fileExtension = req.file.originalname.split(".").pop();
       const randomSuffix = randomBytes(8).toString("hex");
-      const fileKey = `proof-documents/${Date.now()}-${randomSuffix}.${fileExtension}`;
+      const folderParam = (req.query.folder || req.body.folder || "proof-documents").toString().replace(/[^a-zA-Z0-9_-]/g, "");
+      const fileKey = `${folderParam}/${Date.now()}-${randomSuffix}.${fileExtension}`;
 
       // رفع الملف إلى التخزين
       const { url } = await storagePut(

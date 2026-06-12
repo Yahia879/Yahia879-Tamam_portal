@@ -59,6 +59,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // الحصول على البرامج الفعالة من قاعدة البيانات
   const { data: activePrograms = [], isLoading: programsLoading } = trpc.programs.getActive.useQuery();
@@ -207,6 +208,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const handleSubmit = async () => {
     if (!selectedService || !currentUser) return;
+    setIsSubmitting(true);
     try {
       const programData: Record<string, any> = {};
       let mosqueId: number | undefined = undefined;
@@ -263,6 +265,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       navigate(user?.role === 'service_requester' ? '/my-requests' : '/requests');
     } catch (error: any) {
       alert(error?.message || 'حدث خطأ أثناء إرسال الطلب');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -686,10 +690,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           ) : (
             <Button
               onClick={handleSubmit}
-              disabled={createRequestMutation.isPending}
+              disabled={isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending}
               className="flex items-center gap-2 h-10 sm:h-11 px-5 sm:px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-md shadow-primary/20"
             >
-              {createRequestMutation.isPending ? (
+              {isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-xs sm:text-sm">جاري الإرسال...</span></>
               ) : (
                 <><CheckCircle2 className="w-4 h-4" /> <span className="text-xs sm:text-sm">إرسال الطلب</span></>
