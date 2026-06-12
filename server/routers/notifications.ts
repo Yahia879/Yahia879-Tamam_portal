@@ -211,40 +211,7 @@ export async function createNotification(data: {
       .where(eq(rolesTable.id, user.role))
       .limit(1);
 
-    let isInAppEnabled = false;
-    let isEmailEnabled = false;
-    let isWhatsappEnabled = false;
-    let isSmsEnabled = false;
-
-    const isFinancial = 
-      data.relatedType?.startsWith("disbursement") || 
-      data.relatedType === "contract" || 
-      (data.type as string) === "financial";
-
-    const isRequest = 
-      data.relatedType === "request" || 
-      data.type === "request" || 
-      data.type === "request_update" ||
-      data.type === "mosque";
-
-    if (isFinancial) {
-      isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
-      isEmailEnabled = !!user.receiveFinancialEmail || !!(roleSetting && roleSetting.receiveFinancialEmail);
-      isWhatsappEnabled = !!user.receiveFinancialWhatsapp || !!(roleSetting && roleSetting.receiveFinancialWhatsapp);
-      isSmsEnabled = !!user.receiveFinancialSms || !!(roleSetting && roleSetting.receiveFinancialSms);
-    } else if (isRequest) {
-      isInAppEnabled = !!user.receiveRequestNotifications || !!(roleSetting && roleSetting.receiveRequestNotifications);
-      isEmailEnabled = !!user.receiveRequestEmail || !!(roleSetting && roleSetting.receiveRequestEmail);
-      isWhatsappEnabled = !!user.receiveRequestWhatsapp || !!(roleSetting && roleSetting.receiveRequestWhatsapp);
-      isSmsEnabled = !!user.receiveRequestSms || !!(roleSetting && roleSetting.receiveRequestSms);
-    } else {
-      isInAppEnabled = !!user.receiveBeneficiaryNotifications || !!(roleSetting && roleSetting.receiveBeneficiaryNotifications);
-      isEmailEnabled = !!user.receiveBeneficiaryEmail || !!(roleSetting && roleSetting.receiveBeneficiaryEmail);
-      isWhatsappEnabled = !!user.receiveBeneficiaryWhatsapp || !!(roleSetting && roleSetting.receiveBeneficiaryWhatsapp);
-      isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
-    }
-
-    // الكشف عن الـ triggerId بناءً على بيانات الإشعار
+    // الكشف عن الـ triggerId بناءً على بيانات الإشعار أولاً
     let triggerId: string | null = null;
     if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
       triggerId = "request_created_admin";
@@ -272,6 +239,82 @@ export async function createNotification(data: {
       triggerId = "mosque_created";
     } else if (data.title === "تم اعتماد المسجد" || data.message.includes("تم قبول طلب تسجيل المسجد")) {
       triggerId = "mosque_approved";
+    } else if (data.title === "مورد جديد قيد المراجعة" || data.message.includes("تم تسجيل مورد جديد في البوابة")) {
+      triggerId = "supplier_created";
+    } else if (data.title === "اعتماد مورد" || data.message.includes("باعتماد المورد")) {
+      triggerId = "supplier_approved";
+    } else if (data.title === "رفض مورد" || data.message.includes("برفض المورد")) {
+      triggerId = "supplier_rejected";
+    } else if (data.title === "إضافة عرض سعر جديد" || data.message.includes("تم إضافة عرض سعر جديد")) {
+      triggerId = "quotation_created";
+    } else if (data.title === "اعتماد عرض سعر" || data.message.includes("تم اعتماد عرض السعر")) {
+      triggerId = "quotation_approved";
+    } else if (data.title === "إنشاء عقد جديد" || data.title === "عقد جديد" || data.message.includes("تم إنشاء عقد جديد")) {
+      triggerId = "contract_created";
+    } else if (data.title === "اعتماد عقد" || data.message.includes("تم اعتماد العقد")) {
+      triggerId = "contract_approved";
+    } else if (data.title === "إنشاء تقرير إنجاز" || data.message.includes("تم إنشاء تقرير إنجاز جديد")) {
+      triggerId = "progress_report_created";
+    } else if (data.title === "اعتماد تقرير إنجاز" || data.message.includes("تم اعتماد تقرير الإنجاز")) {
+      triggerId = "progress_report_approved";
+    } else if (data.title === "إنشاء طلب صرف" || data.message.includes("تم إنشاء طلب صرف جديد")) {
+      triggerId = "disbursement_request_created";
+    } else if (data.title === "تحويل إلى أمر صرف" || data.message.includes("تم تحويل طلب الصرف")) {
+      triggerId = "disbursement_converted_to_order";
+    } else if (data.title === "اعتماد أمر صرف" || data.message.includes("تم اعتماد أمر الصرف")) {
+      triggerId = "disbursement_order_approved";
+    } else if (data.title === "رفض أمر صرف" || data.message.includes("تم رفض أمر الصرف")) {
+      triggerId = "disbursement_order_rejected";
+    }
+
+    const financialTriggerIds = [
+      "supplier_created",
+      "supplier_approved",
+      "supplier_rejected",
+      "quotation_created",
+      "quotation_approved",
+      "contract_created",
+      "contract_approved",
+      "progress_report_created",
+      "progress_report_approved",
+      "disbursement_request_created",
+      "disbursement_converted_to_order",
+      "disbursement_order_approved",
+      "disbursement_order_rejected"
+    ];
+
+    let isInAppEnabled = false;
+    let isEmailEnabled = false;
+    let isWhatsappEnabled = false;
+    let isSmsEnabled = false;
+
+    const isFinancial = 
+      (triggerId && financialTriggerIds.includes(triggerId)) ||
+      data.relatedType?.startsWith("disbursement") || 
+      data.relatedType === "contract" || 
+      (data.type as string) === "financial";
+
+    const isRequest = 
+      data.relatedType === "request" || 
+      data.type === "request" || 
+      data.type === "request_update" ||
+      data.type === "mosque";
+
+    if (isFinancial) {
+      isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
+      isEmailEnabled = !!user.receiveFinancialEmail || !!(roleSetting && roleSetting.receiveFinancialEmail);
+      isWhatsappEnabled = !!user.receiveFinancialWhatsapp || !!(roleSetting && roleSetting.receiveFinancialWhatsapp);
+      isSmsEnabled = !!user.receiveFinancialSms || !!(roleSetting && roleSetting.receiveFinancialSms);
+    } else if (isRequest) {
+      isInAppEnabled = !!user.receiveRequestNotifications || !!(roleSetting && roleSetting.receiveRequestNotifications);
+      isEmailEnabled = !!user.receiveRequestEmail || !!(roleSetting && roleSetting.receiveRequestEmail);
+      isWhatsappEnabled = !!user.receiveRequestWhatsapp || !!(roleSetting && roleSetting.receiveRequestWhatsapp);
+      isSmsEnabled = !!user.receiveRequestSms || !!(roleSetting && roleSetting.receiveRequestSms);
+    } else {
+      isInAppEnabled = !!user.receiveBeneficiaryNotifications || !!(roleSetting && roleSetting.receiveBeneficiaryNotifications);
+      isEmailEnabled = !!user.receiveBeneficiaryEmail || !!(roleSetting && roleSetting.receiveBeneficiaryEmail);
+      isWhatsappEnabled = !!user.receiveBeneficiaryWhatsapp || !!(roleSetting && roleSetting.receiveBeneficiaryWhatsapp);
+      isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
     }
 
     // تطبيق قيم تخصيص مشغلات الإشعارات التفصيلية إذا تم العثور عليها

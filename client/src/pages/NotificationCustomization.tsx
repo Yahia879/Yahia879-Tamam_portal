@@ -453,19 +453,34 @@ export default function NotificationCustomization() {
 
   // المشغلات/الأحداث التفصيلية التي ترسل إشعارات
   const NOTIFICATION_TRIGGERS = [
-    { id: "mosque_created", nameAr: "إضافة مسجد جديد بانتظار الموافقة", description: "تم إضافة مسجد جديد وهو بانتظار الموافقة" },
-    { id: "mosque_approved", nameAr: "قبول طلب تسجيل مسجد", description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان" },
-    { id: "request_created_admin", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },
-    { id: "request_created_beneficiary", nameAr: "إنشاء طلب من قبل المستفيد", description: "تم إنشاء طلب جديد وهو بانتظار المعالجة" },
-    { id: "stage_initial_review", nameAr: "تغير حالة الطلب لـ المراجعة الأولية", description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية" },
-    { id: "stage_field_visit", nameAr: "تغير حالة الطلب لـ الزيارة الميدانية", description: "قام المسؤول بنقل الطلب إلى مرحلة: الزيارة الميدانية" },
-    { id: "field_visit_report_submitted", nameAr: "رفع تقرير الزيارة الميدانية من قبل فريق الزيارة الميدانية", description: "تم رفع تقرير زيارة ميدانية من قبل فريق ميداني جديد" },
-    { id: "quick_report_submitted", nameAr: "رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة", description: "تم رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة" },
-    { id: "converted_to_project", nameAr: "تحويل الطلب لمشروع", description: "تم تحويل الطلب إلى مشروع ويحتاج للتقييم المالي" },
-    { id: "stage_financial_eval", nameAr: "تغير حالة الطلب لـ التقييم المالي واعتماد العرض", description: "قام المسؤول بنقل الطلب إلى مرحلة: التقييم المالي واعتماد العرض" },
-    { id: "stage_contracting", nameAr: "تغير حالة الطلب لـ التعاقد", description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد" },
-    { id: "stage_execution", nameAr: "تغير حالة الطلب لـ التنفيذ", description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ" },
-    { id: "stage_closed", nameAr: "تغير حالة الطلب لـ الإغلاق", description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق" },
+    { id: "mosque_created", category: "request", nameAr: "إضافة مسجد جديد بانتظار الموافقة", description: "تم إضافة مسجد جديد وهو بانتظار الموافقة" },
+    { id: "mosque_approved", category: "request", nameAr: "قبول طلب تسجيل مسجد", description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان" },
+    { id: "request_created_admin", category: "request", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },
+    { id: "request_created_beneficiary", category: "request", nameAr: "إنشاء طلب من قبل المستفيد", description: "تم إنشاء طلب جديد وهو بانتظار المعالجة" },
+    { id: "stage_initial_review", category: "request", nameAr: "تغير حالة الطلب لـ المراجعة الأولية", description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية" },
+    { id: "stage_field_visit", category: "request", nameAr: "تغير حالة الطلب لـ الزيارة الميدانية", description: "قام المسؤول بنقل الطلب إلى مرحلة: الزيارة الميدانية" },
+    { id: "field_visit_report_submitted", category: "request", nameAr: "رفع تقرير الزيارة الميدانية من قبل فريق الزيارة الميدانية", description: "تم رفع تقرير زيارة ميدانية من قبل فريق ميداني جديد" },
+    { id: "quick_report_submitted", category: "request", nameAr: "رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة", description: "تم رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة" },
+    { id: "converted_to_project", category: "request", nameAr: "تحويل الطلب لمشروع", description: "تم تحويل الطلب إلى مشروع ويحتاج للتقييم المالي" },
+    { id: "stage_financial_eval", category: "request", nameAr: "تغير حالة الطلب لـ التقييم المالي واعتماد العرض", description: "قام المسؤول بنقل الطلب إلى مرحلة: التقييم المالي واعتماد العرض" },
+    { id: "stage_contracting", category: "request", nameAr: "تغير حالة الطلب لـ التعاقد", description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد" },
+    { id: "stage_execution", category: "request", nameAr: "تغير حالة الطلب لـ التنفيذ", description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ" },
+    { id: "stage_closed", category: "request", nameAr: "تغير حالة الطلب لـ الإغلاق", description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق" },
+    
+    // === قسم المالية والعقود ===
+    { id: "supplier_created", category: "financial", nameAr: "إضافة مورد جديد", description: 'تم تسجيل مورد جديد في البوابة: "محمد الأشعري" وهو بانتظار المراجعة والاعتماد' },
+    { id: "supplier_approved", category: "financial", nameAr: "اعتماد مورد", description: 'قام المسؤول عبدالإله المرزوق باعتماد المورد: "محمد الأشعري" بنجاح' },
+    { id: "supplier_rejected", category: "financial", nameAr: "رفض مورد", description: 'قام المسؤول عبدالإله المرزوق برفض المورد: "محمد الأشعري" بسبب: عدم الالتزام' },
+    { id: "quotation_created", category: "financial", nameAr: "إضافة عرض سعر جديد", description: 'تم إضافة عرض سعر جديد رقم "PW9R-QJAUT2MQ-QUO" من قبل المورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124' },
+    { id: "quotation_approved", category: "financial", nameAr: "اعتماد عرض سعر", description: 'تم اعتماد عرض السعر رقم "17DF-OC08MPTC-QUO" للمورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124 بقيمة 119951.00 ريال' },
+    { id: "contract_created", category: "financial", nameAr: "إنشاء عقد جديد", description: 'تم إنشاء عقد جديد رقم "CNT-2026-0068" مع المورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000 ريال' },
+    { id: "contract_approved", category: "financial", nameAr: "اعتماد عقد", description: 'تم اعتماد العقد رقم "CNT-2026-0068" للمورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000.00 ريال' },
+    { id: "progress_report_created", category: "financial", nameAr: "إنشاء تقرير إنجاز", description: 'تم إنشاء تقرير إنجاز جديد رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014' },
+    { id: "progress_report_approved", category: "financial", nameAr: "اعتماد تقرير إنجاز", description: 'تم اعتماد تقرير الإنجاز رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014' },
+    { id: "disbursement_request_created", category: "financial", nameAr: "إنشاء طلب صرف", description: 'تم إنشاء طلب صرف جديد رقم "DR-2026-0051" لطلب صرف دفعة أولى للمشروع "مشروع تجريبي" بقيمة 1000000 ريال' },
+    { id: "disbursement_converted_to_order", category: "financial", nameAr: "تحويل طلب الصرف إلى أمر صرف", description: 'تم تحويل طلب الصرف رقم "DR-2026-0051" إلى أمر صرف رقم "DO-2026-0023" للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال' },
+    { id: "disbursement_order_approved", category: "financial", nameAr: "اعتماد أمر صرف", description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال' },
+    { id: "disbursement_order_rejected", category: "financial", nameAr: "رفض أمر صرف", description: 'تم رفض أمر الصرف رقم "DO-2026-0022" (طلب رقم DR-2026-0045) للمشروع "طلب صرف مخصص / عام" بقيمة 1001.00 ريال بسبب: لا توجد معلومات كافية' },
   ];
 
   const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("field_team");
@@ -509,7 +524,22 @@ export default function NotificationCustomization() {
 
     // 2. إذا لم يوجد تخصيص، نرث القيمة الافتراضية من إعدادات الدور العامة
     const roleObj = dbRoles?.find(r => r.id === selectedTriggerRoleId);
-    const isFinancial = false;
+    const financialTriggers = [
+      "supplier_created",
+      "supplier_approved",
+      "supplier_rejected",
+      "quotation_created",
+      "quotation_approved",
+      "contract_created",
+      "contract_approved",
+      "progress_report_created",
+      "progress_report_approved",
+      "disbursement_request_created",
+      "disbursement_converted_to_order",
+      "disbursement_order_approved",
+      "disbursement_order_rejected"
+    ];
+    const isFinancial = financialTriggers.includes(triggerId);
     
     let inherited = false;
     if (isFinancial) {
@@ -668,7 +698,50 @@ export default function NotificationCustomization() {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border/40">
-                      {NOTIFICATION_TRIGGERS.map(trig => {
+                      {/* === قسم الطلبات والمساجد === */}
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                        <TableCell colSpan={2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40">
+                          قسم الطلبات والمساجد
+                        </TableCell>
+                      </TableRow>
+                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "request").map(trig => {
+                        const inAppState = getTriggerChannelState(trig.id, 'in_app');
+                        const emailState = getTriggerChannelState(trig.id, 'email');
+                        const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
+                        const smsState = getTriggerChannelState(trig.id, 'sms');
+
+                        return (
+                          <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4">
+                              <ChannelToggles
+                                inApp={inAppState.enabled}
+                                whatsapp={whatsappState.enabled}
+                                sms={smsState.enabled}
+                                email={emailState.enabled}
+                                onToggle={(channel, val) => handleToggleTriggerSetting(trig.id, channel, val)}
+                                inherited={{
+                                  inApp: inAppState.isInherited,
+                                  whatsapp: whatsappState.isInherited,
+                                  sms: smsState.isInherited,
+                                  email: emailState.isInherited,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+
+                      {/* === قسم المالية والعقود === */}
+                      <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                        <TableCell colSpan={2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                          قسم المالية والعقود
+                        </TableCell>
+                      </TableRow>
+                      {NOTIFICATION_TRIGGERS.filter(t => t.category === "financial").map(trig => {
                         const inAppState = getTriggerChannelState(trig.id, 'in_app');
                         const emailState = getTriggerChannelState(trig.id, 'email');
                         const whatsappState = getTriggerChannelState(trig.id, 'whatsapp');
