@@ -19,6 +19,7 @@ import { serveStatic, setupVite } from "./vite";
 import uploadRouter from "../upload";
 import pdfRouter from "../pdf";
 import { securityMiddleware } from "./security";
+import { isOneDriveConfigured, getAccessToken } from "../storage";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -49,6 +50,45 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Proxy files from OneDrive if configured, otherwise fallback to local files
+  app.get("/uploads/:file(*)", async (req, res, next) => {
+    const fileKey = req.params.file;
+    if (isOneDriveConfigured()) {
+      try {
+        const token = await getAccessToken();
+        const upn = process.env.ONEDRIVE_USER_PRINCIPAL_NAME;
+        const metadataUrl = `https://graph.microsoft.com/v1.0/users/${upn}/drive/root:/${fileKey}`;
+        
+        const metadataResponse = await fetch(metadataUrl, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (metadataResponse.ok) {
+          const metadata = await metadataResponse.json() as any;
+          const downloadUrl = metadata["@microsoft.graph.downloadUrl"];
+          const mimeType = metadata.file?.mimeType || "application/octet-stream";
+          
+          if (downloadUrl) {
+            const fileResponse = await fetch(downloadUrl);
+            if (fileResponse.ok) {
+              res.setHeader("Content-Type", mimeType);
+              res.setHeader("Content-Length", metadata.size || fileResponse.headers.get("content-length"));
+              
+              const arrayBuffer = await fileResponse.arrayBuffer();
+              res.send(Buffer.from(arrayBuffer));
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error proxying file from OneDrive:", error);
+      }
+    }
+    next();
+  });
 
   // Serve uploads statically
   app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
