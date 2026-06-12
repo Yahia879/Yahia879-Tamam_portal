@@ -62,6 +62,7 @@ import {
   MoreVertical,
   Upload,
   X,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -1166,13 +1167,17 @@ export default function ProgressReports() {
                    <Button
                     size="lg"
                     onClick={handleCreateReport}
-                    disabled={(editingReportId ? updateMutation.isPending : (createMutation.isPending || hasIncompleteSchedule)) || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
-                    className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90"
+                    disabled={(isSubmitting || (editingReportId ? updateMutation.isPending : (createMutation.isPending || hasIncompleteSchedule))) || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
+                    className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90 flex items-center gap-2"
                   >
-                    {editingReportId
-                      ? (updateMutation.isPending ? "جاري حفظ التعديلات..." : "حفظ التعديلات")
-                      : (createMutation.isPending ? "جاري الحفظ والإنشاء..." : "حفظ وإنشاء التقرير")
-                    }
+                    {(isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending)) ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{editingReportId ? "جاري حفظ التعديلات..." : "جاري الحفظ والإنشاء..."}</span>
+                      </>
+                    ) : (
+                      <span>{editingReportId ? "حفظ التعديلات" : "حفظ وإنشاء التقرير"}</span>
+                    )}
                   </Button>
                 </div>
               </>
