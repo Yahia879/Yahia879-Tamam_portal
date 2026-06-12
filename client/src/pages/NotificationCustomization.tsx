@@ -453,6 +453,8 @@ export default function NotificationCustomization() {
 
   // المشغلات/الأحداث التفصيلية التي ترسل إشعارات
   const NOTIFICATION_TRIGGERS = [
+    { id: "mosque_created", nameAr: "إضافة مسجد جديد بانتظار الموافقة", description: "تم إضافة مسجد جديد وهو بانتظار الموافقة" },
+    { id: "mosque_approved", nameAr: "قبول طلب تسجيل مسجد", description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان" },
     { id: "request_created_admin", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },
     { id: "request_created_beneficiary", nameAr: "إنشاء طلب من قبل المستفيد", description: "تم إنشاء طلب جديد وهو بانتظار المعالجة" },
     { id: "stage_initial_review", nameAr: "تغير حالة الطلب لـ المراجعة الأولية", description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية" },

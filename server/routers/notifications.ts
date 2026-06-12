@@ -268,6 +268,10 @@ export async function createNotification(data: {
       triggerId = "stage_execution";
     } else if (data.message.includes("الإغلاق") || data.message.includes("closed") || data.message.includes("إغلاق")) {
       triggerId = "stage_closed";
+    } else if (data.message.includes("بانتظار الموافقة") || data.message.includes("بانتظار الاعتماد") || data.title === "تسجيل مسجد من قبل مسؤول") {
+      triggerId = "mosque_created";
+    } else if (data.title === "تم اعتماد المسجد" || data.message.includes("تم قبول طلب تسجيل المسجد")) {
+      triggerId = "mosque_approved";
     }
 
     // تطبيق قيم تخصيص مشغلات الإشعارات التفصيلية إذا تم العثور عليها
@@ -694,6 +698,10 @@ export async function notifyMosqueApproval(
   mosqueName: string,
   requesterId: number
 ) {
+  const db = await getDb();
+  if (!db) return;
+
+  // 1. إشعار مقدم الطلب (المستفيد)
   await createNotification({
     userId: requesterId,
     type: "mosque",
@@ -702,6 +710,23 @@ export async function notifyMosqueApproval(
     relatedType: "mosque",
     relatedId: mosqueId,
   });
+
+  // 2. إشعار المسؤولين (مثل الفريق الميداني والمشرفين)
+  try {
+    const officerIds = await getRequestNotificationOfficerIds(db, requesterId);
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "mosque",
+        title: "تم اعتماد المسجد",
+        message: `تم قبول طلب تسجيل المسجد: ${mosqueName}`,
+        relatedType: "mosque",
+        relatedId: mosqueId,
+      });
+    }
+  } catch (err) {
+    console.error("Error in notifyMosqueApproval for officers:", err);
+  }
 }
 
 // دالة لإرسال إشعار عند تغيير حالة الطلب
