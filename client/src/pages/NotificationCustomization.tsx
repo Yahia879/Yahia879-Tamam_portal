@@ -119,7 +119,7 @@ const ChannelToggles = ({
                 inApp
                   ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              } ${inherited.inApp ? "ring-2 ring-teal-500/50" : ""}`}
+              }`}
             >
               <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
@@ -138,7 +138,7 @@ const ChannelToggles = ({
                 whatsapp
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              } ${inherited.whatsapp ? "ring-2 ring-emerald-500/50" : ""}`}
+              }`}
             >
               <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
@@ -157,7 +157,7 @@ const ChannelToggles = ({
                 email
                   ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              } ${inherited.email ? "ring-2 ring-blue-500/50" : ""}`}
+              }`}
             >
               <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
@@ -176,7 +176,7 @@ const ChannelToggles = ({
                 sms
                   ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              } ${inherited.sms ? "ring-2 ring-amber-500/50" : ""}`}
+              }`}
             >
               <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
