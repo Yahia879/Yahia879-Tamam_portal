@@ -33,8 +33,8 @@ function getTransporter() {
   const host = process.env.SMTP_HOST;
   const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
   const secure = process.env.SMTP_SECURE === "true";
-  const user = process.env.SMTP_USER || "tryahia.208@gmail.com";
-  const pass = process.env.SMTP_PASS || "nsuy qryz uwvo okzf";
+  const user = process.env.SMTP_USER || "tamamgate@manarah.org.sa";
+  const pass = process.env.SMTP_PASS || "pK9#mX2!vL7$qZ4*";
   const service = process.env.SMTP_SERVICE;
 
   if (service) {
@@ -73,7 +73,7 @@ function getTransporter() {
 }
 
 export async function sendEmailNotification(to: string, title: string, message: string) {
-  const user = process.env.SMTP_USER || "tryahia.208@gmail.com";
+  const user = process.env.SMTP_USER || "tamamgate@manarah.org.sa";
   
   try {
     const mailOptions = {

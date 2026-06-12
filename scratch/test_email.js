@@ -42,7 +42,7 @@ async function main() {
 
   const mailOptions = {
     from: `"بوابة تمام" <${user}>`,
-    to: user || "yahiatr188@gmail.com",
+    to: "yahiatr188@gmail.com",
     subject: "تجربة إرسال بريد إلكتروني من بوابة تمام",
     text: "مرحباً، هذا بريد تجريبي للتأكد من ربط الحساب بنجاح بباكيند النظام.",
     html: `
