@@ -244,6 +244,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
+      if (!isChecked("requesters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!isChecked("financial_approval.view")) {
@@ -336,6 +344,7 @@ export default function UserPermissions() {
         if (permId === "services.view") cascadeRevoke("services.");
         if (permId === "requests.view") cascadeRevoke("requests.");
         if (permId === "projects.view") cascadeRevoke("projects.");
+        if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "reports.view_stats") cascadeRevoke("reports.");
         if (permId === "financial_approval.view") {
@@ -859,6 +868,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
+                              (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));
 
                             // تحديد نمط البطاقة بناءً على نوع حالة الصلاحية (موروثة، ممنوحة، مسحوبة)

@@ -104,7 +104,7 @@ export const authRouter = router({
         nationalId: input.nationalId || null,
         city: input.city || null,
         requesterType: input.requesterType || null,
-        proofDocument: null,
+        proofDocument: input.proofDocument || null,
         role: "service_requester",
         status: "pending", // يحتاج اعتماد
         loginMethod: "local",

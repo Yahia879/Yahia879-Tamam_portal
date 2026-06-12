@@ -155,7 +155,7 @@ async function seed() {
     const rolePermissionsMapping = {
       super_admin: "*", // كل الصلاحيات
       system_admin: "*", // كل الصلاحيات
-      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
+      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "requesters"],
       field_team: ["mosques.view", "requests.view", "requests.view_details", "requests.edit", "field_visits"],
       quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
       financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports", "requests.view", "requests.view_details"],

@@ -355,6 +355,44 @@ async function ensureProjectsPermissionsExist(db: any) {
     console.error("Error in ensureProjectsPermissionsExist:", err);
   }
   await ensureAllCustomPermissionsExist(db);
+  await ensureRequestersPermissionsExist(db);
+}
+
+/**
+ * دالة للتأكد من ربط صلاحيات طالبي الخدمة بالدور الأساسي مكتب المشاريع (projects_office)
+ */
+async function ensureRequestersPermissionsExist(db: any) {
+  try {
+    const roleId = "projects_office";
+    const permIds = ["requesters.view", "requesters.approve"];
+    
+    const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+    if (!roleExists) return;
+
+    const existingRolePerms = await db.select()
+      .from(rolePermissions)
+      .where(and(
+        eq(rolePermissions.roleId, roleId),
+        inArray(rolePermissions.permissionId, permIds)
+      ));
+
+    if (existingRolePerms.length < permIds.length) {
+      // حذف التالف لضمان عدم وجود تكرار عند الربط
+      await db.delete(rolePermissions).where(and(
+        eq(rolePermissions.roleId, roleId),
+        inArray(rolePermissions.permissionId, permIds)
+      ));
+
+      const valuesToInsert = permIds.map(permId => ({
+        roleId,
+        permissionId: permId
+      }));
+      await db.insert(rolePermissions).values(valuesToInsert);
+      console.log(`Migrated role ${roleId} with requesters permissions: ${permIds.join(", ")}`);
+    }
+  } catch (err) {
+    console.error("Error in ensureRequestersPermissionsExist:", err);
+  }
 }
 
 /**

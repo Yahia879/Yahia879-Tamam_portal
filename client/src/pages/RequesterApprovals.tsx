@@ -31,9 +31,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckSquare, Users, Search, CheckCircle2, XCircle, Clock, Filter } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  CheckSquare,
+  Users,
+  Search,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Filter,
+  Eye,
+  FileText,
+  MapPin,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Shield,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
+
+// ترجمة صفة طالب الخدمة
+const getRequesterTypeLabel = (type: string | null | undefined) => {
+  if (!type) return "غير محدد";
+  const types: Record<string, string> = {
+    imam: "إمام",
+    muezzin: "مؤذن",
+    donor: "متبرع",
+    other: "أخرى",
+  };
+  return types[type] || type;
+};
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   pending: { label: "قيد المراجعة", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400", icon: Clock },
@@ -44,6 +80,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 export default function RequesterApprovals() {
   const { user: currentUser } = useAuth();
+  const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("requesters.approve");
   const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
 
@@ -242,7 +279,7 @@ export default function RequesterApprovals() {
                         <TableHead className="text-right">الهاتف</TableHead>
                         <TableHead className="text-right whitespace-nowrap">تاريخ التسجيل</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
-                        {canApprove && <TableHead className="text-left">الإجراءات</TableHead>}
+                        <TableHead className="text-left">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -263,34 +300,45 @@ export default function RequesterApprovals() {
                                 {statusInfo?.label ?? user.status}
                               </span>
                             </TableCell>
-                            {canApprove && (
-                              <TableCell className="text-left">
-                                <div className="flex gap-2">
-                                  {user.status !== "active" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold"
-                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                                    >
-                                      <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                                      اعتماد
-                                    </Button>
-                                  )}
-                                  {user.status === "active" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold"
-                                      onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                                    >
-                                      <XCircle className="w-3.5 h-3.5 ml-1" />
-                                      إيقاف
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            )}
+                            <TableCell className="text-left">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs font-bold gap-1"
+                                  onClick={() => navigate("/requester-approvals/" + user.id)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  التفاصيل
+                                </Button>
+                                {canApprove && (
+                                  <>
+                                    {user.status !== "active" && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold"
+                                        onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
+                                        اعتماد
+                                      </Button>
+                                    )}
+                                    {user.status === "active" && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold"
+                                        onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                                      >
+                                        <XCircle className="w-3.5 h-3.5 ml-1" />
+                                        إيقاف
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -327,29 +375,39 @@ export default function RequesterApprovals() {
                           </div>
                         </div>
 
-                        {canApprove && (
-                          <div className="pt-1">
-                            {user.status !== "active" && (
-                              <Button
-                                className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-lg transition-all"
-                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
-                              >
-                                <CheckCircle2 className="w-4 h-4" />
-                                اعتماد الحساب
-                              </Button>
-                            )}
-                            {user.status === "active" && (
-                              <Button
-                                variant="outline"
-                                className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-lg transition-all"
-                                onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
-                              >
-                                <XCircle className="w-4 h-4" />
-                                إيقاف الحساب
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                        <div className="pt-1 flex flex-col sm:flex-row gap-2">
+                          <Button
+                            variant="outline"
+                            className="w-full h-9 font-bold gap-2 rounded-lg transition-all"
+                            onClick={() => navigate("/requester-approvals/" + user.id)}
+                          >
+                            <Eye className="w-4 h-4" />
+                            عرض التفاصيل
+                          </Button>
+                          {canApprove && (
+                            <>
+                              {user.status !== "active" && (
+                                <Button
+                                  className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-lg transition-all"
+                                  onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  اعتماد الحساب
+                                </Button>
+                              )}
+                              {user.status === "active" && (
+                                <Button
+                                  variant="outline"
+                                  className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-lg transition-all"
+                                  onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  إيقاف الحساب
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -359,6 +417,8 @@ export default function RequesterApprovals() {
           </CardContent>
         </Card>
       </div>
+
+
 
       {/* نافذة تأكيد الإجراء */}
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>

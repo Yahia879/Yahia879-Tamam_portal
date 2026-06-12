@@ -210,6 +210,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/users\/\d+\/edit$/, permission: "staff_management" },
   { pattern: /^\/users\/\d+\/permissions$/, permission: "staff_management" },
   { pattern: /^\/users\/\d+$/, permission: "staff_management" },
+  { pattern: /^\/requester-approvals\/\d+$/, permission: ["staff_management", "service_requester_accounts"] },
 
   // الأدوار
   { pattern: /^\/staff\/roles\/[^/]+$/, permission: "staff_management" },

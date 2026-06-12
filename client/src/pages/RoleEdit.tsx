@@ -425,6 +425,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لطالبي الخدمة إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("requesters.") && permId !== "requesters.view") {
+      if (!selectedPerms.includes("requesters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض بيانات طالبي الخدمة' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل صلاحية الاعتماد المالي لعرض السعر إذا كانت مقارنة العروض معطلة
     if (permId === "financial_approval.approve") {
       if (!selectedPerms.includes("financial_approval.view")) {
@@ -464,6 +472,9 @@ export default function RoleEdit() {
         }
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
+        }
+        if (permId === "requesters.view") {
+          next = next.filter(id => !id.startsWith("requesters."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض تقرير المالية والإحصائيات'، نقوم تلقائياً بإلغاء تفعيل تصدير البيانات المالية
         if (permId === "financial_reports.view") {
@@ -681,6 +692,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                              (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                               (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                             return (
