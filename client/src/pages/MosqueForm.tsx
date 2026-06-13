@@ -21,6 +21,29 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
+const CITY_COORDINATES: Record<string, { lat: number; lng: number; region: string }> = {
+  "أبها": { lat: 18.2164, lng: 42.5053, region: "عسير" },
+  "خميس مشيط": { lat: 18.3012, lng: 42.7308, region: "عسير" },
+  "الرياض": { lat: 24.7136, lng: 46.6753, region: "الرياض" },
+  "جدة": { lat: 21.5433, lng: 39.1728, region: "مكة المكرمة" },
+  "مكة المكرمة": { lat: 21.4225, lng: 39.8262, region: "مكة المكرمة" },
+  "المدينة المنورة": { lat: 24.4672, lng: 39.6111, region: "المدينة المنورة" },
+  "الدمام": { lat: 26.4207, lng: 50.0888, region: "المنطقة الشرقية" },
+  "الخبر": { lat: 26.2172, lng: 50.1971, region: "المنطقة الشرقية" },
+  "الجبيل": { lat: 27.0112, lng: 49.6582, region: "المنطقة الشرقية" },
+  "الهفوف": { lat: 25.3789, lng: 49.5878, region: "المنطقة الشرقية" },
+  "الطائف": { lat: 21.2854, lng: 40.4164, region: "مكة المكرمة" },
+  "تبوك": { lat: 28.3835, lng: 36.5662, region: "تبوك" },
+  "بريدة": { lat: 26.3260, lng: 43.9750, region: "القصيم" },
+  "حائل": { lat: 27.5219, lng: 41.6961, region: "حائل" },
+  "نجران": { lat: 17.5656, lng: 44.2289, region: "نجران" },
+  "جازان": { lat: 16.8892, lng: 42.5511, region: "جازان" },
+  "الباحة": { lat: 20.0129, lng: 41.4677, region: "الباحة" },
+  "عرعر": { lat: 30.9753, lng: 41.0381, region: "الحدود الشمالية" },
+  "الجوف": { lat: 29.9539, lng: 40.2064, region: "الجوف" },
+  "ينبع": { lat: 24.0891, lng: 38.0637, region: "المدينة المنورة" }
+};
+
 
 
 // ترجمة صفة طالب الخدمة
@@ -55,6 +78,9 @@ export default function MosqueForm() {
     area: "",
     capacity: "",
     hasPrayerHall: false,
+    womenPrayerCapacity: "",
+    womenPrayerArea: "",
+    womenPrayerNotes: "",
     mosqueAge: "",
     description: "",
   });
@@ -72,6 +98,31 @@ export default function MosqueForm() {
 
   useEffect(() => {
     if (mosque) {
+      let wCapacity = "";
+      let wArea = "";
+      let wNotes = "";
+      let mainDescription = mosque.notes || "";
+      
+      if (mosque.notes && mosque.notes.includes("[معلومات مصلى النساء]:")) {
+        const parts = mosque.notes.split("[معلومات مصلى النساء]:");
+        mainDescription = parts[0].trim();
+        const details = parts[1];
+        
+        const capacityMatch = details.match(/- السعة:\s*([^\n]+)/);
+        const areaMatch = details.match(/- المساحة:\s*([^\n]+)/);
+        const notesMatch = details.match(/- ملاحظات إضافية:\s*([^\n]+)/);
+        
+        if (capacityMatch) {
+          wCapacity = capacityMatch[1].replace(" مصلية", "").replace("غير حدد", "").replace("غير محدد", "").trim();
+        }
+        if (areaMatch) {
+          wArea = areaMatch[1].replace(" م²", "").replace("غير حدد", "").replace("غير محدد", "").trim();
+        }
+        if (notesMatch) {
+          wNotes = notesMatch[1].replace("لا يوجد", "").trim();
+        }
+      }
+
       setFormData({
         name: mosque.name || "",
         mosqueType: (mosque as any).mosqueType || "",
@@ -85,8 +136,11 @@ export default function MosqueForm() {
         area: mosque.area || "",
         capacity: mosque.capacity?.toString() || "",
         hasPrayerHall: mosque.hasPrayerHall || false,
+        womenPrayerCapacity: wCapacity,
+        womenPrayerArea: wArea,
+        womenPrayerNotes: wNotes,
         mosqueAge: mosque.mosqueAge?.toString() || "",
-        description: (mosque as any).notes || "",
+        description: mainDescription,
       });
     }
   }, [mosque]);
@@ -167,40 +221,55 @@ export default function MosqueForm() {
 
   const handleCityChange = async (value: string) => {
     handleChange("city", value);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-          value + " السعودية"
-        )}&accept-language=ar&addressdetails=1`
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const firstResult = data[0];
-        const addr = firstResult.address || {};
-        const region = addr.state || addr.province || addr.region || "عسير";
-        
-        setFormData((prev) => ({
-          ...prev,
-          latitude: firstResult.lat,
-          longitude: firstResult.lon,
-          governorate: region,
-        }));
+    const coords = CITY_COORDINATES[value];
+    if (coords) {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: coords.lat.toString(),
+        longitude: coords.lng.toString(),
+        governorate: coords.region,
+      }));
+    } else {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+            value + " السعودية"
+          )}&accept-language=ar&addressdetails=1`
+        );
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const firstResult = data[0];
+          const addr = firstResult.address || {};
+          const region = addr.state || addr.province || addr.region || "عسير";
+          
+          setFormData((prev) => ({
+            ...prev,
+            latitude: firstResult.lat,
+            longitude: firstResult.lon,
+            governorate: region,
+          }));
+        }
+      } catch (error) {
+        console.error("City search error:", error);
       }
-    } catch (error) {
-      console.error("City search error:", error);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.city || !formData.mosqueType) {
-      toast.error("يرجى ملء الحقول المطلوبة");
+    if (!formData.name || !formData.city || !formData.mosqueType || !formData.area || !formData.capacity) {
+      toast.error("يرجى ملء كافة الحقول المطلوبة للمسجد (الاسم، المدينة، النوع، المساحة، السعة)");
       return;
     }
 
     if (!formData.latitude || !formData.longitude) {
       toast.error("يرجى تحديد موقع المسجد على الخريطة");
+      return;
+    }
+
+    if (formData.hasPrayerHall && (!formData.womenPrayerCapacity || !formData.womenPrayerArea)) {
+      toast.error("يرجى ملء الحقول المطلوبة لمصلى النساء (السعة والمساحة)");
       return;
     }
 
@@ -226,6 +295,12 @@ export default function MosqueForm() {
       return;
     }
 
+    let finalNotes = formData.description || "";
+    if (formData.hasPrayerHall) {
+      const womenDetails = `\n\n[معلومات مصلى النساء]:\n- السعة: ${formData.womenPrayerCapacity ? formData.womenPrayerCapacity + " مصلية" : "غير محدد"}\n- المساحة: ${formData.womenPrayerArea ? formData.womenPrayerArea + " م²" : "غير محدد"}\n- ملاحظات إضافية: ${formData.womenPrayerNotes || "لا يوجد"}`;
+      finalNotes += womenDetails;
+    }
+
     const payload = {
       name: formData.name,
       city: formData.city,
@@ -239,7 +314,7 @@ export default function MosqueForm() {
       capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
       hasPrayerHall: formData.hasPrayerHall,
       mosqueAge: formData.mosqueAge ? parseInt(formData.mosqueAge) : undefined,
-      notes: formData.description || undefined,
+      notes: finalNotes || undefined,
     };
 
     if (isEdit) {
@@ -384,7 +459,7 @@ export default function MosqueForm() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="area">مساحة المسجد (م²)</Label>
+                  <Label htmlFor="area">مساحة المسجد (م²) *</Label>
                   <Input
                     id="area"
                     type="number"
@@ -392,18 +467,20 @@ export default function MosqueForm() {
                     onChange={(e) => handleChange("area", e.target.value)}
                     placeholder="مثال: 500"
                     className={errors.area ? "border-red-500 focus-visible:ring-red-500" : ""}
+                    required
                   />
                   {errors.area && (
                     <p className="text-[11px] sm:text-xs text-red-500">{errors.area}</p>
                   )}
                 </div>
                 <div>
-                  <Label>عدد المصلين</Label>
+                  <Label>عدد المصلين *</Label>
                   <Input
                     type="number"
                     value={formData.capacity}
                     onChange={(e) => handleChange("capacity", e.target.value)}
                     placeholder="مثال: 300"
+                    required
                   />
                 </div>
                 <div>
@@ -419,11 +496,68 @@ export default function MosqueForm() {
                   <Checkbox
                     id="hasPrayerHall"
                     checked={formData.hasPrayerHall}
-                    onCheckedChange={(checked) => handleChange("hasPrayerHall", checked === true)}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      handleChange("hasPrayerHall", isChecked);
+                      if (!isChecked) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          womenPrayerCapacity: "",
+                          womenPrayerArea: "",
+                          womenPrayerNotes: "",
+                        }));
+                      }
+                    }}
                   />
                   <Label htmlFor="hasPrayerHall" className="cursor-pointer">هل يوجد مصلى نساء؟</Label>
                 </div>
               </div>
+
+              {formData.hasPrayerHall && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <h4 className="font-semibold text-xs sm:text-sm text-primary flex items-center gap-1.5 border-b pb-2">
+                    <Building2 className="w-4 h-4" />
+                    معلومات مصلى النساء
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="womenPrayerCapacity" className="text-[11px] sm:text-xs">سعة مصلى النساء (مصلي) *</Label>
+                      <Input
+                        id="womenPrayerCapacity"
+                        type="number"
+                        value={formData.womenPrayerCapacity}
+                        onChange={(e) => handleChange("womenPrayerCapacity", e.target.value)}
+                        placeholder="مثال: 50"
+                        className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                        required={formData.hasPrayerHall}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="womenPrayerArea" className="text-[11px] sm:text-xs">المساحة (م²) *</Label>
+                      <Input
+                        id="womenPrayerArea"
+                        type="number"
+                        value={formData.womenPrayerArea}
+                        onChange={(e) => handleChange("womenPrayerArea", e.target.value)}
+                        placeholder="مثال: 80"
+                        className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                        required={formData.hasPrayerHall}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="womenPrayerNotes" className="text-[11px] sm:text-xs">ملاحظات مصلى النساء</Label>
+                    <Input
+                      id="womenPrayerNotes"
+                      type="text"
+                      value={formData.womenPrayerNotes}
+                      onChange={(e) => handleChange("womenPrayerNotes", e.target.value)}
+                      placeholder="مثال: منفصل وله مدخل خاص ودورة مياه..."
+                      className="h-9 sm:h-10 text-xs sm:text-sm bg-white"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

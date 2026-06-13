@@ -59,7 +59,8 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     } catch (error) {
       console.error("Reverse geocoding error:", error);
     }
-    return { fullAddress: "", region: "", city: "", district: "" };
+    setAddress("موقع محدد على الخريطة");
+    return { fullAddress: "موقع محدد على الخريطة", region: "", city: "", district: "" };
   };
 
   const handleLocationChange = async (lat: number, lng: number) => {

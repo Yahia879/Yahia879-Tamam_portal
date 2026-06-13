@@ -27,6 +27,29 @@ const mosqueTypes = [
   { value: "musalla", label: "مصلى" },
 ];
 
+const CITY_COORDINATES: Record<string, { lat: number; lng: number; region: string }> = {
+  "أبها": { lat: 18.2164, lng: 42.5053, region: "عسير" },
+  "خميس مشيط": { lat: 18.3012, lng: 42.7308, region: "عسير" },
+  "الرياض": { lat: 24.7136, lng: 46.6753, region: "الرياض" },
+  "جدة": { lat: 21.5433, lng: 39.1728, region: "مكة المكرمة" },
+  "مكة المكرمة": { lat: 21.4225, lng: 39.8262, region: "مكة المكرمة" },
+  "المدينة المنورة": { lat: 24.4672, lng: 39.6111, region: "المدينة المنورة" },
+  "الدمام": { lat: 26.4207, lng: 50.0888, region: "المنطقة الشرقية" },
+  "الخبر": { lat: 26.2172, lng: 50.1971, region: "المنطقة الشرقية" },
+  "الجبيل": { lat: 27.0112, lng: 49.6582, region: "المنطقة الشرقية" },
+  "الهفوف": { lat: 25.3789, lng: 49.5878, region: "المنطقة الشرقية" },
+  "الطائف": { lat: 21.2854, lng: 40.4164, region: "مكة المكرمة" },
+  "تبوك": { lat: 28.3835, lng: 36.5662, region: "تبوك" },
+  "بريدة": { lat: 26.3260, lng: 43.9750, region: "القصيم" },
+  "حائل": { lat: 27.5219, lng: 41.6961, region: "حائل" },
+  "نجران": { lat: 17.5656, lng: 44.2289, region: "نجران" },
+  "جازان": { lat: 16.8892, lng: 42.5511, region: "جازان" },
+  "الباحة": { lat: 20.0129, lng: 41.4677, region: "الباحة" },
+  "عرعر": { lat: 30.9753, lng: 41.0381, region: "الحدود الشمالية" },
+  "الجوف": { lat: 29.9539, lng: 40.2064, region: "الجوف" },
+  "ينبع": { lat: 24.0891, lng: 38.0637, region: "المدينة المنورة" }
+};
+
 
 
 // ترجمة صفة طالب الخدمة
@@ -116,27 +139,37 @@ export default function RequesterMosqueForm() {
 
   const handleCityChange = async (value: string) => {
     handleChange("city", value);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-          value + " السعودية"
-        )}&accept-language=ar&addressdetails=1`
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const firstResult = data[0];
-        const addr = firstResult.address || {};
-        const region = addr.state || addr.province || addr.region || "عسير";
-        
-        setFormData((prev) => ({
-          ...prev,
-          latitude: firstResult.lat,
-          longitude: firstResult.lon,
-          governorate: region,
-        }));
+    const coords = CITY_COORDINATES[value];
+    if (coords) {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: coords.lat.toString(),
+        longitude: coords.lng.toString(),
+        governorate: coords.region,
+      }));
+    } else {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+            value + " السعودية"
+          )}&accept-language=ar&addressdetails=1`
+        );
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const firstResult = data[0];
+          const addr = firstResult.address || {};
+          const region = addr.state || addr.province || addr.region || "عسير";
+          
+          setFormData((prev) => ({
+            ...prev,
+            latitude: firstResult.lat,
+            longitude: firstResult.lon,
+            governorate: region,
+          }));
+        }
+      } catch (error) {
+        console.error("City search error:", error);
       }
-    } catch (error) {
-      console.error("City search error:", error);
     }
   };
 
