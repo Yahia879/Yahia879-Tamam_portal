@@ -40,8 +40,7 @@ async function seedRolePermissions() {
         "appointments.view_own", 
         "requests.view", 
         "requests.manage_as_field_team", 
-        "requests.edit", // لتحديث تقرير الزيارة الميدانية
-        "mosques.view"
+        "requests.edit"
       ],
       
       // الإدارة المالية (الموردون، عروض الأسعار، الاعتماد المالي، العقود، طلبات الصرف، أوامر الصرف، تقارير الإنجاز، التقرير المالي)
@@ -88,10 +87,12 @@ async function seedRolePermissions() {
       
       // الاتصال المؤسسي (الشركاء، الهوية البصرية، التقارير)
       corporate_comm: [
-        "reports.view", 
+        "reports", 
         "settings.view", // للشركاء والهوية البصرية
         "settings_branding.edit",
-        "analytics.view"
+        "analytics.view",
+        "requests.view",
+        "requests.upload_final_report"
       ],
 
       // طالب الخدمة (دور نظامي أساسي بالبوابة لتقديم طلبات الصيانة والبناء)

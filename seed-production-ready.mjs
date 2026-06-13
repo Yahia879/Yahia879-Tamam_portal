@@ -155,13 +155,13 @@ async function seed() {
     const rolePermissionsMapping = {
       super_admin: "*", // كل الصلاحيات
       system_admin: "*", // كل الصلاحيات
-      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "requesters"],
+      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
       field_team: ["mosques.view", "requests.view", "requests.view_details", "requests.edit", "field_visits"],
       quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
       financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports", "requests.view", "requests.view_details"],
       financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports", "requests.view", "requests.view_details"],
       project_manager: ["projects.view", "projects.view_details", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers", "requests.view", "requests.create", "requests.view_details"],
-      corporate_comm: ["requests.view", "requests.view_details", "reports.view", "settings.view", "analytics.view"],
+      corporate_comm: ["requests.view", "requests.view_details", "requests.upload_final_report", "reports", "settings.view", "analytics.view"],
       service_requester: ["requests.view", "requests.create", "mosques.view"]
     };
 
