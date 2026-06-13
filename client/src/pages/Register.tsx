@@ -91,6 +91,11 @@ export default function Register() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
+    if (file && file.size > 10 * 1024 * 1024) {
+      toast.error("حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.");
+      e.target.value = "";
+      return;
+    }
     setFormData((prev) => ({ ...prev, proofFile: file }));
   };
 

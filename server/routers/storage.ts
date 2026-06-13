@@ -193,6 +193,20 @@ export const storageRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
+      // التحقق من الحجم الإجمالي لكافة الملفات
+      let totalSize = 0;
+      for (const file of input.files) {
+        const fileBuffer = Buffer.from(file.fileData, 'base64');
+        totalSize += fileBuffer.length;
+      }
+
+      if (totalSize > MAX_FILE_SIZE) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "مجموع أحجام الملفات المرفوعة يتجاوز الحد المسموح (10 ميجابايت)",
+        });
+      }
+
       const results = [];
 
       for (const file of input.files) {

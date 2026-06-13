@@ -553,6 +553,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                           e.target.value = '';
                           return;
                         }
+                        if (file.size > 10 * 1024 * 1024) {
+                          alert('حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.');
+                          e.target.value = '';
+                          return;
+                        }
                       }
                       setSelectedFile(file);
                     }}

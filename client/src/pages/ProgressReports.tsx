@@ -232,6 +232,11 @@ export default function ProgressReports() {
     const filesList = e.target.files;
     if (!filesList) return;
 
+    // حساب الحجم الإجمالي الحالي للملفات المضافة مسبقاً
+    const currentTotalSize = uploadedFiles.reduce((sum, f) => sum + f.size, 0);
+    let runningTotalSize = currentTotalSize;
+    const maxTotalSizeBytes = 10 * 1024 * 1024; // 10MB
+
     const newFiles = Array.from(filesList);
     for (const file of newFiles) {
       const fileName = file.name;
@@ -247,6 +252,13 @@ export default function ProgressReports() {
         toast.error(`حجم الملف كبير جداً (${fileName}). الحد الأقصى هو 10 ميجابايت.`);
         continue;
       }
+
+      if (runningTotalSize + file.size > maxTotalSizeBytes) {
+        toast.error(`إجمالي حجم الملفات المرفقة يتجاوز الحد الأقصى المسموح به وهو 10 ميجابايت.`);
+        break; // وقف الرفع لتجنب تجاوز الحد
+      }
+
+      runningTotalSize += file.size;
 
       const reader = new FileReader();
       reader.onload = (event) => {

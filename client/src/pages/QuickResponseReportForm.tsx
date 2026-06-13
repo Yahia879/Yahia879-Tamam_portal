@@ -329,7 +329,8 @@ export default function QuickResponseReportForm() {
               onFilesSelected={setAttachments}
               maxFiles={10}
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              maxSizeMB={5}
+              maxSizeMB={10}
+              maxTotalSizeMB={10}
               label="رفع الصور"
               description="اسحب الصور هنا أو انقر للاختيار"
               category="site_photo"

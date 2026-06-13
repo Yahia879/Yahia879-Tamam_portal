@@ -9,6 +9,7 @@ interface FileUploadProps {
   onFilesSelected: (files: UploadedFile[]) => void;
   maxFiles?: number;
   maxSizeMB?: number;
+  maxTotalSizeMB?: number;
   acceptedTypes?: string[];
   category?: "site_photo" | "land_deed" | "plan" | "invoice" | "other";
   label?: string;
@@ -39,6 +40,7 @@ export function FileUpload({
   onFilesSelected,
   maxFiles = 5,
   maxSizeMB = 10,
+  maxTotalSizeMB = 10,
   acceptedTypes = DEFAULT_ACCEPTED_TYPES,
   category = "other",
   label = "رفع الملفات",
@@ -182,9 +184,42 @@ export function FileUpload({
     const newFiles: UploadedFile[] = [];
     const remainingSlots = maxFiles - files.length;
 
+    // حساب الحجم الإجمالي الحالي للملفات المرفوعة مسبقاً (غير الخاطئة)
+    const currentTotalSize = files
+      .filter(f => f.status !== "error")
+      .reduce((sum, f) => sum + f.size, 0);
+
+    let runningTotalSize = currentTotalSize;
+    const maxTotalSizeBytes = maxTotalSizeMB * 1024 * 1024;
+
     for (let i = 0; i < Math.min(fileList.length, remainingSlots); i++) {
-      const processed = await processFile(fileList[i]);
+      const file = fileList[i];
+
+      // فحص أولي قبل معالجة الملف
+      if (runningTotalSize + file.size > maxTotalSizeBytes) {
+        newFiles.push({
+          fileName: file.name,
+          fileData: "",
+          mimeType: file.type,
+          size: file.size,
+          status: "error",
+          errorMessage: `إجمالي حجم الملفات يتجاوز الحد الأقصى المسموح به وهو ${maxTotalSizeMB} ميجابايت`,
+        });
+        continue;
+      }
+
+      const processed = await processFile(file);
       if (processed) {
+        if (processed.status !== "error") {
+          // فحص الحجم الإجمالي بعد الضغط أو المعالجة
+          if (runningTotalSize + processed.size > maxTotalSizeBytes) {
+            processed.status = "error";
+            processed.errorMessage = `إجمالي حجم الملفات يتجاوز الحد الأقصى المسموح به وهو ${maxTotalSizeMB} ميجابايت`;
+            processed.fileData = "";
+          } else {
+            runningTotalSize += processed.size;
+          }
+        }
         newFiles.push(processed);
       }
     }
@@ -193,7 +228,7 @@ export function FileUpload({
     setFiles(updatedFiles);
     onFilesSelected(updatedFiles.filter(f => f.status !== "error" && f.fileData));
     setIsProcessing(false);
-  }, [disabled, files, maxFiles, onFilesSelected, processFile]);
+  }, [disabled, files, maxFiles, onFilesSelected, processFile, maxTotalSizeMB]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();

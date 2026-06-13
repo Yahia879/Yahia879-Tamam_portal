@@ -6,7 +6,7 @@ import { randomBytes } from "crypto";
 const router = Router();
 
 // إعدادات القيود: 5 ميجابايت وأنواع ملفات محددة
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -35,7 +35,7 @@ router.post("/upload", (req, res) => {
     // معالجة أخطاء multer (الحجم أو الفلتر)
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ error: "حجم الملف كبير جداً. الحد الأقصى هو 5 ميجابايت." });
+        return res.status(400).json({ error: "حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت." });
       }
       return res.status(400).json({ error: `خطأ في الرفع: ${err.message}` });
     } else if (err) {
