@@ -188,7 +188,6 @@ export default function MosqueDetails() {
                     </span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="images">الصور</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info">
@@ -224,40 +223,7 @@ export default function MosqueDetails() {
                       </div>
                     )}
 
-                    {(mosque.latitude && mosque.longitude) && (
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-2">الموقع على الخريطة</p>
-                        <div className="h-48 bg-muted rounded-lg flex items-center justify-center mb-3">
-                          <MapPin className="w-8 h-8 text-muted-foreground" />
-                          <span className="text-muted-foreground mr-2">
-                            {mosque.latitude}, {mosque.longitude}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <a 
-                            href={`https://www.google.com/maps?q=${mosque.latitude},${mosque.longitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1"
-                          >
-                            <Button variant="outline" className="w-full">
-                              <ExternalLink className="w-4 h-4 ml-2" />
-                              فتح في خرائط Google
-                            </Button>
-                          </a>
-                          <Button 
-                            variant="outline"
-                            onClick={() => {
-                              const url = `https://www.google.com/maps?q=${mosque.latitude},${mosque.longitude}`;
-                              navigator.clipboard.writeText(url);
-                              toast.success("تم نسخ رابط الموقع");
-                            }}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -296,31 +262,7 @@ export default function MosqueDetails() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="images">
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-4">
-                    {mosque.images && mosque.images.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {mosque.images.map((img: any) => (
-                          <div key={img.id} className="aspect-square rounded-lg overflow-hidden border">
-                            <img
-                              src={img.imageUrl}
-                              alt="صورة المسجد"
-                              className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                              onClick={() => window.open(img.imageUrl, '_blank')}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-8 text-center">
-                        <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">لا توجد صور للمسجد</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
+
             </Tabs>
           </div>
 
