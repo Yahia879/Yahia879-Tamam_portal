@@ -39,8 +39,9 @@ async function seedRolePermissions() {
         "field_visits",
         "appointments.view_own", 
         "requests.view", 
-        "requests.view_details", 
-        "requests.edit" // لتحديث تقرير الزيارة الميدانية
+        "requests.manage_as_field_team", 
+        "requests.edit", // لتحديث تقرير الزيارة الميدانية
+        "mosques.view"
       ],
       
       // الإدارة المالية (الموردون، عروض الأسعار، الاعتماد المالي، العقود، طلبات الصرف، أوامر الصرف، تقارير الإنجاز، التقرير المالي)
@@ -80,7 +81,7 @@ async function seedRolePermissions() {
       // فريق الاستجابة السريعة (الطلبات فقط)
       quick_response: [
         "requests.view", 
-        "requests.view_details",
+        "requests.manage_as_quick_response",
         "field_visits.view", // لرؤية تفاصيل الزيارة المخصصة لهم
         "reports.create" // لرفع تقرير الاستجابة السريعة
       ],
