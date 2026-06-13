@@ -77,19 +77,19 @@ export async function sendEmailNotification(to: string, title: string, message: 
   
   try {
     const mailOptions = {
-      from: `"بوابة تمام" <${user}>`,
+      from: `"جمعية عمارة المساجد (منارة)" <${user}>`,
       to,
       subject: title,
       text: message,
       html: `
         <div style="direction: rtl; font-family: Tahoma, Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 10px;">إشعار جديد من بوابة تمام</h2>
+          <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 10px;">إشعار جديد من جمعية عمارة المساجد (منارة)</h2>
           <p style="font-size: 16px; line-height: 1.6; color: #333;"><strong>${title}</strong></p>
           <p style="font-size: 14px; line-height: 1.5; color: #555; background-color: #f9f9f9; padding: 15px; border-radius: 4px; border-right: 4px solid #0d9488;">
             ${message}
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #999; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لبوابة تمام.</p>
+          <p style="font-size: 12px; color: #999; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لجمعية عمارة المساجد (منارة).</p>
         </div>
       `,
     };
