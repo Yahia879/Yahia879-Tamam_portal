@@ -281,7 +281,7 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
       }
@@ -440,7 +440,7 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
       }

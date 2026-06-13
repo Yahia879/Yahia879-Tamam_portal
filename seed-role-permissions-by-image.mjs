@@ -106,6 +106,29 @@ service_requester: [
 ]
 };
 
+// 0. التأكد من وجود الصلاحيات المخصصة الجديدة في جدول الصلاحيات
+const customPermsToEnsure = [
+  { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
+  { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
+  { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
+  { id: "disbursements.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد طلبات الصرف", nameEn: "Approve Disbursement Requests" },
+];
+
+for (const perm of customPermsToEnsure) {
+  const [existing] = await db.select().from(schema.permissions).where(eq(schema.permissions.id, perm.id)).limit(1);
+  if (!existing) {
+    await db.insert(schema.permissions).values(perm);
+    console.log(`✅ تم إضافة الصلاحية المفقودة لقاعدة البيانات: ${perm.id}`);
+  } else {
+    await db.update(schema.permissions).set({
+      nameAr: perm.nameAr,
+      nameEn: perm.nameEn,
+      moduleId: perm.moduleId,
+      action: perm.action
+    }).where(eq(schema.permissions.id, perm.id));
+  }
+}
+
 // 1. جلب كل الصلاحيات المتوفرة بجدول الصلاحيات للتأكد من المبررات
 const allPermissions = await db.select().from(schema.permissions);
 const allPermIds = allPermissions.map(p => p.id);
