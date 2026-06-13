@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import {
   Star,
   Edit2,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -574,11 +576,18 @@ export default function OrganizationSettings() {
       <div className="space-y-6 max-w-6xl px-4 sm:px-0">
         {/* العنوان */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">إعدادات الجمعية</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-              إدارة بيانات الجمعية الثابتة المستخدمة في العقود والمستندات الرسمية
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold">إعدادات الجمعية</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                إدارة بيانات الجمعية الثابتة المستخدمة في العقود والمستندات الرسمية
+              </p>
+            </div>
           </div>
           <Button onClick={handleSave} disabled={updateMutation.isPending} className="w-full sm:w-auto gradient-primary text-white order-first sm:order-last">
             {updateMutation.isPending ? (

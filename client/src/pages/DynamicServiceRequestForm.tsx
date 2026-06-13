@@ -466,7 +466,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                           onCheckedChange={(checked) => {
                             const isChecked = checked as boolean;
                             setFormData((prev) => {
-                              const updated = { ...prev, hasPrayerHall: isChecked };
+                              const updated = { ...prev, hasPrayerHall: isChecked } as any;
                               if (!isChecked) {
                                 delete updated.womenPrayerArea;
                                 delete updated.womenPrayerCapacity;

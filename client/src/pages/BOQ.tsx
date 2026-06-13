@@ -46,6 +46,7 @@ import {
   Upload,
   Download,
   FileSpreadsheet,
+  ArrowRight,
 } from "lucide-react";
 
 // وحدات القياس
@@ -226,7 +227,15 @@ export default function BOQ() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* العنوان */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.history.back()}
+            type="button"
+          >
+            <ArrowRight className="w-5 h-5" />
+          </Button>
           <div>
             <h1 className="text-2xl font-bold">جداول الكميات (BOQ)</h1>
             <p className="text-muted-foreground">إدارة جداول الكميات للطلبات والمشاريع</p>

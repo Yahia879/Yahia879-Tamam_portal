@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, MapPin, Search, List, Map as MapIcon, ChevronRight, Users, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { motion, AnimatePresence } from "framer-motion";
@@ -98,9 +98,16 @@ export default function MosquesMap() {
       <div className="space-y-6 max-w-full overflow-x-hidden">
         {/* العنوان والأدوات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">خريطة المساجد</h1>
-            <p className="text-sm md:text-base text-muted-foreground break-words max-w-2xl">عرض جميع المساجد المسجلة على الخريطة مع إمكانية عرض صور الأقمار الصناعية</p>
+          <div className="flex items-center gap-4 min-w-0">
+            <Link href="/mosques">
+              <Button variant="ghost" size="icon" type="button" className="shrink-0">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">خريطة المساجد</h1>
+              <p className="text-sm md:text-base text-muted-foreground break-words max-w-2xl">عرض جميع المساجد المسجلة على الخريطة مع إمكانية عرض صور الأقمار الصناعية</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">

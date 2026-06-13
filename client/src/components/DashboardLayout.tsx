@@ -340,7 +340,8 @@ export default function DashboardLayout({
     const isSharedPage = 
       window.location.pathname === "/notifications" || 
       window.location.pathname === "/profile" ||
-      window.location.pathname.startsWith("/mosques/");
+      window.location.pathname.startsWith("/mosques/") ||
+      window.location.pathname === "/requester/mosques/new";
       
     if (!isSharedPage) {
       window.location.href = "/requester";

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -166,9 +167,16 @@ export default function CategoriesManagement() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">إدارة التصنيفات</h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">إدارة التصنيفات العامة للنظام (تصنيفات جداول الكميات، البنوك)</p>
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">إدارة التصنيفات</h1>
+              <p className="text-sm text-gray-500">إدارة المدن والجهات والبنوك والوحدات المستخدمة في البوابة</p>
+            </div>
           </div>
         </div>
 

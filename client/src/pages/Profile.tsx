@@ -1,11 +1,12 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Mail, Phone, Shield, Calendar } from "lucide-react";
+import { User, Mail, Phone, Shield, Calendar, ArrowRight } from "lucide-react";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 
@@ -15,9 +16,16 @@ export default function Profile() {
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6 max-w-3xl">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">الملف الشخصي</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">إدارة معلوماتك الشخصية</p>
+        <div className="flex items-center gap-4">
+          <Link href={user?.role === "service_requester" ? "/requester" : "/dashboard"}>
+            <Button variant="ghost" size="icon" type="button">
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">الملف الشخصي</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">إدارة معلوماتك الشخصية</p>
+          </div>
         </div>
 
         <Card className="border-0 shadow-sm overflow-hidden">

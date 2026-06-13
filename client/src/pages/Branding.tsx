@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star } from "lucide-react";
+import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { Link } from "wouter";
 
 // دالة مساعدة لتطبيق الألوان على متغيرات CSS
 function applyColorsToDOM(colors: {
@@ -195,9 +196,16 @@ export default function Branding() {
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl px-4 sm:px-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">الهوية البصرية</h1>
-            <p className="text-sm text-muted-foreground">تخصيص الألوان والشعارات للبوابة</p>
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">الهوية البصرية</h1>
+              <p className="text-sm text-muted-foreground">تخصيص الألوان والشعارات للبوابة</p>
+            </div>
           </div>
           <Button className="gradient-primary text-white w-full sm:w-auto order-first sm:order-last" onClick={handleSaveColors} disabled={isSaving}>
             {isSaving ? <Loader2 className="w-4 h-4 ml-2 animate-spin" /> : <Save className="w-4 h-4 ml-2" />}

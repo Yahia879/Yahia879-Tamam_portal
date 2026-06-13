@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
@@ -562,6 +564,19 @@ export default function NotificationCustomization() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        {/* رأس الصفحة مع زر الرجوع */}
+        <div className="flex items-center gap-4 mb-6" dir="rtl">
+          <Link href="/settings">
+            <Button variant="ghost" size="icon" type="button">
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">تخصيص الإشعارات</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">تخصيص استقبال إشعارات النظام للأدوار والمستخدمين</p>
+          </div>
+        </div>
+
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
           <div className="flex justify-center w-full mb-8">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -230,14 +231,21 @@ export default function ActionSettings() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-              إعدادات الإجراءات
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              إدارة الإجراءات لكل مرحلة وتحديد العلاقات بينها
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                إعدادات الإجراءات
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                إدارة الإجراءات لكل مرحلة وتحديد العلاقات بينها
+              </p>
+            </div>
           </div>
           <Button 
             onClick={() => initializeMutation.mutate()}

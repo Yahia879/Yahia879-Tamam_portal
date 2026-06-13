@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'wouter';
 import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight } from 'lucide-react';
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -156,11 +157,18 @@ export default function ProgramCustomization() {
       <div className="space-y-6">
         {/* رأس الصفحة */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">البرامج والخدمات</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/settings">
+              <Button variant="ghost" size="icon" type="button">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">البرامج والخدمات</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">
+                إدارة برامج الجمعية وأنواع الخدمات المقدمة في البوابة
+              </p>
+            </div>
           </div>
           <PermissionGuard permission="services.add">
             <Button

@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 import {
   Settings as SettingsIcon,
   Building2,
@@ -12,6 +13,7 @@ import {
   BarChart3,
   Wrench,
   Layers,
+  ArrowRight,
 } from "lucide-react";
 
 interface SettingCard {
@@ -116,6 +118,11 @@ export default function Settings() {
       <div className="space-y-8 max-w-5xl">
         {/* رأس الصفحة */}
         <div className="flex items-center gap-4">
+          <Link href="/dashboard">
+            <Button variant="ghost" size="icon" type="button">
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
             <SettingsIcon className="w-6 h-6 text-primary" />
           </div>
