@@ -244,6 +244,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
 
   // التقارير الختامية
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
+
+  // تقارير الإنجاز
+  { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
 ];
 
 /**
