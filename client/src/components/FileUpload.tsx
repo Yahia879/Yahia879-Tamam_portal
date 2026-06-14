@@ -17,6 +17,8 @@ interface FileUploadProps {
   existingFiles?: UploadedFile[];
   onRemoveFile?: (index: number) => void;
   disabled?: boolean;
+  limitLabel?: string;
+  maxFilesReachedLabel?: string;
 }
 
 export interface UploadedFile {
@@ -48,6 +50,8 @@ export function FileUpload({
   existingFiles = [],
   onRemoveFile,
   disabled = false,
+  limitLabel,
+  maxFilesReachedLabel,
 }: FileUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>(existingFiles);
   const [isDragging, setIsDragging] = useState(false);
@@ -337,7 +341,7 @@ export function FileUpload({
               <p className="text-sm text-muted-foreground">{description}</p>
             </div>
             <p className="text-xs text-muted-foreground">
-              الحد الأقصى: {maxFiles} ملفات، {maxSizeMB} ميجابايت لكل ملف
+              {limitLabel || `الحد الأقصى: ${maxFiles} ملفات، ${maxSizeMB} ميجابايت لكل ملف`}
             </p>
           </div>
         </div>
@@ -406,7 +410,7 @@ export function FileUpload({
       {/* رسالة عند الوصول للحد الأقصى */}
       {files.length >= maxFiles && (
         <p className="text-sm text-amber-600 text-center">
-          تم الوصول للحد الأقصى من الملفات ({maxFiles})
+          {maxFilesReachedLabel || `تم الوصول للحد الأقصى من الملفات (${maxFiles})`}
         </p>
       )}
     </div>

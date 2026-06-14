@@ -13,6 +13,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
 import { 
   ArrowRight,
+  ArrowLeft,
+  Languages,
   Save,
   MapPin,
   Building2,
@@ -27,12 +29,111 @@ import {
 
 // تقييمات الأعمال
 const EVALUATION_OPTIONS = [
-  { value: "excellent", label: "ممتاز" },
-  { value: "good", label: "جيد" },
-  { value: "acceptable", label: "مقبول" },
-  { value: "needs_improvement", label: "يحتاج تحسين" },
-  { value: "poor", label: "ضعيف" },
+  { value: "excellent", labelAr: "ممتاز", labelEn: "Excellent" },
+  { value: "good", labelAr: "جيد", labelEn: "Good" },
+  { value: "acceptable", labelAr: "مقبول", labelEn: "Acceptable" },
+  { value: "needs_improvement", labelAr: "يحتاج تحسين", labelEn: "Needs Improvement" },
+  { value: "poor", labelAr: "ضعيف", labelEn: "Poor" },
 ];
+
+const translations = {
+  ar: {
+    title: "تقرير الاستجابة السريعة",
+    subtitle: "التقييم الفني والتوثيق بالصور بعد إنهاء أعمال الصيانة الطارئة",
+    basicInfo: "البيانات الأساسية",
+    basicInfoDesc: "معلومات الطلب والمسجد (مستوردة تلقائياً)",
+    importedNotice: "البيانات التالية مستوردة من بيانات الطلب ولا يمكن تعديلها",
+    requestNumber: "رقم الطلب",
+    mosqueName: "اسم المسجد",
+    mosqueLocation: "موقع المسجد",
+    notSpecified: "غير محدد",
+    technicalEvaluation: "التقييم الفني",
+    technicalEvaluationDesc: "التقييم العام للأعمال من الناحية الفنية",
+    technicalEvaluationLabel: "التقييم الفني",
+    technicalEvaluationPlaceholder: "وصف التقييم الفني للأعمال المنفذة...",
+    finalEvaluation: "التقييم النهائي",
+    finalEvaluationPlaceholder: "اختر التقييم النهائي",
+    unexecutedWorks: "الأعمال غير المنفذة",
+    unexecutedWorksDesc: "توثيق التعثر أو عدم التنفيذ",
+    unexecutedWorksLabel: "الأعمال غير المنفذة / أسباب عدم التنفيذ",
+    unexecutedWorksPlaceholder: "في حال وجود أعمال لم تُنفذ، يرجى ذكرها مع أسباب عدم التنفيذ...",
+    attachments: "المرفقات (التوثيق بالصور)",
+    attachmentsDesc: "توثيق الحالة ميدانياً قبل/أثناء/بعد التنفيذ (حتى 10 صور)",
+    uploadImages: "رفع الصور",
+    uploadPlaceholder: "اسحب الصور هنا أو انقر للاختيار",
+    attachedPhotos: (count: number) => `تم إرفاق ${count} صورة توثيقية`,
+    technicalTeam: "بيانات الفريق الفني",
+    technicianName: "الفني المختص",
+    technicianPlaceholder: "اسم الفني المسؤول عن التنفيذ أو التقييم",
+    requestStatus: "حالة الطلب",
+    partiallySolved: "تم حل المشكلة جزئياً",
+    fullySolved: "تم حل المشكلة بالكامل",
+    notSolved: "لم يتم حل المشكلة",
+    cancelAndClose: "إلغاء وإغلاق",
+    saveAndSubmit: "حفظ واعتماد التقرير",
+    saving: "جاري الحفظ...",
+    requestNotFound: "الطلب غير موجود",
+    requestNotFoundDesc: "لم يتم العثور على الطلب المطلوب",
+    backToDashboard: "العودة للوحة التحكم",
+    requiredTechnician: "يرجى إدخال اسم الفني المختص",
+    requiredEvaluation: "يرجى إدخال التقييم الفني",
+    requiredStatus: "يرجى اختيار حالة الطلب",
+    reportSavedSuccess: "تم حفظ تقرير الاستجابة السريعة بنجاح",
+    reportSavedError: "حدث خطأ أثناء حفظ التقرير",
+    loginRequired: "يجب تسجيل الدخول للوصول لهذه الصفحة",
+    uploadWarning: "تم حفظ التقرير ولكن فشل رفع بعض الصور",
+    uploadLimit: (maxFiles: number, maxSizeMB: number) => `الحد الأقصى: ${maxFiles} ملفات، ${maxSizeMB} ميجابايت لكل ملف`,
+    uploadLimitReached: (maxFiles: number) => `تم الوصول للحد الأقصى من الملفات (${maxFiles})`,
+  },
+  en: {
+    title: "Quick Response Report",
+    subtitle: "Technical evaluation and photo documentation after emergency maintenance works",
+    basicInfo: "Basic Information",
+    basicInfoDesc: "Request and Mosque Details (imported automatically)",
+    importedNotice: "The following data is imported from the request details and cannot be modified",
+    requestNumber: "Request Number",
+    mosqueName: "Mosque Name",
+    mosqueLocation: "Mosque Location",
+    notSpecified: "Not specified",
+    technicalEvaluation: "Technical Evaluation",
+    technicalEvaluationDesc: "General technical evaluation of the works",
+    technicalEvaluationLabel: "Technical Evaluation",
+    technicalEvaluationPlaceholder: "Description of technical evaluation for executed works...",
+    finalEvaluation: "Final Evaluation",
+    finalEvaluationPlaceholder: "Select final evaluation",
+    unexecutedWorks: "Unexecuted Works",
+    unexecutedWorksDesc: "Documentation of delay or non-execution",
+    unexecutedWorksLabel: "Unexecuted Works / Reasons for Non-Execution",
+    unexecutedWorksPlaceholder: "If there are any unexecuted works, please state them with reasons...",
+    attachments: "Attachments (Photo Documentation)",
+    attachmentsDesc: "Field documentation of state before/during/after implementation (up to 10 photos)",
+    uploadImages: "Upload Images",
+    uploadPlaceholder: "Drag images here or click to select",
+    attachedPhotos: (count: number) => `${count} documentation photo(s) attached`,
+    technicalTeam: "Technical Team Details",
+    technicianName: "Specialist Technician",
+    technicianPlaceholder: "Technician name responsible for execution or evaluation",
+    requestStatus: "Request Status",
+    partiallySolved: "Problem partially solved",
+    fullySolved: "Problem fully solved",
+    notSolved: "Problem not solved",
+    cancelAndClose: "Cancel and Close",
+    saveAndSubmit: "Save and Submit Report",
+    saving: "Saving...",
+    requestNotFound: "Request Not Found",
+    requestNotFoundDesc: "The requested request could not be found",
+    backToDashboard: "Return to Dashboard",
+    requiredTechnician: "Please enter the specialist technician's name",
+    requiredEvaluation: "Please enter the technical evaluation",
+    requiredStatus: "Please select the request status",
+    reportSavedSuccess: "Quick response report saved successfully",
+    reportSavedError: "An error occurred while saving the report",
+    loginRequired: "You must login to access this page",
+    uploadWarning: "Report saved, but some images failed to upload",
+    uploadLimit: (maxFiles: number, maxSizeMB: number) => `Maximum: ${maxFiles} files, ${maxSizeMB} MB per file`,
+    uploadLimitReached: (maxFiles: number) => `Maximum number of files reached (${maxFiles})`,
+  }
+};
 
 export default function QuickResponseReportForm() {
   const [, navigate] = useLocation();
@@ -43,7 +144,12 @@ export default function QuickResponseReportForm() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
-  
+  const [lang, setLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  const t = translations[lang];
+
   // بيانات النموذج
   const [formData, setFormData] = useState({
     // التقييم الفني
@@ -77,10 +183,10 @@ export default function QuickResponseReportForm() {
   const createReport = trpc.requests.addQuickResponseReport.useMutation({
     onSuccess: async () => {
       await utils.requests.getById.invalidate({ id: requestId });
-      toast.success("تم حفظ تقرير الاستجابة السريعة بنجاح");
+      toast.success(t.reportSavedSuccess);
     },
     onError: (error: { message?: string }) => {
-      toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
+      toast.error(error.message || t.reportSavedError);
       setIsSubmitting(false);
     },
   });
@@ -88,10 +194,10 @@ export default function QuickResponseReportForm() {
   // التحقق من تسجيل الدخول والصلاحيات
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
+      toast.error(t.loginRequired);
       navigate("/login");
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [authLoading, isAuthenticated, navigate, t.loginRequired]);
 
   // ملء اسم الفني المختص تلقائياً من بيانات الطلب
   useEffect(() => {
@@ -118,18 +224,24 @@ export default function QuickResponseReportForm() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleLangToggle = () => {
+    const nextLang = lang === "ar" ? "en" : "ar";
+    setLang(nextLang);
+    localStorage.setItem("quick-response-lang", nextLang);
+  };
+
   const handleSubmit = async () => {
     // التحقق من الحقول المطلوبة
     if (!formData.technicianName) {
-      toast.error("يرجى إدخال اسم الفني المختص");
+      toast.error(t.requiredTechnician);
       return;
     }
     if (!formData.technicalEvaluation) {
-      toast.error("يرجى إدخال التقييم الفني");
+      toast.error(t.requiredEvaluation);
       return;
     }
     if (!formData.status) {
-      toast.error("يرجى اختيار حالة الطلب");
+      toast.error(t.requiredStatus);
       return;
     }
 
@@ -164,7 +276,7 @@ export default function QuickResponseReportForm() {
           });
         } catch (uploadError) {
           console.error("خطأ في رفع المرفقات:", uploadError);
-          toast.warning("تم حفظ التقرير ولكن فشل رفع بعض الصور");
+          toast.warning(t.uploadWarning);
         }
       }
       navigate(`/requests/${requestId}`);
@@ -183,14 +295,14 @@ export default function QuickResponseReportForm() {
 
   if (!requestData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" dir={lang === "ar" ? "rtl" : "ltr"}>
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">الطلب غير موجود</h2>
-            <p className="text-gray-600 mb-4">لم يتم العثور على الطلب المطلوب</p>
+            <h2 className="text-xl font-bold mb-2">{t.requestNotFound}</h2>
+            <p className="text-gray-600 mb-4">{t.requestNotFoundDesc}</p>
             <Button onClick={() => navigate("/quick-response")}>
-              العودة للوحة التحكم
+              {t.backToDashboard}
             </Button>
           </CardContent>
         </Card>
@@ -199,12 +311,25 @@ export default function QuickResponseReportForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir={lang === "ar" ? "rtl" : "ltr"}>
       <div className="container max-w-4xl mx-auto px-4 overflow-x-hidden">
+        {/* زر تبديل اللغة */}
+        <div className={`flex ${lang === "ar" ? "justify-end" : "justify-start"} mb-4`}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLangToggle}
+            className="flex items-center gap-2 font-semibold border border-gray-200 shadow-sm hover:shadow transition-all"
+          >
+            <Languages className="w-4 h-4 text-primary" />
+            <span>{lang === "ar" ? "English" : "العربية"}</span>
+          </Button>
+        </div>
+
         {/* العنوان */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">تقرير الاستجابة السريعة</h1>
-          <p className="text-sm md:text-base text-gray-600">التقييم الفني والتوثيق بالصور بعد إنهاء أعمال الصيانة الطارئة</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">{t.title}</h1>
+          <p className="text-sm md:text-base text-gray-600">{t.subtitle}</p>
         </div>
 
         {/* البيانات الأساسية */}
@@ -212,15 +337,15 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <FileText className="w-5 h-5 text-primary" />
-              البيانات الأساسية
+              {t.basicInfo}
             </CardTitle>
-            <CardDescription className="text-xs md:text-sm">معلومات الطلب والمسجد (مستوردة تلقائياً)</CardDescription>
+            <CardDescription className="text-xs md:text-sm">{t.basicInfoDesc}</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <Alert className="bg-blue-50 border-blue-200 mb-6 p-3">
               <AlertCircle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-[11px] md:text-sm text-blue-800">
-                البيانات التالية مستوردة من بيانات الطلب ولا يمكن تعديلها
+                {t.importedNotice}
               </AlertDescription>
             </Alert>
 
@@ -228,7 +353,7 @@ export default function QuickResponseReportForm() {
               <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
                 <FileText className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] md:text-sm text-gray-500">رقم الطلب</p>
+                  <p className="text-[10px] md:text-sm text-gray-500">{t.requestNumber}</p>
                   <p className="font-bold text-sm md:text-base truncate">{requestData.requestNumber}</p>
                 </div>
               </div>
@@ -236,16 +361,16 @@ export default function QuickResponseReportForm() {
               <div className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
                 <Building2 className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-[10px] md:text-sm text-gray-500">اسم المسجد</p>
-                  <p className="font-bold text-sm md:text-base truncate">{requestData.mosque?.name || "غير محدد"}</p>
+                  <p className="text-[10px] md:text-sm text-gray-500">{t.mosqueName}</p>
+                  <p className="font-bold text-sm md:text-base truncate">{requestData.mosque?.name || t.notSpecified}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:col-span-2">
                 <MapPin className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0 mt-1" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] md:text-sm text-gray-500">موقع المسجد</p>
-                  <p className="font-bold text-sm md:text-base break-words">{requestData.mosque?.address || requestData.mosque?.city || "غير محدد"}</p>
+                  <p className="text-[10px] md:text-sm text-gray-500">{t.mosqueLocation}</p>
+                  <p className="font-bold text-sm md:text-base break-words">{requestData.mosque?.address || requestData.mosque?.city || t.notSpecified}</p>
                 </div>
               </div>
             </div>
@@ -257,34 +382,34 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <ClipboardList className="w-5 h-5 text-primary" />
-              التقييم الفني
+              {t.technicalEvaluation}
             </CardTitle>
-            <CardDescription className="text-xs md:text-sm">التقييم العام للأعمال من الناحية الفنية</CardDescription>
+            <CardDescription className="text-xs md:text-sm">{t.technicalEvaluationDesc}</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6 space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-sm font-bold">التقييم الفني <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-bold">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
               <Textarea
                 value={formData.technicalEvaluation}
                 onChange={(e) => handleInputChange("technicalEvaluation", e.target.value)}
-                placeholder="وصف التقييم الفني للأعمال المنفذة..."
+                placeholder={t.technicalEvaluationPlaceholder}
                 className="min-h-[100px] text-sm md:text-base"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-sm font-bold">التقييم النهائي</Label>
+              <Label className="text-sm font-bold">{t.finalEvaluation}</Label>
               <Select
                 value={formData.finalEvaluation}
                 onValueChange={(value) => handleInputChange("finalEvaluation", value)}
               >
                 <SelectTrigger className="h-10 md:h-11">
-                  <SelectValue placeholder="اختر التقييم النهائي" />
+                  <SelectValue placeholder={t.finalEvaluationPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {EVALUATION_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                      {lang === "ar" ? option.labelAr : option.labelEn}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -298,17 +423,17 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <XCircle className="w-5 h-5 text-primary" />
-              الأعمال غير المنفذة
+              {t.unexecutedWorks}
             </CardTitle>
-            <CardDescription className="text-xs md:text-sm">توثيق التعثر أو عدم التنفيذ</CardDescription>
+            <CardDescription className="text-xs md:text-sm">{t.unexecutedWorksDesc}</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <div className="space-y-1.5">
-              <Label className="text-sm font-bold">الأعمال غير المنفذة / أسباب عدم التنفيذ</Label>
+              <Label className="text-sm font-bold">{t.unexecutedWorksLabel}</Label>
               <Textarea
                 value={formData.unexecutedWorks}
                 onChange={(e) => handleInputChange("unexecutedWorks", e.target.value)}
-                placeholder="في حال وجود أعمال لم تُنفذ، يرجى ذكرها مع أسباب عدم التنفيذ..."
+                placeholder={t.unexecutedWorksPlaceholder}
                 className="min-h-[100px] text-sm md:text-base"
               />
             </div>
@@ -320,9 +445,9 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <Camera className="w-5 h-5 text-primary" />
-              المرفقات (التوثيق بالصور)
+              {t.attachments}
             </CardTitle>
-            <CardDescription className="text-xs md:text-sm">توثيق الحالة ميدانياً قبل/أثناء/بعد التنفيذ (حتى 10 صور)</CardDescription>
+            <CardDescription className="text-xs md:text-sm">{t.attachmentsDesc}</CardDescription>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <FileUpload
@@ -331,13 +456,15 @@ export default function QuickResponseReportForm() {
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
               maxSizeMB={10}
               maxTotalSizeMB={10}
-              label="رفع الصور"
-              description="اسحب الصور هنا أو انقر للاختيار"
+              label={t.uploadImages}
+              description={t.uploadPlaceholder}
+              limitLabel={t.uploadLimit(10, 10)}
+              maxFilesReachedLabel={t.uploadLimitReached(10)}
               category="site_photo"
             />
             {attachments.length > 0 && (
               <p className="text-xs md:text-sm text-primary font-bold mt-3 bg-primary/5 px-3 py-1.5 rounded-lg inline-block">
-                تم إرفاق {attachments.length} صورة توثيقية
+                {t.attachedPhotos(attachments.length)}
               </p>
             )}
           </CardContent>
@@ -348,16 +475,16 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <User className="w-5 h-5 text-primary" />
-              بيانات الفريق الفني
+              {t.technicalTeam}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
             <div className="space-y-1.5">
-              <Label className="text-sm font-bold">الفني المختص <span className="text-red-500">*</span></Label>
+              <Label className="text-sm font-bold">{t.technicianName} <span className="text-red-500">*</span></Label>
               <Input
                 value={formData.technicianName}
                 onChange={(e) => handleInputChange("technicianName", e.target.value)}
-                placeholder="اسم الفني المسؤول عن التنفيذ أو التقييم"
+                placeholder={t.technicianPlaceholder}
                 className="h-10 md:h-11"
               />
             </div>
@@ -369,7 +496,7 @@ export default function QuickResponseReportForm() {
           <CardHeader className="p-4 md:p-6 pb-2">
             <CardTitle className="flex items-center gap-2 text-base md:text-xl">
               <CheckCircle className="w-5 h-5 text-primary" />
-              حالة الطلب <span className="text-red-500">*</span>
+              {t.requestStatus} <span className="text-red-500">*</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6 space-y-4">
@@ -390,7 +517,7 @@ export default function QuickResponseReportForm() {
                     className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                 </div>
-                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">تم حل المشكلة جزئياً</span>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">{t.partiallySolved}</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer group">
@@ -409,7 +536,7 @@ export default function QuickResponseReportForm() {
                     className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                 </div>
-                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">تم حل المشكلة بالكامل</span>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">{t.fullySolved}</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer group">
@@ -428,7 +555,7 @@ export default function QuickResponseReportForm() {
                     className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   />
                 </div>
-                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">لم يتم حل المشكلة</span>
+                <span className="text-sm md:text-base font-medium group-hover:text-primary transition-colors">{t.notSolved}</span>
               </label>
             </div>
           </CardContent>
@@ -441,8 +568,17 @@ export default function QuickResponseReportForm() {
             className="w-full sm:w-auto h-11 border-2 font-bold"
             onClick={() => navigate(`/requests/${requestId}`)}
           >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            إلغاء وإغلاق
+            {lang === "ar" ? (
+              <>
+                <ArrowRight className="w-4 h-4 ml-2" />
+                {t.cancelAndClose}
+              </>
+            ) : (
+              <>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t.cancelAndClose}
+              </>
+            )}
           </Button>
           
           <Button
@@ -452,13 +588,13 @@ export default function QuickResponseReportForm() {
           >
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                جاري الحفظ...
+                <div className={lang === "ar" ? "animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" : "animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"}></div>
+                {t.saving}
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 ml-2" />
-                حفظ واعتماد التقرير
+                <Save className={lang === "ar" ? "w-4 h-4 ml-2" : "w-4 h-4 mr-2"} />
+                {t.saveAndSubmit}
               </>
             )}
           </Button>

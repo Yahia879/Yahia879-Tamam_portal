@@ -103,10 +103,6 @@ async function seed() {
       { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
       { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
-      { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
-      { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
-      { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
-      { id: "disbursements.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد طلبات الصرف", nameEn: "Approve Disbursement Requests" },
       { id: "disbursements.add", moduleId: "disbursements", action: "add", nameAr: "إنشاء طلب صرف", nameEn: "Create Disbursement" },
       { id: "disbursement_orders.view", moduleId: "disbursements", action: "view", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
       { id: "disbursement_orders.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد أوامر الصرف", nameEn: "Approve Disbursement Orders" },
@@ -159,13 +155,13 @@ async function seed() {
     const rolePermissionsMapping = {
       super_admin: "*", // كل الصلاحيات
       system_admin: "*", // كل الصلاحيات
-      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "requesters"],
+      projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
       field_team: ["mosques.view", "requests.view", "requests.view_details", "requests.edit", "field_visits"],
       quick_response: ["requests.view", "requests.view_details", "field_visits.view", "reports.create"],
-      financial: ["suppliers", "quotations", "financial_approval", "contracts", "disbursements", "disbursement_orders", "progress_reports", "financial_reports"],
+      financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports", "requests.view", "requests.view_details"],
       financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports", "requests.view", "requests.view_details"],
       project_manager: ["projects.view", "projects.view_details", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers", "requests.view", "requests.create", "requests.view_details"],
-      corporate_comm: ["requests.view", "requests.view_details", "reports.view", "settings.view", "analytics.view"],
+      corporate_comm: ["requests.view", "requests.view_details", "requests.upload_final_report", "reports", "settings.view", "analytics.view"],
       service_requester: ["requests.view", "requests.create", "mosques.view"]
     };
 
@@ -203,7 +199,7 @@ async function seed() {
     // 4.5 حقن إعدادات الإجراءات (Action Settings)
     console.log("⚙️ حقن إعدادات الإجراءات...");
     const actionsToInsert = [];
-    
+
     STAGE_ACTION_CONFIG.forEach(stageConfig => {
       stageConfig.actions.forEach((action, index) => {
         actionsToInsert.push({
@@ -277,7 +273,7 @@ async function seed() {
 
     // 6. البنوك، تصنيفات جداول الكميات، المدن ووحدات القياس
     console.log("🏙️ حقن البنوك والتصنيفات والمدن والوحدات في جدول categories...");
-    
+
     const banksList = [
       { name: "Al Ahli Bank", nameAr: "البنك الأهلي السعودي", type: "bank", isActive: true },
       { name: "Al Rajhi Bank", nameAr: "مصرف الراجحي", type: "bank", isActive: true },
