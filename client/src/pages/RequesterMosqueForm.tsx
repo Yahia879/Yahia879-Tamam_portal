@@ -205,6 +205,7 @@ export default function RequesterMosqueForm() {
 
     createMutation.mutate({
       name: formData.name,
+      mosqueType: formData.mosqueType || undefined,
       city: formData.city,
       governorate: formData.governorate || undefined,
       center: formData.center || undefined,
@@ -405,7 +406,7 @@ export default function RequesterMosqueForm() {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="mosqueType" className="text-xs sm:text-sm">نوع المسجد *</Label>
-                  <Select value={formData.mosqueType} onValueChange={(value) => handleChange("mosqueType", value)}>
+                  <Select value={formData.mosqueType || undefined} onValueChange={(value) => handleChange("mosqueType", value)}>
                     <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                       <SelectValue placeholder="اختر النوع" />
                     </SelectTrigger>

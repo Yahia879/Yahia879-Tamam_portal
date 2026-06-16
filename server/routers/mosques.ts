@@ -10,6 +10,7 @@ import { checkPermission } from "../permissions";
 // مخطط إنشاء مسجد جديد
 const createMosqueSchema = z.object({
   name: z.string().min(2, "اسم المسجد مطلوب"),
+  mosqueType: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   address: z.string().optional(),
@@ -57,6 +58,7 @@ export const mosquesRouter = router({
 
       const mosqueData = {
         name: input.name,
+        mosqueType: input.mosqueType || null,
         latitude: input.latitude ? input.latitude.toString() : null,
         longitude: input.longitude ? input.longitude.toString() : null,
         address: input.address || null,
@@ -122,6 +124,7 @@ export const mosquesRouter = router({
       const updateValues: Record<string, unknown> = {};
 
       if (updateData.name) updateValues.name = updateData.name;
+      if (updateData.mosqueType !== undefined) updateValues.mosqueType = updateData.mosqueType;
       if (updateData.latitude !== undefined) updateValues.latitude = updateData.latitude?.toString();
       if (updateData.longitude !== undefined) updateValues.longitude = updateData.longitude?.toString();
       if (updateData.address !== undefined) updateValues.address = updateData.address;

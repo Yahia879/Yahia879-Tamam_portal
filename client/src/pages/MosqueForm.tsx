@@ -303,6 +303,7 @@ export default function MosqueForm() {
 
     const payload = {
       name: formData.name,
+      mosqueType: formData.mosqueType || undefined,
       city: formData.city,
       governorate: formData.governorate || undefined,
       center: formData.center || undefined,
@@ -361,7 +362,7 @@ export default function MosqueForm() {
     );
   }
 
-  if (loadingMosque) {
+  if (loadingMosque || (isEdit && !mosque)) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -447,7 +448,7 @@ export default function MosqueForm() {
                 </div>
                 <div>
                   <Label>نوع المسجد *</Label>
-                  <Select value={formData.mosqueType} onValueChange={(v) => handleChange("mosqueType", v)}>
+                  <Select key={formData.mosqueType} value={formData.mosqueType || undefined} onValueChange={(v) => handleChange("mosqueType", v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر النوع" />
                     </SelectTrigger>
@@ -610,7 +611,7 @@ export default function MosqueForm() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
                 <div>
                   <Label>المدينة / المركز *</Label>
-                  <Select value={formData.city} onValueChange={handleCityChange}>
+                  <Select key={formData.city} value={formData.city} onValueChange={handleCityChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر المدينة أو المركز" />
                     </SelectTrigger>

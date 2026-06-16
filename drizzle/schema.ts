@@ -176,6 +176,7 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 export const mosques = mysqlTable("mosques", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
+  mosqueType: varchar("mosqueType", { length: 50 }),
   latitude: decimal("latitude", { precision: 10, scale: 8 }),
   longitude: decimal("longitude", { precision: 11, scale: 8 }),
   address: text("address"),
