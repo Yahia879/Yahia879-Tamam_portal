@@ -19,6 +19,8 @@ interface FileUploadProps {
   disabled?: boolean;
   limitLabel?: string;
   maxFilesReachedLabel?: string;
+  maxImageDimension?: number;
+  imageQuality?: number;
 }
 
 export interface UploadedFile {
@@ -52,6 +54,8 @@ export function FileUpload({
   disabled = false,
   limitLabel,
   maxFilesReachedLabel,
+  maxImageDimension = 1200,
+  imageQuality = 0.7,
 }: FileUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>(existingFiles);
   const [isDragging, setIsDragging] = useState(false);
@@ -67,7 +71,7 @@ export function FileUpload({
         const canvas = document.createElement("canvas");
         let width = img.width;
         let height = img.height;
-        const maxDimension = 1200;
+        const maxDimension = maxImageDimension;
 
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -84,26 +88,11 @@ export function FileUpload({
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
 
-        // ضغط متدرج: نبدأ بجودة 0.7، ثم نقلل إذا كان الحجم لا يزال كبيراً
-        const qualitySteps = [0.7, 0.5, 0.3];
-        let bestBase64 = "";
-        let bestSize = Infinity;
-
-        for (const quality of qualitySteps) {
-          const compressedBase64 = canvas.toDataURL("image/webp", quality);
-          const justBase64 = compressedBase64.split(",")[1];
-          const approxSize = Math.round((justBase64.length * 3) / 4);
-          
-          bestBase64 = justBase64;
-          bestSize = approxSize;
-
-          // إذا كان الحجم أقل من 2 ميجابايت، نتوقف (حجم آمن للتخزين)
-          if (approxSize < 2 * 1024 * 1024) {
-            break;
-          }
-        }
+        const compressedBase64 = canvas.toDataURL("image/webp", imageQuality);
+        const justBase64 = compressedBase64.split(",")[1];
+        const approxSize = Math.round((justBase64.length * 3) / 4);
         
-        resolve({ base64: bestBase64, size: bestSize });
+        resolve({ base64: justBase64, size: approxSize });
       };
       img.src = base64;
     });

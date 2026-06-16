@@ -625,6 +625,8 @@ export default function FieldInspectionForm() {
               label="رفع الصور"
               description="اسحب الصور هنا أو انقر للاختيار"
               category="site_photo"
+              maxImageDimension={800}
+              imageQuality={0.5}
             />
             {attachments.length > 0 && (
               <p className="text-xs md:text-sm text-primary font-bold mt-3 bg-primary/5 px-3 py-1.5 rounded-lg inline-block">
