@@ -48,12 +48,14 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       { enabled: !!requestId }
     );
 
+    const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+
     const boqData = boqResult?.items || [];
     const totalAmount = boqResult?.total || 0;
 
     const isLocked =
       externalIsLocked !== undefined
-        ? externalIsLocked
+         ? externalIsLocked
         : !!(
             request?.currentStage &&
             getStageOrder(request.currentStage) > getStageOrder("boq_preparation")
@@ -127,6 +129,11 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       flooring: "أرضيات",
       other: "أخرى",
     };
+
+    const categoriesMap = (allCategories || []).reduce((acc: Record<string, string>, cat: any) => {
+      acc[cat.name] = cat.nameAr || cat.name;
+      return acc;
+    }, { ...ITEM_CATEGORIES });
 
     if (isLoading) {
       return (
@@ -206,15 +213,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
             <Card key={category}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  {ITEM_CATEGORIES[category] ? (
-                    <Badge variant="outline" className="text-base">
-                      {ITEM_CATEGORIES[category]}
-                    </Badge>
-                  ) : !category.startsWith("boq_category_") && category !== "other" ? (
-                    <Badge variant="outline" className="text-base">
-                      {category}
-                    </Badge>
-                  ) : null}
+                  <Badge variant="outline" className="text-base">
+                    {categoriesMap[category] || category}
+                  </Badge>
                   <span className="text-sm text-muted-foreground">({items.length} بند)</span>
                 </CardTitle>
               </CardHeader>
