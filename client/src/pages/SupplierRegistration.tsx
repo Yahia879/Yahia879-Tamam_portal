@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload } from "@/components/FileUpload";
+import { LocationPicker } from "@/components/LocationPicker";
 import { 
   Building2, 
   Phone, 
@@ -377,19 +378,24 @@ export default function SupplierRegistration() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="googleMapsUrl" className="text-sm sm:text-base">موقع الكيان على خرائط Google *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="googleMapsUrl"
-                    value={googleMapsUrl}
-                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                    placeholder="https://maps.google.com/..."
-                    className="flex-1 h-10 sm:h-11"
-                  />
-                  <Button variant="outline" size="icon" type="button" className="shrink-0 h-10 w-10 sm:h-11 sm:w-11">
-                    <MapPin className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Label className="text-sm sm:text-base font-bold">موقع الكيان على الخريطة *</Label>
+                <LocationPicker
+                  value={(() => {
+                    if (!googleMapsUrl) return undefined;
+                    const match = googleMapsUrl.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                    if (match) {
+                      return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+                    }
+                    return undefined;
+                  })()}
+                  onChange={(loc) => {
+                    setGoogleMapsUrl(`https://www.google.com/maps?q=${loc.lat},${loc.lng}`);
+                    if (loc.address) {
+                      setAddress(loc.address);
+                    }
+                  }}
+                  className="w-full mt-1"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

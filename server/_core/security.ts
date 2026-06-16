@@ -109,7 +109,7 @@ export async function securityMiddleware(req: Request, res: Response, next: Next
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://server.arcgisonline.com https://*.sharepoint.com https://*.sharepoint.cn https://*.1drv.com https://*.live.com https://*.microsoft.com https://*.microsoftonline.com https://*.office.com https://*.office365.com",
-    `connect-src 'self' ws: wss: ${additionalOriginsStr}`,
+    `connect-src 'self' ws: wss: https://nominatim.openstreetmap.org ${additionalOriginsStr}`,
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",

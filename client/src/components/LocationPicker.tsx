@@ -139,7 +139,6 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     <div className={className}>
       <Card>
         <CardContent className="pt-4 space-y-4">
-          {/* شريط البحث */}
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -147,15 +146,20 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
                 placeholder="ابحث عن عنوان أو موقع..."
                 value={searchAddress}
                 onChange={(e) => setSearchAddress(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
                 className="pr-10 text-right"
                 dir="rtl"
               />
             </div>
-            <Button onClick={handleSearch} disabled={isSearching}>
+            <Button type="button" onClick={handleSearch} disabled={isSearching}>
               {isSearching ? "جاري البحث..." : "بحث"}
             </Button>
-            <Button variant="outline" onClick={getCurrentLocation} title="موقعي الحالي">
+            <Button type="button" variant="outline" onClick={getCurrentLocation} title="موقعي الحالي">
               <Crosshair className="w-4 h-4" />
             </Button>
           </div>
