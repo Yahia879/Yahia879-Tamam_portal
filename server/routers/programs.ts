@@ -27,6 +27,7 @@ export const programsRouter = router({
         color: z.string().optional(),
         icon: z.string().optional(),
         requiresMosque: z.boolean().default(true),
+        conditions: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -49,6 +50,7 @@ export const programsRouter = router({
         icon: z.string().optional(),
         requiresMosque: z.boolean().optional(),
         isActive: z.boolean().optional(),
+        conditions: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ input }) => {

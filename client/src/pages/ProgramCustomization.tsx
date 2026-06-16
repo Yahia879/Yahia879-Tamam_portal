@@ -20,6 +20,7 @@ interface ProgramCustomization {
   icon: any;
   requiresMosque: boolean;
   isActive: boolean;
+  conditions?: string[];
 }
 
 export default function ProgramCustomization() {
@@ -62,11 +63,12 @@ export default function ProgramCustomization() {
     icon: 'Package',
     requiresMosque: false,
     isActive: true,
+    conditions: [],
   });
 
   const handleEdit = (program: any) => {
     setEditingId(program.id);
-    setEditData({ ...program });
+    setEditData({ ...program, conditions: program.conditions || [] });
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -98,6 +100,7 @@ export default function ProgramCustomization() {
       color: newProgram.color || 'bg-gray-500',
       icon: newProgram.icon || 'Package',
       requiresMosque: newProgram.requiresMosque || false,
+      conditions: newProgram.conditions || [],
     });
 
     setNewProgram({
@@ -107,6 +110,7 @@ export default function ProgramCustomization() {
       icon: 'Package',
       requiresMosque: false,
       isActive: true,
+      conditions: [],
     });
     setShowAddNew(false);
   };
@@ -271,6 +275,57 @@ export default function ProgramCustomization() {
                 </label>
               </div>
 
+              <div className="space-y-2 pt-2 border-t">
+                <label className="block text-sm font-medium text-foreground">
+                  الشروط والأحكام الخاصة بالبرنامج
+                </label>
+                <div className="space-y-2">
+                  {(newProgram.conditions || []).map((cond, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <Input
+                        value={cond}
+                        onChange={(e) => {
+                          const updated = [...(newProgram.conditions || [])];
+                          updated[index] = e.target.value;
+                          setNewProgram({ ...newProgram, conditions: updated });
+                        }}
+                        placeholder={`الشرط رقم ${index + 1}`}
+                        className="flex-1 h-9 text-sm"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        onClick={() => {
+                          setNewProgram({
+                            ...newProgram,
+                            conditions: (newProgram.conditions || []).filter((_, i) => i !== index)
+                          });
+                        }}
+                        className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setNewProgram({
+                        ...newProgram,
+                        conditions: [...(newProgram.conditions || []), ""]
+                      });
+                    }}
+                    className="h-8 text-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5 ml-1" />
+                    إضافة شرط
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
                 <Button
                   variant="outline"
@@ -358,6 +413,57 @@ export default function ProgramCustomization() {
                         />
                       </div>
 
+                      <div className="space-y-2 pt-2 border-t">
+                        <label className="block text-sm font-medium text-foreground">
+                          الشروط والأحكام الخاصة بالبرنامج
+                        </label>
+                        <div className="space-y-2">
+                          {(editData.conditions || []).map((cond: string, index: number) => (
+                            <div key={index} className="flex gap-2 items-center">
+                              <Input
+                                value={cond}
+                                onChange={(e) => {
+                                  const updated = [...(editData.conditions || [])];
+                                  updated[index] = e.target.value;
+                                  setEditData({ ...editData, conditions: updated });
+                                }}
+                                placeholder={`الشرط رقم ${index + 1}`}
+                                className="flex-1 h-9 text-sm"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                onClick={() => {
+                                  setEditData({
+                                    ...editData,
+                                    conditions: (editData.conditions || []).filter((_, i) => i !== index)
+                                  });
+                                }}
+                                className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditData({
+                                ...editData,
+                                conditions: [...(editData.conditions || []), ""]
+                              });
+                            }}
+                            className="h-8 text-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5 ml-1" />
+                            إضافة شرط
+                          </Button>
+                        </div>
+                      </div>
+
                       <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
                         <Button
                           variant="outline"
@@ -400,6 +506,19 @@ export default function ProgramCustomization() {
                           <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
                             {program.description}
                           </p>
+                          {program.conditions && Array.isArray(program.conditions) && program.conditions.filter(Boolean).length > 0 && (
+                            <div className="mt-2 space-y-1 bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
+                              <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
+                              <div className="space-y-1">
+                                {(program.conditions as string[]).filter(Boolean).map((cond: string, index: number) => (
+                                  <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                    <span className="text-primary">•</span>
+                                    <span>{cond}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
                             {program.requiresMosque && (
                               <span className="flex items-center gap-1 text-emerald-600 font-medium">

@@ -361,16 +361,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <AlertCircle className="h-4 w-4 text-primary" />
               <AlertDescription className="text-xs sm:text-sm">يرجى قراءة الشروط والأحكام بعناية قبل المتابعة</AlertDescription>
             </Alert>
-            <div className="bg-muted/40 p-4 sm:p-6 rounded-xl max-h-72 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border">
+            <div className="bg-muted/40 p-4 sm:p-6 rounded-xl max-h-72 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border" dir="rtl">
               <h3 className="font-bold text-foreground text-sm sm:text-base">شروط تقديم الطلب:</h3>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                <li>يجب أن تكون البيانات المقدمة صحيحة وكاملة</li>
-                <li>يجب أن يكون المسجد مسجلاً في النظام</li>
-                <li>يجب الالتزام بجميع الشروط والأحكام</li>
-                <li>الجمعية تحتفظ بحق قبول أو رفض الطلب</li>
-                <li>يجب تقديم جميع المستندات المطلوبة</li>
-                <li>الطلب ملزم قانونياً بعد الموافقة عليه</li>
-              </ul>
+              {selectedProgramConfig?.conditions && Array.isArray(selectedProgramConfig.conditions) && selectedProgramConfig.conditions.filter(Boolean).length > 0 ? (
+                <div className="space-y-3">
+                  {(selectedProgramConfig.conditions as string[]).filter(Boolean).map((condition, index) => (
+                    <div key={index} className="text-xs sm:text-sm text-muted-foreground flex items-start gap-2 leading-relaxed">
+                      <span className="text-primary font-bold">•</span>
+                      <span>{condition}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs sm:text-sm text-muted-foreground italic">لا توجد شروط خاصة لهذا البرنامج.</p>
+              )}
             </div>
             <div className="flex items-center gap-3 p-3 sm:p-4 bg-muted/20 rounded-xl border border-border">
               <Checkbox

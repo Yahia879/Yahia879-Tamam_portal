@@ -220,6 +220,7 @@ export const programs = mysqlTable("programs", {
   icon: varchar("icon", { length: 50 }),
   requiresMosque: boolean("requiresMosque").default(true),
   isActive: boolean("isActive").default(true),
+  conditions: json("conditions"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
