@@ -364,7 +364,7 @@ export async function createNotification(data: {
       });
     }
 
-    if (isEmailEnabled && user.email) {
+    if ((isEmailEnabled || user.role === "service_requester") && user.email) {
       sendEmailNotification(user.email, data.title, data.message).catch((err) => {
         console.error("Async Email error:", err);
       });
