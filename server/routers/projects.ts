@@ -639,6 +639,19 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // التحقق من الحد الأقصى للبنود (10 بنود)
+      const existingItems = await db
+        .select()
+        .from(quantitySchedules)
+        .where(eq(quantitySchedules.requestId, input.requestId));
+
+      if (existingItems.length >= 10) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن إضافة أكثر من 10 بنود في جدول الكميات للطلب الواحد",
+        });
+      }
+
       // البحث عن مشروع مرتبط بالطلب (إن وُجد)
       let projectId = input.projectId;
       

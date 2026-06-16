@@ -175,6 +175,10 @@ export default function BOQ() {
       toast.error("يرجى اختيار الطلب أولاً");
       return;
     }
+    if (boqData.length >= 10) {
+      toast.error("لا يمكن إضافة أكثر من 10 بنود في جدول الكميات للطلب الواحد");
+      return;
+    }
     if (!formData.itemName || !formData.unit || !formData.quantity) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
@@ -348,7 +352,17 @@ export default function BOQ() {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-stretch sm:items-end">
               {selectedRequestId && (
                 <>
-                  <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
+                  <Button 
+                    onClick={() => {
+                      if (boqData.length >= 10) {
+                        toast.error("تم الوصول للحد الأقصى المسموح به (10 بنود)");
+                        return;
+                      }
+                      setShowAddDialog(true);
+                    }} 
+                    disabled={boqData.length >= 10}
+                    className="w-full sm:w-auto"
+                  >
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة بند
                   </Button>
@@ -403,8 +417,13 @@ export default function BOQ() {
                               const dataLines = lines.slice(1);
                               let addedCount = 0;
                               let errorCount = 0;
+                              let currentCount = boqData.length;
                               
                               for (const line of dataLines) {
+                                if (currentCount >= 10) {
+                                  toast.error("تم الوصول للحد الأقصى المسموح به (10 بنود). تم إيقاف الاستيراد.");
+                                  break;
+                                }
                                 const cols = line.split(/[\t,]/);
                                 if (cols.length >= 5) {
                                   const category = cols[0]?.trim() || "other";
@@ -426,6 +445,7 @@ export default function BOQ() {
                                         category,
                                       });
                                       addedCount++;
+                                      currentCount++;
                                     } catch {
                                       errorCount++;
                                     }
