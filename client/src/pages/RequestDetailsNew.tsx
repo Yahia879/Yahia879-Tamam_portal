@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -25,6 +25,39 @@ import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
 import { getAllFieldsForProgram } from "@/lib/programFields";
+
+function ProgressiveImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="relative w-full h-full">
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/60 p-2 border border-dashed rounded-xl z-10">
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-500 mb-1.5" />
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+            جاري التحميل...
+          </span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`${className || ''} ${loading ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}`}
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setError(true);
+        }}
+      />
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-xs text-red-500 rounded-xl border border-dashed">
+          فشل تحميل الصورة
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RequestDetailsNew() {
   const { id } = useParams();
@@ -1699,7 +1732,7 @@ export default function RequestDetailsNew() {
                                 key={photo.id || index} 
                                 className="group relative aspect-video rounded-xl overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/40 shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-900/80 transition-all duration-300"
                               >
-                                <img 
+                                <ProgressiveImage 
                                   src={photo.fileUrl} 
                                   alt={photo.fileName} 
                                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

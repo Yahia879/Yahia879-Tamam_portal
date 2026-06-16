@@ -20,6 +20,8 @@ import uploadRouter from "../upload";
 import pdfRouter from "../pdf";
 import { securityMiddleware } from "./security";
 import { isOneDriveConfigured, getAccessToken } from "../storage";
+import fs from "fs";
+import axios from "axios";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -51,40 +53,49 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Simple in-memory cache for OneDrive download URLs (valid for 30 minutes)
+  const downloadUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
   // Proxy files from OneDrive if configured, otherwise fallback to local files
   app.get("/uploads/:file(*)", async (req, res, next) => {
     const fileKey = req.params.file;
     if (isOneDriveConfigured()) {
       try {
+        // 1. Check in-memory cache first (cached for 50 minutes)
+        const cached = downloadUrlCache.get(fileKey);
+        if (cached && Date.now() < cached.expiresAt) {
+          res.redirect(cached.url);
+          return;
+        }
+
         const token = await getAccessToken();
         const upn = process.env.ONEDRIVE_USER_PRINCIPAL_NAME;
         const metadataUrl = `https://graph.microsoft.com/v1.0/users/${upn}/drive/root:/${fileKey}`;
         
-        const metadataResponse = await fetch(metadataUrl, {
+        // Use Axios to retrieve metadata to bypass native fetch/undici connection timeout issues
+        const metadataResponse = await axios.get(metadataUrl, {
           headers: {
             "Authorization": `Bearer ${token}`,
           },
+          timeout: 10000, // 10 seconds timeout
         });
 
-        if (metadataResponse.ok) {
-          const metadata = await metadataResponse.json() as any;
-          const downloadUrl = metadata["@microsoft.graph.downloadUrl"];
-          const mimeType = metadata.file?.mimeType || "application/octet-stream";
+        if (metadataResponse.status === 200) {
+          const downloadUrl = metadataResponse.data["@microsoft.graph.downloadUrl"];
           
           if (downloadUrl) {
-            const fileResponse = await fetch(downloadUrl);
-            if (fileResponse.ok) {
-              res.setHeader("Content-Type", mimeType);
-              res.setHeader("Content-Length", metadata.size || fileResponse.headers.get("content-length"));
-              
-              const arrayBuffer = await fileResponse.arrayBuffer();
-              res.send(Buffer.from(arrayBuffer));
-              return;
-            }
+            // Cache the URL for 50 minutes (Microsoft signatures expire after 60 minutes)
+            downloadUrlCache.set(fileKey, {
+              url: downloadUrl,
+              expiresAt: Date.now() + 50 * 60 * 1000
+            });
+
+            res.redirect(downloadUrl);
+            return;
           }
         }
-      } catch (error) {
-        console.error("Error proxying file from OneDrive:", error);
+      } catch (error: any) {
+        console.error(`Error redirecting file from OneDrive for "${fileKey}":`, error.message);
       }
     }
     next();
