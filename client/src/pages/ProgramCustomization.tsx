@@ -20,8 +20,22 @@ interface ProgramCustomization {
   icon: any;
   requiresMosque: boolean;
   isActive: boolean;
-  conditions?: string[];
+  conditions?: string[] | any;
 }
+
+const parseConditions = (conditions: any): string[] => {
+  if (!conditions) return [];
+  if (Array.isArray(conditions)) return conditions;
+  if (typeof conditions === 'string') {
+    try {
+      const parsed = JSON.parse(conditions);
+      if (Array.isArray(parsed)) return parsed as string[];
+    } catch (e) {
+      if (conditions.trim()) return [conditions.trim()];
+    }
+  }
+  return [];
+};
 
 export default function ProgramCustomization() {
   const { user } = useAuth();
@@ -68,7 +82,7 @@ export default function ProgramCustomization() {
 
   const handleEdit = (program: any) => {
     setEditingId(program.id);
-    setEditData({ ...program, conditions: program.conditions || [] });
+    setEditData({ ...program, conditions: parseConditions(program.conditions) });
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -280,7 +294,7 @@ export default function ProgramCustomization() {
                   الشروط والأحكام الخاصة بالبرنامج
                 </label>
                 <div className="space-y-2">
-                  {(newProgram.conditions || []).map((cond, index) => (
+                  {(newProgram.conditions || []).map((cond: string, index: number) => (
                     <div key={index} className="flex gap-2 items-center">
                       <Input
                         value={cond}
@@ -299,7 +313,7 @@ export default function ProgramCustomization() {
                         onClick={() => {
                           setNewProgram({
                             ...newProgram,
-                            conditions: (newProgram.conditions || []).filter((_, i) => i !== index)
+                            conditions: (newProgram.conditions || []).filter((_: any, i: number) => i !== index)
                           });
                         }}
                         className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
@@ -437,7 +451,7 @@ export default function ProgramCustomization() {
                                 onClick={() => {
                                   setEditData({
                                     ...editData,
-                                    conditions: (editData.conditions || []).filter((_, i) => i !== index)
+                                    conditions: (editData.conditions || []).filter((_: any, i: number) => i !== index)
                                   });
                                 }}
                                 className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
@@ -506,19 +520,23 @@ export default function ProgramCustomization() {
                           <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
                             {program.description}
                           </p>
-                          {program.conditions && Array.isArray(program.conditions) && program.conditions.filter(Boolean).length > 0 && (
-                            <div className="mt-2 space-y-1 bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
-                              <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
-                              <div className="space-y-1">
-                                {(program.conditions as string[]).filter(Boolean).map((cond: string, index: number) => (
-                                  <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                    <span className="text-primary">•</span>
-                                    <span>{cond}</span>
-                                  </div>
-                                ))}
+                          {(() => {
+                            const conds = parseConditions(program.conditions);
+                            if (conds.filter(Boolean).length === 0) return null;
+                            return (
+                              <div className="mt-2 space-y-1 bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
+                                <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
+                                <div className="space-y-1">
+                                  {conds.filter(Boolean).map((cond: string, index: number) => (
+                                    <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                      <span className="text-primary">•</span>
+                                      <span>{cond}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
                             {program.requiresMosque && (
                               <span className="flex items-center gap-1 text-emerald-600 font-medium">

@@ -50,6 +50,20 @@ const STEPS: { key: Step; label: string; order: number }[] = [
   { key: 'review', label: 'المراجعة والإرسال', order: 5 },
 ];
 
+const parseConditions = (conditions: any): string[] => {
+  if (!conditions) return [];
+  if (Array.isArray(conditions)) return conditions;
+  if (typeof conditions === 'string') {
+    try {
+      const parsed = JSON.parse(conditions);
+      if (Array.isArray(parsed)) return parsed as string[];
+    } catch (e) {
+      if (conditions.trim()) return [conditions.trim()];
+    }
+  }
+  return [];
+};
+
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -363,18 +377,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             </Alert>
             <div className="bg-muted/40 p-4 sm:p-6 rounded-xl max-h-72 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border" dir="rtl">
               <h3 className="font-bold text-foreground text-sm sm:text-base">شروط تقديم الطلب:</h3>
-              {selectedProgramConfig?.conditions && Array.isArray(selectedProgramConfig.conditions) && selectedProgramConfig.conditions.filter(Boolean).length > 0 ? (
-                <div className="space-y-3">
-                  {(selectedProgramConfig.conditions as string[]).filter(Boolean).map((condition, index) => (
-                    <div key={index} className="text-xs sm:text-sm text-muted-foreground flex items-start gap-2 leading-relaxed">
-                      <span className="text-primary font-bold">•</span>
-                      <span>{condition}</span>
+              {(() => {
+                const conds = parseConditions(selectedProgramConfig?.conditions);
+                if (conds.filter(Boolean).length > 0) {
+                  return (
+                    <div className="space-y-3">
+                      {conds.filter(Boolean).map((condition, index) => (
+                        <div key={index} className="text-xs sm:text-sm text-muted-foreground flex items-start gap-2 leading-relaxed">
+                          <span className="text-primary font-bold">•</span>
+                          <span>{condition}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs sm:text-sm text-muted-foreground italic">لا توجد شروط خاصة لهذا البرنامج.</p>
-              )}
+                  );
+                }
+                return <p className="text-xs sm:text-sm text-muted-foreground italic">لا توجد شروط خاصة لهذا البرنامج.</p>;
+              })()}
             </div>
             <div className="flex items-center gap-3 p-3 sm:p-4 bg-muted/20 rounded-xl border border-border">
               <Checkbox
