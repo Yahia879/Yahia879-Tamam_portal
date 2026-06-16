@@ -345,7 +345,7 @@ export async function createNotification(data: {
     let result = null;
 
     // 3. Only insert into database notifications table if in-app notifications are enabled
-    if (isInAppEnabled) {
+    if (isInAppEnabled || user.role === "service_requester") {
       result = await db.insert(notifications).values({
         userId: data.userId,
         type: data.type as any,
