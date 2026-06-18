@@ -937,7 +937,7 @@ export default function NewLinkedDisbursementRequest() {
                             <Input
                               value={supplier.iban}
                               onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value.replace(/\D/g, ""))}
-                              placeholder="0XXXXXXXX"
+                              placeholder="05XXXXXXXX"
                               required
                               className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background font-mono"
                               dir="ltr"
