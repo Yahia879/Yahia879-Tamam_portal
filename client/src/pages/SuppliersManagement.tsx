@@ -30,6 +30,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -54,6 +61,7 @@ import {
   ExternalLink,
   Plus,
   Download,
+  Pencil,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -184,6 +192,91 @@ export default function SuppliersManagement() {
   // إيقاف المورد
   const handleSuspend = (supplierId: number) => {
     suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
+  };
+
+  // جلب التصنيفات للبنوك
+  const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
+  const banks = banksData?.values;
+
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editForm, setEditForm] = useState({
+    id: 0,
+    name: "",
+    taxNumber: "",
+    contactPerson: "",
+    contactPersonTitle: "",
+    phone: "",
+    email: "",
+    address: "",
+    bankAccountName: "",
+    bankName: "",
+    iban: "",
+  });
+
+  const handleOpenEdit = (supplier: any) => {
+    setEditForm({
+      id: supplier.id,
+      name: supplier.name || "",
+      taxNumber: supplier.taxNumber || "",
+      contactPerson: supplier.contactPerson || "",
+      contactPersonTitle: supplier.contactPersonTitle || "",
+      phone: supplier.phone || "",
+      email: supplier.email || "",
+      address: supplier.address || "",
+      bankAccountName: supplier.bankAccountName || "",
+      bankName: supplier.bankName || "",
+      iban: supplier.iban || "",
+    });
+    setShowEditDialog(true);
+  };
+
+  const editMutation = trpc.suppliers.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات المورد بنجاح");
+      setShowEditDialog(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث بيانات المورد");
+    },
+  });
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.name) {
+      toast.error("اسم الكيان مطلوب");
+      return;
+    }
+    if (!editForm.contactPerson) {
+      toast.error("اسم مسؤول التواصل مطلوب");
+      return;
+    }
+    if (!editForm.phone) {
+      toast.error("رقم التواصل مطلوب");
+      return;
+    }
+    if (!editForm.email) {
+      toast.error("البريد الإلكتروني مطلوب");
+      return;
+    }
+    if (editForm.iban && !/^SA\d{22}$/.test(editForm.iban)) {
+      toast.error("رقم الآيبان غير صحيح (يجب أن يبدأ بـ SA ويليه 22 رقماً)");
+      return;
+    }
+
+    editMutation.mutate({
+      id: editForm.id,
+      name: editForm.name,
+      taxNumber: editForm.taxNumber || undefined,
+      contactPerson: editForm.contactPerson,
+      contactPersonTitle: editForm.contactPersonTitle || undefined,
+      phone: editForm.phone,
+      email: editForm.email,
+      address: editForm.address || undefined,
+      bankAccountName: editForm.bankAccountName || undefined,
+      bankName: editForm.bankName || undefined,
+      iban: editForm.iban || undefined,
+    });
   };
 
   // إحصائيات سريعة
@@ -372,6 +465,12 @@ export default function SuppliersManagement() {
                                   عرض التفاصيل
                                 </DropdownMenuItem>
                               )}
+                              {hasEditPermission && (
+                                <DropdownMenuItem onClick={() => handleOpenEdit(supplier)}>
+                                  <Pencil className="h-4 w-4 ml-2" />
+                                  تعديل البيانات
+                                </DropdownMenuItem>
+                              )}
                               {supplier.approvalStatus === "pending" && hasApprovePermission && (
                                 <>
                                   <DropdownMenuItem
@@ -445,6 +544,152 @@ export default function SuppliersManagement() {
               إلغاء
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة تعديل بيانات المورد */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="w-[95vw] max-w-2xl rounded-2xl p-6 max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader dir="rtl">
+            <DialogTitle className="text-right text-lg font-bold">تعديل بيانات المورد</DialogTitle>
+            <DialogDescription className="text-right text-xs mt-1 text-muted-foreground">
+              تحديث معلومات المورد والبيانات المالية وتفاصيل الاتصال.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleEditSubmit} className="space-y-4 my-4 text-right">
+            {/* القسم الأول: البيانات الأساسية */}
+            <div className="border-b border-border pb-2">
+              <h3 className="font-bold text-sm text-primary">المعلومات الأساسية</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-right">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">اسم الكيان *</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  required
+                  className="text-right border-border"
+                />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">الرقم الضريبي</Label>
+                <Input
+                  value={editForm.taxNumber}
+                  onChange={(e) => setEditForm({ ...editForm, taxNumber: e.target.value })}
+                  className="text-right border-border"
+                />
+              </div>
+            </div>
+
+            {/* القسم الثاني: معلومات الاتصال */}
+            <div className="border-b border-border pb-2 pt-2">
+              <h3 className="font-bold text-sm text-primary">معلومات الاتصال ومسؤول التواصل</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-right">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">مسؤول التواصل *</Label>
+                <Input
+                  value={editForm.contactPerson}
+                  onChange={(e) => setEditForm({ ...editForm, contactPerson: e.target.value })}
+                  required
+                  className="text-right border-border"
+                />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">وظيفة مسؤول التواصل</Label>
+                <Input
+                  value={editForm.contactPersonTitle}
+                  onChange={(e) => setEditForm({ ...editForm, contactPersonTitle: e.target.value })}
+                  className="text-right border-border"
+                />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الهاتف *</Label>
+                <Input
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  required
+                  className="text-right border-border font-mono"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">البريد الإلكتروني *</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  required
+                  className="text-right border-border"
+                />
+              </div>
+              <div className="space-y-1.5 text-right sm:col-span-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">العنوان</Label>
+                <Input
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  className="text-right border-border"
+                />
+              </div>
+            </div>
+
+            {/* القسم الثالث: الحساب البنكي */}
+            <div className="border-b border-border pb-2 pt-2">
+              <h3 className="font-bold text-sm text-primary">البيانات البنكية المعتمدة</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-right">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">اسم صاحب الحساب</Label>
+                <Input
+                  value={editForm.bankAccountName}
+                  onChange={(e) => setEditForm({ ...editForm, bankAccountName: e.target.value })}
+                  className="text-right border-border"
+                />
+              </div>
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك</Label>
+                <Select
+                  value={editForm.bankName || undefined}
+                  onValueChange={(val) => setEditForm({ ...editForm, bankName: val })}
+                >
+                  <SelectTrigger className="text-right border-border bg-background w-full" dir="rtl">
+                    <SelectValue placeholder="اختر البنك" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {banks?.map((bank: any) => (
+                      <SelectItem key={bank.id} value={bank.valueAr || bank.value} className="text-right">
+                        {bank.valueAr || bank.value}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 text-right sm:col-span-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN)</Label>
+                <Input
+                  value={editForm.iban}
+                  onChange={(e) => setEditForm({ ...editForm, iban: e.target.value })}
+                  placeholder="SA0000000000000000000000"
+                  className="text-right border-border font-mono"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6 border-t border-border pt-4">
+              <Button
+                type="submit"
+                disabled={editMutation.isPending}
+                className="gradient-primary text-white font-bold px-6"
+              >
+                {editMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
