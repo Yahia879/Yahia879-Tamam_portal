@@ -97,6 +97,7 @@ interface SupplierEntry {
   iban: string;
   bank: string;
   agreedAmount: number;
+  isNew?: boolean;
 }
 
 export default function NewLinkedDisbursementRequest() {
@@ -830,9 +831,35 @@ export default function NewLinkedDisbursementRequest() {
                 <div className="space-y-6">
                   {suppliers.map((supplier, index) => (
                     <div key={supplier.id} className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 relative space-y-4 text-right animate-slide-up hover:border-primary/30 transition-colors">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start border-b border-dashed border-border/80 pb-2">
-                        <Building2 className="w-4 h-4 text-primary" />
-                        <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
+                      <div className="flex items-center justify-between border-b border-dashed border-border/80 pb-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 justify-start">
+                          <Building2 className="w-4 h-4 text-primary" />
+                          <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
+                        </div>
+                        {/* مورد جديد Checkbox */}
+                        {isCustom && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`new-supplier-${supplier.id}`}
+                              checked={supplier.isNew || false}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setSuppliers(suppliers.map(s => s.id === supplier.id ? {
+                                  ...s,
+                                  isNew: checked,
+                                  name: "",
+                                  iban: "",
+                                  bank: "",
+                                } : s));
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer"
+                            />
+                            <Label htmlFor={`new-supplier-${supplier.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                              مورد جديد
+                            </Label>
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
@@ -840,21 +867,31 @@ export default function NewLinkedDisbursementRequest() {
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
                           {isCustom ? (
-                            <Select
-                              value={supplier.name}
-                              onValueChange={(val) => handleSelectSupplier(supplier.id, val)}
-                            >
-                              <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background w-full" dir="rtl">
-                                <SelectValue placeholder="اختر المستفيد" />
-                              </SelectTrigger>
-                              <SelectContent dir="rtl">
-                                {allSuppliers?.map((s: any) => (
-                                  <SelectItem key={s.id} value={s.name} className="text-right">
-                                    {s.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            supplier.isNew ? (
+                              <Input
+                                value={supplier.name}
+                                onChange={(e) => updateSupplier(supplier.id, "name", e.target.value)}
+                                placeholder="أدخل اسم المستفيد الجديد"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background"
+                              />
+                            ) : (
+                              <Select
+                                value={supplier.name}
+                                onValueChange={(val) => handleSelectSupplier(supplier.id, val)}
+                              >
+                                <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background w-full" dir="rtl">
+                                  <SelectValue placeholder="اختر المستفيد" />
+                                </SelectTrigger>
+                                <SelectContent dir="rtl">
+                                  {allSuppliers?.map((s: any) => (
+                                    <SelectItem key={s.id} value={s.name} className="text-right">
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )
                           ) : (
                             <Input
                               value={supplier.name}
@@ -883,24 +920,53 @@ export default function NewLinkedDisbursementRequest() {
                         {/* البنك */}
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
-                          <Input
-                            value={supplier.bank}
-                            readOnly={true}
-                            placeholder="مثال: البنك الأهلي"
-                            className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                          />
+                          {isCustom && supplier.isNew ? (
+                            <Select
+                              value={supplier.bank}
+                              onValueChange={(val) => updateSupplier(supplier.id, "bank", val)}
+                            >
+                              <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background w-full" dir="rtl">
+                                <SelectValue placeholder="اختر البنك" />
+                              </SelectTrigger>
+                              <SelectContent dir="rtl">
+                                {banks?.map((bank: any) => (
+                                  <SelectItem key={bank.id} value={bank.valueAr || bank.value} className="text-right">
+                                    {bank.valueAr || bank.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              value={supplier.bank}
+                              readOnly={true}
+                              placeholder="مثال: البنك الأهلي"
+                              className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                            />
+                          )}
                         </div>
 
                         {/* الآيبان */}
                         <div className="space-y-2 text-right sm:col-span-2 md:col-span-1">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
-                          <Input
-                            value={supplier.iban}
-                            readOnly={true}
-                            placeholder="SA0000000000000000000000"
-                            className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                            dir="ltr"
-                          />
+                          {isCustom && supplier.isNew ? (
+                            <Input
+                              value={supplier.iban}
+                              onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value)}
+                              placeholder="SA0000000000000000000000"
+                              required
+                              className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background font-mono"
+                              dir="ltr"
+                            />
+                          ) : (
+                            <Input
+                              value={supplier.iban}
+                              readOnly={true}
+                              placeholder="SA0000000000000000000000"
+                              className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                              dir="ltr"
+                            />
+                          )}
                         </div>
 
                         {/* المبلغ المتفق عليه للدفعة */}
