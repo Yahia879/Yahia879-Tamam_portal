@@ -1,7 +1,8 @@
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer } from "lucide-react";
+import { ArrowRight, Printer, CheckCircle2, Building, Landmark, Receipt, FileText } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
 
 // دالة تحويل الأرقام إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -80,6 +81,7 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
 export default function DisbursementOrderPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const hasOrderViewPermission = usePermission("disbursement_orders.view");
 
   const { data: order, isLoading } = trpc.disbursements.getOrderById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -96,6 +98,14 @@ export default function DisbursementOrderPrint() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!hasOrderViewPermission) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500 font-bold" dir="rtl">
+        عذراً، لا تملك صلاحية عرض أمر الصرف.
       </div>
     );
   }
@@ -119,7 +129,7 @@ export default function DisbursementOrderPrint() {
   const orderDate = new Date(order.createdAt || new Date());
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
       <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
         <Button variant="outline" onClick={() => navigate("/disbursements")} className="bg-white border shadow-sm sm:bg-white/90">
@@ -128,180 +138,266 @@ export default function DisbursementOrderPrint() {
         </Button>
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
-          طباعة
+          تنزيل PDF / طباعة
         </Button>
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-      <div className="min-h-screen bg-white print:p-0" dir="rtl">
-        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-6 print:p-4 print:max-w-none">
-          
-          {/* الترويسة - الشعار والتفاصيل */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center mb-4 border-b-2 border-primary pb-3">
-            {/* الشعار على اليمين */}
-            <div className="flex items-center gap-3">
-              {orgSettings?.logoUrl ? (
-                <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto print:h-12" />
-              ) : (
-                <div className="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center print:w-12 print:h-12">
-                  <span className="text-primary font-bold text-xl">ت</span>
+      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
+        {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
+        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start min-h-[280mm]">
+          {/* خط ذهبي داخلي رفيع للإطار */}
+          <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+
+          {/* محتوى المستند */}
+          <div className="relative z-10 flex-1 flex flex-col justify-start">
+            <div>
+              {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto print:h-14" />
+                  ) : (
+                    <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center print:w-14 print:h-14">
+                      <span className="text-primary font-bold text-2xl">تمام</span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-base font-bold text-[#1a5f4a] print:text-sm">
+                      {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                    </div>
+                    <div className="text-xs text-gray-500 font-medium">مكتب إدارة المشاريع PMO</div>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-1 text-right sm:text-left">
+                  <div className="flex gap-2 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-700">التاريخ:</span>
+                    <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(orderDate)}</span>
+                  </div>
+                  <div className="flex gap-2 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-700">الموافق:</span>
+                    <span className="border-b border-dotted border-gray-400 px-3">{formatGregorianDate(orderDate)}</span>
+                  </div>
+                  <div className="flex gap-2 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-700">رقم أمر الصرف:</span>
+                    <span className="border-b border-dotted border-gray-400 px-3 font-mono text-[#1a5f4a] font-bold">{order.orderNumber}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* عنوان النموذج الفاخر */}
+              <div className="text-center mb-4">
+                <h1 className="text-lg sm:text-2xl font-black text-[#1a5f4a] border-b-2 border-[#1a5f4a] pb-1 inline-block px-4 sm:px-12 tracking-wide">
+                  أمر صرف مالي | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                </h1>
+              </div>
+
+              {/* تفاصيل المستفيد والصرف */}
+              <div className="mb-2.5">
+                <h3 
+                  className="font-bold py-1.5 px-4 rounded-t flex items-center leading-none text-xs sm:text-sm"
+                  style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                >
+                  <Building className="ml-2 h-4 w-4" />
+                  1. تفاصيل أمر الصرف والمستفيد:
+                </h3>
+                <div className="overflow-x-auto w-full">
+                  <table className="min-w-[500px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm">
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-2 bg-gray-50/50 font-bold w-32 border-l text-gray-700">اصرفوا للمكرم:</td>
+                        <td className="p-2 text-gray-800 font-bold">{order.beneficiaryName}</td>
+                      </tr>
+                      <tr className="border-b">
+                        <td className="p-2 bg-gray-50/50 font-bold border-l text-gray-700">رقم طلب الصرف:</td>
+                        <td className="p-2 text-gray-800 font-mono text-xs">{request?.requestNumber || "—"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 bg-gray-50/50 font-bold border-l text-gray-700">وذلك مقابل:</td>
+                        <td className="p-2 text-gray-600 font-medium">{request?.description || request?.title || "—"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* المبلغ المطلوب صرفه */}
+              <div className="mb-2.5 bg-[#d4a574]/10 border border-[#d4a574] rounded-lg p-2.5">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+                  <span className="text-xs sm:text-sm text-gray-800 font-bold">المبلغ المطلوب صرفه:</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-800 font-mono">
+                    {amount.toLocaleString()} <span className="text-xs sm:text-sm font-normal text-gray-500">ريال سعودي</span>
+                  </span>
+                  <span className="text-xs text-gray-600 font-semibold">({numberToArabicText(amount)} ريال لا غير)</span>
+                </div>
+              </div>
+
+              {/* خاص بالمشاريع */}
+              {project && (
+                <div className="mb-2.5">
+                  <h3 
+                    className="font-bold py-1.5 px-4 rounded-t flex items-center leading-none text-xs sm:text-sm"
+                    style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                  >
+                    <Receipt className="ml-2 h-4 w-4" />
+                    2. معلومات ميزانية المشروع:
+                  </h3>
+                  <div className="overflow-x-auto w-full">
+                    <table className="min-w-[650px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm text-center">
+                      <thead>
+                        <tr className="bg-gray-100 border-b text-gray-700">
+                          <th className="p-2.5 font-bold border-l">اسم المشروع</th>
+                          <th className="p-2.5 font-bold border-l">الجهة الداعمة</th>
+                          <th className="p-2.5 font-bold border-l">إجمالي ميزانية المشروع</th>
+                          <th className="p-2.5 font-bold border-l">إجمالي ما تم دفعه</th>
+                          <th className="p-2.5 font-bold">المتبقي بعد الصرف</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="p-3 border-l font-bold text-gray-800">{project.name}</td>
+                          <td className="p-3 border-l text-gray-600 font-medium">{(project as any).fundingSource || "لا يوجد"}</td>
+                          <td className="p-3 border-l font-mono text-gray-700 font-semibold">
+                            {((project as any).fundingAmount || (project as any).budget || 0).toLocaleString()} ريال
+                          </td>
+                          <td className="p-3 border-l font-mono text-gray-700 font-semibold">
+                            {((project as any).totalPaid || 0).toLocaleString()} ريال
+                          </td>
+                          <td className="p-3 font-bold font-mono text-emerald-700">
+                            {((project as any).remainingAmount || 0).toLocaleString()} ريال
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
-              <div>
-                <h1 className="text-sm font-bold text-primary print:text-xs text-center sm:text-right">
-                  {orgSettings?.organizationName || "جمعية عمارة المساجد (منارة)"}
-                </h1>
-                <div className="text-[10px] text-gray-500 text-center sm:text-right">{orgSettings?.organizationNameShort || ""}</div>
+
+              {/* تحويل بنكي */}
+              {order.paymentMethod === "bank_transfer" && (
+                <div className="mb-2.5">
+                  <h3 
+                    className="font-bold py-1.5 px-4 rounded-t flex items-center leading-none text-xs sm:text-sm"
+                    style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                  >
+                    <Landmark className="ml-2 h-4 w-4" />
+                    {project ? "3." : "2."} معلومات التحويل البنكي للمستفيد:
+                  </h3>
+                  <div className="overflow-x-auto w-full">
+                    <table className="min-w-[650px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm text-right">
+                      <thead>
+                        <tr className="bg-gray-50 border-b text-gray-700">
+                          <th className="p-2.5 font-bold border-l w-1/3">اسم المستفيد (صاحب الحساب)</th>
+                          <th className="p-2.5 font-bold border-l w-1/3">اسم البنك المستلم</th>
+                          <th className="p-2.5 font-bold w-1/3">رقم الآيبان (IBAN)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="p-3 border-l font-bold text-gray-800">{order.beneficiaryName}</td>
+                          <td className="p-3 border-l text-gray-600 font-medium">{order.beneficiaryBank || "—"}</td>
+                          <td className="p-3 font-mono font-bold text-gray-800 tracking-wider" dir="ltr">{order.beneficiaryIban || "—"}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* التوقيعات والاعتماد الفاخر لامر الصرف */}
+            <div className="mt-4 break-inside-avoid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 text-right">
+                {/* الطرف الأول - المراجعة والتدقيق المالي */}
+                <div className="border border-[#1a5f4a]/20 rounded-lg p-3 bg-gray-50/30 relative">
+                  <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-1.5 mb-2.5 text-xs sm:text-sm flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    المراجعة والتدقيق المالي:
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="font-semibold text-gray-500">اسم المحاسب: </span>
+                      <span className="text-gray-900 font-bold">{orgSettings?.accountantName || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-500">التوقيع المالي: </span>
+                      <span className="text-gray-300 font-serif">..........................................</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-500">التاريخ: </span>
+                      <span className="text-gray-300 font-serif">.... / .... / ........ هـ</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* الطرف الثاني - الاعتماد والترخيص بالصرف */}
+                <div className="border border-[#d4a574]/20 rounded-lg p-3 bg-gray-50/30 relative">
+                  <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-1.5 mb-2.5 text-xs sm:text-sm flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#d4a574]" />
+                    الاعتماد والترخيص بالصرف:
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="font-semibold text-gray-500">المدير التنفيذي / رئيس مجلس الإدارة: </span>
+                      <span className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-500">الختم والتوقيع الرسمي: </span>
+                      <span className="text-gray-300 font-serif">..........................................</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-500">التاريخ: </span>
+                      <span className="text-gray-300 font-serif">.... / .... / ........ هـ</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* تذييل المستند الفاخر */}
+              <div className="mt-8 pt-3 border-t border-gray-100 text-center text-gray-400 text-[10px] flex justify-between items-center px-2">
+                <span className="font-medium">تم إنشاء هذا المستند آلياً من نظام بوابة تمام للعناية بالمساجد</span>
+                <span className="font-mono text-gray-500">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} - صفحة 1 من 1</span>
               </div>
             </div>
-
-            {/* عنوان المستند */}
-            <div className="text-center">
-              <h2 className="text-lg font-bold text-primary print:text-base">
-                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
-              </h2>
-              <div className="text-sm font-mono text-gray-600">{order.orderNumber}</div>
-            </div>
-
-            {/* رؤية 2030 على اليسار */}
-            <div className="flex flex-col items-center sm:items-end">
-              <img 
-                src="/vision-2030-logo.png" 
-                alt="رؤية 2030" 
-                className="h-12 w-auto print:h-10"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-              <div className="text-[10px] text-gray-500 mt-1">KINGDOM OF SAUDI ARABIA</div>
-            </div>
-          </div>
-
-          {/* التاريخ */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 text-sm">
-            <span className="font-bold">التاريخ</span>
-            <span className="bg-gray-100 px-2 py-0.5 rounded border text-xs">{toHijriDate(orderDate)}</span>
-            <span className="text-gray-500">الموافق</span>
-            <span className="bg-gray-100 px-2 py-0.5 rounded border text-xs">{formatGregorianDate(orderDate)}</span>
-          </div>
-
-          {/* بيانات الصرف الرئيسية */}
-          <div className="overflow-x-auto w-full">
-            <table className="min-w-[500px] sm:min-w-0 w-full border-collapse text-sm mb-4">
-              <tbody>
-                <tr className="border">
-                  <td className="p-2 bg-gray-50 font-bold w-28 border-l">اصرفوا للمكرم</td>
-                  <td className="p-2 font-bold">{order.beneficiaryName}</td>
-                </tr>
-                <tr className="border">
-                  <td className="p-2 bg-gray-50 font-bold border-l">مبلغ وقدره</td>
-                  <td className="p-2">
-                    <span className="text-gray-500 ml-1">رقماً</span>
-                    <span className="font-bold">{amount.toLocaleString()} ريال</span>
-                    <span className="text-gray-400 mx-2">|</span>
-                    <span className="text-gray-500 ml-1">كتابة</span>
-                    <span>{numberToArabicText(amount)}</span>
-                  </td>
-                </tr>
-                <tr className="border">
-                  <td className="p-2 bg-gray-50 font-bold border-l">رقم طلب الصرف</td>
-                  <td className="p-2 font-mono text-xs">{request?.requestNumber || "-"}</td>
-                </tr>
-                <tr className="border">
-                  <td className="p-2 bg-gray-50 font-bold border-l">وذلك مقابل</td>
-                  <td className="p-2">{request?.description || request?.title || "-"}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* المبلغ المطلوب - إبراز متوازن */}
-          <div className="mb-4 bg-primary/5 border border-primary rounded p-2">
-            <div className="flex items-center justify-center gap-4">
-              <span className="text-sm text-primary font-bold">المبلغ المطلوب دفعه:</span>
-              <span className="text-xl font-bold text-primary">
-                {amount.toLocaleString()} <span className="text-base">ريال</span>
-              </span>
-              <span className="text-xs text-gray-600">({numberToArabicText(amount)})</span>
-            </div>
-          </div>
-
-          {/* خاص بالمشاريع */}
-          {project && (
-            <div className="mb-4">
-              <h3 className="font-bold text-sm mb-2 text-primary">خاص بالمشاريع:</h3>
-              <div className="overflow-x-auto w-full">
-                <table className="min-w-[600px] sm:min-w-0 w-full border-collapse text-xs">
-                  <tbody>
-                    <tr className="border">
-                      <td className="p-1.5 bg-gray-50 font-bold w-28 border-l">اسم المشروع</td>
-                      <td className="p-1.5">{project.name}</td>
-                      <td className="p-1.5 bg-gray-50 font-bold w-24 border-l">الجهة الداعمة</td>
-                      <td className="p-1.5">{(project as any).fundingSource || "لا يوجد"}</td>
-                    </tr>
-                    <tr className="border">
-                      <td className="p-1.5 bg-gray-50 font-bold border-l">إجمالي قيمة الدعم</td>
-                      <td className="p-1.5">{((project as any).fundingAmount || 0).toLocaleString()}</td>
-                      <td className="p-1.5 bg-gray-50 font-bold border-l">إجمالي قيمة العقد</td>
-                      <td className="p-1.5">{((project as any).contractAmount || 0).toLocaleString()}</td>
-                    </tr>
-                    <tr className="border">
-                      <td className="p-1.5 bg-gray-50 font-bold border-l">إجمالي ما تم دفعه</td>
-                      <td className="p-1.5">{((project as any).totalPaid || 0).toLocaleString()}</td>
-                      <td className="p-1.5 bg-gray-50 font-bold border-l">المتبقي بعد الصرف</td>
-                      <td className="p-1.5">{((project as any).remainingAmount || 0).toLocaleString()}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* تحويل بنكي */}
-          {order.paymentMethod === "bank_transfer" && (
-            <div className="mb-4">
-              <h3 className="font-bold text-sm mb-2 text-primary">تحويل بنكي من حساب الجمعية إلى:</h3>
-              <div className="overflow-x-auto w-full">
-                <table className="min-w-[600px] sm:min-w-0 w-full border-collapse text-xs">
-                  <tbody>
-                    <tr className="border">
-                      <td className="p-1.5 bg-gray-50 font-bold w-24 border-l">اسم الحساب</td>
-                      <td className="p-1.5">{order.beneficiaryName}</td>
-                      <td className="p-1.5 bg-gray-50 font-bold w-20 border-l">اسم البنك</td>
-                      <td className="p-1.5">{order.beneficiaryBank || "-"}</td>
-                    </tr>
-                    <tr className="border">
-                      <td className="p-1.5 bg-gray-50 font-bold border-l">رقم الآيبان</td>
-                      <td className="p-1.5 font-mono" dir="ltr" colSpan={3}>{order.beneficiaryIban || "-"}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* تذييل الصفحة */}
-          <div className="mt-4 pt-2 border-t text-center text-gray-500 text-[10px]">
-            <p>تم إنشاء هذا المستند آلياً من نظام بوابة تمام للعناية بالمساجد</p>
-            <p className="mt-0.5">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")}</p>
           </div>
         </div>
       </div>
 
-      {/* أنماط الطباعة */}
+      {/* أنماط الطباعة المتقدمة للجمعية */}
       <style>{`
         @media print {
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 0 !important;
           }
           body {
+            background-color: white !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
           .print\\:hidden {
             display: none !important;
           }
+          .min-h-screen {
+            background-color: white !important;
+            padding: 0 !important;
+          }
+          .print-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            padding: 12mm !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+          .print-inner {
+            min-height: 0 !important;
+            height: auto !important;
+          }
         }
       `}</style>
-    </>
+    </div>
   );
 }
