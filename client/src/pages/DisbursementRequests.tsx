@@ -735,7 +735,7 @@ export default function DisbursementRequests() {
                                         <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 text-right font-medium">
+                                    <DropdownMenuContent align="end" className="w-56 text-right font-medium">
                                       {canCreateRequest && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
@@ -754,7 +754,33 @@ export default function DisbursementRequests() {
                                           <span>عرض تقرير الإنجاز</span>
                                         </DropdownMenuItem>
                                       )}
-                                      {canCreateOrder && (request.status === "approved" || request.status === "pending") && (
+                                      {canApproveRequest && request.status === "pending" && (
+                                        <>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedRequest(request);
+                                              setApprovalNotes("");
+                                              setShowApproveDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                          >
+                                            <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                            <span>اعتماد طلب الصرف</span>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedRequest(request);
+                                              setRejectionReason("");
+                                              setShowRejectDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
+                                          >
+                                            <XCircle className="h-4 w-4 text-rose-500" />
+                                            <span>رفض طلب الصرف</span>
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                      {canCreateOrder && request.status === "approved" && (
                                         <DropdownMenuItem
                                           onClick={() => handleDirectCreateOrder(request)}
                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
@@ -869,7 +895,36 @@ export default function DisbursementRequests() {
                                     )}
 
                                     {/* 5. Convert to Order - If allowed */}
-                                    {canCreateOrder && (request.status === "approved" || request.status === "pending") && !isConverted && (
+                                     {/* 5. Approve & Reject buttons - If allowed and pending */}
+                                     {canApproveRequest && request.status === "pending" && (
+                                       <>
+                                         <DropdownMenuItem
+                                           onClick={() => {
+                                             setSelectedRequest(request);
+                                             setApprovalNotes("");
+                                             setShowApproveDialog(true);
+                                           }}
+                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                         >
+                                           <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                           <span>اعتماد طلب الصرف</span>
+                                         </DropdownMenuItem>
+                                         <DropdownMenuItem
+                                           onClick={() => {
+                                             setSelectedRequest(request);
+                                             setRejectionReason("");
+                                             setShowRejectDialog(true);
+                                           }}
+                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
+                                         >
+                                           <XCircle className="h-4 w-4 text-rose-500" />
+                                           <span>رفض طلب الصرف</span>
+                                         </DropdownMenuItem>
+                                       </>
+                                     )}
+
+                                     {/* 6. Convert to Order - If allowed and approved */}
+                                     {canCreateOrder && request.status === "approved" && !isConverted && (
                                       <DropdownMenuItem
                                         onClick={() => handleDirectCreateOrder(request)}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
