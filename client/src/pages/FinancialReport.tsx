@@ -15,6 +15,8 @@ import {
   ScrollText,
   Wallet,
   Download,
+  Folder,
+  Percent,
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -163,7 +165,7 @@ const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
 export default function FinancialReport() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("contracts");
+  const [activeTab, setActiveTab] = useState("projects");
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
@@ -202,6 +204,21 @@ export default function FinancialReport() {
     csvContent += `"ملخص الإحصائيات الرئيسية"\n`;
     csvContent += `"إجمالي طلبات الصرف","إجمالي العقود","إجمالي أوامر الصرف","المبالغ التي صرفت"\n`;
     csvContent += `"${summary?.totalRequests || 0}","${summary?.totalContracts || 0}","${summary?.totalOrders || 0}","${formatAmount(summary?.totalOrderAmount || 0)} ريال"\n\n`;
+
+    // 3. المصروفات ونسب الجمعية حسب المشروع
+    csvContent += `"المصروفات ونسب الجمعية حسب المشروع"\n`;
+    csvContent += `"رقم المشروع","اسم المشروع","نسبة الجمعية (%)","قيمة الجمعية من المشروع (ريال)","قيمة العقد (ريال)","القيمة الاجمالية للمشروع (ريال)"\n`;
+    if (reportData.byProject && reportData.byProject.length > 0) {
+      reportData.byProject.forEach((project: any) => {
+        const contractAmount = Number(project.contractAmount || 0);
+        const associationValue = Number(project.associationValue || 0);
+        const totalProjectValue = contractAmount + associationValue;
+        csvContent += `"${project.projectNumber || "-"}","${project.projectName || "-"}","${project.managementPercentage || 0}%","${associationValue.toFixed(2)}","${contractAmount.toFixed(2)}","${totalProjectValue.toFixed(2)}"\n`;
+      });
+    } else {
+      csvContent += `"لا توجد بيانات مشاريع"\n`;
+    }
+    csvContent += `\n`;
 
 
 
@@ -422,6 +439,7 @@ export default function FinancialReport() {
         <div className="flex justify-start mb-8 print:hidden">
           <div className="flex p-1.5 bg-slate-100/70 dark:bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-800/50 shadow-inner gap-1.5 max-w-full overflow-x-auto no-scrollbar">
             {[
+              { id: "projects", label: "المشاريع", count: reportData?.byProject?.length || 0, icon: Folder, activeColor: "from-primary to-teal-600" },
               { id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" },
               { id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" },
               { id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" },
@@ -465,6 +483,88 @@ export default function FinancialReport() {
         </div>
 
         <Tabs dir="rtl" value={activeTab} onValueChange={setActiveTab} className="print:hidden">
+          {/* تبويب المشاريع */}
+          <TabsContent value="projects" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              <Card className="border-0 shadow-md bg-white dark:bg-slate-900 overflow-hidden">
+                <CardHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <Folder className="h-5.5 w-5.5 text-primary shrink-0" />
+                        المصروفات ونسب الجمعية لكل مشروع
+                      </CardTitle>
+                      <CardDescription>عرض تفصيلي للمشاريع مع نسبة الإدارة/الإشراف وقيمة الجمعية والمصروفات الفعلية</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-right border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/75 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 text-xs font-bold border-b border-slate-100 dark:border-slate-800">
+                          <th className="py-4 px-6">رقم المشروع</th>
+                          <th className="py-4 px-6">اسم المشروع</th>
+                          <th className="py-4 px-6 text-center">نسبة الجمعية</th>
+                          <th className="py-4 px-6 text-left">قيمة الجمعية من المشروع</th>
+                          <th className="py-4 px-6 text-left">قيمة العقد</th>
+                          <th className="py-4 px-6 text-left">القيمة الاجمالية للمشروع</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-sm">
+                        {reportData?.byProject && reportData.byProject.length > 0 ? (
+                          reportData.byProject.map((project: any) => {
+                            const contractAmount = Number(project.contractAmount || 0);
+                            const associationValue = Number(project.associationValue || 0);
+                            const totalProjectValue = contractAmount + associationValue;
+                            return (
+                              <tr 
+                                key={project.projectId} 
+                                className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors duration-150 group"
+                              >
+                                <td className="py-4 px-6 font-bold text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">
+                                  {project.projectNumber || "-"}
+                                </td>
+                                <td className="py-4 px-6 font-semibold text-slate-900 dark:text-slate-100">
+                                  {project.projectName}
+                                </td>
+                                <td className="py-4 px-6 text-center">
+                                  <Badge className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/30 font-bold px-2.5 py-1 rounded-lg">
+                                    {project.managementPercentage || 0}%
+                                  </Badge>
+                                </td>
+                                <td className="py-4 px-6 text-left font-bold text-amber-600 dark:text-amber-400">
+                                  {associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                </td>
+                                <td className="py-4 px-6 text-left font-semibold text-slate-700 dark:text-slate-300">
+                                  {contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                </td>
+                                <td className="py-4 px-6 text-left font-bold text-blue-600 dark:text-blue-400">
+                                  {totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                              لا توجد مشاريع مسجلة حالياً
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
           {/* تبويب العقود */}
           <TabsContent value="contracts" className="space-y-6">
             <motion.div
@@ -827,23 +927,32 @@ export default function FinancialReport() {
         <div className="hidden print:block space-y-6">
           {/* المصروفات حسب المشروع */}
           <div>
-            <h2 className="text-lg font-bold mb-2">المصروفات حسب المشروع</h2>
+            <h2 className="text-lg font-bold mb-2">المصروفات ونسب الجمعية حسب المشروع</h2>
             <table className="w-full border-collapse border text-sm">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border p-2 text-right">المشروع</th>
-                  <th className="border p-2 text-right">إجمالي المطلوب</th>
-                  <th className="border p-2 text-right">إجمالي المدفوع</th>
+                  <th className="border p-2 text-center">نسبة الجمعية</th>
+                  <th className="border p-2 text-left">قيمة الجمعية من المشروع</th>
+                  <th className="border p-2 text-left">قيمة العقد</th>
+                  <th className="border p-2 text-left">القيمة الاجمالية للمشروع</th>
                 </tr>
               </thead>
               <tbody>
-                {reportData?.byProject?.map((project) => (
-                  <tr key={project.projectId}>
-                    <td className="border p-2">{project.projectName}</td>
-                    <td className="border p-2">{formatAmount(Number(project.totalRequested))} ريال</td>
-                    <td className="border p-2">{formatAmount(Number(project.totalPaid))} ريال</td>
-                  </tr>
-                ))}
+                {reportData?.byProject?.map((project: any) => {
+                  const contractAmount = Number(project.contractAmount || 0);
+                  const associationValue = Number(project.associationValue || 0);
+                  const totalProjectValue = contractAmount + associationValue;
+                  return (
+                    <tr key={project.projectId}>
+                      <td className="border p-2">{project.projectName}</td>
+                      <td className="border p-2 text-center">{project.managementPercentage || 0}%</td>
+                      <td className="border p-2 text-left">{associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
+                      <td className="border p-2 text-left">{contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
+                      <td className="border p-2 text-left">{totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

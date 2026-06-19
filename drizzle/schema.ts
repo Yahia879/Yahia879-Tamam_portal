@@ -959,6 +959,7 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   // قيمة العقد
   contractAmount: decimal("contractAmount", { precision: 15, scale: 2 }).notNull(),
   contractAmountText: varchar("contractAmountText", { length: 500 }),
+  managementPercentage: decimal("managementPercentage", { precision: 5, scale: 2 }).default("0.00"),
   
   // مدة العقد
   duration: int("duration").notNull(),

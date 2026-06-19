@@ -365,6 +365,7 @@ export const contractsRouter = router({
         
         // قيمة ومدة العقد
         contractAmount: z.number().min(0, "قيمة العقد يجب أن تكون أكبر من صفر"),
+        managementPercentage: z.number().optional().default(0),
         duration: z.number().min(1, "مدة العقد مطلوبة"),
         durationUnit: z.enum(durationUnits).default("months"),
         
@@ -445,6 +446,7 @@ export const contractsRouter = router({
         mosqueCity: input.mosqueCity ?? null,
         contractAmount: String(input.contractAmount),
         contractAmountText,
+        managementPercentage: String(input.managementPercentage ?? "0.00"),
         duration: input.duration,
         durationUnit: input.durationUnit,
         contractDate: input.contractDate ? new Date(input.contractDate) : null,
@@ -579,6 +581,7 @@ export const contractsRouter = router({
         mosqueNeighborhood: z.string().optional(),
         mosqueCity: z.string().optional(),
         contractAmount: z.number().optional(),
+        managementPercentage: z.number().optional(),
         duration: z.number().optional(),
         durationUnit: z.enum(durationUnits).optional(),
         contractDate: z.string().optional(),
@@ -616,6 +619,9 @@ export const contractsRouter = router({
       if (updateData.contractAmount) {
         updates.contractAmount = String(updateData.contractAmount);
         updates.contractAmountText = numberToArabicText(updateData.contractAmount);
+      }
+      if (updateData.managementPercentage !== undefined) {
+        updates.managementPercentage = String(updateData.managementPercentage);
       }
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);

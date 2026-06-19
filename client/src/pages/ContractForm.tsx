@@ -257,8 +257,8 @@ export default function ContractForm() {
         durationUnit: c.durationUnit || "months",
         startDate: c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : "",
         totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
-        managementPercentage: 0,
-        baseValue: 0,
+        managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
+        baseValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         notes: c.customTerms || "",
       });
 
@@ -557,6 +557,7 @@ export default function ContractForm() {
         secondPartyAccountName: selectedSupplier?.bankAccountName || undefined,
         // قيمة ومدة العقد
         contractAmount: contractData.totalValue,
+        managementPercentage: contractData.managementPercentage,
         duration: contractData.duration,
         durationUnit: contractData.durationUnit as any,
         contractDate: contractData.startDate,
@@ -600,6 +601,7 @@ export default function ContractForm() {
       secondPartyAccountName: supplier.bankAccountName || undefined,
       // قيمة ومدة العقد
       contractAmount: contractData.totalValue,
+      managementPercentage: contractData.managementPercentage,
       duration: contractData.duration,
       durationUnit: contractData.durationUnit as any,
       contractDate: contractData.startDate,

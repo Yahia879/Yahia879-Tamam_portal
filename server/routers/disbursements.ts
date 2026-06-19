@@ -1595,20 +1595,75 @@ export const disbursementsRouter = router({
 
       const allProjectFinancials = sql`(${projectRequests} UNION ALL ${projectManualPayments})`;
 
-      const byProject = await db
+            const byProject = await db
         .select({
           projectId: projects.id,
           projectName: projects.name,
           projectNumber: projects.projectNumber,
-          totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
-          approvedCount: sql<number>`SUM(CASE WHEN f.status IN ('approved', 'paid') THEN 1 ELSE 0 END)`,
-          paidCount: sql<number>`SUM(CASE WHEN f.status = 'paid' THEN 1 ELSE 0 END)`,
-          totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
+          totalRequested: sql<number>`
+            COALESCE((
+              SELECT SUM(CAST(amount AS DECIMAL(15,2)))
+              FROM (${allProjectFinancials}) as f
+              WHERE f.projectId = projects.id
+            ), 0)
+          `,
+          approvedCount: sql<number>`
+            COALESCE((
+              SELECT SUM(CASE WHEN status IN ('approved', 'paid') THEN 1 ELSE 0 END)
+              FROM (${allProjectFinancials}) as f
+              WHERE f.projectId = projects.id
+            ), 0)
+          `,
+          paidCount: sql<number>`
+            COALESCE((
+              SELECT SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END)
+              FROM (${allProjectFinancials}) as f
+              WHERE f.projectId = projects.id
+            ), 0)
+          `,
+          totalPaid: sql<number>`
+            COALESCE((
+              SELECT SUM(CASE WHEN status = 'paid' THEN CAST(amount AS DECIMAL(15,2)) ELSE 0 END)
+              FROM (${allProjectFinancials}) as f
+              WHERE f.projectId = projects.id
+            ), 0)
+          `,
+          contractAmount: sql<number>`
+            COALESCE((
+              SELECT CAST(contractAmount AS DECIMAL(15,2))
+              FROM contracts_enhanced
+              WHERE projectId = projects.id AND status != 'cancelled'
+              ORDER BY contracts_enhanced.id DESC
+              LIMIT 1
+            ), 0)
+          `,
+          managementPercentage: sql<number>`
+            COALESCE((
+              SELECT CAST(managementPercentage AS DECIMAL(5,2))
+              FROM contracts_enhanced
+              WHERE projectId = projects.id AND status != 'cancelled'
+              ORDER BY contracts_enhanced.id DESC
+              LIMIT 1
+            ), 0)
+          `,
+          associationValue: sql<number>`
+            COALESCE((
+              SELECT CAST(contractAmount AS DECIMAL(15,2)) * CAST(managementPercentage AS DECIMAL(5,2)) / 100
+              FROM contracts_enhanced
+              WHERE projectId = projects.id AND status != 'cancelled'
+              ORDER BY contracts_enhanced.id DESC
+              LIMIT 1
+            ), 0)
+          `,
         })
         .from(projects)
-        .leftJoin(sql`${allProjectFinancials} as f`, eq(projects.id, sql`f.projectId`))
-        .groupBy(projects.id, projects.name, projects.projectNumber)
-        .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
+        .orderBy(desc(sql`
+          COALESCE((
+            SELECT SUM(CAST(amount AS DECIMAL(15,2)))
+            FROM (${allProjectFinancials}) as f
+            WHERE f.projectId = projects.id
+          ), 0)
+        `));
 
       // إجمالي المصروفات حسب الشهر
       const monthRequests = db
@@ -1629,7 +1684,7 @@ export const disbursementsRouter = router({
 
       const allMonthlyFinancials = sql`(${monthRequests} UNION ALL ${monthManual})`;
 
-      const byMonth = await db
+            const byMonth = await (db
         .select({
           month: sql<string>`f.month`,
           totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
@@ -1637,7 +1692,7 @@ export const disbursementsRouter = router({
           totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
         })
         .from(sql`${allMonthlyFinancials} as f`)
-        .groupBy(sql`f.month`)
+        .groupBy(sql`f.month`) as any)
         .orderBy(desc(sql`f.month`));
 
       // إجمالي المصروفات حسب نوع الدفعة
@@ -1659,7 +1714,7 @@ export const disbursementsRouter = router({
 
       const allTypeFinancials = sql`(${typeRequests} UNION ALL ${typeManual})`;
 
-      const byFundingSource = await db
+            const byFundingSource = await (db
         .select({
           fundingSource: sql<string>`f.paymentType`,
           totalRequested: sql<number>`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`,
@@ -1667,7 +1722,7 @@ export const disbursementsRouter = router({
           totalPaid: sql<number>`COALESCE(SUM(CASE WHEN f.status = 'paid' THEN CAST(f.amount AS DECIMAL(15,2)) ELSE 0 END), 0)`,
         })
         .from(sql`${allTypeFinancials} as f`)
-        .groupBy(sql`f.paymentType`)
+        .groupBy(sql`f.paymentType`) as any)
         .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
       // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل)
