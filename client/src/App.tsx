@@ -63,6 +63,7 @@ import SupplierRegistration from "./pages/SupplierRegistration";
 import SuppliersManagement from "./pages/SuppliersManagement";
 import SupplierDetails from "./pages/SupplierDetails";
 import AddSupplier from "./pages/AddSupplier";
+import EditSupplier from "./pages/EditSupplier";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import ContractForm from "./pages/ContractForm";
 import ContractPreview from "./pages/ContractPreview";
@@ -268,6 +269,7 @@ function Router() {
       <Route path="/supplier/dashboard" component={RequesterDashboard} />
       <Route path="/suppliers">{() => <AdminRoute component={SuppliersManagement} />}</Route>
       <Route path="/suppliers/:id">{() => <AdminRoute component={SupplierDetails} />}</Route>
+      <Route path="/suppliers/:id/edit">{() => <AdminRoute component={EditSupplier} />}</Route>
       <Route path="/suppliers/new">{() => <AdminRoute component={AddSupplier} />}</Route>
       <Route path="/organization-settings">{() => <AdminRoute component={OrganizationSettings} />}</Route>
       <Route path="/contracts">{() => <AdminRoute component={ContractsList} />}</Route>

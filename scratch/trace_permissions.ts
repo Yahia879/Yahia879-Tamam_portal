@@ -137,7 +137,7 @@ async function main() {
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }
-  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.approve")) {
+  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve")) {
     allPermissions.add("suppliers");
   }
   if (allPermissions.has("quotations.view")) allPermissions.add("quotations");

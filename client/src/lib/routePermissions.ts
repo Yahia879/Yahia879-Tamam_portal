@@ -204,6 +204,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/projects\/\d+$/, permission: "projects.view_details" },
 
   // الموردون
+  { pattern: /^\/suppliers\/\d+\/edit$/, permission: "suppliers.edit" },
   { pattern: /^\/suppliers\/\d+$/, permission: "suppliers.view_details" },
 
   // المستخدمين

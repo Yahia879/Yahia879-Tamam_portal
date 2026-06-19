@@ -487,7 +487,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "suppliers.view", nameAr: "عرض الموردين" },
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
-            { id: "suppliers.edit", nameAr: "تعديل بيانات مورد" },
+            { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
           ]
         },
@@ -634,7 +634,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "suppliers.view", nameAr: "عرض قائمة الموردين" },
             { id: "suppliers.add", nameAr: "إضافة مورد جديد" },
-            { id: "suppliers.edit", nameAr: "تعديل بيانات مورد" },
+            { id: "suppliers.edit", nameAr: "تعديل بيانات الموردين" },
             { id: "suppliers.approve", nameAr: "اعتماد الموردين" },
           ]
         },
@@ -878,7 +878,7 @@ export default function RolePermissions() {
         view_details: "عرض تفاصيل المورد",
         add: "إضافة مورد",
         approve: "الاعتمادات (اعتماد أو رفض مورد)",
-        edit: "تعديل بيانات مورد",
+        edit: "تعديل بيانات الموردين",
         delete: "حذف مورد"
       },
       quotations: {

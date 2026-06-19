@@ -69,6 +69,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "suppliers.view": ["suppliers.view"],
   "suppliers.view_details": ["suppliers.view"],
   "suppliers.add": ["suppliers.create"],
+  "suppliers.edit": ["suppliers.edit"],
   "suppliers.approve": ["suppliers.approve", "suppliers.reject"],
 
   mosque_map: ["mosque_map.view"],
@@ -697,7 +698,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("staff");
     allPermissions.add("staff_management");
   }
-  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.approve")) {
+  if (allPermissions.has("suppliers.view") || allPermissions.has("suppliers.view_details") || allPermissions.has("suppliers.add") || allPermissions.has("suppliers.edit") || allPermissions.has("suppliers.approve")) {
     allPermissions.add("suppliers");
   }
   if (allPermissions.has("quotations.view")) {

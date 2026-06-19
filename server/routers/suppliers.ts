@@ -521,6 +521,8 @@ export const suppliersRouter = router({
       z.object({
         id: z.number(),
         name: z.string().optional(),
+        entityType: z.enum(entityTypes).optional(),
+        commercialRegister: z.string().optional(),
         commercialActivity: z.string().optional(),
         yearsOfExperience: z.number().optional(),
         workFields: z.array(z.enum(workFields)).optional(),

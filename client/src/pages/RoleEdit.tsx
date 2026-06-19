@@ -59,7 +59,7 @@ const superAdminGroups = [
   {
     title: "المالية والعقود",
     modules: [
-      { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
+      { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "edit", "approve"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
@@ -126,7 +126,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view_details: "عرض تفاصيل المورد",
       add: "إضافة مورد",
       approve: "الاعتمادات (اعتماد أو رفض مورد)",
-      edit: "تعديل بيانات مورد",
+      edit: "تعديل بيانات الموردين",
       delete: "حذف مورد"
     },
     quotations: {
