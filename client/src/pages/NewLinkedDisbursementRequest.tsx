@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowRight,
   Send,
@@ -838,24 +839,31 @@ export default function NewLinkedDisbursementRequest() {
                         </div>
                         {/* مستفيد جديد Checkbox */}
                         {isCustom && (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
+                          <div 
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200 select-none shadow-xs hover:shadow-sm ${
+                              supplier.isNew 
+                                ? "bg-primary/10 border-primary/30 dark:bg-primary/20 dark:border-primary/50 text-primary" 
+                                : "bg-slate-100/80 hover:bg-slate-200/80 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/60 text-slate-700 dark:text-slate-300"
+                            }`}
+                          >
+                            <Checkbox
                               id={`new-beneficiary-${supplier.id}`}
                               checked={supplier.isNew || false}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
+                              onCheckedChange={(checked) => {
                                 setSuppliers(suppliers.map(s => s.id === supplier.id ? {
                                   ...s,
-                                  isNew: checked,
+                                  isNew: !!checked,
                                   name: "",
                                   iban: "",
                                   bank: "",
                                 } : s));
                               }}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary accent-primary cursor-pointer"
+                              className="h-4 w-4 border-slate-300 dark:border-slate-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             />
-                            <Label htmlFor={`new-beneficiary-${supplier.id}`} className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                            <Label 
+                              htmlFor={`new-beneficiary-${supplier.id}`} 
+                              className="text-xs font-bold cursor-pointer text-current flex items-center gap-1"
+                            >
                               مستفيد جديد
                             </Label>
                           </div>

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { LeafletMap } from "@/components/LeafletMap";
 import {
   Building2,
   Phone,
@@ -769,6 +770,38 @@ export default function SupplierDetails() {
                     </p>
                   )}
                 </div>
+
+                {(() => {
+                  if (!supplier.googleMapsUrl) return null;
+                  const match = supplier.googleMapsUrl.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                  if (!match) return null;
+                  const lat = parseFloat(match[1]);
+                  const lng = parseFloat(match[2]);
+                  return (
+                    <div className="mt-4 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 h-[250px] relative z-0">
+                      <LeafletMap
+                        initialCenter={{ lat, lng }}
+                        initialZoom={14}
+                        markers={[
+                          {
+                            id: supplier.id,
+                            position: { lat, lng },
+                            title: supplier.name,
+                            content: (
+                              <div className="text-right font-semibold">
+                                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{supplier.name}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{supplier.address}</p>
+                              </div>
+                            ),
+                            status: supplier.approvalStatus === "approved" ? "approved" : "pending"
+                          }
+                        ]}
+                        fitBounds={false}
+                        className="h-full w-full"
+                      />
+                    </div>
+                  );
+                })()}
 
 
               </CardContent>
