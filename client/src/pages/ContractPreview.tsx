@@ -496,10 +496,6 @@ export default function ContractPreview() {
               <Printer className="h-4 w-4 ml-2" />
               طباعة العقد
             </Button>
-            <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting} className="flex-1 sm:flex-none">
-              {isExporting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Download className="h-4 w-4 ml-2" />}
-              تحميل PDF
-            </Button>
           </div>
         </div>
 
