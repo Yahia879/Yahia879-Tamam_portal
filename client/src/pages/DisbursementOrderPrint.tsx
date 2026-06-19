@@ -143,14 +143,14 @@ export default function DisbursementOrderPrint() {
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
+      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[180mm] relative flex flex-col justify-between">
         {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start min-h-[280mm]">
+        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[165mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
           {/* محتوى المستند */}
-          <div className="relative z-10 flex-1 flex flex-col justify-start">
+          <div className="relative z-10 flex-1 flex flex-col justify-between">
             <div>
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-6">
@@ -326,7 +326,7 @@ export default function DisbursementOrderPrint() {
                     </div>
                     <div>
                       <span className="font-semibold text-gray-500">التاريخ: </span>
-                      <span className="text-gray-300 font-serif">.... / .... / ........ هـ</span>
+                      <span className="text-gray-300 font-serif">.... / .... / ........ م</span>
                     </div>
                   </div>
                 </div>
@@ -339,16 +339,16 @@ export default function DisbursementOrderPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div>
-                      <span className="font-semibold text-gray-500">المدير التنفيذي / رئيس مجلس الإدارة: </span>
+                      <span className="font-semibold text-gray-500">المدير التنفيذي: </span>
                       <span className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "—"}</span>
                     </div>
                     <div>
-                      <span className="font-semibold text-gray-500">الختم والتوقيع الرسمي: </span>
+                      <span className="font-semibold text-gray-500">التوقيع: </span>
                       <span className="text-gray-300 font-serif">..........................................</span>
                     </div>
                     <div>
                       <span className="font-semibold text-gray-500">التاريخ: </span>
-                      <span className="text-gray-300 font-serif">.... / .... / ........ هـ</span>
+                      <span className="text-gray-300 font-serif">.... / .... / ........ م</span>
                     </div>
                   </div>
                 </div>
