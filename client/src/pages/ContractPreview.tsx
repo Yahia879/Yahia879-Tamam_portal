@@ -490,7 +490,7 @@ export default function ContractPreview() {
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
             <Button 
-              onClick={() => navigate(`/contracts/${contract.id}/print`)} 
+              onClick={handlePrint} 
               className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white"
             >
               <Printer className="h-4 w-4 ml-2" />
@@ -925,9 +925,7 @@ export default function ContractPreview() {
             button,
             .print\\:hidden,
             .h-14,
-            .sticky,
-            [class*="sidebar"],
-            [class*="Sidebar"] {
+            .sticky {
               /* إقصاء السايدبار فقط وتجنب إخفاء الـ SidebarInset */
               display: none !important;
               visibility: hidden !important;
@@ -951,6 +949,8 @@ export default function ContractPreview() {
               padding: 0 !important;
               height: auto !important;
               width: 100% !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
             
             main,
@@ -995,7 +995,6 @@ export default function ContractPreview() {
             
             @page {
               size: A4;
-              margin: 0;
             }
           }
           @media screen {
