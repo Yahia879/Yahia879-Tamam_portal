@@ -9,9 +9,10 @@ async function main() {
   }
   const connection = await mysql.createConnection(dbUrl);
   try {
-    console.log("Adding managementPercentage to contracts_enhanced...");
-    await connection.query("ALTER TABLE contracts_enhanced ADD COLUMN managementPercentage DECIMAL(5, 2) DEFAULT 0.00");
-    console.log("Successfully added column managementPercentage!");
+    console.log("Checking structure of contracts_enhanced...");
+    const [rows] = await connection.query("DESCRIBE contracts_enhanced");
+    console.log("Columns in contracts_enhanced:");
+    console.table(rows);
   } catch (err) {
     console.error("Error running SQL:", err);
   } finally {

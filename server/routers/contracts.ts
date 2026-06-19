@@ -241,22 +241,30 @@ export const contractsRouter = router({
         query = query.where(and(...conditions)) as typeof query;
       }
       
-      const contracts = await query
-        .orderBy(desc(contractsEnhanced.createdAt))
-        .limit(limit)
-        .offset((page - 1) * limit);
-      
-      // جلب العدد الإجمالي
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(contractsEnhanced);
-      
-      return {
-        contracts,
-        total: countResult?.count || 0,
-        page,
-        limit,
-      };
+      try {
+        const contracts = await query
+          .orderBy(desc(contractsEnhanced.createdAt))
+          .limit(limit)
+          .offset((page - 1) * limit);
+        
+        // جلب العدد الإجمالي
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(contractsEnhanced);
+        
+        return {
+          contracts,
+          total: countResult?.count || 0,
+          page,
+          limit,
+        };
+      } catch (err: any) {
+        console.error("DETAILED CONTRACTS LIST DATABASE ERROR:", err);
+        const mysqlErr = err.cause || err;
+        throw new Error(
+          `Database query failed: ${mysqlErr.message || err.message} (Code: ${mysqlErr.code || mysqlErr.errno || "UNKNOWN"}, SQLState: ${mysqlErr.sqlState || "UNKNOWN"})`
+        );
+      }
     }),
   
   // جلب عقد بواسطة requestId
@@ -1032,7 +1040,16 @@ export const contractsRouter = router({
     const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
     const templates = await db
-      .select()
+      .select({
+        id: contractTemplates.id,
+        name: contractTemplates.name,
+        nameAr: contractTemplates.nameAr,
+        type: contractTemplates.type,
+        description: contractTemplates.description,
+        isActive: contractTemplates.isActive,
+        isDefault: contractTemplates.isDefault,
+        isSystem: contractTemplates.isSystem,
+      })
       .from(contractTemplates)
       .orderBy(desc(contractTemplates.createdAt));
     return templates;

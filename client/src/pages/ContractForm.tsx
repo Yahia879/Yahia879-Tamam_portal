@@ -143,7 +143,9 @@ export default function ContractForm() {
   const [customClauses, setCustomClauses] = useState<{title: string; description: string}[]>([]);
 
   // جلب قوالب العقود
-  const { data: templatesData, isLoading: templatesLoading } = trpc.contracts.getTemplates.useQuery();
+  const { data: templatesData, isLoading: templatesLoading } = trpc.contracts.getTemplates.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 دقائق
+  });
 
   // جلب بنود القالب المختار
   const { data: templateClauses, isLoading: clausesLoading } = trpc.contracts.getTemplateClauses.useQuery(
@@ -163,10 +165,14 @@ export default function ContractForm() {
   });
 
   // جلب إعدادات الجمعية
-  const { data: orgSettings } = trpc.contracts.getOrganizationSettings.useQuery();
+  const { data: orgSettings } = trpc.contracts.getOrganizationSettings.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 دقائق
+  });
 
   // جلب قائمة المفوضين
-  const { data: signatoriesData } = trpc.organization.getSignatories.useQuery();
+  const { data: signatoriesData } = trpc.organization.getSignatories.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 دقائق
+  });
 
   // جلب المشروع إذا تم تمرير معرفه فقط للحصول على معرف الطلب المرتبط
   const { data: projectDetails } = trpc.projects.getById.useQuery(

@@ -279,7 +279,13 @@ export const organizationRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
     const signatoryList = await db
-      .select()
+      .select({
+        id: signatories.id,
+        name: signatories.name,
+        title: signatories.title,
+        isDefault: signatories.isDefault,
+        isActive: signatories.isActive,
+      })
       .from(signatories)
       .where(eq(signatories.isActive, true))
       .orderBy(signatories.sortOrder);
