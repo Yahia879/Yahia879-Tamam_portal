@@ -2,6 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, CheckSquare, Square, Building, Landmark, Receipt, FileText, CheckCircle2 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
 
 // دالة تحويل الأرقام إلى نص عربي
 function numberToArabicText(num: number): string {
@@ -74,6 +75,7 @@ function formatGregorianDate(date: Date): string {
 export default function DisbursementRequestPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const hasApprovePermission = usePermission("disbursements.approve");
 
   const { data: request, isLoading } = trpc.disbursements.getRequestById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -90,6 +92,14 @@ export default function DisbursementRequestPrint() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!hasApprovePermission) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500 font-bold" dir="rtl">
+        عذراً، لا تملك صلاحية عرض تقرير طلب الصرف.
       </div>
     );
   }

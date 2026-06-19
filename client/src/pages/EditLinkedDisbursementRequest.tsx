@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,7 @@ interface SupplierEntry {
 
 export default function EditLinkedDisbursementRequest() {
   const { user } = useAuth();
+  const hasEditPermission = usePermission("disbursements.edit");
   const [, navigate] = useLocation();
   const params = useParams<{ id: string }>();
   const requestId = parseInt(params.id || "0");
@@ -350,6 +352,16 @@ export default function EditLinkedDisbursementRequest() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!hasEditPermission) {
+    return (
+      <DashboardLayout>
+        <div className="container py-20 text-center" dir="rtl">
+          <p className="text-red-500 font-bold text-lg">عذراً، لا تملك صلاحية تعديل طلب الصرف.</p>
         </div>
       </DashboardLayout>
     );

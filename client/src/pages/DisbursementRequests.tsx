@@ -331,7 +331,8 @@ export default function DisbursementRequests() {
 
   // التحقق من الصلاحيات
   const hasApprovePermission = usePermission("disbursements.approve");
-  const canCreateRequest = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
+  const hasEditPermission = usePermission("disbursements.edit");
+  const canCreateRequest = hasEditPermission;
   const canApproveRequest = hasApprovePermission;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
@@ -692,20 +693,24 @@ export default function DisbursementRequests() {
                                         <AlertCircle className="h-4 w-4 text-red-500" />
                                         <span>عرض سبب رفض طلب الصرف</span>
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
-                                      >
-                                        <FileText className="h-4 w-4 text-gray-500" />
-                                        <span>تعديل طلب الصرف</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
-                                      >
-                                        <Printer className="h-4 w-4 text-blue-500" />
-                                        <span>عرض تقرير طلب الصرف</span>
-                                      </DropdownMenuItem>
+                                      {canCreateRequest && (
+                                        <DropdownMenuItem
+                                          onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                        >
+                                          <FileText className="h-4 w-4 text-gray-500" />
+                                          <span>تعديل طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                      {hasApprovePermission && (
+                                        <DropdownMenuItem
+                                          onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                        >
+                                          <Printer className="h-4 w-4 text-blue-500" />
+                                          <span>عرض تقرير طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                      )}
                                       <DropdownMenuItem
                                         disabled={!!request.rejectionReason}
                                         onClick={() => handleDirectCreateOrder(request)}
@@ -721,15 +726,19 @@ export default function DisbursementRequests() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 ) : isConverted ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                    className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
-                                  >
-                                    <FileText className="h-3.5 w-3.5" />
-                                    عرض تقرير طلب الصرف
-                                  </Button>
+                                  hasApprovePermission ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                      className="flex items-center gap-1.5 text-xs text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold"
+                                    >
+                                      <FileText className="h-3.5 w-3.5" />
+                                      عرض تقرير طلب الصرف
+                                    </Button>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs font-medium">—</span>
+                                  )
                                 ) : (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -738,6 +747,15 @@ export default function DisbursementRequests() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                      {hasApprovePermission && (
+                                        <DropdownMenuItem
+                                          onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                        >
+                                          <Printer className="h-4 w-4 text-blue-500" />
+                                          <span>عرض تقرير طلب الصرف</span>
+                                        </DropdownMenuItem>
+                                      )}
                                       {canCreateRequest && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/disbursements/requests/${request.id}/edit`)}
@@ -850,14 +868,16 @@ export default function DisbursementRequests() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-56 text-right font-medium">
-                                    {/* 1. Print/View Report - Always available */}
-                                    <DropdownMenuItem
-                                      onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
-                                    >
-                                      <Printer className="h-4 w-4 text-blue-500" />
-                                      <span>عرض تقرير طلب الصرف</span>
-                                    </DropdownMenuItem>
+                                    {/* 1. Print/View Report - Available if has approve permission */}
+                                    {hasApprovePermission && (
+                                      <DropdownMenuItem
+                                        onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                      >
+                                        <Printer className="h-4 w-4 text-blue-500" />
+                                        <span>عرض تقرير طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                    )}
 
                                     {/* 2. View Rejection Reason - If rejected */}
                                     {request.status === "rejected" && request.rejectionReason && (
