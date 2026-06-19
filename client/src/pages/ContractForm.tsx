@@ -324,8 +324,8 @@ export default function ContractForm() {
         ? parseFloat(approvedSupplierQuotation.approvedAmount) 
         : null;
       
-      // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ الأصلي
-      const finalAmount = approvedAmount ?? negotiatedAmount ?? originalAmount;
+      // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ النهائي للعرض > المبلغ الأصلي
+      const finalAmount = approvedAmount ?? negotiatedAmount ?? (approvedSupplierQuotation.finalAmount ? parseFloat(approvedSupplierQuotation.finalAmount) : null) ?? originalAmount;
       
       // حساب النسبة إذا كانت مخزنة في العرض
       const managementPercentage = approvedSupplierQuotation.managementPercentage 
@@ -335,9 +335,9 @@ export default function ContractForm() {
       setContractData(prev => ({
         ...prev,
         supplierId: approvedSupplierQuotation.supplierId,
-        baseValue: originalAmount, // المبلغ الأصلي للمرجع
+        baseValue: finalAmount,
         managementPercentage: managementPercentage,
-        totalValue: finalAmount, // القيمة النهائية (بعد التفاوض أو المعتمدة)
+        totalValue: finalAmount,
       }));
     }
   }, [approvedSupplierQuotation]);
@@ -1061,30 +1061,30 @@ export default function ContractForm() {
                   </div>
                 </div>
 
-                {/* القيمة الأساسية والنسبة */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* التفاصيل المالية */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label>القيمة الأساسية (ريال)</Label>
+                    <Label>قيمة العقد (ريال) *</Label>
                     <Input
                       type="number"
                       min={0}
-                      value={contractData.baseValue || ""}
+                      value={contractData.totalValue || ""}
                       onChange={(e) => {
-                        const base = parseFloat(e.target.value) || 0;
-                        const percentage = contractData.managementPercentage || 0;
-                        const total = base + (base * percentage / 100);
+                        const val = parseFloat(e.target.value) || 0;
                         setContractData({ 
                           ...contractData, 
-                          baseValue: base,
-                          totalValue: total
+                          totalValue: val,
+                          baseValue: val
                         });
                       }}
-                      placeholder="القيمة الأساسية"
+                      placeholder="أدخل قيمة العقد"
+                      className="font-bold text-green-700"
                     />
-                    <p className="text-xs text-muted-foreground">المبلغ المعتمد من عرض السعر</p>
+                    <p className="text-xs text-muted-foreground">قيمة العقد المستحقة للمورد</p>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label>نسبة الإشراف/الإدارة (%)</Label>
+                    <Label>نسبة الجمعية (%)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1092,39 +1092,36 @@ export default function ContractForm() {
                       value={contractData.managementPercentage || ""}
                       onChange={(e) => {
                         const percentage = parseFloat(e.target.value) || 0;
-                        const base = contractData.baseValue || 0;
-                        const total = base + (base * percentage / 100);
                         setContractData({ 
                           ...contractData, 
-                          managementPercentage: percentage,
-                          totalValue: total
+                          managementPercentage: percentage
                         });
                       }}
                       placeholder="0"
                     />
-                    <p className="text-xs text-muted-foreground">نسبة الجمعية من العقد</p>
+                    <p className="text-xs text-muted-foreground">نسبة الإشراف/الإدارة للجمعية</p>
                   </div>
+
                   <div className="space-y-2">
-                    <Label>إجمالي قيمة العقد (ريال) *</Label>
+                    <Label>قيمة الجمعية (ريال)</Label>
                     <Input
-                      type="number"
-                      min={0}
-                      value={contractData.totalValue || ""}
-                      onChange={(e) => setContractData({ 
-                        ...contractData, 
-                        totalValue: parseFloat(e.target.value) || 0 
-                      })}
-                      placeholder="إجمالي القيمة"
-                      className="font-bold text-green-700"
+                      type="text"
+                      disabled
+                      value={((contractData.totalValue * (contractData.managementPercentage || 0)) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      className="bg-muted text-muted-foreground font-semibold text-right"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      القيمة النهائية شاملة النسبة
-                      {contractData.managementPercentage > 0 && (
-                        <span className="text-green-600 mr-1">
-                          (+{(contractData.baseValue * contractData.managementPercentage / 100).toLocaleString()} ريال)
-                        </span>
-                      )}
-                    </p>
+                    <p className="text-xs text-muted-foreground">قيمة نسبة الجمعية المحسوبة</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>القيمة الكلية (ريال)</Label>
+                    <Input
+                      type="text"
+                      disabled
+                      value={(contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right"
+                    />
+                    <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع</p>
                   </div>
                 </div>
               </div>
@@ -1554,9 +1551,29 @@ export default function ContractForm() {
                       <p className="font-medium">{contractData.startDate || "-"}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">القيمة:</span>
-                      <p className="font-medium">{contractData.totalValue.toLocaleString()} ريال</p>
+                      <span className="text-muted-foreground">قيمة العقد:</span>
+                      <p className="font-medium text-green-700 font-bold">{contractData.totalValue.toLocaleString()} ريال</p>
                     </div>
+                    {contractData.managementPercentage > 0 && (
+                      <>
+                        <div>
+                          <span className="text-muted-foreground">نسبة الجمعية:</span>
+                          <p className="font-medium">{contractData.managementPercentage}%</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">قيمة الجمعية:</span>
+                          <p className="font-medium text-orange-600">
+                            {((contractData.totalValue * contractData.managementPercentage) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          </p>
+                        </div>
+                        <div className="sm:col-span-2 border-t pt-2 mt-2">
+                          <span className="text-muted-foreground">القيمة الكلية للمشروع:</span>
+                          <p className="text-base font-bold text-blue-700">
+                            {(contractData.totalValue + (contractData.totalValue * contractData.managementPercentage) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
