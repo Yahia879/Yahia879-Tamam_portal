@@ -153,17 +153,6 @@ export default function ContractForm() {
     { enabled: !!contractData.templateId }
   );
 
-  // جلب الموردين المعتمدين
-  const { data: suppliersData, isLoading: suppliersLoading } = trpc.suppliers.list.useQuery({
-    approvalStatus: "approved",
-    limit: 100,
-  });
-
-  // جلب المشاريع
-  const { data: projectsData, isLoading: projectsLoading } = trpc.projects.getAll.useQuery({
-    limit: 100,
-  });
-
   // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.contracts.getOrganizationSettings.useQuery(undefined, {
     staleTime: 10 * 60 * 1000, // 10 دقائق
@@ -174,10 +163,10 @@ export default function ContractForm() {
     staleTime: 10 * 60 * 1000, // 10 دقائق
   });
 
-  // جلب المشروع إذا تم تمرير معرفه فقط للحصول على معرف الطلب المرتبط
+  // جلب المشروع إذا تم تمرير معرفه أو في وضع التعديل للحصول على بيانات المشروع
   const { data: projectDetails } = trpc.projects.getById.useQuery(
-    { id: projectId! },
-    { enabled: !!projectId && !requestId }
+    { id: (projectId || contractData.projectId)! },
+    { enabled: !!projectId || (isEditMode && !!contractData.projectId) }
   );
 
   // تحديث معرف الطلب الفعلي عند تحميل تفاصيل المشروع
@@ -622,8 +611,6 @@ export default function ContractForm() {
     });
   };
 
-  const suppliers = suppliersData?.suppliers || [];
-  const projects = projectsData || [];
   const templates = templatesData || [];
 
   // خطوات النموذج
@@ -865,9 +852,9 @@ export default function ContractForm() {
                             </span>
                           </>
                         ) : (
-                          // في وضع التعديل، نبحث عن اسم المشروع من القائمة
+                          // في وضع التعديل، نبحث عن اسم المشروع من البيانات المجلوبة بالمعرف
                           (() => {
-                            const project = projects.find((p: any) => p.id === contractData.projectId);
+                            const project = projectDetails || requestDetails?.project;
                             return (
                               <>
                                 <span className="font-medium">
@@ -895,28 +882,14 @@ export default function ContractForm() {
                     </div>
                   </div>
                 ) : (
-                  // عند عدم وجود طلب، نعرض قائمة اختيار المشروع
+                  // عند عدم وجود طلب، نعرض اسم المشروع المحدد أو قيمة فارغة
                   <div className="space-y-2">
-                    <Label>المشروع (اختياري)</Label>
-                    <Select
-                      value={contractData.projectId?.toString() || "none"}
-                      onValueChange={(value) => setContractData({ 
-                        ...contractData, 
-                        projectId: value === "none" ? null : parseInt(value) 
-                      })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المشروع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">بدون مشروع</SelectItem>
-                        {projects.map((project: any) => (
-                          <SelectItem key={project.id} value={project.id.toString()}>
-                            {project.projectNumber} - {project.projectName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>المشروع</Label>
+                    <Input 
+                      value={projectDetails ? `${projectDetails.projectNumber} - ${projectDetails.name}` : "بدون مشروع"} 
+                      readOnly 
+                      className="bg-muted" 
+                    />
                   </div>
                 )}
               </div>
@@ -937,31 +910,11 @@ export default function ContractForm() {
 
                 <div className="space-y-2">
                   <Label>المورد (الطرف الثاني) *</Label>
-                  {suppliersLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                  ) : (
-                    <Select
-                      value={contractData.supplierId?.toString() || ""}
-                      onValueChange={(value) => setContractData({ 
-                        ...contractData, 
-                        supplierId: parseInt(value) 
-                      })}
-                      disabled={isEditMode || hasApprovedSupplier}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر المورد" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliers.map((supplier: any) => (
-                          <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                            {supplier.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
+                  <Input 
+                    value={selectedSupplier?.name || (contractData.supplierId ? "جاري تحميل بيانات المورد..." : "لم يتم تحديد مورد")} 
+                    readOnly 
+                    className="bg-muted" 
+                  />
                   {hasApprovedSupplier && (
                     <p className="text-xs text-blue-600 font-medium">
                       لا يمكن تغيير المورد لوجود عرض سعر معتمد مرتب بهذا الطلب.
