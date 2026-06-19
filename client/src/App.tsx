@@ -67,6 +67,7 @@ import EditSupplier from "./pages/EditSupplier";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import ContractForm from "./pages/ContractForm";
 import ContractPreview from "./pages/ContractPreview";
+import ContractPrint from "./pages/ContractPrint";
 import FieldInspectionForm from "./pages/FieldInspectionForm";
 import FieldVisitSchedule from "./pages/FieldVisitSchedule";
 import FieldVisitsCalendar from "./pages/FieldVisitsCalendar";
@@ -278,6 +279,7 @@ function Router() {
       <Route path="/contracts/new/request/:requestId">{() => <AdminRoute component={ContractForm} />}</Route>
       <Route path="/contracts/:id/edit">{() => <AdminRoute component={ContractForm} />}</Route>
       <Route path="/contracts/:id/preview">{() => <AdminRoute component={ContractPreview} />}</Route>
+      <Route path="/contracts/:id/print">{() => <AdminRoute component={ContractPrint} />}</Route>
       <Route path="/contracts/:id">{() => <AdminRoute component={ContractPreview} />}</Route>
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
       

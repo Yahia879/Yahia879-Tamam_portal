@@ -489,11 +489,17 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+            <Button 
+              onClick={() => navigate(`/contracts/${contract.id}/print`)} 
+              className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white"
+            >
+              <Printer className="h-4 w-4 ml-2" />
+              طباعة العقد
+            </Button>
             <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting} className="flex-1 sm:flex-none">
               {isExporting ? <Loader2 className="h-4 w-4 animate-spin ml-2" /> : <Download className="h-4 w-4 ml-2" />}
               تحميل PDF
             </Button>
-
           </div>
         </div>
 
@@ -912,23 +918,71 @@ export default function ContractPreview() {
         {/* أنماط الطباعة */}
         <style>{`
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            .print\\:hidden {
+            /* إخفاء شريط التنقل الجانبي والعلوي وأي أزرار أو عناصر تحكم */
+            [data-sidebar="sidebar"],
+            .sidebar,
+            aside,
+            button,
+            .print\\:hidden,
+            .h-14,
+            .sticky,
+            [class*="sidebar"],
+            [class*="Sidebar"] {
+              /* إقصاء السايدبار فقط وتجنب إخفاء الـ SidebarInset */
               display: none !important;
+              visibility: hidden !important;
             }
-            [class*="DashboardLayout"] {
+            
+            /* السماح للـ SidebarInset بالظهور للمحتوى */
+            [class*="SidebarInset"],
+            [data-sidebar="sidebar-inset"] {
+              display: block !important;
+              visibility: visible !important;
               padding: 0 !important;
               margin: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
             }
-            [class*="DashboardLayout"] > * {
-              visibility: hidden;
+            
+            /* تهيئة المحتوى الرئيسي ليأخذ كامل الصفحة وبدون خلفيات أو هوامش */
+            body, html {
+              background-color: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              height: auto !important;
+              width: 100% !important;
             }
-            [class*="DashboardLayout"] > div:last-child,
-            [class*="DashboardLayout"] > div:last-child * {
-              visibility: visible;
+            
+            main,
+            .min-h-screen {
+              padding: 0 !important;
+              margin: 0 !important;
+              background-color: white !important;
+              min-height: 0 !important;
+              height: auto !important;
+              width: 100% !important;
+              display: block !important;
+              border: none !important;
+              box-shadow: none !important;
             }
+            
+            /* إلغاء الهوامش المفرطة لصفحة المعاينة */
+            .w-full.overflow-x-auto.pb-8 {
+              padding: 0 !important;
+              margin: 0 !important;
+              background: none !important;
+              overflow: visible !important;
+            }
+            
+            .w-full.overflow-x-auto.pb-8 > div {
+              box-shadow: none !important;
+              border: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
+            }
+            
             .approved-watermark {
               position: fixed !important;
               top: 50% !important;
@@ -938,6 +992,7 @@ export default function ContractPreview() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
+            
             @page {
               size: A4;
               margin: 0;

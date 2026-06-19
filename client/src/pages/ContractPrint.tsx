@@ -1,0 +1,444 @@
+import { useParams, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Printer, Loader2, FileText } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
+
+const DURATION_UNITS: Record<string, string> = {
+  days: "يوم",
+  weeks: "أسبوع",
+  months: "شهر"
+};
+
+const CONTRACT_TYPES: Record<string, string> = {
+  supervision: "إشراف هندسي",
+  construction: "تنفيذ وإنشاء",
+  supply: "توريد",
+  maintenance: "تشغيل وصيانة",
+  consulting: "خدمات استشارية",
+  other: "أخرى"
+};
+
+function toHijriDate(date: Date): string {
+  try {
+    return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric"
+    }).format(date);
+  } catch (e) {
+    const gregorianYear = date.getFullYear();
+    const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
+    return `${date.getDate()}/${date.getMonth() + 1}/${hijriYear} هـ`;
+  }
+}
+
+function getArabicDayName(date: Date): string {
+  const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  return days[date.getDay()];
+}
+
+function numberToArabicText(num: number): string {
+  if (num === 0) return "صفر";
+  
+  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
+  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+
+  function convertHundreds(n: number): string {
+    if (n === 0) return "";
+    if (n < 10) return ones[n];
+    if (n < 20) return teens[n - 10];
+    if (n < 100) {
+      const t = Math.floor(n / 10);
+      const o = n % 10;
+      return o ? `${ones[o]} و${tens[t]}` : tens[t];
+    }
+    const h = Math.floor(n / 100);
+    const rest = n % 100;
+    return rest ? `${hundreds[h]} و${convertHundreds(rest)}` : hundreds[h];
+  }
+
+  function convertThousands(n: number): string {
+    if (n < 1000) return convertHundreds(n);
+    const thousands = Math.floor(n / 1000);
+    const rest = n % 1000;
+    let result = "";
+    if (thousands === 1) result = "ألف";
+    else if (thousands === 2) result = "ألفان";
+    else if (thousands >= 3 && thousands <= 10) result = `${ones[thousands]} آلاف`;
+    else result = `${convertHundreds(thousands)} ألف`;
+    return rest ? `${result} و${convertHundreds(rest)}` : result;
+  }
+
+  function convertMillions(n: number): string {
+    if (n < 1000000) return convertThousands(n);
+    const millions = Math.floor(n / 1000000);
+    const rest = n % 1000000;
+    let result = "";
+    if (millions === 1) result = "مليون";
+    else if (millions === 2) result = "مليونان";
+    else if (millions >= 3 && millions <= 10) result = `${ones[millions]} ملايين`;
+    else result = `${convertThousands(millions)} مليون`;
+    return rest ? `${result} و${convertThousands(rest)}` : result;
+  }
+
+  return `فقط ${convertMillions(Math.floor(num))} ريال`;
+}
+
+export default function ContractPrint() {
+  const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
+  const hasViewPermission = usePermission("contracts.view");
+
+  const { data, isLoading, error } = trpc.contracts.getById.useQuery(
+    { id: parseInt(params.id || "0") },
+    { enabled: !!params.id }
+  );
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!hasViewPermission) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500 font-bold" dir="rtl">
+        عذراً، لا تملك صلاحية عرض تقرير طباعة العقد.
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
+        <div className="text-center">
+          <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-bold mb-2">العقد غير موجود</h2>
+          <Button onClick={() => navigate("/contracts")}>
+            العودة للعقود
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const { contract, organizationSettings: orgSettings, clauseValues } = data;
+  const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
+
+  let parsedCustomClauses: { title: string, description: string }[] = [];
+  if (contract.customClausesJson) {
+    try {
+      parsedCustomClauses = typeof contract.customClausesJson === 'string'
+        ? JSON.parse(contract.customClausesJson)
+        : (contract.customClausesJson as any);
+    } catch (e) {
+      console.error("Error parsing custom clauses:", e);
+    }
+  }
+
+  // دالة لاستبدال المتغيرات في نصوص البنود
+  const replaceVariables = (content: string) => {
+    if (!content) return "";
+    let result = content;
+    const variables: Record<string, string> = {
+      "{{organizationName}}": orgSettings?.organizationName || "",
+      "{{secondPartyName}}": contract.secondPartyName || "",
+      "{{contractNumber}}": contract.contractNumber || "",
+      "{{contractDate}}": contractDate.toLocaleDateString('ar-SA'),
+      "{{contractAmount}}": parseFloat(contract.contractAmount).toLocaleString('ar-SA'),
+      "{{contractAmountText}}": contract.contractAmountText || "",
+      "{{duration}}": contract.duration?.toString() || "",
+      "{{durationUnit}}": contract.durationUnit ? DURATION_UNITS[contract.durationUnit] : "",
+      "{{mosqueName}}": contract.mosqueName || "",
+      "{{mosqueCity}}": contract.mosqueCity || "",
+      "{{subject}}": contract.contractTitle || "",
+      "{{authorizedSignatory}}": contract.signatory?.name || orgSettings?.authorizedSignatory || "",
+      "{{signatoryTitle}}": contract.signatory?.title || orgSettings?.signatoryTitle || "",
+    };
+
+    Object.entries(variables).forEach(([key, value]) => {
+      result = result.split(key).join(value);
+    });
+
+    return result;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
+      {/* أزرار التحكم */}
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
+        <Button variant="outline" onClick={() => navigate(`/contracts/${params.id}/preview`)} className="bg-white border shadow-sm sm:bg-white/90">
+          <ArrowRight className="ml-2 h-4 w-4" />
+          رجوع للمعاينة
+        </Button>
+        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
+          <Printer className="ml-2 h-4 w-4" />
+          تنزيل PDF / طباعة
+        </Button>
+      </div>
+
+      {/* صفحة الطباعة */}
+      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-12 print:p-0 min-h-[297mm] relative flex flex-col justify-between">
+        <div className="p-4 sm:p-8 print:p-4 relative min-h-[285mm] flex flex-col justify-between">
+          <div>
+            {/* رأس الصفحة */}
+            <div className="flex flex-row items-start justify-between mb-6">
+              <div className="text-right">
+                {/* رأس فارغ لأجل الهوامش */}
+              </div>
+              <div className="flex items-center gap-4">
+                {/* شعار الجمعية */}
+                {orgSettings?.logoUrl && (
+                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16" />
+                )}
+              </div>
+            </div>
+
+            {/* عنوان العقد */}
+            <div 
+              className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg"
+              style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
+            >
+              <h1 className="text-lg sm:text-xl font-bold">
+                عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
+                {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
+              </h1>
+            </div>
+
+            {/* مقدمة العقد */}
+            <p className="text-center mb-6 text-gray-700 text-sm sm:text-base leading-relaxed">
+              إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
+            </p>
+
+            {/* الطرف الأول */}
+            <div className="mb-6">
+              <div 
+                className="py-2 px-4 mb-3 rounded"
+                style={{ backgroundColor: '#e8f5e9' }}
+              >
+                <h2 className="font-bold text-green-800 text-sm sm:text-base">
+                  {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <tbody>
+                    <tr>
+                      <td className="py-1 text-gray-600 w-24 sm:w-40">ويمثلها في هذا العقد:</td>
+                      <td className="py-1 font-medium">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")} بصفته {(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">العنوان والاتصال:</td>
+                      <td className="py-1">{(contract.signatory?.address || orgSettings?.address || "----")} | جوال ({(contract.signatory?.phone || orgSettings?.phone || "----")})</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                      <td className="py-1 text-right" dir="ltr">{(contract.signatory?.email || orgSettings?.email || "----")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
+                      <td className="py-1 font-bold">الطرف الأول</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* الطرف الثاني */}
+            <div className="mb-6">
+              <div 
+                className="py-2 px-4 mb-3 rounded"
+                style={{ backgroundColor: '#e8f5e9' }}
+              >
+                <h2 className="font-bold text-green-800 text-sm sm:text-base">
+                  {contract.secondPartyName}
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs sm:text-sm">
+                  <tbody>
+                    <tr>
+                      <td className="py-1 text-gray-600 w-24 sm:w-40">سجل تجاري رقم:</td>
+                      <td className="py-1 text-right" dir="ltr">({contract.secondPartyCommercialRegister || "----"})</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">ويمثلها في هذا العقد:</td>
+                      <td className="py-1 font-medium">{contract.secondPartyRepresentative || "----"} بصفته {contract.secondPartyTitle || "----"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">العنوان والاتصال:</td>
+                      <td className="py-1">{contract.secondPartyAddress || "----"} | جوال ({contract.secondPartyPhone || "----"})</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">البريد الإلكتروني:</td>
+                      <td className="py-1 text-right" dir="ltr">{contract.secondPartyEmail || "----"}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-1 text-gray-600">ويشار إليها بـ:</td>
+                      <td className="py-1 font-bold">الطرف الثاني</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* التمهيد */}
+            <div className="mb-6">
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                حيث إن {orgSettings?.organizationName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
+                و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
+                فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
+              </p>
+            </div>
+
+            {/* بنود العقد الديناميكية */}
+            <div className="space-y-6">
+              {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
+                <div key={clause.id} className="mb-6 break-inside-avoid">
+                  <h3 
+                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                    style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                  >
+                    {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
+                  </h3>
+                  <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                    {replaceVariables(clause.customContent || clause.originalContent)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* البنود المخصصة */}
+            {parsedCustomClauses && parsedCustomClauses.length > 0 && (
+              <div className="space-y-6 mb-6">
+                {parsedCustomClauses.map((clause, index) => (
+                  <div key={`custom-${index}`} className="mb-6 break-inside-avoid">
+                    <h3 
+                      className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                      style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                    >
+                      {clause.title || `بند إضافي ${index + 1}`}:
+                    </h3>
+                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                      {clause.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* القيمة المالية وتفاصيل الحساب */}
+            <div className="mb-6 break-inside-avoid">
+              <h3 
+                className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+              >
+                القيمة المالية وتفاصيل الحساب:
+              </h3>
+              <div className="pr-2 sm:pr-4">
+                <p className="text-xs sm:text-sm text-gray-700 mb-4">
+                  قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+                </p>
+                <div className="text-xs sm:text-sm">
+                  <p className="mb-2 font-medium">يتم تحويل الدفعات على حساب الطرف الثاني وفقاً للتفاصيل التالية:</p>
+                  <ul className="list-none space-y-1 text-gray-700">
+                    <li><span className="text-gray-600 ml-1">اسم الحساب:</span> <span className="font-medium">{contract.secondPartyAccountName || contract.secondPartyName}</span></li>
+                    <li><span className="text-gray-600 ml-1">رقم الآيبان:</span> <span className="font-medium" dir="ltr">{contract.secondPartyIban || "----"}</span></li>
+                    <li><span className="text-gray-600 ml-1">اسم البنك:</span> <span className="font-medium">{contract.secondPartyBankName || "----"}</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* التوقيعات */}
+            <div className="mt-12 break-inside-avoid">
+              <div className="text-center mb-8">
+                <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8">
+                {/* الطرف الأول */}
+                <div className="text-center border-l pl-4">
+                  <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
+                  <p className="font-medium text-xs sm:text-sm">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
+                  <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
+                  <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                  <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                    <p>التوقيع: ...................................</p>
+                    <p>التاريخ: ...................................</p>
+                  </div>
+                  <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                </div>
+
+                {/* الطرف الثاني */}
+                <div className="text-center pr-4">
+                  <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
+                  <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
+                  <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
+                  <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
+                  <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                    <p>التوقيع: ...................................</p>
+                    <p>التاريخ: ...................................</p>
+                  </div>
+                  <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* تذييل الصفحة */}
+          <div 
+            className="text-center text-xs text-gray-500 mt-12 border-t pt-4"
+          >
+            <div className="flex flex-row justify-between items-center gap-1">
+              <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
+              <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
+              <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 0 !important;
+          }
+          body {
+            background-color: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .min-h-screen {
+            background-color: white !important;
+            padding: 0 !important;
+          }
+          .print-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            padding: 8mm !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}

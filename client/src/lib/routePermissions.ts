@@ -222,6 +222,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/contracts\/new\/\d+$/, permission: "contracts" },
   { pattern: /^\/contracts\/new\/request\/\d+$/, permission: "contracts" },
   { pattern: /^\/contracts\/\d+\/preview$/, permission: "contracts" },
+  { pattern: /^\/contracts\/\d+\/print$/, permission: "contracts" },
   { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
 
   // BOQ
