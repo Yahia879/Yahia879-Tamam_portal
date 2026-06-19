@@ -1216,6 +1216,7 @@ export const projectsRouter = router({
     .input(z.object({
       id: z.number(),
       useNegotiatedAmount: z.boolean().default(true), // استخدام المبلغ بعد التفاوض
+      approvedAmount: z.string().optional(), // المبلغ المعتمد مباشرة
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -1234,10 +1235,12 @@ export const projectsRouter = router({
 
       // تحديد المبلغ المعتمد
       let approvedAmount: string;
-      if (input.useNegotiatedAmount && quotation.negotiatedAmount) {
+      if (input.approvedAmount) {
+        approvedAmount = input.approvedAmount;
+      } else if (input.useNegotiatedAmount && quotation.negotiatedAmount) {
         approvedAmount = quotation.negotiatedAmount;
       } else {
-        approvedAmount = quotation.totalAmount;
+        approvedAmount = quotation.finalAmount || quotation.totalAmount;
       }
 
       await db

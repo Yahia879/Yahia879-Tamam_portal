@@ -345,7 +345,7 @@ export default function Quotations() {
   // فتح نافذة الاعتماد المتقدمة
   const openApproveDialog = (quotation: any) => {
     setSelectedQuotationForApproval(quotation);
-    setApprovedAmount(quotation.totalAmount?.toString() || "");
+    setApprovedAmount(quotation.finalAmount?.toString() || quotation.totalAmount?.toString() || "");
     setApprovalNotes("");
     setShowApproveDialog(true);
   };
@@ -357,6 +357,7 @@ export default function Quotations() {
     approveAfterNegotiationMutation.mutate({
       id: selectedQuotationForApproval.id,
       useNegotiatedAmount: true,
+      approvedAmount: approvedAmount || undefined,
       notes: approvalNotes || undefined,
     });
     setShowApproveDialog(false);
@@ -1300,12 +1301,29 @@ export default function Quotations() {
                     <span className="text-muted-foreground text-right">المورد:</span>
                     <span className="font-medium text-left">{selectedQuotationForApproval.supplierName}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
-                    <span className="font-bold text-primary text-left">
-                      {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
-                    </span>
-                  </div>
+                  {selectedQuotationForApproval.finalAmount && parseFloat(selectedQuotationForApproval.finalAmount) !== parseFloat(selectedQuotationForApproval.totalAmount) ? (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
+                        <span className="font-medium text-left">
+                          {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground text-right">المبلغ النهائي:</span>
+                        <span className="font-bold text-primary text-left">
+                          {parseFloat(selectedQuotationForApproval.finalAmount).toLocaleString("ar-SA")} ريال
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground text-right">المبلغ النهائي:</span>
+                      <span className="font-bold text-primary text-left">
+                        {parseFloat(selectedQuotationForApproval.finalAmount || selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* المبلغ المعتمد */}
@@ -1318,10 +1336,10 @@ export default function Quotations() {
                     placeholder="أدخل المبلغ المعتمد..."
                     className="mt-1 text-right"
                   />
-                  {approvedAmount && parseFloat(approvedAmount) !== parseFloat(selectedQuotationForApproval.totalAmount || 0) && (
+                  {approvedAmount && parseFloat(approvedAmount) !== parseFloat(selectedQuotationForApproval.finalAmount || selectedQuotationForApproval.totalAmount || 0) && (
                     <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm flex items-center gap-2 justify-start">
                       <AlertCircle className="h-4 w-4" />
-                      <span>سيتم اعتماد مبلغ مختلف عن العرض الأصلي</span>
+                      <span>سيتم اعتماد مبلغ مختلف عن العرض النهائي</span>
                     </div>
                   )}
                 </div>
