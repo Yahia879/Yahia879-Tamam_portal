@@ -926,26 +926,36 @@ export default function NewLinkedDisbursementRequest() {
                         )}
 
                         {/* البنك */}
-                        {!(isCustom && supplier.isNew) && (
-                          <div className="space-y-2 text-right">
-                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
+                          {isCustom && supplier.isNew ? (
+                            <Input
+                              value={supplier.bank}
+                              onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
+                              placeholder="مثال: مصرف الراجحي"
+                              required
+                              className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            />
+                          ) : (
                             <Input
                               value={supplier.bank}
                               readOnly={true}
                               placeholder="مثال: البنك الأهلي"
                               className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                             />
-                          </div>
-                        )}
+                          )}
+                        </div>
 
                         {/* الآيبان */}
                         <div className="space-y-2 text-right sm:col-span-2 md:col-span-1">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الرقم *</Label>
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {supplier.isNew ? "الايبان *" : "الايبان"}
+                          </Label>
                           {isCustom && supplier.isNew ? (
                             <Input
                               value={supplier.iban}
-                              onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value.replace(/\D/g, ""))}
-                              placeholder="05XXXXXXXX"
+                              onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value.toUpperCase())}
+                              placeholder="SA0000000000000000000000"
                               required
                               className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background font-mono"
                               dir="ltr"

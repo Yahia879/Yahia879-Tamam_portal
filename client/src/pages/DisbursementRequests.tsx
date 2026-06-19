@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,7 +138,7 @@ export default function DisbursementRequests() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("requests");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
   const [requestTypeFilter, setRequestTypeFilter] = useState<string>("all");
@@ -329,9 +330,10 @@ export default function DisbursementRequests() {
   };
 
   // التحقق من الصلاحيات
+  const hasApprovePermission = usePermission("disbursements.approve");
   const canCreateRequest = ["super_admin", "system_admin", "projects_office", "project_manager"].includes(user?.role || "");
-  const canApproveRequest = ["super_admin", "system_admin", "general_manager", "financial"].includes(user?.role || "");
-  const canCreateOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
+  const canApproveRequest = hasApprovePermission;
+  const canCreateOrder = hasApprovePermission;
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
 
