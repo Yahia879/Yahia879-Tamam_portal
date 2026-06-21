@@ -345,7 +345,7 @@ export default function Quotations() {
   // فتح نافذة الاعتماد المتقدمة
   const openApproveDialog = (quotation: any) => {
     setSelectedQuotationForApproval(quotation);
-    setApprovedAmount(quotation.finalAmount?.toString() || quotation.totalAmount?.toString() || "");
+    setApprovedAmount(quotation.approvedAmount?.toString() || quotation.negotiatedAmount?.toString() || quotation.finalAmount?.toString() || quotation.totalAmount?.toString() || "");
     setApprovalNotes("");
     setShowApproveDialog(true);
   };
@@ -770,7 +770,7 @@ export default function Quotations() {
                             <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
                             <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
                             <TableCell className="font-medium text-primary">
-                              {parseFloat(quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
+                              {parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
                             </TableCell>
                             <TableCell>
                               {quotation.validUntil ? (
@@ -1321,6 +1321,14 @@ export default function Quotations() {
                       <span className="text-muted-foreground text-right">المبلغ النهائي:</span>
                       <span className="font-bold text-primary text-left">
                         {parseFloat(selectedQuotationForApproval.finalAmount || selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                      </span>
+                    </div>
+                  )}
+                  {selectedQuotationForApproval.negotiatedAmount && (
+                    <div className="flex justify-between items-center text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                      <span className="font-semibold text-right">المبلغ بعد التفاوض:</span>
+                      <span className="font-bold text-left">
+                        {parseFloat(selectedQuotationForApproval.negotiatedAmount).toLocaleString("ar-SA")} ريال
                       </span>
                     </div>
                   )}

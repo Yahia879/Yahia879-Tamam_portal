@@ -863,7 +863,7 @@ export default function RequestDetails() {
                             quotationNumber={selectedQuotation.quotationNumber}
                             supplierName={(selectedQuotation as any).supplier?.companyName || "غير محدد"}
                             totalAmount={selectedQuotation.totalAmount}
-                            finalAmount={selectedQuotation.finalAmount || selectedQuotation.totalAmount}
+                            finalAmount={selectedQuotation.approvedAmount || selectedQuotation.negotiatedAmount || selectedQuotation.finalAmount || selectedQuotation.totalAmount}
                             approvedAt={request.updatedAt?.toISOString()}
                             approvedBy={user?.name}
                             includesTax={selectedQuotation.includesTax || undefined}
