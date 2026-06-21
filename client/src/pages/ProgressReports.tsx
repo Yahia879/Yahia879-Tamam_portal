@@ -1261,7 +1261,16 @@ export default function ProgressReports() {
                    <Button
                     size="lg"
                     onClick={handleCreateReport}
-                    disabled={(isSubmitting || (editingReportId ? updateMutation.isPending : (createMutation.isPending || hasIncompleteSchedule))) || !newReport.actualWorkDone.trim() || !newReport.title.trim()}
+                    disabled={
+                      isSubmitting || 
+                      (editingReportId 
+                        ? updateMutation.isPending 
+                        : (createMutation.isPending || hasIncompleteSchedule || !selectedPaymentId)
+                      ) || 
+                      !newReport.projectId ||
+                      !newReport.title.trim() || 
+                      !newReport.actualWorkDone.trim()
+                    }
                     className="px-8 h-12 shadow-sm font-bold bg-primary hover:bg-primary/90 flex items-center gap-2"
                   >
                     {(isSubmitting || (editingReportId ? updateMutation.isPending : createMutation.isPending)) ? (
