@@ -156,6 +156,53 @@ function formatErrorMessage(message: string): string {
   return message;
 }
 
+const compressImage = (
+  base64: string,
+  maxImageDimension = 800,
+  imageQuality = 0.5
+): Promise<{ base64: string; size: number }> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      const maxDimension = maxImageDimension;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      const compressedBase64 = canvas.toDataURL("image/webp", imageQuality);
+      const justBase64 = compressedBase64.split(",")[1];
+      const approxSize = Math.round((justBase64.length * 3) / 4);
+      
+      resolve({
+        base64: compressedBase64,
+        size: approxSize,
+      });
+    };
+    img.onerror = () => {
+      resolve({
+        base64,
+        size: Math.round((base64.split(",")[1]?.length * 3) / 4 || 0),
+      });
+    };
+    img.src = base64;
+  });
+};
+
 const uploadFile = async (fileObj: { name: string; base64: string }): Promise<string> => {
   if (!fileObj.base64.startsWith("data:")) {
     return fileObj.base64; // It is already a URL (e.g. from an existing report)
@@ -228,7 +275,7 @@ export default function ProgressReports() {
     actualWorkDone: "",
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const filesList = e.target.files;
     if (!filesList) return;
 
@@ -238,42 +285,77 @@ export default function ProgressReports() {
     const maxTotalSizeBytes = 10 * 1024 * 1024; // 10MB
 
     const newFiles = Array.from(filesList);
-    for (const file of newFiles) {
-      const fileName = file.name;
-      const ext = fileName.split('.').pop()?.toLowerCase();
-      const forbiddenExts = ['exe', 'bat', 'cmd', 'sh', 'msi', 'scr', 'pif', 'com', 'hta', 'vbs', 'js', 'jar', 'vbe', 'jse', 'wsf', 'wsh', 'ps1'];
-      
-      if (forbiddenExts.includes(ext || '')) {
-        toast.error(`عذراً، لا يُسمح برفع الملفات التنفيذية (${fileName}) لحماية خوادم النظام.`);
-        continue;
-      }
+    setIsSubmitting(true);
 
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`حجم الملف كبير جداً (${fileName}). الحد الأقصى هو 10 ميجابايت.`);
-        continue;
-      }
+    try {
+      for (const file of newFiles) {
+        const fileName = file.name;
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        const forbiddenExts = ['exe', 'bat', 'cmd', 'sh', 'msi', 'scr', 'pif', 'com', 'hta', 'vbs', 'js', 'jar', 'vbe', 'jse', 'wsf', 'wsh', 'ps1'];
+        
+        if (forbiddenExts.includes(ext || '')) {
+          toast.error(`عذراً، لا يُسمح برفع الملفات التنفيذية (${fileName}) لحماية خوادم النظام.`);
+          continue;
+        }
 
-      if (runningTotalSize + file.size > maxTotalSizeBytes) {
-        toast.error(`إجمالي حجم الملفات المرفقة يتجاوز الحد الأقصى المسموح به وهو 10 ميجابايت.`);
-        break; // وقف الرفع لتجنب تجاوز الحد
-      }
+        if (file.size > 10 * 1024 * 1024) {
+          toast.error(`حجم الملف كبير جداً (${fileName}). الحد الأقصى هو 10 ميجابايت.`);
+          continue;
+        }
 
-      runningTotalSize += file.size;
+        if (runningTotalSize + file.size > maxTotalSizeBytes) {
+          toast.error(`إجمالي حجم الملفات المرفقة يتجاوز الحد الأقصى المسموح به وهو 10 ميجابايت.`);
+          break; // وقف الرفع لتجنب تجاوز الحد
+        }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
+        // قراءة الملف كـ Base64
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+
+        let finalBase64 = base64Data;
+        let finalSize = file.size;
+        let finalType = file.type;
+        let finalName = file.name;
+
+        // ضغط الصور فقط (باستثناء gif)
+        if (file.type.startsWith("image/") && file.type !== "image/gif") {
+          try {
+            const compressed = await compressImage(base64Data, 800, 0.5);
+            finalBase64 = compressed.base64;
+            finalSize = compressed.size;
+            finalType = "image/webp";
+            finalName = file.name.replace(/\.[^/.]+$/, "") + ".webp";
+          } catch (compressErr) {
+            console.error("خطأ أثناء ضغط الصورة:", compressErr);
+          }
+        }
+
+        if (runningTotalSize + finalSize > maxTotalSizeBytes) {
+          toast.error(`إجمالي حجم الملفات المرفقة يتجاوز الحد الأقصى المسموح به وهو 10 ميجابايت بعد ضغط الملف ${file.name}.`);
+          break;
+        }
+
+        runningTotalSize += finalSize;
+
         setUploadedFiles(prev => {
-          if (prev.some(f => f.name === file.name)) return prev;
+          if (prev.some(f => f.name === finalName)) return prev;
           return [...prev, {
-            name: file.name,
-            size: file.size,
-            base64: base64,
-            type: file.type
+            name: finalName,
+            size: finalSize,
+            base64: finalBase64,
+            type: finalType
           }];
         });
-      };
-      reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("حدث خطأ أثناء معالجة الملفات");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
