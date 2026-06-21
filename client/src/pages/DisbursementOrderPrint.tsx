@@ -254,28 +254,22 @@ export default function DisbursementOrderPrint() {
                     2. معلومات ميزانية المشروع:
                   </h3>
                   <div className="overflow-x-auto w-full">
-                    <table className="min-w-[650px] sm:min-w-0 w-full border border-t-0 text-xs sm:text-sm text-center">
+                    <table className="w-full border border-t-0 text-xs sm:text-sm text-center">
                       <thead>
                         <tr className="bg-gray-100 border-b text-gray-700">
                           <th className="p-2.5 font-bold border-l">اسم المشروع</th>
-                          <th className="p-2.5 font-bold border-l">الجهة الداعمة</th>
                           <th className="p-2.5 font-bold border-l">إجمالي ميزانية المشروع</th>
-                          <th className="p-2.5 font-bold border-l">إجمالي ما تم دفعه</th>
-                          <th className="p-2.5 font-bold">المتبقي بعد الصرف</th>
+                          <th className="p-2.5 font-bold">المبلغ المصروف</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b">
                           <td className="p-3 border-l font-bold text-gray-800">{project.name}</td>
-                          <td className="p-3 border-l text-gray-600 font-medium">{(project as any).fundingSource || "لا يوجد"}</td>
                           <td className="p-3 border-l font-mono text-gray-700 font-semibold">
                             {((project as any).fundingAmount || (project as any).budget || 0).toLocaleString()} ريال
                           </td>
-                          <td className="p-3 border-l font-mono text-gray-700 font-semibold">
-                            {((project as any).totalPaid || 0).toLocaleString()} ريال
-                          </td>
-                          <td className="p-3 font-bold font-mono text-emerald-700">
-                            {((project as any).remainingAmount || 0).toLocaleString()} ريال
+                          <td className="p-3 font-bold font-mono text-[#1a5f4a]">
+                            {amount.toLocaleString()} ريال
                           </td>
                         </tr>
                       </tbody>
