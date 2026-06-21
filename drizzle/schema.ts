@@ -917,6 +917,7 @@ export const durationUnits = [
   "days",             // أيام
   "weeks",            // أسابيع
   "months",           // شهور
+  "years",            // سنوات
 ] as const;
 
 // جدول العقود المحسن

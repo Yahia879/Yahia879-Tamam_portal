@@ -55,8 +55,9 @@ function numberToArabicText(num: number): string {
 }
 
 function toHijriDate(date: Date): string {
+  let formatted = "";
   try {
-    return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+    formatted = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
       day: "numeric",
       month: "numeric",
       year: "numeric"
@@ -64,8 +65,14 @@ function toHijriDate(date: Date): string {
   } catch (e) {
     const gregorianYear = date.getFullYear();
     const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-    return `${date.getDate()}/${date.getMonth() + 1}/${hijriYear} هـ`;
+    formatted = `${date.getDate()}/${date.getMonth() + 1}/${hijriYear}`;
   }
+  
+  // Remove any existing "هـ" or "ه" to avoid duplicates and ensure clean format
+  formatted = formatted.replace(/هـ/g, "").replace(/ه/g, "").trim();
+  // Remove any trailing direction marks or spaces
+  formatted = formatted.replace(/[\s\u200e\u200f]+$/, "");
+  return `${formatted} هـ`;
 }
 
 function formatGregorianDate(date: Date): string {

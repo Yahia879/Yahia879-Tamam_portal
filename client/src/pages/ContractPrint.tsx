@@ -20,8 +20,9 @@ const CONTRACT_TYPES: Record<string, string> = {
 };
 
 function toHijriDate(date: Date): string {
+  let formatted = "";
   try {
-    return new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+    formatted = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
       day: "numeric",
       month: "numeric",
       year: "numeric"
@@ -29,13 +30,90 @@ function toHijriDate(date: Date): string {
   } catch (e) {
     const gregorianYear = date.getFullYear();
     const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-    return `${date.getDate()}/${date.getMonth() + 1}/${hijriYear} هـ`;
+    formatted = `${date.getDate()}/${date.getMonth() + 1}/${hijriYear}`;
   }
+  
+  // Remove any existing "هـ" or "ه" to avoid duplicates and ensure clean format
+  formatted = formatted.replace(/هـ/g, "").replace(/ه/g, "").trim();
+  // Remove any trailing direction marks or spaces
+  formatted = formatted.replace(/[\s\u200e\u200f]+$/, "");
+  return `${formatted} هـ`;
 }
 
 function getArabicDayName(date: Date): string {
   const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   return days[date.getDay()];
+}
+
+// حساب تاريخ انتهاء العقد بناءً على تاريخ البدء والمدة
+function getEndDate(
+  startDateStr: string | null | Date,
+  duration: number | null,
+  durationUnit: string | null,
+  backendEndDate: string | null | Date
+): Date | null {
+  if (backendEndDate) return new Date(backendEndDate);
+  if (!startDateStr || !duration) return null;
+  
+  const start = new Date(startDateStr);
+  const end = new Date(start);
+  
+  // Normalize durationUnit
+  const unit = (durationUnit || "").trim().toLowerCase();
+  
+  if (unit === "days" || unit === "يوم" || unit === "أيام") {
+    end.setDate(end.getDate() + duration);
+  } else if (unit === "weeks" || unit === "أسبوع" || unit === "أسابيع") {
+    end.setDate(end.getDate() + (duration * 7));
+  } else if (unit === "months" || unit === "شهر" || unit === "أشهر" || unit === "شهر/أشهر") {
+    end.setMonth(end.getMonth() + duration);
+  } else if (unit === "years" || unit === "سنة" || unit === "سنوات") {
+    end.setFullYear(end.getFullYear() + duration);
+  } else {
+    end.setMonth(end.getMonth() + duration);
+  }
+  
+  return end;
+}
+
+// تنسيق مدة العقد بلغة عربية سليمة إعرابياً وبدون تكرار
+function formatDuration(duration: number, unit: string | null | undefined): string {
+  if (!duration) return "";
+  
+  // Normalize unit
+  const normalizedUnit = (unit || "").trim().toLowerCase();
+  
+  const isDays = ["days", "day", "يوم", "أيام", "ايام"].includes(normalizedUnit);
+  const isWeeks = ["weeks", "week", "أسبوع", "اسبوع", "أسابيع", "اسابيع"].includes(normalizedUnit);
+  const isMonths = ["months", "month", "شهر", "أشهر", "اشهر", "شهر/أشهر", "شهر / أشهر"].includes(normalizedUnit);
+  const isYears = ["years", "year", "سنة", "سنه", "سنوات"].includes(normalizedUnit);
+
+  if (isDays) {
+    if (duration === 1) return "يوم واحد";
+    if (duration === 2) return "يومان";
+    if (duration >= 3 && duration <= 10) return `${duration} أيام`;
+    return `${duration} يوم`;
+  }
+  if (isWeeks) {
+    if (duration === 1) return "أسبوع واحد";
+    if (duration === 2) return "أسبوعان";
+    if (duration >= 3 && duration <= 10) return `${duration} أسابيع`;
+    return `${duration} أسبوع`;
+  }
+  if (isMonths) {
+    if (duration === 1) return "شهر واحد";
+    if (duration === 2) return "شهران";
+    if (duration >= 3 && duration <= 10) return `${duration} أشهر`;
+    return `${duration} شهر`;
+  }
+  if (isYears) {
+    if (duration === 1) return "سنة واحدة";
+    if (duration === 2) return "سنتان";
+    if (duration >= 3 && duration <= 10) return `${duration} سنوات`;
+    return `${duration} سنة`;
+  }
+  
+  return `${duration} ${(unit && DURATION_UNITS[unit]) || unit || ""}`;
 }
 
 function numberToArabicText(num: number): string {
@@ -149,6 +227,14 @@ export default function ContractPrint() {
   const replaceVariables = (content: string) => {
     if (!content) return "";
     let result = content;
+
+    // Replace combined pattern if present for correct Arabic grammar
+    if (contract.duration) {
+      const formatted = formatDuration(contract.duration, contract.durationUnit || "months");
+      result = result.split("{{duration}} {{durationUnit}}").join(formatted);
+      result = result.split("{{duration}} {{duration_unit}}").join(formatted);
+    }
+
     const variables: Record<string, string> = {
       "{{organizationName}}": orgSettings?.organizationName || "",
       "{{secondPartyName}}": contract.secondPartyName || "",
@@ -157,7 +243,8 @@ export default function ContractPrint() {
       "{{contractAmount}}": parseFloat(contract.contractAmount).toLocaleString('ar-SA'),
       "{{contractAmountText}}": contract.contractAmountText || "",
       "{{duration}}": contract.duration?.toString() || "",
-      "{{durationUnit}}": contract.durationUnit ? DURATION_UNITS[contract.durationUnit] : "",
+      "{{durationUnit}}": contract.durationUnit ? (DURATION_UNITS[contract.durationUnit] || contract.durationUnit) : "",
+      "{{duration_unit}}": contract.durationUnit ? (DURATION_UNITS[contract.durationUnit] || contract.durationUnit) : "",
       "{{mosqueName}}": contract.mosqueName || "",
       "{{mosqueCity}}": contract.mosqueCity || "",
       "{{subject}}": contract.contractTitle || "",
@@ -350,24 +437,22 @@ export default function ContractPrint() {
                   <div>
                     <span className="text-gray-600 font-medium">تاريخ بداية العقد:</span>{" "}
                     <span className="font-semibold text-gray-900">
-                      {contract.startDate ? `${new Date(contract.startDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.startDate))} هـ)` : "----"}
+                      {contract.startDate ? `${new Date(contract.startDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.startDate))})` : "----"}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-600 font-medium">تاريخ نهاية العقد:</span>{" "}
                     <span className="font-semibold text-gray-900">
-                      {contract.endDate ? `${new Date(contract.endDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.endDate))} هـ)` : "----"}
+                      {(() => {
+                        const calculatedEnd = getEndDate(contract.startDate, contract.duration, contract.durationUnit, contract.endDate);
+                        return calculatedEnd ? `${calculatedEnd.toLocaleDateString('ar-SA')} م (${toHijriDate(calculatedEnd)})` : "----";
+                      })()}
                     </span>
                   </div>
                   <div className="sm:col-span-2 mt-1">
                     <span className="text-gray-600 font-medium">مدة العقد الإجمالية:</span>{" "}
                     <span className="font-semibold text-gray-900">
-                      {contract.duration ? `${contract.duration} ${
-                        contract.durationUnit === "days" ? "يوم/أيام" :
-                        contract.durationUnit === "weeks" ? "أسبوع/أسابيع" :
-                        contract.durationUnit === "months" ? "شهر/أشهر" :
-                        contract.durationUnit === "years" ? "سنة/سنوات" : contract.durationUnit || "شهر"
-                      }` : "----"}
+                      {contract.duration ? formatDuration(contract.duration, contract.durationUnit) : "----"}
                     </span>
                   </div>
                 </div>

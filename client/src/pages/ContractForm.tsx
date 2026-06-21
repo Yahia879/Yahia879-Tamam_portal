@@ -260,7 +260,9 @@ export default function ContractForm() {
       // تحميل جدول الدفعات من العقد الحالي
       if (c.paymentScheduleJson) {
         try {
-          const schedule = JSON.parse(c.paymentScheduleJson);
+          const schedule = typeof c.paymentScheduleJson === 'string'
+            ? JSON.parse(c.paymentScheduleJson)
+            : c.paymentScheduleJson;
           if (Array.isArray(schedule)) {
             setPaymentSchedule(schedule);
           }
@@ -272,7 +274,9 @@ export default function ContractForm() {
       // تحميل بنود العقد من العقد الحالي
       if (c.clauseValuesJson) {
         try {
-          const clauses = JSON.parse(c.clauseValuesJson);
+          const clauses = typeof c.clauseValuesJson === 'string'
+            ? JSON.parse(c.clauseValuesJson)
+            : c.clauseValuesJson;
           if (Array.isArray(clauses)) {
             setClauseValues(clauses);
           }
@@ -556,6 +560,7 @@ export default function ContractForm() {
         duration: contractData.duration,
         durationUnit: contractData.durationUnit as any,
         contractDate: contractData.startDate,
+        startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
         // جدول الدفعات
         paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,

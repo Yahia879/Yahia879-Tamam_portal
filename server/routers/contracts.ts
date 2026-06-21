@@ -460,7 +460,22 @@ export const contractsRouter = router({
         contractDate: input.contractDate ? new Date(input.contractDate) : null,
         contractDateHijri: (input.contractDateHijri && input.contractDateHijri.trim() !== '') ? input.contractDateHijri : null,
         startDate: input.startDate ? new Date(input.startDate) : null,
-        endDate: null,
+        endDate: (() => {
+          if (!input.startDate || !input.duration) return null;
+          const start = new Date(input.startDate);
+          const end = new Date(start);
+          const unit = (input.durationUnit || "").trim().toLowerCase();
+          if (unit === "days") {
+            end.setDate(end.getDate() + input.duration);
+          } else if (unit === "weeks") {
+            end.setDate(end.getDate() + (input.duration * 7));
+          } else if (unit === "months") {
+            end.setMonth(end.getMonth() + input.duration);
+          } else if (unit === "years") {
+            end.setFullYear(end.getFullYear() + input.duration);
+          }
+          return end;
+        })(),
         customTerms: input.customTerms ?? null,
         customNotifications: input.customNotifications ?? null,
         customGeneralTerms: input.customGeneralTerms ?? null,
@@ -594,6 +609,7 @@ export const contractsRouter = router({
         durationUnit: z.enum(durationUnits).optional(),
         contractDate: z.string().optional(),
         contractDateHijri: z.string().optional(),
+        startDate: z.string().optional(),
         customTerms: z.string().optional(),
         customNotifications: z.string().optional(),
         customGeneralTerms: z.string().optional(),
@@ -633,6 +649,34 @@ export const contractsRouter = router({
       }
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);
+      }
+      if (input.startDate !== undefined) {
+        updates.startDate = input.startDate ? new Date(input.startDate) : null;
+      }
+
+      // Calculate endDate based on updated or existing startDate, duration, durationUnit
+      const finalStartDate = updates.startDate !== undefined 
+        ? (updates.startDate as Date | null) 
+        : (contract.startDate ? new Date(contract.startDate) : null);
+        
+      const finalDuration = input.duration !== undefined ? input.duration : contract.duration;
+      const finalDurationUnit = input.durationUnit !== undefined ? input.durationUnit : contract.durationUnit;
+
+      if (finalStartDate && finalDuration) {
+        const end = new Date(finalStartDate);
+        const unit = (finalDurationUnit || "").trim().toLowerCase();
+        if (unit === "days") {
+          end.setDate(end.getDate() + finalDuration);
+        } else if (unit === "weeks") {
+          end.setDate(end.getDate() + (finalDuration * 7));
+        } else if (unit === "months") {
+           end.setMonth(end.getMonth() + finalDuration);
+        } else if (unit === "years") {
+           end.setFullYear(end.getFullYear() + finalDuration);
+        }
+        updates.endDate = end;
+      } else {
+        updates.endDate = null;
       }
 
       // إضافة الحقول الجديدة للتحديث
