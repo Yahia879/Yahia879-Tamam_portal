@@ -449,12 +449,6 @@ export default function ContractPrint() {
                       })()}
                     </span>
                   </div>
-                  <div className="sm:col-span-2 mt-1">
-                    <span className="text-gray-600 font-medium">مدة العقد الإجمالية:</span>{" "}
-                    <span className="font-semibold text-gray-900">
-                      {contract.duration ? formatDuration(contract.duration, contract.durationUnit) : "----"}
-                    </span>
-                  </div>
                 </div>
 
                 {/* جدول الدفعات */}

@@ -572,13 +572,7 @@ export default function ContractPreview() {
           <Button 
             variant="outline" 
             className="w-full sm:w-auto"
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                navigate("/contracts");
-              }
-            }}
+            onClick={() => navigate("/contracts")}
           >
             <ArrowRight className="h-4 w-4 ml-2" />
             العودة
@@ -779,12 +773,6 @@ export default function ContractPreview() {
                           const calculatedEnd = getEndDate(contract.startDate, contract.duration, contract.durationUnit, contract.endDate);
                           return calculatedEnd ? `${calculatedEnd.toLocaleDateString('ar-SA')} م (${toHijriDate(calculatedEnd)})` : "----";
                         })()}
-                      </span>
-                    </div>
-                    <div className="sm:col-span-2 mt-1">
-                      <span className="text-gray-600 font-medium">مدة العقد الإجمالية:</span>{" "}
-                      <span className="font-semibold text-gray-900">
-                        {contract.duration ? formatDuration(contract.duration, contract.durationUnit) : "----"}
                       </span>
                     </div>
                   </div>
