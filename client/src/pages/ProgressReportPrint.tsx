@@ -76,6 +76,51 @@ function formatGregorianDate(date: Date): string {
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 }
 
+const checkIsImage = (url: string) => {
+  return url.startsWith("data:image/") || 
+    ((url.startsWith("http") || url.startsWith("/uploads")) && 
+     (url.toLowerCase().endsWith(".png") || 
+      url.toLowerCase().endsWith(".jpg") || 
+      url.toLowerCase().endsWith(".jpeg") || 
+      url.toLowerCase().endsWith(".webp") || 
+      url.toLowerCase().includes("site_photo") || 
+      url.toLowerCase().includes("proof-documents")));
+};
+
+const checkIsPdf = (url: string) => {
+  return url.startsWith("data:application/pdf") || 
+    ((url.startsWith("http") || url.startsWith("/uploads")) && 
+     url.toLowerCase().endsWith(".pdf"));
+};
+
+const openAttachment = (url: string) => {
+  if (url.startsWith("data:")) {
+    try {
+      const parts = url.split(",");
+      const mime = parts[0].match(/:(.*?);/)?.[1] || "application/octet-stream";
+      const bstr = atob(parts[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch (e) {
+      console.error("Failed to open data URI in new tab", e);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "attachment";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } else {
+    window.open(url, "_blank");
+  }
+};
+
 export default function ProgressReportPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -448,38 +493,46 @@ export default function ProgressReportPrint() {
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
                           {allFiles.map((photo: string, index: number) => {
-                            const isImage = photo.startsWith("data:image/") || (photo.startsWith("http") && (photo.endsWith(".png") || photo.endsWith(".jpg") || photo.endsWith(".jpeg") || photo.endsWith(".webp")));
-                            const isPdf = photo.startsWith("data:application/pdf") || (photo.startsWith("http") && photo.endsWith(".pdf"));
-                            return (
-                              <div 
-                                key={index} 
-                                className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
-                                onClick={() => setPreviewFile(photo)}
-                              >
-                                {isImage ? (
+                            const isImage = checkIsImage(photo);
+                            const isPdf = checkIsPdf(photo);
+                            
+                            if (isImage) {
+                              return (
+                                <div 
+                                  key={index} 
+                                  className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
+                                  onClick={() => setPreviewFile(photo)}
+                                >
                                   <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-64 object-contain rounded-md" />
-                                ) : isPdf ? (
-                                  <div className="w-full h-80 relative">
-                                    <iframe src={photo} className="w-full h-full border rounded-md pointer-events-none" title={`مرفق PDF ${index + 1}`} />
-                                    {/* Overlay blocker to allow clicking the parent div instead of interacting with the iframe directly */}
-                                    <div className="absolute inset-0 bg-transparent"></div>
-                                  </div>
-                                ) : (
-                                  <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
-                                    <FileText className="w-8 h-8 text-primary" />
-                                    <span>مستند مرفق</span>
-                                  </div>
-                                )}
-                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
-                                
-                                {/* Premium Hover Overlay Indicator */}
-                                <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
-                                  <div className="bg-white/95 text-primary px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span>تكبير وعرض المرفق</span>
+                                  <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                                  
+                                  {/* Premium Hover Overlay Indicator */}
+                                  <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
+                                    <div className="bg-white/95 text-primary px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>تكبير وعرض الصورة</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
+                              );
+                            }
+
+                            const downloadUrl = photo.startsWith("data:") ? photo : `${window.location.origin}${photo}`;
+                            return (
+                              <a 
+                                key={index}
+                                href={downloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden text-center decoration-transparent"
+                              >
+                                <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
+                                  <FileText className="w-8 h-8 text-primary" />
+                                  <span className="text-gray-700 font-bold">{isPdf ? "مستند PDF" : "مستند مرفق"}</span>
+                                  <span className="text-[10px] text-primary underline print:hidden">انقر لعرض الملف في علامة تبويب جديدة</span>
+                                </div>
+                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                              </a>
                             );
                           })}
                         </div>
@@ -569,9 +622,9 @@ export default function ProgressReportPrint() {
           </DialogHeader>
           {previewFile && (
             <div className="flex-1 flex items-center justify-center p-1 sm:p-3 min-h-0 overflow-hidden w-full">
-              {previewFile.startsWith("data:image/") || (previewFile.startsWith("http") && (previewFile.endsWith(".png") || previewFile.endsWith(".jpg") || previewFile.endsWith(".jpeg") || previewFile.endsWith(".webp"))) ? (
+              {checkIsImage(previewFile) ? (
                 <img src={previewFile} alt="معاينة المرفق" className="max-w-full max-h-full object-contain rounded-md shadow-sm" />
-              ) : previewFile.startsWith("data:application/pdf") || (previewFile.startsWith("http") && previewFile.endsWith(".pdf")) ? (
+              ) : checkIsPdf(previewFile) ? (
                 <iframe src={previewFile} className="w-full h-full border rounded-lg shadow-sm" title="معاينة مستند PDF" />
               ) : (
                 <div className="flex flex-col items-center justify-center p-12 bg-muted/20 border border-dashed rounded-lg text-primary gap-4 w-full max-w-md">
