@@ -105,12 +105,34 @@ export default function NewLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
+  // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
+  const savedState = (() => {
+    const saved = sessionStorage.getItem("new-linked-disbursement-state");
+    if (saved) {
+      try {
+        sessionStorage.removeItem("new-linked-disbursement-state");
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error loading saved state:", e);
+      }
+    }
+    return null;
+  })();
+
   // التحكم بالخطوات
-  const [step, setStep] = useState(1);
-  const [isCustom, setIsCustom] = useState(false);
+  const [step, setStep] = useState(() => savedState?.step ?? 1);
+  const [isCustom, setIsCustom] = useState(() => savedState?.isCustom ?? false);
   
   // بيانات النموذج
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    projectId: number;
+    contractId: number;
+    title: string;
+    description: string;
+    completionPercentage: number;
+    dateMiladi: string;
+    contractPaymentId: number;
+  }>(() => savedState?.formData ?? {
     projectId: 0,
     contractId: 0,
     title: "",
@@ -120,13 +142,27 @@ export default function NewLinkedDisbursementRequest() {
     contractPaymentId: 0,
   });
   
-  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
 
   // قائمة الموردين
-  const [suppliers, setSuppliers] = useState<SupplierEntry[]>([
+  const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
   ]);
+
+  const handleNavigateToPrint = () => {
+    if (selectedReport) {
+      const stateToSave = {
+        step,
+        isCustom,
+        formData,
+        selectedReportId,
+        suppliers,
+      };
+      sessionStorage.setItem("new-linked-disbursement-state", JSON.stringify(stateToSave));
+      navigate(`/progress-reports/${selectedReport.id}/print`);
+    }
+  };
 
   // إعادة ضبط النموذج وتصفيره عند تفعيل الوضع المخصص غير المربوط بمشروع
   useEffect(() => {
@@ -664,7 +700,7 @@ export default function NewLinkedDisbursementRequest() {
                               variant="outline"
                               size="sm"
                               className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
-                              onClick={() => navigate(`/progress-reports/${selectedReport.id}/print`)}
+                              onClick={handleNavigateToPrint}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
                               مراجعة وتدقيق التقرير المعتمد
@@ -747,7 +783,7 @@ export default function NewLinkedDisbursementRequest() {
                       variant="outline"
                       size="sm"
                       className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg shadow-sm"
-                      onClick={() => navigate(`/progress-reports/${selectedReport.id}/print`)}
+                      onClick={handleNavigateToPrint}
                     >
                       <Eye className="ml-1.5 h-3.5 w-3.5" />
                       مراجعة وتدقيق التقرير المعتمد
