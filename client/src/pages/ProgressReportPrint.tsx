@@ -79,6 +79,13 @@ function formatGregorianDate(date: Date): string {
 export default function ProgressReportPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate("/progress-reports");
+    }
+  };
   const reportId = params.id ? parseInt(params.id) : undefined;
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
@@ -126,7 +133,7 @@ export default function ProgressReportPrint() {
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">تقرير الإنجاز غير موجود</h2>
-          <Button onClick={() => navigate("/progress-reports")}>
+          <Button onClick={handleBack}>
             العودة لتقارير الإنجاز
           </Button>
         </div>
@@ -220,7 +227,7 @@ export default function ProgressReportPrint() {
       `}</style>
       {/* أزرار التحكم */}
       <div className="print:hidden fixed top-4 right-4 z-50 flex gap-2">
-        <Button variant="outline" onClick={() => navigate("/progress-reports")} className="bg-white/90 backdrop-blur border shadow-sm">
+        <Button variant="outline" onClick={handleBack} className="bg-white/90 backdrop-blur border shadow-sm">
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>

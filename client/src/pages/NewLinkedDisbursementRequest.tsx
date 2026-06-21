@@ -664,7 +664,7 @@ export default function NewLinkedDisbursementRequest() {
                               variant="outline"
                               size="sm"
                               className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-8 sm:h-9 text-[10px] sm:text-xs px-2.5 sm:px-3 rounded-lg shrink-0 shadow-sm animate-in zoom-in duration-150 w-full sm:w-auto"
-                              onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
+                              onClick={() => navigate(`/progress-reports/${selectedReport.id}/print`)}
                             >
                               <Eye className="ml-1.5 h-3.5 w-3.5" />
                               مراجعة وتدقيق التقرير المعتمد
@@ -747,7 +747,7 @@ export default function NewLinkedDisbursementRequest() {
                       variant="outline"
                       size="sm"
                       className="text-emerald-700 border-emerald-300 bg-background hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-900 dark:hover:bg-emerald-950/20 font-bold h-9 text-xs px-3 rounded-lg shadow-sm"
-                      onClick={() => window.open(`/progress-reports/${selectedReport.id}/print`, '_blank')}
+                      onClick={() => navigate(`/progress-reports/${selectedReport.id}/print`)}
                     >
                       <Eye className="ml-1.5 h-3.5 w-3.5" />
                       مراجعة وتدقيق التقرير المعتمد
