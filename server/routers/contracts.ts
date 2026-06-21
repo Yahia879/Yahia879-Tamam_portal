@@ -285,7 +285,7 @@ export const contractsRouter = router({
 
   // جلب عقد بالتفصيل
   getById: permissionProcedure("contracts.view")
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), lightweight: z.boolean().optional() }))
     .query(async ({ input }) => {
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
@@ -306,17 +306,17 @@ export const contractsRouter = router({
       const { contract, signatory } = contractData;
       
       // جلب الدفعات
-      const payments = await db
+      const payments = input.lightweight ? [] : await db
         .select()
         .from(contractPayments)
         .where(eq(contractPayments.contractId, input.id))
         .orderBy(contractPayments.phaseOrder);
       
       // جلب إعدادات الجمعية
-      const [orgSettings] = await db.select().from(organizationSettings).limit(1);
+      const [orgSettings] = input.lightweight ? [null] : await db.select().from(organizationSettings).limit(1);
 
       // جلب بنود العقد الفعلية
-      const clauseValues = await db
+      const clauseValues = input.lightweight ? [] : await db
         .select({
           id: contractClauseValues.id,
           clauseId: contractClauseValues.clauseId,

@@ -38,8 +38,22 @@ async function main() {
   try {
     const ctx = createMockContext();
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.permissions.getRolePermissions({ roleId: "project_manager" });
-    console.log("getRolePermissions RESULT:", result);
+    
+    console.log("Calling projects.getById for project ID 3...");
+    const projectResult = await caller.projects.getById({ id: 3 });
+    console.log("Project Name:", projectResult.name);
+    console.log("Project Payments count:", projectResult.payments?.length);
+    console.log("Project Contracts count:", projectResult.contracts?.length);
+    console.log("Size of projectResult in JSON bytes:", JSON.stringify(projectResult).length);
+
+    console.log("\nCalling contracts.getById for contract ID 1...");
+    const contractResult = await caller.contracts.getById({ id: 1 });
+    console.log("Contract Number:", contractResult.contract?.contractNumber);
+    console.log("Second Party Name:", contractResult.contract?.secondPartyName);
+    console.log("Second Party IBAN:", contractResult.contract?.secondPartyIban);
+    console.log("Second Party Bank:", contractResult.contract?.secondPartyBankName);
+    console.log("Size of contractResult in JSON bytes:", JSON.stringify(contractResult).length);
+    
   } catch (err) {
     console.error("TRPC error:", err);
   }

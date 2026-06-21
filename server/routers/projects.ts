@@ -275,7 +275,7 @@ export const projectsRouter = router({
 
   // الحصول على مشروع بالتفاصيل
   getById: protectedProcedure
-    .input(z.object({ id: z.number() }))
+    .input(z.object({ id: z.number(), lightweight: z.boolean().optional() }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
@@ -319,7 +319,7 @@ export const projectsRouter = router({
       }
 
       // جلب الطلب المرتبط
-      const [request] = await db
+      const [request] = input.lightweight ? [null] : await db
         .select({
           id: mosqueRequests.id,
           requestNumber: mosqueRequests.requestNumber,
@@ -333,14 +333,14 @@ export const projectsRouter = router({
         .where(eq(mosqueRequests.id, project.requestId));
 
       // جلب مراحل المشروع
-      const phases = await db
+      const phases = input.lightweight ? [] : await db
         .select()
         .from(projectPhases)
         .where(eq(projectPhases.projectId, input.id))
         .orderBy(projectPhases.phaseOrder);
 
       // جلب ملاحظات التقييم الفني من الطلب المرتبط
-      const evaluations = project.requestId ? await db
+      const evaluations = (input.lightweight || !project.requestId) ? [] : await db
         .select({
           id: requestEvaluations.id,
           decision: requestEvaluations.decision,
@@ -352,7 +352,7 @@ export const projectsRouter = router({
         .from(requestEvaluations)
         .leftJoin(users, eq(requestEvaluations.userId, users.id))
         .where(eq(requestEvaluations.requestId, project.requestId))
-        .orderBy(desc(requestEvaluations.createdAt)) : [];
+        .orderBy(desc(requestEvaluations.createdAt));
 
       // جلب العقود (من جدول contracts_enhanced)
       const projectContracts = await db
@@ -456,7 +456,7 @@ export const projectsRouter = router({
         request,
         phases,
         evaluations,
-        contracts: projectContracts,
+        contracts: input.lightweight ? [] : projectContracts,
         payments: unifiedPayments,
         boq,
         quotations: projectQuotations,

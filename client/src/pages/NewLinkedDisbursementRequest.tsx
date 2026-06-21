@@ -151,19 +151,17 @@ export default function NewLinkedDisbursementRequest() {
   // جلب الموردين النشطين
   const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
 
-  // جلب التصنيفات
-  const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
-  const banks = banksData?.values;
+
   
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
-    { projectId: formData.projectId, status: "approved" },
+    { projectId: formData.projectId },
     { enabled: formData.projectId > 0 }
   );
   
   // جلب تفاصيل المشروع
   const { data: projectDetails } = trpc.projects.getById.useQuery(
-    { id: formData.projectId },
+    { id: formData.projectId, lightweight: true },
     { enabled: formData.projectId > 0 }
   );
 
@@ -238,7 +236,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
-    { id: formData.contractId },
+    { id: formData.contractId, lightweight: true },
     { enabled: formData.contractId > 0 }
   );
   
@@ -301,11 +299,16 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [contractDetails, selectedReport, paymentInfo]);
 
-  // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
+  // اختيار العقد تلقائياً إذا كان هناك عقد معتمد أو نشط واحد فقط للمشروع
   useEffect(() => {
-    if (projectContracts && projectContracts.contracts && projectContracts.contracts.length === 1) {
-      if (formData.contractId === 0) {
-        setFormData(prev => ({ ...prev, contractId: projectContracts.contracts[0].id }));
+    if (projectContracts && projectContracts.contracts) {
+      const activeOrApprovedContracts = projectContracts.contracts.filter(
+        c => c.status === "approved" || c.status === "active"
+      );
+      if (activeOrApprovedContracts.length === 1) {
+        if (formData.contractId === 0) {
+          setFormData(prev => ({ ...prev, contractId: activeOrApprovedContracts[0].id }));
+        }
       }
     }
   }, [projectContracts]);
