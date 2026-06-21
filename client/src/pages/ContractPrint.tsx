@@ -131,7 +131,7 @@ export default function ContractPrint() {
     );
   }
 
-  const { contract, organizationSettings: orgSettings, clauseValues } = data;
+  const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
   let parsedCustomClauses: { title: string, description: string }[] = [];
@@ -335,6 +335,84 @@ export default function ContractPrint() {
                 ))}
               </div>
             )}
+
+            {/* المدة وجدول الدفعات */}
+            <div className="mb-6 break-inside-avoid">
+              <h3 
+                className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+              >
+                المدة وجدول الدفعات:
+              </h3>
+              <div className="pr-2 sm:pr-4">
+                {/* مدة العقد وتواريخه */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm mb-4 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
+                  <div>
+                    <span className="text-gray-600 font-medium">تاريخ بداية العقد:</span>{" "}
+                    <span className="font-semibold text-gray-900">
+                      {contract.startDate ? `${new Date(contract.startDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.startDate))} هـ)` : "----"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 font-medium">تاريخ نهاية العقد:</span>{" "}
+                    <span className="font-semibold text-gray-900">
+                      {contract.endDate ? `${new Date(contract.endDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.endDate))} هـ)` : "----"}
+                    </span>
+                  </div>
+                  <div className="sm:col-span-2 mt-1">
+                    <span className="text-gray-600 font-medium">مدة العقد الإجمالية:</span>{" "}
+                    <span className="font-semibold text-gray-900">
+                      {contract.duration ? `${contract.duration} ${
+                        contract.durationUnit === "days" ? "يوم/أيام" :
+                        contract.durationUnit === "weeks" ? "أسبوع/أسابيع" :
+                        contract.durationUnit === "months" ? "شهر/أشهر" :
+                        contract.durationUnit === "years" ? "سنة/سنوات" : contract.durationUnit || "شهر"
+                      }` : "----"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* جدول الدفعات */}
+                <div className="text-xs sm:text-sm mb-6">
+                  <p className="mb-2 font-medium text-gray-800">جدول استحقاق الدفعات المالية المعتمدة:</p>
+                  {payments && payments.length > 0 ? (
+                    <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <table className="w-full border-collapse text-right text-xs sm:text-sm">
+                        <thead>
+                          <tr className="bg-gray-100/80 border-b border-gray-200">
+                            <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
+                            <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم الدفعة / المرحلة</th>
+                            <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">قيمة الدفعة</th>
+                            <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">النسبة</th>
+                            <th className="py-2.5 px-3 font-bold text-gray-700">تاريخ الاستحقاق المتوقع</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {payments.map((p: any, idx: number) => {
+                            const pAmount = parseFloat(p.amount);
+                            const totalContractAmount = parseFloat(contract.contractAmount) || 1;
+                            const percentage = Math.round((pAmount / totalContractAmount) * 100);
+                            return (
+                              <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.description || `الدفعة ${idx + 1}`}</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">{pAmount.toLocaleString('ar-SA')} ريال</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{p.completionPercentage || percentage}%</td>
+                                <td className="py-2.5 px-3 text-gray-600">
+                                  {p.dueDate ? new Date(p.dueDate).toLocaleDateString('ar-SA') : "عند الانتهاء من المرحلة"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-xs sm:text-sm text-gray-500 italic pr-2">لا يوجد جدول دفعات محدد لهذا العقد.</p>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* القيمة المالية وتفاصيل الحساب */}
             <div className="mb-6 break-inside-avoid">
