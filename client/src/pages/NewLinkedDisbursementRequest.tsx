@@ -187,8 +187,10 @@ export default function NewLinkedDisbursementRequest() {
   // جلب الموردين النشطين
   const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
 
+  // جلب التصنيفات لـ "التمويل / الدعم" و"اسم المشروع الرئيسي" ديناميكياً لتجهيز البيانات
+  const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
+  const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
 
-  
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
     { projectId: formData.projectId },
