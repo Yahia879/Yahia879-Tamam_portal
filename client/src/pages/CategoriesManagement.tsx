@@ -28,6 +28,7 @@ const categoryTypeNames: Record<string, string> = {
   boq_unit: "الوحدات",
   funding_support: "التمويل / الدعم",
   main_projects: "اسم المشروع الرئيسي",
+  sadad_billers: "معلومات المفوتر",
 };
 
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -54,9 +55,9 @@ export default function CategoriesManagement() {
   // Queries
   const { data: allCategories = [], refetch: refetchCategories } = trpc.categories.getAllCategories.useQuery();
 
-  const isValueBasedType = (type: string) => ["funding_support", "main_projects"].includes(type);
+  const isValueBasedType = (type: string) => ["funding_support", "main_projects", "sadad_billers"].includes(type);
 
-  // Queries for category values (only enabled for funding_support or main_projects)
+  // Queries for category values (only enabled for funding_support, main_projects or sadad_billers)
   const { data: valueCategoryData, refetch: refetchValueCategory } = trpc.categories.getCategoryByType.useQuery(
     { type: selectedType || "" },
     { enabled: !!selectedType && isValueBasedType(selectedType) }
@@ -75,7 +76,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["boq_category", "bank", "city", "boq_unit", "funding_support", "main_projects"];
+  const categoryTypes = ["boq_category", "bank", "city", "boq_unit", "funding_support", "main_projects", "sadad_billers"];
 
   const parentCategory = useMemo(() => {
     if (!selectedType) return null;
@@ -170,7 +171,21 @@ export default function CategoriesManagement() {
       return;
     }
     
-    if (isValueBasedType(selectedType)) {
+    if (selectedType === "sadad_billers") {
+      if (!valueForm.name) {
+        toast.error("رمز/رقم المفوتر مطلوب");
+        return;
+      }
+      if (!parentCategory) {
+        toast.error("حدث خطأ: التصنيف الرئيسي غير موجود");
+        return;
+      }
+      addCategoryValueMutation.mutate({
+        categoryId: parentCategory.id,
+        value: valueForm.name,
+        valueAr: valueForm.nameAr,
+      });
+    } else if (isValueBasedType(selectedType)) {
       if (!parentCategory) {
         toast.error("حدث خطأ: التصنيف الرئيسي غير موجود");
         return;
@@ -199,7 +214,17 @@ export default function CategoriesManagement() {
   const handleUpdateValue = () => {
     if (!editingValue || !selectedType) return;
     
-    if (isValueBasedType(selectedType)) {
+    if (selectedType === "sadad_billers") {
+      if (!valueForm.name) {
+        toast.error("رمز/رقم المفوتر مطلوب");
+        return;
+      }
+      updateCategoryValueMutation.mutate({
+        id: editingValue.id,
+        value: valueForm.name,
+        valueAr: valueForm.nameAr,
+      });
+    } else if (isValueBasedType(selectedType)) {
       updateCategoryValueMutation.mutate({
         id: editingValue.id,
         valueAr: valueForm.nameAr,
@@ -370,14 +395,27 @@ export default function CategoriesManagement() {
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div>
-                              <label className="block text-sm font-medium mb-2">القيمة بالعربية *</label>
+                              <label className="block text-sm font-medium mb-2">
+                                {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
+                              </label>
                               <Input
-                                placeholder="مثال: الرياض"
+                                placeholder={selectedType === "sadad_billers" ? "مثال: الشركة السعودية للكهرباء" : "مثال: الرياض"}
                                 value={valueForm.nameAr}
                                 onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
                                 className="h-9"
                               />
                             </div>
+                            {selectedType === "sadad_billers" && (
+                              <div>
+                                <label className="block text-sm font-medium mb-2">رمز/رقم المفوتر *</label>
+                                <Input
+                                  placeholder="مثال: 002"
+                                  value={valueForm.name}
+                                  onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
+                                  className="h-9"
+                                />
+                              </div>
+                            )}
                           </div>
                           <DialogFooter className="flex flex-col sm:flex-row gap-2">
                             <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
@@ -416,7 +454,12 @@ export default function CategoriesManagement() {
                           <TableHeader>
                             <TableRow>
                               <TableHead className="text-right w-12">#</TableHead>
-                              <TableHead className="text-right">القيمة بالعربية</TableHead>
+                              <TableHead className="text-right">
+                                {selectedType === "sadad_billers" ? "اسم المفوتر" : "القيمة بالعربية"}
+                              </TableHead>
+                              {selectedType === "sadad_billers" && (
+                                <TableHead className="text-right">رمز/رقم المفوتر</TableHead>
+                              )}
                               <TableHead className="w-24 text-center">الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -425,6 +468,9 @@ export default function CategoriesManagement() {
                               <TableRow key={value.id}>
                                 <TableCell className="text-gray-500">{index + 1}</TableCell>
                                 <TableCell className="font-medium">{value.nameAr}</TableCell>
+                                {selectedType === "sadad_billers" && (
+                                  <TableCell className="font-mono">{value.name}</TableCell>
+                                )}
                                 <TableCell>
                                   <div className="flex items-center justify-center gap-1">
                                     {canEdit && (
@@ -511,9 +557,17 @@ export default function CategoriesManagement() {
                               </div>
                             </div>
                             <div>
-                              <p className="text-[10px] text-gray-500 mb-0.5">بالعربية</p>
+                              <p className="text-[10px] text-gray-500 mb-0.5">
+                                {selectedType === "sadad_billers" ? "اسم المفوتر" : "بالعربية"}
+                              </p>
                               <p className="text-sm font-bold">{value.nameAr}</p>
                             </div>
+                            {selectedType === "sadad_billers" && (
+                              <div>
+                                <p className="text-[10px] text-gray-500 mb-0.5">رمز/رقم المفوتر</p>
+                                <p className="text-sm font-mono font-bold">{value.name}</p>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -544,13 +598,25 @@ export default function CategoriesManagement() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="block text-sm font-medium mb-2">القيمة بالعربية *</label>
+                <label className="block text-sm font-medium mb-2">
+                  {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
+                </label>
                 <Input
                   value={valueForm.nameAr}
                   onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
                   className="h-9"
                 />
               </div>
+              {selectedType === "sadad_billers" && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">رمز/رقم المفوتر *</label>
+                  <Input
+                    value={valueForm.name}
+                    onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
+                    className="h-9"
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>

@@ -224,12 +224,24 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة تغيير رمز المفوتر للبحث التلقائي في سداد والتعبئة التلقائية
   const handleBillerCodeChange = (val: string) => {
-    const matchedName = SADAD_BILLERS[val];
+    const matchedBiller = sadadBillersData?.values?.find((v: any) => v.value === val);
+    const matchedName = matchedBiller ? matchedBiller.valueAr : SADAD_BILLERS[val];
     setFormData(prev => ({
       ...prev,
       billerCode: val,
       billerName: matchedName || prev.billerName
     }));
+  };
+
+  const handleBillerSelect = (billerValue: string) => {
+    const matchedBiller = sadadBillersData?.values?.find((v: any) => v.value === billerValue);
+    if (matchedBiller) {
+      setFormData(prev => ({
+        ...prev,
+        billerCode: matchedBiller.value,
+        billerName: matchedBiller.valueAr
+      }));
+    }
   };
 
   // معالج تغيير نوع طلب الصرف وإعادة تهيئة الحقول المناسبة
@@ -367,6 +379,8 @@ export default function NewLinkedDisbursementRequest() {
   // جلب التصنيفات لـ "التمويل / الدعم" و"اسم المشروع الرئيسي" ديناميكياً لتجهيز البيانات
   const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
+  // جلب معلومات المفوتر ديناميكياً
+  const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
 
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
@@ -1036,6 +1050,36 @@ export default function NewLinkedDisbursementRequest() {
                         </div>
 
                         <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (اختياري)</Label>
+                          <Select
+                            value={formData.billerCode || ""}
+                            onValueChange={handleBillerSelect}
+                          >
+                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                              <SelectValue placeholder="اختر المفوتر للتعبئة التلقائية" />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {sadadBillersData?.values?.map((val: any) => (
+                                <SelectItem key={val.id} value={val.value} className="text-right">
+                                  {val.valueAr} ({val.value})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رمز المفوتر *</Label>
+                          <Input
+                            value={formData.billerCode}
+                            onChange={(e) => handleBillerCodeChange(e.target.value)}
+                            placeholder="أدخل رمز المفوتر"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المفوتر *</Label>
                           <Input
                             value={formData.billerName}
@@ -1052,17 +1096,6 @@ export default function NewLinkedDisbursementRequest() {
                             value={formData.sadadNumber}
                             onChange={(e) => setFormData({ ...formData, sadadNumber: e.target.value })}
                             placeholder="أدخل رقم سداد"
-                            required
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                          />
-                        </div>
-
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رمز المفوتر *</Label>
-                          <Input
-                            value={formData.billerCode}
-                            onChange={(e) => handleBillerCodeChange(e.target.value)}
-                            placeholder="أدخل رمز المفوتر"
                             required
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
                           />
