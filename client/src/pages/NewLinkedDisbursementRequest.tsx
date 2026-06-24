@@ -121,6 +121,7 @@ export default function NewLinkedDisbursementRequest() {
 
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
+  const [requestType, setRequestType] = useState<string>(() => savedState?.requestType ?? "project_linked");
   const [isCustom, setIsCustom] = useState(() => savedState?.isCustom ?? false);
   
   // بيانات النموذج
@@ -132,6 +133,17 @@ export default function NewLinkedDisbursementRequest() {
     completionPercentage: number;
     dateMiladi: string;
     contractPaymentId: number;
+    fundingSupport: string;
+    mainProjectName: string;
+    customProjectName: string;
+    beneficiaryName: string;
+    bankAccountName: string;
+    bankName: string;
+    iban: string;
+    amount: number;
+    billerName: string;
+    sadadNumber: string;
+    billerCode: string;
   }>(() => savedState?.formData ?? {
     projectId: 0,
     contractId: 0,
@@ -140,6 +152,17 @@ export default function NewLinkedDisbursementRequest() {
     completionPercentage: 0,
     dateMiladi: new Date().toISOString().split('T')[0],
     contractPaymentId: 0,
+    fundingSupport: "",
+    mainProjectName: "",
+    customProjectName: "",
+    beneficiaryName: "",
+    bankAccountName: "",
+    bankName: "",
+    iban: "",
+    amount: 0,
+    billerName: "",
+    sadadNumber: "",
+    billerCode: "",
   });
   
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
@@ -164,22 +187,131 @@ export default function NewLinkedDisbursementRequest() {
     }
   };
 
-  // إعادة ضبط النموذج وتصفيره عند تفعيل الوضع المخصص غير المربوط بمشروع
+  // معالج تغيير نوع طلب الصرف وإعادة تهيئة الحقول المناسبة
+  const handleRequestTypeChange = (type: string) => {
+    setRequestType(type);
+    const custom = type !== "project_linked";
+    setIsCustom(custom);
+    setSelectedReportId(null);
+
+    setFormData(prev => ({
+      ...prev,
+      projectId: 0,
+      contractId: 0,
+      contractPaymentId: 0,
+      title: "",
+      description: "",
+      completionPercentage: custom ? 100 : 0,
+      customProjectName: "",
+      beneficiaryName: "",
+      bankAccountName: "",
+      bankName: "",
+      iban: "",
+      amount: 0,
+      billerName: "",
+      sadadNumber: "",
+      billerCode: "",
+    }));
+
+    setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+  };
+
+  // مزامنة حقول الأنواع الجديدة مع حقول طلب الصرف الأساسية لضمان عمل الحفظ بسلاسة
   useEffect(() => {
-    if (isCustom) {
-      setFormData(prev => ({
-        ...prev,
-        projectId: 0,
-        contractId: 0,
-        contractPaymentId: 0,
-        title: prev.title.startsWith("طلب صرف لـ") ? "" : prev.title,
-        description: prev.description.startsWith("تقرير إنجاز") ? "" : prev.description,
-        completionPercentage: 100, // النسبة الافتراضية
-      }));
-      setSelectedReportId(null);
-      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+    if (requestType === "supplier_one_time" || requestType === "misc_expenses") {
+      const typeLabel = requestType === "supplier_one_time" ? "سداد مورد لمرة واحدة" : "مصروفات منوعة";
+      setFormData(prev => {
+        const newTitle = `${typeLabel} - ${prev.customProjectName || ""}`;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}`;
+        if (prev.title === newTitle && prev.description === newDesc) return prev;
+        return {
+          ...prev,
+          title: newTitle,
+          description: newDesc,
+          completionPercentage: 100
+        };
+      });
+
+      setSuppliers(prev => {
+        const first = prev[0];
+        const newWork = `${typeLabel} - ${formData.customProjectName || ""}`;
+        if (
+          first &&
+          first.name === formData.beneficiaryName &&
+          first.work === newWork &&
+          first.amount === formData.amount &&
+          first.iban === formData.iban &&
+          first.bank === formData.bankName
+        ) {
+          return prev;
+        }
+        return [
+          {
+            id: first?.id || crypto.randomUUID(),
+            name: formData.beneficiaryName || "",
+            work: newWork,
+            amount: formData.amount || 0,
+            iban: formData.iban || "",
+            bank: formData.bankName || "",
+            agreedAmount: formData.amount || 0,
+            isNew: true
+          }
+        ];
+      });
+    } else if (requestType === "sadad_invoice") {
+      setFormData(prev => {
+        const newTitle = `فواتير نظام سداد - ${prev.customProjectName || ""}`;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالمفوتر: ${prev.billerName || ""}\nرقم سداد: ${prev.sadadNumber || ""}\nرمز المفوتر: ${prev.billerCode || ""}\nالمبلغ: ${prev.amount || 0}`;
+        if (prev.title === newTitle && prev.description === newDesc) return prev;
+        return {
+          ...prev,
+          title: newTitle,
+          description: newDesc,
+          completionPercentage: 100
+        };
+      });
+
+      setSuppliers(prev => {
+        const first = prev[0];
+        const newWork = `سداد فاتورة - ${formData.customProjectName || ""}`;
+        if (
+          first &&
+          first.name === formData.billerName &&
+          first.work === newWork &&
+          first.amount === formData.amount &&
+          first.iban === formData.sadadNumber &&
+          first.bank === formData.billerCode
+        ) {
+          return prev;
+        }
+        return [
+          {
+            id: first?.id || crypto.randomUUID(),
+            name: formData.billerName || "",
+            work: newWork,
+            amount: formData.amount || 0,
+            iban: formData.sadadNumber || "",
+            bank: formData.billerCode || "",
+            agreedAmount: formData.amount || 0,
+            isNew: true
+          }
+        ];
+      });
     }
-  }, [isCustom]);
+  }, [
+    requestType,
+    formData.fundingSupport,
+    formData.mainProjectName,
+    formData.customProjectName,
+    formData.beneficiaryName,
+    formData.bankAccountName,
+    formData.bankName,
+    formData.iban,
+    formData.amount,
+    formData.billerName,
+    formData.sadadNumber,
+    formData.billerCode
+  ]);
   
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
@@ -401,8 +533,55 @@ export default function NewLinkedDisbursementRequest() {
     }
   };
   
+  // دالة التحقق من تعطيل زر الانتقال للخطوة التالية
+  const isNextDisabled = () => {
+    // الحقول العامة أولاً
+    if (!formData.fundingSupport || !formData.mainProjectName) return true;
+
+    if (requestType === "project_linked") {
+      return !selectedReportId || (selectedReport && isReportLinked(selectedReport));
+    }
+    
+    if (requestType === "custom_standard") {
+      return !formData.title || !formData.description || !formData.dateMiladi;
+    }
+    
+    if (requestType === "supplier_one_time" || requestType === "misc_expenses") {
+      return (
+        !formData.customProjectName ||
+        !formData.beneficiaryName ||
+        !formData.bankAccountName ||
+        !formData.bankName ||
+        !formData.iban ||
+        !formData.dateMiladi ||
+        formData.amount <= 0
+      );
+    }
+    
+    if (requestType === "sadad_invoice") {
+      return (
+        !formData.customProjectName ||
+        !formData.billerName ||
+        !formData.sadadNumber ||
+        !formData.billerCode ||
+        !formData.dateMiladi ||
+        formData.amount <= 0
+      );
+    }
+    
+    return true;
+  };
+
   // إرسال للاعتماد
   const handleSubmit = () => {
+    if (!formData.fundingSupport) {
+      toast.error("يرجى اختيار التمويل / الدعم");
+      return;
+    }
+    if (!formData.mainProjectName) {
+      toast.error("يرجى اختيار اسم المشروع الرئيسي");
+      return;
+    }
     if (!isCustom && !formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
@@ -449,6 +628,8 @@ export default function NewLinkedDisbursementRequest() {
     }
     
     const isManual = paymentIdRaw.startsWith("manual-");
+    
+    // إدراج الحقول المخصصة في المرفقات كـ metadata لحفظها بالكامل في قاعدة البيانات
     const customSupplierMetadata = isCustom ? [{
       name: "custom_supplier_info",
       url: JSON.stringify({
@@ -456,7 +637,25 @@ export default function NewLinkedDisbursementRequest() {
         bank: suppliers[0].bank,
         iban: suppliers[0].iban,
         work: suppliers[0].work,
-        agreedAmount: suppliers[0].agreedAmount
+        agreedAmount: suppliers[0].agreedAmount,
+        bankAccountName: formData.bankAccountName || "",
+        requestType: requestType,
+        fundingSupport: formData.fundingSupport,
+        mainProjectName: formData.mainProjectName,
+        customProjectName: formData.customProjectName || "",
+        billerName: formData.billerName || "",
+        sadadNumber: formData.sadadNumber || "",
+        billerCode: formData.billerCode || "",
+      }),
+      type: "metadata"
+    }] : [];
+
+    const linkedMetadata = !isCustom ? [{
+      name: "linked_request_info",
+      url: JSON.stringify({
+        requestType: "project_linked",
+        fundingSupport: formData.fundingSupport,
+        mainProjectName: formData.mainProjectName,
       }),
       type: "metadata"
     }] : [];
@@ -472,7 +671,7 @@ export default function NewLinkedDisbursementRequest() {
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
-      attachments: isCustom ? customSupplierMetadata : undefined,
+      attachments: isCustom ? customSupplierMetadata : (linkedMetadata.length > 0 ? linkedMetadata : undefined),
     });
   };
   
@@ -566,21 +765,65 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                {/* خيار نوع طلب الصرف */}
-                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/10 mb-4 text-right">
-                  <div className="text-right">
-                    <Label className="text-sm font-bold text-primary block">نوع طلب الصرف</Label>
-                    <span className="text-xs text-muted-foreground block mt-0.5">
-                      {isCustom ? "طلب صرف مخصص ومستقل تماماً وغير مربوط بمشروع" : "طلب صرف مرتبط بمشروع وتقرير إنجاز معتمد"}
-                    </span>
+                {/* الحقول العامة للتمويل واسم المشروع الرئيسي */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-border/40 pb-4 mb-4">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التمويل / الدعم *</Label>
+                    <Select
+                      value={formData.fundingSupport || ""}
+                      onValueChange={(value) => setFormData({ ...formData, fundingSupport: value })}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر التمويل / الدعم" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {fundingSupportData?.values?.map((val: any) => (
+                          <SelectItem key={val.id} value={val.valueAr} className="text-right">
+                            {val.valueAr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-600">طلب مخصص</span>
-                    <Switch
-                      checked={isCustom}
-                      onCheckedChange={setIsCustom}
-                    />
+
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
+                    <Select
+                      value={formData.mainProjectName || ""}
+                      onValueChange={(value) => setFormData({ ...formData, mainProjectName: value })}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر اسم المشروع الرئيسي" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {mainProjectsData?.values?.map((val: any) => (
+                          <SelectItem key={val.id} value={val.valueAr} className="text-right">
+                            {val.valueAr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+
+                {/* خيار نوع طلب الصرف كقائمة منسدلة */}
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف *</Label>
+                  <Select
+                    value={requestType}
+                    onValueChange={handleRequestTypeChange}
+                  >
+                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                      <SelectValue placeholder="اختر نوع طلب الصرف" />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
+                      <SelectItem value="custom_standard" className="text-right">طلب صرف مخصص عام</SelectItem>
+                      <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
+                      <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
+                      <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {!isCustom ? (
@@ -607,39 +850,197 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 ) : (
                   <div className="space-y-4 animate-slide-up text-right">
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
-                      <Input
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="أدخل عنوان طلب الصرف المالي"
-                        required
-                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                      />
-                    </div>
+                    {requestType === "custom_standard" && (
+                      <>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان طلب الصرف *</Label>
+                          <Input
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            placeholder="أدخل عنوان طلب الصرف المالي"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
 
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الوصف وتفاصيل الأعمال *</Label>
-                      <Textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="أدخل وصفاً تفصيلياً للأعمال والمنجزات المصاحبة لطلب الصرف..."
-                        rows={4}
-                        required
-                        className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
-                      />
-                    </div>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الوصف وتفاصيل الأعمال *</Label>
+                          <Textarea
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="أدخل وصفاً تفصيلياً للأعمال والمنجزات المصاحبة لطلب الصرف..."
+                            rows={4}
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
+                          />
+                        </div>
 
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
-                      <Input
-                        type="date"
-                        value={formData.dateMiladi}
-                        onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
-                        required
-                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                      />
-                    </div>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                          <Input
+                            type="date"
+                            value={formData.dateMiladi}
+                            onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {(requestType === "supplier_one_time" || requestType === "misc_expenses") && (
+                      <>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع المخصص *</Label>
+                          <Input
+                            value={formData.customProjectName}
+                            onChange={(e) => setFormData({ ...formData, customProjectName: e.target.value })}
+                            placeholder="أدخل اسم المشروع المخصص"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
+                          <Input
+                            value={formData.beneficiaryName}
+                            onChange={(e) => setFormData({ ...formData, beneficiaryName: e.target.value })}
+                            placeholder="أدخل اسم المستفيد"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الحساب البنكي *</Label>
+                          <Input
+                            value={formData.bankAccountName}
+                            onChange={(e) => setFormData({ ...formData, bankAccountName: e.target.value })}
+                            placeholder="أدخل اسم الحساب البنكي"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
+                          <Input
+                            value={formData.bankName}
+                            onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                            placeholder="أدخل اسم البنك"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان IBAN *</Label>
+                          <Input
+                            value={formData.iban}
+                            onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
+                            placeholder="SA0000000000000000000000"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-mono"
+                            dir="ltr"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                          <Input
+                            type="date"
+                            value={formData.dateMiladi}
+                            onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ *</Label>
+                          <Input
+                            type="number"
+                            value={formData.amount || ""}
+                            onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {requestType === "sadad_invoice" && (
+                      <>
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع المخصص *</Label>
+                          <Input
+                            value={formData.customProjectName}
+                            onChange={(e) => setFormData({ ...formData, customProjectName: e.target.value })}
+                            placeholder="أدخل اسم المشروع المخصص"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المفوتر *</Label>
+                          <Input
+                            value={formData.billerName}
+                            onChange={(e) => setFormData({ ...formData, billerName: e.target.value })}
+                            placeholder="أدخل اسم المفوتر"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم سداد *</Label>
+                          <Input
+                            value={formData.sadadNumber}
+                            onChange={(e) => setFormData({ ...formData, sadadNumber: e.target.value })}
+                            placeholder="أدخل رقم سداد"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رمز المفوتر *</Label>
+                          <Input
+                            value={formData.billerCode}
+                            onChange={(e) => setFormData({ ...formData, billerCode: e.target.value })}
+                            placeholder="أدخل رمز المفوتر"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التاريخ الميلادي *</Label>
+                          <Input
+                            type="date"
+                            value={formData.dateMiladi}
+                            onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ *</Label>
+                          <Input
+                            type="number"
+                            value={formData.amount || ""}
+                            onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -752,11 +1153,7 @@ export default function NewLinkedDisbursementRequest() {
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
                 <Button
                   onClick={() => setStep(2)}
-                  disabled={
-                    isCustom 
-                      ? (!formData.title || !formData.description || !formData.dateMiladi) 
-                      : (!selectedReportId || (selectedReport && isReportLinked(selectedReport)))
-                  }
+                  disabled={isNextDisabled()}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm"
                 >
                   التالي
@@ -879,7 +1276,7 @@ export default function NewLinkedDisbursementRequest() {
                           <span>المستفيد #{index + 1} (توزيع مستحقات الدفعة)</span>
                         </div>
                         {/* مستفيد جديد Checkbox */}
-                        {isCustom && (
+                        {isCustom && requestType === "custom_standard" && (
                           <div 
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200 select-none shadow-xs hover:shadow-sm ${
                               supplier.isNew 
@@ -914,8 +1311,10 @@ export default function NewLinkedDisbursementRequest() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                         {/* اسم المورد */}
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الاسم *</Label>
-                          {isCustom ? (
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {requestType === "sadad_invoice" ? "اسم المفوتر *" : (isCustom ? "الاسم *" : "الاسم")}
+                          </Label>
+                          {isCustom && requestType === "custom_standard" ? (
                             supplier.isNew ? (
                               <Input
                                 value={supplier.name}
@@ -968,8 +1367,10 @@ export default function NewLinkedDisbursementRequest() {
 
                         {/* البنك */}
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
-                          {isCustom && supplier.isNew ? (
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            {requestType === "sadad_invoice" ? "رمز المفوتر *" : "اسم البنك *"}
+                          </Label>
+                          {isCustom && requestType === "custom_standard" && supplier.isNew ? (
                             <Input
                               value={supplier.bank}
                               onChange={(e) => updateSupplier(supplier.id, "bank", e.target.value)}
@@ -981,7 +1382,7 @@ export default function NewLinkedDisbursementRequest() {
                             <Input
                               value={supplier.bank}
                               readOnly={true}
-                              placeholder="مثال: البنك الأهلي"
+                              placeholder={requestType === "sadad_invoice" ? "رمز المفوتر" : "مثال: البنك الأهلي"}
                               className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
                             />
                           )}
@@ -990,9 +1391,9 @@ export default function NewLinkedDisbursementRequest() {
                         {/* الآيبان */}
                         <div className="space-y-2 text-right sm:col-span-2 md:col-span-1">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            {supplier.isNew ? "الايبان *" : "الايبان"}
+                            {requestType === "sadad_invoice" ? "رقم سداد *" : (supplier.isNew ? "الايبان *" : "الايبان")}
                           </Label>
-                          {isCustom && supplier.isNew ? (
+                          {isCustom && requestType === "custom_standard" && supplier.isNew ? (
                             <Input
                               value={supplier.iban}
                               onChange={(e) => updateSupplier(supplier.id, "iban", e.target.value.toUpperCase())}
@@ -1005,9 +1406,9 @@ export default function NewLinkedDisbursementRequest() {
                             <Input
                               value={supplier.iban}
                               readOnly={true}
-                              placeholder="SA0000000000000000000000"
+                              placeholder={requestType === "sadad_invoice" ? "رقم سداد" : "SA0000000000000000000000"}
                               className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                              dir="ltr"
+                              dir={requestType === "sadad_invoice" ? "rtl" : "ltr"}
                             />
                           )}
                         </div>
@@ -1061,10 +1462,15 @@ export default function NewLinkedDisbursementRequest() {
                           <Input
                             type="number"
                             value={supplier.amount || ""}
+                            readOnly={isCustom && requestType !== "custom_standard"}
                             onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
                             required
-                            className="text-right font-black text-primary border-border focus:ring-primary rounded-xl h-10 bg-background"
+                            className={`text-right font-black text-primary border-border focus:ring-primary rounded-xl h-10 ${
+                              isCustom && requestType !== "custom_standard" 
+                                ? "bg-slate-50/50 dark:bg-slate-900/30 cursor-default" 
+                                : "bg-background"
+                            }`}
                           />
                         </div>
                       </div>
