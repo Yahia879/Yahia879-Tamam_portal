@@ -90,6 +90,21 @@ function numberToArabicText(num: number): string {
   return `${convertThousands(intPart)} ريال سعودي فقط لا غير`;
 }
 
+const SADAD_BILLERS: Record<string, string> = {
+  "001": "شركة الاتصالات السعودية (STC)",
+  "002": "الشركة السعودية للكهرباء",
+  "003": "شركة المياه الوطنية",
+  "050": "وزارة الداخلية - المرور",
+  "085": "وزارة الموارد البشرية والتنمية الاجتماعية",
+  "101": "وزارة التجارة",
+  "144": "الهيئة السعودية للمواصفات والمقاييس والجودة",
+  "166": "المؤسسة العامة للتأمينات الاجتماعية",
+  "017": "موبايلي",
+  "044": "زين",
+  "022": "الخطوط السعودية",
+  "090": "الشركة الوطنية للغاز والتصنيع (غازكو)"
+};
+
 interface SupplierEntry {
   id: string;
   name: string;
@@ -185,6 +200,36 @@ export default function NewLinkedDisbursementRequest() {
       sessionStorage.setItem("new-linked-disbursement-state", JSON.stringify(stateToSave));
       navigate(`/progress-reports/${selectedReport.id}/print`);
     }
+  };
+
+  // معالجة تغيير اسم المستفيد والبحث عن مورد متطابق للتعبئة التلقائية
+  const handleBeneficiaryNameChange = (val: string) => {
+    setFormData(prev => {
+      const matched = allSuppliers?.find(s => s.name.trim() === val.trim());
+      if (matched) {
+        return {
+          ...prev,
+          beneficiaryName: val,
+          bankAccountName: matched.bankAccountName || prev.bankAccountName,
+          bankName: matched.bankName || prev.bankName,
+          iban: matched.iban || prev.iban
+        };
+      }
+      return {
+        ...prev,
+        beneficiaryName: val
+      };
+    });
+  };
+
+  // معالجة تغيير رمز المفوتر للبحث التلقائي في سداد والتعبئة التلقائية
+  const handleBillerCodeChange = (val: string) => {
+    const matchedName = SADAD_BILLERS[val];
+    setFormData(prev => ({
+      ...prev,
+      billerCode: val,
+      billerName: matchedName || prev.billerName
+    }));
   };
 
   // معالج تغيير نوع طلب الصرف وإعادة تهيئة الحقول المناسبة
@@ -904,12 +949,18 @@ export default function NewLinkedDisbursementRequest() {
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
                           <Input
+                            list="suppliers-list"
                             value={formData.beneficiaryName}
-                            onChange={(e) => setFormData({ ...formData, beneficiaryName: e.target.value })}
+                            onChange={(e) => handleBeneficiaryNameChange(e.target.value)}
                             placeholder="أدخل اسم المستفيد"
                             required
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
                           />
+                          <datalist id="suppliers-list">
+                            {allSuppliers?.map((s: any) => (
+                              <option key={s.id} value={s.name} />
+                            ))}
+                          </datalist>
                         </div>
 
                         <div className="space-y-2 text-right">
@@ -1010,7 +1061,7 @@ export default function NewLinkedDisbursementRequest() {
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رمز المفوتر *</Label>
                           <Input
                             value={formData.billerCode}
-                            onChange={(e) => setFormData({ ...formData, billerCode: e.target.value })}
+                            onChange={(e) => handleBillerCodeChange(e.target.value)}
                             placeholder="أدخل رمز المفوتر"
                             required
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"

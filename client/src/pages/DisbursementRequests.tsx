@@ -1477,50 +1477,143 @@ export default function DisbursementRequests() {
                   </div>
                 </div>
                 {(() => {
-                  let customSupplier: any = null;
+                  let metadata: any = null;
                   if (selectedRequest.attachmentsJson) {
                     try {
                       const attachments = JSON.parse(selectedRequest.attachmentsJson);
                       if (Array.isArray(attachments)) {
-                        const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+                        const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info" || a.name === "linked_request_info");
                         if (infoAttachment && infoAttachment.url) {
-                          customSupplier = JSON.parse(infoAttachment.url);
+                          metadata = JSON.parse(infoAttachment.url);
                         }
                       }
                     } catch (e) {}
                   }
-                  if (customSupplier) {
-                    return (
-                      <div className="mt-4 p-4 border rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3 text-right" dir="rtl">
-                        <h4 className="font-bold text-xs text-primary border-b pb-2">تفاصيل المستفيد والبيانات البنكية</h4>
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                          <div>
-                            <span className="text-muted-foreground">اسم المستفيد:</span>
-                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{customSupplier.name}</p>
+                  
+                  const showFundingInfo = metadata && (metadata.fundingSupport || metadata.mainProjectName);
+                  const isSadad = metadata?.requestType === "sadad_invoice";
+
+                  return (
+                    <div className="space-y-4">
+                      {showFundingInfo && (
+                        <div className="mt-4 p-4 border rounded-xl bg-primary/[0.02] border-primary/10 space-y-3 text-right" dir="rtl">
+                          <h4 className="font-bold text-xs text-primary border-b pb-2">بيانات التمويل والمشروع</h4>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            {metadata.fundingSupport && (
+                              <div>
+                                <span className="text-muted-foreground">التمويل / الدعم:</span>
+                                <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.fundingSupport}</p>
+                              </div>
+                            )}
+                            {metadata.mainProjectName && (
+                              <div>
+                                <span className="text-muted-foreground">اسم المشروع الرئيسي:</span>
+                                <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.mainProjectName}</p>
+                              </div>
+                            )}
+                            {metadata.customProjectName && (
+                              <div>
+                                <span className="text-muted-foreground">اسم المشروع المخصص:</span>
+                                <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.customProjectName}</p>
+                              </div>
+                            )}
+                            {metadata.requestType && (
+                              <div>
+                                <span className="text-muted-foreground">نوع طلب الصرف:</span>
+                                <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                                  {metadata.requestType === "supplier_one_time" && "سداد مورد لمرة واحدة بفاتورة"}
+                                  {metadata.requestType === "sadad_invoice" && "فواتير نظام سداد"}
+                                  {metadata.requestType === "misc_expenses" && "مصروفات منوعة"}
+                                  {metadata.requestType === "project_linked" && "طلب صرف مرتبط بتقرير إنجاز"}
+                                  {metadata.requestType === "custom_standard" && "طلب صرف مخصص عام"}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">بيان الأعمال:</span>
-                            <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.work}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">البنك:</span>
-                            <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.bank}</p>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">رقم الآيبان (IBAN):</span>
-                            <p className="font-mono font-medium text-slate-700 dark:text-slate-300 mt-0.5" dir="ltr">{customSupplier.iban}</p>
-                          </div>
-                          {customSupplier.agreedAmount > 0 && (
-                            <div>
-                              <span className="text-muted-foreground">المبلغ المتفق عليه:</span>
-                              <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{customSupplier.agreedAmount.toLocaleString()} ريال</p>
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
+                      )}
+
+                      {metadata && metadata.requestType && metadata.requestType !== "project_linked" && metadata.requestType !== "custom_standard" && (
+                        <div className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3 text-right" dir="rtl">
+                          <h4 className="font-bold text-xs text-primary border-b pb-2">تفاصيل الطلب والبيانات المالية</h4>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            {isSadad ? (
+                              <>
+                                <div>
+                                  <span className="text-muted-foreground">اسم المفوتر:</span>
+                                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.billerName || metadata.name}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">رمز المفوتر:</span>
+                                  <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.billerCode || metadata.bank}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">رقم سداد:</span>
+                                  <p className="font-mono font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.sadadNumber || metadata.iban}</p>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div>
+                                  <span className="text-muted-foreground">اسم المستفيد:</span>
+                                  <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.beneficiaryName || metadata.name}</p>
+                                </div>
+                                {metadata.bankAccountName && (
+                                  <div>
+                                    <span className="text-muted-foreground">اسم الحساب البنكي:</span>
+                                    <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.bankAccountName}</p>
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="text-muted-foreground">البنك:</span>
+                                  <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.bankName || metadata.bank}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">رقم الآيبان (IBAN):</span>
+                                  <p className="font-mono font-medium text-slate-700 dark:text-slate-300 mt-0.5" dir="ltr">{metadata.iban}</p>
+                                </div>
+                              </>
+                            )}
+                            <div>
+                              <span className="text-muted-foreground">المبلغ:</span>
+                              <p className="font-bold text-primary mt-0.5">{Number(metadata.agreedAmount || selectedRequest.amount).toLocaleString()} ريال</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* دعم النوع القديم للمورد المخصص */}
+                      {metadata && (metadata.requestType === "custom_standard" || (!metadata.requestType && metadata.name)) && (
+                        <div className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3 text-right" dir="rtl">
+                          <h4 className="font-bold text-xs text-primary border-b pb-2">تفاصيل المستفيد والبيانات البنكية</h4>
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">اسم المستفيد:</span>
+                              <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{metadata.name}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">بيان الأعمال:</span>
+                              <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.work}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">البنك:</span>
+                              <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.bank}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">رقم الآيبان (IBAN):</span>
+                              <p className="font-mono font-medium text-slate-700 dark:text-slate-300 mt-0.5" dir="ltr">{metadata.iban}</p>
+                            </div>
+                            {metadata.agreedAmount > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">المبلغ المتفق عليه:</span>
+                                <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.agreedAmount.toLocaleString()} ريال</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
                 })()}
               </div>
             )}

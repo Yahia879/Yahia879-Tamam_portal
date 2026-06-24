@@ -62,8 +62,8 @@ describe("نظام طلبات الصرف وأوامر الصرف", () => {
       // استخدام SQL مباشر للتوافق مع هيكل قاعدة البيانات الفعلي
       const [result] = await db!.execute(sql`
         INSERT INTO disbursement_requests 
-        (requestNumber, projectId, contractId, title, description, amount, paymentType, completionPercentage, status, requestedBy, beneficiaryName, beneficiaryBank, beneficiaryIban)
-        VALUES (${requestNumber}, ${testProjectId}, ${testContractId || null}, 'طلب صرف اختباري', 'وصف طلب الصرف الاختباري', 5000.00, 'progress', 50, 'pending', ${testUserId}, 'مورد اختباري', 'مصرف الراجحي', 'SA0000000000000000000000')
+        (requestNumber, projectId, contractId, title, description, amount, paymentType, completionPercentage, status, requestedBy)
+        VALUES (${requestNumber}, ${testProjectId}, ${testContractId || null}, 'طلب صرف اختباري', 'وصف طلب الصرف الاختباري', 5000.00, 'progress', 50, 'pending', ${testUserId})
       `);
 
       expect((result as any).insertId).toBeDefined();

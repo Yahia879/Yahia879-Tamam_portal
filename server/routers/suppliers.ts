@@ -375,6 +375,7 @@ export const suppliersRouter = router({
           approvalStatus: suppliers.approvalStatus,
           status: suppliers.status,
           bankName: suppliers.bankName,
+          bankAccountName: suppliers.bankAccountName,
           iban: suppliers.iban,
         })
         .from(suppliers)
