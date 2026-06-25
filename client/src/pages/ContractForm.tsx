@@ -59,6 +59,7 @@ interface PaymentScheduleItem {
   amount: number;
   dueDate: string;
   description: string;
+  completionPercentage?: number;
 }
 
 interface ClauseValue {
@@ -397,6 +398,7 @@ export default function ContractForm() {
       amount: 0,
       dueDate: "",
       description: "",
+      completionPercentage: 0,
     };
     setPaymentSchedule([...paymentSchedule, newPayment]);
   };
@@ -503,6 +505,14 @@ export default function ContractForm() {
           }
           if (!p.amount || p.amount <= 0) {
             toast.error(`يرجى إدخال مبلغ صحيح للدفعة ${i + 1}`);
+            return false;
+          }
+          if (!p.description || !p.description.trim()) {
+            toast.error(`يرجى إدخال وصف الأعمال للدفعة ${i + 1}`);
+            return false;
+          }
+          if (p.completionPercentage === undefined || p.completionPercentage === null || isNaN(p.completionPercentage) || p.completionPercentage < 0 || p.completionPercentage > 100) {
+            toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للدفعة ${i + 1}`);
             return false;
           }
         }
@@ -1135,22 +1145,46 @@ export default function ContractForm() {
                             </Button>
                           </div>
                           
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                            <div className="space-y-1">
-                              <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
-                              <Input
-                                type="date"
-                                value={payment.dueDate}
-                                required
-                                className="w-full rounded-xl"
-                                onChange={(e) => {
-                                  const selectedDate = e.target.value;
-                                  // التحقق من أن التاريخ ضمن فترة العقد
-                                  if (contractData.startDate && contractData.duration > 0) {
-                                    const startDate = new Date(contractData.startDate);
+                          <div className="flex-1 space-y-4 w-full">
+                            {/* الصف الأول: معلومات الدفعة الأساسية */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
+                                <Input
+                                  type="date"
+                                  value={payment.dueDate}
+                                  required
+                                  className="w-full rounded-xl"
+                                  onChange={(e) => {
+                                    const selectedDate = e.target.value;
+                                    // التحقق من أن التاريخ ضمن فترة العقد
+                                    if (contractData.startDate && contractData.duration > 0) {
+                                      const startDate = new Date(contractData.startDate);
+                                      const endDate = new Date(contractData.startDate);
+                                      
+                                      // حساب تاريخ انتهاء العقد
+                                      if (contractData.durationUnit === "days") {
+                                        endDate.setDate(endDate.getDate() + contractData.duration);
+                                      } else if (contractData.durationUnit === "weeks") {
+                                        endDate.setDate(endDate.getDate() + (contractData.duration * 7));
+                                      } else if (contractData.durationUnit === "months") {
+                                        endDate.setMonth(endDate.getMonth() + contractData.duration);
+                                      } else if (contractData.durationUnit === "years") {
+                                        endDate.setFullYear(endDate.getFullYear() + contractData.duration);
+                                      }
+                                      
+                                      const selected = new Date(selectedDate);
+                                      if (selected < startDate || selected > endDate) {
+                                        toast.error(`يجب أن يكون تاريخ الاستحقاق بين ${startDate.toLocaleDateString('ar-SA')} و ${endDate.toLocaleDateString('ar-SA')}`);
+                                        return;
+                                      }
+                                    }
+                                    updatePayment(payment.id, "dueDate", selectedDate);
+                                  }}
+                                  min={contractData.startDate || undefined}
+                                  max={(() => {
+                                    if (!contractData.startDate || contractData.duration <= 0) return undefined;
                                     const endDate = new Date(contractData.startDate);
-                                    
-                                    // حساب تاريخ انتهاء العقد
                                     if (contractData.durationUnit === "days") {
                                       endDate.setDate(endDate.getDate() + contractData.duration);
                                     } else if (contractData.durationUnit === "weeks") {
@@ -1160,77 +1194,93 @@ export default function ContractForm() {
                                     } else if (contractData.durationUnit === "years") {
                                       endDate.setFullYear(endDate.getFullYear() + contractData.duration);
                                     }
-                                    
-                                    const selected = new Date(selectedDate);
-                                    if (selected < startDate || selected > endDate) {
-                                      toast.error(`يجب أن يكون تاريخ الاستحقاق بين ${startDate.toLocaleDateString('ar-SA')} و ${endDate.toLocaleDateString('ar-SA')}`);
-                                      return;
+                                    return endDate.toISOString().split('T')[0];
+                                  })()}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
+                                <Input
+                                  value={payment.name}
+                                  required
+                                  className="w-full rounded-xl"
+                                  onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
+                                  placeholder="عنوان الطلب"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">النسبة (%)</Label>
+                                <Input
+                                  type="number"
+                                  value={payment.percentage || ""}
+                                  required
+                                  className="w-full rounded-xl font-bold text-primary"
+                                  onChange={(e) => {
+                                    const pct = parseFloat(e.target.value) || 0;
+                                    const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
+                                    setPaymentSchedule(prev => prev.map(p => 
+                                      p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
+                                    ));
+                                  }}
+                                  placeholder="0"
+                                  min="0"
+                                  max="100"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs font-semibold">المبلغ</Label>
+                                <Input
+                                  type="number"
+                                  value={payment.amount || ""}
+                                  required
+                                  className="w-full rounded-xl font-bold"
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
+                                    setPaymentSchedule(prev => prev.map(p => 
+                                      p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
+                                    ));
+                                  }}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+
+                            {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+                              <div className="space-y-1 md:col-span-3 text-right">
+                                <Label className="text-xs font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
+                                <Textarea
+                                  value={payment.description || ""}
+                                  required
+                                  placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                                  rows={2}
+                                  className="w-full rounded-xl text-right"
+                                  onChange={(e) => updatePayment(payment.id, "description", e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-1 text-right">
+                                <Label className="text-xs font-semibold">نسبة الإنجاز (%) *</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  required
+                                  value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
+                                  placeholder="مثال: 20"
+                                  className="w-full rounded-xl text-right font-bold"
+                                  onChange={(e) => {
+                                    let val = parseInt(e.target.value);
+                                    if (isNaN(val)) {
+                                      updatePayment(payment.id, "completionPercentage", 0);
+                                    } else {
+                                      if (val > 100) val = 100;
+                                      if (val < 0) val = 0;
+                                      updatePayment(payment.id, "completionPercentage", val);
                                     }
-                                  }
-                                  updatePayment(payment.id, "dueDate", selectedDate);
-                                }}
-                                min={contractData.startDate || undefined}
-                                max={(() => {
-                                  if (!contractData.startDate || contractData.duration <= 0) return undefined;
-                                  const endDate = new Date(contractData.startDate);
-                                  if (contractData.durationUnit === "days") {
-                                    endDate.setDate(endDate.getDate() + contractData.duration);
-                                  } else if (contractData.durationUnit === "weeks") {
-                                    endDate.setDate(endDate.getDate() + (contractData.duration * 7));
-                                  } else if (contractData.durationUnit === "months") {
-                                    endDate.setMonth(endDate.getMonth() + contractData.duration);
-                                  } else if (contractData.durationUnit === "years") {
-                                    endDate.setFullYear(endDate.getFullYear() + contractData.duration);
-                                  }
-                                  return endDate.toISOString().split('T')[0];
-                                })()}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
-                              <Input
-                                value={payment.name}
-                                required
-                                className="w-full rounded-xl"
-                                onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
-                                placeholder="عنوان الطلب"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs font-semibold">النسبة (%)</Label>
-                              <Input
-                                type="number"
-                                value={payment.percentage || ""}
-                                required
-                                className="w-full rounded-xl font-bold text-primary"
-                                onChange={(e) => {
-                                  const pct = parseFloat(e.target.value) || 0;
-                                  const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
-                                  setPaymentSchedule(prev => prev.map(p => 
-                                    p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
-                                  ));
-                                }}
-                                placeholder="0"
-                                min="0"
-                                max="100"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs font-semibold">المبلغ</Label>
-                              <Input
-                                type="number"
-                                value={payment.amount || ""}
-                                required
-                                className="w-full rounded-xl font-bold"
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
-                                  setPaymentSchedule(prev => prev.map(p => 
-                                    p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
-                                  ));
-                                }}
-                                placeholder="0.00"
-                              />
+                                  }}
+                                />
+                              </div>
                             </div>
                           </div>
                           
