@@ -159,7 +159,7 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              {(user?.role === "quick_response" || userPermissions.includes("requests.manage_as_quick_response")) && (
+              {user?.role === "quick_response" && (
                 <Link href="/requests/quick-create">
                   <Button 
                     className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"
