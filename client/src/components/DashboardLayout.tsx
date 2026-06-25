@@ -63,7 +63,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 type MenuItem = { icon: any; label: string; path: string };
 type MenuGroup = { label: string; items: MenuItem[] };
 
-const getMenuGroups = (role: string): MenuGroup[] => {
+const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   const groups: MenuGroup[] = [];
 
   // الرئيسية - متاحة فقط للإدارة العليا
@@ -79,7 +79,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
     const items = [
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
-      { icon: FileText, label: "الطلبات", path: "/requests" },
+      { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
       { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
       { icon: ClipboardList, label: "المشاريع", path: "/projects" },
       { icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" },
@@ -89,7 +89,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
       items.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
     }
     groups.push({
-      label: "المساجد والطلبات",
+      label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
       items,
     });
     groups.push({
@@ -121,8 +121,8 @@ const getMenuGroups = (role: string): MenuGroup[] => {
   // الاستجابة السريعة
   if (role === "quick_response") {
     groups.push({
-      label: "الطلبات",
-      items: [{ icon: FileText, label: "الطلبات", path: "/requests" }],
+      label: isEn ? "Requests" : "الطلبات",
+      items: [{ icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" }],
     });
   }
 
@@ -190,7 +190,7 @@ const getMenuGroups = (role: string): MenuGroup[] => {
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
-const getMenuGroupsFromPermissions = (permissions: string[], role: string): MenuGroup[] => {
+const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
@@ -206,7 +206,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   const mosqueItems: MenuItem[] = [];
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
-  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: "الطلبات",               path: "/requests" });
+  if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
   if (has("projects") || has("projects.view") || has("projects.view_details"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
@@ -214,7 +214,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string): Menu
   if (["super_admin", "system_admin"].includes(role)) {
     mosqueItems.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
   }
-  if (mosqueItems.length > 0) groups.push({ label: "المساجد والطلبات", items: mosqueItems });
+  if (mosqueItems.length > 0) groups.push({ label: isEn ? "Mosques and Requests" : "المساجد والطلبات", items: mosqueItems });
 
   // المالية والعقود
   const finItems: MenuItem[] = [];
@@ -398,8 +398,8 @@ function DashboardLayoutContent({
   const hasDynamicPermissions = !isServiceRequester;
  
   const menuGroups = (hasDynamicPermissions
-    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "")
-    : getMenuGroups(user?.role || "")
+    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn)
+    : getMenuGroups(user?.role || "", isEn)
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);
@@ -587,7 +587,7 @@ function DashboardLayoutContent({
                       className="cursor-pointer"
                     >
                       <Languages className="ml-2 h-4 w-4" />
-                      <span>{lang === "ar" ? "English" : "العربية"}</span>
+                      <span>{lang === "ar" ? "انكليزي" : "Arabic"}</span>
                     </DropdownMenuItem>
                   </>
                 )}

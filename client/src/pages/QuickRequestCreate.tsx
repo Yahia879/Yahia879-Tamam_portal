@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { 
   ArrowRight,
   ArrowLeft,
-  Languages,
   Save,
   Building2,
   ClipboardList,
@@ -232,12 +231,6 @@ export default function QuickRequestCreate() {
     });
   };
 
-  const toggleLang = () => {
-    const nextLang = lang === "ar" ? "en" : "ar";
-    setLang(nextLang);
-    localStorage.setItem("quick-response-lang", nextLang);
-  };
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -270,16 +263,6 @@ export default function QuickRequestCreate() {
               </span>
             </div>
           </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleLang}
-            className="flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 border-slate-200 cursor-pointer"
-          >
-            <Languages className="w-3.5 h-3.5 text-slate-500" />
-            {lang === "ar" ? "English" : "العربية"}
-          </Button>
         </div>
       </div>
 
