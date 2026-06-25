@@ -165,6 +165,7 @@ export default function RequestDetailsNew() {
       "تم تحويل هذا الطلب لمسار الاستجابة السريعة وهو قيد المتابعة والزيارة من قبل الشخص المسؤول. يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.": "This request has been transferred to the quick response track and is under follow-up/visit by the assigned person. Please fill out and upload the quick response report to complete the service.",
       "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.": "The quick response report has been successfully submitted and approved. You can review the details by clicking the button below.",
       "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح وإغلاق الطلب. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.": "The quick response report has been successfully submitted, approved, and the request closed. You can review the details by clicking the button below.",
+      "تم تقديم ورفع تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.": "The quick response report has been successfully submitted and uploaded. You can review the details by clicking the button below.",
       "يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.": "Please fill out and upload the quick response report to complete the service.",
     };
 
