@@ -117,6 +117,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاعتماد المالي ──
   "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
+  "/boq-preparations": ["quotations", "requests.view_details", "requests.view"],
 
   // ── العقود ──
   "/contracts": "contracts",

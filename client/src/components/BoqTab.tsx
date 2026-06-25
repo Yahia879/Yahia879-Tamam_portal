@@ -209,71 +209,73 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
             </CardContent>
           </Card>
         ) : (
-          Object.entries(groupedItems).map(([category, items]: [string, any]) => (
-            <Card key={category}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-base">
-                    {categoriesMap[category] || category}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">({items.length} بند)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>اسم البند</TableHead>
-                      <TableHead>الوصف</TableHead>
-                      <TableHead>الوحدة</TableHead>
-                      <TableHead>الكمية</TableHead>
-                      <TableHead>سعر الوحدة</TableHead>
-                      <TableHead>الإجمالي</TableHead>
-                      {!isLocked && <TableHead>الإجراءات</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.itemName}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.description || "-"}
-                        </TableCell>
-                        <TableCell>{item.unit}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>
-                          {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
-                        </TableCell>
-                        <TableCell className="font-bold text-teal-600">
-                          {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
-                        </TableCell>
-                        {!isLocked && (
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditDialog(item)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteItem(item.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))
+          <Card className="border-border">
+            <CardContent className="p-0 divide-y divide-border">
+              {Object.entries(groupedItems).map(([category, items]: [string, any]) => (
+                <div key={category} className="p-6 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-base bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200">
+                      {categoriesMap[category] || category}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">({items.length} بند)</span>
+                  </div>
+                  <div className="border rounded-md overflow-hidden bg-background">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>اسم البند</TableHead>
+                          <TableHead>الوصف</TableHead>
+                          <TableHead>الوحدة</TableHead>
+                          <TableHead>الكمية</TableHead>
+                          <TableHead>سعر الوحدة</TableHead>
+                          <TableHead>الإجمالي</TableHead>
+                          {!isLocked && <TableHead>الإجراءات</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {items.map((item: any) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {item.description || "-"}
+                            </TableCell>
+                            <TableCell>{item.unit}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>
+                              {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
+                            </TableCell>
+                            <TableCell className="font-bold text-teal-600">
+                              {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
+                            </TableCell>
+                            {!isLocked && (
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditDialog(item)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteItem(item.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         )}
 
         {showAddDialog && (
