@@ -425,7 +425,7 @@ export default function Requests({
                             </p>
                           </div>
                         </div>
-                        <div className="text-left md:text-right shrink-0">
+                        <div className={`${isEn ? "text-right md:text-left" : "text-left md:text-right"} shrink-0`}>
                            <p className="text-[10px] md:text-xs text-muted-foreground">
                             {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                           </p>
