@@ -20,7 +20,7 @@ import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
 import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
@@ -64,6 +64,143 @@ export default function RequestDetailsNew() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const requestId = parseInt(id!);
+
+  const [lang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+  const isEn = user?.role === "quick_response" && lang === "en";
+
+  const translateProgram = (type: string) => {
+    if (isEn) {
+      const enLabels: Record<string, string> = {
+        bunyan: "Bunyan",
+        daaem: "Daaem",
+        enaya: "Enaya",
+        emdad: "Emdad",
+        ethraa: "Ethraa",
+        sedana: "Sedana",
+        taqa: "Taqa",
+        miyah: "Miyah",
+        suqya: "Suqya",
+        bina: "Building",
+        tarmeem: "Restoration",
+        taathath: "Furnishing",
+        hifz: "Preservation",
+        other: "Other",
+      };
+      return enLabels[type] || type;
+    }
+    return PROGRAM_LABELS[type as keyof typeof PROGRAM_LABELS] || type;
+  };
+
+  const translateStage = (stage: string, track?: string) => {
+    if (isEn) {
+      const enStages: Record<string, string> = {
+        submitted: "Submitted",
+        initial_review: "Initial Review",
+        field_visit: "Field Visit",
+        technical_eval: "Technical Evaluation",
+        boq_preparation: "BOQ Preparation",
+        financial_eval_and_approval: "Financial Evaluation",
+        quotation_approval: "Quotation Approval",
+        contracting: "Contracting",
+        execution: "Execution",
+        handover: "Handover",
+        closed: "Closed",
+      };
+      return enStages[stage] || stage;
+    }
+    return getStageLabel(stage, track);
+  };
+
+  const translateStatus = (status: string) => {
+    if (isEn) {
+      const enStatuses: Record<string, string> = {
+        pending: "Pending",
+        under_review: "Under Review",
+        in_progress: "In Progress",
+        completed: "Completed",
+        rejected: "Rejected",
+        cancelled: "Cancelled",
+      };
+      return enStatuses[status] || status;
+    }
+    return STATUS_LABELS[status as keyof typeof STATUS_LABELS] || status;
+  };
+
+  const translateDepartment = (dept: string) => {
+    if (isEn && dept) {
+      const depts: Record<string, string> = {
+        "فريق الاستجابة السريعة": "Quick Response Team",
+        "اللجنة الفنية": "Technical Committee",
+        "الإدارة المالية": "Financial Department",
+        "المقاول": "Contractor",
+        "المستشار الفني": "Technical Consultant",
+      };
+      return depts[dept] || dept;
+    }
+    return dept;
+  };
+
+  const translateActiveAction = (action: any) => {
+    if (!action || !isEn) return action;
+    
+    const titles: Record<string, string> = {
+      "بانتظار الإجراء الفني": "Awaiting Technical Action",
+      "تقديم تقرير الاستجابة السريعة": "Submit Quick Response Report",
+      "تم تقديم تقرير الاستجابة السريعة": "Quick Response Report Submitted",
+      "بانتظار المراجعة الفنية والقرار": "Awaiting Technical Review & Decision",
+      "بانتظار إعداد جدول الكميات": "Awaiting BOQ Preparation",
+      "بانتظار التقييم المالي والاعتماد": "Awaiting Financial Evaluation & Approval",
+      "بانتظار اعتماد عرض السعر": "Awaiting Quotation Approval",
+      "بانتظار توقيع العقد": "Awaiting Contract Signing",
+      "المشروع قيد التنفيذ والمتابعة": "Project in Execution & Monitoring",
+      "بانتظار استلام المشروع وإغلاقه": "Awaiting Project Handover & Closure",
+      "تم إغلاق الطلب بنجاح": "Request Closed Successfully",
+      "الطلب مغلق": "Request Closed",
+      "تم إغلاق الطلب": "Request Closed",
+    };
+
+    const descriptions: Record<string, string> = {
+      "تم تحويل هذا الطلب لمسار الاستجابة السريعة وهو قيد المتابعة والزيارة من قبل الشخص المسؤول. يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.": "This request has been transferred to the quick response track and is under follow-up/visit by the assigned person. Please fill out and upload the quick response report to complete the service.",
+      "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.": "The quick response report has been successfully submitted and approved. You can review the details by clicking the button below.",
+      "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح وإغلاق الطلب. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.": "The quick response report has been successfully submitted, approved, and the request closed. You can review the details by clicking the button below.",
+      "يرجى تعبئة ورفع تقرير الاستجابة السريعة لإكمال الخدمة.": "Please fill out and upload the quick response report to complete the service.",
+    };
+
+    const buttonLabels: Record<string, string> = {
+      "رفع تقرير الاستجابة السريعة": "Upload Quick Response Report",
+      "عرض تقرير الاستجابة السريعة": "View Quick Response Report",
+      "إغلاق الطلب": "Close Request",
+      "بدء المعاينة الميدانية": "Start Field Visit",
+      "رفع تقرير المعاينة الميدانية": "Upload Field Visit Report",
+      "عرض تقرير المعاينة": "View Field Visit Report",
+      "اتخاذ القرار الفني": "Make Technical Decision",
+      "إعداد جدول الكميات": "Prepare BOQ",
+      "التقييم المالي": "Financial Evaluation",
+      "اعتماد عرض السعر": "Approve Quotation",
+      "توقيع العقد": "Sign Contract",
+      "عرض العقد": "View Contract",
+      "استلام المشروع": "Handover Project",
+      "إضافة تقرير ختامي": "Add Final Report",
+      "عرض التقرير الختامي": "View Final Report",
+    };
+
+    const translated = { ...action };
+    if (titles[action.title]) {
+      translated.title = titles[action.title];
+    }
+    if (descriptions[action.description]) {
+      translated.description = descriptions[action.description];
+    }
+    if (action.actionButton && buttonLabels[action.actionButton.label]) {
+      translated.actionButton = {
+        ...action.actionButton,
+        label: buttonLabels[action.actionButton.label]
+      };
+    }
+    return translated;
+  };
 
   // States for drawers
   const [projectInfoOpen, setProjectInfoOpen] = useState(false);
@@ -339,7 +476,7 @@ export default function RequestDetailsNew() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري التحميل...</p>
+          <p className="text-muted-foreground">{isEn ? "Loading..." : "جاري التحميل..."}</p>
         </div>
       </div>
     );
@@ -347,12 +484,12 @@ export default function RequestDetailsNew() {
 
   if (!request) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" dir={isEn ? "ltr" : "rtl"}>
         <Card className="p-8 text-center">
-          <h2 className="text-2xl font-bold mb-4">الطلب غير موجود</h2>
-          <p className="text-muted-foreground mb-6">لم يتم العثور على الطلب المطلوب</p>
+          <h2 className="text-2xl font-bold mb-4">{isEn ? "Request Not Found" : "الطلب غير موجود"}</h2>
+          <p className="text-muted-foreground mb-6">{isEn ? "The requested service request could not be found." : "لم يتم العثور على الطلب المطلوب"}</p>
           <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
-            <Button>العودة إلى الطلبات</Button>
+            <Button>{isEn ? "Back to Requests" : "العودة إلى الطلبات"}</Button>
           </Link>
         </Card>
       </div>
@@ -684,7 +821,7 @@ export default function RequestDetailsNew() {
   const progress = getProgressPercentage(request.currentStage, workflow);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir={isEn ? "ltr" : "rtl"}>
       {/* Header */}
       <div className="bg-card border-b sticky top-0 z-10 sm:relative">
         <div className="container mx-auto px-4 py-4 sm:py-6">
@@ -692,8 +829,8 @@ export default function RequestDetailsNew() {
             <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3">
-                  <ArrowRight className="w-4 h-4 sm:ml-2" />
-                  <span className="hidden sm:inline">رجوع</span>
+                  <ArrowRight className={`w-4 h-4 ${isEn ? "rotate-180 mr-2" : "ml-2"}`} />
+                  <span className="hidden sm:inline">{isEn ? "Back" : "رجوع"}</span>
                 </Button>
               </Link>
               <div className="flex items-start sm:items-center gap-3 min-w-0">
@@ -704,17 +841,17 @@ export default function RequestDetailsNew() {
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
                         <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-7 text-[10px] sm:text-xs px-2 truncate max-w-full">
-                          <Building2 className="w-3 h-3 sm:w-4 sm:h-4 ml-1 flex-shrink-0" />
-                          <span className="truncate">محول إلى مشروع ({linkedProject.projectNumber})</span>
+                          <Building2 className={`w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          <span className="truncate">{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
                         </Button>
                       </Link>
                     )}
                   </div>
                   <p className="text-base sm:text-lg font-bold text-foreground truncate">
-                    {request.mosque?.name || "مسجد غير محدد"}
+                    {request.mosque?.name || (isEn ? "Mosque not specified" : "مسجد غير محدد")}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}
+                    {translateProgram(request.programType)}
                   </p>
                 </div>
               </div>
@@ -726,10 +863,10 @@ export default function RequestDetailsNew() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:py-8">
         {showQuickRequestLayout ? (
-          <div className="space-y-6 max-w-4xl mx-auto" dir="rtl">
+          <div className="space-y-6 max-w-4xl mx-auto" dir={isEn ? "ltr" : "rtl"}>
             <ActiveActionCard
-              title="طلب استجابة سريعة مكتمل"
-              description="تم إنشاء هذا الطلب ومعالجته بالكامل عبر مسار الاستجابة السريعة للتعامل الفوري مع الحالة الطارئة للمسجد."
+              title={isEn ? "Completed Quick Response Request" : "طلب استجابة سريعة مكتمل"}
+              description={isEn ? "This request has been created and fully processed via the quick response track for immediate handling of the mosque's emergency situation." : "تم إنشاء هذا الطلب ومعالجته بالكامل عبر مسار الاستجابة السريعة للتعامل الفوري مع الحالة الطارئة للمسجد."}
               icon={Zap}
               iconColor="text-purple-600"
               progress={{
@@ -739,7 +876,7 @@ export default function RequestDetailsNew() {
               }}
               actionButton={
                 request.quickReports && request.quickReports.length > 0 ? {
-                  label: "عرض تقرير الاستجابة السريعة",
+                  label: isEn ? "View Quick Response Report" : "عرض تقرير الاستجابة السريعة",
                   onClick: () => setQuickResponseReportOpen(true),
                 } : undefined
               }
@@ -749,22 +886,22 @@ export default function RequestDetailsNew() {
           <>
             {/* Progress Stepper */}
             <ProgressStepper
-              steps={workflow.map((s) => ({ ...s, label: s.label }))}
+              steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack) }))}
               currentStep={request.currentStage}
               completedSteps={completedSteps}
             />
 
         {/* Active Action Card */}
         {request.status === 'suspended' && isManagementUser ? (
-          <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 p-6 rounded-xl text-center space-y-4 shadow-sm animate-fade-in mx-auto max-w-2xl" dir="rtl">
+          <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/50 p-6 rounded-xl text-center space-y-4 shadow-sm animate-fade-in mx-auto max-w-2xl" dir={isEn ? "ltr" : "rtl"}>
             <div className="inline-flex p-3 bg-amber-100 dark:bg-amber-900/50 rounded-full text-amber-600 dark:text-amber-400 mb-1">
               <PauseCircle className="w-8 h-8 animate-pulse" />
             </div>
-            <h4 className="text-lg font-black text-amber-800 dark:text-amber-300">الطلب معلق مؤقتاً</h4>
+            <h4 className="text-lg font-black text-amber-800 dark:text-amber-300">{isEn ? "Request Temporarily Suspended" : "الطلب معلق مؤقتاً"}</h4>
             
             {request.technicalEvalJustification && (
-              <div className="text-right max-w-md mx-auto bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900/30 text-sm space-y-1">
-                <span className="font-bold text-amber-800 dark:text-amber-400">مبررات التعليق:</span>
+              <div className="text-right max-w-md mx-auto bg-white dark:bg-gray-800 p-4 rounded-lg border border-amber-100 dark:border-amber-900/30 text-sm space-y-1" dir={isEn ? "ltr" : "rtl"}>
+                <span className="font-bold text-amber-800 dark:text-amber-400">{isEn ? "Suspension justifications:" : "مبررات التعليق:"}</span>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                   {request.technicalEvalJustification}
                 </p>
@@ -778,15 +915,15 @@ export default function RequestDetailsNew() {
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-base"
               >
                 <Play className="w-5 h-5" />
-                استئناف المشروع
+                {isEn ? "Resume Request" : "استئناف المشروع"}
               </Button>
             </div>
           </div>
         ) : request.requestTrack === 'quick_response' && request.currentStage === 'execution' && latestQuickReport && isManagementUser ? (
           <div className="mb-6 space-y-6">
             <ActiveActionCard
-              title="تم تقديم تقرير الاستجابة السريعة"
-              description="تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه."
+              title={isEn ? "Quick Response Report Submitted" : "تم تقديم تقرير الاستجابة السريعة"}
+              description={isEn ? "The quick response report has been successfully submitted and approved. You can review the details by clicking the button below." : "تم تقديم واعتماد تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه."}
               icon={Zap}
               iconColor="text-emerald-600"
               progress={{
@@ -795,17 +932,17 @@ export default function RequestDetailsNew() {
                 percentage: progress,
               }}
               actionButton={{
-                label: "عرض تقرير الاستجابة السريعة",
+                label: isEn ? "View Quick Response Report" : "عرض تقرير الاستجابة السريعة",
                 onClick: () => setQuickResponseReportOpen(true),
               }}
               secondaryButton={{
-                label: "إغلاق الطلب",
+                label: isEn ? "Close Request" : "إغلاق الطلب",
                 onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
                 variant: 'outline' as const,
               }}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" dir={isEn ? "ltr" : "rtl"}>
               <button
                 className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
                 onClick={() => {
@@ -819,8 +956,8 @@ export default function RequestDetailsNew() {
                     <FolderKanban className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
-                    <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات</p>
+                    <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">{isEn ? "Convert to Project" : "التحويل إلى مشروع"}</h5>
+                    <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">{isEn ? "Convert request to project and move to BOQ preparation" : "تحويل الطلب إلى مشروع والانتقال لإعداد جدول الكميات"}</p>
                   </div>
                 </div>
               </button>
@@ -839,8 +976,8 @@ export default function RequestDetailsNew() {
                     <PauseCircle className="w-6 h-6 text-amber-600" />
                   </div>
                   <div className="min-w-0">
-                    <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
-                    <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
+                    <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">{isEn ? "Temporary Suspension" : "التعليق المؤقت"}</h5>
+                    <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">{isEn ? "Suspend the request temporarily until additional requirements are available" : "تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية"}</p>
                   </div>
                 </div>
               </button>
@@ -959,108 +1096,113 @@ export default function RequestDetailsNew() {
                 </div>
               </div>
             ) : activeAction && (
-                <div className="space-y-6">
-                  <ActiveActionCard
-                title={activeAction.title}
-                description={activeAction.description}
-                icon={activeAction.icon as any}
-                iconColor={activeAction.iconColor}
-                progress={{
-                  current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
-                  total: workflow.length,
-                  percentage: progress,
-                }}
-                fieldReportButton={
-                  !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
-                  !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
-                  !(isQuickResponse && (
-                    (user?.role as string) !== 'quick_response' ||
-                    (request.quickReports && request.quickReports.length > 0)
-                  ))
-                    ? {
-                        label: 'عرض تقرير الزيارة الميدانية',
-                        onClick: () => setFieldVisitReportOpen(true),
-                      }
-                    : undefined
-                }
-                actionButton={
-                  activeAction.canPerformAction &&
-                  activeAction.actionButton &&
-                  !(showQuickResponseReportShortcut && activeAction.actionButton.openModal === 'quick_response_report') &&
-                  (
-                    request.currentStage !== 'technical_eval' ||
-                    activeAction.actionButton.openModal === 'field_visit_report' ||
-                    activeAction.actionButton.openModal === 'quick_response_report'
-                  )
-                    ? {
-                        label: activeAction.actionButton.label,
-                        onClick: (activeAction.actionButton as any).onClick || handleStageTransition,
-                        disabled: !activeAction.canPerformAction || updateStageMutation.isPending,
-                      }
-                    : undefined
-                }
-                secondaryButton={
-                  request.currentStage === 'boq_preparation' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
-                    ? {
-                        label: "الانتقال إلى التقييم المالي",
-                        onClick: () => {
-                          if (!hasBoqItems) {
-                            toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
-                            return;
-                          }
-                          updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
-                        },
-                        variant: 'default' as const,
-                        disabled: !hasBoqItems || updateStageMutation.isPending,
-                      }
-                  : request.currentStage === 'financial_eval_and_approval' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
-                    ? {
-                        label: "إدارة عروض الأسعار",
-                        onClick: () => setLocation('/quotations'),
-                        variant: 'outline' as const,
-                      }
-                    : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
-                    ? {
-                        label: "الانتقال إلى مرحلة التنفيذ",
-                        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
-                        variant: 'default' as const,
-                      }
-                    : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
-                      ? request.requestTrack === 'quick_response'
-                        ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
+              <div className="space-y-6">
+                {(() => {
+                  const translatedAction = translateActiveAction(activeAction);
+                  return (
+                    <ActiveActionCard
+                      title={translatedAction.title}
+                      description={translatedAction.description}
+                      icon={translatedAction.icon as any}
+                      iconColor={translatedAction.iconColor}
+                      progress={{
+                        current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
+                        total: workflow.length,
+                        percentage: progress,
+                      }}
+                      fieldReportButton={
+                        !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
+                        !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
+                        !(isQuickResponse && (
+                          (user?.role as string) !== 'quick_response' ||
+                          (request.quickReports && request.quickReports.length > 0)
+                        ))
                           ? {
-                              label: "إغلاق الطلب",
+                              label: isEn ? 'View Field Visit Report' : 'عرض تقرير الزيارة الميدانية',
+                              onClick: () => setFieldVisitReportOpen(true),
+                            }
+                          : undefined
+                      }
+                      actionButton={
+                        translatedAction.canPerformAction &&
+                        translatedAction.actionButton &&
+                        !(showQuickResponseReportShortcut && translatedAction.actionButton.openModal === 'quick_response_report') &&
+                        (
+                          request.currentStage !== 'technical_eval' ||
+                          translatedAction.actionButton.openModal === 'field_visit_report' ||
+                          translatedAction.actionButton.openModal === 'quick_response_report'
+                        )
+                          ? {
+                              label: translatedAction.actionButton.label,
+                              onClick: (translatedAction.actionButton as any).onClick || handleStageTransition,
+                              disabled: !translatedAction.canPerformAction || updateStageMutation.isPending,
+                            }
+                          : undefined
+                      }
+                      secondaryButton={
+                        request.currentStage === 'boq_preparation' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
+                          ? {
+                              label: "الانتقال إلى التقييم المالي",
+                              onClick: () => {
+                                if (!hasBoqItems) {
+                                  toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
+                                  return;
+                                }
+                                updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
+                              },
+                              variant: 'default' as const,
+                              disabled: !hasBoqItems || updateStageMutation.isPending,
+                            }
+                        : request.currentStage === 'financial_eval_and_approval' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
+                          ? {
+                              label: "إدارة عروض الأسعار",
+                              onClick: () => setLocation('/quotations'),
+                              variant: 'outline' as const,
+                            }
+                          : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                          ? {
+                              label: "الانتقال إلى مرحلة التنفيذ",
+                              onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
+                              variant: 'default' as const,
+                            }
+                          : request.currentStage === 'execution' && (canTransitionStage(user?.role || '', 'execution') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                            ? request.requestTrack === 'quick_response'
+                              ? (request.quickReports && request.quickReports.length > 0 && user?.role !== 'quick_response')
+                                ? {
+                                    label: isEn ? "Close Request" : "إغلاق الطلب",
+                                    onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                                    variant: 'default' as const,
+                                  }
+                                : undefined
+                              : {
+                                  label: "الانتقال إلى مرحلة الاستلام",
+                                  onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
+                                  variant: 'default' as const,
+                                  disabled: cannotTransitionToHandover,
+                                  title: cannotTransitionToHandover
+                                    ? !hasPayments
+                                      ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
+                                      : !allPaymentsPaid
+                                        ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
+                                        : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
+                                    : undefined,
+                                }
+                          : request.currentStage === 'handover' &&
+                            latestFinalReport &&
+                            user?.role !== 'corporate_comm' &&
+                            (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) &&
+                            !isQuickResponseUser
+                          ? {
+                              label: "الانتقال إلى مرحلة الإغلاق",
                               onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
                               variant: 'default' as const,
                             }
                           : undefined
-                        : {
-                            label: "الانتقال إلى مرحلة الاستلام",
-                            onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
-                            variant: 'default' as const,
-                            disabled: cannotTransitionToHandover,
-                            title: cannotTransitionToHandover
-                              ? !hasPayments
-                                ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
-                                : !allPaymentsPaid
-                                  ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
-                                  : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
-                              : undefined,
-                          }
-                    : request.currentStage === 'handover' &&
-                      latestFinalReport &&
-                      user?.role !== 'corporate_comm' &&
-                      (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) &&
-                      !isQuickResponseUser
-                    ? {
-                        label: "الانتقال إلى مرحلة الإغلاق",
-                        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
-                        variant: 'default' as const,
                       }
-                    : undefined
-                }
-                additionalActions={[]}
-              />
+                      additionalActions={[]}
+                    />
+                  );
+                })()}
               
               {/* قسم المراجعة الأولية */}
               {request.currentStage === 'initial_review' && (
@@ -1191,8 +1333,8 @@ export default function RequestDetailsNew() {
                 <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-right min-w-0">
-                <p className="font-bold text-sm sm:text-lg truncate">مراجعة المعلومات والمرفقات</p>
-                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">عرض تفاصيل الطلب والملفات المرفوعة</p>
+                <p className="font-bold text-sm sm:text-lg truncate">{isEn ? "Review Information & Attachments" : "مراجعة المعلومات والمرفقات"}</p>
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">{isEn ? "View request details and uploaded files" : "عرض تفاصيل الطلب والملفات المرفوعة"}</p>
               </div>
             </div>
             {showReviewInfo ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
@@ -1204,39 +1346,39 @@ export default function RequestDetailsNew() {
               <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm">
                 <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200 border-b pb-3 border-slate-200 dark:border-slate-800">
                   <FileText className="w-5 h-5 text-blue-600" />
-                  تفاصيل الطلب الأساسية
+                  {isEn ? "Basic Request Details" : "تفاصيل الطلب الأساسية"}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* معلومات أساسية ثابته */}
                   <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">البرنامج</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Program" : "البرنامج"}</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{translateProgram(request.programType)}</p>
                   </div>
                   <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ التقديم</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString("ar-SA")}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Submission Date" : "تاريخ التقديم"}</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}</p>
                   </div>
                   {request.requestTrack === 'quick_response' && (
                     <>
                       {request.assignedToUser && (
                         <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">المسؤول عن الاستجابة السريعة</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Quick Response Assigned To" : "المسؤول عن الاستجابة السريعة"}</p>
                           <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{(request.assignedToUser as any).name}</p>
                         </div>
                       )}
                       {(request as any).quickResponseStartDate && (
                         <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ بدء الاستجابة السريعة</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Quick Response Start Date" : "تاريخ بدء الاستجابة السريعة"}</p>
                           <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
-                            {new Date((request as any).quickResponseStartDate).toLocaleDateString("ar-SA")}
+                            {new Date((request as any).quickResponseStartDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                           </p>
                         </div>
                       )}
                       {(request as any).quickResponseEndDate && (
                         <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">تاريخ الانتهاء المتوقع</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Expected Completion Date" : "تاريخ الانتهاء المتوقع"}</p>
                           <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
-                            {new Date((request as any).quickResponseEndDate).toLocaleDateString("ar-SA")}
+                            {new Date((request as any).quickResponseEndDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                           </p>
                         </div>
                       )}
@@ -1245,12 +1387,12 @@ export default function RequestDetailsNew() {
                   {request.mosque && (
                     <>
                       <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">المسجد</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Mosque" : "المسجد"}</p>
                         <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 truncate">{request.mosque.name}</p>
                       </div>
                       <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">الموقع</p>
-                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{request.mosque.city || "غير محدد"}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Location" : "الموقع"}</p>
+                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{request.mosque.city || (isEn ? "Not specified" : "غير محدد")}</p>
                       </div>
                     </>
                   )}
@@ -1274,19 +1416,64 @@ export default function RequestDetailsNew() {
                     return allFields
                       .filter(field => field.name !== 'mosqueId' && programData[field.name] !== undefined)
                       .map(field => {
+                        let displayLabel = field.label;
+                        if (isEn) {
+                          const enFieldLabels: Record<string, string> = {
+                            "حالة البناء": "Building Status",
+                            "سعة المصلين": "Worshipers Capacity",
+                            "نوع المبنى": "Building Type",
+                            "ملاحظات وتفاصيل إضافية": "Additional Notes & Details",
+                            "المنطقة": "Region",
+                            "المدينة/القرية": "City/Village",
+                            "هل توجد إحداثيات": "Are coordinates available?",
+                            "الحاجة": "Need / Urgency",
+                            "نوع التوريد": "Supply Type",
+                            "الكمية المطلوبة": "Required Quantity",
+                            "التفاصيل": "Details",
+                            "الوصف": "Description",
+                            "المستفيد": "Beneficiary",
+                            "ملاحظات": "Notes",
+                            "وصف الأعمال المطلوبة": "Description of required works",
+                            "مساحة المسجد بالمتر المربع": "Mosque area in square meters",
+                            "عدد المصلين الفعلي": "Actual number of worshipers",
+                            "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟": "Are you willing to establish a volunteer team under your leadership to market the opportunity?",
+                          };
+                          displayLabel = enFieldLabels[field.label] || field.label;
+                        }
+
                         let displayValue = programData[field.name];
                         
                         // معالجة القيم الخاصة (مثل نعم/لا)
                         if (field.type === 'radio' || field.type === 'select') {
                           const option = field.options?.find(opt => opt.value === displayValue);
-                          if (option) displayValue = option.label;
-                          else if (displayValue === 'yes') displayValue = 'نعم';
-                          else if (displayValue === 'no') displayValue = 'لا';
+                          if (option) {
+                            displayValue = option.label;
+                            if (isEn) {
+                              const enOptions: Record<string, string> = {
+                                "نعم": "Yes",
+                                "لا": "No",
+                                "ممتاز": "Excellent",
+                                "جيد جداً": "Very Good",
+                                "جيد": "Good",
+                                "مقبول": "Fair",
+                                "ضعيف": "Poor",
+                                "خرساني": "Concrete",
+                                "مسبق الصنع": "Prefabricated",
+                                "شعبي": "Traditional",
+                                "أخرى": "Other",
+                              };
+                              displayValue = enOptions[option.label] || option.label;
+                            }
+                          } else if (displayValue === 'yes') {
+                            displayValue = isEn ? 'Yes' : 'نعم';
+                          } else if (displayValue === 'no') {
+                            displayValue = isEn ? 'No' : 'لا';
+                          }
                         }
 
                         return (
-                          <div key={field.name} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{field.label}</p>
+                          <div key={field.name} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs" dir={isEn ? "ltr" : "rtl"}>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{displayLabel}</p>
                             <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{String(displayValue)}</p>
                           </div>
                         );
@@ -1296,10 +1483,10 @@ export default function RequestDetailsNew() {
               </div>
 
               {/* المرفقات */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm" dir={isEn ? "ltr" : "rtl"}>
                 <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200 border-b pb-3 border-slate-200 dark:border-slate-800">
                   <Paperclip className="w-5 h-5 text-orange-600" />
-                  المرفقات المرفوعة مع الطلب
+                  {isEn ? "Attachments Uploaded with Request" : "المرفقات المرفوعة مع الطلب"}
                 </h4>
                 {request?.attachments && request.attachments.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -1327,7 +1514,7 @@ export default function RequestDetailsNew() {
                                   size="icon" 
                                   className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
                                   onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
-                                  title="عرض الصورة ملء الشاشة"
+                                  title={isEn ? "View image full screen" : "عرض الصورة ملء الشاشة"}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
@@ -1337,7 +1524,7 @@ export default function RequestDetailsNew() {
                                   size="icon" 
                                   className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
                                   asChild
-                                  title="تنزيل الصورة"
+                                  title={isEn ? "Download image" : "تنزيل الصورة"}
                                 >
                                   <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
                                     <Download className="w-4 h-4" />
@@ -1348,7 +1535,9 @@ export default function RequestDetailsNew() {
                           ) : (
                             <div className="aspect-video w-full rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2">
                               <FileText className="w-10 h-10 text-slate-300 dark:text-slate-700" />
-                              <span className="text-[10px] bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400 font-medium">مستند</span>
+                              <span className="text-[10px] bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400 font-medium">
+                                {isEn ? "Document" : "مستند"}
+                              </span>
                             </div>
                           )}
                           <div className="min-w-0 flex-1 flex flex-col justify-end">
@@ -1357,7 +1546,7 @@ export default function RequestDetailsNew() {
                             </p>
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
                               <span className="text-[10px] text-muted-foreground font-medium bg-slate-50 dark:bg-slate-900/50 px-2 py-0.5 rounded-full inline-block">
-                                {attachment.fileType || 'ملف'}
+                                {isEn ? (attachment.fileType || 'File') : (attachment.fileType || 'ملف')}
                               </span>
                               <div className="flex items-center gap-1.5">
                                 {isImg && (
@@ -1368,7 +1557,7 @@ export default function RequestDetailsNew() {
                                     onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
                                   >
                                     <Eye className="w-3.5 h-3.5" />
-                                    عرض
+                                    {isEn ? "View" : "عرض"}
                                   </Button>
                                 )}
                                 <Button 
@@ -1379,7 +1568,7 @@ export default function RequestDetailsNew() {
                                 >
                                   <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
                                     <Download className="w-3.5 h-3.5" />
-                                    تنزيل
+                                    {isEn ? "Download" : "تنزيل"}
                                   </a>
                                 </Button>
                               </div>
@@ -1392,7 +1581,9 @@ export default function RequestDetailsNew() {
                 ) : (
                   <div className="text-center py-10 bg-white dark:bg-slate-800/50 rounded-lg border-2 border-dashed">
                     <Paperclip className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <p className="text-muted-foreground font-medium text-xs sm:text-sm">لم يتم إرفاق أي ملفات بهذا الطلب</p>
+                    <p className="text-muted-foreground font-medium text-xs sm:text-sm">
+                      {isEn ? "No files have been attached to this request" : "لم يتم إرفاق أي ملفات بهذا الطلب"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -1407,18 +1598,18 @@ export default function RequestDetailsNew() {
         <ColoredDialog
           open={quickResponseReportOpen}
           onOpenChange={setQuickResponseReportOpen}
-          title="تقرير الاستجابة السريعة المعتمد"
+          title={isEn ? "Approved Quick Response Report" : "تقرير الاستجابة السريعة المعتمد"}
           color="purple"
           icon={<Zap className="w-6 h-6" />}
         >
           <div className="space-y-6">
             {request.quickReports.map((report: any) => {
               const evaluationLabels: Record<string, string> = {
-                excellent: "ممتاز",
-                good: "جيد",
-                acceptable: "مقبول",
-                needs_improvement: "يحتاج تحسين",
-                poor: "ضعيف"
+                excellent: isEn ? "Excellent" : "ممتاز",
+                good: isEn ? "Good" : "جيد",
+                acceptable: isEn ? "Acceptable" : "مقبول",
+                needs_improvement: isEn ? "Needs Improvement" : "يحتاج تحسين",
+                poor: isEn ? "Poor" : "ضعيف"
               };
               const evaluationColors: Record<string, string> = {
                 excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
@@ -1429,34 +1620,48 @@ export default function RequestDetailsNew() {
               };
 
               return (
-                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-purple-100 dark:border-purple-900/50 text-right" style={{ direction: "rtl" }}>
+                <div key={report.id} className={`space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-purple-100 dark:border-purple-900/50 ${isEn ? "text-left" : "text-right"}`} style={{ direction: isEn ? "ltr" : "rtl" }}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
                     <div>
-                      <h4 className="font-bold text-purple-950 dark:text-purple-100 text-base sm:text-lg">تفاصيل التقرير الفني</h4>
-                      <p className="text-xs text-slate-500">تم تقديم التقرير في: {new Date(report.responseDate).toLocaleDateString('ar-SA')}</p>
+                      <h4 className="font-bold text-purple-950 dark:text-purple-100 text-base sm:text-lg">
+                        {isEn ? "Technical Report Details" : "تفاصيل التقرير الفني"}
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        {isEn ? `Report submitted on: ${new Date(report.responseDate).toLocaleDateString('en-US')}` : `تم تقديم التقرير في: ${new Date(report.responseDate).toLocaleDateString('ar-SA')}`}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {report.finalEvaluation && (
                         <div className={`px-3 py-1 rounded-full border text-xs font-bold ${evaluationColors[report.finalEvaluation] || ''}`}>
-                          التقييم: {evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
+                          {isEn ? "Evaluation: " : "التقييم: "}{evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
                         </div>
                       )}
                       <div className={`px-3 py-1 rounded-full border text-xs font-bold ${report.resolved ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                        {report.resolved ? 'تم حل المشكلة بالكامل' : 'قيد المتابعة'}
+                        {report.resolved 
+                          ? (isEn ? 'Problem completely resolved' : 'تم حل المشكلة بالكامل') 
+                          : (isEn ? 'Under follow-up' : 'قيد المتابعة')}
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">الفني المختص</span>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{report.technicianName || "غير محدد"}</p>
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">
+                        {isEn ? "Assigned Technician" : "الفني المختص"}
+                      </span>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {report.technicianName || (isEn ? "Not specified" : "غير محدد")}
+                      </p>
                     </div>
                     
                     <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
-                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">حالة المشروع المتكامل</span>
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">
+                        {isEn ? "Integrated Project Status" : "حالة المشروع المتكامل"}
+                      </span>
                       <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        {report.requiresProject ? "نعم، يحتاج إلى مشروع متكامل" : "لا يحتاج إلى مشروع متكامل"}
+                        {report.requiresProject 
+                          ? (isEn ? "Yes, requires integrated project" : "نعم، يحتاج إلى مشروع متكامل") 
+                          : (isEn ? "Does not require integrated project" : "لا يحتاج إلى مشروع متكامل")}
                       </p>
                     </div>
                   </div>
@@ -1464,7 +1669,9 @@ export default function RequestDetailsNew() {
                   <div className="space-y-4">
                     {report.technicalEvaluation && (
                       <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">التقييم الفني للأعمال المنفذة</span>
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">
+                          {isEn ? "Technical Evaluation of Completed Works" : "التقييم الفني للأعمال المنفذة"}
+                        </span>
                         <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                           {report.technicalEvaluation}
                         </p>
@@ -1473,7 +1680,9 @@ export default function RequestDetailsNew() {
 
                     {report.unexecutedWorks && (
                       <div className="bg-red-50/30 dark:bg-red-950/10 p-4 rounded-xl border border-red-100 dark:border-red-900/50">
-                        <span className="text-xs font-bold text-red-500 block mb-2">الأعمال غير المنفذة / أسباب عدم التنفيذ</span>
+                        <span className="text-xs font-bold text-red-500 block mb-2">
+                          {isEn ? "Unexecuted Works / Reasons for Non-Execution" : "الأعمال غير المنفذة / أسباب عدم التنفيذ"}
+                        </span>
                         <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
                           {report.unexecutedWorks}
                         </p>
@@ -1500,10 +1709,10 @@ export default function RequestDetailsNew() {
                               <Camera className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
                             </div>
                             <span className="font-bold text-slate-800 dark:text-slate-200 text-sm sm:text-base">
-                              المرفقات
+                              {isEn ? "Attachments" : "المرفقات"}
                             </span>
                             <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
-                              ({reportPhotos.length} {reportPhotos.length === 1 ? "صورة" : "صور"})
+                              ({reportPhotos.length} {isEn ? (reportPhotos.length === 1 ? "photo" : "photos") : (reportPhotos.length === 1 ? "صورة" : "صور")})
                             </span>
                           </div>
 
@@ -1526,7 +1735,7 @@ export default function RequestDetailsNew() {
                                     size="icon" 
                                     className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300"
                                     onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
-                                    title="عرض الصورة"
+                                    title={isEn ? "View image" : "عرض الصورة"}
                                   >
                                     <Eye className="w-4 h-4" />
                                   </Button>
@@ -1536,7 +1745,7 @@ export default function RequestDetailsNew() {
                                     size="icon" 
                                     className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300 delay-75"
                                     asChild
-                                    title="تنزيل الصورة"
+                                    title={isEn ? "Download image" : "تنزيل الصورة"}
                                   >
                                     <a href={photo.fileUrl} target="_blank" rel="noopener noreferrer" download={photo.fileName}>
                                       <Download className="w-4 h-4" />

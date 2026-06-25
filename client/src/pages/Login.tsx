@@ -40,6 +40,9 @@ export default function Login() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
       toast.success("تم تسجيل الدخول بنجاح");
+      if (data.user?.role === "quick_response") {
+        localStorage.setItem("quick-response-lang", "en");
+      }
       // توجيه المستفيد لصفحته الخاصة، والموظفين للوحة التحكم مع استبدال السجل لمنع الرجوع
       if (data.user?.role === "service_requester") {
         setLocation("/requester", { replace: true });

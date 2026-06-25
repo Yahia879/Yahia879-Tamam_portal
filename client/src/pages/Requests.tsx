@@ -248,14 +248,6 @@ export default function Requests({
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
               {user?.role === "quick_response" && (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={handleLangToggle}
-                    className="flex items-center gap-2 font-semibold border border-gray-200 shadow-sm hover:shadow transition-all h-10 w-full sm:w-auto px-3"
-                  >
-                    <Languages className="w-4 h-4 text-primary" />
-                    <span>{lang === "ar" ? "English" : "العربية"}</span>
-                  </Button>
                   <Link href="/requests/quick-create">
                     <Button 
                       className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"

@@ -354,15 +354,7 @@ export default function QuickResponseReportForm() {
             )}
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleLangToggle}
-            className="flex items-center gap-2 font-semibold border border-gray-200 shadow-sm hover:shadow transition-all"
-          >
-            <Languages className="w-4 h-4 text-primary" />
-            <span>{lang === "ar" ? "English" : "العربية"}</span>
-          </Button>
+
         </div>
 
         {/* العنوان */}

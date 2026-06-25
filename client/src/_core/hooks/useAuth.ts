@@ -95,6 +95,14 @@ export function useAuth(options?: UseAuthOptions) {
   ]);
 
   useEffect(() => {
+    if (state.user && state.user.role === "quick_response") {
+      if (!localStorage.getItem("quick-response-lang")) {
+        localStorage.setItem("quick-response-lang", "en");
+      }
+    }
+  }, [state.user]);
+
+  useEffect(() => {
     if (!redirectOnUnauthenticated) return;
     if (meQuery.isLoading || logoutMutation.isPending) return;
     if (state.user) return;

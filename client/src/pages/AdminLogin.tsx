@@ -38,8 +38,11 @@ export default function AdminLogin() {
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("تم تسجيل الدخول بنجاح");
+      if (data?.user?.role === "quick_response") {
+        localStorage.setItem("quick-response-lang", "en");
+      }
       setLocation("/", { replace: true });
     },
     onError: (error) => {
