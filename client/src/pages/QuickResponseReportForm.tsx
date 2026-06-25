@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LeafletMap } from "@/components/LeafletMap";
+import { cn } from "@/lib/utils";
 import { 
   ArrowRight,
   ArrowLeft,
@@ -143,6 +146,7 @@ export default function QuickResponseReportForm() {
   const utils = trpc.useUtils();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMapDialog, setShowMapDialog] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [lang, setLang] = useState<"ar" | "en">(() => {
     return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
@@ -175,6 +179,21 @@ export default function QuickResponseReportForm() {
     { id: requestId },
     { enabled: requestId > 0 }
   );
+
+  // إحداثيات المسجد
+  const lat = requestData?.mosque?.latitude ? parseFloat(requestData.mosque.latitude) : NaN;
+  const lng = requestData?.mosque?.longitude ? parseFloat(requestData.mosque.longitude) : NaN;
+  const hasCoordinates = !isNaN(lat) && !isNaN(lng);
+
+  const mapCenter = hasCoordinates ? { lat, lng } : { lat: 24.7136, lng: 46.6753 };
+  const markers = hasCoordinates ? [
+    {
+      id: requestData?.mosque?.id || 'mosque',
+      position: { lat, lng },
+      title: requestData?.mosque?.name || 'موقع المسجد',
+      status: 'approved'
+    }
+  ] : [];
 
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
@@ -366,10 +385,27 @@ export default function QuickResponseReportForm() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:col-span-2">
-                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-gray-500 shrink-0 mt-1" />
+              <div 
+                className={cn(
+                  "flex items-start gap-3 p-3 md:p-4 bg-gray-50 rounded-lg md:col-span-2",
+                  hasCoordinates && "cursor-pointer hover:bg-gray-100 transition-all border border-transparent hover:border-primary/20"
+                )}
+                onClick={() => {
+                  if (hasCoordinates) {
+                    setShowMapDialog(true);
+                  } else {
+                    toast.error(lang === "ar" ? "موقع المسجد غير محدد إحداثياً في النظام" : "Mosque coordinates are not specified in the system");
+                  }
+                }}
+              >
+                <MapPin className={cn("w-4 h-4 md:w-5 md:h-5 shrink-0 mt-1", hasCoordinates ? "text-primary animate-pulse" : "text-gray-500")} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] md:text-sm text-gray-500">{t.mosqueLocation}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] md:text-sm text-gray-500">{t.mosqueLocation}</p>
+                    {hasCoordinates && (
+                      <span className="text-[10px] md:text-xs text-primary font-bold">{lang === "ar" ? "عرض على الخريطة" : "View on map"}</span>
+                    )}
+                  </div>
                   <p className="font-bold text-sm md:text-base break-words">{requestData.mosque?.address || requestData.mosque?.city || t.notSpecified}</p>
                 </div>
               </div>
@@ -600,6 +636,29 @@ export default function QuickResponseReportForm() {
           </Button>
         </div>
       </div>
+
+      {/* نافذة خريطة موقع المسجد */}
+      <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>
+        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] h-[85vh] max-h-[92vh] flex flex-col p-4 md:p-6" dir={lang === "ar" ? "rtl" : "ltr"}>
+          <DialogHeader className={lang === "ar" ? "text-right pb-2 shrink-0" : "text-left pb-2 shrink-0"}>
+            <DialogTitle className="text-lg font-bold">
+              {lang === "ar" ? `موقع مسجد: ${requestData.mosque?.name || ""}` : `Mosque Location: ${requestData.mosque?.name || ""}`}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 w-full rounded-lg overflow-hidden border border-gray-200 shadow-sm relative mt-2">
+            {showMapDialog && hasCoordinates && (
+              <LeafletMap 
+                initialCenter={mapCenter}
+                markers={markers}
+                initialZoom={16}
+                fitBounds={false}
+                markerIconSize={54}
+                className="w-full h-full absolute inset-0"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
