@@ -19,7 +19,8 @@ import {
   ChevronLeft,
   Zap,
   MapPin,
-  ClipboardList
+  ClipboardList,
+  Languages
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -77,6 +78,89 @@ export default function Requests({
   const [, navigate] = useLocation();
   const searchParamsStr = useSearch();
   
+  const [lang, setLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  const handleLangToggle = () => {
+    const nextLang = lang === "ar" ? "en" : "ar";
+    setLang(nextLang);
+    localStorage.setItem("quick-response-lang", nextLang);
+  };
+
+  const translateProgram = (type: string) => {
+    if (user?.role === "quick_response" && lang === "en") {
+      const enLabels: Record<string, string> = {
+        bunyan: "Bunyan",
+        daaem: "Daaem",
+        enaya: "Enaya",
+        emdad: "Emdad",
+        ethraa: "Ethraa",
+        sedana: "Sedana",
+        taqa: "Taqa",
+        miyah: "Miyah",
+        suqya: "Suqya",
+        // support legacy keys if any exist in the database
+        bina: "Building",
+        tarmeem: "Restoration",
+        taathath: "Furnishing",
+        hifz: "Preservation",
+        other: "Other",
+      };
+      return enLabels[type] || type;
+    }
+    return PROGRAM_LABELS[type as keyof typeof PROGRAM_LABELS] || type;
+  };
+
+  const translateStage = (stage: string, track?: string) => {
+    if (user?.role === "quick_response" && lang === "en") {
+      const enStages: Record<string, string> = {
+        submitted: "Submitted",
+        initial_review: "Initial Review",
+        field_visit: "Field Visit",
+        technical_eval: "Technical Evaluation",
+        boq_preparation: "BOQ Preparation",
+        financial_eval_and_approval: "Financial Evaluation",
+        quotation_approval: "Quotation Approval",
+        contracting: "Contracting",
+        execution: "Execution",
+        handover: "Handover",
+        closed: "Closed",
+      };
+      return enStages[stage] || stage;
+    }
+    return getStageLabel(stage, track);
+  };
+
+  const translateStatus = (status: string) => {
+    if (user?.role === "quick_response" && lang === "en") {
+      const enStatuses: Record<string, string> = {
+        pending: "Pending",
+        under_review: "Under Review",
+        in_progress: "In Progress",
+        completed: "Completed",
+        rejected: "Rejected",
+        cancelled: "Cancelled",
+      };
+      return enStatuses[status] || status;
+    }
+    return STATUS_LABELS[status as keyof typeof STATUS_LABELS] || status;
+  };
+
+  const translateDepartment = (dept: string) => {
+    if (user?.role === "quick_response" && lang === "en" && dept) {
+      const depts: Record<string, string> = {
+        "فريق الاستجابة السريعة": "Quick Response Team",
+        "اللجنة الفنية": "Technical Committee",
+        "الإدارة المالية": "Financial Department",
+        "المقاول": "Contractor",
+        "المستشار الفني": "Technical Consultant",
+      };
+      return depts[dept] || dept;
+    }
+    return dept;
+  };
+  
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -86,6 +170,7 @@ export default function Requests({
 
 
 
+  const isEn = user?.role === "quick_response" && lang === "en";
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const canViewDetails = isAdmin || 
@@ -144,36 +229,48 @@ export default function Requests({
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-full overflow-x-hidden">
+      <div className="space-y-6 max-w-full overflow-x-hidden" dir={isEn ? "ltr" : "rtl"}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
-              {initialStage === "field_visit" ? "الزيارات الميدانية" : 
-               initialAssignedToMe ? "طلباتي" : "إدارة الطلبات"}
+              {isEn ? "Quick Response Requests" :
+               (initialStage === "field_visit" ? "الزيارات الميدانية" : 
+                initialAssignedToMe ? "طلباتي" : "إدارة الطلبات")}
             </h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1 break-words">
-              {initialStage === "field_visit" ? "عرض ومتابعة الطلبات في مرحلة الزيارة الميدانية" :
-               initialAssignedToMe ? "عرض ومتابعة الطلبات المسندة إليك" : "عرض ومتابعة جميع طلبات الخدمة"}
+              {isEn ? "View and track active and completed quick response requests" :
+               (initialStage === "field_visit" ? "عرض ومتابعة الطلبات في مرحلة الزيارة الميدانية" :
+                initialAssignedToMe ? "عرض ومتابعة الطلبات المسندة إليك" : "عرض ومتابعة جميع طلبات الخدمة")}
             </p>
           </div>
           {!initialAssignedToMe && (
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
               {user?.role === "quick_response" && (
-                <Link href="/requests/quick-create">
-                  <Button 
-                    className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleLangToggle}
+                    className="flex items-center gap-2 font-semibold border border-gray-200 shadow-sm hover:shadow transition-all h-10 w-full sm:w-auto px-3"
                   >
-                    <Zap className="w-4 h-4" />
-                    طلب سريع
+                    <Languages className="w-4 h-4 text-primary" />
+                    <span>{lang === "ar" ? "English" : "العربية"}</span>
                   </Button>
-                </Link>
+                  <Link href="/requests/quick-create">
+                    <Button 
+                      className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      {lang === "en" ? "Quick Request" : "طلب سريع"}
+                    </Button>
+                  </Link>
+                </>
               )}
               <PermissionGuard permission="requests.create">
                 <Link href="/service-request">
                   <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10">
                     <Plus className="w-4 h-4" />
-                    طلب جديد
+                    {isEn ? "New Request" : "طلب جديد"}
                   </Button>
                 </Link>
               </PermissionGuard>
@@ -185,30 +282,30 @@ export default function Requests({
         <div className={`grid grid-cols-2 ${initialStage === "field_visit" || user?.role === "quick_response" ? "lg:grid-cols-3" : "lg:grid-cols-4"} gap-3 md:gap-4`}>
           {[
             {
-              label: "إجمالي الطلبات",
+              label: isEn ? "Total Requests" : "إجمالي الطلبات",
               value: stats.total,
               icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-primary/10 text-primary",
             },
             {
-              label: "قيد المراجعة",
+              label: isEn ? "Under Review" : "قيد المراجعة",
               value: stats.underReview,
               icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
             },
             {
-              label: "قيد التنفيذ",
+              label: isEn ? "In Progress" : "قيد التنفيذ",
               value: stats.inProgress,
               icon: <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-blue-100 dark:bg-blue-950/40 text-blue-600",
             },
             {
-              label: "مكتملة",
+              label: isEn ? "Completed" : "مكتملة",
               value: stats.completed,
               icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
             },
-          ].filter(stat => !((initialStage === "field_visit" || user?.role === "quick_response") && stat.label === "قيد المراجعة")).map((stat) => (
+          ].filter(stat => !((initialStage === "field_visit" || user?.role === "quick_response") && stat.label === (isEn ? "Under Review" : "قيد المراجعة"))).map((stat) => (
             <Card key={stat.label} className="border-0 shadow-sm overflow-hidden">
               <CardContent className="p-3 md:p-4">
                 <div className="flex items-center gap-2 md:gap-3">
@@ -232,55 +329,55 @@ export default function Requests({
               <div className="sm:col-span-2 relative">
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
                   <Search className="w-3 h-3" />
-                  البحث
+                  {isEn ? "Search" : "البحث"}
                 </label>
                 <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Search className={`absolute ${isEn ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
                   <Input
-                    placeholder="رقم الطلب أو اسم المسجد..."
+                    placeholder={isEn ? "Request ID or Mosque Name..." : "رقم الطلب أو اسم المسجد..."}
                     value={search}
                     onChange={(e) => {
                       setSearch(e.target.value);
                       setPage(1);
                     }}
-                    className="pr-10 h-10 w-full"
+                    className={`h-10 w-full ${isEn ? "pl-10 pr-3" : "pr-10"}`}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Program" : "البرنامج"}</label>
                   <Select value={programFilter} onValueChange={(v) => {
                     setProgramFilter(v);
                     setPage(1);
                   }}>
                     <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                      <SelectValue placeholder="البرنامج" />
+                      <SelectValue placeholder={isEn ? "Program" : "البرنامج"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">جميع البرامج</SelectItem>
-                      {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      <SelectItem value="all">{isEn ? "All Programs" : "جميع البرامج"}</SelectItem>
+                      {Object.entries(PROGRAM_LABELS).map(([key]) => (
+                        <SelectItem key={key} value={key}>{translateProgram(key)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الحالة</label>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Status" : "الحالة"}</label>
                   <Select value={statusFilter} onValueChange={(v) => {
                     setStatusFilter(v);
                     setPage(1);
                   }}>
                     <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                      <SelectValue placeholder="الحالة" />
+                      <SelectValue placeholder={isEn ? "Status" : "الحالة"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="all">{isEn ? "All Statuses" : "جميع الحالات"}</SelectItem>
                       {initialStage !== "field_visit" && user?.role !== "quick_response" && (
-                        <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                        <SelectItem value="under_review">{isEn ? "Under Review" : "قيد المراجعة"}</SelectItem>
                       )}
-                      <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                      <SelectItem value="completed">مكتملة</SelectItem>
+                      <SelectItem value="in_progress">{isEn ? "In Progress" : "قيد التنفيذ"}</SelectItem>
+                      <SelectItem value="completed">{isEn ? "Completed" : "مكتملة"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -294,18 +391,18 @@ export default function Requests({
           {isLoading ? (
             <div className="p-12 text-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-muted-foreground mt-4 text-sm">جاري التحميل...</p>
+              <p className="text-muted-foreground mt-4 text-sm">{isEn ? "Loading..." : "جاري التحميل..."}</p>
             </div>
           ) : requests.length > 0 ? (
             <div>
               {/* Table Header (Desktop Only) */}
               <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="w-8"></div>
-                <div>الطلب</div>
-                <div>المسجد</div>
-                <div>المرحلة</div>
-                <div>الحالة</div>
-                <div className="w-20 text-center">عرض</div>
+                <div>{isEn ? "Request" : "الطلب"}</div>
+                <div>{isEn ? "Mosque" : "المسجد"}</div>
+                <div>{isEn ? "Stage" : "المرحلة"}</div>
+                <div>{isEn ? "Status" : "الحالة"}</div>
+                <div className="w-20 text-center">{isEn ? "View" : "عرض"}</div>
               </div>
 
               {/* Rows / Cards */}
@@ -326,19 +423,19 @@ export default function Requests({
                       {/* Request Info (Mobile & Desktop) */}
                       <div className="flex items-start justify-between md:block gap-3">
                         <div className="flex items-center gap-3 md:block min-w-0">
-                          <div className="md:hidden shrink-0">
+                           <div className="md:hidden shrink-0">
                             <ProgramIcon program={request.programType} size="md" />
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-foreground text-sm md:text-sm">{request.requestNumber}</p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
-                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
+                              {request.programName && !isEn ? request.programName : translateProgram(request.programType)}
                             </p>
                           </div>
                         </div>
                         <div className="text-left md:text-right shrink-0">
                            <p className="text-[10px] md:text-xs text-muted-foreground">
-                            {new Date(request.createdAt).toLocaleDateString("ar-SA")}
+                            {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                           </p>
                         </div>
                       </div>
@@ -352,11 +449,11 @@ export default function Requests({
                       {/* Stage (Desktop) */}
                       <div className="hidden md:block min-w-0">
                         <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
-                          {getStageLabel(request.currentStage, request.requestTrack)}
+                          {translateStage(request.currentStage, request.requestTrack)}
                         </Badge>
                         {request.currentResponsibleDepartment && (
                           <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
-                            {request.currentResponsibleDepartment}
+                            {translateDepartment(request.currentResponsibleDepartment)}
                           </p>
                         )}
                       </div>
@@ -365,7 +462,7 @@ export default function Requests({
                       <div className="hidden md:block shrink-0">
                         <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                           {status.icon}
-                          {STATUS_LABELS[request.status]}
+                          {translateStatus(request.status)}
                         </span>
                       </div>
 
@@ -377,11 +474,11 @@ export default function Requests({
                         </div>
                         <div className="flex items-center justify-between gap-2">
                            <Badge variant="outline" className="text-[10px] py-0.5">
-                            {getStageLabel(request.currentStage, request.requestTrack)}
+                            {translateStage(request.currentStage, request.requestTrack)}
                           </Badge>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                             {status.icon}
-                            {STATUS_LABELS[request.status]}
+                            {translateStatus(request.status)}
                           </span>
                         </div>
                       </div>
@@ -391,7 +488,7 @@ export default function Requests({
                         {canViewDetails && (
                           <Link href={`/requests/${request.id}`}>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
-                              <ChevronLeft className="w-4 h-4" />
+                              <ChevronLeft className={`w-4 h-4 ${isEn ? "rotate-180" : ""}`} />
                             </Button>
                           </Link>
                         )}
@@ -404,7 +501,11 @@ export default function Requests({
               {/* Footer with Pagination */}
               <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
                 <div className="text-[11px] md:text-xs text-muted-foreground text-center">
-                  يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} طلب
+                  {isEn ? (
+                    `Showing ${(page - 1) * limit + 1} - ${Math.min(page * limit, total)} of ${total} requests`
+                  ) : (
+                    `يعرض ${(page - 1) * limit + 1} - ${Math.min(page * limit, total)} من أصل ${total} طلب`
+                  )}
                 </div>
                 
                 {totalPages > 1 && (
@@ -416,7 +517,7 @@ export default function Requests({
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page === 1}
                     >
-                      <ChevronLeft className="h-4 w-4 rotate-180" />
+                      <ChevronLeft className={`h-4 w-4 ${isEn ? "" : "rotate-180"}`} />
                     </Button>
                     
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
@@ -453,7 +554,7 @@ export default function Requests({
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page === totalPages}
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <ChevronLeft className={`h-4 w-4 ${isEn ? "rotate-180" : ""}`} />
                     </Button>
                   </div>
                 )}
@@ -464,18 +565,18 @@ export default function Requests({
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-foreground font-medium mb-1">لا توجد طلبات</p>
+              <p className="text-foreground font-medium mb-1">{isEn ? "No requests found" : "لا توجد طلبات"}</p>
               <p className="text-muted-foreground text-sm mb-4">
                 {search || programFilter !== "all" || statusFilter !== "all"
-                  ? "لا توجد نتائج تطابق معايير البحث"
-                  : "لم يتم تقديم أي طلبات بعد"}
+                  ? (isEn ? "No results match the search criteria" : "لا توجد نتائج تطابق معايير البحث")
+                  : (isEn ? "No requests have been submitted yet" : "لم يتم تقديم أي طلبات بعد")}
               </p>
               {!initialAssignedToMe && (
                 <PermissionGuard permission="requests.create">
                   <Link href="/service-request">
                     <Button className="gradient-primary text-white gap-2">
                       <Plus className="w-4 h-4" />
-                      تقديم طلب جديد
+                      {isEn ? "New Request" : "تقديم طلب جديد"}
                     </Button>
                   </Link>
                 </PermissionGuard>
