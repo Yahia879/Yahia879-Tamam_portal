@@ -42,6 +42,7 @@ import {
   Check,
   User,
   Info,
+  Play,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -365,6 +366,23 @@ export default function SupplierDetails() {
                 >
                   <Ban className="h-4 w-4" />
                   إيقاف المورد
+                </Button>
+              </PermissionGuard>
+            )}
+
+            {supplier.approvalStatus === "suspended" && (
+              <PermissionGuard permission="suppliers.approve">
+                <Button
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium h-9 gap-1.5"
+                >
+                  {approveMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                  إعادة تنشيط المورد
                 </Button>
               </PermissionGuard>
             )}

@@ -406,7 +406,7 @@ function DashboardLayoutContent({
   // عنوان الدور المعروض في تذييل القائمة
   const roleDisplayLabel = hasCustomRole
     ? (user as any).customRole.nameAr
-    : (ROLE_LABELS[user?.role || ""] || user?.role);
+    : (isEn && user?.role === "quick_response" ? "quick response" : (ROLE_LABELS[user?.role || ""] || user?.role));
   const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات

@@ -215,7 +215,40 @@ export const suppliersRouter = router({
       }
 
       const suppliersList = await db
-        .select()
+        .select({
+          id: suppliers.id,
+          name: suppliers.name,
+          type: suppliers.type,
+          entityType: suppliers.entityType,
+          commercialRegister: suppliers.commercialRegister,
+          commercialActivity: suppliers.commercialActivity,
+          yearsOfExperience: suppliers.yearsOfExperience,
+          workFields: suppliers.workFields,
+          address: suppliers.address,
+          city: suppliers.city,
+          googleMapsUrl: suppliers.googleMapsUrl,
+          googleMapsLat: suppliers.googleMapsLat,
+          googleMapsLng: suppliers.googleMapsLng,
+          email: suppliers.email,
+          phone: suppliers.phone,
+          phoneSecondary: suppliers.phoneSecondary,
+          contactPerson: suppliers.contactPerson,
+          contactPersonTitle: suppliers.contactPersonTitle,
+          bankAccountName: suppliers.bankAccountName,
+          bankName: suppliers.bankName,
+          iban: suppliers.iban,
+          taxNumber: suppliers.taxNumber,
+          approvalStatus: suppliers.approvalStatus,
+          approvedBy: suppliers.approvedBy,
+          approvedAt: suppliers.approvedAt,
+          rejectionReason: suppliers.rejectionReason,
+          status: suppliers.status,
+          rating: suppliers.rating,
+          notes: suppliers.notes,
+          createdBy: suppliers.createdBy,
+          createdAt: suppliers.createdAt,
+          updatedAt: suppliers.updatedAt,
+        })
         .from(suppliers)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(suppliers.createdAt))

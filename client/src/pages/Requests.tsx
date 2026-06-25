@@ -364,7 +364,7 @@ export default function Requests({
                       <SelectValue placeholder={isEn ? "Status" : "الحالة"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{isEn ? "All Statuses" : "جميع الحالات"}</SelectItem>
+                      <SelectItem value="all">{isEn ? "All" : "الكل"}</SelectItem>
                       {initialStage !== "field_visit" && user?.role !== "quick_response" && (
                         <SelectItem value="under_review">{isEn ? "Under Review" : "قيد المراجعة"}</SelectItem>
                       )}

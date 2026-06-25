@@ -62,6 +62,7 @@ import {
   Plus,
   Download,
   Pencil,
+  Play,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -194,9 +195,7 @@ export default function SuppliersManagement() {
     suspendMutation.mutate({ id: supplierId, reason: "تم الإيقاف بواسطة الإدارة" });
   };
 
-  // جلب التصنيفات للبنوك
-  const { data: banksData } = trpc.categories.getCategoryByType.useQuery({ type: "banks" });
-  const banks = banksData?.values;
+
 
   // تم نقل تعديل المورد إلى صفحة منفصلة لتعديل كافة الحقول والبيانات والمرفقات
 
@@ -420,6 +419,15 @@ export default function SuppliersManagement() {
                                 >
                                   <Ban className="h-4 w-4 ml-2" />
                                   إيقاف
+                                </DropdownMenuItem>
+                              )}
+                              {supplier.approvalStatus === "suspended" && hasApprovePermission && (
+                                <DropdownMenuItem
+                                  onClick={() => handleApprove(supplier.id)}
+                                  className="text-green-600 font-bold"
+                                >
+                                  <Play className="h-4.5 w-4.5 ml-2 text-green-600" />
+                                  إعادة تنشيط
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuContent>
