@@ -333,8 +333,27 @@ export default function QuickResponseReportForm() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir={lang === "ar" ? "rtl" : "ltr"}>
       <div className="container max-w-4xl mx-auto px-4 overflow-x-hidden">
-        {/* زر تبديل اللغة */}
-        <div className={`flex ${lang === "ar" ? "justify-end" : "justify-start"} mb-4`}>
+        {/* شريط الأدوات العلوي (زر الرجوع وزر اللغة) */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3"
+            onClick={() => navigate(`/requests/${requestId}`)}
+          >
+            {lang === "ar" ? (
+              <>
+                <ArrowRight className="w-4 h-4 sm:ml-2" />
+                <span className="hidden sm:inline">رجوع</span>
+              </>
+            ) : (
+              <>
+                <ArrowLeft className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back</span>
+              </>
+            )}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
