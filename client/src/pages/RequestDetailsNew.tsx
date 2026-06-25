@@ -366,6 +366,9 @@ export default function RequestDetailsNew() {
   const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
   const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasViewDetailsPermission = user?.role === 'super_admin' || user?.role === 'system_admin' || userPermissions.includes("requests.view_details");
+  const isDirectQuickRequest = request?.requestTrack === 'quick_response' && request?.currentStage === 'closed';
+  const showQuickRequestLayout = isDirectQuickRequest && hasViewDetailsPermission;
   const isFieldTeam = ((user?.role as string) === 'field_team' || userPermissions.includes("requests.manage_as_field_team")) && !userPermissions.includes("requests.view_details");
   const isQuickResponseUser = ((user?.role as string) === 'quick_response' || userPermissions.includes("requests.manage_as_quick_response")) && !userPermissions.includes("requests.view_details");
 
@@ -722,14 +725,34 @@ export default function RequestDetailsNew() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-4 sm:py-8">
-
-
-        {/* Progress Stepper */}
-        <ProgressStepper
-          steps={workflow.map((s) => ({ ...s, label: s.label }))}
-          currentStep={request.currentStage}
-          completedSteps={completedSteps}
-        />
+        {showQuickRequestLayout ? (
+          <div className="space-y-6 max-w-4xl mx-auto" dir="rtl">
+            <ActiveActionCard
+              title="طلب استجابة سريعة مكتمل"
+              description="تم إنشاء هذا الطلب ومعالجته بالكامل عبر مسار الاستجابة السريعة للتعامل الفوري مع الحالة الطارئة للمسجد."
+              icon={Zap}
+              iconColor="text-purple-600"
+              progress={{
+                current: 6,
+                total: 6,
+                percentage: 100,
+              }}
+              actionButton={
+                request.quickReports && request.quickReports.length > 0 ? {
+                  label: "عرض تقرير الاستجابة السريعة",
+                  onClick: () => setQuickResponseReportOpen(true),
+                } : undefined
+              }
+            />
+          </div>
+        ) : (
+          <>
+            {/* Progress Stepper */}
+            <ProgressStepper
+              steps={workflow.map((s) => ({ ...s, label: s.label }))}
+              currentStep={request.currentStage}
+              completedSteps={completedSteps}
+            />
 
         {/* Active Action Card */}
         {request.status === 'suspended' && isManagementUser ? (
@@ -1376,6 +1399,7 @@ export default function RequestDetailsNew() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
       {/* Quick Response Report Dialog */}

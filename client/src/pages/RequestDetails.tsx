@@ -421,6 +421,7 @@ export default function RequestDetails() {
 
   // تحديد المراحل بناءً على مسار الطلب
   const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
+  const isDirectQuickRequest = request.requestTrack === 'quick_response' && request.currentStage === 'closed';
   const quickResponseSteps = [
     { key: "submitted", label: "تقديم الطلب", order: 1 },
     { key: "initial_review", label: "المراجعة الأولية", order: 2 },
@@ -538,7 +539,7 @@ export default function RequestDetails() {
         </div>
 
         {/* شريط المراحل - للموظفين الداخليين فقط */}
-        {user?.role !== "service_requester" ? (
+        {user?.role !== "service_requester" && !isDirectQuickRequest ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between overflow-x-auto pb-2">
@@ -579,12 +580,12 @@ export default function RequestDetails() {
         ) : null}
 
         {/* بطاقة التقدم - للموظفين فقط */}
-        {user?.role !== "service_requester" && (
+        {user?.role !== "service_requester" && !isDirectQuickRequest && (
           <RequestProgressCard stage={request.currentStage} checklist={stageChecklist} />
         )}
 
         {/* شريط التقدم بالنسبة المئوية - لطالب الخدمة */}
-        {user?.role === "service_requester" && (
+        {user?.role === "service_requester" && !isDirectQuickRequest && (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="text-center mb-4">
@@ -615,11 +616,13 @@ export default function RequestDetails() {
         )}
 
         {/* شريط الحالة الذكي */}
-        <RequestActionCard 
-          requestId={request.id}
-          currentStage={request.currentStage}
-          request={request}
-        />
+        {!isDirectQuickRequest && (
+          <RequestActionCard 
+            requestId={request.id}
+            currentStage={request.currentStage}
+            request={request}
+          />
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* التفاصيل الرئيسية */}
