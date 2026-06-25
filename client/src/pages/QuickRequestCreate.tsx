@@ -482,29 +482,31 @@ export default function QuickRequestCreate() {
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-end gap-2 sticky bottom-4 z-20 bg-white/95 backdrop-blur-md border border-slate-200/80 p-2.5 rounded-xl shadow-md max-w-full transition-all duration-200">
+          <div className="flex items-center justify-end gap-3 pt-6 mt-8 border-t border-slate-200">
             <Button
               type="button"
               variant="outline"
+              size="lg"
               onClick={() => navigate("/requests")}
               disabled={isSubmitting}
-              className="h-9 px-4 text-xs border-slate-200 hover:bg-slate-50 font-semibold active:scale-[0.98] transition-all cursor-pointer"
+              className="px-6 h-12 font-bold transition-all active:scale-[0.98] cursor-pointer"
             >
               {t.cancel}
             </Button>
             <Button
               type="submit"
+              size="lg"
               disabled={isSubmitting}
-              className="gradient-primary text-white gap-1.5 h-9 px-5 text-xs font-bold active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+              className="gradient-primary text-white gap-2 px-8 h-12 shadow-sm font-bold active:scale-[0.98] transition-all cursor-pointer flex items-center"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   {t.saving}
                 </>
               ) : (
                 <>
-                  <Save className="w-3.5 h-3.5" />
+                  <Save className="w-4 h-4" />
                   {t.save}
                 </>
               )}

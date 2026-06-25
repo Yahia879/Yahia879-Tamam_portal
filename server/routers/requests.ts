@@ -238,11 +238,47 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذا الطلب" });
       }
 
-      // الحصول على بيانات المسجد (قد يكون null في حالة برنامج بنيان)
+      // الحصول على بيانات المسجد (قد يكون null في حالة برنامج بنيان أو طلب سريع مخصص)
       let mosque: typeof mosques.$inferSelect | null = null;
       if (request.mosqueId) {
         const mosqueResult = await db.select().from(mosques).where(eq(mosques.id, request.mosqueId)).limit(1);
         mosque = mosqueResult[0] || null;
+      } else if (request.programData) {
+        let progData: any = null;
+        try {
+          if (typeof request.programData === 'string') {
+            progData = JSON.parse(request.programData);
+          } else if (typeof request.programData === 'object') {
+            progData = request.programData;
+          }
+        } catch (e) {
+          console.error("Error parsing programData in getById:", e);
+        }
+        if (progData && typeof progData === 'object' && progData.customMosqueName) {
+          mosque = {
+            id: 0,
+            name: progData.customMosqueName,
+            city: progData.customMosqueCity || "غير محدد",
+            address: progData.customMosqueAddress || null,
+            district: null,
+            latitude: null,
+            longitude: null,
+            approvalStatus: "approved",
+            registeredBy: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            notes: null,
+            imamName: null,
+            imamPhone: null,
+            muezzinName: null,
+            muezzinPhone: null,
+            servantName: null,
+            servantPhone: null,
+            mosqueAge: null,
+            hasPrayerHall: false,
+            area: null,
+          } as any;
+        }
       }
 
       // الحصول على بيانات مقدم الطلب
@@ -425,7 +461,11 @@ export const requestsRouter = router({
 
       if (input.search) {
         conditions.push(
-          sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`
+          or(
+            sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
+            sql`${mosques.name} LIKE ${`%${input.search}%`}`,
+            sql`JSON_UNQUOTE(JSON_EXTRACT(${mosqueRequests.programData}, '$.customMosqueName')) LIKE ${`%${input.search}%`}`
+          )!
         );
       }
       if (input.programType) {
@@ -549,11 +589,33 @@ export const requestsRouter = router({
           } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
             effectiveStatus = r.hasQuickReport ? "completed" as any : "in_progress" as any;
           }
+          let mosqueName = r.mosqueName;
+          let mosqueCity = r.mosqueCity;
+          if (!r.request.mosqueId && r.request.programData) {
+            let progData: any = null;
+            try {
+              if (typeof r.request.programData === 'string') {
+                progData = JSON.parse(r.request.programData);
+              } else if (typeof r.request.programData === 'object') {
+                progData = r.request.programData;
+              }
+            } catch (e) {
+              console.error("Error parsing programData in search:", e);
+            }
+            if (progData && typeof progData === 'object') {
+              if (progData.customMosqueName) {
+                mosqueName = progData.customMosqueName;
+              }
+              if (progData.customMosqueCity) {
+                mosqueCity = progData.customMosqueCity;
+              }
+            }
+          }
           return {
             ...r.request,
             status: effectiveStatus,
-            mosqueName: r.mosqueName,
-            mosqueCity: r.mosqueCity,
+            mosqueName,
+            mosqueCity,
             requesterName: r.requesterName,
             programName: r.programName,
           };
@@ -583,12 +645,36 @@ export const requestsRouter = router({
       .where(eq(mosqueRequests.userId, ctx.user.id))
       .orderBy(desc(mosqueRequests.createdAt));
 
-    return results.map(r => ({
-      ...r.request,
-      mosqueName: r.mosqueName,
-      mosqueCity: r.mosqueCity,
-      programName: r.programName,
-    }));
+    return results.map(r => {
+      let mosqueName = r.mosqueName;
+      let mosqueCity = r.mosqueCity;
+      if (!r.request.mosqueId && r.request.programData) {
+        let progData: any = null;
+        try {
+          if (typeof r.request.programData === 'string') {
+            progData = JSON.parse(r.request.programData);
+          } else if (typeof r.request.programData === 'object') {
+            progData = r.request.programData;
+          }
+        } catch (e) {
+          console.error("Error parsing programData in getMyRequests:", e);
+        }
+        if (progData && typeof progData === 'object') {
+          if (progData.customMosqueName) {
+            mosqueName = progData.customMosqueName;
+          }
+          if (progData.customMosqueCity) {
+            mosqueCity = progData.customMosqueCity;
+          }
+        }
+      }
+      return {
+        ...r.request,
+        mosqueName,
+        mosqueCity,
+        programName: r.programName,
+      };
+    });
   }),
 
   // تحديث مرحلة الطلب
@@ -1522,19 +1608,16 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       let mosqueId = input.mosqueId;
+      const programData: Record<string, any> = {};
 
       if (!mosqueId && input.newMosqueName) {
-        const mosqueResult = await db.insert(mosques).values({
-          name: input.newMosqueName,
-          city: input.newMosqueCity || "غير محدد",
-          address: input.newMosqueAddress || null,
-          approvalStatus: "approved",
-          registeredBy: ctx.user.id,
-        });
-        mosqueId = Number(mosqueResult[0].insertId);
+        // Do NOT insert into mosques table. Just store custom name in programData.
+        programData.customMosqueName = input.newMosqueName;
+        programData.customMosqueCity = input.newMosqueCity || "غير محدد";
+        programData.customMosqueAddress = input.newMosqueAddress || null;
       }
 
-      if (!mosqueId) {
+      if (!mosqueId && !input.newMosqueName) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "يجب اختيار مسجد أو إدخال بيانات مسجد جديد" });
       }
 
@@ -1552,7 +1635,7 @@ export const requestsRouter = router({
         assignedTo: ctx.user.id,
         currentResponsible: ctx.user.id,
         completedAt: new Date(),
-        programData: {},
+        programData: programData,
       });
 
       const requestId = Number(requestResult[0].insertId);
