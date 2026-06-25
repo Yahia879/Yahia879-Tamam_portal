@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload, type UploadedFile } from "@/components/FileUpload";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { LeafletMap } from "@/components/LeafletMap";
 import { cn } from "@/lib/utils";
 import { 
@@ -27,7 +27,8 @@ import {
   AlertCircle,
   User,
   CheckCircle,
-  XCircle
+  XCircle,
+  X
 } from "lucide-react";
 
 // تقييمات الأعمال
@@ -639,11 +640,19 @@ export default function QuickResponseReportForm() {
 
       {/* نافذة خريطة موقع المسجد */}
       <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>
-        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] h-[85vh] max-h-[92vh] flex flex-col p-4 md:p-6" dir={lang === "ar" ? "rtl" : "ltr"}>
-          <DialogHeader className={lang === "ar" ? "text-right pb-2 shrink-0" : "text-left pb-2 shrink-0"}>
+        <DialogContent 
+          showCloseButton={false} 
+          className="w-[95vw] sm:max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] h-[85vh] max-h-[92vh] flex flex-col p-4 md:p-6" 
+          dir={lang === "ar" ? "rtl" : "ltr"}
+        >
+          <DialogHeader className="flex flex-row items-center justify-between pb-2 shrink-0" dir={lang === "ar" ? "rtl" : "ltr"}>
             <DialogTitle className="text-lg font-bold">
               {lang === "ar" ? `موقع مسجد: ${requestData.mosque?.name || ""}` : `Mosque Location: ${requestData.mosque?.name || ""}`}
             </DialogTitle>
+            <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none p-1">
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
           </DialogHeader>
           <div className="flex-1 w-full rounded-lg overflow-hidden border border-gray-200 shadow-sm relative mt-2">
             {showMapDialog && hasCoordinates && (
