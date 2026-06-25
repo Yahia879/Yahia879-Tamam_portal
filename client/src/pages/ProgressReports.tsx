@@ -291,6 +291,14 @@ export default function ProgressReports() {
       for (const file of newFiles) {
         const fileName = file.name;
         const ext = fileName.split('.').pop()?.toLowerCase();
+
+        // التحقق من صيغة HEIC/HEIF للآيفون ومنعها مع إظهار تنبيه واضح للعميل
+        const isHeic = ext === "heic" || ext === "heif" || file.type === "image/heic" || file.type === "image/heif";
+        if (isHeic) {
+          toast.error(`عذراً، صيغة الملف HEIC/HEIF (الخاصة بأجهزة آيفون) غير مدعومة.`);
+          continue;
+        }
+
         const forbiddenExts = ['exe', 'bat', 'cmd', 'sh', 'msi', 'scr', 'pif', 'com', 'hta', 'vbs', 'js', 'jar', 'vbe', 'jse', 'wsf', 'wsh', 'ps1'];
         
         if (forbiddenExts.includes(ext || '')) {
