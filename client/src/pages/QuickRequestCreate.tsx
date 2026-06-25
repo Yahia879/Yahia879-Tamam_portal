@@ -403,11 +403,10 @@ export default function QuickRequestCreate() {
                     <Label htmlFor="technicalEval" className="text-sm font-bold text-slate-700">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
                     <Textarea
                       id="technicalEval"
-                      rows={4}
                       value={formData.technicalEvaluation}
                       onChange={(e) => setFormData(prev => ({ ...prev, technicalEvaluation: e.target.value }))}
                       placeholder={t.technicalEvaluationPlaceholder}
-                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] resize-none"
+                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] text-sm md:text-base"
                     />
                   </div>
 
@@ -447,11 +446,10 @@ export default function QuickRequestCreate() {
                     <Label htmlFor="unexecutedWorks" className="text-sm font-bold text-slate-700">{t.unexecutedWorks}</Label>
                     <Textarea
                       id="unexecutedWorks"
-                      rows={3}
                       value={formData.unexecutedWorks}
                       onChange={(e) => setFormData(prev => ({ ...prev, unexecutedWorks: e.target.value }))}
                       placeholder={t.unexecutedWorksDesc}
-                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[80px] resize-none"
+                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] text-sm md:text-base"
                     />
                   </div>
 
@@ -484,29 +482,29 @@ export default function QuickRequestCreate() {
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-end gap-3 sticky bottom-4 z-20 bg-white/90 backdrop-blur-md border border-slate-100 p-4 rounded-2xl shadow-lg max-w-full transition-all duration-200">
+          <div className="flex items-center justify-end gap-2 sticky bottom-4 z-20 bg-white/95 backdrop-blur-md border border-slate-200/80 p-2.5 rounded-xl shadow-md max-w-full transition-all duration-200">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate("/requests")}
               disabled={isSubmitting}
-              className="h-11 px-6 text-sm border-slate-200 hover:bg-slate-50 font-bold active:scale-[0.98] transition-all cursor-pointer"
+              className="h-9 px-4 text-xs border-slate-200 hover:bg-slate-50 font-semibold active:scale-[0.98] transition-all cursor-pointer"
             >
               {t.cancel}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="gradient-primary text-white gap-2 h-11 px-8 text-sm font-bold active:scale-[0.98] transition-all cursor-pointer shadow-md"
+              className="gradient-primary text-white gap-1.5 h-9 px-5 text-xs font-bold active:scale-[0.98] transition-all cursor-pointer shadow-sm"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   {t.saving}
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" />
+                  <Save className="w-3.5 h-3.5" />
                   {t.save}
                 </>
               )}
