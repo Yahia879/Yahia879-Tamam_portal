@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
+import { renderAsync } from "docx-preview";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -91,7 +92,72 @@ export default function SupplierDetails() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ data: string; title: string } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // تنظيف الـ Object URL لمنع تسرب الذاكرة
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  // معاينة ملفات Word (.docx) ديناميكياً باستخدام مكتبة docx-preview المحلية المدمجة
+  useEffect(() => {
+    if (!previewDoc) return;
+    const contentType = getContentTypeOfPreview();
+    const isDocx = contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (!isDocx) return;
+
+    let isMounted = true;
+    
+    // إعطاء فرصة صغيرة للـ DOM لكي تظهر الحاوية
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        renderDocx();
+      }
+    }, 50);
+
+    function renderDocx() {
+      try {
+        const parts = previewDoc!.data.split(";base64,");
+        const base64 = parts[1];
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const container = document.getElementById("docx-preview-container");
+        if (container) {
+          container.innerHTML = ""; // تفريغ شاشة التحميل
+          renderAsync(bytes.buffer, container, undefined, {
+            className: "docx-viewer",
+            inWrapper: false
+          }).catch((err: any) => {
+            console.error("Error rendering docx:", err);
+            if (container) {
+              container.innerHTML = "<div class='text-red-500 p-4 text-center'>فشل معالجة مستند Word. يرجى تحميله لاستعراضه.</div>";
+            }
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        const container = document.getElementById("docx-preview-container");
+        if (container) {
+          container.innerHTML = "<div class='text-red-500 p-4 text-center'>فشل فك تشفير مستند Word.</div>";
+        }
+      }
+    }
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [previewDoc]);
 
   // جلب بيانات المورد بالتفصيل
   const { data: supplier, isLoading, isError, refetch } = trpc.suppliers.getById.useQuery(
@@ -178,7 +244,44 @@ export default function SupplierDetails() {
     if (base64.startsWith("R0lG")) {
       return "image/gif";
     }
+    // توقيع ملفات Zip (مثل docx, xlsx, pptx, zip)
+    if (base64.startsWith("UEsDBB")) {
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+    // توقيع ملفات Word القديمة (.doc)
+    if (base64.startsWith("0M8R")) {
+      return "application/msword";
+    }
     return "";
+  };
+
+  // جلب نوع محتوى الملف المعروض حالياً
+  const getContentTypeOfPreview = (): string => {
+    if (!previewDoc) return "";
+    if (previewDoc.data.startsWith("data:")) {
+      return previewDoc.data.split(";base64,")[0].split(":")[1] || "";
+    }
+    return "";
+  };
+
+  // تحويل Base64 إلى Object URL لتحسين الأداء وسرعة التحميل وتجنب مشاكل المتصفحات مع الروابط الكبيرة
+  const getObjectUrlFromBase64 = (base64Data: string): string => {
+    try {
+      if (!base64Data.startsWith("data:")) return base64Data;
+      const parts = base64Data.split(";base64,");
+      const contentType = parts[0].split(":")[1] || "application/octet-stream";
+      const byteCharacters = atob(parts[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: contentType });
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      console.error("Error creating Object URL:", e);
+      return base64Data;
+    }
   };
 
   // فتح المرفقات
@@ -208,7 +311,23 @@ export default function SupplierDetails() {
       }
     }
 
+    // تنظيف الـ Object URL القديم
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const objectUrl = getObjectUrlFromBase64(fullData);
+    setPreviewUrl(objectUrl);
     setPreviewDoc({ data: fullData, title });
+  };
+
+  // إغلاق المعاينة
+  const handleClosePreview = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl("");
+    setPreviewDoc(null);
   };
 
   // تحميل المعاينة
@@ -218,9 +337,18 @@ export default function SupplierDetails() {
       const parts = previewDoc.data.split(";base64,");
       const contentType = parts[0].split(":")[1] || "application/octet-stream";
       
-      // الحصول على اللاحقة مباشرة من الـ mimeType لتدعم كل الأنواع (مثل webp, pdf, png, jpeg, gif)
       const mimeSubtype = contentType.split("/")[1] || "bin";
-      const ext = mimeSubtype === "jpeg" ? "jpg" : mimeSubtype;
+      let ext = mimeSubtype === "jpeg" ? "jpg" : mimeSubtype;
+      
+      if (contentType.includes("wordprocessingml.document")) {
+        ext = "docx";
+      } else if (contentType.includes("msword")) {
+        ext = "doc";
+      } else if (contentType.includes("spreadsheetml.sheet")) {
+        ext = "xlsx";
+      } else if (contentType.includes("ms-excel")) {
+        ext = "xls";
+      }
       
       const link = document.createElement("a");
       link.href = previewDoc.data;
@@ -954,62 +1082,105 @@ export default function SupplierDetails() {
       </Dialog>
 
       {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
-      {previewDoc && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-955/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewDoc(null)}
-        >
+      {previewDoc && (() => {
+        const contentType = getContentTypeOfPreview();
+        const isImage = contentType.startsWith("image/");
+        const isPdf = contentType === "application/pdf";
+        const isDocx = contentType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+        return (
           <div 
-            className="relative max-w-5xl w-full max-h-[92vh] flex flex-col items-center bg-slate-900/70 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            onClick={handleClosePreview}
           >
-            {/* Close button */}
-            <button 
-              onClick={() => setPreviewDoc(null)}
-              className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full p-2 transition-all z-10 shadow-lg"
-              title="إغلاق"
+            <div 
+              className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Close button */}
+              <button 
+                onClick={handleClosePreview}
+                className="absolute top-4 right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+ 
+              {/* Download button */}
+              <button 
+                onClick={handleDownloadPreview}
+                className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
+                title="تحميل"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+              </button>
 
-            {/* Download button */}
-            <button 
-              onClick={handleDownloadPreview}
-              className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2 transition-all flex items-center gap-1.5 px-3 z-10 shadow-lg"
-              title="تحميل"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
-            </button>
+              {/* Document/Image container */}
+              <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
+                {isImage ? (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto">
+                    <img 
+                      src={previewUrl} 
+                      alt={previewDoc.title} 
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                    />
+                  </div>
+                ) : isPdf ? (
+                  <iframe 
+                    src={previewUrl} 
+                    title={previewDoc.title} 
+                    className="w-full h-full border border-slate-800 rounded-lg bg-white shadow-lg"
+                  />
+                ) : isDocx ? (
+                  <div 
+                    id="docx-preview-container" 
+                    className="w-full h-full overflow-y-auto bg-white rounded-lg p-6 border shadow-inner flex justify-center text-black"
+                    dir="ltr"
+                  >
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <span className="text-sm text-slate-500 font-medium font-sans">جاري معالجة مستند Word...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-850 border border-slate-700/60 rounded-2xl max-w-md w-full text-center shadow-lg">
+                    <div className="p-4 bg-slate-800 rounded-full mb-4">
+                      {contentType.includes("spreadsheet") || contentType.includes("excel") ? (
+                        <FileText className="w-12 h-12 text-emerald-400" />
+                      ) : contentType.includes("word") || contentType.includes("msword") ? (
+                        <FileText className="w-12 h-12 text-blue-400" />
+                      ) : (
+                        <FileText className="w-12 h-12 text-amber-400" />
+                      )}
+                    </div>
+                    <h3 className="text-base font-bold text-slate-100 mb-2">{previewDoc.title}</h3>
+                    <p className="text-xs text-slate-400 mb-6 max-w-xs leading-relaxed">
+                      هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه.
+                    </p>
+                    <Button 
+                      onClick={handleDownloadPreview}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      تحميل المستند
+                    </Button>
+                  </div>
+                )}
+              </div>
 
-            {/* Image or PDF container */}
-            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-auto mt-12 mb-2 min-h-[60vh]">
-              {previewDoc.data.startsWith("data:application/pdf") ? (
-                <iframe 
-                  src={previewDoc.data} 
-                  title={previewDoc.title} 
-                  className="w-full h-[65vh] border rounded-lg bg-white shadow-xs"
-                />
-              ) : (
-                <img 
-                  src={previewDoc.data} 
-                  alt={previewDoc.title} 
-                  className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-md border bg-white"
-                />
-              )}
-            </div>
-
-            {/* Caption/Name */}
-            <div className="mt-2 text-center px-4 py-2 w-full border-t border-slate-850/60 bg-slate-950/30 flex justify-between items-center text-slate-300">
-              <p className="text-xs font-medium flex items-center gap-1">
-                <Info className="h-3.5 w-3.5 text-slate-400" />
-                معاينة مستند - {previewDoc.title}
-              </p>
-              <p className="text-xs font-bold">{previewDoc.title}</p>
+              {/* Caption/Name */}
+              <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <Info className="h-4 w-4 text-slate-400" />
+                  معاينة مستند - {previewDoc.title}
+                </p>
+                <p className="text-xs font-bold">{previewDoc.title}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </DashboardLayout>
   );

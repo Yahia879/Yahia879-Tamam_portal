@@ -38,6 +38,8 @@ const DEFAULT_ACCEPTED_TYPES = [
   "image/png",
   "image/webp",
   "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
 ];
 
 export function FileUpload({
@@ -101,7 +103,7 @@ export function FileUpload({
 
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     // التحقق من نوع الملف وامتداده
-    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf"];
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf", "doc", "docx"];
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
 
     if (!acceptedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
