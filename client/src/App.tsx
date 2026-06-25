@@ -72,6 +72,7 @@ import FieldInspectionForm from "./pages/FieldInspectionForm";
 import FieldVisitSchedule from "./pages/FieldVisitSchedule";
 import FieldVisitsCalendar from "./pages/FieldVisitsCalendar";
 import QuickResponseReportForm from "./pages/QuickResponseReportForm";
+import QuickRequestCreate from "./pages/QuickRequestCreate";
 import BOQ from "./pages/BOQ";
 import Quotations from "./pages/Quotations";
 import FinancialApproval from "./pages/FinancialApproval";
@@ -228,6 +229,7 @@ function Router() {
       {/* الطلبات - الصفحات الإدارية */}
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
       <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
+      <Route path="/requests/quick-create">{() => <AdminRoute component={QuickRequestCreate} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>

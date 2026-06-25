@@ -1493,6 +1493,105 @@ export const requestsRouter = router({
       return { success: true, message: "تم إضافة تقرير الاستجابة السريعة بنجاح" };
     }),
 
+  // إنشاء طلب سريع وإغلاقه مباشرة من قبل فريق الاستجابة السريعة
+  createQuickRequest: protectedProcedure
+    .input(z.object({
+      mosqueId: z.number().optional().nullable(),
+      newMosqueName: z.string().optional().nullable(),
+      newMosqueCity: z.string().optional().nullable(),
+      newMosqueAddress: z.string().optional().nullable(),
+      programType: z.string(),
+      priority: z.enum(["urgent", "medium", "normal"]).default("normal"),
+      description: z.string().optional(),
+      technicianName: z.string().optional(),
+      technicalEvaluation: z.string(),
+      finalEvaluation: z.string().optional().nullable(),
+      unexecutedWorks: z.string().optional().nullable(),
+      actionsTaken: z.string(),
+      status: z.enum(['partially_solved', 'fully_solved', 'not_solved']),
+      resolved: z.boolean().default(false),
+      requiresProject: z.boolean().default(false),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const hasPermission = await checkPermission(ctx.user.id, "requests.manage_as_quick_response") || ctx.user.role === "quick_response";
+      if (!hasPermission) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة طلب استجابة سريعة" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      let mosqueId = input.mosqueId;
+
+      if (!mosqueId && input.newMosqueName) {
+        const mosqueResult = await db.insert(mosques).values({
+          name: input.newMosqueName,
+          city: input.newMosqueCity || "غير محدد",
+          address: input.newMosqueAddress || null,
+          approvalStatus: "approved",
+          registeredBy: ctx.user.id,
+        });
+        mosqueId = Number(mosqueResult[0].insertId);
+      }
+
+      if (!mosqueId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "يجب اختيار مسجد أو إدخال بيانات مسجد جديد" });
+      }
+
+      const requestNumber = await generateRequestNumber(db, input.programType);
+
+      const requestResult = await db.insert(mosqueRequests).values({
+        requestNumber,
+        mosqueId,
+        userId: ctx.user.id,
+        programType: input.programType,
+        currentStage: "closed",
+        status: "completed",
+        priority: input.priority,
+        requestTrack: "quick_response",
+        assignedTo: ctx.user.id,
+        currentResponsible: ctx.user.id,
+        completedAt: new Date(),
+        programData: {},
+      });
+
+      const requestId = Number(requestResult[0].insertId);
+
+      await db.insert(quickResponseReports).values({
+        requestId,
+        respondedBy: ctx.user.id,
+        responseDate: new Date(),
+        technicalEvaluation: input.technicalEvaluation,
+        finalEvaluation: input.finalEvaluation || null,
+        unexecutedWorks: input.unexecutedWorks || null,
+        issueDescription: input.description || input.technicalEvaluation,
+        actionsTaken: input.actionsTaken,
+        resolved: input.resolved,
+        requiresProject: input.requiresProject,
+        status: input.status,
+        technicianName: input.technicianName || ctx.user.name || null,
+      });
+
+      await db.insert(requestHistory).values({
+        requestId,
+        userId: ctx.user.id,
+        toStage: "closed",
+        toStatus: "completed",
+        action: "request_created",
+        notes: input.description || "تم إنشاء وإغلاق طلب استجابة سريعة تلقائياً",
+      });
+
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "quick_request_created_and_closed",
+        entityType: "request",
+        entityId: requestId,
+        newValues: { requestNumber, programType: input.programType, mosqueId },
+      });
+
+      return { success: true, requestId, requestNumber, message: "تم إنشاء طلب الاستجابة السريعة وإغلاقه بنجاح" };
+    }),
+
   // التقييم الفني - الخيارات الأربعة
   technicalEvalDecision: protectedProcedure
     .input(z.object({

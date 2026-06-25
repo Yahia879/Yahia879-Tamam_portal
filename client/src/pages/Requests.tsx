@@ -17,6 +17,9 @@ import {
   TrendingUp,
   Filter,
   ChevronLeft,
+  Zap,
+  MapPin,
+  ClipboardList
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -24,6 +27,11 @@ import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@sha
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { FileUpload, type UploadedFile } from "@/components/FileUpload";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
   pending: {
@@ -75,6 +83,8 @@ export default function Requests({
   const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
   const [page, setPage] = useState(1);
   const limit = 20;
+
+
 
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
@@ -148,14 +158,26 @@ export default function Requests({
             </p>
           </div>
           {!initialAssignedToMe && (
-            <PermissionGuard permission="requests.create">
-              <Link href="/service-request">
-                <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10">
-                  <Plus className="w-4 h-4" />
-                  طلب جديد
-                </Button>
-              </Link>
-            </PermissionGuard>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {(user?.role === "quick_response" || userPermissions.includes("requests.manage_as_quick_response")) && (
+                <Link href="/requests/quick-create">
+                  <Button 
+                    className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"
+                  >
+                    <Zap className="w-4 h-4" />
+                    طلب سريع
+                  </Button>
+                </Link>
+              )}
+              <PermissionGuard permission="requests.create">
+                <Link href="/service-request">
+                  <Button className="gradient-primary text-white gap-2 w-full sm:w-auto h-10">
+                    <Plus className="w-4 h-4" />
+                    طلب جديد
+                  </Button>
+                </Link>
+              </PermissionGuard>
+            </div>
           )}
         </div>
 
