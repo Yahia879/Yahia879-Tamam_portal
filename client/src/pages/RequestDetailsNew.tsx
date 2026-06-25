@@ -120,7 +120,17 @@ export default function RequestDetailsNew() {
       refetchOnWindowFocus: true,
     }
   );
-  const managers: any[] = [];
+  // Fetch project managers
+  const { data: managersResult } = trpc.users.getAll.useQuery(
+    {
+      roles: ['project_manager'],
+      limit: 100,
+    },
+    {
+      enabled: selectedDecision === 'convert_to_project' && showTechnicalEvalDialog,
+    }
+  );
+  const managers = managersResult?.items || [];
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
@@ -1975,7 +1985,7 @@ export default function RequestDetailsNew() {
                   <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                 </div>
 
-                <div className="mb-4 hidden">
+                <div className="mb-4">
                   <label className="block text-sm font-medium mb-2">
                     مدير المشروع <span className="text-red-500">*</span>
                   </label>
@@ -1987,7 +1997,7 @@ export default function RequestDetailsNew() {
                     <option value="" disabled>-- اختر مدير المشروع --</option>
                     {managers?.map((manager: any) => (
                       <option key={manager.id} value={manager.id.toString()}>
-                        {manager.name} ({manager.roleAr || manager.role})
+                        {manager.name}
                       </option>
                     ))}
                   </select>
@@ -2100,7 +2110,7 @@ export default function RequestDetailsNew() {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
-                  if (false && selectedDecision === 'convert_to_project' && !selectedManagerId) {
+                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
                     toast.error("يجب تحديد مدير المشروع");
                     return;
                   }
@@ -2132,7 +2142,7 @@ export default function RequestDetailsNew() {
                     requestId,
                     decision: selectedDecision as any,
                     projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
-                    managerId: undefined,
+                    managerId: selectedDecision === 'convert_to_project' && selectedManagerId ? parseInt(selectedManagerId) : undefined,
                     assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
                     startDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedStartDate,
                     endDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedEndDate,
@@ -2144,7 +2154,7 @@ export default function RequestDetailsNew() {
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) ||
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
                   (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !scheduledDate || !scheduledTime))
                 }
                 className={

@@ -114,8 +114,6 @@ export default function ProjectDetailsPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [showAssignManagerDialog, setShowAssignManagerDialog] = useState(false);
-  const [selectedAssignManagerId, setSelectedAssignManagerId] = useState<string | null>(null);
   const boqTabRef = useRef<BoqTabHandle>(null);
 
   // جلب تفاصيل المشروع
@@ -146,33 +144,7 @@ export default function ProjectDetailsPage() {
     },
   });
 
-  // جلب المدراء لإمكانية التعيين
-  const { data: managersResult } = trpc.users.getAll.useQuery({
-    roles: ['project_manager'],
-    limit: 100,
-  }, {
-    enabled: showAssignManagerDialog,
-  });
-  const managers = managersResult?.items || [];
 
-  const handleAssignManager = async () => {
-    if (!selectedAssignManagerId) {
-      toast.error("الرجاء اختيار مدير للمشروع");
-      return;
-    }
-
-    try {
-      await updateProjectMutation.mutateAsync({
-        id: parseInt(id || "0"),
-        managerId: parseInt(selectedAssignManagerId),
-      });
-      toast.success("تم تعيين مدير المشروع بنجاح");
-      setShowAssignManagerDialog(false);
-      setSelectedAssignManagerId(null);
-    } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء تعيين مدير المشروع");
-    }
-  };
 
   // تحديث مرحلة الطلب
   const updateRequestStageMutation = trpc.requests.updateStage.useMutation({
@@ -341,31 +313,7 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
 
-        {/* تنبيه تعيين مدير المشروع */}
-        {project?.phases?.some(p => p.phaseOrder === 2 && p.status === "completed") && !project?.managerId && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 md:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-pulse-slow">
-            <div className="flex items-center gap-3 text-right">
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <h4 className="font-bold text-amber-900 dark:text-amber-300 text-sm md:text-base">
-                  تنبيه: لم يتم تعيين مدير للمشروع بعد
-                </h4>
-                <p className="text-xs md:text-sm text-amber-700 dark:text-amber-400 mt-1">
-                  اكتملت مرحلة "المرحلة الثانية : إعداد جدول الكميات" بنجاح. يرجى تعيين مدير للمشروع للمتابعة والإشراف على المراحل التالية.
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowAssignManagerDialog(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 shadow-sm flex items-center gap-2 font-bold px-4 py-2 rounded-lg transition-all hover:scale-105 duration-200"
-            >
-              <Users className="w-4 h-4" />
-              تعيين مدير المشروع
-            </Button>
-          </div>
-        )}
+
 
         {/* بطاقات المعلومات الرئيسية */}
         <TooltipProvider delayDuration={300}>
@@ -1049,55 +997,7 @@ export default function ProjectDetailsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* حوار تعيين مدير المشروع */}
-        <Dialog open={showAssignManagerDialog} onOpenChange={setShowAssignManagerDialog}>
-          <DialogContent className="sm:max-w-[425px]" dir="rtl">
-            <DialogHeader className="text-right">
-              <DialogTitle className="text-lg font-bold">تعيين مدير المشروع</DialogTitle>
-              <DialogDescription>
-                اختر مديراً للمشروع من القائمة لإسناد إدارة هذا المشروع إليه.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-4 text-right">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">مدير المشروع <span className="text-red-500">*</span></label>
-                <Select
-                  value={selectedAssignManagerId || ""}
-                  onValueChange={setSelectedAssignManagerId}
-                >
-                  <SelectTrigger className="w-full flex-row-reverse">
-                    <SelectValue placeholder="اختر مديراً للمشروع..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {managers.map((manager) => (
-                      <SelectItem key={manager.id} value={manager.id.toString()}>
-                        {manager.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter className="flex gap-2 justify-end sm:justify-start">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAssignManagerDialog(false);
-                  setSelectedAssignManagerId(null);
-                }}
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleAssignManager}
-                disabled={updateProjectMutation.isPending || !selectedAssignManagerId}
-                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-              >
-                {updateProjectMutation.isPending ? "جاري الحفظ..." : "حفظ التعيين"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
 
       </div>
     </DashboardLayout>

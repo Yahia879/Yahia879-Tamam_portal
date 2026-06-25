@@ -1,0 +1,2 @@
+ALTER TABLE `contracts_enhanced` MODIFY COLUMN `durationUnit` enum('days','weeks','months','years') DEFAULT 'months';--> statement-breakpoint
+ALTER TABLE `contracts_enhanced` ADD `managementPercentage` decimal(5,2) DEFAULT '0.00';

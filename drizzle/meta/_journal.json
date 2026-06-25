@@ -29,6 +29,13 @@
       "when": 1781633336981,
       "tag": "0003_classy_vampiro",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1782392839393,
+      "tag": "0004_lucky_thing",
+      "breakpoints": true
     }
   ]
 }
