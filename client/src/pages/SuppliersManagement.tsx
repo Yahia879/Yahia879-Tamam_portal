@@ -107,7 +107,7 @@ export default function SuppliersManagement() {
   const canSuspend = hasApprovePermission || hasEditPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
   const canViewDetails = hasViewDetailsPermission || ["super_admin", "system_admin"].includes(user?.role ?? "");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("pending");
+  const [activeTab, setActiveTab] = useState("all");
   // دالة مساعدة لتحويل مجالات العمل إلى مصفوفة بشكل آمن
   const getWorkFieldsArray = (workFields: any): string[] => {
     if (!workFields) return [];
