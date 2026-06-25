@@ -368,7 +368,7 @@ export default function RequestDetailsNew() {
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const hasViewDetailsPermission = user?.role === 'super_admin' || user?.role === 'system_admin' || userPermissions.includes("requests.view_details");
   const isDirectQuickRequest = request?.requestTrack === 'quick_response' && request?.currentStage === 'closed';
-  const showQuickRequestLayout = isDirectQuickRequest && hasViewDetailsPermission;
+  const showQuickRequestLayout = !!isDirectQuickRequest;
   const isFieldTeam = ((user?.role as string) === 'field_team' || userPermissions.includes("requests.manage_as_field_team")) && !userPermissions.includes("requests.view_details");
   const isQuickResponseUser = ((user?.role as string) === 'quick_response' || userPermissions.includes("requests.manage_as_quick_response")) && !userPermissions.includes("requests.view_details");
 
@@ -733,8 +733,8 @@ export default function RequestDetailsNew() {
               icon={Zap}
               iconColor="text-purple-600"
               progress={{
-                current: 6,
-                total: 6,
+                current: 1,
+                total: 1,
                 percentage: 100,
               }}
               actionButton={
