@@ -25,11 +25,11 @@ import {
 
 // تقييمات الأعمال
 const EVALUATION_OPTIONS = [
-  { value: "excellent", labelAr: "ممتاز", labelEn: "Excellent" },
-  { value: "good", labelAr: "جيد", labelEn: "Good" },
-  { value: "acceptable", labelAr: "مقبول", labelEn: "Acceptable" },
-  { value: "needs_improvement", labelAr: "يحتاج تحسين", labelEn: "Needs Improvement" },
-  { value: "poor", labelAr: "ضعيف", labelEn: "Poor" },
+  { value: "excellent", labelAr: "ممتاز", labelEn: "Excellent", dotColor: "bg-emerald-500" },
+  { value: "good", labelAr: "جيد", labelEn: "Good", dotColor: "bg-teal-500" },
+  { value: "acceptable", labelAr: "مقبول", labelEn: "Acceptable", dotColor: "bg-blue-500" },
+  { value: "needs_improvement", labelAr: "يحتاج تحسين", labelEn: "Needs Improvement", dotColor: "bg-amber-500" },
+  { value: "poor", labelAr: "ضعيف", labelEn: "Poor", dotColor: "bg-rose-500" },
 ];
 
 const translations = {
@@ -247,24 +247,27 @@ export default function QuickRequestCreate() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-12" dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-slate-50/60 pb-16" dir={lang === "ar" ? "rtl" : "ltr"}>
       {/* Header Container */}
-      <div className="bg-white border-b sticky top-0 z-30 shadow-xs">
+      <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/requests")}
-              className="text-gray-500 hover:text-gray-900"
+              className="text-gray-500 hover:text-gray-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               {lang === "ar" ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
             </Button>
-            <div>
-              <h1 className="text-lg md:text-xl font-bold text-foreground flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-500" />
-                {t.title}
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-teal-600 shrink-0" />
+                <span>{t.title}</span>
               </h1>
+              <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200/60">
+                {lang === "ar" ? "معالجة فورية" : "Direct Closure"}
+              </span>
             </div>
           </div>
           
@@ -272,9 +275,9 @@ export default function QuickRequestCreate() {
             variant="outline"
             size="sm"
             onClick={toggleLang}
-            className="flex items-center gap-1.5 text-xs font-medium"
+            className="flex items-center gap-1.5 text-xs font-semibold hover:bg-slate-50 border-slate-200 cursor-pointer"
           >
-            <Languages className="w-3.5 h-3.5" />
+            <Languages className="w-3.5 h-3.5 text-slate-500" />
             {lang === "ar" ? "English" : "العربية"}
           </Button>
         </div>
@@ -286,31 +289,31 @@ export default function QuickRequestCreate() {
             
             {/* Section 1: Mosque and Request details */}
             <div className="space-y-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-                    <Building2 className="w-5 h-5" />
+              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
+                <CardHeader className="border-b pb-4 bg-slate-50/40">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                    <Building2 className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.mosqueAndRequest}
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 font-medium">
                     {t.mosqueAndRequestDesc}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6 space-y-4">
+                <CardContent className="p-4 md:p-6 space-y-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="mosqueNameInput" className="text-sm font-bold">{t.selectMosque} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="mosqueNameInput" className="text-sm font-bold text-slate-700">{t.selectMosque} <span className="text-red-500">*</span></Label>
                     <Input
                       id="mosqueNameInput"
                       value={formData.mosqueName}
                       onChange={(e) => setFormData(prev => ({ ...prev, mosqueName: e.target.value }))}
                       placeholder={t.selectMosquePlaceholder}
-                      className="h-10 md:h-11"
+                      className="h-10 md:h-11 focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="programSelect" className="text-sm font-bold">{t.programType} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="programSelect" className="text-sm font-bold text-slate-700">{t.programType} <span className="text-red-500">*</span></Label>
                     <Select
                       value={formData.programType}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, programType: val }))}
@@ -319,7 +322,7 @@ export default function QuickRequestCreate() {
                       <SelectTrigger 
                         id="programSelect" 
                         className={cn(
-                          "w-full h-10 md:h-11",
+                          "w-full h-10 md:h-11 border-slate-200 focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer",
                           formData.programType === "taqah" && "text-right justify-end"
                         )}
                         dir={formData.programType === "taqah" ? "rtl" : undefined}
@@ -333,6 +336,7 @@ export default function QuickRequestCreate() {
                             value={p.id}
                             dir={p.id === "taqah" || p.name.includes("طاقة") || p.name.toLowerCase().includes("taqah") ? "rtl" : undefined}
                             className={cn(
+                              "cursor-pointer",
                               (p.id === "taqah" || p.name.includes("طاقة") || p.name.toLowerCase().includes("taqah")) && "text-right justify-end"
                             )}
                           >
@@ -344,13 +348,14 @@ export default function QuickRequestCreate() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="descriptionInput" className="text-sm font-bold">{t.description}</Label>
+                    <Label htmlFor="descriptionInput" className="text-sm font-bold text-slate-700">{t.description}</Label>
                     <Textarea
                       id="descriptionInput"
                       rows={4}
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                       placeholder={t.descriptionPlaceholder}
+                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 resize-none min-h-[100px]"
                     />
                   </div>
 
@@ -358,22 +363,22 @@ export default function QuickRequestCreate() {
               </Card>
 
               {/* بيانات الفريق الفني */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-                    <User className="w-5 h-5" />
+              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
+                <CardHeader className="border-b pb-4 bg-slate-50/40">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                    <User className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.technicalTeam}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 md:p-6">
                   <div className="space-y-1.5">
-                    <Label htmlFor="technicianInput" className="text-sm font-bold">{t.technicianName} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="technicianInput" className="text-sm font-bold text-slate-700">{t.technicianName} <span className="text-red-500">*</span></Label>
                     <Input
                       id="technicianInput"
                       value={formData.technicianName}
                       onChange={(e) => setFormData(prev => ({ ...prev, technicianName: e.target.value }))}
                       placeholder={t.technicianPlaceholder}
-                      className="h-10 md:h-11"
+                      className="h-10 md:h-11 focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300"
                     />
                   </div>
                 </CardContent>
@@ -382,31 +387,32 @@ export default function QuickRequestCreate() {
 
             {/* Section 2: Report and closure */}
             <div className="space-y-6">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-                    <ClipboardList className="w-5 h-5" />
+              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
+                <CardHeader className="border-b pb-4 bg-slate-50/40">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                    <ClipboardList className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.reportAndClose}
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 font-medium">
                     {t.reportAndCloseDesc}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-4 md:p-6 space-y-4">
+                <CardContent className="p-4 md:p-6 space-y-5">
                   
                   <div className="space-y-1.5">
-                    <Label htmlFor="technicalEval" className="text-sm font-bold">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="technicalEval" className="text-sm font-bold text-slate-700">{t.technicalEvaluationLabel} <span className="text-red-500">*</span></Label>
                     <Textarea
                       id="technicalEval"
                       rows={4}
                       value={formData.technicalEvaluation}
                       onChange={(e) => setFormData(prev => ({ ...prev, technicalEvaluation: e.target.value }))}
                       placeholder={t.technicalEvaluationPlaceholder}
+                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[100px] resize-none"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="finalEval" className="text-sm font-bold">{t.finalEvaluation}</Label>
+                    <Label htmlFor="finalEval" className="text-sm font-bold text-slate-700">{t.finalEvaluation}</Label>
                     <Select
                       value={formData.finalEvaluation}
                       onValueChange={(val) => setFormData(prev => ({ ...prev, finalEvaluation: val }))}
@@ -414,7 +420,7 @@ export default function QuickRequestCreate() {
                     >
                       <SelectTrigger 
                         id="finalEval" 
-                        className="w-full h-10 md:h-11 text-right justify-end"
+                        className="w-full h-10 md:h-11 text-right justify-end border-slate-200 focus-visible:ring-teal-500 focus:border-teal-300 cursor-pointer"
                         dir="rtl"
                       >
                         <SelectValue placeholder={t.finalEvaluationPlaceholder} />
@@ -425,9 +431,12 @@ export default function QuickRequestCreate() {
                             key={option.value} 
                             value={option.value}
                             dir="rtl"
-                            className="text-right justify-end"
+                            className="text-right justify-end cursor-pointer"
                           >
-                            {lang === "ar" ? option.labelAr : option.labelEn}
+                            <span className="flex items-center gap-2">
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", option.dotColor)} />
+                              <span>{lang === "ar" ? option.labelAr : option.labelEn}</span>
+                            </span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -435,13 +444,14 @@ export default function QuickRequestCreate() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="unexecutedWorks" className="text-sm font-bold">{t.unexecutedWorks}</Label>
+                    <Label htmlFor="unexecutedWorks" className="text-sm font-bold text-slate-700">{t.unexecutedWorks}</Label>
                     <Textarea
                       id="unexecutedWorks"
                       rows={3}
                       value={formData.unexecutedWorks}
                       onChange={(e) => setFormData(prev => ({ ...prev, unexecutedWorks: e.target.value }))}
                       placeholder={t.unexecutedWorksDesc}
+                      className="focus-visible:ring-teal-500 border-slate-200 focus:border-teal-300 min-h-[80px] resize-none"
                     />
                   </div>
 
@@ -449,13 +459,13 @@ export default function QuickRequestCreate() {
               </Card>
 
               {/* المرفقات */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-                    <Camera className="w-5 h-5" />
+              <Card className="border border-slate-100 hover:shadow-md transition-shadow duration-300 rounded-xl shadow-xs overflow-hidden">
+                <CardHeader className="border-b pb-4 bg-slate-50/40">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
+                    <Camera className="w-5 h-5 text-teal-600 shrink-0" />
                     {t.attachments}
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-slate-500 font-medium">
                     {t.attachmentsDesc}
                   </CardDescription>
                 </CardHeader>
@@ -474,20 +484,20 @@ export default function QuickRequestCreate() {
           </div>
 
           {/* Action Row */}
-          <div className="flex items-center justify-end gap-3 sticky bottom-4 z-20 bg-white/85 backdrop-blur-md border p-4 rounded-xl shadow-md max-w-full">
+          <div className="flex items-center justify-end gap-3 sticky bottom-4 z-20 bg-white/90 backdrop-blur-md border border-slate-100 p-4 rounded-2xl shadow-lg max-w-full transition-all duration-200">
             <Button
               type="button"
               variant="outline"
               onClick={() => navigate("/requests")}
               disabled={isSubmitting}
-              className="h-11 px-6 text-sm"
+              className="h-11 px-6 text-sm border-slate-200 hover:bg-slate-50 font-bold active:scale-[0.98] transition-all cursor-pointer"
             >
               {t.cancel}
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-amber-600 hover:bg-amber-700 text-white gap-2 h-11 px-8 text-sm shadow-md shadow-amber-600/10 font-bold"
+              className="gradient-primary text-white gap-2 h-11 px-8 text-sm font-bold active:scale-[0.98] transition-all cursor-pointer shadow-md"
             >
               {isSubmitting ? (
                 <>
