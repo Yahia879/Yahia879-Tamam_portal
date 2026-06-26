@@ -406,7 +406,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.pmoManagerName || "محمد السحيمي"}</div>
+                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.pmoManagerName || "—"}</div>
                   </div>
                 </div>
 
@@ -417,7 +417,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.csrManagerName || "محمد آل حامد"}</div>
+                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.csrManagerName || "—"}</div>
                   </div>
                 </div>
 
@@ -428,7 +428,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق"}</div>
+                    <div className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "—"}</div>
                   </div>
                 </div>
               </div>

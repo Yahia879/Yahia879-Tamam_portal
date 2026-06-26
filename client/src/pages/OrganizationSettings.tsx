@@ -808,7 +808,7 @@ export default function OrganizationSettings() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="pmoManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مدير مكتب إدارة المشاريع (PMO)</Label>
+                      <Label htmlFor="pmoManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مدير مكتب إدارة المشاريع</Label>
                       <Input
                         id="pmoManagerName"
                         value={(orgSettings as any).pmoManagerName}
@@ -818,7 +818,7 @@ export default function OrganizationSettings() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="csrManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مسؤول الاتصال المؤسسي (CSR)</Label>
+                      <Label htmlFor="csrManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مسؤول الاتصال المؤسسي</Label>
                       <Input
                         id="csrManagerName"
                         value={(orgSettings as any).csrManagerName}
