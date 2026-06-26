@@ -40,7 +40,11 @@ import {
   RotateCcw,
   X,
   Plus,
-  Bell
+  Bell,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -610,6 +614,11 @@ export default function UserPermissions() {
         view: "عرض تقويم المواعيد والزيارات",
         view_all: "عرض كافة المواعيد والزيارات للمنشأة",
         view_own: "عرض زياراتي الميدانية الخاصة بي فقط"
+      },
+      boq: {
+        add: "إضافة بند جديد",
+        edit: "تعديل بنود",
+        delete: "حذف بنود"
       }
     };
     return mapping[moduleId]?.[action] || action;
@@ -634,6 +643,7 @@ export default function UserPermissions() {
         },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
+        { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]

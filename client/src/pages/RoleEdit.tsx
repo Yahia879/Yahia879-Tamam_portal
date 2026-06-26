@@ -37,7 +37,8 @@ import {
   Layers,
   Tag,
   Save,
-  Bell
+  Bell,
+  FileSpreadsheet
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -52,6 +53,7 @@ const superAdminGroups = [
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
+      { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
       { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
     ]
@@ -113,6 +115,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     projects: {
       view: "عرض المشاريع",
       view_details: "عرض تفاصيل المشروع وادارته"
+    },
+    boq: {
+      add: "إضافة بند جديد",
+      edit: "تعديل بنود",
+      delete: "حذف بنود"
     },
     requesters: {
       view: "عرض بيانات طالبي الخدمة",

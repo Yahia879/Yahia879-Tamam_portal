@@ -169,6 +169,11 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "progress_reports.add": ["progress_reports.add"],
   "progress_reports.edit": ["progress_reports.edit"],
   "progress_reports.approve": ["progress_reports.approve"],
+
+  boq: ["boq.add", "boq.edit", "boq.delete"],
+  "boq.add": ["boq.add"],
+  "boq.edit": ["boq.edit"],
+  "boq.delete": ["boq.delete"],
 };
 
 /**
@@ -401,6 +406,20 @@ async function ensureRequestersPermissionsExist(db: any) {
  */
 async function ensureAllCustomPermissionsExist(db: any) {
   try {
+    // Ensure 'boq' module exists in the modules table
+    const [existingBoqModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "boq")).limit(1);
+    if (!existingBoqModule) {
+      await db.insert(modules).values({
+        id: "boq",
+        nameAr: "إعداد جداول الكميات",
+        nameEn: "BOQ Preparation",
+        icon: "FileSpreadsheet",
+        displayOrder: 10,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: boq");
+    }
+
     const customPerms = [
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
@@ -463,6 +482,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "services.edit", moduleId: "settings", action: "edit", nameAr: "تعديل مواصفات البرامج والخدمات", nameEn: "Edit Service" },
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
+      { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
+      { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },
+      { id: "boq.delete", moduleId: "boq", action: "delete", nameAr: "حذف البنود", nameEn: "Delete BOQ Items" },
     ];
 
     for (const p of customPerms) {

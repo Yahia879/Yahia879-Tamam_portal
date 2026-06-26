@@ -1,5 +1,6 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -35,6 +36,14 @@ export interface BoqTabHandle {
 
 const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
   ({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
+    const { user } = useAuth();
+    const userPermissions = (user as any)?.permissions ?? [];
+    const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+
+    const canAdd = isAdmin || userPermissions.includes("boq.add");
+    const canEdit = isAdmin || userPermissions.includes("boq.edit");
+    const canDelete = isAdmin || userPermissions.includes("boq.delete");
+
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -67,6 +76,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
           return;
         }
+        if (!canAdd) {
+          toast.error("لا تملك صلاحية إضافة بند جديد");
+          return;
+        }
         setShowAddDialog(true);
       },
     }));
@@ -87,6 +100,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
         return;
       }
+      if (!canDelete) {
+        toast.error("لا تملك صلاحية حذف البنود");
+        return;
+      }
       if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
         deleteItemMutation.mutate({ id });
       }
@@ -95,6 +112,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     const openEditDialog = (item: any) => {
       if (isLocked) {
         toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        return;
+      }
+      if (!canEdit) {
+        toast.error("لا تملك صلاحية تعديل البنود");
         return;
       }
       setSelectedItem(item);
@@ -146,7 +167,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     return (
       <div className="space-y-6">
-        {!hideAddButton && !isLocked && (
+        {!hideAddButton && !isLocked && canAdd && (
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 p-4">
             <div className="flex items-center gap-2">
               <Calculator className="h-5 w-5 text-teal-600" />
@@ -228,7 +249,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                           <TableHead>الكمية</TableHead>
                           <TableHead>سعر الوحدة</TableHead>
                           <TableHead>الإجمالي</TableHead>
-                          {!isLocked && <TableHead>الإجراءات</TableHead>}
+                          {!isLocked && (canEdit || canDelete) && <TableHead>الإجراءات</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -243,23 +264,27 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                             <TableCell className="font-bold text-teal-600">
                               {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
                             </TableCell>
-                            {!isLocked && (
+                            {!isLocked && (canEdit || canDelete) && (
                               <TableCell>
                                 <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openEditDialog(item)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteItem(item.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
+                                  {canEdit && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openEditDialog(item)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                  {canDelete && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteItem(item.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             )}
