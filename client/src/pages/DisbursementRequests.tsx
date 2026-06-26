@@ -405,13 +405,18 @@ export default function DisbursementRequests() {
         billerCode: "",
         paymentMethod: "bank_transfer",
       });
-    } else if (project) {
-      setSelectedProjectData(project);
+    } else if (request.supplierName || project) {
+      setSelectedProjectData(project || {
+        projectName: request.projectName || "مشروع مرتبط",
+        contractAmount: request.amount || 0,
+        remainingAmount: 0,
+        projectId: request.projectId,
+      });
       setNewOrder({
-        beneficiaryName: project.supplierName || "",
-        beneficiaryBank: project.supplierBank || "",
-        beneficiaryIban: project.supplierIban || "",
-        beneficiaryAccountName: project.supplierAccountName || "",
+        beneficiaryName: request.supplierName || project?.supplierName || "",
+        beneficiaryBank: request.supplierBank || project?.supplierBank || "",
+        beneficiaryIban: request.supplierIban || project?.supplierIban || "",
+        beneficiaryAccountName: request.supplierAccountName || project?.supplierAccountName || request.supplierName || "",
         sadadNumber: "",
         billerCode: "",
         paymentMethod: "bank_transfer",
@@ -459,10 +464,10 @@ export default function DisbursementRequests() {
         }
       }
       
-      const beneficiaryName = customSupplier?.name || project?.supplierName || request.projectName || "مستفيد غير حدد";
-      const beneficiaryBank = customSupplier?.bank || project?.supplierBank || "";
-      const beneficiaryIban = customSupplier?.iban || project?.supplierIban || "";
-      const beneficiaryAccountName = customSupplier?.name || project?.supplierAccountName || beneficiaryName;
+      const beneficiaryName = customSupplier?.name || request.supplierName || project?.supplierName || request.projectName || "مستفيد غير محدد";
+      const beneficiaryBank = customSupplier?.bank || request.supplierBank || project?.supplierBank || "";
+      const beneficiaryIban = customSupplier?.iban || request.supplierIban || project?.supplierIban || "";
+      const beneficiaryAccountName = customSupplier?.name || request.supplierAccountName || project?.supplierAccountName || beneficiaryName;
 
       createOrderMutation.mutate({
         disbursementRequestId: request.id,

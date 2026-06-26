@@ -140,12 +140,53 @@ export default function NewDisbursementOrder() {
 
   // تعبئة البيانات من طلب الصرف
   useEffect(() => {
-    if (requestData?.contract) {
-      setFormData(prev => ({
-        ...prev,
-        beneficiaryName: requestData.contract?.secondPartyName || "",
-        purpose: requestData.title || "",
-      }));
+    if (requestData) {
+      let customSupplier: any = null;
+      if (requestData.attachmentsJson) {
+        try {
+          const attachments = JSON.parse(requestData.attachmentsJson);
+          if (Array.isArray(attachments)) {
+            const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
+            if (infoAttachment && infoAttachment.url) {
+              customSupplier = JSON.parse(infoAttachment.url);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing custom supplier:", e);
+        }
+      }
+
+      if (customSupplier) {
+        setFormData(prev => ({
+          ...prev,
+          beneficiaryName: customSupplier.name || "",
+          beneficiaryBank: customSupplier.bank || "",
+          beneficiaryIban: customSupplier.iban || "",
+          beneficiaryAccountName: customSupplier.bankAccountName || customSupplier.name || "",
+          purpose: requestData.title || "",
+          sadadNumber: customSupplier.sadadNumber || "",
+          billerCode: customSupplier.billerCode || "",
+          paymentMethod: customSupplier.requestType === "sadad_invoice" ? "sadad" : "bank_transfer",
+        }));
+      } else if (requestData.contract) {
+        setFormData(prev => ({
+          ...prev,
+          beneficiaryName: requestData.contract?.secondPartyName || "",
+          beneficiaryBank: requestData.contract?.secondPartyBankName || "",
+          beneficiaryIban: requestData.contract?.secondPartyIban || "",
+          beneficiaryAccountName: requestData.contract?.secondPartyAccountName || requestData.contract?.secondPartyName || "",
+          purpose: requestData.title || "",
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          beneficiaryName: (requestData as any).supplierName || "",
+          beneficiaryBank: (requestData as any).supplierBank || "",
+          beneficiaryIban: (requestData as any).supplierIban || "",
+          beneficiaryAccountName: (requestData as any).supplierAccountName || (requestData as any).supplierName || "",
+          purpose: requestData.title || "",
+        }));
+      }
     }
   }, [requestData]);
 

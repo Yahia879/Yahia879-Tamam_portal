@@ -98,6 +98,7 @@ export const disbursementsRouter = router({
           requestedAt: disbursementRequests.requestedAt,
           dateMiladi: disbursementRequests.dateMiladi,
           projectId: disbursementRequests.projectId,
+          contractId: disbursementRequests.contractId,
           projectName: projects.name,
           projectNumber: projects.projectNumber,
           requestedByName: users.name,
@@ -107,11 +108,16 @@ export const disbursementsRouter = router({
           orderId: disbursementOrders.id,
           orderNumber: disbursementOrders.orderNumber,
           orderStatus: disbursementOrders.status,
+          supplierName: contractsEnhanced.secondPartyName,
+          supplierBank: contractsEnhanced.secondPartyBankName,
+          supplierIban: contractsEnhanced.secondPartyIban,
+          supplierAccountName: contractsEnhanced.secondPartyAccountName,
         })
         .from(disbursementRequests)
         .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
         .leftJoin(users, eq(disbursementRequests.requestedBy, users.id))
         .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId))
+        .leftJoin(contractsEnhanced, eq(disbursementRequests.contractId, contractsEnhanced.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
         .orderBy(desc(disbursementRequests.createdAt))
         .limit(limit)
@@ -160,9 +166,14 @@ export const disbursementsRouter = router({
           paymentId: disbursementRequests.paymentId,
           requestedByName: users.name,
           dateMiladi: disbursementRequests.dateMiladi,
+          supplierName: contractsEnhanced.secondPartyName,
+          supplierBank: contractsEnhanced.secondPartyBankName,
+          supplierIban: contractsEnhanced.secondPartyIban,
+          supplierAccountName: contractsEnhanced.secondPartyAccountName,
         })
         .from(disbursementRequests)
         .leftJoin(users, eq(disbursementRequests.requestedBy, users.id))
+        .leftJoin(contractsEnhanced, eq(disbursementRequests.contractId, contractsEnhanced.id))
         .where(eq(disbursementRequests.id, input.id));
 
       if (!request) {
