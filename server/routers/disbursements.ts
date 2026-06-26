@@ -227,6 +227,12 @@ export const disbursementsRouter = router({
             secondPartyBankName: contractsEnhanced.secondPartyBankName,
             secondPartyIban: contractsEnhanced.secondPartyIban,
             secondPartyAccountName: contractsEnhanced.secondPartyAccountName,
+            supportingEntity: contractsEnhanced.supportingEntity,
+            supportType: contractsEnhanced.supportType,
+            supportedAmount: contractsEnhanced.supportedAmount,
+            managementPercentage: contractsEnhanced.managementPercentage,
+            contractAmount: contractsEnhanced.contractAmount,
+            mosqueCity: contractsEnhanced.mosqueCity,
           })
           .from(contractsEnhanced)
           .where(eq(contractsEnhanced.id, targetContractId));
