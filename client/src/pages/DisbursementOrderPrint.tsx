@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, CheckCircle2, Building, Landmark, Receipt, FileText } from "lucide-react";
+import { ArrowRight, Printer } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 
 // دالة تحويل الأرقام إلى نص عربي
@@ -48,7 +48,7 @@ function numberToArabicText(num: number): string {
     else if (millions === 2) result = "مليونان";
     else if (millions >= 3 && millions <= 10) result = `${ones[millions]} ملايين`;
     else result = `${convertThousands(millions)} مليون`;
-    return rest ? `${result} و${convertThousands(rest)}` : result;
+    return rest ? `${result} و${convertHundreds(rest)}` : result;
   }
 
   return `فقط ${convertMillions(Math.floor(num))} ريال`;
@@ -204,14 +204,9 @@ export default function DisbursementOrderPrint() {
                 </div>
               </div>
 
-              {/* الترويسة العلوية - شريط العنوان الرمادي الداكن */}
-              <div className="flex bg-slate-700 text-white font-bold text-base sm:text-lg mb-4 rounded overflow-hidden">
-                <div className="w-20 sm:w-28 bg-slate-600/50 flex items-center justify-center border-l border-slate-600 text-center py-2 px-3 font-mono">
-                  {order.orderNumber}
-                </div>
-                <div className="flex-1 text-center py-2 font-display">
-                  أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
-                </div>
+              {/* الترويسة العلوية - شريط العنوان الأخضر */}
+              <div className="bg-[#1a5f4a] text-white font-bold text-base sm:text-lg mb-4 rounded overflow-hidden text-center py-2 font-display">
+                أمر صرف | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
               {/* التاريخ والموافق */}
@@ -231,50 +226,50 @@ export default function DisbursementOrderPrint() {
                 <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
                   <tbody>
                     <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
+                        اصرفوا للمكرم/
+                      </td>
                       <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={2}>
                         {order.beneficiaryName}
                       </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-r border-slate-300 text-slate-700 text-right">
-                        اصرفوا للمكرم/
-                      </td>
                     </tr>
                     
                     <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right" rowSpan={2}>
+                        مبلغ وقدره/
+                      </td>
+                      <td className="p-2.5 bg-slate-55 font-bold w-20 border-l border-slate-300 text-slate-600 text-center">
+                        رقماً
+                      </td>
                       <td className="p-2.5 text-slate-800 font-black font-mono text-right">
                         {amount.toLocaleString()} ريال
                       </td>
-                      <td className="p-2.5 bg-slate-50 font-bold w-20 border-r border-slate-300 text-slate-600 text-center">
-                        رقماً
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-r border-slate-300 text-slate-700 text-right" rowSpan={2}>
-                        مبلغ وقدره/
-                      </td>
                     </tr>
                     
                     <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-55 font-bold w-20 border-l border-slate-300 text-slate-600 text-center">
+                        كتابة
+                      </td>
                       <td className="p-2.5 text-slate-700 font-semibold text-right">
                         {numberToArabicText(amount)} لا غير
-                      </td>
-                      <td className="p-2.5 bg-slate-50 font-bold w-20 border-r border-slate-300 text-slate-600 text-center">
-                        كتابة
                       </td>
                     </tr>
 
                     <tr className="border-b border-slate-300">
+                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
+                        رقم طلب الصرف/
+                      </td>
                       <td className="p-2.5 text-slate-800 font-mono font-bold text-right" colSpan={2}>
                         {request?.requestNumber || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-r border-slate-300 text-slate-700 text-right">
-                        رقم طلب الصرف/
                       </td>
                     </tr>
 
                     <tr>
+                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
+                        وذلك مقابل/
+                      </td>
                       <td className="p-2.5 text-slate-600 font-semibold text-right" colSpan={2}>
                         {customSupplier?.customProjectName || request?.description || request?.title || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-36 border-r border-slate-300 text-slate-700 text-right">
-                        وذلك مقابل/
                       </td>
                     </tr>
                   </tbody>
@@ -282,117 +277,121 @@ export default function DisbursementOrderPrint() {
               </div>
 
               {/* قسم خاص بالمشاريع */}
-              <div className="mb-4">
-                <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
-                  خاص بالمشاريع:
-                </div>
-                <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
-                  <tbody>
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
-                        {project?.name || customSupplier?.customProjectName || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-40 border-r border-slate-300 text-slate-700 text-right">
-                        اسم المشروع
-                      </td>
-                    </tr>
-                    
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
-                        {resolvedSupportingEntity}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-40 border-r border-slate-300 text-slate-700 text-right">
-                        الجهة الداعمة
-                      </td>
-                    </tr>
-                    
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4">
-                        إجمالي قيمة الدعم
-                      </td>
-                      <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                        {project ? `${project.fundingAmount.toLocaleString()} ريال` : "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold border-r border-slate-300 text-slate-700 text-center w-1/4">
-                        إجمالي قيمة العقد
-                      </td>
-                      <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                        {project ? `${project.contractAmount.toLocaleString()} ريال` : "—"}
-                      </td>
-                    </tr>
+              {(project || customSupplier) && (
+                <div className="mb-4">
+                  <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
+                    خاص بالمشاريع:
+                  </div>
+                  <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
+                    <tbody>
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-40 border-l border-slate-300 text-slate-700 text-right">
+                          اسم المشروع
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
+                          {project?.name || customSupplier?.customProjectName || "—"}
+                        </td>
+                      </tr>
+                      
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-40 border-l border-slate-300 text-slate-700 text-right">
+                          الجهة الداعمة
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
+                          {resolvedSupportingEntity}
+                        </td>
+                      </tr>
+                      
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                          إجمالي قيمة الدعم
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
+                          {project ? `${project.fundingAmount.toLocaleString()} ريال` : "—"}
+                        </td>
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                          إجمالي قيمة العقد
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
+                          {project ? `${project.contractAmount.toLocaleString()} ريال` : "—"}
+                        </td>
+                      </tr>
 
-                    <tr>
-                      <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4">
-                        إجمالي ما تم دفعه
-                      </td>
-                      <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                        {project ? `${project.totalPaid.toLocaleString()} ريال` : "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold border-r border-slate-300 text-slate-700 text-center w-1/4">
-                        المبلغ المتبقي بعد صرف المبلغ أعلاه
-                      </td>
-                      <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                        {project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+                      <tr>
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                          إجمالي ما تم دفعه
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
+                          {project ? `${project.totalPaid.toLocaleString()} ريال` : "—"}
+                        </td>
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                          المبلغ المتبقي بعد صرف المبلغ أعلاه
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
+                          {project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               {/* تحويل بنكي من حساب الجمعية إلى */}
-              <div className="mb-4">
-                <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
-                  تحويل بنكي من حساب الجمعية إلى:
+              {order.paymentMethod === "bank_transfer" && (
+                <div className="mb-4">
+                  <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
+                    تحويل بنكي من حساب الجمعية إلى:
+                  </div>
+                  <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
+                    <tbody>
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          اسم الحساب
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-bold text-right">
+                          {order.beneficiaryAccountName || order.beneficiaryName || "—"}
+                        </td>
+                      </tr>
+                      
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          اسم البنك
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-semibold text-right">
+                          {order.beneficiaryBank || "—"}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          رقم الآيبان
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
+                          {order.beneficiaryIban || "—"}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          رقم سداد
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
+                          {order.sadadNumber || "—"}
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          رمز المفوتر
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
+                          {order.billerCode || "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
-                  <tbody>
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-bold text-right">
-                        {order.beneficiaryAccountName || order.beneficiaryName || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-48 border-r border-slate-300 text-slate-700 text-right">
-                        اسم الحساب
-                      </td>
-                    </tr>
-                    
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-semibold text-right">
-                        {order.beneficiaryBank || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-48 border-r border-slate-300 text-slate-700 text-right">
-                        اسم البنك
-                      </td>
-                    </tr>
-
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
-                        {order.beneficiaryIban || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-48 border-r border-slate-300 text-slate-700 text-right">
-                        رقم الآيبان
-                      </td>
-                    </tr>
-
-                    <tr className="border-b border-slate-300">
-                      <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                        {order.sadadNumber || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-48 border-r border-slate-300 text-slate-700 text-right">
-                        رقم سداد
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                        {order.billerCode || "—"}
-                      </td>
-                      <td className="p-2.5 bg-slate-100 font-bold w-48 border-r border-slate-300 text-slate-700 text-right">
-                        رمز المفوتر
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              )}
             </div>
 
             {/* جدول التوقيعات والاعتماد الفاخر لامر الصرف */}
