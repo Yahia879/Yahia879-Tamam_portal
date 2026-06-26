@@ -269,7 +269,10 @@ export default function DisbursementOrderPrint() {
                         وذلك مقابل/
                       </td>
                       <td className="p-2.5 text-slate-600 font-semibold text-right" colSpan={2}>
-                        {customSupplier?.customProjectName || request?.description || request?.title || "—"}
+                        {customSupplier?.customProjectName || 
+                         (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
+                         request?.title || 
+                         "—"}
                       </td>
                     </tr>
                   </tbody>
