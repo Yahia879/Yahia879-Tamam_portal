@@ -1690,13 +1690,7 @@ export const disbursementsRouter = router({
           `,
         })
         .from(projects)
-        .orderBy(desc(sql`
-          COALESCE((
-            SELECT SUM(CAST(amount AS DECIMAL(15,2)))
-            FROM (${allProjectFinancials}) as f
-            WHERE f.projectId = projects.id
-          ), 0)
-        `));
+        .orderBy(desc(projects.id));
 
       // إجمالي المصروفات حسب الشهر
       const monthRequests = db
