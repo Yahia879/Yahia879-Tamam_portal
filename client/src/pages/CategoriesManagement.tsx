@@ -18,6 +18,7 @@ interface Category {
   type: string;
   sortOrder: number | null;
   isActive: boolean | null;
+  valuesCount?: number;
 }
 
 // تعريف أسماء التصنيفات بالعربية
@@ -55,7 +56,7 @@ export default function CategoriesManagement() {
   // Queries
   const { data: allCategories = [], refetch: refetchCategories } = trpc.categories.getAllCategories.useQuery();
 
-  const isValueBasedType = (type: string) => ["funding_support", "main_projects", "sadad_billers"].includes(type);
+  const isValueBasedType = (type: string) => false;
 
   // Queries for category values (only enabled for funding_support, main_projects or sadad_billers)
   const { data: valueCategoryData, refetch: refetchValueCategory } = trpc.categories.getCategoryByType.useQuery(
@@ -132,39 +133,6 @@ export default function CategoriesManagement() {
     },
   });
 
-  // Mutations for value-based categories
-  const addCategoryValueMutation = trpc.categories.addCategoryValue.useMutation({
-    onSuccess: () => {
-      toast.success("تم الإجراء بنجاح");
-      refetchValueCategory();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const updateCategoryValueMutation = trpc.categories.updateCategoryValue.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث القيمة بنجاح");
-      setIsEditValueOpen(false);
-      setEditingValue(null);
-      refetchValueCategory();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
-  const deleteCategoryValueMutation = trpc.categories.deleteCategoryValue.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف القيمة بنجاح");
-      refetchValueCategory();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   const handleAddValue = () => {
     if (!valueForm.nameAr || !selectedType) {
       toast.error("جميع الحقول مطلوبة");
@@ -176,26 +144,10 @@ export default function CategoriesManagement() {
         toast.error("رمز/رقم المفوتر مطلوب");
         return;
       }
-      if (!parentCategory) {
-        toast.error("حدث خطأ: التصنيف الرئيسي غير موجود");
-        return;
-      }
-      addCategoryValueMutation.mutate({
-        categoryId: parentCategory.id,
-        value: valueForm.name,
-        valueAr: valueForm.nameAr,
-      });
-    } else if (isValueBasedType(selectedType)) {
-      if (!parentCategory) {
-        toast.error("حدث خطأ: التصنيف الرئيسي غير موجود");
-        return;
-      }
-      const randomSuffix = Math.random().toString(36).substring(2, 8);
-      const generatedValue = `${selectedType}_val_${Date.now()}_${randomSuffix}`;
-      addCategoryValueMutation.mutate({
-        categoryId: parentCategory.id,
-        value: generatedValue,
-        valueAr: valueForm.nameAr,
+      createCategoryMutation.mutate({
+        name: valueForm.name,
+        nameAr: valueForm.nameAr,
+        type: selectedType,
       });
     } else {
       // Generate a unique English identifier for the database
@@ -219,15 +171,11 @@ export default function CategoriesManagement() {
         toast.error("رمز/رقم المفوتر مطلوب");
         return;
       }
-      updateCategoryValueMutation.mutate({
+      updateCategoryMutation.mutate({
         id: editingValue.id,
-        value: valueForm.name,
-        valueAr: valueForm.nameAr,
-      });
-    } else if (isValueBasedType(selectedType)) {
-      updateCategoryValueMutation.mutate({
-        id: editingValue.id,
-        valueAr: valueForm.nameAr,
+        name: valueForm.name,
+        nameAr: valueForm.nameAr,
+        type: selectedType,
       });
     } else {
       updateCategoryMutation.mutate({
@@ -337,7 +285,12 @@ export default function CategoriesManagement() {
                           </div>
                           <div className="min-w-0">
                             <h3 className="font-medium text-sm sm:text-base text-gray-900 truncate">{categoryTypeNames[type] || type}</h3>
-                            <p className="text-[10px] sm:text-xs text-gray-500">{groupedCategories[type]?.length || 0} قيمة</p>
+                            <p className="text-[10px] sm:text-xs text-gray-500">
+                              {isValueBasedType(type)
+                                ? (groupedCategories[type] || []).reduce((sum, cat) => sum + (cat.valuesCount || 0), 0)
+                                : (groupedCategories[type]?.length || 0)
+                              } قيمة
+                            </p>
                           </div>
                         </div>
                         <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform shrink-0 ${
@@ -421,17 +374,10 @@ export default function CategoriesManagement() {
                             <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
                             <Button 
                               onClick={handleAddValue} 
-                              disabled={
-                                selectedType && isValueBasedType(selectedType)
-                                  ? addCategoryValueMutation.isPending
-                                  : createCategoryMutation.isPending
-                              } 
+                              disabled={createCategoryMutation.isPending} 
                               className="w-full sm:w-auto h-9 text-sm"
                             >
-                              {selectedType && isValueBasedType(selectedType)
-                                ? (addCategoryValueMutation.isPending ? "جاري الإضافة..." : "إضافة")
-                                : (createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة")
-                              }
+                              {createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة"}
                             </Button>
                           </DialogFooter>
                         </DialogContent>
@@ -489,18 +435,10 @@ export default function CategoriesManagement() {
                                         size="sm"
                                         onClick={() => {
                                           if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                            if (selectedType && isValueBasedType(selectedType)) {
-                                              deleteCategoryValueMutation.mutate({ id: value.id });
-                                            } else {
-                                              deleteCategoryMutation.mutate({ id: value.id });
-                                            }
+                                            deleteCategoryMutation.mutate({ id: value.id });
                                           }
                                         }}
-                                        disabled={
-                                          selectedType && isValueBasedType(selectedType)
-                                            ? deleteCategoryValueMutation.isPending
-                                            : deleteCategoryMutation.isPending
-                                        }
+                                        disabled={deleteCategoryMutation.isPending}
                                         className="h-8 w-8 p-0"
                                       >
                                         <Trash2 className="w-4 h-4 text-red-500" />
@@ -537,18 +475,10 @@ export default function CategoriesManagement() {
                                     size="sm"
                                     onClick={() => {
                                       if (confirm("هل أنت متأكد من حذف هذه القيمة؟")) {
-                                        if (selectedType && isValueBasedType(selectedType)) {
-                                          deleteCategoryValueMutation.mutate({ id: value.id });
-                                        } else {
-                                          deleteCategoryMutation.mutate({ id: value.id });
-                                        }
+                                        deleteCategoryMutation.mutate({ id: value.id });
                                       }
                                     }}
-                                    disabled={
-                                      selectedType && isValueBasedType(selectedType)
-                                        ? deleteCategoryValueMutation.isPending
-                                        : deleteCategoryMutation.isPending
-                                    }
+                                    disabled={deleteCategoryMutation.isPending}
                                     className="h-8 w-8 p-0 border-red-100 hover:bg-red-50"
                                   >
                                     <Trash2 className="w-4 h-4 text-red-500" />
@@ -622,17 +552,10 @@ export default function CategoriesManagement() {
               <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
               <Button 
                 onClick={handleUpdateValue} 
-                disabled={
-                  selectedType && isValueBasedType(selectedType)
-                    ? updateCategoryValueMutation.isPending
-                    : updateCategoryMutation.isPending
-                } 
+                disabled={updateCategoryMutation.isPending} 
                 className="w-full sm:w-auto h-9 text-sm"
               >
-                {selectedType && isValueBasedType(selectedType)
-                  ? (updateCategoryValueMutation.isPending ? "جاري الحفظ..." : "حفظ")
-                  : (updateCategoryMutation.isPending ? "جاري الحفظ..." : "حفظ")
-                }
+                {updateCategoryMutation.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
             </DialogFooter>
           </DialogContent>

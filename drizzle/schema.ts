@@ -741,16 +741,7 @@ export const categories = mysqlTable("categories", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// قيم التصنيفات
-export const categoryValues = mysqlTable("category_values", {
-  id: int("id").autoincrement().primaryKey(),
-  categoryId: int("categoryId").notNull().references(() => categories.id),
-  value: varchar("value", { length: 255 }).notNull(),
-  valueAr: varchar("valueAr", { length: 255 }).notNull(),
-  sortOrder: int("sortOrder").default(0),
-  isActive: boolean("isActive").default(true),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+
 
 // إعدادات الهوية البصرية
 export const brandSettings = mysqlTable("brand_settings", {
@@ -1350,7 +1341,7 @@ export type Quotation = typeof quotations.$inferSelect;
 export type QuantitySchedule = typeof quantitySchedules.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Category = typeof categories.$inferSelect;
-export type CategoryValue = typeof categoryValues.$inferSelect;
+export type CategoryValue = typeof categories.$inferSelect;
 export type BrandSetting = typeof brandSettings.$inferSelect;
 export type BrandLogo = typeof brandLogos.$inferSelect;
 export type BrandColor = typeof brandColors.$inferSelect;

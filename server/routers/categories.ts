@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { publicProcedure, protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { categories, categoryValues } from "../../drizzle/schema";
-import { eq, and } from "drizzle-orm";
+import { categories } from "../../drizzle/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const categoriesRouter = router({
@@ -14,7 +14,7 @@ export const categoriesRouter = router({
     return db.select().from(categories).where(eq(categories.isActive, true));
   }),
 
-  // الحصول على تصنيف محدد مع قيمه
+  // الحصول على تصنيف محدد مع قيم التابعة لنفس النوع
   getCategoryWithValues: publicProcedure
     .input(z.object({ categoryId: z.number() }))
     .query(async ({ input }) => {
@@ -33,17 +33,18 @@ export const categoriesRouter = router({
 
       const values = await db
         .select()
-        .from(categoryValues)
-        .where(
-          and(
-            eq(categoryValues.categoryId, input.categoryId),
-            eq(categoryValues.isActive, true)
-          )
-        );
+        .from(categories)
+        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)));
 
       return {
         ...category[0],
-        values,
+        values: values.map(v => ({
+          id: v.id,
+          value: v.name,
+          valueAr: v.nameAr,
+          sortOrder: v.sortOrder,
+          isActive: v.isActive,
+        })),
       };
     }),
 
@@ -54,15 +55,26 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      return db
+      const category = await db
         .select()
-        .from(categoryValues)
-        .where(
-          and(
-            eq(categoryValues.categoryId, input.categoryId),
-            eq(categoryValues.isActive, true)
-          )
-        );
+        .from(categories)
+        .where(eq(categories.id, input.categoryId))
+        .limit(1);
+
+      if (!category.length) return [];
+
+      const values = await db
+        .select()
+        .from(categories)
+        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)));
+
+      return values.map(v => ({
+        id: v.id,
+        value: v.name,
+        valueAr: v.nameAr,
+        sortOrder: v.sortOrder,
+        isActive: v.isActive,
+      }));
     }),
 
   // الحصول على تصنيف حسب النوع
@@ -72,28 +84,30 @@ export const categoriesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-      const category = await db
+      // دعم الاستعلامات بصيغة الجمع المفرد (مثال: banks -> bank)
+      let typeQuery = input.type;
+      if (typeQuery === "banks") typeQuery = "bank";
+      if (typeQuery === "signatories") typeQuery = "signatories"; 
+
+      const cats = await db
         .select()
         .from(categories)
-        .where(and(eq(categories.type, input.type), eq(categories.isActive, true)))
-        .limit(1);
+        .where(and(eq(categories.type, typeQuery), eq(categories.isActive, true)))
+        .orderBy(categories.sortOrder);
 
-      if (!category.length) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "التصنيف غير موجود" });
-      }
-
-      const values = await db
-        .select()
-        .from(categoryValues)
-        .where(
-          and(
-            eq(categoryValues.categoryId, category[0].id),
-            eq(categoryValues.isActive, true)
-          )
-        );
+      const values = cats.map(c => ({
+        id: c.id,
+        value: c.name,
+        valueAr: c.nameAr,
+        sortOrder: c.sortOrder,
+        isActive: c.isActive,
+      }));
 
       return {
-        ...category[0],
+        id: 0,
+        name: typeQuery,
+        nameAr: typeQuery,
+        type: typeQuery,
         values,
       };
     }),
@@ -238,7 +252,7 @@ export const categoriesRouter = router({
       return { success: true };
     }),
 
-  // إضافة قيمة إلى تصنيف (محمي)
+  // إضافة قيمة إلى تصنيف (متوافق مع التصاميم القديمة)
   addCategoryValue: protectedProcedure
     .input(
       z.object({
@@ -262,37 +276,26 @@ export const categoriesRouter = router({
         }
       }
 
-      // التحقق من وجود التصنيف
-      const category = await db
+      const parentCategory = await db
         .select()
         .from(categories)
         .where(eq(categories.id, input.categoryId))
         .limit(1);
 
-      if (!category.length) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "التصنيف غير موجود" });
-      }
+      const type = parentCategory.length ? parentCategory[0].type : "unknown";
 
-      await db.insert(categoryValues).values({
-        categoryId: input.categoryId,
-        value: input.value,
-        valueAr: input.valueAr,
+      await db.insert(categories).values({
+        name: input.value,
+        nameAr: input.valueAr,
+        type: type,
         sortOrder: input.sortOrder,
         isActive: true,
       });
 
-      // الحصول على القيمة المُنشأة
-      const newValue = await db
-        .select()
-        .from(categoryValues)
-        .where(eq(categoryValues.categoryId, input.categoryId))
-        .orderBy(categoryValues.id)
-        .limit(1);
-
-      return { id: newValue[0]?.id || 0 };
+      return { id: 0 };
     }),
 
-  // تحديث قيمة تصنيف (محمي)
+  // تحديث قيمة تصنيف (متوافق مع التصاميم القديمة)
   updateCategoryValue: protectedProcedure
     .input(
       z.object({
@@ -317,14 +320,17 @@ export const categoriesRouter = router({
         }
       }
 
-      const { id, ...data } = input;
+      const { id, value, valueAr, ...data } = input;
+      const updateData: any = { ...data };
+      if (value !== undefined) updateData.name = value;
+      if (valueAr !== undefined) updateData.nameAr = valueAr;
 
-      await db.update(categoryValues).set(data).where(eq(categoryValues.id, id));
+      await db.update(categories).set(updateData).where(eq(categories.id, id));
 
       return { success: true };
     }),
 
-  // حذف قيمة تصنيف (محمي)
+  // حذف قيمة تصنيف (متوافق مع التصاميم القديمة)
   deleteCategoryValue: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
@@ -341,11 +347,10 @@ export const categoriesRouter = router({
         }
       }
 
-      // حذف ناعم (تعطيل القيمة)
       await db
-        .update(categoryValues)
+        .update(categories)
         .set({ isActive: false })
-        .where(eq(categoryValues.id, input.id));
+        .where(eq(categories.id, input.id));
 
       return { success: true };
     }),
