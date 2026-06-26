@@ -407,6 +407,7 @@ export const projectsRouter = router({
           source: "contract",
           workDescription: cp.notes,
           completionPercentage: cp.completionPercentage || 0,
+          contractId: cp.contractId,
         });
       });
 

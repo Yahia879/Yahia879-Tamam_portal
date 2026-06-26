@@ -444,6 +444,7 @@ export default function NewLinkedDisbursementRequest() {
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
       const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
+      const targetContractId = (paymentInfo as any)?.contractId || 0;
       
       const reportDateFormatted = selectedReport.reportDate 
         ? new Date(selectedReport.reportDate).toISOString().split('T')[0]
@@ -453,7 +454,8 @@ export default function NewLinkedDisbursementRequest() {
         if (
           prev.contractPaymentId === targetPaymentId && 
           prev.completionPercentage === selectedReport.actualProgress &&
-          prev.dateMiladi === reportDateFormatted
+          prev.dateMiladi === reportDateFormatted &&
+          (targetContractId === 0 || prev.contractId === targetContractId)
         ) {
           return prev;
         }
@@ -464,6 +466,7 @@ export default function NewLinkedDisbursementRequest() {
           completionPercentage: selectedReport.actualProgress || 0,
           dateMiladi: reportDateFormatted,
           contractPaymentId: targetPaymentId,
+          contractId: targetContractId || prev.contractId,
         };
       });
     }
