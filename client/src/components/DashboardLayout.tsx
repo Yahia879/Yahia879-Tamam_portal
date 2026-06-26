@@ -208,7 +208,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
   if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
-  if (has("requests") || has("requests.view") || has("requests.view_details") || has("quotations")) {
+  if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
     mosqueItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
   }
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });

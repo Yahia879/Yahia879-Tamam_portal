@@ -117,7 +117,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── الاعتماد المالي ──
   "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
-  "/boq-preparations": ["quotations", "requests.view_details", "requests.view"],
+  "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
   // ── العقود ──
   "/contracts": "contracts",
@@ -229,7 +229,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
 
   // BOQ
-  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details"] },
+  { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details", "boq", "boq.add", "boq.edit", "boq.delete"] },
 
   // طلبات الصرف
   { pattern: /^\/disbursements\/new$/, permission: "disbursement_requests" },
