@@ -182,6 +182,7 @@ export default function NewLinkedDisbursementRequest() {
   
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
+  const [billerSearch, setBillerSearch] = useState("");
 
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
@@ -381,6 +382,11 @@ export default function NewLinkedDisbursementRequest() {
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
   // جلب معلومات المفوتر ديناميكياً
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
+  const filteredBillers = sadadBillersData?.values?.filter((val: any) => {
+    const term = billerSearch.trim().toLowerCase();
+    if (!term) return true;
+    return (val.valueAr || "").toLowerCase().includes(term) || (val.value || "").toLowerCase().includes(term);
+  });
 
   // جلب العقود للمشروع المحدد
   const { data: projectContracts } = trpc.contracts.list.useQuery(
@@ -1054,7 +1060,7 @@ export default function NewLinkedDisbursementRequest() {
                         </div>
 
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (اختياري)</Label>
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (للتعبئة التلقائية)</Label>
                           <Select
                             value={formData.billerCode || ""}
                             onValueChange={handleBillerSelect}
@@ -1062,10 +1068,13 @@ export default function NewLinkedDisbursementRequest() {
                             <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                               <SelectValue placeholder="اختر المفوتر للتعبئة التلقائية" />
                             </SelectTrigger>
-                            <SelectContent dir="rtl">
+                            <SelectContent dir="rtl" className="max-h-64">
                               {sadadBillersData?.values?.map((val: any) => (
-                                <SelectItem key={val.id} value={val.value} className="text-right">
-                                  {val.valueAr} ({val.value})
+                                <SelectItem key={val.id} value={val.value} className="text-right cursor-pointer py-2.5">
+                                  <div className="flex items-center justify-between w-full gap-4 text-xs font-bold">
+                                    <span className="text-slate-800 dark:text-slate-200">{val.valueAr}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">{val.value}</span>
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
