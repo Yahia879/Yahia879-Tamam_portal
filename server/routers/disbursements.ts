@@ -16,6 +16,7 @@ import {
   notifications,
   donationOpportunities,
   mosqueRequests,
+  mosques,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -179,9 +180,14 @@ export const disbursementsRouter = router({
             projectNumber: projects.projectNumber,
             budget: projects.budget,
             managerName: users.name,
+            city: mosques.city,
+            address: mosques.address,
+            district: mosques.district,
           })
           .from(projects)
           .leftJoin(users, eq(projects.managerId, users.id))
+          .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id))
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
           .where(eq(projects.id, projId));
         project = projectData || null;
       }

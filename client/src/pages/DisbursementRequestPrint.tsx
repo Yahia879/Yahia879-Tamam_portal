@@ -209,7 +209,9 @@ export default function DisbursementRequestPrint() {
   const adminFees = (actualProjectCost * managementPercentage) / 100;
   const totalOpportunityValue = actualProjectCost + adminFees;
 
-  const projectAddress = contract?.mosqueCity || (project as any)?.city || (project as any)?.address || "—";
+  const projectAddress = contract?.mosqueCity || 
+    [project?.city, project?.district, project?.address].filter(Boolean).join(" - ") || 
+    "—";
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
