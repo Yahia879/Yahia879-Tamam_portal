@@ -151,6 +151,13 @@ export default function DisbursementOrderPrint() {
   // حساب جهة التمويل/الدعم
   const resolvedSupportingEntity = customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || project?.fundingSource || "—";
 
+  const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
+                       customSupplier?.requestType === "sadad_invoice" || 
+                       customSupplier?.requestType === "misc_expenses" ||
+                       linkedRequestInfo?.requestType === "supplier_one_time" || 
+                       linkedRequestInfo?.requestType === "sadad_invoice" || 
+                       linkedRequestInfo?.requestType === "misc_expenses";
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
@@ -292,7 +299,7 @@ export default function DisbursementOrderPrint() {
                           اسم المشروع
                         </td>
                         <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
-                          {project?.name || customSupplier?.customProjectName || "—"}
+                          {isCustomType ? "—" : (project?.name || customSupplier?.customProjectName || "—")}
                         </td>
                       </tr>
                       
@@ -310,13 +317,13 @@ export default function DisbursementOrderPrint() {
                           إجمالي قيمة الدعم
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                          {project ? `${project.fundingAmount.toLocaleString()} ريال` : "—"}
+                          {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.fundingAmount.toLocaleString()} ريال` : "—")}
                         </td>
                         <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
                           إجمالي قيمة العقد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                          {project ? `${project.contractAmount.toLocaleString()} ريال` : "—"}
+                          {isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—")}
                         </td>
                       </tr>
 
@@ -325,13 +332,13 @@ export default function DisbursementOrderPrint() {
                           إجمالي ما تم دفعه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                          {project ? `${project.totalPaid.toLocaleString()} ريال` : "—"}
+                          {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.totalPaid.toLocaleString()} ريال` : "—")}
                         </td>
                         <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
                           المبلغ المتبقي بعد صرف المبلغ أعلاه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                          {project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"}
+                          {isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—")}
                         </td>
                       </tr>
                     </tbody>
