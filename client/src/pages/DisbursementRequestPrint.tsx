@@ -175,6 +175,7 @@ export default function DisbursementRequestPrint() {
   const contract = request.contract;
   
   let customSupplier: any = null;
+  let linkedRequestInfo: any = null;
   if (request?.attachmentsJson) {
     try {
       const attachments = JSON.parse(request.attachmentsJson);
@@ -183,11 +184,17 @@ export default function DisbursementRequestPrint() {
         if (infoAttachment && infoAttachment.url) {
           customSupplier = JSON.parse(infoAttachment.url);
         }
+        const linkedAttachment = attachments.find((a: any) => a.name === "linked_request_info");
+        if (linkedAttachment && linkedAttachment.url) {
+          linkedRequestInfo = JSON.parse(linkedAttachment.url);
+        }
       }
     } catch (e) {
-      console.error("Error parsing custom supplier print:", e);
+      console.error("Error parsing supplier/linked print metadata:", e);
     }
   }
+
+  const isCustomType = !!customSupplier && ["supplier_one_time", "sadad_invoice", "misc_expenses"].includes(customSupplier.requestType);
 
   const resolvedSupplierName = customSupplier?.name || contract?.secondPartyName || "—";
   const resolvedSupplierAccountName = customSupplier?.name || contract?.secondPartyAccountName || contract?.secondPartyName || "—";
@@ -229,13 +236,15 @@ export default function DisbursementRequestPrint() {
 
 
 
-  const resolvedSupportingEntitiesText = supportSources.map(s => {
-    const name = s.entity === "اخرى" ? s.customEntity : s.entity;
-    if (supportSources.length > 1) {
-      return `${name} (${s.amount.toLocaleString()} ريال)`;
-    }
-    return name;
-  }).join("، ");
+  const resolvedSupportingEntitiesText = (supportSources.length > 0
+    ? supportSources.map(s => {
+        const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+        if (supportSources.length > 1) {
+          return `${name} (${s.amount.toLocaleString()} ريال)`;
+        }
+        return name;
+      }).join("، ")
+    : (customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
 
   const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
 
@@ -353,7 +362,9 @@ export default function DisbursementRequestPrint() {
                   وصف الأعمال المطلوبة
                 </div>
                 <div className="p-3 bg-white text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-semibold min-h-[60px]">
-                  {parsedWorks.scheduled || request.description || request.title || "—"}
+                  {isCustomType 
+                    ? (customSupplier?.customProjectName || "—") 
+                    : (parsedWorks.scheduled || request.description || request.title || "—")}
                 </div>
               </div>
 
@@ -398,7 +409,11 @@ export default function DisbursementRequestPrint() {
                   <tbody>
                     <tr className="border-b border-gray-200">
                       <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
-                      <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">{parsedWorks.actual || request.title || request.description || "—"}</td>
+                      <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">
+                        {isCustomType 
+                          ? (customSupplier?.customProjectName || "—") 
+                          : (parsedWorks.actual || request.title || request.description || "—")}
+                      </td>
                       <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
                     </tr>
 

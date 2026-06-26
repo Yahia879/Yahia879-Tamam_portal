@@ -1330,11 +1330,17 @@ export default function NewLinkedDisbursementRequest() {
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والمنجزات الفعلية *</Label>
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") 
+                      ? "ملخص معلومات الدفعة *" 
+                      : "وصف الأعمال والمنجزات الفعلية *"}
+                  </Label>
                   <Textarea
                     value={formData.description}
                     readOnly
-                    placeholder="وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."
+                    placeholder={(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")
+                      ? "ملخص تفصيلي لمعلومات الدفعة..."
+                      : "وصف تفصيلي للأعمال والمنجزات الفعلية المصاحبة لتقرير الإنجاز المالي..."}
                     rows={4}
                     required
                     className="text-right border-border focus:ring-0 rounded-xl text-xs leading-relaxed font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
