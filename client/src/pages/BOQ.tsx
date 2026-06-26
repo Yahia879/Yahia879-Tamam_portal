@@ -73,7 +73,6 @@ export default function BOQ() {
   const utils = trpc.useUtils();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterProgram, setFilterProgram] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || "");
   const [page, setPage] = useState(1);
   const limit = 20;
@@ -87,7 +86,6 @@ export default function BOQ() {
   const { data: requestsData, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
     search: searchQuery || undefined,
     programType: filterProgram !== "all" ? filterProgram as any : undefined,
-    status: filterStatus !== "all" ? filterStatus as any : undefined,
     currentStage: "boq_preparation",
     page,
     limit,
@@ -203,8 +201,8 @@ export default function BOQ() {
             {/* الفلاتر والبحث */}
             <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
               <CardContent className="p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-                  <div className="sm:col-span-2 relative">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
+                  <div className="lg:col-span-3 relative">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
                       <Search className="w-3 h-3" />
                       البحث
@@ -222,41 +220,22 @@ export default function BOQ() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:col-span-2">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
-                      <Select value={filterProgram} onValueChange={(v) => {
-                        setFilterProgram(v);
-                        setPage(1);
-                      }}>
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                          <SelectValue placeholder="البرنامج" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">جميع البرامج</SelectItem>
-                          {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الحالة</label>
-                      <Select value={filterStatus} onValueChange={(v) => {
-                        setFilterStatus(v);
-                        setPage(1);
-                      }}>
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                          <SelectValue placeholder="الحالة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">الكل</SelectItem>
-                          <SelectItem value="under_review">قيد المراجعة</SelectItem>
-                          <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                          <SelectItem value="completed">مكتملة</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="lg:col-span-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
+                    <Select value={filterProgram} onValueChange={(v) => {
+                      setFilterProgram(v);
+                      setPage(1);
+                    }}>
+                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                        <SelectValue placeholder="البرنامج" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">جميع البرامج</SelectItem>
+                        {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardContent>
