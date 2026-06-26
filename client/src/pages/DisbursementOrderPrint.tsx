@@ -410,13 +410,13 @@ export default function DisbursementOrderPrint() {
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المحاسب</td>
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{orgSettings?.accountantName || "—"}</td>
                     <td className="p-2 border-l border-slate-300"></td>
-                    <td className="p-2 text-slate-700 font-semibold">{formatGregorianDate(orderDate)}</td>
+                    <td className="p-2 text-slate-400 font-semibold">.... / .... / ........ م</td>
                   </tr>
                   <tr className="h-14">
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المدير التنفيذي</td>
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{orgSettings?.executiveDirectorName || "—"}</td>
                     <td className="p-2 border-l border-slate-300"></td>
-                    <td className="p-2 text-slate-700 font-semibold">{formatGregorianDate(orderDate)}</td>
+                    <td className="p-2 text-slate-400 font-semibold">.... / .... / ........ م</td>
                   </tr>
                 </tbody>
               </table>
