@@ -198,16 +198,49 @@ export default function DisbursementRequestPrint() {
 
   // حساب بيانات الدعم والأجور الإدارية
   const supportingEntity = contract?.supportingEntity || "";
-  const isDonationShop = supportingEntity === "متجر التبرعات";
-  const isEhsan = supportingEntity === "منصة احسان" || supportingEntity === "منصة إحسان";
-  const isDirectDonation = supportingEntity === "تبرع مباشر";
-  const isOther = supportingEntity && !isDonationShop && !isEhsan && !isDirectDonation;
+  let supportSources: { entity: string; customEntity?: string; amount: number }[] = [];
+  
+  if (supportingEntity && supportingEntity.trim().startsWith('[')) {
+    try {
+      supportSources = JSON.parse(supportingEntity);
+    } catch (e) {
+      console.error("Failed to parse supportingEntity JSON", e);
+    }
+  }
 
   const hasContract = !!contract;
   const actualProjectCost = hasContract ? parseFloat(contract.contractAmount || "0") : amount;
   const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
   const adminFees = (actualProjectCost * managementPercentage) / 100;
   const totalOpportunityValue = actualProjectCost + adminFees;
+
+  if (supportSources.length === 0 && supportingEntity) {
+    const isDonationShop = supportingEntity === "متجر التبرعات";
+    const isEhsan = supportingEntity === "منصة احسان" || supportingEntity === "منصة إحسان";
+    const isDirectDonation = supportingEntity === "تبرع مباشر";
+    const isOther = !isDonationShop && !isEhsan && !isDirectDonation;
+    const amt = contract?.supportedAmount ? parseFloat(contract.supportedAmount.toString()) : totalOpportunityValue;
+    supportSources = [{
+      entity: isDonationShop ? "متجر التبرعات" : isEhsan ? "منصة احسان" : isDirectDonation ? "تبرع مباشر" : "اخرى",
+      customEntity: isOther ? supportingEntity : "",
+      amount: amt
+    }];
+  }
+
+  const isDonationShop = supportSources.some(s => s.entity === "متجر التبرعات");
+  const isEhsan = supportSources.some(s => s.entity === "منصة احسان" || s.entity === "منصة إحسان");
+  const isDirectDonation = supportSources.some(s => s.entity === "تبرع مباشر");
+  
+  const otherSources = supportSources.filter(s => s.entity === "اخرى");
+  const isOther = otherSources.length > 0;
+  const otherNames = otherSources.map(s => s.customEntity).filter(Boolean).join("، ");
+
+  const resolvedSupportingEntitiesText = supportSources.map(s => {
+    const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+    return `${name} (${s.amount.toLocaleString()} ريال)`;
+  }).join("، ");
+
+  const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
 
   const projectAddress = contract?.mosqueCity || 
     [project?.city, project?.district, project?.address].filter(Boolean).join(" - ") || 
@@ -300,7 +333,7 @@ export default function DisbursementRequestPrint() {
                       <span className="font-semibold text-gray-750 flex items-center gap-1">
                         <span>أخرى:</span>
                         <span className="border-b border-gray-400 px-2 min-w-[150px] inline-block text-center font-bold h-5 leading-none">
-                          {isOther ? supportingEntity : "\u00A0"}
+                          {isOther ? otherNames : "\u00A0"}
                         </span>
                       </span>
                     </div>
@@ -316,12 +349,12 @@ export default function DisbursementRequestPrint() {
                 <div className="grid grid-cols-2 text-xs sm:text-sm">
                   <div className="flex border-l border-gray-200">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الجهة الداعمة:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{supportingEntity || "—"}</span>
+                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupportingEntitiesText || "—"}</span>
                   </div>
                   <div className="flex">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">مبلغ الدعم:</span>
                     <span className="p-2.5 text-gray-800 font-bold font-mono flex-1">
-                      {contract?.supportedAmount ? `${parseFloat(contract.supportedAmount.toString()).toLocaleString()} ريال` : `${totalOpportunityValue.toLocaleString()} ريال`}
+                      {totalSupportedAmount ? `${totalSupportedAmount.toLocaleString()} ريال` : `${totalOpportunityValue.toLocaleString()} ريال`}
                     </span>
                   </div>
                 </div>
