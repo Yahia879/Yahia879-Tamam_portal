@@ -33,6 +33,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  Heart,
 } from "lucide-react";
 
 // وحدات المدة
@@ -171,6 +172,12 @@ export default function ContractForm() {
     setSupportSources(prev => prev.map((src, i) => i === index ? { ...src, ...updates } : src));
   };
 
+  // جلب الفئات لاستخراج الجهات الداعمة
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000, // 10 دقائق
+  });
+  const fundingSupportCategories = (allCategories || []).filter((cat: any) => cat.type === "funding_support" && cat.isActive !== false);
+
   // جلب قوالب العقود
   const { data: templatesData, isLoading: templatesLoading } = trpc.contracts.getTemplates.useQuery(undefined, {
     staleTime: 10 * 60 * 1000, // 10 دقائق
@@ -269,7 +276,8 @@ export default function ContractForm() {
   useEffect(() => {
     if (isEditMode && existingContract?.contract && !editDataLoaded) {
       const c = existingContract.contract;
-      const PREDEFINED_ENTITIES = ["متجر التبرعات", "منصة احسان", "تبرع مباشر"];
+      const dbCategories = fundingSupportCategories.map((cat: any) => cat.nameAr);
+      const PREDEFINED_ENTITIES = Array.from(new Set([...dbCategories, "متجر التبرعات", "منصة احسان", "تبرع مباشر"]));
       const dbSupportingEntity = c.supportingEntity || "";
       
       let parsedSources: { entity: string; customEntity?: string; amount: number }[] = [];
@@ -357,7 +365,7 @@ export default function ContractForm() {
 
       setEditDataLoaded(true);
     }
-  }, [isEditMode, existingContract, editDataLoaded]);
+  }, [isEditMode, existingContract, editDataLoaded, allCategories]);
 
   // تحديث بنود العقد عند تغيير القالب
   useEffect(() => {
@@ -467,7 +475,7 @@ export default function ContractForm() {
       amount: 0,
       dueDate: "",
       description: "",
-      completionPercentage: 0,
+      completionPercentage: undefined,
     };
     setPaymentSchedule([...paymentSchedule, newPayment]);
   };
@@ -554,6 +562,8 @@ export default function ContractForm() {
           toast.error("يرجى إدخال قيمة العقد");
           return false;
         }
+        return true;
+      case 4:
         if (supportSources.length === 0 || (supportSources.length === 1 && !supportSources[0].entity && supportSources[0].amount === 0)) {
           toast.error("يرجى إضافة جهة داعمة واحدة على الأقل");
           return false;
@@ -582,7 +592,7 @@ export default function ContractForm() {
           return false;
         }
         return true;
-      case 4:
+      case 5:
         // التحقق من صحة جدول الدفعات
         if (paymentSchedule.length === 0) {
           return true;
@@ -628,7 +638,7 @@ export default function ContractForm() {
   // الانتقال للخطوة التالية
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 7));
+      setCurrentStep(prev => Math.min(prev + 1, 8));
     }
   };
 
@@ -737,10 +747,11 @@ export default function ContractForm() {
     { id: 1, title: "القالب", icon: FileText },
     { id: 2, title: "الطرف الثاني", icon: Building2 },
     { id: 3, title: "التفاصيل", icon: DollarSign },
-    { id: 4, title: "الدفعات", icon: Calendar },
-    { id: 5, title: "البنود", icon: Edit },
-    { id: 6, title: "البنود المخصصة", icon: Plus },
-    { id: 7, title: "المراجعة", icon: Eye },
+    { id: 4, title: "دعم المشروع", icon: Heart },
+    { id: 5, title: "الدفعات", icon: Calendar },
+    { id: 6, title: "البنود", icon: Edit },
+    { id: 7, title: "البنود المخصصة", icon: Plus },
+    { id: 8, title: "المراجعة", icon: Eye },
   ];
 
   return (
@@ -1212,9 +1223,12 @@ export default function ContractForm() {
                     <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع</p>
                   </div>
                 </div>
+              </div>
+            )}
 
-                <Separator className="my-6" />
-
+            {/* الخطوة 4: دعم المشروع */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
                     <h3 className="font-semibold text-base text-primary">بيانات الدعم والتمويل</h3>
@@ -1248,9 +1262,18 @@ export default function ContractForm() {
                               <SelectValue placeholder="اختر الجهة الداعمة" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
-                              <SelectItem value="منصة احسان">منصة احسان</SelectItem>
-                              <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
+                              {fundingSupportCategories.map((cat: any) => (
+                                <SelectItem key={cat.id} value={cat.nameAr}>
+                                  {cat.nameAr}
+                                </SelectItem>
+                              ))}
+                              {fundingSupportCategories.length === 0 && (
+                                <>
+                                  <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
+                                  <SelectItem value="منصة احسان">منصة احسان</SelectItem>
+                                  <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
+                                </>
+                              )}
                               <SelectItem value="اخرى">جهة أخرى</SelectItem>
                             </SelectContent>
                           </Select>
@@ -1332,8 +1355,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 4: جدول الدفعات */}
-            {currentStep === 4 && (
+            {/* الخطوة 5: جدول الدفعات */}
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1499,13 +1522,17 @@ export default function ContractForm() {
                                   placeholder="مثال: 20"
                                   className="w-full rounded-xl text-right font-bold"
                                   onChange={(e) => {
-                                    let val = parseInt(e.target.value);
-                                    if (isNaN(val)) {
-                                      updatePayment(payment.id, "completionPercentage", 0);
+                                    if (e.target.value === "") {
+                                      updatePayment(payment.id, "completionPercentage", undefined);
                                     } else {
-                                      if (val > 100) val = 100;
-                                      if (val < 0) val = 0;
-                                      updatePayment(payment.id, "completionPercentage", val);
+                                      let val = parseInt(e.target.value);
+                                      if (isNaN(val)) {
+                                        updatePayment(payment.id, "completionPercentage", undefined);
+                                      } else {
+                                        if (val > 100) val = 100;
+                                        if (val < 0) val = 0;
+                                        updatePayment(payment.id, "completionPercentage", val);
+                                      }
                                     }
                                   }}
                                 />
@@ -1576,8 +1603,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 5: بنود العقد */}
-            {currentStep === 5 && (
+            {/* الخطوة 6: بنود العقد */}
+            {currentStep === 6 && (
               <div className="space-y-6">
                 <div>
                   <h3 className="font-medium">بنود العقد</h3>
@@ -1657,8 +1684,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 6: البنود المخصصة */}
-            {currentStep === 6 && (
+            {/* الخطوة 7: البنود المخصصة */}
+            {currentStep === 7 && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="font-medium text-lg">البنود المخصصة (اختياري)</h3>
@@ -1731,8 +1758,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 7: المراجعة */}
-            {currentStep === 7 && (
+            {/* الخطوة 8: المراجعة */}
+            {currentStep === 8 && (
               <div className="space-y-6">
                 <h3 className="font-medium text-lg">مراجعة العقد</h3>
                 
@@ -1897,7 +1924,7 @@ export default function ContractForm() {
                 السابق
               </Button>
 
-              {currentStep < 7 ? (
+              {currentStep < 8 ? (
                 <Button onClick={nextStep}>
                   التالي
                   <ArrowLeft className="h-4 w-4 mr-2" />
