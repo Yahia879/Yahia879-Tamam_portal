@@ -224,7 +224,6 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                       <TableHeader>
                         <TableRow>
                           <TableHead>اسم البند</TableHead>
-                          <TableHead>الوصف</TableHead>
                           <TableHead>الوحدة</TableHead>
                           <TableHead>الكمية</TableHead>
                           <TableHead>سعر الوحدة</TableHead>
@@ -236,9 +235,6 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                         {items.map((item: any) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.itemName}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {item.description || "-"}
-                            </TableCell>
                             <TableCell>{item.unit}</TableCell>
                             <TableCell>{item.quantity}</TableCell>
                             <TableCell>
