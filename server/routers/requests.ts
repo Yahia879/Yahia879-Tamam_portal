@@ -543,7 +543,9 @@ export const requestsRouter = router({
       console.log('[search] Results count:', results.length);
 
       // الحصول على العدد الإجمالي والإحصائيات
-      let countQuery = db.select({ count: sql<number>`count(*)` }).from(mosqueRequests);
+      let countQuery = db.select({ count: sql<number>`count(*)` })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id));
       if (conditions.length > 0) {
         countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
       }
@@ -556,7 +558,9 @@ export const requestsRouter = router({
         currentStage: mosqueRequests.currentStage,
         hasReport: sql<number>`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`,
         count: sql<number>`count(*)` 
-      }).from(mosqueRequests);
+      })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id));
       if (conditions.length > 0) {
         statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
       }

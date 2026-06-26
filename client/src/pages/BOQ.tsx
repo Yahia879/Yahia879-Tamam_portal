@@ -75,16 +75,27 @@ export default function BOQ() {
   const [filterProgram, setFilterProgram] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || "");
+  const [page, setPage] = useState(1);
+  const limit = 20;
   
   // تعيين requestId من URL عند تغيير المسار
   useEffect(() => {
     setSelectedRequestId(params.requestId || "");
   }, [params.requestId]);
 
-  // جلب الطلبات في مرحلة إعداد جداول الكميات
-  const { data: requests, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
+  // جلب الطلبات في مرحلة إعداد جداول الكميات مع الفلترة والبحث السيرفر
+  const { data: requestsData, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
+    search: searchQuery || undefined,
+    programType: filterProgram !== "all" ? filterProgram as any : undefined,
+    status: filterStatus !== "all" ? filterStatus as any : undefined,
     currentStage: "boq_preparation",
+    page,
+    limit,
   });
+
+  const requests = requestsData?.requests || [];
+  const total = requestsData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   // جلب الطلب المحدد بالتفصيل
   const { data: requestDetails } = trpc.requests.getById.useQuery(
@@ -120,21 +131,6 @@ export default function BOQ() {
       toast.error(error.message || "حدث خطأ أثناء الانتقال للمرحلة التالية");
     },
   });
-
-  const filteredRequests = requests?.requests?.filter((request: any) => {
-    // فلتر البحث
-    const matchesSearch = !searchQuery || 
-      request.requestNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.mosqueName?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // فلتر البرنامج
-    const matchesProgram = filterProgram === "all" || request.programType === filterProgram;
-    
-    // فلتر الحالة
-    const matchesStatus = filterStatus === "all" || request.status === filterStatus;
-    
-    return matchesSearch && matchesProgram && matchesStatus;
-  }) || [];
 
   return (
     <DashboardLayout>
@@ -211,45 +207,56 @@ export default function BOQ() {
                   <div className="sm:col-span-2 relative">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
                       <Search className="w-3 h-3" />
-                      البحث عن الطلبات
+                      البحث
                     </label>
                     <div className="relative">
                       <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         placeholder="رقم الطلب أو اسم المسجد..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setPage(1);
+                        }}
                         className="h-10 w-full pr-10"
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
-                    <Select value={filterProgram} onValueChange={setFilterProgram}>
-                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                        <SelectValue placeholder="اختر البرنامج" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">جميع البرامج</SelectItem>
-                        {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الحالة</label>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                        <SelectValue placeholder="جميع الحالات" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">جميع الحالات</SelectItem>
-                        <SelectItem value="pending">قيد الانتظار</SelectItem>
-                        <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
-                        <SelectItem value="completed">مكتمل</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
+                      <Select value={filterProgram} onValueChange={(v) => {
+                        setFilterProgram(v);
+                        setPage(1);
+                      }}>
+                        <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                          <SelectValue placeholder="البرنامج" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">جميع البرامج</SelectItem>
+                          {Object.entries(PROGRAM_LABELS).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">الحالة</label>
+                      <Select value={filterStatus} onValueChange={(v) => {
+                        setFilterStatus(v);
+                        setPage(1);
+                      }}>
+                        <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                          <SelectValue placeholder="الحالة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">الكل</SelectItem>
+                          <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                          <SelectItem value="in_progress">قيد التنفيذ</SelectItem>
+                          <SelectItem value="completed">مكتملة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -262,7 +269,7 @@ export default function BOQ() {
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="text-muted-foreground mt-4 text-sm">جاري تحميل قائمة الطلبات...</p>
                 </div>
-              ) : filteredRequests.length > 0 ? (
+              ) : requests.length > 0 ? (
                 <div>
                   {/* الرأس لسطح المكتب */}
                   <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -276,7 +283,7 @@ export default function BOQ() {
 
                   {/* الأسطر والبطاقات */}
                   <div className="divide-y divide-border">
-                    {filteredRequests.map((request: any) => {
+                    {requests.map((request: any) => {
                       const status = statusConfig[request.status] || statusConfig.pending;
                       return (
                         <div
@@ -356,6 +363,73 @@ export default function BOQ() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* الترقيم وعداد الصفحات متطابق مع /requests */}
+                  <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-4">
+                    <div className="text-[11px] md:text-xs text-muted-foreground text-center">
+                      يعرض {(page - 1) * limit + 1} - {Math.min(page * limit, total)} من أصل {total} طلب
+                    </div>
+                    
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => {
+                            setPage(page - 1);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={page === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4 rotate-180" />
+                        </Button>
+                        
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                          if (
+                            totalPages <= 5 ||
+                            p === 1 ||
+                            p === totalPages ||
+                            (p >= page - 1 && p <= page + 1)
+                          ) {
+                            return (
+                              <Button
+                                key={p}
+                                variant={page === p ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 ${page === p ? 'gradient-primary text-white border-0' : ''}`}
+                                onClick={() => {
+                                  setPage(p);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                              >
+                                {p}
+                              </Button>
+                            );
+                          } else if (
+                            (p === page - 2 && page > 3) ||
+                            (p === page + 2 && page < totalPages - 2)
+                          ) {
+                            return <span key={p} className="px-0.5 text-muted-foreground">...</span>;
+                          }
+                          return null;
+                        })}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => {
+                            setPage(page + 1);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          disabled={page === totalPages}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
