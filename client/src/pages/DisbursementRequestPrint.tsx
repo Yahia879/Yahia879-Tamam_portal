@@ -163,7 +163,7 @@ export default function DisbursementRequestPrint() {
   const adminFees = (actualProjectCost * managementPercentage) / 100;
   const totalOpportunityValue = actualProjectCost + adminFees;
 
-  const projectAddress = contract?.mosqueCity || (project as any)?.city || (project as any)?.address || "خميس مشيط";
+  const projectAddress = contract?.mosqueCity || (project as any)?.city || (project as any)?.address || "—";
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
@@ -307,38 +307,19 @@ export default function DisbursementRequestPrint() {
                     <tr className="border-b border-gray-200">
                       <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/3">تكلفة المشروع الفعلية</td>
                       <td className="p-2.5 font-bold font-mono text-gray-800 border-l border-gray-200 w-1/3">
-                        {actualProjectCost.toLocaleString()} ريال
+                        {actualProjectCost.toLocaleString()}
                       </td>
                       <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">الأجور الإدارية</td>
                       <td className="p-2.5 font-bold font-mono text-gray-800 w-1/6">
-                        {adminFees > 0 ? `${adminFees.toLocaleString()} ريال (${managementPercentage}%)` : "0 ريال"}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
-                      <td className="p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
-                        {totalOpportunityValue.toLocaleString()} ريال
-                      </td>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">ميزانية المشروع</td>
-                      <td className="p-2.5 font-bold font-mono text-gray-800">
-                        {project?.budget ? `${parseFloat(project.budget.toString()).toLocaleString()} ريال` : "—"}
+                        {adminFees > 0 ? adminFees.toLocaleString() : "0"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">المبلغ المطلوب صرفه (كتابةً)</td>
-                      <td className="p-2.5 text-gray-800 border-l border-gray-200 font-medium">
-                        {numberToArabicText(amount)}
+                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
+                      <td className="p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
+                        {totalOpportunityValue.toLocaleString()}
                       </td>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">حالة الطلب</td>
-                      <td className="p-2.5 font-bold text-gray-800">
-                        {request.status === "approved" ? (
-                          <span className="text-emerald-700">معتمد</span>
-                        ) : request.status === "pending" ? (
-                          <span className="text-amber-600">قيد الاعتماد</span>
-                        ) : (
-                          <span className="text-gray-500">مسودة</span>
-                        )}
-                      </td>
+                      <td className="p-2.5 border-l border-gray-200" colSpan={2}></td>
                     </tr>
                   </tbody>
                 </table>
@@ -363,24 +344,7 @@ export default function DisbursementRequestPrint() {
                       <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">{request.title || request.description || "—"}</td>
                       <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
                     </tr>
-                    <tr className="border-b border-gray-200 bg-gray-50/20 text-xs">
-                      <td className="p-2 border-l border-gray-200 text-gray-700 text-right pr-4" colSpan={3}>
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 justify-center sm:justify-start">
-                          <div>
-                            <span className="font-bold text-gray-700">اسم الحساب: </span>
-                            <span className="font-semibold text-gray-900">{resolvedSupplierAccountName}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-gray-700">رقم الآيبان (IBAN): </span>
-                            <span className="font-semibold text-gray-900 tracking-wider font-mono">{resolvedSupplierIban}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-gray-700">اسم البنك: </span>
-                            <span className="font-semibold text-gray-900">{resolvedSupplierBankName}</span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
+
                     <tr className="border-b border-gray-200 h-8 bg-gray-50/10">
                       <td className="border-l border-gray-200"></td>
                       <td className="border-l border-gray-200"></td>
