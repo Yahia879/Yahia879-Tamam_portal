@@ -973,13 +973,28 @@ export const disbursementsRouter = router({
             .from(contractsEnhanced)
             .where(eq(contractsEnhanced.projectId, projectData.id));
 
-          let contractAmount = 0;
+           let contractAmount = 0;
           let fundingAmount = 0;
           let fundingSource = "لا يوجد";
           if (contract) {
             contractAmount = Number(contract.contractAmount || 0);
-            fundingAmount = Number((contract as any).fundingAmount || 0);
-            fundingSource = (contract as any).fundingSource || "لا يوجد";
+            fundingAmount = Number(contract.supportedAmount || 0);
+            
+            if (contract.supportingEntity) {
+              try {
+                const parsedEntities = JSON.parse(contract.supportingEntity);
+                if (Array.isArray(parsedEntities)) {
+                  const names = parsedEntities
+                    .map(e => e.entity === "other" ? e.customEntity : e.entity)
+                    .filter(Boolean);
+                  if (names.length > 0) {
+                    fundingSource = names.join("، ");
+                  }
+                }
+              } catch (e) {
+                console.error("Error parsing supportingEntity in getOrderById:", e);
+              }
+            }
           }
 
           // حساب إجمالي المدفوع
@@ -993,7 +1008,13 @@ export const disbursementsRouter = router({
               )
             );
 
-          const totalPaid = Number(paidResult?.total || 0);
+          let totalPaid = Number(paidResult?.total || 0);
+          
+          // إذا كان الطلب الحالي مرتبطًا بالمشروع وحالته ليست "paid"، نضيف قيمته ليعكس إجمالي المدفوع بعد الصرف
+          if (request && request.status !== "paid" && Number(request.amount) > 0) {
+            totalPaid += Number(request.amount);
+          }
+
           const remainingAmount = contractAmount - totalPaid;
 
           project = {
