@@ -91,6 +91,52 @@ export default function DisbursementRequestPrint() {
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  // جلب تقارير الإنجاز للمشروع المحدد
+  const { data: progressReports } = trpc.progressReports.list.useQuery(
+    { projectId: request?.projectId || undefined },
+    { enabled: !!request?.projectId }
+  );
+
+  // البحث عن تقرير الإنجاز المرتبط بناءً على معرف الدفعة
+  const associatedReport = progressReports?.find((r: any) => {
+    if (!r.workSummary || !request) return false;
+    const match = r.workSummary.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    if (match) {
+      const pId = match[1].trim();
+      return pId === request.contractPaymentId?.toString() || 
+             pId === `cp-${request.contractPaymentId}` ||
+             pId === request.paymentId?.toString() ||
+             pId === `manual-${request.paymentId}`;
+    }
+    return false;
+  });
+
+  // تحليل تفاصيل الأعمال المجدولة والمنفذة
+  const parsedWorks = (() => {
+    const combined = associatedReport?.workSummary || "";
+    if (!combined) return { scheduled: "", actual: "" };
+
+    const schedMatch = combined.match(/الأعمال المجدولة للدفعة:\r?\n([\s\S]*?)(?:\r?\n\r?الأعمال المنفذة فعلياً:|\r?\n\r?\[معرف الدفعة:|$)/);
+    const actualMatch = combined.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
+
+    const schedMatchNoNL = schedMatch ? null : combined.match(/الأعمال المجدولة للدفعة:\s*([\s\S]*?)(?:الأعمال المنفذة فعلياً:|\[معرف الدفعة:|$)/);
+    const actualMatchNoNL = actualMatch ? null : combined.match(/الأعمال المنفذة فعلياً:\s*([\s\S]*?)(?:\[معرف الدفعة:|$)/);
+
+    const scheduled = schedMatch 
+      ? schedMatch[1].trim() 
+      : (schedMatchNoNL 
+          ? schedMatchNoNL[1].trim() 
+          : combined.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim());
+
+    const actual = actualMatch 
+      ? actualMatch[1].trim() 
+      : (actualMatchNoNL 
+          ? actualMatchNoNL[1].trim() 
+          : "");
+
+    return { scheduled, actual };
+  })();
+
   const handlePrint = () => {
     window.print();
   };
@@ -299,7 +345,7 @@ export default function DisbursementRequestPrint() {
                   وصف الأعمال المطلوبة
                 </div>
                 <div className="p-3 bg-white text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-semibold min-h-[60px]">
-                  {request.description || request.title || "—"}
+                  {parsedWorks.scheduled || request.description || request.title || "—"}
                 </div>
               </div>
 
@@ -344,7 +390,7 @@ export default function DisbursementRequestPrint() {
                   <tbody>
                     <tr className="border-b border-gray-200">
                       <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
-                      <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">{request.title || request.description || "—"}</td>
+                      <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">{parsedWorks.actual || request.title || request.description || "—"}</td>
                       <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
                     </tr>
 
@@ -390,7 +436,7 @@ export default function DisbursementRequestPrint() {
 
                 {/* المدير التنفيذي */}
                 <div className="p-2">
-                  <div className="font-bold text-[#5d4037] text-xs sm:text-sm mb-12">
+                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
                     المدير التنفيذي
                   </div>
                   <div className="space-y-2 text-xs">
