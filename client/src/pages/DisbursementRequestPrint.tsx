@@ -240,7 +240,11 @@ export default function DisbursementRequestPrint() {
   const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
 
   const projectAddress = contract?.mosqueCity || 
-    [project?.city, project?.district, project?.address].filter(Boolean).join(" - ") || 
+    [
+      project?.city, 
+      project?.district, 
+      project?.address === "موقع محدد على الخريطة" ? "" : project?.address
+    ].filter(Boolean).join(" - ") || 
     "—";
 
   return (

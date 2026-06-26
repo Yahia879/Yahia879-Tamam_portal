@@ -826,30 +826,9 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                {/* الحقول العامة للتمويل واسم المشروع الرئيسي */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-border/40 pb-4 mb-4">
-                  {(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") && (
-                    <div className="space-y-2 text-right animate-in fade-in duration-200">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التمويل / الدعم *</Label>
-                      <Select
-                        value={formData.fundingSupport || ""}
-                        onValueChange={(value) => setFormData({ ...formData, fundingSupport: value })}
-                      >
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                          <SelectValue placeholder="اختر التمويل / الدعم" />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {fundingSupportData?.values?.map((val: any) => (
-                            <SelectItem key={val.id} value={val.valueAr} className="text-right">
-                              {val.valueAr}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div className={`space-y-2 text-right ${(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? "" : "sm:col-span-2"}`}>
+                {/* الحقول العامة - اسم المشروع الرئيسي */}
+                <div className="border-b border-border/40 pb-4 mb-4">
+                  <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
                     <Select
                       value={formData.mainProjectName || ""}
@@ -887,6 +866,28 @@ export default function NewLinkedDisbursementRequest() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* حقل التمويل / الدعم يظهر ديناميكياً تحت نوع طلب الصرف */}
+                {(requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") && (
+                  <div className="space-y-2 text-right animate-in fade-in duration-200">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التمويل / الدعم *</Label>
+                    <Select
+                      value={formData.fundingSupport || ""}
+                      onValueChange={(value) => setFormData({ ...formData, fundingSupport: value })}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر التمويل / الدعم" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {fundingSupportData?.values?.map((val: any) => (
+                          <SelectItem key={val.id} value={val.valueAr} className="text-right">
+                            {val.valueAr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {!isCustom ? (
                   <div className="space-y-2 text-right">
