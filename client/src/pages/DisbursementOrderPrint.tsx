@@ -158,6 +158,9 @@ export default function DisbursementOrderPrint() {
                        linkedRequestInfo?.requestType === "sadad_invoice" || 
                        linkedRequestInfo?.requestType === "misc_expenses";
 
+  const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
+                         linkedRequestInfo?.requestType === "sadad_invoice";
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
@@ -359,7 +362,7 @@ export default function DisbursementOrderPrint() {
                           اسم الحساب
                         </td>
                         <td className="p-2.5 text-slate-800 font-bold text-right">
-                          {order.beneficiaryAccountName || order.beneficiaryName || "—"}
+                          {isSadadInvoice ? "—" : (order.beneficiaryAccountName || order.beneficiaryName || "—")}
                         </td>
                       </tr>
                       
@@ -368,7 +371,7 @@ export default function DisbursementOrderPrint() {
                           اسم البنك
                         </td>
                         <td className="p-2.5 text-slate-800 font-semibold text-right">
-                          {order.beneficiaryBank || "—"}
+                          {isSadadInvoice ? "—" : (order.beneficiaryBank || "—")}
                         </td>
                       </tr>
 
@@ -377,7 +380,7 @@ export default function DisbursementOrderPrint() {
                           رقم الآيبان
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
-                          {order.beneficiaryIban || "—"}
+                          {isSadadInvoice ? "—" : (order.beneficiaryIban || "—")}
                         </td>
                       </tr>
 
@@ -386,7 +389,9 @@ export default function DisbursementOrderPrint() {
                           رقم سداد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {order.sadadNumber || "—"}
+                          {isSadadInvoice 
+                            ? (customSupplier?.sadadNumber || order.beneficiaryIban || order.sadadNumber || "—")
+                            : (order.sadadNumber || "—")}
                         </td>
                       </tr>
 
@@ -395,7 +400,9 @@ export default function DisbursementOrderPrint() {
                           رمز المفوتر
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {order.billerCode || "—"}
+                          {isSadadInvoice 
+                            ? (customSupplier?.billerCode || order.beneficiaryBank || order.billerCode || "—")
+                            : (order.billerCode || "—")}
                         </td>
                       </tr>
                     </tbody>
@@ -452,6 +459,8 @@ export default function DisbursementOrderPrint() {
             background-color: white !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            height: 100%;
+            overflow: hidden;
           }
           .print\\:hidden {
             display: none !important;
@@ -459,19 +468,44 @@ export default function DisbursementOrderPrint() {
           .min-h-screen {
             background-color: white !important;
             padding: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
           }
           .print-container {
             max-width: 100% !important;
             width: 100% !important;
             box-shadow: none !important;
-            padding: 12mm !important;
+            padding: 8mm !important;
             margin: 0 !important;
             min-height: 0 !important;
-            height: auto !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
           }
           .print-inner {
             min-height: 0 !important;
-            height: auto !important;
+            height: 100% !important;
+            box-sizing: border-box !important;
+            padding: 10px !important;
+          }
+          /* تقليص الفراغات للحفاظ على الصفحة الواحدة */
+          .mb-4, .mb-6 {
+            margin-bottom: 6px !important;
+          }
+          .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 6px !important;
+            margin-bottom: 6px !important;
+          }
+          table td {
+            padding: 6px 8px !important;
+            font-size: 12px !important;
+          }
+          .h-14 {
+            height: 38px !important;
+          }
+          .mt-6 {
+            margin-top: 10px !important;
           }
         }
       `}</style>
