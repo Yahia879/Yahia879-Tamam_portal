@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, CheckSquare, Square } from "lucide-react";
+import { ArrowRight, Printer } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 
 // دالة تحويل الأرقام إلى نص عربي
@@ -227,17 +227,14 @@ export default function DisbursementRequestPrint() {
     }];
   }
 
-  const isDonationShop = supportSources.some(s => s.entity === "متجر التبرعات");
-  const isEhsan = supportSources.some(s => s.entity === "منصة احسان" || s.entity === "منصة إحسان");
-  const isDirectDonation = supportSources.some(s => s.entity === "تبرع مباشر");
-  
-  const otherSources = supportSources.filter(s => s.entity === "اخرى");
-  const isOther = otherSources.length > 0;
-  const otherNames = otherSources.map(s => s.customEntity).filter(Boolean).join("، ");
+
 
   const resolvedSupportingEntitiesText = supportSources.map(s => {
     const name = s.entity === "اخرى" ? s.customEntity : s.entity;
-    return `${name} (${s.amount.toLocaleString()} ريال)`;
+    if (supportSources.length > 1) {
+      return `${name} (${s.amount.toLocaleString()} ريال)`;
+    }
+    return name;
   }).join("، ");
 
   const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
@@ -311,35 +308,7 @@ export default function DisbursementRequestPrint() {
                 </h1>
               </div>
 
-              {/* 1. مصدر دعم الفرصة */}
-              <div className="mb-4 border border-gray-300 rounded-lg p-3 bg-white">
-                <div className="flex flex-col gap-2">
-                  <span className="font-bold text-gray-800 text-sm">مصدر دعم الفرصة:</span>
-                  <div className="flex flex-wrap items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                      {isDonationShop ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
-                      <span className="font-semibold text-gray-750">متجر التبرعات</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isEhsan ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
-                      <span className="font-semibold text-gray-750">منصة إحسان</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isDirectDonation ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
-                      <span className="font-semibold text-gray-750">تبرع مباشر</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isOther ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
-                      <span className="font-semibold text-gray-750 flex items-center gap-1">
-                        <span>أخرى:</span>
-                        <span className="border-b border-gray-400 px-2 min-w-[150px] inline-block text-center font-bold h-5 leading-none">
-                          {isOther ? otherNames : "\u00A0"}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* تم إزالة الخانات الأربعة المثبتة لعرض الجهات الداعمة ديناميكياً بالجدول أدناه */}
 
               {/* 2. خاص بدعم المؤسسات المانحة والمسؤولية المجتمعية */}
               <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
