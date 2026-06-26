@@ -132,7 +132,15 @@ export default function ContractForm() {
     
     // ملاحظات
     notes: "",
+
+    // بيانات الدعم والتمويل
+    supportingEntity: "",
+    customSupportingEntity: "",
+    supportType: "full",
+    supportedAmount: 0,
   });
+
+  const totalProjectCost = contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100;
 
   // بنود العقد
   const [clauseValues, setClauseValues] = useState<ClauseValue[]>([]);
@@ -241,6 +249,17 @@ export default function ContractForm() {
   useEffect(() => {
     if (isEditMode && existingContract?.contract && !editDataLoaded) {
       const c = existingContract.contract;
+      const PREDEFINED_ENTITIES = ["متجر التبرعات", "منصة احسان", "تبرع مباشر"];
+      const dbSupportingEntity = c.supportingEntity || "";
+      const isPredefined = PREDEFINED_ENTITIES.includes(dbSupportingEntity);
+      
+      const supportingEntity = dbSupportingEntity 
+        ? (isPredefined ? dbSupportingEntity : "اخرى") 
+        : "";
+      const customSupportingEntity = dbSupportingEntity && !isPredefined ? dbSupportingEntity : "";
+      const supportType = c.supportType || "full";
+      const supportedAmount = c.supportedAmount ? parseFloat(c.supportedAmount) : 0;
+
       setContractData({
         templateId: c.templateId || null,
         projectId: c.projectId || null,
@@ -256,6 +275,10 @@ export default function ContractForm() {
         managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
         baseValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         notes: c.customTerms || "",
+        supportingEntity,
+        customSupportingEntity,
+        supportType,
+        supportedAmount,
       });
 
       // تحميل جدول الدفعات من العقد الحالي
@@ -485,6 +508,24 @@ export default function ContractForm() {
           toast.error("يرجى إدخال قيمة العقد");
           return false;
         }
+        if (!contractData.supportingEntity) {
+          toast.error("يرجى اختيار الجهة الداعمة");
+          return false;
+        }
+        if (contractData.supportingEntity === "اخرى" && !contractData.customSupportingEntity.trim()) {
+          toast.error("يرجى إدخال اسم الجهة الداعمة الأخرى");
+          return false;
+        }
+        if (contractData.supportType === "partial") {
+          if (!contractData.supportedAmount || contractData.supportedAmount <= 0) {
+            toast.error("يرجى تحديد مبلغ الدعم");
+            return false;
+          }
+          if (contractData.supportedAmount > totalProjectCost) {
+            toast.error(`مبلغ الدعم لا يمكن أن يتجاوز القيمة الكلية للمشروع (${totalProjectCost.toLocaleString()} ريال)`);
+            return false;
+          }
+        }
         return true;
       case 4:
         // التحقق من صحة جدول الدفعات
@@ -577,6 +618,10 @@ export default function ContractForm() {
         // بنود العقد المخصصة
         clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
         customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
+        // بيانات الدعم والتمويل
+        supportingEntity: contractData.supportingEntity === "اخرى" ? contractData.customSupportingEntity : (contractData.supportingEntity || undefined),
+        supportType: contractData.supportingEntity ? contractData.supportType : undefined,
+        supportedAmount: contractData.supportingEntity ? (contractData.supportType === "partial" ? contractData.supportedAmount : totalProjectCost) : null,
       });
       return;
     }
@@ -623,6 +668,10 @@ export default function ContractForm() {
       customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
       // ملاحظات
       customTerms: contractData.notes || undefined,
+      // بيانات الدعم والتمويل
+      supportingEntity: contractData.supportingEntity === "اخرى" ? contractData.customSupportingEntity : (contractData.supportingEntity || undefined),
+      supportType: contractData.supportingEntity ? contractData.supportType : undefined,
+      supportedAmount: contractData.supportingEntity ? (contractData.supportType === "partial" ? contractData.supportedAmount : totalProjectCost) : null,
     });
   };
 
@@ -1047,10 +1096,14 @@ export default function ContractForm() {
                       value={contractData.totalValue || ""}
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0;
-                        setContractData({ 
-                          ...contractData, 
-                          totalValue: val,
-                          baseValue: val
+                        setContractData(prev => {
+                          const newTotalProjectCost = val + (val * (prev.managementPercentage || 0)) / 100;
+                          return { 
+                            ...prev, 
+                            totalValue: val,
+                            baseValue: val,
+                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                          };
                         });
                       }}
                       placeholder="أدخل قيمة العقد"
@@ -1068,9 +1121,13 @@ export default function ContractForm() {
                       value={contractData.managementPercentage || ""}
                       onChange={(e) => {
                         const percentage = parseFloat(e.target.value) || 0;
-                        setContractData({ 
-                          ...contractData, 
-                          managementPercentage: percentage
+                        setContractData(prev => {
+                          const newTotalProjectCost = prev.totalValue + (prev.totalValue * percentage) / 100;
+                          return { 
+                            ...prev, 
+                            managementPercentage: percentage,
+                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                          };
                         });
                       }}
                       placeholder="0"
@@ -1098,6 +1155,102 @@ export default function ContractForm() {
                       className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right"
                     />
                     <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع</p>
+                  </div>
+                </div>
+
+                <Separator className="my-6" />
+
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-base text-primary">بيانات الدعم والتمويل</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>الجهة الداعمة *</Label>
+                      <Select
+                        value={contractData.supportingEntity || ""}
+                        onValueChange={(value) => {
+                          setContractData(prev => {
+                            const currentTotalProjectCost = prev.totalValue + (prev.totalValue * (prev.managementPercentage || 0)) / 100;
+                            return {
+                              ...prev,
+                              supportingEntity: value,
+                              supportedAmount: prev.supportType === "full" ? currentTotalProjectCost : prev.supportedAmount
+                            };
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر الجهة الداعمة" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
+                          <SelectItem value="منصة احسان">منصة احسان</SelectItem>
+                          <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
+                          <SelectItem value="اخرى">جهة أخرى</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {contractData.supportingEntity === "اخرى" && (
+                      <div className="space-y-2">
+                        <Label>اسم الجهة الداعمة الأخرى *</Label>
+                        <Input
+                          type="text"
+                          value={contractData.customSupportingEntity}
+                          onChange={(e) => setContractData({ ...contractData, customSupportingEntity: e.target.value })}
+                          placeholder="أدخل اسم الجهة الداعمة"
+                        />
+                      </div>
+                    )}
+
+                    {contractData.supportingEntity && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>نوع الدعم</Label>
+                          <Select
+                            value={contractData.supportType}
+                            onValueChange={(value) => {
+                              setContractData(prev => {
+                                const currentTotalProjectCost = prev.totalValue + (prev.totalValue * (prev.managementPercentage || 0)) / 100;
+                                return {
+                                  ...prev,
+                                  supportType: value,
+                                  supportedAmount: value === "full" ? currentTotalProjectCost : prev.supportedAmount
+                                };
+                              });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="حدد نوع الدعم" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="full">دعم كامل</SelectItem>
+                              <SelectItem value="partial">دعم جزئي</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>مبلغ الدعم (ريال) *</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={totalProjectCost}
+                            disabled={contractData.supportType === "full"}
+                            value={contractData.supportType === "full" ? totalProjectCost : (contractData.supportedAmount || "")}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setContractData({ 
+                                ...contractData, 
+                                supportedAmount: val > totalProjectCost ? totalProjectCost : val 
+                              });
+                            }}
+                            placeholder="أدخل مبلغ الدعم"
+                            className="font-bold text-blue-700"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1570,6 +1723,25 @@ export default function ContractForm() {
                       <span className="text-muted-foreground">قيمة العقد:</span>
                       <p className="font-medium text-green-700 font-bold">{contractData.totalValue.toLocaleString()} ريال</p>
                     </div>
+                    {contractData.supportingEntity && (
+                      <>
+                        <div>
+                          <span className="text-muted-foreground">الجهة الداعمة:</span>
+                          <p className="font-medium text-blue-700 font-bold">
+                            {contractData.supportingEntity === "اخرى" ? contractData.customSupportingEntity : contractData.supportingEntity}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">نوع الدعم والمبلغ:</span>
+                          <p className="font-medium font-bold">
+                            {contractData.supportType === "full" ? "دعم كامل" : "دعم جزئي"} (
+                            {contractData.supportType === "full" 
+                              ? totalProjectCost.toLocaleString() 
+                              : contractData.supportedAmount.toLocaleString()} ريال)
+                          </p>
+                        </div>
+                      </>
+                    )}
                     {contractData.managementPercentage > 0 && (
                       <>
                         <div>

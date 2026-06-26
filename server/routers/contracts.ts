@@ -399,6 +399,9 @@ export const contractsRouter = router({
         // بنود العقد المخصصة (JSON string)
         clauseValues: z.string().optional(),
         customClausesJson: z.any().optional(),
+        supportingEntity: z.string().optional(),
+        supportType: z.string().optional(),
+        supportedAmount: z.number().optional().nullable(),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -490,6 +493,9 @@ export const contractsRouter = router({
         approvedAt: null,
         status: "draft",
         createdBy: ctx.user.id,
+        supportingEntity: input.supportingEntity ?? null,
+        supportType: input.supportType ?? null,
+        supportedAmount: input.supportedAmount ? String(input.supportedAmount) : null,
       };
       
       console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
@@ -617,6 +623,9 @@ export const contractsRouter = router({
         clauseValues: z.any().optional(),
         customClausesJson: z.any().optional(),
         signatoryId: z.number().nullable().optional(),
+        supportingEntity: z.string().optional(),
+        supportType: z.string().optional(),
+        supportedAmount: z.number().optional().nullable(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -649,6 +658,9 @@ export const contractsRouter = router({
       }
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);
+      }
+      if (updateData.supportedAmount !== undefined) {
+        updates.supportedAmount = updateData.supportedAmount ? String(updateData.supportedAmount) : null;
       }
       if (input.startDate !== undefined) {
         updates.startDate = input.startDate ? new Date(input.startDate) : null;

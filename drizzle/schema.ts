@@ -975,6 +975,11 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   // الحالة
   status: mysqlEnum("status", contractStatuses).default("draft"),
   
+  // بيانات الدعم والتمويل
+  supportingEntity: varchar("supportingEntity", { length: 100 }), // الجهة الداعمة
+  supportType: varchar("supportType", { length: 50 }), // نوع الدعم (كامل/جزئي)
+  supportedAmount: decimal("supportedAmount", { precision: 15, scale: 2 }), // مبلغ الدعم
+  
   // البنود الإضافية (قابلة للتخصيص)
   customTerms: text("customTerms"),
   customNotifications: text("customNotifications"),
