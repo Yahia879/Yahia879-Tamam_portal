@@ -232,8 +232,8 @@ export default function DisbursementRequestPrint() {
 
               {/* 1. مصدر دعم الفرصة */}
               <div className="mb-4 border border-gray-300 rounded-lg p-3 bg-white">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <span className="font-bold text-gray-800 text-sm">مصدر دعم الفرصة</span>
+                <div className="flex flex-col gap-2">
+                  <span className="font-bold text-gray-800 text-sm">مصدر دعم الفرصة:</span>
                   <div className="flex flex-wrap items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                       {isDonationShop ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
@@ -249,8 +249,11 @@ export default function DisbursementRequestPrint() {
                     </div>
                     <div className="flex items-center gap-2">
                       {isOther ? <CheckSquare className="h-4.5 w-4.5 text-[#1a5f4a]" /> : <Square className="h-4.5 w-4.5 text-gray-400" />}
-                      <span className="font-semibold text-gray-750">
-                        أخرى {isOther && <span className="border-b border-gray-400 px-1 font-bold">({supportingEntity})</span>}
+                      <span className="font-semibold text-gray-750 flex items-center gap-1">
+                        <span>أخرى:</span>
+                        <span className="border-b border-gray-400 px-2 min-w-[150px] inline-block text-center font-bold h-5 leading-none">
+                          {isOther ? supportingEntity : "\u00A0"}
+                        </span>
                       </span>
                     </div>
                   </div>
