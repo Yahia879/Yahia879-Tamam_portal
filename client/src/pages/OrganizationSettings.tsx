@@ -470,6 +470,8 @@ export default function OrganizationSettings() {
     boardChairmanName: "",
     executiveDirectorName: "",
     accountantName: "",
+    pmoManagerName: "",
+    csrManagerName: "",
     
     // معلومات مفوض التوقيع
     authorizedSignatory: "",
@@ -518,6 +520,8 @@ export default function OrganizationSettings() {
         boardChairmanName: settings.boardChairmanName || "",
         executiveDirectorName: settings.executiveDirectorName || "",
         accountantName: settings.accountantName || "",
+        pmoManagerName: (settings as any).pmoManagerName || "",
+        csrManagerName: (settings as any).csrManagerName || "",
         authorizedSignatory: settings.authorizedSignatory || "",
         signatoryTitle: settings.signatoryTitle || "",
         signatoryPhone: settings.signatoryPhone || "",
@@ -547,6 +551,8 @@ export default function OrganizationSettings() {
       boardChairmanName: orgSettings.boardChairmanName || undefined,
       executiveDirectorName: orgSettings.executiveDirectorName || undefined,
       accountantName: orgSettings.accountantName || undefined,
+      pmoManagerName: orgSettings.pmoManagerName || undefined,
+      csrManagerName: orgSettings.csrManagerName || undefined,
       authorizedSignatory: orgSettings.authorizedSignatory || undefined,
       signatoryTitle: orgSettings.signatoryTitle || undefined,
       signatoryPhone: orgSettings.signatoryPhone || undefined,
@@ -798,6 +804,26 @@ export default function OrganizationSettings() {
                         value={orgSettings.accountantName}
                         onChange={(e) => setOrgSettings({ ...orgSettings, accountantName: e.target.value })}
                         placeholder="اسم المحاسب"
+                        className="h-10 sm:h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pmoManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مدير مكتب إدارة المشاريع (PMO)</Label>
+                      <Input
+                        id="pmoManagerName"
+                        value={(orgSettings as any).pmoManagerName}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, pmoManagerName: e.target.value })}
+                        placeholder="اسم مدير مكتب إدارة المشاريع"
+                        className="h-10 sm:h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="csrManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مسؤول الاتصال المؤسسي (CSR)</Label>
+                      <Input
+                        id="csrManagerName"
+                        value={(orgSettings as any).csrManagerName}
+                        onChange={(e) => setOrgSettings({ ...orgSettings, csrManagerName: e.target.value })}
+                        placeholder="اسم مسؤول الاتصال المؤسسي"
                         className="h-10 sm:h-11"
                       />
                     </div>

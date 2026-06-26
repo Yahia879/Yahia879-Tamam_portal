@@ -837,6 +837,8 @@ export const organizationSettings = mysqlTable("organization_settings", {
   boardChairmanName: varchar("boardChairmanName", { length: 255 }), // اسم رئيس مجلس الإدارة
   executiveDirectorName: varchar("executiveDirectorName", { length: 255 }), // اسم المدير التنفيذي
   accountantName: varchar("accountantName", { length: 255 }), // اسم المحاسب
+  pmoManagerName: varchar("pmoManagerName", { length: 255 }), // اسم مدير مكتب إدارة المشاريع
+  csrManagerName: varchar("csrManagerName", { length: 255 }), // اسم مسؤول الاتصال المؤسسي
   aboutOrganization: text("aboutOrganization"), // نبذة عن الجمعية
   // بيانات التواصل
   address: text("address"),

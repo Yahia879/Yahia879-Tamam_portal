@@ -1,7 +1,7 @@
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, CheckSquare, Square, Building, Landmark, Receipt, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Printer, CheckSquare, Square } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 
 // دالة تحويل الأرقام إلى نص عربي
@@ -9,7 +9,7 @@ function numberToArabicText(num: number): string {
   if (num === 0) return "صفر";
   
   const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "ععر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
   const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
   const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
 
@@ -48,7 +48,7 @@ function numberToArabicText(num: number): string {
     else if (millions === 2) result = "مليونان";
     else if (millions >= 3 && millions <= 10) result = `${ones[millions]} ملايين`;
     else result = `${convertThousands(millions)} مليون`;
-    return rest ? `${result} و${convertThousands(rest)}` : result;
+    return rest ? `${result} و${convertHundreds(rest)}` : result;
   }
 
   return `فقط ${convertMillions(Math.floor(num))} ريال`;
@@ -189,6 +189,40 @@ export default function DisbursementRequestPrint() {
           {/* محتوى المستند */}
           <div className="relative z-10 flex-1 flex flex-col justify-between space-y-4">
             <div>
+              {/* الترويسة - الشعار والتاريخ ورقم الطلب */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-4">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto" />
+                  ) : (
+                    <div className="w-12 h-12 bg-primary/10 rounded flex items-center justify-center">
+                      <span className="text-primary font-bold text-lg">تمام</span>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-sm font-bold text-gray-800">
+                      {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                    </div>
+                    <div className="text-[10px] text-gray-500">مكتب إدارة المشاريع</div>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-1 text-right sm:text-left">
+                  <div className="flex gap-1.5 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-600">التاريخ:</span>
+                    <span className="border-b border-dotted border-gray-400 px-2">{toHijriDate(requestDate)}</span>
+                  </div>
+                  <div className="flex gap-1.5 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-600">الموافق:</span>
+                    <span className="border-b border-dotted border-gray-400 px-2">{formatGregorianDate(requestDate)} م</span>
+                  </div>
+                  <div className="flex gap-1.5 justify-start sm:justify-end">
+                    <span className="font-bold text-gray-600">رقم الطلب:</span>
+                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{request.requestNumber}</span>
+                  </div>
+                </div>
+              </div>
+
               {/* عنوان النموذج الفاخر */}
               <div className="text-center mb-6">
                 <h1 className="text-xl sm:text-2xl font-black text-gray-800 pb-1 inline-block px-4 tracking-wide">
@@ -236,7 +270,7 @@ export default function DisbursementRequestPrint() {
                   <div className="flex">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">مبلغ الدعم:</span>
                     <span className="p-2.5 text-gray-800 font-bold font-mono flex-1">
-                      {contract?.supportedAmount ? parseFloat(contract.supportedAmount.toString()).toLocaleString() : totalOpportunityValue.toLocaleString()}
+                      {contract?.supportedAmount ? `${parseFloat(contract.supportedAmount.toString()).toLocaleString()} ريال` : `${totalOpportunityValue.toLocaleString()} ريال`}
                     </span>
                   </div>
                 </div>
@@ -273,19 +307,38 @@ export default function DisbursementRequestPrint() {
                     <tr className="border-b border-gray-200">
                       <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/3">تكلفة المشروع الفعلية</td>
                       <td className="p-2.5 font-bold font-mono text-gray-800 border-l border-gray-200 w-1/3">
-                        {actualProjectCost.toLocaleString()}
+                        {actualProjectCost.toLocaleString()} ريال
                       </td>
                       <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">الأجور الإدارية</td>
                       <td className="p-2.5 font-bold font-mono text-gray-800 w-1/6">
-                        {adminFees > 0 ? adminFees.toLocaleString() : "0"}
+                        {adminFees > 0 ? `${adminFees.toLocaleString()} ريال (${managementPercentage}%)` : "0 ريال"}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-gray-200">
+                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
+                      <td className="p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
+                        {totalOpportunityValue.toLocaleString()} ريال
+                      </td>
+                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">ميزانية المشروع</td>
+                      <td className="p-2.5 font-bold font-mono text-gray-800">
+                        {project?.budget ? `${parseFloat(project.budget.toString()).toLocaleString()} ريال` : "—"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
-                      <td className="p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
-                        {totalOpportunityValue.toLocaleString()}
+                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">المبلغ المطلوب صرفه (كتابةً)</td>
+                      <td className="p-2.5 text-gray-800 border-l border-gray-200 font-medium">
+                        {numberToArabicText(amount)}
                       </td>
-                      <td className="p-2.5 border-l border-gray-200" colSpan={2}></td>
+                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">حالة الطلب</td>
+                      <td className="p-2.5 font-bold text-gray-800">
+                        {request.status === "approved" ? (
+                          <span className="text-emerald-700">معتمد</span>
+                        ) : request.status === "pending" ? (
+                          <span className="text-amber-600">قيد الاعتماد</span>
+                        ) : (
+                          <span className="text-gray-500">مسودة</span>
+                        )}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -298,7 +351,7 @@ export default function DisbursementRequestPrint() {
                 </div>
                 <table className="w-full text-xs sm:text-sm text-center border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-gray-750">
+                    <tr className="bg-gray-55 border-b border-gray-200 text-gray-750">
                       <th className="p-2 font-bold border-l border-gray-200 w-1/2">اسم المورد</th>
                       <th className="p-2 font-bold border-l border-gray-200 w-1/4">الأعمال المنفذة</th>
                       <th className="p-2 font-bold w-1/4">المبلغ</th>
@@ -308,7 +361,25 @@ export default function DisbursementRequestPrint() {
                     <tr className="border-b border-gray-200">
                       <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
                       <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">{request.title || request.description || "—"}</td>
-                      <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()}</td>
+                      <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
+                    </tr>
+                    <tr className="border-b border-gray-200 bg-gray-50/20 text-xs">
+                      <td className="p-2 border-l border-gray-200 text-gray-700 text-right pr-4" colSpan={3}>
+                        <div className="flex flex-wrap gap-x-6 gap-y-1 justify-center sm:justify-start">
+                          <div>
+                            <span className="font-bold text-gray-700">اسم الحساب: </span>
+                            <span className="font-semibold text-gray-900">{resolvedSupplierAccountName}</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-gray-700">رقم الآيبان (IBAN): </span>
+                            <span className="font-semibold text-gray-900 tracking-wider font-mono">{resolvedSupplierIban}</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-gray-700">اسم البنك: </span>
+                            <span className="font-semibold text-gray-900">{resolvedSupplierBankName}</span>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                     <tr className="border-b border-gray-200 h-8 bg-gray-50/10">
                       <td className="border-l border-gray-200"></td>
@@ -335,7 +406,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">محمد السحيمي</div>
+                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.pmoManagerName || "محمد السحيمي"}</div>
                   </div>
                 </div>
 
@@ -346,7 +417,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">محمد آل حامد</div>
+                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.csrManagerName || "محمد آل حامد"}</div>
                   </div>
                 </div>
 
@@ -357,7 +428,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">م. عبدالهادي آل فائق</div>
+                    <div className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق"}</div>
                   </div>
                 </div>
               </div>
@@ -404,4 +475,3 @@ export default function DisbursementRequestPrint() {
     </div>
   );
 }
-

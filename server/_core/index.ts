@@ -59,6 +59,14 @@ async function startServer() {
   // Proxy files from OneDrive if configured, otherwise fallback to local files
   app.get("/uploads/:file(*)", async (req, res, next) => {
     const fileKey = req.params.file;
+    
+    // If the file exists locally, serve it directly from local storage
+    const localFilePath = path.join(process.cwd(), "uploads", fileKey);
+    if (fs.existsSync(localFilePath)) {
+      next();
+      return;
+    }
+
     if (isOneDriveConfigured()) {
       try {
         // 1. Check in-memory cache first (cached for 50 minutes)
