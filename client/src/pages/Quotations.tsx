@@ -56,6 +56,8 @@ import {
   Download,
   FileSpreadsheet,
   FileDown,
+  Link2,
+  ExternalLink,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -94,6 +96,9 @@ export default function Quotations() {
     return null;
   }
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddLinkDialog, setShowAddLinkDialog] = useState(false);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<string>(requestIdFromUrl || "");
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [includeUnapproved, setIncludeUnapproved] = useState(true);
@@ -167,9 +172,16 @@ export default function Quotations() {
   // إضافة عرض سعر
   const addQuotationMutation = trpc.projects.createQuotation.useMutation({
     onSuccess: () => {
-      toast.success("تم إضافة عرض السعر بنجاح");
-      setShowAddDialog(false);
-      resetForm();
+      if (showAddLinkDialog) {
+        toast.success("تم إضافة الرابط بنجاح");
+        setShowAddLinkDialog(false);
+        setLinkName("");
+        setLinkUrl("");
+      } else {
+        toast.success("تم إضافة عرض السعر بنجاح");
+        setShowAddDialog(false);
+        resetForm();
+      }
       refetchQuotations();
     },
     onError: (error: any) => {
@@ -260,6 +272,44 @@ export default function Quotations() {
   const totalAmount = useMemo(() => {
     return quotationItems.reduce((sum, item) => sum + item.totalPrice, 0);
   }, [quotationItems]);
+
+  const handleAddLinkQuotation = () => {
+    if (!selectedRequestId) {
+      toast.error("يرجى اختيار الطلب أولاً");
+      return;
+    }
+    if (!linkName.trim()) {
+      toast.error("يرجى إدخال اسم الرابط");
+      return;
+    }
+    if (!linkUrl.trim()) {
+      toast.error("يرجى إدخال الرابط");
+      return;
+    }
+
+    try {
+      if (!linkUrl.startsWith("http://") && !linkUrl.startsWith("https://")) {
+        throw new Error();
+      }
+      new URL(linkUrl);
+    } catch (_) {
+      toast.error("يرجى إدخال رابط صحيح (يجب أن يبدأ بـ http:// أو https://)");
+      return;
+    }
+
+    const supplierId = suppliers && suppliers.length > 0 ? suppliers[0].id : 1;
+
+    addQuotationMutation.mutate({
+      requestId: parseInt(selectedRequestId),
+      supplierId: supplierId,
+      totalAmount: 0,
+      finalAmount: 0,
+      notes: linkName,
+      documentUrl: linkUrl,
+      includesTax: true,
+      items: [],
+    });
+  };
 
   const handleAddQuotation = () => {
     if (!selectedRequestId) {
@@ -643,11 +693,15 @@ export default function Quotations() {
               </div>
             )}
             {selectedRequestId && (
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex justify-end gap-3">
                 <PermissionGuard permission="quotations.add">
                   <Button onClick={() => setShowAddDialog(true)}>
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة عرض سعر للطلب المحدد
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
+                    <Link2 className="h-4 w-4 ml-2" />
+                    إضافة رابط
                   </Button>
                 </PermissionGuard>
               </div>
@@ -766,7 +820,29 @@ export default function Quotations() {
                         const statusConfig = QUOTATION_STATUS[quotation.status as keyof typeof QUOTATION_STATUS] || QUOTATION_STATUS.pending;
                         return (
                           <TableRow key={quotation.id}>
-                            <TableCell className="font-medium">{quotation.quotationNumber}</TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2 justify-start">
+                                  <span>{quotation.quotationNumber}</span>
+                                  {quotation.documentUrl && (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1 bg-blue-50 text-blue-700 border-blue-200">
+                                      رابط
+                                    </Badge>
+                                  )}
+                                </div>
+                                {quotation.documentUrl && (
+                                  <a
+                                    href={quotation.documentUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 hover:underline text-xs flex items-center gap-1 mt-1 justify-start font-normal"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    {quotation.notes || "فتح الرابط"}
+                                  </a>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
                             <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
                             <TableCell className="font-medium text-primary">
@@ -856,14 +932,22 @@ export default function Quotations() {
                   <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا توجد عروض أسعار لهذا الطلب</p>
                   <PermissionGuard permission="quotations.add">
-                    <Button
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => setShowAddDialog(true)}
-                    >
-                      <Plus className="h-4 w-4 ml-2" />
-                      إضافة أول عرض سعر
-                    </Button>
+                    <div className="flex gap-3 justify-center mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddDialog(true)}
+                      >
+                        <Plus className="h-4 w-4 ml-2" />
+                        إضافة أول عرض سعر
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAddLinkDialog(true)}
+                      >
+                        <Link2 className="h-4 w-4 ml-2" />
+                        إضافة رابط
+                      </Button>
+                    </div>
                   </PermissionGuard>
                 </div>
               )}
@@ -1193,6 +1277,56 @@ export default function Quotations() {
               >
                 {addQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
                 إضافة عرض السعر
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog إضافة رابط */}
+        <Dialog open={showAddLinkDialog} onOpenChange={setShowAddLinkDialog}>
+          <DialogContent className="max-w-md" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-xl flex items-center gap-2 justify-start">
+                <Link2 className="h-5 w-5 text-primary" />
+                <span>إضافة رابط جديد</span>
+              </DialogTitle>
+              <DialogDescription className="text-right sm:text-right">
+                أدخل اسم الرابط والعنوان الإلكتروني لإضافته لعروض الأسعار
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4 text-right">
+              <div className="space-y-2">
+                <Label htmlFor="linkName" className="block text-sm font-semibold">اسم الرابط *</Label>
+                <Input
+                  id="linkName"
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  placeholder="مثال: عرض شركة التقنية الحديثة"
+                  className="text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="linkUrl" className="block text-sm font-semibold">الرابط *</Label>
+                <Input
+                  id="linkUrl"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com/quotation-pdf"
+                  className="text-left"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2 justify-start">
+              <Button 
+                onClick={handleAddLinkQuotation} 
+                disabled={addQuotationMutation.isPending}
+              >
+                {addQuotationMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                إضافة الرابط
+              </Button>
+              <Button variant="outline" onClick={() => setShowAddLinkDialog(false)}>
+                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>

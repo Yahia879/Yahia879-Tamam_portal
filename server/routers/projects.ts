@@ -1035,8 +1035,8 @@ export const projectsRouter = router({
       projectId: z.number().optional(),
       requestId: z.number().optional(),
       supplierId: z.number(),
-      totalAmount: z.number().positive(),
-      finalAmount: z.number().positive().optional(),
+      totalAmount: z.number().min(0),
+      finalAmount: z.number().min(0).optional(),
       validUntil: z.date().optional(),
       items: z.array(z.object({
         boqItemId: z.number().optional(),
@@ -1055,6 +1055,7 @@ export const projectsRouter = router({
       discountType: z.enum(["percentage", "fixed"]).nullable().optional(),
       discountValue: z.number().nullable().optional(),
       discountAmount: z.number().nullable().optional(),
+      documentUrl: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1078,6 +1079,7 @@ export const projectsRouter = router({
         discountType: input.discountType || null,
         discountValue: input.discountValue?.toString() || null,
         discountAmount: input.discountAmount?.toString() || null,
+        documentUrl: input.documentUrl || null,
       } as any);
 
       const quotationId = result[0].insertId;
@@ -1118,6 +1120,7 @@ export const projectsRouter = router({
           notes: quotations.notes,
           supplierId: quotations.supplierId,
           supplierName: suppliers.name,
+          documentUrl: quotations.documentUrl,
           createdAt: quotations.createdAt,
         })
         .from(quotations)
