@@ -35,7 +35,8 @@ export const finalReportsRouter = router({
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager"];
       const userPerms = await calculateUserPermissions(ctx.user.id);
       const hasUploadFinalReportPerm = userPerms.includes("requests.upload_final_report");
-      if (!allowedRoles.includes(ctx.user.role) && !hasUploadFinalReportPerm) {
+      const hasIntervenePerm = userPerms.includes("pending_reports.intervene");
+      if (!allowedRoles.includes(ctx.user.role) && !hasUploadFinalReportPerm && !hasIntervenePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفع التقرير الختامي" });
       }
 

@@ -1406,7 +1406,8 @@ export const requestsRouter = router({
       programData: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role !== "field_team" && !["super_admin", "system_admin"].includes(ctx.user.role)) {
+      const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
+      if (ctx.user.role !== "field_team" && !["super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير ميدانية" });
       }
 
@@ -1525,7 +1526,8 @@ export const requestsRouter = router({
       status: z.enum(['partially_solved', 'fully_solved', 'not_solved']).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
-      if (!["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
+      if (!["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير الاستجابة السريعة" });
       }
 
