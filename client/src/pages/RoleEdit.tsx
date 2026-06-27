@@ -56,6 +56,7 @@ const superAdminGroups = [
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "requesters", nameAr: "حسابات طالبي الخدمة", icon: Users, perms: ["view", "approve"] },
       { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
+      { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
     ]
   },
   {
@@ -97,6 +98,10 @@ const superAdminGroups = [
 
 const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
+    pending_reports: {
+      view: "عرض التقارير",
+      intervene: "تدخل لرفع التقرير"
+    },
     mosques: {
       view: "عرض المساجد",
       create: "إضافة مسجد",
