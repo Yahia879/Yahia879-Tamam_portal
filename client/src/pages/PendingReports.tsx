@@ -57,7 +57,7 @@ export default function PendingReports() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
 
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
 
@@ -122,18 +122,20 @@ export default function PendingReports() {
     
     const matchesStatus = 
       statusFilter === "all" || 
-      (statusFilter === "late" && item.isLate) || 
-      (statusFilter === "pending" && !item.isLate);
+      (statusFilter === "late" && !item.isCompleted && item.isLate) || 
+      (statusFilter === "pending" && !item.isCompleted && !item.isLate) ||
+      (statusFilter === "completed" && item.isCompleted);
 
     return matchesSearch && matchesType && matchesStatus;
   });
 
   // حساب الإحصائيات
-  const fieldVisitsCount = reportsData?.fieldVisits?.length || 0;
-  const quickResponsesCount = reportsData?.quickResponses?.length || 0;
-  const finalReportsCount = reportsData?.finalReports?.length || 0;
-  const totalCount = fieldVisitsCount + quickResponsesCount + finalReportsCount;
-  const lateCount = allReportsList.filter(r => r.isLate).length;
+  const fieldVisitsCount = allReportsList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
+  const quickResponsesCount = allReportsList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
+  const finalReportsCount = allReportsList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
+  const pendingCount = allReportsList.filter(r => !r.isCompleted).length;
+  const totalCount = allReportsList.length;
+  const lateCount = allReportsList.filter(r => !r.isCompleted && r.isLate).length;
 
   return (
     <DashboardLayout>
@@ -142,77 +144,157 @@ export default function PendingReports() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">متابعة التقارير المعلقة</h1>
-            <p className="text-muted-foreground">متابعة وإدارة المهام والزيارات الميدانية المتأخرة والتقارير المعلقة</p>
+            <p className="text-muted-foreground">متابعة وإدارة المهام والزيارات الميدانية المتأخرة والتقارير المعلقة والتقارير المكتملة</p>
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات الخمسة */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card className="border-0 shadow-sm">
+        {/* بطاقات الإحصائيات الستة */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* كارد جميع التقارير */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "all" && typeFilter === "all"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("all");
+              setTypeFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">التقارير المعلقة</p>
+                  <p className="text-xs text-muted-foreground">جميع التقارير</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-primary" />
+                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <FolderKanban className="w-5 h-5 text-slate-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          {/* كارد التقارير المعلقة */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "pending" && typeFilter === "all"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("pending");
+              setTypeFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">الزيارات الميدانية</p>
+                  <p className="text-xs text-muted-foreground">التقارير المعلقة</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{pendingCount}</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* كارد الزيارات الميدانية */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "pending" && typeFilter === "field_visit"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("pending");
+              setTypeFilter("field_visit");
+            }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">الزيارات الميدانية</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{fieldVisitsCount}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-blue-600" />
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          {/* كارد الاستجابة السريعة */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "pending" && typeFilter === "quick_response"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("pending");
+              setTypeFilter("quick_response");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">الاستجابة السريعة</p>
+                  <p className="text-xs text-muted-foreground">الاستجابة السريعة</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{quickResponsesCount}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-purple-600" />
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          {/* كارد التقارير الختامية */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "pending" && typeFilter === "final_report"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("pending");
+              setTypeFilter("final_report");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">التقارير الختامية</p>
+                  <p className="text-xs text-muted-foreground">التقارير الختامية</p>
                   <p className="text-2xl font-bold text-foreground mt-1">{finalReportsCount}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-emerald-600" />
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-emerald-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
+          {/* كارد التقارير المتأخرة */}
+          <Card 
+            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+              statusFilter === "late"
+                ? "ring-2 ring-primary bg-primary/[0.02]"
+                : ""
+            }`}
+            onClick={() => {
+              setStatusFilter("late");
+              setTypeFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">التقارير المتأخرة</p>
+                  <p className="text-xs text-muted-foreground">التقارير المتأخرة</p>
                   <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{lateCount}</p>
                 </div>
-                <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
               </div>
             </CardContent>
@@ -252,6 +334,7 @@ export default function PendingReports() {
                     <SelectItem value="all">جميع الحالات</SelectItem>
                     <SelectItem value="late">متأخر فقط</SelectItem>
                     <SelectItem value="pending">بانتظار الرفع</SelectItem>
+                    <SelectItem value="completed">مكتمل</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -345,8 +428,14 @@ export default function PendingReports() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={item.isLate ? "bg-red-100 text-red-800 border-0" : "bg-yellow-100 text-yellow-800 border-0"}>
-                              {item.isLate ? "متأخر" : "بانتظار الرفع"}
+                            <Badge className={
+                              item.isCompleted 
+                                ? "bg-emerald-100 text-emerald-800 border-0" 
+                                : item.isLate 
+                                  ? "bg-red-100 text-red-800 border-0" 
+                                  : "bg-yellow-100 text-yellow-800 border-0"
+                            }>
+                              {item.isCompleted ? "مكتمل" : item.isLate ? "متأخر" : "بانتظار الرفع"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-left pl-6">
@@ -363,7 +452,23 @@ export default function PendingReports() {
                                     عرض الطلب
                                   </DropdownMenuItem>
                                 </Link>
-                                {item.isLate ? (
+                                {item.isCompleted ? (
+                                  item.reportType === "final_report" ? (
+                                    <Link href={`/final-report/${item.reportId}`}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        عرض التقرير الختامي
+                                      </DropdownMenuItem>
+                                    </Link>
+                                  ) : (
+                                    <Link href={`/requests/${item.id}`}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        عرض تفاصيل التقرير
+                                      </DropdownMenuItem>
+                                    </Link>
+                                  )
+                                ) : item.isLate ? (
                                   <Link href={item.actionUrl}>
                                     <DropdownMenuItem className="cursor-pointer">
                                       <FileText className="w-4 h-4 ml-2" />
@@ -420,7 +525,23 @@ export default function PendingReports() {
                                 عرض الطلب
                               </DropdownMenuItem>
                             </Link>
-                            {item.isLate ? (
+                            {item.isCompleted ? (
+                              item.reportType === "final_report" ? (
+                                <Link href={`/final-report/${item.reportId}`}>
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <FileText className="w-4 h-4 ml-2" />
+                                    عرض التقرير الختامي
+                                  </DropdownMenuItem>
+                                </Link>
+                              ) : (
+                                <Link href={`/requests/${item.id}`}>
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <FileText className="w-4 h-4 ml-2" />
+                                    عرض تفاصيل التقرير
+                                  </DropdownMenuItem>
+                                </Link>
+                              )
+                            ) : item.isLate ? (
                               <Link href={item.actionUrl}>
                                 <DropdownMenuItem className="cursor-pointer">
                                   <FileText className="w-4 h-4 ml-2" />
@@ -446,8 +567,14 @@ export default function PendingReports() {
                         </div>
                         <div>
                           <p className="text-muted-foreground mb-1">الحالة</p>
-                          <Badge className={item.isLate ? "bg-red-100 text-red-800 border-0" : "bg-yellow-100 text-yellow-800 border-0"}>
-                            {item.isLate ? "متأخر" : "بانتظار الرفع"}
+                          <Badge className={
+                            item.isCompleted 
+                              ? "bg-emerald-100 text-emerald-800 border-0" 
+                              : item.isLate 
+                                ? "bg-red-100 text-red-800 border-0" 
+                                : "bg-yellow-100 text-yellow-800 border-0"
+                          }>
+                            {item.isCompleted ? "مكتمل" : item.isLate ? "متأخر" : "بانتظار الرفع"}
                           </Badge>
                         </div>
                         <div className="col-span-2">

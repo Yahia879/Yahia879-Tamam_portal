@@ -2702,6 +2702,7 @@ export const requestsRouter = router({
       const fvReportMap = new Set(fvReports.map(r => r.requestId));
       const qrReportMap = new Set(qrReports.map(r => r.requestId));
       const fnReportMap = new Set(fnReports.map(r => r.requestId));
+      const fnReportIdMap = new Map(fnReports.map(r => [r.requestId, r.id]));
 
       const pendingFieldVisits: any[] = [];
       const pendingQuickResponses: any[] = [];
@@ -2711,10 +2712,11 @@ export const requestsRouter = router({
 
       activeRequests.forEach(({ request, mosque }) => {
         // 1. Check Field Visit Report
-        if (request.fieldVisitAssignedTo && !fvReportMap.has(request.id) && request.currentStage === 'field_visit') {
+        const hasFvReport = fvReportMap.has(request.id);
+        if (request.fieldVisitAssignedTo && (request.currentStage === 'field_visit' || hasFvReport)) {
           // Check if late (after 2 days have passed from the scheduled date)
           let isLate = false;
-          if (request.fieldVisitScheduledDate) {
+          if (!hasFvReport && request.fieldVisitScheduledDate) {
             const scheduledDate = new Date(request.fieldVisitScheduledDate);
             if (request.fieldVisitScheduledTime) {
               const [hours, minutes] = request.fieldVisitScheduledTime.split(':').map(Number);
@@ -2734,15 +2736,17 @@ export const requestsRouter = router({
             scheduledDate: request.fieldVisitScheduledDate,
             scheduledTime: request.fieldVisitScheduledTime,
             isLate,
+            isCompleted: hasFvReport,
           });
         }
 
         // 2. Check Quick Response Report
         const isQuickResponseTrack = request.requestTrack === 'quick_response';
-        if (isQuickResponseTrack && request.assignedTo && !qrReportMap.has(request.id) && request.currentStage === 'execution') {
+        const hasQrReport = qrReportMap.has(request.id);
+        if (isQuickResponseTrack && request.assignedTo && (request.currentStage === 'execution' || hasQrReport)) {
           let isLate = false;
           // Check if late (after 2 days have passed from the scheduled date)
-          if (request.quickResponseScheduledDate) {
+          if (!hasQrReport && request.quickResponseScheduledDate) {
             const scheduledDate = new Date(request.quickResponseScheduledDate);
             if (request.quickResponseScheduledTime) {
               const [hours, minutes] = request.quickResponseScheduledTime.split(':').map(Number);
@@ -2764,14 +2768,16 @@ export const requestsRouter = router({
             scheduledDate: request.quickResponseScheduledDate,
             scheduledTime: request.quickResponseScheduledTime,
             isLate,
+            isCompleted: hasQrReport,
           });
         }
 
         // 3. Check Corporate Communication Final Report
-        if (request.finalReportAssignedTo && !fnReportMap.has(request.id)) {
+        const hasFnReport = fnReportMap.has(request.id);
+        if (request.finalReportAssignedTo) {
           let isLate = false;
           // Check if late (after 2 days have passed from the scheduled date)
-          if (request.finalReportScheduledDate) {
+          if (!hasFnReport && request.finalReportScheduledDate) {
             const scheduledDate = new Date(request.finalReportScheduledDate);
             if (request.finalReportScheduledTime) {
               const [hours, minutes] = request.finalReportScheduledTime.split(':').map(Number);
@@ -2791,6 +2797,8 @@ export const requestsRouter = router({
             scheduledDate: request.finalReportScheduledDate,
             scheduledTime: request.finalReportScheduledTime,
             isLate,
+            isCompleted: hasFnReport,
+            reportId: fnReportIdMap.get(request.id) || null,
           });
         }
       });

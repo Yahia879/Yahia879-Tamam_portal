@@ -87,7 +87,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
       { icon: BarChart3, label: "التقارير", path: "/reports" },
     ];
     if (["super_admin", "system_admin"].includes(role)) {
-      items.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
+      items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
     }
     groups.push({
       label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
@@ -216,7 +216,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("service_requester_accounts"))   mosqueItems.push({ icon: CheckSquare,   label: "حسابات طالبي الخدمة",  path: "/requester-approvals" });
   if (has("reports"))                      mosqueItems.push({ icon: BarChart3,     label: "التقارير",              path: "/reports" });
   if (["super_admin", "system_admin"].includes(role)) {
-    mosqueItems.push({ icon: ShieldAlert, label: "متابعة التقارير المعلقة", path: "/pending-reports" });
+    mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
   }
   if (mosqueItems.length > 0) groups.push({ label: isEn ? "Mosques and Requests" : "المساجد والطلبات", items: mosqueItems });
 
