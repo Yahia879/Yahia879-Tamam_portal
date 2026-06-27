@@ -56,6 +56,7 @@ interface SubStage {
   durationDays: number;
 }
 
+
 // أيقونات المراحل الرئيسية
 const stageIcons: Record<string, any> = {
   submitted: FileText,
