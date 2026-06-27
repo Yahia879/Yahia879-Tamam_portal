@@ -190,9 +190,13 @@ export default function FieldInspectionForm() {
       if (!isAuthenticated) {
         toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
         navigate("/login");
-      } else if (user?.role !== 'field_team' && !['super_admin', 'system_admin'].includes(user?.role || "")) {
-        toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
-        navigate(`/requests/${requestId}`);
+      } else {
+        const userPermissions = (user as any)?.permissions ?? [];
+        const hasIntervenePerm = userPermissions.includes("pending_reports.intervene");
+        if (user?.role !== 'field_team' && !['super_admin', 'system_admin'].includes(user?.role || "") && !hasIntervenePerm) {
+          toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
+          navigate(`/requests/${requestId}`);
+        }
       }
     }
   }, [authLoading, isAuthenticated, user, navigate, requestId]);
