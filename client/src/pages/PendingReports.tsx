@@ -63,14 +63,17 @@ export default function PendingReports() {
   const [page, setPage] = useState(1);
   const limit = 15;
 
+  const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
+  const hasViewPermission = isAdmin || userPermissions.includes("pending_reports.view");
+  const hasIntervenePermission = isAdmin || userPermissions.includes("pending_reports.intervene");
 
   const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery(undefined, {
-    enabled: !!isAdmin,
+    enabled: !!hasViewPermission,
     refetchOnWindowFocus: true,
   });
 
-  if (!isAdmin) {
+  if (!hasViewPermission) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
@@ -417,12 +420,19 @@ export default function PendingReports() {
                                     </Link>
                                   )
                                 ) : item.isLate ? (
-                                  <Link href={item.actionUrl}>
-                                    <DropdownMenuItem className="cursor-pointer">
+                                  hasIntervenePermission ? (
+                                    <Link href={item.actionUrl}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        التدخل ورفع التقرير
+                                      </DropdownMenuItem>
+                                    </Link>
+                                  ) : (
+                                    <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                                       <FileText className="w-4 h-4 ml-2" />
-                                      التدخل ورفع التقرير
+                                      غير مصرح بالتدخل
                                     </DropdownMenuItem>
-                                  </Link>
+                                  )
                                 ) : (
                                   <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                                     <FileText className="w-4 h-4 ml-2" />
@@ -490,12 +500,19 @@ export default function PendingReports() {
                                 </Link>
                               )
                             ) : item.isLate ? (
-                              <Link href={item.actionUrl}>
-                                <DropdownMenuItem className="cursor-pointer">
+                              hasIntervenePermission ? (
+                                <Link href={item.actionUrl}>
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <FileText className="w-4 h-4 ml-2" />
+                                    التدخل ورفع التقرير
+                                  </DropdownMenuItem>
+                                </Link>
+                              ) : (
+                                <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                                   <FileText className="w-4 h-4 ml-2" />
-                                  التدخل ورفع التقرير
+                                  غير مصرح بالتدخل
                                 </DropdownMenuItem>
-                              </Link>
+                              )
                             ) : (
                               <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                                 <FileText className="w-4 h-4 ml-2" />
