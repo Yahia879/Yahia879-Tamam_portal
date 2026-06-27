@@ -143,7 +143,7 @@ export default function PendingReports() {
         {/* العنوان والإجراءات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">متابعة التقارير المعلقة</h1>
+            <h1 className="text-2xl font-bold text-foreground">تقارير الطلبات</h1>
             <p className="text-muted-foreground">متابعة وإدارة المهام والزيارات الميدانية المتأخرة والتقارير المعلقة والتقارير المكتملة</p>
           </div>
         </div>
@@ -151,17 +151,7 @@ export default function PendingReports() {
         {/* بطاقات الإحصائيات الستة */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* كارد جميع التقارير */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "all" && typeFilter === "all"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("all");
-              setTypeFilter("all");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -176,17 +166,7 @@ export default function PendingReports() {
           </Card>
 
           {/* كارد التقارير المعلقة */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "pending" && typeFilter === "all"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("pending");
-              setTypeFilter("all");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -201,17 +181,7 @@ export default function PendingReports() {
           </Card>
 
           {/* كارد الزيارات الميدانية */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "pending" && typeFilter === "field_visit"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("pending");
-              setTypeFilter("field_visit");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -226,17 +196,7 @@ export default function PendingReports() {
           </Card>
 
           {/* كارد الاستجابة السريعة */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "pending" && typeFilter === "quick_response"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("pending");
-              setTypeFilter("quick_response");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -251,17 +211,7 @@ export default function PendingReports() {
           </Card>
 
           {/* كارد التقارير الختامية */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "pending" && typeFilter === "final_report"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("pending");
-              setTypeFilter("final_report");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -276,17 +226,7 @@ export default function PendingReports() {
           </Card>
 
           {/* كارد التقارير المتأخرة */}
-          <Card 
-            className={`border-0 shadow-sm cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
-              statusFilter === "late"
-                ? "ring-2 ring-primary bg-primary/[0.02]"
-                : ""
-            }`}
-            onClick={() => {
-              setStatusFilter("late");
-              setTypeFilter("all");
-            }}
-          >
+          <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
