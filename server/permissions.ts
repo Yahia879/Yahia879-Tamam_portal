@@ -174,6 +174,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "boq.add": ["boq.add"],
   "boq.edit": ["boq.edit"],
   "boq.delete": ["boq.delete"],
+  pending_reports: ["pending_reports.view", "pending_reports.intervene"],
+  "pending_reports.view": ["pending_reports.view"],
+  "pending_reports.intervene": ["pending_reports.intervene"],
 };
 
 /**
@@ -420,6 +423,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: boq");
     }
 
+    // Ensure 'pending_reports' module exists in the modules table
+    const [existingPendingReportsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "pending_reports")).limit(1);
+    if (!existingPendingReportsModule) {
+      await db.insert(modules).values({
+        id: "pending_reports",
+        nameAr: "تقارير الطلبات",
+        nameEn: "Request Reports",
+        icon: "FileText",
+        displayOrder: 11,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: pending_reports");
+    }
+
     const customPerms = [
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
@@ -485,6 +502,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
       { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },
       { id: "boq.delete", moduleId: "boq", action: "delete", nameAr: "حذف البنود", nameEn: "Delete BOQ Items" },
+      { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
+      { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
     ];
 
     for (const p of customPerms) {
