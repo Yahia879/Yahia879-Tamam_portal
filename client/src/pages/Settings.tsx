@@ -14,6 +14,7 @@ import {
   Wrench,
   Layers,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 
 interface SettingCard {
@@ -69,6 +70,17 @@ const settingCards: SettingCard[] = [
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
     group: "البيانات",
     permission: "services.view",
+  },
+  // مجموعة: المستخدمون
+  {
+    icon: Bell,
+    title: "تخصيص الإشعارات",
+    description: "تعديل إعدادات الإشعارات وقوالب الرسائل التلقائية للنظام",
+    path: "/notifications/customization",
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
+    group: "المستخدمون",
+    permission: "staff_notifications.edit",
   },
 ];
 
