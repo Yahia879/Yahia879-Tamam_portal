@@ -2838,8 +2838,15 @@ export const requestsRouter = router({
         }
       });
 
-      // Sort by request ID descending (newest assigned first)
-      const sortedReportsList = [...allReportsList].sort((a, b) => b.id - a.id);
+      // Sort by status (incomplete first) then by request ID descending (newest assigned first)
+      const sortedReportsList = [...allReportsList].sort((a, b) => {
+        // 1. Show incomplete/pending tasks first, completed tasks last
+        if (a.isCompleted !== b.isCompleted) {
+          return a.isCompleted ? 1 : -1;
+        }
+        // 2. Sort by request ID descending (newest first)
+        return b.id - a.id;
+      });
 
       // Filter list
       const filteredList = sortedReportsList.filter((item) => {
