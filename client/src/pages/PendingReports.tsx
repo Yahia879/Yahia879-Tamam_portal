@@ -68,7 +68,13 @@ export default function PendingReports() {
   const hasViewPermission = isAdmin || userPermissions.includes("pending_reports.view");
   const hasIntervenePermission = isAdmin || userPermissions.includes("pending_reports.intervene");
 
-  const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery(undefined, {
+  const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery({
+    search,
+    typeFilter,
+    statusFilter,
+    page,
+    limit,
+  }, {
     enabled: !!hasViewPermission,
     refetchOnWindowFocus: true,
   });
@@ -86,67 +92,18 @@ export default function PendingReports() {
     );
   }
 
-  // تجميع وتنسيق البيانات في مصفوفة موحدة
-  const allReportsList: any[] = [];
-  
-  if (reportsData) {
-    reportsData.fieldVisits.forEach((r: any) => {
-      allReportsList.push({
-        ...r,
-        reportType: "field_visit",
-        dueDate: r.scheduledDate ? `${new Date(r.scheduledDate).toLocaleDateString("ar-SA")} ${r.scheduledTime || ""}` : "غير محدد",
-        actionUrl: `/requests/${r.id}/field-inspection`,
-      });
-    });
+  const reportsList = reportsData?.reports ?? [];
+  const total = reportsData?.total ?? 0;
+  const stats = reportsData?.stats ?? {
+    totalCount: 0,
+    pendingCount: 0,
+    fieldVisitsCount: 0,
+    quickResponsesCount: 0,
+    finalReportsCount: 0,
+    lateCount: 0,
+  };
 
-    reportsData.quickResponses.forEach((r: any) => {
-      allReportsList.push({
-        ...r,
-        reportType: "quick_response",
-        dueDate: r.scheduledDate ? `${new Date(r.scheduledDate).toLocaleDateString("ar-SA")} ${r.scheduledTime || ""}` : "غير محدد",
-        actionUrl: `/requests/${r.id}/quick-response`,
-      });
-    });
-
-    reportsData.finalReports.forEach((r: any) => {
-      allReportsList.push({
-        ...r,
-        reportType: "final_report",
-        dueDate: r.scheduledDate ? `${new Date(r.scheduledDate).toLocaleDateString("ar-SA")} ${r.scheduledTime || ""}` : "غير محدد",
-        actionUrl: `/final-report/new?requestId=${r.id}`,
-      });
-    });
-  }
-
-  // فلترة القائمة بناءً على البحث والخيارات المحددة
-  const filteredReportsList = allReportsList.filter((item) => {
-    const matchesSearch = 
-      item.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
-      item.mosqueName.toLowerCase().includes(search.toLowerCase()) ||
-      (item.assignedTo?.name || "").toLowerCase().includes(search.toLowerCase());
-
-    const matchesType = typeFilter === "all" || item.reportType === typeFilter;
-    
-    const matchesStatus = 
-      statusFilter === "all" || 
-      (statusFilter === "late" && !item.isCompleted && item.isLate) || 
-      (statusFilter === "pending" && !item.isCompleted && !item.isLate) ||
-      (statusFilter === "completed" && item.isCompleted);
-
-    return matchesSearch && matchesType && matchesStatus;
-  });
-
-  // حساب الإحصائيات
-  const fieldVisitsCount = allReportsList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
-  const quickResponsesCount = allReportsList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
-  const finalReportsCount = allReportsList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
-  const pendingCount = allReportsList.filter(r => !r.isCompleted).length;
-  const totalCount = allReportsList.length;
-  const lateCount = allReportsList.filter(r => !r.isCompleted && r.isLate).length;
-
-  const total = filteredReportsList.length;
   const totalPages = Math.ceil(total / limit);
-  const paginatedReportsList = filteredReportsList.slice((page - 1) * limit, page * limit);
 
   return (
     <DashboardLayout>
@@ -167,7 +124,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">جميع التقارير</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{totalCount}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{stats.totalCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
                   <FolderKanban className="w-5 h-5 text-slate-600" />
@@ -182,7 +139,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">التقارير المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{pendingCount}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{stats.pendingCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <FileText className="w-5 h-5 text-primary" />
@@ -197,7 +154,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">الزيارات الميدانية المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{fieldVisitsCount}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{stats.fieldVisitsCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <Building2 className="w-5 h-5 text-blue-600" />
@@ -212,7 +169,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">الاستجابة السريعة المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{quickResponsesCount}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{stats.quickResponsesCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                   <Zap className="w-5 h-5 text-purple-600" />
@@ -227,7 +184,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">التقارير الختامية المعلقة</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{finalReportsCount}</p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{stats.finalReportsCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <FileText className="w-5 h-5 text-emerald-600" />
@@ -242,7 +199,7 @@ export default function PendingReports() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">التقارير المتأخرة</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{lateCount}</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.lateCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -305,7 +262,7 @@ export default function PendingReports() {
                 <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
                 <p>فشل تحميل البيانات المعلقة: {error.message}</p>
               </div>
-            ) : filteredReportsList.length > 0 ? (
+            ) : reportsList.length > 0 ? (
               <div>
                 {/* Desktop View Table */}
                 <div className="hidden md:block overflow-x-auto">
@@ -321,7 +278,7 @@ export default function PendingReports() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedReportsList.map((item: any) => (
+                      {reportsList.map((item: any) => (
                         <TableRow key={`${item.reportType}-${item.id}`}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -450,7 +407,7 @@ export default function PendingReports() {
 
                 {/* Mobile View Cards */}
                 <div className="md:hidden divide-y divide-border">
-                  {paginatedReportsList.map((item: any) => (
+                  {reportsList.map((item: any) => (
                     <div key={`${item.reportType}-${item.id}`} className="p-4 space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">

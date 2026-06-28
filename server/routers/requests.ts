@@ -2639,7 +2639,24 @@ export const requestsRouter = router({
 
   // الحصول على التقارير المعلقة
   getPendingReports: protectedProcedure
-    .query(async ({ ctx }) => {
+    .input(
+      z.object({
+        search: z.string().optional(),
+        typeFilter: z.string().optional(),
+        statusFilter: z.string().optional(),
+        page: z.number().optional().default(1),
+        limit: z.number().optional().default(15),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const {
+        search = "",
+        typeFilter = "all",
+        statusFilter = "all",
+        page = 1,
+        limit = 15,
+      } = input || {};
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
@@ -2671,7 +2688,18 @@ export const requestsRouter = router({
       );
 
       if (activeRequests.length === 0) {
-        return { fieldVisits: [], quickResponses: [], finalReports: [] };
+        return {
+          reports: [],
+          total: 0,
+          stats: {
+            totalCount: 0,
+            pendingCount: 0,
+            fieldVisitsCount: 0,
+            quickResponsesCount: 0,
+            finalReportsCount: 0,
+            lateCount: 0,
+          }
+        };
       }
 
       const requestIds = activeRequests.map(r => r.request.id);
@@ -2707,17 +2735,13 @@ export const requestsRouter = router({
       const fnReportMap = new Set(fnReports.map(r => r.requestId));
       const fnReportIdMap = new Map(fnReports.map(r => [r.requestId, r.id]));
 
-      const pendingFieldVisits: any[] = [];
-      const pendingQuickResponses: any[] = [];
-      const pendingFinalReports: any[] = [];
-
+      const allReportsList: any[] = [];
       const now = new Date();
 
       activeRequests.forEach(({ request, mosque }) => {
         // 1. Check Field Visit Report
         const hasFvReport = fvReportMap.has(request.id);
         if (request.fieldVisitAssignedTo && (request.currentStage === 'field_visit' || hasFvReport)) {
-          // Check if late (after 2 days have passed from the scheduled date)
           let isLate = false;
           if (!hasFvReport && request.fieldVisitScheduledDate) {
             const scheduledDate = new Date(request.fieldVisitScheduledDate);
@@ -2730,7 +2754,7 @@ export const requestsRouter = router({
             isLate = now > limitDate;
           }
 
-          pendingFieldVisits.push({
+          allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
             mosqueName: mosque?.name || "مسجد غير محدد",
@@ -2740,6 +2764,9 @@ export const requestsRouter = router({
             scheduledTime: request.fieldVisitScheduledTime,
             isLate,
             isCompleted: hasFvReport,
+            reportType: "field_visit",
+            dueDate: request.fieldVisitScheduledDate ? `${new Date(request.fieldVisitScheduledDate).toLocaleDateString("ar-SA")} ${request.fieldVisitScheduledTime || ""}` : "غير محدد",
+            actionUrl: `/requests/${request.id}/field-inspection`,
           });
         }
 
@@ -2748,7 +2775,6 @@ export const requestsRouter = router({
         const hasQrReport = qrReportMap.has(request.id);
         if (isQuickResponseTrack && request.assignedTo && (request.currentStage === 'execution' || hasQrReport)) {
           let isLate = false;
-          // Check if late (after 2 days have passed from the scheduled date)
           if (!hasQrReport && request.quickResponseScheduledDate) {
             const scheduledDate = new Date(request.quickResponseScheduledDate);
             if (request.quickResponseScheduledTime) {
@@ -2760,7 +2786,7 @@ export const requestsRouter = router({
             isLate = now > limitDate;
           }
 
-          pendingQuickResponses.push({
+          allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
             mosqueName: mosque?.name || "مسجد غير محدد",
@@ -2772,6 +2798,9 @@ export const requestsRouter = router({
             scheduledTime: request.quickResponseScheduledTime,
             isLate,
             isCompleted: hasQrReport,
+            reportType: "quick_response",
+            dueDate: request.quickResponseScheduledDate ? `${new Date(request.quickResponseScheduledDate).toLocaleDateString("ar-SA")} ${request.quickResponseScheduledTime || ""}` : "غير محدد",
+            actionUrl: `/requests/${request.id}/quick-response`,
           });
         }
 
@@ -2779,7 +2808,6 @@ export const requestsRouter = router({
         const hasFnReport = fnReportMap.has(request.id);
         if (request.finalReportAssignedTo) {
           let isLate = false;
-          // Check if late (after 2 days have passed from the scheduled date)
           if (!hasFnReport && request.finalReportScheduledDate) {
             const scheduledDate = new Date(request.finalReportScheduledDate);
             if (request.finalReportScheduledTime) {
@@ -2791,7 +2819,7 @@ export const requestsRouter = router({
             isLate = now > limitDate;
           }
 
-          pendingFinalReports.push({
+          allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
             mosqueName: mosque?.name || "مسجد غير محدد",
@@ -2802,14 +2830,54 @@ export const requestsRouter = router({
             isLate,
             isCompleted: hasFnReport,
             reportId: fnReportIdMap.get(request.id) || null,
+            reportType: "final_report",
+            dueDate: request.finalReportScheduledDate ? `${new Date(request.finalReportScheduledDate).toLocaleDateString("ar-SA")} ${request.finalReportScheduledTime || ""}` : "غير محدد",
+            actionUrl: `/final-report/new?requestId=${request.id}`,
           });
         }
       });
 
+      // Calculate statistics over all reports
+      const fieldVisitsCount = allReportsList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
+      const quickResponsesCount = allReportsList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
+      const finalReportsCount = allReportsList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
+      const pendingCount = allReportsList.filter(r => !r.isCompleted).length;
+      const totalCount = allReportsList.length;
+      const lateCount = allReportsList.filter(r => !r.isCompleted && r.isLate).length;
+
+      // Filter list
+      const filteredList = allReportsList.filter((item) => {
+        const matchesSearch =
+          item.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
+          item.mosqueName.toLowerCase().includes(search.toLowerCase()) ||
+          (item.assignedTo?.name || "").toLowerCase().includes(search.toLowerCase());
+
+        const matchesType = typeFilter === "all" || item.reportType === typeFilter;
+
+        const matchesStatus =
+          statusFilter === "all" ||
+          (statusFilter === "late" && !item.isCompleted && item.isLate) ||
+          (statusFilter === "pending" && !item.isCompleted && !item.isLate) ||
+          (statusFilter === "completed" && item.isCompleted);
+
+        return matchesSearch && matchesType && matchesStatus;
+      });
+
+      const totalFiltered = filteredList.length;
+      const startIndex = (page - 1) * limit;
+      const paginatedList = filteredList.slice(startIndex, startIndex + limit);
+
       return {
-        fieldVisits: pendingFieldVisits,
-        quickResponses: pendingQuickResponses,
-        finalReports: pendingFinalReports,
+        reports: paginatedList,
+        total: totalFiltered,
+        stats: {
+          totalCount,
+          pendingCount,
+          fieldVisitsCount,
+          quickResponsesCount,
+          finalReportsCount,
+          lateCount,
+        }
       };
     }),
 });
