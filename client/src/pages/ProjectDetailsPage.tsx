@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -116,10 +116,23 @@ export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const boqTabRef = useRef<BoqTabHandle>(null);
 
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const canEditProjectName = isAdmin || userPermissions.includes("projects.view_details");
+
   // جلب تفاصيل المشروع
   const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
     id: parseInt(id || "0") 
   });
+
+  useEffect(() => {
+    if (project) {
+      setEditedName(project.name || "");
+    }
+  }, [project]);
 
   // جلب جدول الكميات لعرض الإجمالي
   const { data: boqData } = trpc.projects.getBOQ.useQuery({ 
@@ -309,7 +322,70 @@ export default function ProjectDetailsPage() {
                 {getStatusLabel()}
               </Badge>
             </div>
-            <p className="text-muted-foreground">{project.name}</p>
+            {isEditingName ? (
+              <div className="flex items-center gap-2 mt-1 max-w-md">
+                <Input
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  className="h-8 py-1 px-2 text-sm text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-8 px-3 text-xs gradient-primary text-white font-semibold"
+                  onClick={() => {
+                    if (!editedName.trim()) {
+                      toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
+                      return;
+                    }
+                    updateProjectMutation.mutate({
+                      id: project.id,
+                      name: editedName,
+                    }, {
+                      onSuccess: () => {
+                        toast.success("تم تحديث اسم المشروع بنجاح");
+                        setIsEditingName(false);
+                      },
+                      onError: (err) => {
+                        toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
+                      }
+                    });
+                  }}
+                  disabled={updateProjectMutation.isPending}
+                >
+                  حفظ
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => {
+                    setIsEditingName(false);
+                    setEditedName(project.name || "");
+                  }}
+                >
+                  إلغاء
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-muted-foreground">{project.name}</p>
+                {canEditProjectName && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0"
+                    onClick={() => {
+                      setEditedName(project.name || "");
+                      setIsEditingName(true);
+                    }}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
