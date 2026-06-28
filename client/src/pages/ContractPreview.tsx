@@ -541,7 +541,7 @@ export default function ContractPreview() {
     }
 
     const variables: Record<string, string> = {
-      "{{organizationName}}": orgSettings?.organizationName || "",
+      "{{organizationName}}": orgSettings?.officialReportsName || "",
       "{{secondPartyName}}": contract.secondPartyName || "",
       "{{contractNumber}}": contract.contractNumber || "",
       "{{contractDate}}": contractDate.toLocaleDateString('ar-SA'),
@@ -639,7 +639,7 @@ export default function ContractPreview() {
                   style={{ backgroundColor: '#e8f5e9' }}
                 >
                   <h2 className="font-bold text-green-800 text-sm sm:text-base">
-                    {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                    {orgSettings?.officialReportsName || ""}
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -707,7 +707,7 @@ export default function ContractPreview() {
               {/* التمهيد */}
               <div className="mb-6">
                 <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                  حيث إن {orgSettings?.organizationName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
+                  حيث إن {orgSettings?.officialReportsName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
                   و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
                   فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
                 </p>
@@ -852,7 +852,7 @@ export default function ContractPreview() {
                   {/* الطرف الأول */}
                   <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 border-b sm:border-b-0 last:border-b-0">
                     <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
-                    <p className="font-medium text-xs sm:text-sm">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</p>
+                    <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
                     <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
                     <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
                     <div className="mt-8 space-y-4 text-xs sm:text-sm">
