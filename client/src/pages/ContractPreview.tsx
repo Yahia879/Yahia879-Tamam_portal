@@ -619,7 +619,7 @@ export default function ContractPreview() {
               {/* عنوان العقد */}
               <div 
                 className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
-                style={{ backgroundColor: '#154c3b', color: '#f8f9fa' }}
+                style={{ backgroundColor: '#5d4037', color: '#faf8f5' }}
               >
                 <h1 className="text-lg sm:text-xl font-bold">
                   عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
