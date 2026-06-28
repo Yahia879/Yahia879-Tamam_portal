@@ -67,7 +67,7 @@ export default function PendingReports() {
   const userPermissions = (user as any)?.permissions ?? [];
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
   const hasViewPermission = isAdmin || userPermissions.includes("pending_reports.view");
-  const hasIntervenePermission = isAdmin || userPermissions.includes("pending_reports.intervene");
+  const hasIntervenePermission = userPermissions.includes("pending_reports.intervene");
   const hasRequestViewDetails = isAdmin || userPermissions.includes("requests.view_details");
 
   const [selectedRequestIdForView, setSelectedRequestIdForView] = useState<number | null>(null);
@@ -357,52 +357,47 @@ export default function PendingReports() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-left pl-6">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                {item.isCompleted && (
-                                  item.reportType === "final_report" ? (
-                                    <Link href={`/final-report/${item.reportId}`}>
-                                      <DropdownMenuItem className="cursor-pointer">
+                            {(item.isCompleted || (item.isLate && hasIntervenePermission)) ? (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  {item.isCompleted && (
+                                    item.reportType === "final_report" ? (
+                                      <Link href={`/final-report/${item.reportId}`}>
+                                        <DropdownMenuItem className="cursor-pointer">
+                                          <FileText className="w-4 h-4 ml-2" />
+                                          عرض التقرير
+                                        </DropdownMenuItem>
+                                      </Link>
+                                    ) : (
+                                      <DropdownMenuItem
+                                        className="cursor-pointer"
+                                        onClick={() => {
+                                          setSelectedRequestIdForView(item.id);
+                                          setSelectedReportTypeForView(item.reportType);
+                                          setReportDialogOpen(true);
+                                        }}
+                                      >
                                         <FileText className="w-4 h-4 ml-2" />
                                         عرض التقرير
                                       </DropdownMenuItem>
-                                    </Link>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      className="cursor-pointer"
-                                      onClick={() => {
-                                        setSelectedRequestIdForView(item.id);
-                                        setSelectedReportTypeForView(item.reportType);
-                                        setReportDialogOpen(true);
-                                      }}
-                                    >
-                                      <FileText className="w-4 h-4 ml-2" />
-                                      عرض التقرير
-                                    </DropdownMenuItem>
-                                  )
-                                )}
-                                {!item.isCompleted && item.isLate ? (
-                                  hasIntervenePermission ? (
+                                    )
+                                  )}
+                                  {!item.isCompleted && item.isLate && hasIntervenePermission && (
                                     <Link href={item.actionUrl}>
                                       <DropdownMenuItem className="cursor-pointer">
                                         <FileText className="w-4 h-4 ml-2" />
                                         التدخل ورفع التقرير
                                       </DropdownMenuItem>
                                     </Link>
-                                  ) : (
-                                    <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
-                                      <FileText className="w-4 h-4 ml-2" />
-                                      غير مصرح بالتدخل
-                                    </DropdownMenuItem>
-                                  )
-                                ) : null}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -430,57 +425,47 @@ export default function PendingReports() {
                             <p className="text-xs text-muted-foreground truncate">{item.mosqueName}</p>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            {item.isCompleted && (
-                              item.reportType === "final_report" ? (
-                                <Link href={`/final-report/${item.reportId}`}>
-                                  <DropdownMenuItem className="cursor-pointer">
+                        {(item.isCompleted || (item.isLate && hasIntervenePermission)) ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {item.isCompleted && (
+                                item.reportType === "final_report" ? (
+                                  <Link href={`/final-report/${item.reportId}`}>
+                                    <DropdownMenuItem className="cursor-pointer">
+                                      <FileText className="w-4 h-4 ml-2" />
+                                      عرض التقرير
+                                    </DropdownMenuItem>
+                                  </Link>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className="cursor-pointer"
+                                    onClick={() => {
+                                      setSelectedRequestIdForView(item.id);
+                                      setSelectedReportTypeForView(item.reportType);
+                                      setReportDialogOpen(true);
+                                    }}
+                                  >
                                     <FileText className="w-4 h-4 ml-2" />
                                     عرض التقرير
                                   </DropdownMenuItem>
-                                </Link>
-                              ) : (
-                                <DropdownMenuItem
-                                  className="cursor-pointer"
-                                  onClick={() => {
-                                    setSelectedRequestIdForView(item.id);
-                                    setSelectedReportTypeForView(item.reportType);
-                                    setReportDialogOpen(true);
-                                  }}
-                                >
-                                  <FileText className="w-4 h-4 ml-2" />
-                                  عرض التقرير
-                                </DropdownMenuItem>
-                              )
-                            )}
-                            {!item.isCompleted && item.isLate ? (
-                              hasIntervenePermission ? (
+                                )
+                              )}
+                              {!item.isCompleted && item.isLate && hasIntervenePermission && (
                                 <Link href={item.actionUrl}>
                                   <DropdownMenuItem className="cursor-pointer">
                                     <FileText className="w-4 h-4 ml-2" />
                                     التدخل ورفع التقرير
                                   </DropdownMenuItem>
                                 </Link>
-                              ) : (
-                                <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
-                                  <FileText className="w-4 h-4 ml-2" />
-                                  غير مصرح بالتدخل
-                                </DropdownMenuItem>
-                              )
-                            ) : !item.isCompleted ? (
-                              <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
-                                <FileText className="w-4 h-4 ml-2" />
-                                التدخل غير متاح
-                              </DropdownMenuItem>
-                            ) : null}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : null}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 text-xs">

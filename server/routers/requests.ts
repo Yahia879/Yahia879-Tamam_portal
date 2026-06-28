@@ -2838,8 +2838,11 @@ export const requestsRouter = router({
         }
       });
 
+      // Sort by request ID descending (newest assigned first)
+      const sortedReportsList = [...allReportsList].sort((a, b) => b.id - a.id);
+
       // Filter list
-      const filteredList = allReportsList.filter((item) => {
+      const filteredList = sortedReportsList.filter((item) => {
         const matchesSearch =
           item.requestNumber.toLowerCase().includes(search.toLowerCase()) ||
           item.mosqueName.toLowerCase().includes(search.toLowerCase()) ||
