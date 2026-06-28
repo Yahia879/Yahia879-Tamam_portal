@@ -306,7 +306,7 @@ export default function ProgressReportPrint() {
                   )}
                   <div>
                     <div className="text-base font-bold text-primary print:text-sm">
-                      {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                      {orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
                     </div>
                     <div className="text-xs text-gray-500">إدارة المشاريع والصيانة</div>
                   </div>
@@ -556,7 +556,7 @@ export default function ProgressReportPrint() {
                     <div className="space-y-2 text-xs">
                       <div>
                         <span className="font-semibold text-gray-600">الاسم: </span>
-                        <span className="text-gray-900 font-bold">{orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</span>
+                        <span className="text-gray-900 font-bold">{orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}</span>
                       </div>
                       <div>
                         <span className="font-semibold text-gray-600">يمثلها بالتوقيع: </span>

@@ -818,9 +818,9 @@ export const partners = mysqlTable("partners", {
 // إعدادات الجمعية (الطرف الأول في العقود)
 export const organizationSettings = mysqlTable("organization_settings", {
   id: int("id").autoincrement().primaryKey(),
-  // بيانات الجمعية الأساسية
   organizationName: varchar("organizationName", { length: 255 }).notNull(),
   organizationNameShort: varchar("organizationNameShort", { length: 100 }),
+  officialReportsName: varchar("officialReportsName", { length: 255 }), // اسم الجمعية للتقارير الرسمية
   licenseNumber: varchar("licenseNumber", { length: 50 }),
   administrativeSupervisor: varchar("administrativeSupervisor", { length: 255 }), // جهة الإشراف الإداري
   technicalSupervisor: varchar("technicalSupervisor", { length: 255 }), // جهة الإشراف الفني

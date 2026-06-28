@@ -207,7 +207,7 @@ export default function DisbursementOrderPrint() {
                   )}
                   <div>
                     <div className="text-base font-bold text-[#1a5f4a] print:text-sm">
-                      {orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
+                      {orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية تمام للعناية بالمساجد"}
                     </div>
                     <div className="text-xs text-gray-550 font-medium">مكتب إدارة المشاريع PMO</div>
                   </div>

@@ -36,6 +36,13 @@
       "when": 1782392839393,
       "tag": "0004_lucky_thing",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1782679942952,
+      "tag": "0005_lively_stingray",
+      "breakpoints": true
     }
   ]
 }

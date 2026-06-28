@@ -19,6 +19,7 @@ export const organizationRouter = router({
         id: null,
         organizationName: "",
         organizationNameShort: "",
+        officialReportsName: "",
         licenseNumber: "",
         administrativeSupervisor: "",
         technicalSupervisor: "",
@@ -65,6 +66,7 @@ export const organizationRouter = router({
       // بيانات الجمعية الأساسية
       organizationName: z.string().min(1, "اسم الجمعية مطلوب"),
       organizationNameShort: z.string().optional(),
+      officialReportsName: z.string().optional(),
       licenseNumber: z.string().optional(),
       administrativeSupervisor: z.string().optional(),
       technicalSupervisor: z.string().optional(),
@@ -135,6 +137,7 @@ export const organizationRouter = router({
       const settingsData = {
         organizationName: input.organizationName,
         organizationNameShort: input.organizationNameShort || null,
+        officialReportsName: input.officialReportsName || null,
         licenseNumber: input.licenseNumber || null,
         administrativeSupervisor: input.administrativeSupervisor || null,
         technicalSupervisor: input.technicalSupervisor || null,

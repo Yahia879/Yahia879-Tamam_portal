@@ -455,6 +455,7 @@ export default function OrganizationSettings() {
   const [orgSettings, setOrgSettings] = useState({
     // معلومات الجمعية الأساسية
     name: "جمعية تمام للعناية بالمساجد",
+    officialReportsName: "",
     licenseNumber: "",
     address: "",
     city: "",
@@ -509,6 +510,7 @@ export default function OrganizationSettings() {
     if (settings) {
       setOrgSettings({
         name: settings.organizationName || "جمعية تمام للعناية بالمساجد",
+        officialReportsName: settings.officialReportsName || "",
         licenseNumber: settings.licenseNumber || "",
         address: settings.address || "",
         city: settings.city || "",
@@ -540,6 +542,7 @@ export default function OrganizationSettings() {
   const handleSave = () => {
     updateMutation.mutate({
       organizationName: orgSettings.name,
+      officialReportsName: orgSettings.officialReportsName || undefined,
       licenseNumber: orgSettings.licenseNumber || undefined,
       address: orgSettings.address || undefined,
       city: orgSettings.city || undefined,
@@ -660,7 +663,7 @@ export default function OrganizationSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
                     <Input
@@ -668,6 +671,16 @@ export default function OrganizationSettings() {
                       value={orgSettings.name}
                       onChange={(e) => setOrgSettings({ ...orgSettings, name: e.target.value })}
                       placeholder="اسم الجمعية الرسمي"
+                      className="h-10 sm:h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="officialReportsName" className="text-xs sm:text-sm font-bold">اسم الجمعية للتقارير الرسمية</Label>
+                    <Input
+                      id="officialReportsName"
+                      value={orgSettings.officialReportsName}
+                      onChange={(e) => setOrgSettings({ ...orgSettings, officialReportsName: e.target.value })}
+                      placeholder="يظهر في ترويسة التقارير المطبوعة"
                       className="h-10 sm:h-11"
                     />
                   </div>
