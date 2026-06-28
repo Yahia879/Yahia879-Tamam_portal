@@ -605,21 +605,21 @@ export default function ContractPreview() {
             <div className="p-4 sm:p-8 md:p-12 lg:p-16 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
               {/* رأس الصفحة */}
               <div className="flex flex-row items-start justify-between mb-6">
-                <div className="text-right">
-                  {/* تم إزالة رقم الترخيص من هنا */}
-                </div>
                 <div className="flex items-center gap-4">
                   {/* شعار الجمعية */}
                   {orgSettings?.logoUrl && (
                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 sm:h-16" />
                   )}
                 </div>
+                <div className="text-right">
+                  {/* تم إزالة رقم الترخيص من هنا */}
+                </div>
               </div>
 
               {/* عنوان العقد */}
               <div 
-                className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg"
-                style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
+                className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
+                style={{ backgroundColor: '#154c3b', color: '#f8f9fa' }}
               >
                 <h1 className="text-lg sm:text-xl font-bold">
                   عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
@@ -881,8 +881,8 @@ export default function ContractPreview() {
 
               {/* تذييل الصفحة */}
               <div 
-                className="absolute bottom-4 left-0 right-0 text-center text-[10px] sm:text-xs text-gray-500 print:relative print:mt-12"
-                style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px', margin: '0 16px sm:0 32px' }}
+                className="absolute bottom-4 left-0 right-0 text-center text-[10px] sm:text-xs text-gray-500 print:relative print:mt-12 px-4 sm:px-8"
+                style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px' }}
               >
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
                   <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
