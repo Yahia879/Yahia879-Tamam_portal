@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
+import { ColoredDialog } from "@/components/ColoredDialog";
 
 const typeLabels: Record<string, string> = {
   field_visit: "زيارة ميدانية",
@@ -67,6 +68,16 @@ export default function PendingReports() {
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
   const hasViewPermission = isAdmin || userPermissions.includes("pending_reports.view");
   const hasIntervenePermission = isAdmin || userPermissions.includes("pending_reports.intervene");
+  const hasRequestViewDetails = isAdmin || userPermissions.includes("requests.view_details");
+
+  const [selectedRequestIdForView, setSelectedRequestIdForView] = useState<number | null>(null);
+  const [selectedReportTypeForView, setSelectedReportTypeForView] = useState<"field_visit" | "quick_response" | null>(null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  const { data: singleRequestData, isLoading: singleRequestLoading } = trpc.requests.getById.useQuery(
+    { id: selectedRequestIdForView ?? 0 },
+    { enabled: !!selectedRequestIdForView }
+  );
 
   const { data: reportsData, isLoading, error } = trpc.requests.getPendingReports.useQuery({
     search,
@@ -106,8 +117,9 @@ export default function PendingReports() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+    <>
+      <DashboardLayout>
+        <div className="space-y-6" dir="rtl">
         {/* العنوان والإجراءات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -354,29 +366,29 @@ export default function PendingReports() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
-                                <Link href={`/requests/${item.id}`}>
-                                  <DropdownMenuItem className="cursor-pointer">
-                                    <Eye className="w-4 h-4 ml-2" />
-                                    عرض الطلب
-                                  </DropdownMenuItem>
-                                </Link>
-                                {item.isCompleted ? (
+                                {item.isCompleted && (
                                   item.reportType === "final_report" ? (
                                     <Link href={`/final-report/${item.reportId}`}>
                                       <DropdownMenuItem className="cursor-pointer">
                                         <FileText className="w-4 h-4 ml-2" />
-                                        عرض التقرير الختامي
+                                        عرض التقرير
                                       </DropdownMenuItem>
                                     </Link>
                                   ) : (
-                                    <Link href={`/requests/${item.id}`}>
-                                      <DropdownMenuItem className="cursor-pointer">
-                                        <FileText className="w-4 h-4 ml-2" />
-                                        عرض تفاصيل التقرير
-                                      </DropdownMenuItem>
-                                    </Link>
+                                    <DropdownMenuItem
+                                      className="cursor-pointer"
+                                      onClick={() => {
+                                        setSelectedRequestIdForView(item.id);
+                                        setSelectedReportTypeForView(item.reportType);
+                                        setReportDialogOpen(true);
+                                      }}
+                                    >
+                                      <FileText className="w-4 h-4 ml-2" />
+                                      عرض التقرير
+                                    </DropdownMenuItem>
                                   )
-                                ) : item.isLate ? (
+                                )}
+                                {!item.isCompleted && item.isLate ? (
                                   hasIntervenePermission ? (
                                     <Link href={item.actionUrl}>
                                       <DropdownMenuItem className="cursor-pointer">
@@ -390,12 +402,7 @@ export default function PendingReports() {
                                       غير مصرح بالتدخل
                                     </DropdownMenuItem>
                                   )
-                                ) : (
-                                  <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
-                                    <FileText className="w-4 h-4 ml-2" />
-                                    التدخل غير متاح
-                                  </DropdownMenuItem>
-                                )}
+                                ) : null}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -434,29 +441,29 @@ export default function PendingReports() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <Link href={`/requests/${item.id}`}>
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Eye className="w-4 h-4 ml-2" />
-                                عرض الطلب
-                              </DropdownMenuItem>
-                            </Link>
-                            {item.isCompleted ? (
+                            {item.isCompleted && (
                               item.reportType === "final_report" ? (
                                 <Link href={`/final-report/${item.reportId}`}>
                                   <DropdownMenuItem className="cursor-pointer">
                                     <FileText className="w-4 h-4 ml-2" />
-                                    عرض التقرير الختامي
+                                    عرض التقرير
                                   </DropdownMenuItem>
                                 </Link>
                               ) : (
-                                <Link href={`/requests/${item.id}`}>
-                                  <DropdownMenuItem className="cursor-pointer">
-                                    <FileText className="w-4 h-4 ml-2" />
-                                    عرض تفاصيل التقرير
-                                  </DropdownMenuItem>
-                                </Link>
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedRequestIdForView(item.id);
+                                    setSelectedReportTypeForView(item.reportType);
+                                    setReportDialogOpen(true);
+                                  }}
+                                >
+                                  <FileText className="w-4 h-4 ml-2" />
+                                  عرض التقرير
+                                </DropdownMenuItem>
                               )
-                            ) : item.isLate ? (
+                            )}
+                            {!item.isCompleted && item.isLate ? (
                               hasIntervenePermission ? (
                                 <Link href={item.actionUrl}>
                                   <DropdownMenuItem className="cursor-pointer">
@@ -470,12 +477,12 @@ export default function PendingReports() {
                                   غير مصرح بالتدخل
                                 </DropdownMenuItem>
                               )
-                            ) : (
+                            ) : !item.isCompleted ? (
                               <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed text-muted-foreground">
                                 <FileText className="w-4 h-4 ml-2" />
                                 التدخل غير متاح
                               </DropdownMenuItem>
-                            )}
+                            ) : null}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -594,6 +601,269 @@ export default function PendingReports() {
         </Card>
       </div>
     </DashboardLayout>
+
+    {/* Dialog لعرض التقرير الميداني أو الاستجابة السريعة */}
+    <ColoredDialog
+      open={reportDialogOpen}
+      onOpenChange={(val) => {
+        setReportDialogOpen(val);
+        if (!val) {
+          setSelectedRequestIdForView(null);
+          setSelectedReportTypeForView(null);
+        }
+      }}
+      title={selectedReportTypeForView === "field_visit" ? "تقرير المعاينة الميدانية الرسمي" : "تقرير الاستجابة السريعة المعتمد"}
+      color={selectedReportTypeForView === "field_visit" ? "indigo" : "purple"}
+      icon={selectedReportTypeForView === "field_visit" ? <FileText className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+    >
+      {singleRequestLoading ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm">جاري تحميل تفاصيل التقرير...</p>
+        </div>
+      ) : !singleRequestData ? (
+        selectedRequestIdForView === null ? null : (
+          <div className="p-6 text-center text-red-500 flex flex-col items-center justify-center gap-2">
+            <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+            <p>فشل تحميل تفاصيل التقرير أو غير مصرح بعرضه.</p>
+          </div>
+        )
+      ) : selectedReportTypeForView === "field_visit" ? (
+        <div className="space-y-6 text-right" dir="rtl">
+          {(!singleRequestData.fieldReports || singleRequestData.fieldReports.length === 0) ? (
+            <p className="text-center text-muted-foreground py-6">لا توجد تقارير معاينة ميدانية مسجلة لهذا الطلب.</p>
+          ) : (
+            singleRequestData.fieldReports.map((report: any) => {
+              const conditionLabels: Record<string, string> = {
+                excellent: "ممتاز",
+                good: "جيد",
+                fair: "مقبول",
+                poor: "سيء",
+                critical: "حرج / إنشائي"
+              };
+              const conditionColors: Record<string, string> = {
+                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                fair: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-900",
+                poor: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900",
+                critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+              };
+
+              const menLength = parseFloat(report.menPrayerLength || "0");
+              const menWidth = parseFloat(report.menPrayerWidth || "0");
+              const menArea = menLength * menWidth;
+
+              const womenLength = parseFloat(report.womenPrayerLength || "0");
+              const womenWidth = parseFloat(report.womenPrayerWidth || "0");
+              const womenArea = womenLength * womenWidth;
+
+              const teamMembers = [
+                report.teamMember1,
+                report.teamMember2,
+                report.teamMember3,
+                report.teamMember4,
+                report.teamMember5
+              ].filter(Boolean);
+
+              const ratingLabels: Record<number, string> = {
+                1: "غير صحيحة تماماً (البيانات مخالفة للواقع كلياً)",
+                2: "غير صحيحة غالباً (هناك اختلافات جوهرية كثيرة)",
+                3: "مقبولة / صحيحة جزئياً (تتطابق في بعض الجوانب دون أخرى)",
+                4: "صحيحة ودقيقة غالباً (تطابق شبه كامل مع اختلافات طفيفة)",
+                5: "صحيحة ودقيقة بالكامل (مطابقة تامة وموثوقة 100%)"
+              };
+
+              return (
+                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h4 className="font-bold text-indigo-950 dark:text-indigo-100 text-base sm:text-lg">تفاصيل التقرير الميداني</h4>
+                      <p className="text-xs text-slate-500">تمت الزيارة في: {report.visitDate ? new Date(report.visitDate).toLocaleDateString('ar-SA') : "غير محدد"}</p>
+                    </div>
+                    {report.conditionRating && (
+                      <div className={`px-3 py-1 rounded-full border text-xs font-bold ${conditionColors[report.conditionRating] || ''}`}>
+                        الحالة: {conditionLabels[report.conditionRating] || report.conditionRating}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {menArea > 0 && (
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">أبعاد مصلى الرجال</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
+                            {menArea.toLocaleString('ar-SA')} م²
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            ({menLength.toLocaleString('ar-SA')}م × {menWidth.toLocaleString('ar-SA')}م)
+                          </span>
+                        </div>
+                        {report.menPrayerHeight && (
+                          <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.menPrayerHeight).toLocaleString('ar-SA')}م</p>
+                        )}
+                      </div>
+                    )}
+
+                    {report.womenPrayerExists && (
+                      womenArea > 0 ? (
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">أبعاد مصلى النساء</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
+                              {womenArea.toLocaleString('ar-SA')} م²
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              ({womenLength.toLocaleString('ar-SA')}م × {womenWidth.toLocaleString('ar-SA')}م)
+                            </span>
+                          </div>
+                          {report.womenPrayerHeight && (
+                            <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.womenPrayerHeight).toLocaleString('ar-SA')}م</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10 flex items-center">
+                          <div>
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">مصلى النساء</span>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">موجود (لم تحدد الأبعاد)</p>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <div className="space-y-4">
+                    {report.generalDescription && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">التوصيف العام للحالة الميدانية</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.generalDescription}
+                        </p>
+                      </div>
+                    )}
+
+                    {report.requiredNeeds && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">الاحتياجات والمتطلبات المقترحة</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.requiredNeeds}
+                        </p>
+                      </div>
+                    )}
+
+                    {teamMembers.length > 0 && (
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 bg-slate-50/30 dark:bg-slate-900/10">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">فريق المعاينة الميدانية:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {teamMembers.map((member: string, i: number) => (
+                            <Badge key={i} variant="outline" className="bg-white/85 text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                              {member}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {report.beneficiaryInfoAccuracyRating && (
+                      <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 bg-slate-50/30 dark:bg-slate-900/10">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">تقييم دقة بيانات مقدم الطلب:</span>
+                        <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300">
+                          {report.beneficiaryInfoAccuracyRating} / 5 - {ratingLabels[report.beneficiaryInfoAccuracyRating] || ""}
+                        </p>
+                        {report.beneficiaryInfoAccuracyNotes && (
+                          <p className="text-xs text-slate-500 mt-2 whitespace-pre-wrap font-medium">ملاحظات الدقة: {report.beneficiaryInfoAccuracyNotes}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6 text-right" dir="rtl">
+          {(!singleRequestData.quickReports || singleRequestData.quickReports.length === 0) ? (
+            <p className="text-center text-muted-foreground py-6">لا توجد تقارير استجابة سريعة مسجلة لهذا الطلب.</p>
+          ) : (
+            singleRequestData.quickReports.map((report: any) => {
+              const evaluationLabels: Record<string, string> = {
+                excellent: "ممتاز",
+                good: "جيد",
+                acceptable: "مقبول",
+                needs_improvement: "يحتاج تحسين",
+                poor: "ضعيف"
+              };
+              const evaluationColors: Record<string, string> = {
+                excellent: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900",
+                good: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900",
+                acceptable: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900",
+                needs_improvement: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900",
+                poor: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
+              };
+
+              return (
+                <div key={report.id} className="space-y-6 bg-white dark:bg-slate-900/50 p-6 rounded-xl border border-purple-100 dark:border-purple-900/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-100 dark:border-slate-800">
+                    <div>
+                      <h4 className="font-bold text-purple-950 dark:text-purple-100 text-base sm:text-lg">تفاصيل التقرير الفني</h4>
+                      <p className="text-xs text-slate-500">تم تقديم التقرير في: {report.responseDate ? new Date(report.responseDate).toLocaleDateString('ar-SA') : "غير محدد"}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {report.finalEvaluation && (
+                        <div className={`px-3 py-1 rounded-full border text-xs font-bold ${evaluationColors[report.finalEvaluation] || ''}`}>
+                          التقييم: {evaluationLabels[report.finalEvaluation] || report.finalEvaluation}
+                        </div>
+                      )}
+                      <div className={`px-3 py-1 rounded-full border text-xs font-bold ${report.resolved ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                        {report.resolved ? 'تم حل المشكلة بالكامل' : 'قيد المتابعة'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">الفني المختص</span>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {report.technicianName || "غير محدد"}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-1">حالة المشروع المتكامل</span>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {report.projectStatus || "غير محدد"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {report.executedWorkDescription && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">وصف الأعمال المنفذة</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.executedWorkDescription}
+                        </p>
+                      </div>
+                    )}
+
+                    {report.recommendations && (
+                      <div className="bg-slate-50/30 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">التوصيات والملاحظات الفنية</span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                          {report.recommendations}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+    </ColoredDialog>
+    </>
   );
 }
 

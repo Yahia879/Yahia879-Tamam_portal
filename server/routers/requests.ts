@@ -232,6 +232,7 @@ export const requestsRouter = router({
       const hasDetailsPerm = await checkPermission(ctx.user.id, "requests.view_details") || 
                              await checkPermission(ctx.user.id, "requests.manage_as_field_team") ||
                              await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
+                             await checkPermission(ctx.user.id, "pending_reports.view") ||
                              (ctx.user.role === 'corporate_comm' && isFinalReportAssignee);
 
       if (!isOwner && !isAssigned && !isFinalReportAssignee && !hasDetailsPerm) {
