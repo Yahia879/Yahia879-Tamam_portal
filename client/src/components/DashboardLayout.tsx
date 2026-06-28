@@ -287,7 +287,8 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     has("services.view") || 
     has("services.add") || 
     has("services.edit") || 
-    has("services.delete");
+    has("services.delete") ||
+    has("staff_notifications.edit");
 
   if (canViewSettingsCenter) {
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
