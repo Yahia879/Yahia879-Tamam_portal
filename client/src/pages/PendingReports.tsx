@@ -304,11 +304,9 @@ export default function PendingReports() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <Link href={`/requests/${item.id}`}>
-                                  <a className="font-bold text-primary hover:underline text-sm block">
-                                    {item.requestNumber}
-                                  </a>
-                                </Link>
+                                <span className="font-bold text-slate-700 dark:text-slate-200 text-sm block">
+                                  {item.requestNumber}
+                                </span>
                                 <p className="text-xs text-muted-foreground truncate max-w-[200px] mt-0.5">
                                   {item.mosqueName} ({item.mosqueCity})
                                 </p>
@@ -428,9 +426,7 @@ export default function PendingReports() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <Link href={`/requests/${item.id}`}>
-                              <a className="font-bold text-primary text-sm hover:underline">{item.requestNumber}</a>
-                            </Link>
+                            <span className="font-bold text-slate-700 dark:text-slate-200 text-sm block">{item.requestNumber}</span>
                             <p className="text-xs text-muted-foreground truncate">{item.mosqueName}</p>
                           </div>
                         </div>
@@ -781,7 +777,7 @@ export default function PendingReports() {
             })
           )}
         </div>
-      ) : (
+      ) : selectedReportTypeForView === "quick_response" ? (
         <div className="space-y-6 text-right" dir="rtl">
           {(!singleRequestData.quickReports || singleRequestData.quickReports.length === 0) ? (
             <p className="text-center text-muted-foreground py-6">لا توجد تقارير استجابة سريعة مسجلة لهذا الطلب.</p>
@@ -861,7 +857,7 @@ export default function PendingReports() {
             })
           )}
         </div>
-      )}
+      ) : null}
     </ColoredDialog>
     </>
   );
