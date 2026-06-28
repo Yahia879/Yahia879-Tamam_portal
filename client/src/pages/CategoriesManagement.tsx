@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, Edit2, Trash2, ChevronRight, FolderOpen, Tag, ArrowRight, Search, Settings2 } from "lucide-react";
+import { Plus, Edit2, Trash2, ChevronRight, FolderOpen, Tag, ArrowRight, Search, Settings2, GripVertical } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -52,6 +52,49 @@ export default function CategoriesManagement() {
     name: "",
     nameAr: "",
   });
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const updateOrderMutation = trpc.categories.updateCategoriesOrder.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث ترتيب التصنيفات بنجاح");
+      refetchCategories();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (!canEdit) return;
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    const items = [...filteredValues];
+    const draggedItem = items[draggedIndex];
+    
+    // Remove the dragged item
+    items.splice(draggedIndex, 1);
+    // Insert the dragged item at target index
+    items.splice(targetIndex, 0, draggedItem);
+
+    // Update sortOrder based on new index
+    const updatedItems = items.map((item, idx) => ({
+      id: item.id,
+      sortOrder: idx + 1,
+    }));
+
+    updateOrderMutation.mutate(updatedItems);
+    setDraggedIndex(null);
+  };
 
   // Queries
   const { data: allCategories = [], refetch: refetchCategories } = trpc.categories.getAllCategories.useQuery();
@@ -399,6 +442,7 @@ export default function CategoriesManagement() {
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              {canEdit && <TableHead className="w-12 text-center"></TableHead>}
                               <TableHead className="text-right w-12">#</TableHead>
                               <TableHead className="text-right">
                                 {selectedType === "sadad_billers" ? "اسم المفوتر" : "القيمة بالعربية"}
@@ -411,7 +455,19 @@ export default function CategoriesManagement() {
                           </TableHeader>
                           <TableBody>
                             {filteredValues.map((value: Category, index: number) => (
-                              <TableRow key={value.id}>
+                              <TableRow 
+                                key={value.id}
+                                draggable={canEdit}
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, index)}
+                                className={canEdit ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}
+                              >
+                                {canEdit && (
+                                  <TableCell className="text-center cursor-grab text-gray-400 hover:text-gray-600 w-12">
+                                    <GripVertical className="w-4 h-4 mx-auto" />
+                                  </TableCell>
+                                )}
                                 <TableCell className="text-gray-500">{index + 1}</TableCell>
                                 <TableCell className="font-medium">{value.nameAr}</TableCell>
                                 {selectedType === "sadad_billers" && (
@@ -455,9 +511,19 @@ export default function CategoriesManagement() {
                       {/* Mobile View Cards */}
                       <div className="md:hidden divide-y">
                         {filteredValues.map((value: Category, index: number) => (
-                          <div key={value.id} className="p-4 space-y-2">
+                          <div 
+                            key={value.id} 
+                            draggable={canEdit}
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, index)}
+                            className={`p-4 space-y-2 ${canEdit ? "cursor-grab active:cursor-grabbing hover:bg-slate-50 transition-colors" : ""}`}
+                          >
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
+                              <div className="flex items-center gap-1.5">
+                                {canEdit && <GripVertical className="w-4 h-4 text-gray-400" />}
+                                <span className="text-[10px] text-gray-400 font-mono">#{index + 1}</span>
+                              </div>
                               <div className="flex items-center gap-2">
                                 {canEdit && (
                                   <Button

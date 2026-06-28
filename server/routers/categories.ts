@@ -11,7 +11,7 @@ export const categoriesRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-    return db.select().from(categories).where(eq(categories.isActive, true));
+    return db.select().from(categories).where(eq(categories.isActive, true)).orderBy(categories.sortOrder);
   }),
 
   // الحصول على تصنيف محدد مع قيم التابعة لنفس النوع
@@ -34,7 +34,8 @@ export const categoriesRouter = router({
       const values = await db
         .select()
         .from(categories)
-        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)));
+        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)))
+        .orderBy(categories.sortOrder);
 
       return {
         ...category[0],
@@ -66,7 +67,8 @@ export const categoriesRouter = router({
       const values = await db
         .select()
         .from(categories)
-        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)));
+        .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)))
+        .orderBy(categories.sortOrder);
 
       return values.map(v => ({
         id: v.id,
@@ -351,6 +353,41 @@ export const categoriesRouter = router({
         .update(categories)
         .set({ isActive: false })
         .where(eq(categories.id, input.id));
+
+      return { success: true };
+    }),
+
+  // تحديث ترتيب التصنيفات دفعة واحدة (محمي)
+  updateCategoriesOrder: protectedProcedure
+    .input(
+      z.array(
+        z.object({
+          id: z.number(),
+          sortOrder: z.number(),
+        })
+      )
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // التحقق من الصلاحيات
+      if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
+        const { calculateUserPermissions } = await import("../permissions");
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasEditPerm = userPermissions.includes("settings_categories.edit");
+        if (!hasEditPerm) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+      }
+
+      // تحديث كل عنصر بترتيبه الجديد
+      for (const item of input) {
+        await db
+          .update(categories)
+          .set({ sortOrder: item.sortOrder })
+          .where(eq(categories.id, item.id));
+      }
 
       return { success: true };
     }),
