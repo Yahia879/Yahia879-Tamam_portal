@@ -74,47 +74,60 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     });
   }
 
-  // المساجد والطلبات
+  // 1. المساجد والطلبات
   if (["super_admin", "system_admin", "projects_office"].includes(role)) {
     const items = [
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
-      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-      { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-      { icon: BarChart3, label: "التقارير", path: "/reports" },
     ];
     if (["super_admin", "system_admin"].includes(role)) {
       items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
     }
+    items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
     groups.push({
       label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
       items,
     });
-    groups.push({
-      label: "المالية والعقود",
-      items: [
-        { icon: Truck, label: "الموردون", path: "/suppliers" },
-        { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-        { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
-        { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
-        { icon: FileText, label: "العقود", path: "/contracts" },
-        { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
-        { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
-        { icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" },
-        { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
-      ],
-    });
   }
 
-  // الفريق الميداني
-  if (role === "field_team") {
+  // 2. الهندسة والمشاريع
+  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team"].includes(role)) {
+    const items: MenuItem[] = [];
+    if (["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
+      items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
+    }
+    if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+      items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
+      items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
+    }
+    if (role === "field_team") {
+      items.push({ icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" });
+      items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
+    }
+    if (items.length > 0) {
+      groups.push({
+        label: isEn ? "Engineering & Projects" : "الهندسة والمشاريع",
+        items,
+      });
+    }
+  }
+
+  // 3. المشتريات والمالية
+  if (["super_admin", "system_admin", "projects_office", "financial"].includes(role)) {
+    const items = [
+      { icon: Truck, label: "الموردون", path: "/suppliers" },
+      { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
+      { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
+      { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
+      { icon: FileText, label: "العقود", path: "/contracts" },
+      { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
+      { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
+      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
+    ];
     groups.push({
-      label: "الميدان",
-      items: [
-        { icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" },
-        { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
-      ],
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية",
+      items,
     });
   }
 
@@ -126,58 +139,36 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     });
   }
 
-  // الإدارة المالية
-  if (role === "financial") {
-    groups.push({
-      label: "المالية والعقود",
-      items: [
-        { icon: Truck, label: "الموردون", path: "/suppliers" },
-        { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
-        { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
-        { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
-        { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
-        { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
-      ],
-    });
-  }
-
-  // مدير المشروع
-  if (role === "project_manager") {
-    groups.push({
-      label: "المشاريع",
-      items: [
-        { icon: ClipboardList, label: "المشاريع", path: "/projects" },
-        { icon: FileText, label: "التقارير", path: "/reports" },
-      ],
-    });
-  }
-
   // الاتصال المؤسسي
-  if (role === "corporate_comm") {
+  if (["super_admin", "system_admin", "corporate_comm"].includes(role)) {
+    const items = [
+      { icon: Handshake, label: "الشركاء", path: "/partners" },
+    ];
+    if (role === "corporate_comm") {
+      items.push({ icon: Palette, label: "الهوية البصرية", path: "/branding" });
+      items.push({ icon: BarChart3, label: "التقارير", path: "/reports" });
+    }
     groups.push({
-      label: "الاتصال المؤسسي",
+      label: isEn ? "Corporate Communication" : "الاتصال المؤسسي",
+      items,
+    });
+  }
+
+  // 4. إدارة المستخدمين (للمدراء)
+  if (["super_admin", "system_admin"].includes(role)) {
+    groups.push({
+      label: isEn ? "User Management" : "إدارة المستخدمين",
       items: [
-        { icon: Handshake, label: "الشركاء", path: "/partners" },
-        { icon: Palette, label: "الهوية البصرية", path: "/branding" },
-        { icon: BarChart3, label: "التقارير", path: "/reports" },
+        { icon: Users, label: "إدارة الموظفين", path: "/staff" },
+        { icon: CheckSquare, label: "طالبي الخدمة (المستفيدين)", path: "/requester-approvals" },
       ],
     });
   }
 
-  // إدارة المستخدمين (للمدراء)
+  // 6. الإعدادات (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
-      label: "إدارة المستخدمين",
-      items: [
-        { icon: Users, label: "إدارة المستخدمين", path: "/staff" },
-        { icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" },
-      ],
-    });
-  }
-  // الإعدادات (للمدراء) - مركز إعدادات موحد
-  if (["super_admin", "system_admin"].includes(role)) {
-    groups.push({
-      label: "الإعدادات",
+      label: isEn ? "Settings" : "الإعدادات",
       items: [
         { icon: Settings, label: "مركز الإعدادات", path: "/settings" },
       ],
@@ -188,7 +179,6 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
 };
 
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
-// معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
 const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
@@ -202,55 +192,82 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     });
   }
 
-  // المساجد والطلبات
+  // 1. المساجد والطلبات
   const mosqueItems: MenuItem[] = [];
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
   if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
-  if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
-  if (has("projects") || has("projects.view") || has("projects.view_details"))                     mosqueItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
-  if (has("reports"))                      mosqueItems.push({ icon: BarChart3,     label: "التقارير",              path: "/reports" });
   if (has("pending_reports.view") || has("pending_reports.intervene")) {
     mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
   }
-  if (mosqueItems.length > 0) groups.push({ label: isEn ? "Mosques and Requests" : "المساجد والطلبات", items: mosqueItems });
+  if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
+  
+  if (mosqueItems.length > 0) {
+    groups.push({ 
+      label: isEn ? "Mosques and Requests" : "المساجد والطلبات", 
+      items: mosqueItems 
+    });
+  }
 
-  // المالية والعقود
+  // 2. الهندسة والمشاريع
+  const engineeringItems: MenuItem[] = [];
+  if (has("projects") || has("projects.view") || has("projects.view_details")) {
+    engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
+  }
+  if (has("progress_reports")) {
+    engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
+  }
+  if (has("reports")) {
+    engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
+  }
+  if (engineeringItems.length > 0) {
+    groups.push({
+      label: isEn ? "Engineering & Projects" : "الهندسة والمشاريع",
+      items: engineeringItems,
+    });
+  }
+
+  // 3. المشتريات والمالية
   const finItems: MenuItem[] = [];
   if (has("suppliers"))           finItems.push({ icon: Truck,       label: "الموردون",        path: "/suppliers" });
-  if (has("quotations"))          finItems.push({ icon: Receipt,     label: "عروض الأسعار",    path: "/quotations" });
   if (has("boq") || has("boq.add") || has("boq.edit") || has("boq.delete")) {
     finItems.push({ icon: Calculator,    label: "إعداد جداول الكميات",   path: "/boq-preparations" });
   }
+  if (has("quotations"))          finItems.push({ icon: Receipt,     label: "عروض الأسعار",    path: "/quotations" });
   if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" });
   if (has("contracts"))           finItems.push({ icon: FileText,    label: "العقود",          path: "/contracts" });
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
-  if (has("progress_reports"))    finItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
   if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
-  if (finItems.length > 0) groups.push({ label: "المالية والعقود", items: finItems });
+  
+  if (finItems.length > 0) {
+    groups.push({ 
+      label: isEn ? "Procurement & Finance" : "المشتريات والمالية", 
+      items: finItems 
+    });
+  }
 
-  // الاتصال المؤسسي والشركاء
+  // 4. الاتصال المؤسسي والشركاء
   const commItems: MenuItem[] = [];
   if (has("partners") || has("partners.view")) commItems.push({ icon: Handshake, label: "الشركاء", path: "/partners" });
   if (commItems.length > 0) groups.push({ label: "الاتصال المؤسسي", items: commItems });
 
-  // إدارة المستخدمين
+  // 5. إدارة المستخدمين
   const userManagementItems: MenuItem[] = [];
   if (has("staff_users.view") || has("staff_roles.view") || has("staff_custom_roles.view")) {
-    userManagementItems.push({ icon: Users, label: "إدارة المستخدمين", path: "/staff" });
+    userManagementItems.push({ icon: Users, label: "إدارة الموظفين", path: "/staff" });
   }
   if (has("service_requester_accounts")) {
-    userManagementItems.push({ icon: CheckSquare, label: "حسابات طالبي الخدمة", path: "/requester-approvals" });
+    userManagementItems.push({ icon: CheckSquare, label: "طالبي الخدمة (المستفيدين)", path: "/requester-approvals" });
   }
   if (userManagementItems.length > 0) {
     groups.push({
-      label: "إدارة المستخدمين",
+      label: isEn ? "User Management" : "إدارة المستخدمين",
       items: userManagementItems,
     });
   }
 
-  // الإعدادات
+  // 6. الإعدادات
   const settingsItems: MenuItem[] = [];
   const canViewSettingsCenter = 
     has("settings_org.view") || 
@@ -276,7 +293,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     settingsItems.push({ icon: Settings, label: "مركز الإعدادات", path: "/settings" });
   }
   if (settingsItems.length > 0) {
-    groups.push({ label: "الإعدادات", items: settingsItems });
+    groups.push({
+      label: isEn ? "Settings" : "الإعدادات",
+      items: settingsItems,
+    });
   }
 
   return groups;
