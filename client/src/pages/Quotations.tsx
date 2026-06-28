@@ -799,158 +799,191 @@ export default function Quotations() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : quotationsData?.quotations && quotationsData.quotations.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>رقم العرض</TableHead>
-                      <TableHead>المورد</TableHead>
-                      <TableHead>المبلغ الأصلي</TableHead>
-                      <TableHead>المبلغ النهائي</TableHead>
-                      <TableHead>تاريخ الصلاحية</TableHead>
-                      <TableHead className="text-right">الحالة</TableHead>
-                      <TableHead className="text-right">الإجراءات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const hasAcceptedQuotation = quotationsData.quotations.some((q: any) => q.status === "accepted");
-                      
-                      return quotationsData.quotations.map((quotation: any) => {
-                        const statusConfig = QUOTATION_STATUS[quotation.status as keyof typeof QUOTATION_STATUS] || QUOTATION_STATUS.pending;
-                        return (
-                          <TableRow key={quotation.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex flex-col">
-                                <div className="flex items-center gap-2 justify-start">
-                                  <span>{quotation.quotationNumber}</span>
-                                  {quotation.documentUrl && (
-                                    <Badge variant="outline" className="text-[10px] py-0 px-1 bg-blue-50 text-blue-700 border-blue-200">
-                                      رابط
-                                    </Badge>
-                                  )}
-                                </div>
-                                {quotation.documentUrl && (
-                                  <a
-                                    href={quotation.documentUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 hover:underline text-xs flex items-center gap-1 mt-1 justify-start font-normal"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    {quotation.notes || "فتح الرابط"}
-                                  </a>
-                                )}
+              ) : (() => {
+                const allQuotations = quotationsData?.quotations ?? [];
+                const linkQuotations = allQuotations.filter((q: any) => q.documentUrl && parseFloat(q.totalAmount) === 0);
+                const normalQuotations = allQuotations.filter((q: any) => !q.documentUrl || parseFloat(q.totalAmount) > 0);
+                const hasAcceptedQuotation = normalQuotations.some((q: any) => q.status === "accepted");
+
+                return (
+                  <div className="space-y-6">
+                    {/* روابط عروض الأسعار الخارجية المضافة */}
+                    {linkQuotations.length > 0 && (
+                      <div className="p-5 bg-indigo-50/40 dark:bg-indigo-950/10 border border-indigo-100 dark:border-indigo-900/40 rounded-xl">
+                        <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-3 flex items-center gap-2 justify-start">
+                          <Link2 className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+                          روابط مراجعة عروض الأسعار الخارجية المرفقة
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                          {linkQuotations.map((link: any) => (
+                            <div 
+                              key={link.id} 
+                              className="bg-white dark:bg-slate-900/60 p-3.5 rounded-lg border border-indigo-100/80 dark:border-indigo-900/30 flex items-center justify-between gap-3 shadow-xs hover:shadow-md transition-all duration-300"
+                            >
+                              <div className="min-w-0 text-right">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">{link.notes || "رابط خارجي"}</p>
+                                <span className="text-[10px] text-muted-foreground block mt-1">تمت الإضافة: {new Date(link.createdAt).toLocaleDateString("ar-SA")}</span>
                               </div>
-                            </TableCell>
-                            <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
-                            <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
-                            <TableCell className="font-medium text-primary">
-                              {parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
-                            </TableCell>
-                            <TableCell>
-                              {quotation.validUntil ? (
-                                <div className="flex flex-col">
-                                  <span>{new Date(quotation.validUntil).toLocaleDateString("ar-SA")}</span>
-                                  {new Date(quotation.validUntil) < new Date() && (
-                                    <span className="text-xs text-red-500 font-medium">منتهي</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Badge className={statusConfig.color}>
-                                {statusConfig.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2 justify-start">
-                                <PermissionGuard permission="quotations.approve">
-                                  {/* حالة قيد المراجعة أو التفاوض */}
-                                  {(quotation.status === "pending" || quotation.status === "negotiating") && (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-green-600"
-                                        onClick={() => openApproveDialog(quotation)}
-                                        disabled={hasAcceptedQuotation}
-                                      >
-                                        <CheckCircle2 className="h-4 w-4 ml-1" />
-                                        اعتماد
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-red-600"
-                                        onClick={() => handleRejectQuotation(quotation.id)}
-                                        disabled={hasAcceptedQuotation}
-                                      >
-                                        <XCircle className="h-4 w-4 ml-1" />
-                                        رفض
-                                      </Button>
-                                    </>
-                                  )}
-                                  {/* حالة معتمد */}
-                                  {quotation.status === "accepted" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-orange-600"
-                                      onClick={() => handleCancelApproval(quotation.id)}
-                                    >
-                                      <XCircle className="h-4 w-4 ml-1" />
-                                      إلغاء الاعتماد
-                                    </Button>
-                                  )}
-                                  {/* حالة مرفوض */}
-                                  {quotation.status === "rejected" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-blue-600"
-                                      onClick={() => handleReactivateQuotation(quotation.id)}
-                                      disabled={hasAcceptedQuotation}
-                                    >
-                                      <Clock className="h-4 w-4 ml-1" />
-                                      إعادة للمراجعة
-                                    </Button>
-                                  )}
-                                </PermissionGuard>
-                              </div>
-                            </TableCell>
+                              <Button variant="outline" size="sm" className="shrink-0 h-8 text-indigo-600 hover:text-indigo-700 border-indigo-200 hover:bg-indigo-50/50" asChild>
+                                <a href={link.documentUrl} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                                  فتح الرابط
+                                </a>
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {normalQuotations.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>رقم العرض</TableHead>
+                            <TableHead>المورد</TableHead>
+                            <TableHead>المبلغ الأصلي</TableHead>
+                            <TableHead>المبلغ النهائي</TableHead>
+                            <TableHead>تاريخ الصلاحية</TableHead>
+                            <TableHead className="text-right">الحالة</TableHead>
+                            <TableHead className="text-right">الإجراءات</TableHead>
                           </TableRow>
-                        );
-                      });
-                    })()}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد عروض أسعار لهذا الطلب</p>
-                  <PermissionGuard permission="quotations.add">
-                    <div className="flex gap-3 justify-center mt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddDialog(true)}
-                      >
-                        <Plus className="h-4 w-4 ml-2" />
-                        إضافة أول عرض سعر
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddLinkDialog(true)}
-                      >
-                        <Link2 className="h-4 w-4 ml-2" />
-                        إضافة رابط
-                      </Button>
-                    </div>
-                  </PermissionGuard>
-                </div>
-              )}
+                        </TableHeader>
+                        <TableBody>
+                          {normalQuotations.map((quotation: any) => {
+                            const statusConfig = QUOTATION_STATUS[quotation.status as keyof typeof QUOTATION_STATUS] || QUOTATION_STATUS.pending;
+                            return (
+                              <TableRow key={quotation.id}>
+                                <TableCell className="font-medium">
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-2 justify-start">
+                                      <span>{quotation.quotationNumber}</span>
+                                      {quotation.documentUrl && (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1 bg-blue-50 text-blue-700 border-blue-200">
+                                          مرفق العرض
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {quotation.documentUrl && (
+                                      <a
+                                        href={quotation.documentUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 hover:underline text-xs flex items-center gap-1 mt-1 justify-start font-normal"
+                                      >
+                                        <ExternalLink className="h-3 w-3" />
+                                        فتح الملف المرفق
+                                      </a>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
+                                <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
+                                <TableCell className="font-medium text-primary">
+                                  {parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
+                                </TableCell>
+                                <TableCell>
+                                  {quotation.validUntil ? (
+                                    <div className="flex flex-col text-right">
+                                      <span>{new Date(quotation.validUntil).toLocaleDateString("ar-SA")}</span>
+                                      {new Date(quotation.validUntil) < new Date() && (
+                                        <span className="text-xs text-red-500 font-medium">منتهي</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Badge className={statusConfig.color}>
+                                    {statusConfig.label}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2 justify-start">
+                                    <PermissionGuard permission="quotations.approve">
+                                      {(quotation.status === "pending" || quotation.status === "negotiating") && (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-green-600"
+                                            onClick={() => openApproveDialog(quotation)}
+                                            disabled={hasAcceptedQuotation}
+                                          >
+                                            <CheckCircle2 className="h-4 w-4 ml-1" />
+                                            اعتماد
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-600"
+                                            onClick={() => handleRejectQuotation(quotation.id)}
+                                            disabled={hasAcceptedQuotation}
+                                          >
+                                            <XCircle className="h-4 w-4 ml-1" />
+                                            رفض
+                                          </Button>
+                                        </>
+                                      )}
+                                      {quotation.status === "accepted" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-orange-600"
+                                          onClick={() => handleCancelApproval(quotation.id)}
+                                        >
+                                          <XCircle className="h-4 w-4 ml-1" />
+                                          إلغاء الاعتماد
+                                        </Button>
+                                      )}
+                                      {quotation.status === "rejected" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-blue-600"
+                                          onClick={() => handleReactivateQuotation(quotation.id)}
+                                          disabled={hasAcceptedQuotation}
+                                        >
+                                          <Clock className="h-4 w-4 ml-1" />
+                                          إعادة للمراجعة
+                                        </Button>
+                                      )}
+                                    </PermissionGuard>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <Receipt className="h-12 w-12 text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">لا توجد عروض أسعار مسجلة</h3>
+                        <p className="text-muted-foreground mb-6">يرجى إضافة عروض الأسعار أو مراجعة روابط عروض الأسعار الخارجية المرفقة أعلاه.</p>
+                        <PermissionGuard permission="quotations.add">
+                          <div className="flex gap-3 justify-center">
+                            <Button onClick={() => setShowAddDialog(true)}>
+                              <Plus className="h-4 w-4 ml-2" />
+                              إضافة أول عرض سعر
+                            </Button>
+                            {linkQuotations.length === 0 && (
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowAddLinkDialog(true)}
+                              >
+                                <Link2 className="h-4 w-4 ml-2" />
+                                إضافة رابط
+                              </Button>
+                            )}
+                          </div>
+                        </PermissionGuard>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
