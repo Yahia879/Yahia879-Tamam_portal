@@ -2837,14 +2837,6 @@ export const requestsRouter = router({
         }
       });
 
-      // Calculate statistics over all reports
-      const fieldVisitsCount = allReportsList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
-      const quickResponsesCount = allReportsList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
-      const finalReportsCount = allReportsList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
-      const pendingCount = allReportsList.filter(r => !r.isCompleted).length;
-      const totalCount = allReportsList.length;
-      const lateCount = allReportsList.filter(r => !r.isCompleted && r.isLate).length;
-
       // Filter list
       const filteredList = allReportsList.filter((item) => {
         const matchesSearch =
@@ -2862,6 +2854,14 @@ export const requestsRouter = router({
 
         return matchesSearch && matchesType && matchesStatus;
       });
+
+      // Calculate statistics over filtered list
+      const fieldVisitsCount = filteredList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
+      const quickResponsesCount = filteredList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
+      const finalReportsCount = filteredList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
+      const pendingCount = filteredList.filter(r => !r.isCompleted).length;
+      const totalCount = filteredList.length;
+      const lateCount = filteredList.filter(r => !r.isCompleted && r.isLate).length;
 
       const totalFiltered = filteredList.length;
       const startIndex = (page - 1) * limit;
