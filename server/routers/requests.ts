@@ -2136,7 +2136,6 @@ export const requestsRouter = router({
       return visits;
     }),
 
-  // الحصول على موظفي الفريق الميداني
   getFieldTeamMembers: protectedProcedure
     .query(async ({ ctx }) => {
       if (!["projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
@@ -2146,17 +2145,31 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const members = await db.select({
+      const allUsers = await db.select({
         id: users.id,
         name: users.name,
+        role: users.role,
         email: users.email,
         phone: users.phone,
-      })
-        .from(users)
-        .where(inArray(users.role, ['field_team', 'projects_office', 'super_admin', 'system_admin']))
-        .orderBy(users.name);
+        status: users.status,
+      }).from(users).where(eq(users.status, 'active'));
 
-      return members;
+      const { calculateUserPermissions } = await import("../permissions");
+      const matched = [];
+      const defaultRoles = ['field_team', 'projects_office', 'super_admin', 'system_admin'];
+      for (const u of allUsers) {
+        if (defaultRoles.includes(u.role)) {
+          matched.push({ id: u.id, name: u.name, email: u.email, phone: u.phone });
+        } else {
+          const userPerms = await calculateUserPermissions(u.id);
+          if (userPerms.includes("requests.manage_as_field_team")) {
+            matched.push({ id: u.id, name: u.name, email: u.email, phone: u.phone });
+          }
+        }
+      }
+
+      matched.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      return matched;
     }),
 
   // الحصول على موظفي فريق الاستجابة السريعة
@@ -2165,15 +2178,28 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const members = await db.select({
+      const allUsers = await db.select({
         id: users.id,
         name: users.name,
-      })
-        .from(users)
-        .where(eq(users.role, 'quick_response'))
-        .orderBy(users.name);
+        role: users.role,
+        status: users.status,
+      }).from(users).where(eq(users.status, 'active'));
 
-      return members;
+      const { calculateUserPermissions } = await import("../permissions");
+      const matched = [];
+      for (const u of allUsers) {
+        if (u.role === 'quick_response') {
+          matched.push({ id: u.id, name: u.name });
+        } else {
+          const userPerms = await calculateUserPermissions(u.id);
+          if (userPerms.includes("requests.manage_as_quick_response")) {
+            matched.push({ id: u.id, name: u.name });
+          }
+        }
+      }
+
+      matched.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+      return matched;
     }),
 
   // الحصول على الساعات المحجوزة لمسؤول الاستجابة السريعة في تاريخ معين
