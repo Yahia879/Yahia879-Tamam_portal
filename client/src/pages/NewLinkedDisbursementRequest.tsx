@@ -119,7 +119,11 @@ interface SupplierEntry {
 export default function NewLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  
+
+  const userPermissions = (user as any)?.permissions || [];
+  const isAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const canCreateCustom = isAdmin || userPermissions.includes("disbursements.create_custom");
+
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
     const saved = sessionStorage.getItem("new-linked-disbursement-state");
@@ -136,8 +140,20 @@ export default function NewLinkedDisbursementRequest() {
 
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
-  const [requestType, setRequestType] = useState<string>(() => savedState?.requestType ?? "project_linked");
-  const [isCustom, setIsCustom] = useState(() => savedState?.isCustom ?? false);
+  const [requestType, setRequestType] = useState<string>(() => {
+    const val = savedState?.requestType ?? "project_linked";
+    if (val !== "project_linked" && !canCreateCustom) {
+      return "project_linked";
+    }
+    return val;
+  });
+  const [isCustom, setIsCustom] = useState(() => {
+    const val = savedState?.isCustom ?? false;
+    if (val && !canCreateCustom) {
+      return false;
+    }
+    return val;
+  });
   
   // بيانات النموذج
   const [formData, setFormData] = useState<{
@@ -869,9 +885,13 @@ export default function NewLinkedDisbursementRequest() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
-                      <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
-                      <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
-                      <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                      {canCreateCustom && (
+                        <>
+                          <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
+                          <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
+                          <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
