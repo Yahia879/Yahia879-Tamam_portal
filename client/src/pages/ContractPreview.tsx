@@ -628,47 +628,36 @@ export default function ContractPreview() {
               position: 'relative',
             }}
           >
-            {/* الصفحة الأولى */}
-            <div className="p-4 sm:p-8 md:p-12 lg:p-16 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
-              <div className="flex flex-row items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  {/* شعار الجمعية */}
-                  {orgSettings?.logoUrl && (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" style={{ marginRight: '8px' }} />
-                  )}
-                </div>
-
-                {/* بيانات العقد الرقم والتاريخ (تظهر فقط إذا كان العقد معتمداً) */}
-                {contract.status === "approved" ? (
-                  <div className="text-center text-[10px] sm:text-xs text-gray-600 space-y-0.5 sm:space-y-1 font-medium bg-gray-50/80 p-2 sm:p-3 rounded-lg border border-gray-100 min-w-[140px] sm:min-w-[180px]">
-                    <div>الرقم: <span className="font-bold text-gray-800">{contract.contractNumber}</span></div>
-                    <div>التاريخ: <span className="text-gray-800">
-                      {(() => {
-                        const rawHijri = (contract.contractDateHijri || toHijriDate(contractDate)).trim();
-                        return rawHijri.endsWith("هـ") || rawHijri.endsWith("ه") ? rawHijri : `${rawHijri} هـ`;
-                      })()}
-                    </span></div>
-                    <div>الموافق: <span className="text-gray-800">{contractDate.toLocaleDateString('ar-SA')} م</span></div>
-                  </div>
-                ) : (
-                  <div className="min-w-[140px] sm:min-w-[180px]"></div>
-                )}
-
-                <div className="flex items-center">
-                  <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" style={{ height: 'calc(var(--spacing) * 14)' }} />
-                </div>
-              </div>
-
-              {/* عنوان العقد */}
-              <div 
-                className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
-                style={{ backgroundColor: '#ae9b63', color: '#faf8f5' }}
-              >
-                <h1 className="text-lg sm:text-xl font-bold">
-                  عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
-                  {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
-                </h1>
-              </div>
+             {/* الصفحة الأولى */}
+             <div className="p-4 sm:p-8 md:p-12 lg:p-16 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
+               {contract.status === "approved" && (
+                 <div className="absolute top-3 left-4 sm:top-6 sm:left-8 print:top-3 print:left-4 text-[9px] sm:text-xs font-mono text-gray-400 border border-gray-100 bg-gray-50/50 px-2 py-0.5 rounded">
+                   الرقم: {contract.contractNumber}
+                 </div>
+               )}
+               <div className="flex flex-row items-center justify-between mb-6">
+                 <div className="flex items-center gap-4">
+                   {/* شعار الجمعية */}
+                   {orgSettings?.logoUrl && (
+                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" style={{ marginRight: '8px' }} />
+                   )}
+                 </div>
+ 
+                 <div className="flex items-center">
+                   <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" style={{ height: 'calc(var(--spacing) * 14)' }} />
+                 </div>
+               </div>
+ 
+               {/* عنوان العقد */}
+               <div 
+                 className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
+                 style={{ backgroundColor: '#ae9b63', color: '#faf8f5' }}
+               >
+                 <h1 className="text-lg sm:text-xl font-bold">
+                   عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
+                   {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
+                 </h1>
+               </div>
 
               {/* مقدمة العقد */}
               <p className="text-center mb-6 text-gray-700 text-sm sm:text-base">
