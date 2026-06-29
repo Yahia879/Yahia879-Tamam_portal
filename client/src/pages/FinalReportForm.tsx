@@ -111,11 +111,13 @@ export default function FinalReportForm() {
   const userPermissions = (user as any)?.permissions || [];
   const hasIntervenePerm = userPermissions.includes("pending_reports.intervene");
   const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
-  const isAssigned = !request?.finalReportAssignedTo || (user && request.finalReportAssignedTo === user.id) || isAdmin || hasIntervenePerm;
+  const isAssigned = !request?.finalReportAssignedTo || 
+                     (user && request.finalReportAssignedTo === user.id) || 
+                     hasIntervenePerm || 
+                     userPermissions.includes("requests.upload_final_report");
   const isCorpComm = user?.role === 'corporate_comm' || 
                      userPermissions.includes("requests.upload_final_report") || 
-                     hasIntervenePerm ||
-                     ['super_admin', 'system_admin', 'projects_office'].includes(user?.role || '');
+                     hasIntervenePerm;
   const hasAccess = isAssigned && isCorpComm;
 
   const isDisabled = isNotInExecution || isTransitionDisabled || !hasAccess;

@@ -22,8 +22,8 @@ export default function AssignFinalReport() {
       if (!isAuthenticated) {
         toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
         setLocation("/login");
-      } else if (user?.role === "corporate_comm") {
-        toast.error("ليس لديك صلاحية لتعيين موظف الاتصال المؤسسي");
+      } else if (user?.role === "corporate_comm" && !user?.permissions?.includes("requests.upload_final_report")) {
+        toast.error("ليس لديك صلاحية لتعيين المسؤول");
         setLocation(`/requests/${requestId}`);
       }
     }
@@ -36,9 +36,12 @@ export default function AssignFinalReport() {
     scheduledTime: "",
   });
 
-  // جلب قائمة المستخدمين وتصفيتهم ليظهر فقط موظفي الاتصال المؤسسي
+  // جلب قائمة المستخدمين وتصفيتهم ليظهر المسؤولون عن الرفع (الاتصال المؤسسي أو من يملك الصلاحية)
   const { data: allStaffUsers } = trpc.users.getStaffUsers.useQuery();
-  const corpCommUsers = allStaffUsers?.filter((u: any) => u.role === "corporate_comm") || [];
+  const corpCommUsers = allStaffUsers?.filter((u: any) => 
+    u.role === "corporate_comm" || 
+    (u.permissions && u.permissions.includes("requests.upload_final_report"))
+  ) || [];
 
   // جلب بيانات الطلب
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
@@ -50,7 +53,7 @@ export default function AssignFinalReport() {
   const utils = trpc.useUtils();
   const assignMutation = trpc.requests.assignFinalReport.useMutation({
     onSuccess: () => {
-      toast.success("تم تعيين موظف الاتصال المؤسسي بنجاح");
+      toast.success("تم تعيين المسؤول بنجاح");
       utils.requests.getById.invalidate({ id: Number(requestId) });
       setLocation(`/requests/${requestId}`);
     },
@@ -106,10 +109,10 @@ export default function AssignFinalReport() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-6 w-6" />
-            تعيين موظف الاتصال المؤسسي
+            تعيين المسؤول
           </CardTitle>
           <CardDescription>
-            تحديد موظف الاتصال المؤسسي المسؤول عن التقرير الختامي للطلب {(request as any)?.requestNumber}
+            تحديد المسؤول عن التقرير الختامي للطلب {(request as any)?.requestNumber}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -118,7 +121,7 @@ export default function AssignFinalReport() {
             <div className="space-y-2">
               <Label htmlFor="assignedUser" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                موظف الاتصال المؤسسي *
+                تعيين المسؤول *
               </Label>
               <Select
                 value={formData.assignedUserId}

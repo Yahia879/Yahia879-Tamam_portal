@@ -566,16 +566,17 @@ export default function RequestDetailsNew() {
     const isAdmin = user && ["super_admin", "system_admin"].includes(user.role);
     const isAssignedCorpComm = user && request.finalReportAssignedTo && user.id === request.finalReportAssignedTo;
     const isCorpCommFallback = user && !request.finalReportAssignedTo && (user.role === 'corporate_comm' || hasFinalReportPerm);
-    const isCorpComm = request.finalReportAssignedTo ? !!isAssignedCorpComm : (isCorpCommFallback || isAdmin);
+    const hasUploadPermission = user && (user.role === 'corporate_comm' || hasFinalReportPerm);
+    const isCorpComm = !!hasUploadPermission && (request.finalReportAssignedTo ? (!!isAssignedCorpComm || hasFinalReportPerm) : isCorpCommFallback);
 
     if (!request.finalReportAssignedTo) {
       if (isManagementUser || (user?.role && canTransitionStage(user.role, 'handover'))) {
         activeAction = {
           ...activeAction,
-          title: "تعيين موظف الاتصال المؤسسي",
-          description: "يرجى تعيين موظف الاتصال المؤسسي المسؤول عن إعداد ورفع التقرير الختامي للمشروع لبدء إجراءات الاستلام والتسليم.",
+          title: "تعيين المسؤول عن التقرير الختامي",
+          description: "يرجى تعيين المسؤول عن إعداد ورفع التقرير الختامي للمشروع لبدء إجراءات الاستلام والتسليم.",
           actionButton: {
-            label: "تعيين الموظف المسؤول",
+            label: "تعيين المسؤول",
             redirectUrl: "/requests/:requestId/assign-final-report",
           } as any,
           canPerformAction: true,
@@ -583,10 +584,10 @@ export default function RequestDetailsNew() {
       } else {
         activeAction = {
           ...activeAction,
-          title: "بانتظار تعيين موظف الاتصال المؤسسي",
-          description: "بانتظار قيام مكتب المشاريع بتعيين موظف الاتصال المؤسسي المسؤول عن رفع التقرير الختامي للمشروع.",
+          title: "بانتظار تعيين المسؤول",
+          description: "بانتظار قيام مكتب المشاريع بتعيين المسؤول عن رفع التقرير الختامي للمشروع.",
           actionButton: {
-            label: "بانتظار تعيين موظف الاتصال المؤسسي",
+            label: "بانتظار تعيين المسؤول",
             onClick: () => {},
             disabled: true,
           } as any,
