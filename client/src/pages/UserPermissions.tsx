@@ -657,11 +657,7 @@ export default function UserPermissions() {
           id: "requests", 
           nameAr: "الطلبات", 
           icon: Zap, 
-          perms: activeRoleId === "field_team" 
-            ? ["view", "create", "view_details", "manage_as_field_team"] 
-            : activeRoleId === "quick_response"
-              ? ["view", "create", "view_details", "manage_as_quick_response"]
-              : ["view", "create", "view_details", "upload_final_report"] 
+          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"]
         },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },

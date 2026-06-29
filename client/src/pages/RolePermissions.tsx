@@ -1078,18 +1078,6 @@ export default function RolePermissions() {
     title: group.title,
     modules: group.modules.map(m => {
       let perms = m.perms;
-      if (m.id === "requests") {
-        if (roleId !== "field_team") {
-          perms = perms.filter(p => p !== "manage_as_field_team");
-        }
-        if (roleId !== "quick_response") {
-          perms = perms.filter(p => p !== "manage_as_quick_response");
-        }
-        // إظهار صلاحية رفع التقرير الختامي فقط للأدوار المعنية
-        if (roleId === "field_team" || roleId === "quick_response") {
-          perms = perms.filter(p => p !== "upload_final_report");
-        }
-      }
       return {
         id: m.id,
         nameAr: m.nameAr,
