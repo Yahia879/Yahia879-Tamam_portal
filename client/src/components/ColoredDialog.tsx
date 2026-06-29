@@ -11,6 +11,7 @@ interface ColoredDialogProps {
   color: "blue" | "green" | "orange" | "purple" | "teal" | "indigo" | "red";
   icon?: ReactNode;
   wide?: boolean; // نافذة عريضة لجداول الكميات
+  fullScreen?: boolean; // نافذة بملء الشاشة تقريباً
 }
 
 const colorClasses = {
@@ -65,12 +66,12 @@ const colorClasses = {
   },
 };
 
-export function ColoredDialog({ open, onOpenChange, title, children, color, icon, wide }: ColoredDialogProps) {
+export function ColoredDialog({ open, onOpenChange, title, children, color, icon, wide, fullScreen }: ColoredDialogProps) {
   const colors = colorClasses[color];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className={`${wide ? 'max-w-6xl w-[95vw]' : 'max-w-3xl'} max-h-[90vh] overflow-hidden flex flex-col p-0 ${colors.border} border-2`}>
+      <DialogContent showCloseButton={false} className={`${fullScreen ? 'sm:!max-w-[98vw] !w-[98vw] !h-[96vh] !max-h-[96vh]' : wide ? 'sm:!max-w-6xl !w-[95vw] !max-h-[90vh]' : 'sm:!max-w-3xl !max-h-[90vh]'} overflow-hidden flex flex-col p-0 ${colors.border} border-2`}>
         {/* Header with color */}
         <DialogHeader className={`${colors.header} ${colors.text} p-6 pb-4 border-b ${colors.border}`}>
           <div className="flex items-center justify-between">

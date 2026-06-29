@@ -2565,7 +2565,7 @@ export default function RequestDetailsNew() {
         onOpenChange={setBoqOpen}
         title="جداول الكميات (BOQ)"
         color="teal"
-        wide={true}
+        fullScreen={true}
       >
         <BoqTab requestId={requestId} />
       </ColoredDialog>
