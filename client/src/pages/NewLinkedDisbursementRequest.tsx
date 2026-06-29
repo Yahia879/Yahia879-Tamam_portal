@@ -121,8 +121,7 @@ export default function NewLinkedDisbursementRequest() {
   const [, navigate] = useLocation();
 
   const userPermissions = (user as any)?.permissions || [];
-  const isAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const canCreateCustom = isAdmin || userPermissions.includes("disbursements.create_custom");
+  const canCreateCustom = userPermissions.includes("disbursements.create_custom");
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
