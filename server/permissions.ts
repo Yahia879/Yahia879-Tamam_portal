@@ -650,16 +650,34 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // دعم الـ Wildcard (إذا وجد '*')
   if (allPermissions.has("*")) {
+    const excludedAdminPerms = [
+      'requests.manage_as_field_team',
+      'requests.manage_as_quick_response',
+      'requests.upload_final_report'
+    ];
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
-    allAvailablePerms.forEach(p => allPermissions.add(p.id));
+    allAvailablePerms.forEach(p => {
+      if (!excludedAdminPerms.includes(p.id)) {
+        allPermissions.add(p.id);
+      }
+    });
   }
 
   // توسيع الصلاحيات البسيطة إلى صلاحيات دقيقة لجميع الصلاحيات المجمعة
   const permissionsToExpand = Array.from(allPermissions);
+  const excludedAdminPerms = [
+    'requests.manage_as_field_team',
+    'requests.manage_as_quick_response',
+    'requests.upload_final_report'
+  ];
   for (const perm of permissionsToExpand) {
     const expanded = PERMISSION_EXPANSION[perm];
     if (expanded) {
-      expanded.forEach(sub => allPermissions.add(sub));
+      expanded.forEach(sub => {
+        if (!excludedAdminPerms.includes(sub)) {
+          allPermissions.add(sub);
+        }
+      });
     }
   }
 
@@ -1506,20 +1524,29 @@ export const permissionsRouter = router({
 
       const permsSet = new Set<string>();
 
-      // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً
+      // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً (باستثناء الصلاحيات المستبعدة)
       if (roleIds.includes('super_admin') || roleIds.includes('system_admin')) {
+        const excludedAdminPerms = [
+          'requests.manage_as_field_team',
+          'requests.manage_as_quick_response',
+          'requests.upload_final_report'
+        ];
         const allPerms = await db.select({ id: permissions.id }).from(permissions);
         allPerms.forEach(p => {
-          if (p.id !== "appointments.view_own") {
+          if (p.id !== "appointments.view_own" && !excludedAdminPerms.includes(p.id)) {
             permsSet.add(p.id);
           }
         });
         Object.keys(PERMISSION_EXPANSION).forEach(k => {
-          if (k !== "appointments.view_own") {
+          if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
             permsSet.add(k);
           }
         });
-        Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => permsSet.add(s)));
+        Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
+          if (!excludedAdminPerms.includes(s)) {
+            permsSet.add(s);
+          }
+        }));
       }
 
       // إسناد صلاحيات تلقائية للأدوار الأساسية
@@ -1557,10 +1584,19 @@ export const permissionsRouter = router({
 
       // توسيع الصلاحيات البسيطة
       const permsArray = Array.from(permsSet);
+      const excludedAdminPerms = [
+        'requests.manage_as_field_team',
+        'requests.manage_as_quick_response',
+        'requests.upload_final_report'
+      ];
       for (const perm of permsArray) {
         const expanded = PERMISSION_EXPANSION[perm];
         if (expanded) {
-          expanded.forEach(sub => permsSet.add(sub));
+          expanded.forEach(sub => {
+            if (!excludedAdminPerms.includes(sub)) {
+              permsSet.add(sub);
+            }
+          });
         }
       }
 
