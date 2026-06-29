@@ -8,8 +8,7 @@ import { TRPCError } from "@trpc/server";
 import { notifyFieldVisitScheduled } from "./notifications";
 
 export const fieldVisitsRouter = router({
-  // جدولة الزيارة الميدانية
-  scheduleVisit: permissionProcedure("field_visits.view")
+  scheduleVisit: protectedProcedure
     .input(
       z.object({
         requestId: z.number(),
@@ -21,7 +20,19 @@ export const fieldVisitsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      if (ctx.user.role === "field_team") {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const isAllowed = userPerms.includes("field_visits.view") || 
+                        userPerms.includes("appointments_calendar") || 
+                        userPerms.includes("requests.view_details") ||
+                        userPerms.includes("requests.manage_as_field_team") ||
+                        ["super_admin", "system_admin", "projects_office"].includes(ctx.user.role);
+      
+      if (!isAllowed) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لجدولة الزيارة الميدانية" });
+      }
+
+      if (ctx.user.role === "field_team" && !userPerms.includes("requests.view_details")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لجدولة الزيارة الميدانية" });
       }
 
