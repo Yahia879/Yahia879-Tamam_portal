@@ -623,6 +623,7 @@ export const contractsRouter = router({
         clauseValues: z.any().optional(),
         customClausesJson: z.any().optional(),
         signatoryId: z.number().nullable().optional(),
+        templateId: z.number().nullable().optional(),
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),

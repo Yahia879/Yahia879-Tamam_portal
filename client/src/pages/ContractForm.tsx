@@ -659,6 +659,7 @@ export default function ContractForm() {
         id: editContractId,
         contractTitle: contractData.subject,
         signatoryId: contractData.signatoryId,
+        templateId: contractData.templateId || undefined,
         // بيانات الطرف الثاني من المورد
         secondPartyName: selectedSupplier?.name,
         secondPartyCommercialRegister: selectedSupplier?.commercialRegister || undefined,
