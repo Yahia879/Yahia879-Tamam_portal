@@ -637,6 +637,23 @@ export default function ContractPreview() {
                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" style={{ marginRight: '8px' }} />
                   )}
                 </div>
+
+                {/* بيانات العقد الرقم والتاريخ (تظهر فقط إذا كان العقد معتمداً) */}
+                {contract.status === "approved" ? (
+                  <div className="text-center text-[10px] sm:text-xs text-gray-600 space-y-0.5 sm:space-y-1 font-medium bg-gray-50/80 p-2 sm:p-3 rounded-lg border border-gray-100 min-w-[140px] sm:min-w-[180px]">
+                    <div>الرقم: <span className="font-bold text-gray-800">{contract.contractNumber}</span></div>
+                    <div>التاريخ: <span className="text-gray-800">
+                      {(() => {
+                        const rawHijri = (contract.contractDateHijri || toHijriDate(contractDate)).trim();
+                        return rawHijri.endsWith("هـ") || rawHijri.endsWith("ه") ? rawHijri : `${rawHijri} هـ`;
+                      })()}
+                    </span></div>
+                    <div>الموافق: <span className="text-gray-800">{contractDate.toLocaleDateString('ar-SA')} م</span></div>
+                  </div>
+                ) : (
+                  <div className="min-w-[140px] sm:min-w-[180px]"></div>
+                )}
+
                 <div className="flex items-center">
                   <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" style={{ height: 'calc(var(--spacing) * 14)' }} />
                 </div>
