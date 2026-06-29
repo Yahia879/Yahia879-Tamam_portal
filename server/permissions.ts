@@ -504,7 +504,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "boq.delete", moduleId: "boq", action: "delete", nameAr: "حذف البنود", nameEn: "Delete BOQ Items" },
       { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
       { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
-      { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "اضافة طلبات الصرف المخصصة", nameEn: "Create Custom Disbursement Requests" },
+      { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
     ];
 
     for (const p of customPerms) {

@@ -169,7 +169,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       edit: "تعديل طلب الصرف",
       delete: "حذف طلب صرف",
       approve: "اعتماد طلبات الصرف",
-      create_custom: "اضافة طلبات الصرف المخصصة"
+      create_custom: "انشاء طلبات صرف مخصصة"
     },
     disbursement_orders: {
       view: "عرض أوامر الصرف",
@@ -459,6 +459,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل صلاحية إضافة طلبات الصرف المخصصة إلا إذا كانت صلاحيات العرض والإنشاء مفعلة
+    if (permId === "disbursements.create_custom") {
+      if (!selectedPerms.includes("disbursements.view") || !selectedPerms.includes("disbursements.add")) {
+        toast.warning("يجب تفعيل صلاحيتي 'عرض طلبات الصرف' و'إنشاء طلب صرف' أولاً");
+        return;
+      }
+    }
+
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
       
@@ -503,6 +511,10 @@ export default function RoleEdit() {
         }
         if (permId === "financial_approval.view") {
           next = next.filter(id => id !== "financial_approval.approve");
+        }
+        // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف' أو 'إنشاء طلب صرف'، نقوم تلقائياً بإلغاء تفعيل 'انشاء طلبات صرف مخصصة'
+        if (permId === "disbursements.view" || permId === "disbursements.add") {
+          next = next.filter(id => id !== "disbursements.create_custom");
         }
         return next;
       } else {

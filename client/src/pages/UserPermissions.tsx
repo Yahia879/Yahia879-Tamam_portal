@@ -264,6 +264,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل صلاحية إنشاء طلبات صرف مخصصة إلا إذا كانت صلاحيات العرض والإنشاء مفعلة
+    if (permId === "disbursements.create_custom") {
+      if (!isChecked("disbursements.view") || !isChecked("disbursements.add")) {
+        toast.warning("يجب تفعيل صلاحيتي 'عرض طلبات الصرف' و'إنشاء طلب صرف' أولاً");
+        return;
+      }
+    }
+
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
     const newState = !currentState;
@@ -357,6 +365,14 @@ export default function UserPermissions() {
             updated["financial_approval.approve"] = false;
           } else {
             delete updated["financial_approval.approve"];
+          }
+        }
+        if (permId === "disbursements.view" || permId === "disbursements.add") {
+          const defVal = rolePermissions?.includes("disbursements.create_custom") || false;
+          if (defVal) {
+            updated["disbursements.create_custom"] = false;
+          } else {
+            delete updated["disbursements.create_custom"];
           }
         }
       }
@@ -548,7 +564,7 @@ export default function UserPermissions() {
         edit: "تعديل طلب الصرف",
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
-        create_custom: "اضافة طلبات الصرف المخصصة"
+        create_custom: "انشاء طلبات صرف مخصصة"
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
