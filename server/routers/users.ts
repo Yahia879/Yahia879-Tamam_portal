@@ -33,77 +33,126 @@ export const usersRouter = router({
       role: z.string().optional(),
       roles: z.array(z.string()).optional(),
       includeAll: z.boolean().default(false),
+      permission: z.string().optional(),
     }).optional().default({ page: 1, limit: 20, includeAll: false }))
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
-      const { page, limit, search, role, roles: inputRoles, includeAll } = input;
+      const { page, limit, search, role, roles: inputRoles, includeAll, permission } = input;
       const offset = (page - 1) * limit;
 
-      // تصفية المستخدمين
-      let whereClause: any = undefined;
-      
-      if (role) {
-        whereClause = eq(users.role, role as any);
-      } else if (inputRoles && inputRoles.length > 0) {
-        whereClause = inArray(users.role, inputRoles as any[]);
-      } else if (!includeAll) {
-        // الافتراضي هو استبعاد أدوار طالبي الخدمة من القائمة العامة للموظفين
-        const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
-        whereClause = notInArray(users.role, excludedRoles);
-      }
-      
-      if (search) {
-        const searchClause = or(
-          like(users.name, `%${search}%`),
-          like(users.email, `%${search}%`)
-        );
-        whereClause = whereClause ? and(whereClause, searchClause) : searchClause;
-      }
-
-      // جلب العدد الإجمالي
-      const [countResult] = await db
-        .select({ value: count() })
-        .from(users)
-        .where(whereClause);
-      
-      // جلب عدد الحسابات النشطة والموقوفة للإحصائيات (فقط إذا لم نكن نبحث عن دور معين)
+      let items: any[] = [];
+      let totalCount = 0;
       let activeCount = 0;
       let suspendedCount = 0;
-      
-      if (!role) {
-        const [activeResult] = await db
-          .select({ value: count() })
-          .from(users)
-          .where(and(whereClause, eq(users.status, "active")));
-        activeCount = activeResult.value;
 
-        const [suspendedResult] = await db
+      if (permission) {
+        let whereClause: any = eq(users.status, "active");
+        if (role) {
+          whereClause = and(whereClause, eq(users.role, role as any));
+        } else if (!includeAll) {
+          const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
+          whereClause = and(whereClause, notInArray(users.role, excludedRoles));
+        }
+        
+        if (search) {
+          const searchClause = or(
+            like(users.name, `%${search}%`),
+            like(users.email, `%${search}%`)
+          );
+          whereClause = and(whereClause, searchClause);
+        }
+
+        const allActiveStaff = await db.select().from(users).where(whereClause);
+        
+        const { calculateUserPermissions } = await import("../permissions");
+        const matchedUsers = [];
+        for (const u of allActiveStaff) {
+          const userPerms = await calculateUserPermissions(u.id);
+          const hasRole = inputRoles && inputRoles.length > 0 && inputRoles.includes(u.role);
+          if (userPerms.includes(permission) || hasRole) {
+            matchedUsers.push(u);
+          }
+        }
+
+        totalCount = matchedUsers.length;
+        activeCount = totalCount;
+        
+        // Sorting similarly (admins first, then current user, then others)
+        matchedUsers.sort((a, b) => {
+          const getWeight = (u: any) => {
+            if (u.role === 'super_admin') return 0;
+            if (u.role === 'system_admin') return 1;
+            if (u.id === ctx.user.id) return 2;
+            return 3;
+          };
+          const weightDiff = getWeight(a) - getWeight(b);
+          if (weightDiff !== 0) return weightDiff;
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+
+        items = matchedUsers.slice(offset, offset + limit);
+      } else {
+        // تصفية المستخدمين
+        let whereClause: any = undefined;
+        
+        if (role) {
+          whereClause = eq(users.role, role as any);
+        } else if (inputRoles && inputRoles.length > 0) {
+          whereClause = inArray(users.role, inputRoles as any[]);
+        } else if (!includeAll) {
+          // الافتراضي هو استبعاد أدوار طالبي الخدمة من القائمة العامة للموظفين
+          const excludedRoles = ["service_requester", "imam", "muezzin"] as any[];
+          whereClause = notInArray(users.role, excludedRoles);
+        }
+        
+        if (search) {
+          const searchClause = or(
+            like(users.name, `%${search}%`),
+            like(users.email, `%${search}%`)
+          );
+          whereClause = whereClause ? and(whereClause, searchClause) : searchClause;
+        }
+
+        // جلب العدد الإجمالي
+        const [countResult] = await db
           .select({ value: count() })
           .from(users)
-          .where(and(whereClause, eq(users.status, "suspended")));
-        suspendedCount = suspendedResult.value;
+          .where(whereClause);
+        totalCount = countResult.value;
+        
+        if (!role) {
+          const [activeResult] = await db
+            .select({ value: count() })
+            .from(users)
+            .where(and(whereClause, eq(users.status, "active")));
+          activeCount = activeResult.value;
+
+          const [suspendedResult] = await db
+            .select({ value: count() })
+            .from(users)
+            .where(and(whereClause, eq(users.status, "suspended")));
+          suspendedCount = suspendedResult.value;
+        }
+
+        // جلب البيانات مع الترتيب والتقسيم
+        items = await db
+          .select()
+          .from(users)
+          .where(whereClause)
+          .orderBy(
+            sql`CASE 
+              WHEN ${users.role} = 'super_admin' THEN 0
+              WHEN ${users.role} = 'system_admin' THEN 1
+              WHEN ${users.id} = ${ctx.user.id} THEN 2 
+              ELSE 3 
+            END ASC`,
+            desc(users.createdAt)
+          )
+          .limit(limit)
+          .offset(offset);
       }
-      
-      const totalCount = countResult.value;
-
-      // جلب البيانات مع الترتيب والتقسيم
-      const items = await db
-        .select()
-        .from(users)
-        .where(whereClause)
-        .orderBy(
-          sql`CASE 
-            WHEN ${users.role} = 'super_admin' THEN 0
-            WHEN ${users.role} = 'system_admin' THEN 1
-            WHEN ${users.id} = ${ctx.user.id} THEN 2 
-            ELSE 3 
-          END ASC`,
-          desc(users.createdAt)
-        )
-        .limit(limit)
-        .offset(offset);
 
       // جلب الأدوار المخصصة لكل مستخدم (من جدول user_roles مربوطاً بجدول roles)
       const userIds = items.map((u) => u.id);

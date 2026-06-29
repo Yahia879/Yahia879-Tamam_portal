@@ -528,7 +528,8 @@ export default function UserPermissions() {
       },
       projects: {
         view: "عرض المشاريع",
-        view_details: "عرض تفاصيل المشروع وادارته"
+        view_details: "عرض تفاصيل المشروع وادارته",
+        assign_as_manager: "تعيين كمدير للمشاريع"
       },
       requesters: {
         view: "عرض بيانات طالبي الخدمة",
@@ -669,7 +670,7 @@ export default function UserPermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]

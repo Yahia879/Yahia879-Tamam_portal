@@ -262,6 +262,7 @@ export default function RequestDetailsNew() {
   const { data: managersResult } = trpc.users.getAll.useQuery(
     {
       roles: ['project_manager'],
+      permission: 'projects.assign_as_manager',
       limit: 100,
     },
     {
