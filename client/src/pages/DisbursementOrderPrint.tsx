@@ -151,6 +151,9 @@ export default function DisbursementOrderPrint() {
   // حساب جهة التمويل/الدعم
   const resolvedSupportingEntity = customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || project?.fundingSource || "—";
 
+  // اسم المشروع الرئيسي
+  const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
+
   const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
                        customSupplier?.requestType === "sadad_invoice" || 
                        customSupplier?.requestType === "misc_expenses" ||
@@ -290,7 +293,7 @@ export default function DisbursementOrderPrint() {
               </div>
 
               {/* قسم خاص بالمشاريع */}
-              {(project || customSupplier) && (
+              {(project || customSupplier || linkedRequestInfo) && (
                 <div className="mb-4">
                   <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
                     خاص بالمشاريع:
@@ -303,6 +306,15 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
                           {isCustomType ? "—" : (project?.name || customSupplier?.customProjectName || "—")}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-40 border-l border-slate-300 text-slate-700 text-right">
+                          اسم المشروع الرئيسي
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
+                          {resolvedMainProjectName}
                         </td>
                       </tr>
                       
