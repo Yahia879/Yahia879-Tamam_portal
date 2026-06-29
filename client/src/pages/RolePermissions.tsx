@@ -1076,7 +1076,12 @@ export default function RolePermissions() {
 
   // منطق التحقق من الصلاحية
   const isPermissionGranted = (permId: string) => {
-    if (isSuperAdmin) return true;
+    const excludedAdminPerms = [
+      'requests.manage_as_field_team',
+      'requests.manage_as_quick_response',
+      'requests.upload_final_report'
+    ];
+    if (isSuperAdmin && !excludedAdminPerms.includes(permId)) return true;
     return selectedPerms.includes(permId);
   };
 
@@ -1193,7 +1198,14 @@ export default function RolePermissions() {
                       return true;
                     });
                     const activePerms = isSuperAdmin 
-                      ? modulePerms 
+                      ? modulePerms.filter((p: any) => {
+                          const excludedAdminPerms = [
+                            'requests.manage_as_field_team',
+                            'requests.manage_as_quick_response',
+                            'requests.upload_final_report'
+                          ];
+                          return !excludedAdminPerms.includes(p.id);
+                        })
                       : modulePerms.filter((p: any) => selectedPerms.includes(p.id));
                     const grantedCount = activePerms.length; 
 

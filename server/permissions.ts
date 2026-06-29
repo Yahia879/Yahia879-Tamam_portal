@@ -550,15 +550,28 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
 
   // إذا كان المستخدم super_admin أو system_admin، نمنحه جميع الصلاحيات افتراضياً كبداية
   if (userData?.role === 'super_admin' || userData?.role === 'system_admin') {
+    const excludedAdminPerms = [
+      'requests.manage_as_field_team',
+      'requests.manage_as_quick_response',
+      'requests.upload_final_report'
+    ];
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
-    // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own)
-    const expandedSet = new Set(allPerms.map(p => p.id).filter(id => id !== "appointments.view_own"));
+    // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
+    const expandedSet = new Set(
+      allPerms
+        .map(p => p.id)
+        .filter(id => id !== "appointments.view_own" && !excludedAdminPerms.includes(id))
+    );
     Object.keys(PERMISSION_EXPANSION).forEach(k => {
-      if (k !== "appointments.view_own") {
+      if (k !== "appointments.view_own" && !excludedAdminPerms.includes(k)) {
         expandedSet.add(k);
       }
     });
-    Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => expandedSet.add(s)));
+    Object.values(PERMISSION_EXPANSION).forEach(subs => subs.forEach(s => {
+      if (!excludedAdminPerms.includes(s)) {
+        expandedSet.add(s);
+      }
+    }));
     rolePermissionsData.push(...Array.from(expandedSet));
   }
 
