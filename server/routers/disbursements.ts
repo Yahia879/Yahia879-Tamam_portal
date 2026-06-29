@@ -25,21 +25,49 @@ import { createNotification, notifyDisbursementRequestCreation, notifyDisburseme
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
   const currentYear = new Date().getFullYear();
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(disbursementRequests);
-  const sequence = (countResult?.count || 0) + 1;
-  return `DR-${currentYear}-${sequence.toString().padStart(4, "0")}`;
+  const prefix = `DR-${currentYear}-`;
+  
+  const [lastRequest] = await db
+    .select({ requestNumber: disbursementRequests.requestNumber })
+    .from(disbursementRequests)
+    .where(like(disbursementRequests.requestNumber, `${prefix}%`))
+    .orderBy(desc(disbursementRequests.requestNumber))
+    .limit(1);
+    
+  let sequence = 1;
+  if (lastRequest && lastRequest.requestNumber) {
+    const parts = lastRequest.requestNumber.split("-");
+    const lastSeq = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSeq)) {
+      sequence = lastSeq + 1;
+    }
+  }
+  
+  return `${prefix}${sequence.toString().padStart(4, "0")}`;
 }
 
 // توليد رقم أمر صرف
 async function generateDisbursementOrderNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
   const currentYear = new Date().getFullYear();
-  const [countResult] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(disbursementOrders);
-  const sequence = (countResult?.count || 0) + 1;
-  return `DO-${currentYear}-${sequence.toString().padStart(4, "0")}`;
+  const prefix = `DO-${currentYear}-`;
+  
+  const [lastOrder] = await db
+    .select({ orderNumber: disbursementOrders.orderNumber })
+    .from(disbursementOrders)
+    .where(like(disbursementOrders.orderNumber, `${prefix}%`))
+    .orderBy(desc(disbursementOrders.orderNumber))
+    .limit(1);
+    
+  let sequence = 1;
+  if (lastOrder && lastOrder.orderNumber) {
+    const parts = lastOrder.orderNumber.split("-");
+    const lastSeq = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSeq)) {
+      sequence = lastSeq + 1;
+    }
+  }
+  
+  return `${prefix}${sequence.toString().padStart(4, "0")}`;
 }
 
 export const disbursementsRouter = router({
@@ -397,7 +425,10 @@ export const disbursementsRouter = router({
         description: input.description,
         amount: input.amount.toString(),
         paymentType: input.paymentType,
-        dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
+        dateMiladi: input.dateMiladi ? (() => {
+          const d = new Date(input.dateMiladi);
+          return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+        })() : null,
         completionPercentage: input.completionPercentage,
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
         status: "pending",
@@ -567,7 +598,10 @@ export const disbursementsRouter = router({
           amount: input.amount.toString(),
           paymentType: input.paymentType,
           completionPercentage: input.completionPercentage,
-          dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
+          dateMiladi: input.dateMiladi ? (() => {
+            const d = new Date(input.dateMiladi);
+            return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+          })() : null,
           contractPaymentId: validatedContractPaymentId,
           paymentId: validatedPaymentId,
           attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : undefined,

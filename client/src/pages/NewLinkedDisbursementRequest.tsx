@@ -850,28 +850,6 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                {/* الحقول العامة - اسم المشروع الرئيسي */}
-                <div className="border-b border-border/40 pb-4 mb-4">
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
-                    <Select
-                      value={formData.mainProjectName || ""}
-                      onValueChange={(value) => setFormData({ ...formData, mainProjectName: value })}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                        <SelectValue placeholder="اختر اسم المشروع الرئيسي" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {mainProjectsData?.values?.map((val: any) => (
-                          <SelectItem key={val.id} value={val.valueAr} className="text-right">
-                            {val.valueAr}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
                 {/* خيار نوع طلب الصرف كقائمة منسدلة */}
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف *</Label>
@@ -893,6 +871,28 @@ export default function NewLinkedDisbursementRequest() {
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* الحقول العامة - اسم المشروع الرئيسي */}
+                <div className="border-b border-border/40 pb-4 mb-4">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
+                    <Select
+                      value={formData.mainProjectName || ""}
+                      onValueChange={(value) => setFormData({ ...formData, mainProjectName: value })}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر اسم المشروع الرئيسي" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {mainProjectsData?.values?.map((val: any) => (
+                          <SelectItem key={val.id} value={val.valueAr} className="text-right">
+                            {val.valueAr}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* حقل التمويل / الدعم يظهر ديناميكياً تحت نوع طلب الصرف */}
