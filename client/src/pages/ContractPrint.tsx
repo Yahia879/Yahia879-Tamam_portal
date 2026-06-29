@@ -281,18 +281,18 @@ export default function ContractPrint() {
               <div className="flex items-center gap-4">
                 {/* شعار الجمعية */}
                 {orgSettings?.logoUrl && (
-                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" />
+                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" style={{ marginRight: '8px' }} />
                 )}
               </div>
               <div className="flex items-center">
-                <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" className="h-8 sm:h-10" />
+                <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" style={{ height: 'calc(var(--spacing) * 14)' }} />
               </div>
             </div>
 
             {/* عنوان العقد */}
             <div 
               className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
-              style={{ backgroundColor: '#5d4037', color: '#faf8f5' }}
+              style={{ backgroundColor: '#ae9b63', color: '#faf8f5' }}
             >
               <h1 className="text-lg sm:text-xl font-bold">
                 عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
