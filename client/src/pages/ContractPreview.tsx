@@ -607,11 +607,11 @@ export default function ContractPreview() {
                 <div className="flex items-center gap-4">
                   {/* شعار الجمعية */}
                   {orgSettings?.logoUrl && (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 sm:h-16" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20" />
                   )}
                 </div>
                 <div className="flex items-center">
-                  <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" className="h-12 sm:h-16" />
+                  <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" className="h-8 sm:h-10" />
                 </div>
               </div>
 
