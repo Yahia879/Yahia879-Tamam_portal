@@ -603,16 +603,15 @@ export default function ContractPreview() {
           >
             {/* الصفحة الأولى */}
             <div className="p-4 sm:p-8 md:p-12 lg:p-16 print:p-6" style={{ minHeight: '297mm', position: 'relative' }}>
-              {/* رأس الصفحة */}
-              <div className="flex flex-row items-start justify-between mb-6">
+              <div className="flex flex-row items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   {/* شعار الجمعية */}
                   {orgSettings?.logoUrl && (
                     <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-12 sm:h-16" />
                   )}
                 </div>
-                <div className="text-right">
-                  {/* تم إزالة رقم الترخيص من هنا */}
+                <div className="flex items-center">
+                  <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" className="h-12 sm:h-16" />
                 </div>
               </div>
 

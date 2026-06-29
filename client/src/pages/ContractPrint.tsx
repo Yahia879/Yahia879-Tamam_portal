@@ -277,16 +277,15 @@ export default function ContractPrint() {
       <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-12 print:p-0 min-h-[297mm] relative flex flex-col justify-between">
         <div className="p-4 sm:p-8 print:p-4 relative min-h-[285mm] flex flex-col justify-between">
           <div>
-            {/* رأس الصفحة */}
-            <div className="flex flex-row items-start justify-between mb-6">
+            <div className="flex flex-row items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 {/* شعار الجمعية */}
                 {orgSettings?.logoUrl && (
                   <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16" />
                 )}
               </div>
-              <div className="text-right">
-                {/* رأس فارغ لأجل الهوامش */}
+              <div className="flex items-center">
+                <img src="/assets/image-removebg-preview (1).png" alt="شعار إضافي" className="h-14 sm:h-16" />
               </div>
             </div>
 
