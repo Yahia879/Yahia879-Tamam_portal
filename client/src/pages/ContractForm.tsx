@@ -653,10 +653,13 @@ export default function ContractForm() {
     
     setIsSubmitting(true);
     
+    const selectedTemplate = templatesData?.find((t: any) => t.id === contractData.templateId);
+
     // في وضع التعديل
     if (isEditMode && editContractId) {
       updateMutation.mutate({
         id: editContractId,
+        contractType: selectedTemplate?.type || undefined,
         contractTitle: contractData.subject,
         signatoryId: contractData.signatoryId,
         templateId: contractData.templateId || undefined,
@@ -682,7 +685,7 @@ export default function ContractForm() {
         // جدول الدفعات
         paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
         // بنود العقد المخصصة
-        clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
+        clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
         customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
         // بيانات الدعم والتمويل
         supportingEntity: JSON.stringify(supportSources),
@@ -699,7 +702,6 @@ export default function ContractForm() {
       return;
     }
 
-    const selectedTemplate = templatesData?.find((t: any) => t.id === contractData.templateId);
     
     createMutation.mutate({
       contractType: selectedTemplate?.type || "supply",
