@@ -237,14 +237,20 @@ export const fieldVisitsRouter = router({
       return { success: true, visitId: visits[0].id };
     }),
 
-  // جلب بيانات الزيارة
-  getVisit: permissionProcedure("field_visits.view")
+  getVisit: protectedProcedure
     .input(
       z.object({
         requestId: z.number(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasViewPerm = userPerms.includes("field_visits.view") || userPerms.includes("requests.manage_as_field_team");
+      if (!hasViewPerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض الزيارة الميدانية" });
+      }
+
       const { requestId } = input;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });

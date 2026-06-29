@@ -155,20 +155,21 @@ export default function FieldInspectionForm() {
     { enabled: requestId > 0 }
   );
 
-  // ملء اسم المسؤول تلقائياً عند تحميل بيانات الزيارة
+  // ملء اسم المسؤول تلقائياً عند تحميل بيانات الزيارة أو بشكل افتراضي
   useEffect(() => {
     if (fieldVisitData && !formData.teamMember1) {
       // استخدام اسم المسؤول المعين من قاعدة البيانات
       const assignedName = (fieldVisitData as any).assignedUserName;
       if (assignedName) {
         setFormData(prev => ({ ...prev, teamMember1: assignedName }));
-      } else if (fieldVisitData.assignedTo === user?.id && user?.name) {
-        // إذا كان المستخدم الحالي هو المسؤول
-        setFormData(prev => ({ ...prev, teamMember1: user.name || '' }));
+      } else if (user?.name) {
+        setFormData(prev => ({ ...prev, teamMember1: user.name }));
       }
+    } else if (!fieldVisitData && user?.name && !formData.teamMember1) {
+      setFormData(prev => ({ ...prev, teamMember1: user.name }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fieldVisitData, user?.id]);
+  }, [fieldVisitData, user]);
 
   // mutation لرفع المرفقات
   const uploadAttachments = trpc.storage.uploadMultipleAttachments.useMutation();
@@ -193,7 +194,8 @@ export default function FieldInspectionForm() {
       } else {
         const userPermissions = (user as any)?.permissions ?? [];
         const hasIntervenePerm = userPermissions.includes("pending_reports.intervene");
-        if (user?.role !== 'field_team' && !['super_admin', 'system_admin'].includes(user?.role || "") && !hasIntervenePerm) {
+        const hasFieldTeamPerm = userPermissions.includes("requests.manage_as_field_team");
+        if (user?.role !== 'field_team' && !hasFieldTeamPerm && !['super_admin', 'system_admin'].includes(user?.role || "") && !hasIntervenePerm) {
           toast.error("ليس لديك صلاحية لرفع تقرير الزيارة الميدانية");
           navigate(`/requests/${requestId}`);
         }
