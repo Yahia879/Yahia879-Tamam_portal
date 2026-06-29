@@ -199,7 +199,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/requests\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report", "pending_reports.intervene"] },
 
   // الزيارات الميدانية
-  { pattern: /^\/field-visits\/schedule\/\d+$/, permission: "appointments_calendar" },
+  { pattern: /^\/field-visits\/schedule\/\d+$/, permission: ["appointments_calendar", "requests.view_details"] },
   { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع

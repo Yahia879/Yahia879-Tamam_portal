@@ -301,20 +301,6 @@ export default function UserPermissions() {
           } else {
             delete updated["appointments.view_all"];
           }
-        } else if (permId === "requests.view_details") {
-          const defaultQR = rolePermissions?.includes("requests.manage_as_quick_response") || false;
-          if (defaultQR) {
-            updated["requests.manage_as_quick_response"] = false;
-          } else {
-            delete updated["requests.manage_as_quick_response"];
-          }
-        } else if (permId === "requests.manage_as_quick_response") {
-          const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
-          if (defaultDetails) {
-            updated["requests.view_details"] = false;
-          } else {
-            delete updated["requests.view_details"];
-          }
         }
       }
 

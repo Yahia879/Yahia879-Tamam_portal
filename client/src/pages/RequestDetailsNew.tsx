@@ -747,22 +747,26 @@ export default function RequestDetailsNew() {
     ? request.quickReports[request.quickReports.length - 1]
     : null;
 
+  const canPerformQuickResponse = (user?.role as string) === 'quick_response' || userPermissions.includes("requests.manage_as_quick_response");
+
   // Override active action for quick_response user if they have submitted the report (regardless of currentStage)
-  if (isQuickResponseUser && latestQuickReport) {
-    activeAction = {
-      stage: request.currentStage,
-      title: 'تم تقديم تقرير الاستجابة السريعة',
-      description: 'تم تقديم ورفع تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.',
-      icon: 'Zap',
-      iconColor: 'text-emerald-600',
-      actionButton: {
-        label: 'عرض تقرير الاستجابة السريعة',
-        openModal: 'quick_response_report',
-      },
-      allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
-      canPerformAction: true,
-    };
-  } else if (isQuickResponseUser) {
+  if (canPerformQuickResponse && latestQuickReport) {
+    if (!hasViewDetailsPermission) {
+      activeAction = {
+        stage: request.currentStage,
+        title: 'تم تقديم تقرير الاستجابة السريعة',
+        description: 'تم تقديم ورفع تقرير الاستجابة السريعة بنجاح. يمكنك استعراض التفاصيل بالضغط على الزر أدناه.',
+        icon: 'Zap',
+        iconColor: 'text-emerald-600',
+        actionButton: {
+          label: 'عرض تقرير الاستجابة السريعة',
+          openModal: 'quick_response_report',
+        },
+        allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
+        canPerformAction: true,
+      };
+    }
+  } else if (canPerformQuickResponse) {
     // If they haven't submitted the report yet, they can only do it if the request is in execution stage and has quick_response track
     if (request.currentStage === 'execution' && request.requestTrack === 'quick_response') {
       activeAction = {
@@ -778,8 +782,8 @@ export default function RequestDetailsNew() {
         allowedRoles: ['quick_response', 'requests.manage_as_quick_response'],
         canPerformAction: true,
       };
-    } else {
-      // In any other stage/track, they cannot perform any action
+    } else if (!hasViewDetailsPermission) {
+      // In any other stage/track, they cannot perform any action (only if not admin/PM)
       activeAction = {
         stage: request.currentStage,
         title: 'بانتظار الإجراء الفني',
