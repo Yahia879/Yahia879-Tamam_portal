@@ -264,6 +264,7 @@ export default function ContractPreview() {
   const approveMutation = trpc.contracts.approve.useMutation({
     onSuccess: () => {
       toast.success("تم اعتماد العقد بنجاح");
+      refetch();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ");
@@ -578,6 +579,32 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+            {contract.status === "draft" && (
+              <>
+                <Button
+                  onClick={() => approveMutation.mutate({ id: contractId! })}
+                  disabled={approveMutation.isPending}
+                  className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+                >
+                  {approveMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4 ml-2" />
+                  )}
+                  تأكيد واعتماد العقد
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                  className="flex-1 sm:flex-none border-amber-600 text-amber-600 hover:bg-amber-50"
+                >
+                  <Edit className="h-4 w-4 ml-2" />
+                  تعديل معلومات العقد
+                </Button>
+              </>
+            )}
+
             <Button 
               onClick={handlePrint} 
               className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white"
