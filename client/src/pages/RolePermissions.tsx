@@ -300,9 +300,7 @@ export default function RolePermissions() {
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
         } else if (permId === "requests.view_details") {
-          next = next.filter(id => id !== "requests.manage_as_field_team" && id !== "requests.manage_as_quick_response");
-        } else if (permId === "requests.manage_as_field_team") {
-          next = next.filter(id => id !== "requests.view_details");
+          next = next.filter(id => id !== "requests.manage_as_quick_response");
         } else if (permId === "requests.manage_as_quick_response") {
           next = next.filter(id => id !== "requests.view_details");
         }
@@ -323,9 +321,6 @@ export default function RolePermissions() {
         if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
           added = added.filter(id => id !== "appointments.view_own");
         }
-        if (added.includes("requests.view_details") && added.includes("requests.manage_as_field_team")) {
-          added = added.filter(id => id !== "requests.manage_as_field_team");
-        }
         if (added.includes("requests.view_details") && added.includes("requests.manage_as_quick_response")) {
           added = added.filter(id => id !== "requests.manage_as_quick_response");
         }
@@ -336,9 +331,7 @@ export default function RolePermissions() {
           next = next.filter(id => id !== "appointments.view_all");
         }
         if (added.includes("requests.view_details")) {
-          next = next.filter(id => id !== "requests.manage_as_field_team" && id !== "requests.manage_as_quick_response");
-        } else if (added.includes("requests.manage_as_field_team")) {
-          next = next.filter(id => id !== "requests.view_details");
+          next = next.filter(id => id !== "requests.manage_as_quick_response");
         } else if (added.includes("requests.manage_as_quick_response")) {
           next = next.filter(id => id !== "requests.view_details");
         }

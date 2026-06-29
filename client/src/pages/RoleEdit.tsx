@@ -524,10 +524,7 @@ export default function RoleEdit() {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
-        } else if (permId === "requests.view_details") {
-          next = next.filter(id => id !== "requests.manage_as_field_team");
-        } else if (permId === "requests.manage_as_field_team") {
-          next = next.filter(id => id !== "requests.view_details");
+
         }
         return next;
       }
@@ -545,19 +542,11 @@ export default function RoleEdit() {
         if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
           added = added.filter(id => id !== "appointments.view_own");
         }
-        if (added.includes("requests.view_details") && added.includes("requests.manage_as_field_team")) {
-          added = added.filter(id => id !== "requests.manage_as_field_team");
-        }
         let next = [...prev, ...added];
         if (added.includes("appointments.view_all")) {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (added.includes("appointments.view_own")) {
           next = next.filter(id => id !== "appointments.view_all");
-        }
-        if (added.includes("requests.view_details")) {
-          next = next.filter(id => id !== "requests.manage_as_field_team");
-        } else if (added.includes("requests.manage_as_field_team")) {
-          next = next.filter(id => id !== "requests.view_details");
         }
         return next;
       });

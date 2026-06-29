@@ -302,24 +302,11 @@ export default function UserPermissions() {
             delete updated["appointments.view_all"];
           }
         } else if (permId === "requests.view_details") {
-          const defaultField = rolePermissions?.includes("requests.manage_as_field_team") || false;
           const defaultQR = rolePermissions?.includes("requests.manage_as_quick_response") || false;
-          if (defaultField) {
-            updated["requests.manage_as_field_team"] = false;
-          } else {
-            delete updated["requests.manage_as_field_team"];
-          }
           if (defaultQR) {
             updated["requests.manage_as_quick_response"] = false;
           } else {
             delete updated["requests.manage_as_quick_response"];
-          }
-        } else if (permId === "requests.manage_as_field_team") {
-          const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
-          if (defaultDetails) {
-            updated["requests.view_details"] = false;
-          } else {
-            delete updated["requests.view_details"];
           }
         } else if (permId === "requests.manage_as_quick_response") {
           const defaultDetails = rolePermissions?.includes("requests.view_details") || false;
