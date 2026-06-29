@@ -474,7 +474,17 @@ export const usersRouter = router({
       .from(users)
       .leftJoin(userRoleAssignments, eq(users.id, userRoleAssignments.userId))
       .where(eq(users.status, "active"));
-    return staffUsers.filter(user => user.role !== "service_requester");
+    const filteredStaff = staffUsers.filter(user => user.role !== "service_requester" && user.role !== "imam" && user.role !== "muezzin");
+    const { calculateUserPermissions } = await import("../permissions");
+    const enrichedStaff = [];
+    for (const user of filteredStaff) {
+      const perms = await calculateUserPermissions(user.id);
+      enrichedStaff.push({
+        ...user,
+        permissions: perms
+      });
+    }
+    return enrichedStaff;
   }),
 
   // تحديث حالة استقبال إشعارات المستفيدين لمستخدم

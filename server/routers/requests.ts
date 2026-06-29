@@ -422,6 +422,7 @@ export const requestsRouter = router({
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
       const hasViewDetailsPermission = userPermissions.includes("requests.view_details");
+      const isFieldTeam = ctx.user.role === "field_team" || userPermissions.includes("requests.manage_as_field_team");
 
       const conditions = [];
 
@@ -436,7 +437,7 @@ export const requestsRouter = router({
         }
 
         // الفريق الميداني يرى الطلبات المسندة إليه فقط (سواء كمسؤول عام أو مسؤول زيارة ميدانية)
-        if (ctx.user.role === "field_team") {
+        if (isFieldTeam) {
           conditions.push(
             or(
               eq(mosqueRequests.assignedTo, ctx.user.id),
@@ -474,14 +475,14 @@ export const requestsRouter = router({
       }
       if (input.currentStage) {
         // إذا كان المستخدم من الفريق الميداني وطلب مرحلة الزيارة الميدانية، لا نفلتر بها لكي لا تختفي طلباته بعد رفع التقرير
-        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.currentStage === "field_visit") {
+        if (isFieldTeam && !hasViewDetailsPermission && input.currentStage === "field_visit") {
           // لا تفعل شيئاً
         } else {
           conditions.push(eq(mosqueRequests.currentStage, input.currentStage));
         }
       }
       if (input.status) {
-        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.status === "completed") {
+        if (isFieldTeam && !hasViewDetailsPermission && input.status === "completed") {
           const postStages = ["technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"] as const;
           conditions.push(
             or(
@@ -489,7 +490,7 @@ export const requestsRouter = router({
               and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, postStages))
             )
           );
-        } else if (ctx.user.role === "field_team" && !hasViewDetailsPermission && input.status === "in_progress") {
+        } else if (isFieldTeam && !hasViewDetailsPermission && input.status === "in_progress") {
           const preStages = ["submitted", "initial_review", "field_visit"] as const;
           conditions.push(
             and(eq(mosqueRequests.status, "in_progress"), inArray(mosqueRequests.currentStage, preStages))
@@ -576,7 +577,7 @@ export const requestsRouter = router({
       
       for (const s of statsResult) {
         let effectiveStatus = s.status || 'unknown';
-        if (ctx.user.role === "field_team" && !hasViewDetailsPermission && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
+        if (isFieldTeam && !hasViewDetailsPermission && s.status === "in_progress" && postStages.includes(s.currentStage as string)) {
           effectiveStatus = "completed";
         } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
           effectiveStatus = s.hasReport ? "completed" : "in_progress";
@@ -589,7 +590,7 @@ export const requestsRouter = router({
       return {
         requests: results.map(r => {
           let effectiveStatus = r.request.status;
-          if (ctx.user.role === "field_team" && !hasViewDetailsPermission && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
+          if (isFieldTeam && !hasViewDetailsPermission && effectiveStatus === "in_progress" && postStages.includes(r.request.currentStage as string)) {
             effectiveStatus = "completed" as any;
           } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
             effectiveStatus = r.hasQuickReport ? "completed" as any : "in_progress" as any;
@@ -1407,8 +1408,9 @@ export const requestsRouter = router({
       programData: z.record(z.string(), z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const hasFieldTeamPerm = await checkPermission(ctx.user.id, "requests.manage_as_field_team");
       const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
-      if (ctx.user.role !== "field_team" && !["super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
+      if (ctx.user.role !== "field_team" && !hasFieldTeamPerm && !["super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير ميدانية" });
       }
 
@@ -2013,7 +2015,10 @@ export const requestsRouter = router({
       contactPhone: z.string().optional(), // رقم جوال الشخص
     }))
     .mutation(async ({ input, ctx }) => {
-      if (!["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role)) {
+      const hasCalendarPerm = await checkPermission(ctx.user.id, "appointments_calendar");
+      const hasFieldTeamPerm = await checkPermission(ctx.user.id, "requests.manage_as_field_team");
+      const isAllowed = ["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) || hasCalendarPerm || hasFieldTeamPerm;
+      if (!isAllowed) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية جدولة الزيارات الميدانية" });
       }
 
@@ -2073,7 +2078,8 @@ export const requestsRouter = router({
     }))
     .query(async ({ input, ctx }) => {
       const hasCalendarPerm = await checkPermission(ctx.user.id, "appointments_calendar");
-      const isDefaultAllowedRole = ["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role);
+      const hasFieldTeamPerm = await checkPermission(ctx.user.id, "requests.manage_as_field_team");
+      const isDefaultAllowedRole = ["field_team", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) || hasFieldTeamPerm;
       if (!isDefaultAllowedRole && !hasCalendarPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض تقويم الزيارات" });
       }
