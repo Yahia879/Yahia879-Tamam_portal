@@ -1529,8 +1529,10 @@ export const requestsRouter = router({
       status: z.enum(['partially_solved', 'fully_solved', 'not_solved']).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      const hasQRPerm = await checkPermission(ctx.user.id, "requests.manage_as_quick_response");
       const hasIntervenePerm = await checkPermission(ctx.user.id, "pending_reports.intervene");
-      if (!["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) && !hasIntervenePerm) {
+      const isAllowed = ["quick_response", "projects_office", "super_admin", "system_admin"].includes(ctx.user.role) || hasQRPerm || hasIntervenePerm;
+      if (!isAllowed) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة تقارير الاستجابة السريعة" });
       }
 
