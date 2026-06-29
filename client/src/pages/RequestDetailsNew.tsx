@@ -693,7 +693,7 @@ export default function RequestDetailsNew() {
           label: 'رفع التقرير',
           redirectUrl: '/field-visits/report/:requestId',
         },
-        canPerformAction: isFieldTeam,
+        canPerformAction: isFieldTeam || userPermissions.includes("requests.manage_as_field_team") || user?.role === 'field_team',
       };
     } else {
       if (isFieldTeam) {
