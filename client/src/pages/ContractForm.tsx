@@ -387,7 +387,7 @@ export default function ContractForm() {
 
   // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
-    if (approvedSupplierQuotation) {
+    if (approvedSupplierQuotation && !isEditMode) {
       // المبلغ الأصلي من المورد
       const originalAmount = parseFloat(approvedSupplierQuotation.totalAmount) || 0;
       
@@ -421,7 +421,7 @@ export default function ContractForm() {
 
   // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
-    if (requestDetails) {
+    if (requestDetails && !isEditMode) {
       const updates: any = {};
       
       // ربط المشروع
