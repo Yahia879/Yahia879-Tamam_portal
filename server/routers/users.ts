@@ -25,7 +25,7 @@ const STAFF_ROLES = [
 
 export const usersRouter = router({
   // Get paginated users (staff only by default)
-  getAll: permissionProcedure("users.view")
+  getAll: protectedProcedure
     .input(z.object({
       page: z.number().default(1),
       limit: z.number().default(20),
@@ -36,6 +36,15 @@ export const usersRouter = router({
       permission: z.string().optional(),
     }).optional().default({ page: 1, limit: 20, includeAll: false }))
     .query(async ({ input, ctx }) => {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasUsersView = userPermissions.includes("users.view");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!hasUsersView && !isAdmin && ctx.user.role === "service_requester") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية عرض المستخدمين" });
+      }
+
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
