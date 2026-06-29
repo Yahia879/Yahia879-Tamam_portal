@@ -328,13 +328,13 @@ export default function DisbursementOrderPrint() {
                       </tr>
                       
                       <tr className="border-b border-slate-300">
-                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة الدعم
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
                           {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.fundingAmount.toLocaleString()} ريال` : "—")}
                         </td>
-                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة العقد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
@@ -343,13 +343,13 @@ export default function DisbursementOrderPrint() {
                       </tr>
 
                       <tr>
-                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي ما تم دفعه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
                           {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.totalPaid.toLocaleString()} ريال` : "—")}
                         </td>
-                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-center w-1/4 border-l border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           المبلغ المتبقي بعد صرف المبلغ أعلاه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
