@@ -38,9 +38,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
   ({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
     const { user } = useAuth();
     const userPermissions = (user as any)?.permissions ?? [];
-    const canAdd = userPermissions.includes("boq.add");
-    const canEdit = userPermissions.includes("boq.edit");
-    const canDelete = userPermissions.includes("boq.delete");
+    const hasViewDetails = userPermissions.includes("requests.view_details") || ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
+    const canAdd = userPermissions.includes("boq.add") || hasViewDetails;
+    const canEdit = userPermissions.includes("boq.edit") || hasViewDetails;
+    const canDelete = userPermissions.includes("boq.delete") || hasViewDetails;
 
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
