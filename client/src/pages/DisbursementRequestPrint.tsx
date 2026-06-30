@@ -436,21 +436,40 @@ export default function DisbursementRequestPrint() {
               {/* المعلومات البنكية للمورد */}
               <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
                 <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
-                  المعلومات البنكية للمورد
+                  {customSupplier?.requestType === "sadad_invoice" ? "تفاصيل نظام سداد" : "المعلومات البنكية للمورد"}
                 </div>
                 <div className="flex flex-col text-xs sm:text-sm">
-                  <div className="flex border-b border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{resolvedSupplierAccountName}</span>
-                  </div>
-                  <div className="flex border-b border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupplierBankName}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان:</span>
-                    <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{resolvedSupplierIban}</span>
-                  </div>
+                  {customSupplier?.requestType === "sadad_invoice" ? (
+                    <>
+                      <div className="flex border-b border-gray-200">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">المفوتر:</span>
+                        <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{customSupplier?.billerName || "—"}</span>
+                      </div>
+                      <div className="flex border-b border-gray-200">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">رمز المفوتر:</span>
+                        <span className="p-2.5 text-gray-800 font-bold flex-1 font-mono">{customSupplier?.billerCode || "—"}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم سداد:</span>
+                        <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{customSupplier?.sadadNumber || "—"}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex border-b border-gray-200">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
+                        <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{resolvedSupplierAccountName}</span>
+                      </div>
+                      <div className="flex border-b border-gray-200">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
+                        <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupplierBankName}</span>
+                      </div>
+                      <div className="flex">
+                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان:</span>
+                        <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{resolvedSupplierIban}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
