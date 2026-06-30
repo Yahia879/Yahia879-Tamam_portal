@@ -477,7 +477,7 @@ export default function DisbursementRequestPrint() {
 
             {/* 7. التوقيعات والاعتماد */}
             <div className="break-inside-avoid pt-4">
-              <div className="grid grid-cols-3 gap-6 text-center">
+              <div className="grid grid-cols-2 gap-6 text-center">
                 {/* معد الطلب */}
                 <div className="p-2">
                   <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
@@ -486,17 +486,6 @@ export default function DisbursementRequestPrint() {
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
                     <div className="text-gray-900 font-bold">{request?.requestedBySignatureName || request?.requestedByName || "—"}</div>
-                  </div>
-                </div>
-
-                {/* الاتصال المؤسسي */}
-                <div className="p-2">
-                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
-                    الاتصال المؤسسي
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.csrManagerName || "—"}</div>
                   </div>
                 </div>
 
