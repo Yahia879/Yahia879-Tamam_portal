@@ -332,7 +332,10 @@ export default function DisbursementRequests() {
   // التحقق من الصلاحيات
   const hasApprovePermission = usePermission("disbursements.approve");
   const hasEditPermission = usePermission("disbursements.edit");
+  const hasAddPermission = usePermission("disbursements.add");
+  const hasCreateCustomPermission = usePermission("disbursements.create_custom");
   const canCreateRequest = hasEditPermission;
+  const canCreateDisbursement = hasAddPermission || hasCreateCustomPermission;
   const canApproveRequest = hasApprovePermission;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
@@ -506,15 +509,17 @@ export default function DisbursementRequests() {
             <h1 className="text-2xl font-bold">طلبات الصرف</h1>
             <p className="text-muted-foreground">إدارة طلبات الصرف المالية للمشاريع</p>
           </div>
-          <div className="w-full sm:w-auto flex justify-end">
-            <Button 
-              onClick={() => navigate("/disbursements/new-linked")}
-              className="w-full sm:w-auto gradient-primary text-white font-bold"
-            >
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة طلب صرف
-            </Button>
-          </div>
+          {canCreateDisbursement && (
+            <div className="w-full sm:w-auto flex justify-end">
+              <Button 
+                onClick={() => navigate("/disbursements/new-linked")}
+                className="w-full sm:w-auto gradient-primary text-white font-bold"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة طلب صرف
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* بطاقات الإحصائيات */}

@@ -356,7 +356,10 @@ export const disbursementsRouter = router({
       // التحقق من الصلاحيات
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء طلب صرف" });
+        }
       }
 
       let projectId = input.projectId;
@@ -537,7 +540,10 @@ export const disbursementsRouter = router({
       // التحقق من الصلاحيات
       const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل طلب صرف" });
+        }
       }
 
       const [request] = await db
@@ -673,7 +679,10 @@ export const disbursementsRouter = router({
       // التحقق من الصلاحيات
       const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.approve");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف" });
+        }
       }
 
       const [request] = await db
@@ -799,7 +808,10 @@ export const disbursementsRouter = router({
 
       const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض طلب الصرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.approve");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض طلب الصرف" });
+        }
       }
 
       const [request] = await db
@@ -1145,7 +1157,10 @@ export const disbursementsRouter = router({
       // التحقق من الصلاحيات
       const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء أمر صرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء أمر صرف" });
+        }
       }
 
       // التحقق من طلب الصرف
@@ -1442,7 +1457,10 @@ export const disbursementsRouter = router({
 
       const allowedRoles = ["super_admin", "system_admin", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تنفيذ أمر الصرف" });
+        const hasPerm = await checkPermission(ctx.user.id, "disbursements.create");
+        if (!hasPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تنفيذ أمر الصرف" });
+        }
       }
 
       const [order] = await db

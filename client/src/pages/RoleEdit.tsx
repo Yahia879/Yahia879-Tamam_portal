@@ -461,10 +461,10 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل صلاحية إضافة طلبات الصرف المخصصة إلا إذا كانت صلاحيات العرض والإنشاء مفعلة
+    // منع تفعيل صلاحية إضافة طلبات الصرف المخصصة إلا إذا كانت صلاحية العرض مفعلة
     if (permId === "disbursements.create_custom") {
-      if (!selectedPerms.includes("disbursements.view") || !selectedPerms.includes("disbursements.add")) {
-        toast.warning("يجب تفعيل صلاحيتي 'عرض طلبات الصرف' و'إنشاء طلب صرف' أولاً");
+      if (!selectedPerms.includes("disbursements.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
         return;
       }
     }
@@ -534,10 +534,7 @@ export default function RoleEdit() {
         if (permId === "disbursements.view") {
           next = next.filter(id => !id.startsWith("disbursements."));
         }
-        // عند إلغاء تفعيل صلاحية 'إنشاء طلب صرف'، نقوم تلقائياً بإلغاء تفعيل 'انشاء طلبات صرف مخصصة'
-        if (permId === "disbursements.add") {
-          next = next.filter(id => id !== "disbursements.create_custom");
-        }
+
         // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما مفعلة
         if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
           const remainingAdd = permId === "disbursements.add" ? false : next.includes("disbursements.add");

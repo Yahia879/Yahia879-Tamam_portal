@@ -121,6 +121,7 @@ export default function NewLinkedDisbursementRequest() {
   const [, navigate] = useLocation();
 
   const userPermissions = (user as any)?.permissions || [];
+  const canCreateStandard = userPermissions.includes("disbursements.add");
   const canCreateCustom = userPermissions.includes("disbursements.create_custom");
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
@@ -140,16 +141,25 @@ export default function NewLinkedDisbursementRequest() {
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
   const [requestType, setRequestType] = useState<string>(() => {
-    const val = savedState?.requestType ?? "project_linked";
-    if (val !== "project_linked" && !canCreateCustom) {
-      return "project_linked";
+    if (savedState?.requestType) {
+      const val = savedState.requestType;
+      if (val === "project_linked" && !canCreateStandard) {
+        return "supplier_one_time";
+      }
+      if (val !== "project_linked" && !canCreateCustom) {
+        return "project_linked";
+      }
+      return val;
     }
-    return val;
+    return canCreateStandard ? "project_linked" : "supplier_one_time";
   });
   const [isCustom, setIsCustom] = useState(() => {
-    const val = savedState?.isCustom ?? false;
+    const val = savedState?.isCustom ?? (!canCreateStandard);
     if (val && !canCreateCustom) {
       return false;
+    }
+    if (!val && !canCreateStandard) {
+      return true;
     }
     return val;
   });
@@ -861,7 +871,9 @@ export default function NewLinkedDisbursementRequest() {
                       <SelectValue placeholder="اختر نوع طلب الصرف" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
+                      {canCreateStandard && (
+                        <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
+                      )}
                       {canCreateCustom && (
                         <>
                           <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
