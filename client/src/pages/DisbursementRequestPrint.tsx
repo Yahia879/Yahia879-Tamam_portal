@@ -200,6 +200,7 @@ export default function DisbursementRequestPrint() {
   const resolvedSupplierAccountName = customSupplier?.name || contract?.secondPartyAccountName || contract?.secondPartyName || "—";
   const resolvedSupplierIban = customSupplier?.iban || contract?.secondPartyIban || "—";
   const resolvedSupplierBankName = customSupplier?.bank || contract?.secondPartyBankName || "—";
+  const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
 
   const requestDate = new Date(request.requestedAt || new Date());
 
@@ -325,9 +326,6 @@ export default function DisbursementRequestPrint() {
 
               {/* 2. خاص بدعم المؤسسات المانحة والمسؤولية المجتمعية */}
               <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
-                  خاص بدعم المؤسسات المانحة والمسؤولية المجتمعية
-                </div>
                 <div className="grid grid-cols-2 text-xs sm:text-sm">
                   <div className="flex border-l border-gray-200">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الجهة الداعمة:</span>
@@ -345,12 +343,16 @@ export default function DisbursementRequestPrint() {
               {/* 3. معلومات المشروع */}
               <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
                 <div className="grid grid-cols-2 text-xs sm:text-sm">
-                  <div className="flex border-l border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم المشروع:</span>
+                  <div className="flex border-l border-b border-gray-200">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">المشروع الرئيسي:</span>
+                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedMainProjectName}</span>
+                  </div>
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">اسم المشروع:</span>
                     <span className="p-2.5 text-gray-800 font-bold flex-1">{project?.name || "—"}</span>
                   </div>
-                  <div className="flex">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">عنوان المشروع:</span>
+                  <div className="flex col-span-2">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">عنوان المشروع:</span>
                     <span className="p-2.5 text-gray-800 font-bold flex-1">{projectAddress}</span>
                   </div>
                 </div>
@@ -429,6 +431,27 @@ export default function DisbursementRequestPrint() {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* المعلومات البنكية للمورد */}
+              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
+                  المعلومات البنكية للمورد
+                </div>
+                <div className="flex flex-col text-xs sm:text-sm">
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
+                    <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{resolvedSupplierAccountName}</span>
+                  </div>
+                  <div className="flex border-b border-gray-200">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
+                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupplierBankName}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان:</span>
+                    <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{resolvedSupplierIban}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
