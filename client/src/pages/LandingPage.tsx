@@ -3,30 +3,10 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { FileText, Users, CheckCircle2, Building2, MapPin, ArrowLeft, Loader2 } from "lucide-react";
+import { FileText, Users, ArrowLeft, Loader2 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import { trpc } from "@/lib/trpc";
 
-// إحصائيات البوابة
-const stats = [
-  { label: "مسجد مسجل", value: "1,250+", icon: Building2 },
-  { label: "طلب منجز", value: "3,400+", icon: CheckCircle2 },
-  { label: "مستفيد", value: "50,000+", icon: Users },
-  { label: "مدينة", value: "45+", icon: MapPin },
-];
-
-// البرامج المتاحة
-const programs = [
-  { name: "بنيان", desc: "بناء مساجد جديدة", color: "from-blue-600 to-blue-700" },
-  { name: "دعائم", desc: "استكمال المساجد المتعثرة", color: "from-violet-600 to-violet-700" },
-  { name: "عناية", desc: "الصيانة والترميم", color: "from-teal-600 to-teal-700" },
-  { name: "إمداد", desc: "تجهيزات المساجد", color: "from-orange-500 to-orange-600" },
-  { name: "إثراء", desc: "سداد فواتير الخدمات", color: "from-rose-500 to-rose-600" },
-  { name: "سدانة", desc: "خدمات التشغيل والنظافة", color: "from-cyan-600 to-cyan-700" },
-  { name: "طاقة", desc: "الطاقة الشمسية", color: "from-amber-500 to-amber-600" },
-  { name: "مياه", desc: "أنظمة المياه", color: "from-sky-600 to-sky-700" },
-  { name: "سقيا", desc: "توفير ماء الشرب", color: "from-emerald-600 to-emerald-700" },
-];
 
 export default function LandingPage() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -207,50 +187,6 @@ export default function LandingPage() {
         }} />
       </section>
 
-      {/* ═══════════════ الإحصائيات ═══════════════ */}
-      <section className="py-10 md:py-14 bg-background">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="text-center p-4 md:p-6 rounded-2xl bg-card border border-border shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-3 md:mb-4">
-                  <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-primary mb-1">{stat.value}</div>
-                <div className="text-xs md:text-sm text-muted-foreground font-medium">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ البرامج ═══════════════ */}
-      <section className="py-12 md:py-16 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-10 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">برامج الجمعية</h2>
-            <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto">
-              تسعة برامج متخصصة تغطي جميع احتياجات المساجد من البناء حتى التشغيل
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-            {programs.map((program) => (
-              <div
-                key={program.name}
-                className={`bg-gradient-to-br ${program.color} rounded-2xl p-4 md:p-5 text-white text-center
-                           hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default`}
-              >
-                <div className="text-lg md:text-xl font-bold mb-1">{program.name}</div>
-                <div className="text-white/80 text-[10px] md:text-xs leading-relaxed">{program.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ═══════════════ دعوة للعمل ═══════════════ */}
       <section className="py-12 md:py-16 bg-background">
