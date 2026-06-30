@@ -280,6 +280,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("disbursements.") && permId !== "disbursements.view") {
+      if (!isChecked("disbursements.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
+        return;
+      }
+    }
+
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
     const newState = !currentState;
@@ -348,7 +356,10 @@ export default function UserPermissions() {
             delete updated["financial_approval.approve"];
           }
         }
-        if (permId === "disbursements.view" || permId === "disbursements.add") {
+        if (permId === "disbursements.view") {
+          cascadeRevoke("disbursements.");
+        }
+        if (permId === "disbursements.add") {
           const defVal = rolePermissions?.includes("disbursements.create_custom") || false;
           if (defVal) {
             updated["disbursements.create_custom"] = false;
