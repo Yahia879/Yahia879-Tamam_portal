@@ -296,7 +296,7 @@ export default function DisbursementRequestPrint() {
                     <div className="text-sm font-bold text-gray-800">
                       {orgSettings?.officialReportsName || ""}
                     </div>
-                    <div className="text-[10px] text-gray-500">{request?.requestedBySignatureDepartment || "مكتب إدارة المشاريع"}</div>
+                    <div className="text-[10px] text-gray-500">{request?.requestedBySignatureDepartment || ""}</div>
                   </div>
                 </div>
 
@@ -477,17 +477,19 @@ export default function DisbursementRequestPrint() {
 
             {/* 7. التوقيعات والاعتماد */}
             <div className="break-inside-avoid pt-4">
-              <div className="grid grid-cols-2 gap-6 text-center">
-                {/* معد الطلب */}
-                <div className="p-2">
-                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
-                    {request?.requestedBySignatureDepartment || "مكتب إدارة المشاريع"}
+              <div className={`grid ${request?.requestedBySignatureName && request?.requestedBySignatureDepartment ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
+                {/* معد الطلب - يظهر فقط إذا عبّأ معلومات التوقيع */}
+                {request?.requestedBySignatureName && request?.requestedBySignatureDepartment && (
+                  <div className="p-2">
+                    <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
+                      {request.requestedBySignatureDepartment}
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                      <div className="text-gray-900 font-bold">{request.requestedBySignatureName}</div>
+                    </div>
                   </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{request?.requestedBySignatureName || request?.requestedByName || "—"}</div>
-                  </div>
-                </div>
+                )}
 
                 {/* المدير التنفيذي */}
                 <div className="p-2">
