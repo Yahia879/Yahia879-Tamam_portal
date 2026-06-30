@@ -192,6 +192,7 @@ export const disbursementsRouter = router({
           contractId: disbursementRequests.contractId,
           contractPaymentId: disbursementRequests.contractPaymentId,
           paymentId: disbursementRequests.paymentId,
+          requestedBy: disbursementRequests.requestedBy,
           requestedByName: users.name,
           requestedBySignatureName: users.signatureName,
           requestedBySignatureDepartment: users.signatureDepartment,
@@ -292,8 +293,15 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
 
+      // التحقق من امتلاك المنشئ لصلاحية التوقيع حالياً
+      let creatorHasSignPermission = false;
+      if (request.requestedBy) {
+        creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
+      }
+
       return {
         ...request,
+        creatorHasSignPermission,
         project,
         contract,
         opportunity: opportunity || null,
