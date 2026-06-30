@@ -820,26 +820,6 @@ export default function OrganizationSettings() {
                         className="h-10 sm:h-11"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="pmoManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مدير مكتب إدارة المشاريع</Label>
-                      <Input
-                        id="pmoManagerName"
-                        value={(orgSettings as any).pmoManagerName}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, pmoManagerName: e.target.value })}
-                        placeholder="اسم مدير مكتب إدارة المشاريع"
-                        className="h-10 sm:h-11"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="csrManagerName" className="text-xs sm:text-sm font-bold text-muted-foreground">مسؤول الاتصال المؤسسي</Label>
-                      <Input
-                        id="csrManagerName"
-                        value={(orgSettings as any).csrManagerName}
-                        onChange={(e) => setOrgSettings({ ...orgSettings, csrManagerName: e.target.value })}
-                        placeholder="اسم مسؤول الاتصال المؤسسي"
-                        className="h-10 sm:h-11"
-                      />
-                    </div>
                   </div>
                 </div>
               </CardContent>
