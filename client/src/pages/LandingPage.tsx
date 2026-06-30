@@ -69,7 +69,7 @@ export default function LandingPage() {
                     : (orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg")
                 } 
                 alt="شعار بوابة تمام" 
-                className="w-8 h-8 xs:w-10 xs:h-10 shrink-0 object-contain transition-all duration-300" 
+                className="w-12 h-12 xs:w-14 xs:h-14 shrink-0 object-contain transition-all duration-300" 
               />
               <div className="min-w-0">
                 <h1 className={`font-bold text-xs xs:text-sm sm:text-base leading-tight transition-colors duration-300 truncate max-w-[90px] min-[380px]:max-w-[130px] xs:max-w-[160px] sm:max-w-[240px] md:max-w-none ${isScrolled ? "text-foreground" : "text-white"}`}>
@@ -152,7 +152,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-base sm:text-lg md:text-xl text-white/85 mb-8 md:mb-10 leading-relaxed max-w-2xl mx-auto">
-              منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله
+              يمكنكم من خلال هذه البوابة رفع طلبات الخدمات المتعلقة بمساجدكم، وسنعمل جاهدين بإذن الله على دراستها والعمل على تلبيتها قدر المستطاع، بما يخدم بيوت الله ويحقق الأثر المأمول.
             </p>
 
             {/* الأزرار الرئيسية */}

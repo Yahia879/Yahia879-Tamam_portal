@@ -60,7 +60,7 @@ export default function Home() {
               <img 
                 src={mainLogoSrc} 
                 alt="شعار" 
-                className="w-10 h-10 object-contain"
+                className="w-12 h-12 xs:w-14 xs:h-14 object-contain"
                 onError={(e) => { (e.target as HTMLImageElement).src = '/logo.svg'; }}
               />
               <div>
@@ -118,7 +118,7 @@ export default function Home() {
               {orgName}
             </h1>
             <p className="text-lg lg:text-xl mb-8 leading-relaxed text-white/95 drop-shadow">
-              منصة متكاملة لإدارة خدمات المساجد من خلال برامج متخصصة تغطي جميع احتياجات بيوت الله
+              يمكنكم من خلال هذه البوابة رفع طلبات الخدمات المتعلقة بمساجدكم، وسنعمل جاهدين بإذن الله على دراستها والعمل على تلبيتها قدر المستطاع، بما يخدم بيوت الله ويحقق الأثر المأمول.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href={isAuthenticated ? "/request-form-dynamic" : "/login"}>
