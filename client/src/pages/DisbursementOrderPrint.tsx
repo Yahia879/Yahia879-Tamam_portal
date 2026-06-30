@@ -54,21 +54,28 @@ function numberToArabicText(num: number): string {
   return `فقط ${convertMillions(Math.floor(num))} ريال`;
 }
 
-// دالة تحويل التاريخ الميلادي إلى هجري (تقريبي)
+// دالة تحويل التاريخ الميلادي إلى هجري
 function toHijriDate(date: Date): string {
-  const gregorianYear = date.getFullYear();
-  const gregorianMonth = date.getMonth() + 1;
-  const gregorianDay = date.getDate();
+  let formatted = "";
+  try {
+    formatted = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric"
+    }).format(date);
+  } catch (e) {
+    const gregorianYear = date.getFullYear();
+    const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
+    formatted = `${date.getDate()}/${date.getMonth() + 1}/${hijriYear}`;
+  }
   
-  const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-  const hijriMonth = ((gregorianMonth + 9) % 12) + 1;
-  const hijriDay = gregorianDay;
-  
-  return `${hijriDay} / ${hijriMonth} / ${hijriYear} هـ`;
+  formatted = formatted.replace(/هـ/g, "").replace(/ه/g, "").trim();
+  formatted = formatted.replace(/[\s\u200e\u200f]+$/, "");
+  return `${formatted} هـ`;
 }
 
 function formatGregorianDate(date: Date): string {
-  return `${date.getFullYear()} / ${date.getMonth() + 1} / ${date.getDate()} م`;
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} م`;
 }
 
 const PAYMENT_METHOD_MAP: Record<string, string> = {

@@ -1042,22 +1042,25 @@ export const disbursementsRouter = router({
             }
           }
 
-          // حساب إجمالي المدفوع
+          // حساب إجمالي المدفوع من واقع أوامر الصرف المعتمدة أو المنفذة للمشروع
           const [paidResult] = await db
-            .select({ total: sql<number>`COALESCE(SUM(amount), 0)` })
-            .from(disbursementRequests)
+            .select({ total: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)` })
+            .from(disbursementOrders)
+            .innerJoin(
+              disbursementRequests,
+              eq(disbursementOrders.disbursementRequestId, disbursementRequests.id)
+            )
             .where(
               and(
                 eq(disbursementRequests.projectId, projectData.id),
-                eq(disbursementRequests.status, "paid")
+                inArray(disbursementOrders.status, ["approved", "executed"]),
+                ne(disbursementOrders.id, order.id)
               )
             );
 
           let totalPaid = Number(paidResult?.total || 0);
-          
-          // إذا كان الطلب الحالي مرتبطًا بالمشروع وحالته ليست "paid"، نضيف قيمته ليعكس إجمالي المدفوع بعد الصرف
-          if (request && request.status !== "paid" && Number(request.amount) > 0) {
-            totalPaid += Number(request.amount);
+          if (order.status !== "rejected") {
+            totalPaid += Number(order.amount);
           }
 
           const remainingAmount = contractAmount - totalPaid;
