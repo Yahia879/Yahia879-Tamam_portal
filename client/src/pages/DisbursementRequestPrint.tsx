@@ -296,7 +296,7 @@ export default function DisbursementRequestPrint() {
                     <div className="text-sm font-bold text-gray-800">
                       {orgSettings?.officialReportsName || ""}
                     </div>
-                    <div className="text-[10px] text-gray-500">{(request?.creatorHasSignPermission && request?.requestedBySignatureDepartment) || ""}</div>
+                    <div className="text-[10px] text-gray-500">مكتب إدارة المشاريع</div>
                   </div>
                 </div>
 
