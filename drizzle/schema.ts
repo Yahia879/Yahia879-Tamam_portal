@@ -1071,6 +1071,10 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
+
+  // توقيع منشئ الطلب (Snapshot)
+  creatorSignatureName: text("creatorSignatureName"),
+  creatorSignatureDepartment: text("creatorSignatureDepartment"),
   
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

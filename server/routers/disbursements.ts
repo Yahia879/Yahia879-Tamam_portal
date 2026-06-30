@@ -196,6 +196,8 @@ export const disbursementsRouter = router({
           requestedByName: users.name,
           requestedBySignatureName: users.signatureName,
           requestedBySignatureDepartment: users.signatureDepartment,
+          creatorSignatureName: disbursementRequests.creatorSignatureName,
+          creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
           dateMiladi: disbursementRequests.dateMiladi,
           supplierName: contractsEnhanced.secondPartyName,
           supplierBank: contractsEnhanced.secondPartyBankName,
@@ -293,15 +295,25 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
 
-      // التحقق من امتلاك المنشئ لصلاحية التوقيع حالياً
-      let creatorHasSignPermission = false;
-      if (request.requestedBy) {
-        creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
+      // تحديد معلومات التوقيع: الأولوية للـ Snapshot المخزن بالطلب، وإلا الرجوع للملف الشخصي وصلاحية المستخدم الحالية (متوافق مع الطلبات القديمة)
+      let resolvedSignatureName = request.creatorSignatureName;
+      let resolvedSignatureDepartment = request.creatorSignatureDepartment;
+
+      if (!resolvedSignatureName && !resolvedSignatureDepartment && request.requestedBy) {
+        const creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
+        if (creatorHasSignPermission) {
+          resolvedSignatureName = request.requestedBySignatureName;
+          resolvedSignatureDepartment = request.requestedBySignatureDepartment;
+        }
       }
+
+      const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
       return {
         ...request,
-        creatorHasSignPermission,
+        requestedBySignatureName: resolvedSignatureName,
+        requestedBySignatureDepartment: resolvedSignatureDepartment,
+        creatorHasSignPermission: hasSignInfo,
         project,
         contract,
         opportunity: opportunity || null,
@@ -423,6 +435,23 @@ export const disbursementsRouter = router({
         }
       }
 
+      const userHasSignPermission = await checkPermission(ctx.user.id, "disbursements.sign");
+      let creatorSignatureName: string | null = null;
+      let creatorSignatureDepartment: string | null = null;
+      if (userHasSignPermission) {
+        const [userSignData] = await db
+          .select({
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+        if (userSignData) {
+          creatorSignatureName = userSignData.signatureName;
+          creatorSignatureDepartment = userSignData.signatureDepartment;
+        }
+      }
+
       const requestNumber = await generateDisbursementRequestNumber(db);
 
       const [result] = await db.insert(disbursementRequests).values({
@@ -443,6 +472,8 @@ export const disbursementsRouter = router({
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
         status: "pending",
         requestedBy: ctx.user.id,
+        creatorSignatureName,
+        creatorSignatureDepartment,
       });
 
       await notifyDisbursementRequestCreation(
