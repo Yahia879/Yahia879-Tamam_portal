@@ -296,7 +296,7 @@ export default function DisbursementRequestPrint() {
                     <div className="text-sm font-bold text-gray-800">
                       {orgSettings?.officialReportsName || ""}
                     </div>
-                    <div className="text-[10px] text-gray-500">مكتب إدارة المشاريع</div>
+                    <div className="text-[10px] text-gray-500">{request?.requestedBySignatureDepartment || "مكتب إدارة المشاريع"}</div>
                   </div>
                 </div>
 
@@ -478,14 +478,14 @@ export default function DisbursementRequestPrint() {
             {/* 7. التوقيعات والاعتماد */}
             <div className="break-inside-avoid pt-4">
               <div className="grid grid-cols-3 gap-6 text-center">
-                {/* مكتب إدارة المشاريع */}
+                {/* معد الطلب */}
                 <div className="p-2">
                   <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
-                    مكتب إدارة المشاريع
+                    {request?.requestedBySignatureDepartment || "مكتب إدارة المشاريع"}
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
-                    <div className="text-gray-900 font-bold">{(orgSettings as any)?.pmoManagerName || "—"}</div>
+                    <div className="text-gray-900 font-bold">{request?.requestedBySignatureName || request?.requestedByName || "—"}</div>
                   </div>
                 </div>
 

@@ -596,6 +596,8 @@ export const authRouter = router({
       name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف").optional(),
       phone: z.string().optional(),
       city: z.string().optional(),
+      signatureName: z.string().optional(),
+      signatureDepartment: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -605,6 +607,8 @@ export const authRouter = router({
       if (input.name) updateData.name = input.name;
       if (input.phone !== undefined) updateData.phone = input.phone;
       if (input.city !== undefined) updateData.city = input.city;
+      if (input.signatureName !== undefined) updateData.signatureName = input.signatureName;
+      if (input.signatureDepartment !== undefined) updateData.signatureDepartment = input.signatureDepartment;
 
       if (Object.keys(updateData).length > 0) {
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));

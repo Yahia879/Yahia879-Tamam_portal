@@ -142,6 +142,8 @@ export const users = mysqlTable("users", {
   receiveBeneficiarySms: boolean("receiveBeneficiarySms").default(false),
   receiveRequestSms: boolean("receiveRequestSms").default(false),
   receiveFinancialSms: boolean("receiveFinancialSms").default(false),
+  signatureName: text("signatureName"),
+  signatureDepartment: text("signatureDepartment"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

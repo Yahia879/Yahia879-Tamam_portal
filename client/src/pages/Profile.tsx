@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -9,9 +10,46 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Mail, Phone, Shield, Calendar, ArrowRight } from "lucide-react";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 
 export default function Profile() {
   const { user } = useAuth();
+  const utils = trpc.useUtils();
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [signatureName, setSignatureName] = useState("");
+  const [signatureDepartment, setSignatureDepartment] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      setPhone(user.phone || "");
+      setSignatureName((user as any).signatureName || "");
+      setSignatureDepartment((user as any).signatureDepartment || "");
+    }
+  }, [user]);
+
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ التغييرات بنجاح");
+      utils.auth.me.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التغييرات");
+    }
+  });
+
+  const hasSignaturePermission = user?.permissions?.includes("disbursements.sign") || false;
+
+  const handleSave = () => {
+    updateProfileMutation.mutate({
+      name,
+      phone,
+      signatureName: hasSignaturePermission ? signatureName : undefined,
+      signatureDepartment: hasSignaturePermission ? signatureDepartment : undefined,
+    });
+  };
 
   return (
     <DashboardLayout>
@@ -52,7 +90,12 @@ export default function Profile() {
                   <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   الاسم الكامل
                 </Label>
-                <Input defaultValue={user?.name || ""} maxLength={60} className="h-9 sm:h-10 text-xs sm:text-sm" />
+                <Input 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  maxLength={60} 
+                  className="h-9 sm:h-10 text-xs sm:text-sm" 
+                />
               </div>
               <div className="space-y-1.5 sm:space-y-2">
                 <Label className="flex items-center gap-2 text-xs sm:text-sm">
@@ -66,7 +109,12 @@ export default function Profile() {
                   <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   رقم الجوال
                 </Label>
-                <Input defaultValue="" placeholder="05xxxxxxxx" className="h-9 sm:h-10 text-xs sm:text-sm" />
+                <Input 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  placeholder="05xxxxxxxx" 
+                  className="h-9 sm:h-10 text-xs sm:text-sm" 
+                />
               </div>
               <div className="space-y-1.5 sm:space-y-2">
                 <Label className="flex items-center gap-2 text-xs sm:text-sm">
@@ -81,9 +129,43 @@ export default function Profile() {
               </div>
             </div>
 
+            {hasSignaturePermission && (
+              <div className="pt-4 border-t space-y-4">
+                <h3 className="text-sm font-bold text-foreground">الخاص بالتواقيع</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-xs sm:text-sm font-semibold text-slate-700">
+                      الاسم الذي يظهر في المستند
+                    </Label>
+                    <Input 
+                      value={signatureName} 
+                      onChange={(e) => setSignatureName(e.target.value)} 
+                      placeholder="مثال: محمد بن علي العتيبي" 
+                      className="h-9 sm:h-10 text-xs sm:text-sm" 
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-xs sm:text-sm font-semibold text-slate-700">
+                      اسم الادارة الذي يظهر في المستند
+                    </Label>
+                    <Input 
+                      value={signatureDepartment} 
+                      onChange={(e) => setSignatureDepartment(e.target.value)} 
+                      placeholder="مثال: مكتب إدارة المشاريع PMO" 
+                      className="h-9 sm:h-10 text-xs sm:text-sm" 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4 border-t">
-              <Button onClick={() => toast.success("تم حفظ التغييرات")} className="h-9 sm:h-10 text-sm">
-                حفظ التغييرات
+              <Button 
+                onClick={handleSave} 
+                disabled={updateProfileMutation.isPending} 
+                className="h-9 sm:h-10 text-sm"
+              >
+                {updateProfileMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
               </Button>
               <Button variant="outline" onClick={() => toast.info("قريباً")} className="h-9 sm:h-10 text-sm">
                 تغيير كلمة المرور

@@ -193,6 +193,8 @@ export const disbursementsRouter = router({
           contractPaymentId: disbursementRequests.contractPaymentId,
           paymentId: disbursementRequests.paymentId,
           requestedByName: users.name,
+          requestedBySignatureName: users.signatureName,
+          requestedBySignatureDepartment: users.signatureDepartment,
           dateMiladi: disbursementRequests.dateMiladi,
           supplierName: contractsEnhanced.secondPartyName,
           supplierBank: contractsEnhanced.secondPartyBankName,
