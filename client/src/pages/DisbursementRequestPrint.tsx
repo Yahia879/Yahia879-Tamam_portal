@@ -60,12 +60,13 @@ function toHijriDate(date: Date): string {
     formatted = new Intl.DateTimeFormat("ar-SA-u-ca-islamic", {
       day: "numeric",
       month: "numeric",
-      year: "numeric"
+      year: "numeric",
+      timeZone: "UTC"
     }).format(date);
   } catch (e) {
-    const gregorianYear = date.getFullYear();
+    const gregorianYear = date.getUTCFullYear();
     const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
-    formatted = `${date.getDate()}/${date.getMonth() + 1}/${hijriYear}`;
+    formatted = `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${hijriYear}`;
   }
   
   // Remove any existing "هـ" or "ه" to avoid duplicates and ensure clean format
@@ -76,7 +77,7 @@ function toHijriDate(date: Date): string {
 }
 
 function formatGregorianDate(date: Date): string {
-  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  return `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()} م`;
 }
 
 export default function DisbursementRequestPrint() {

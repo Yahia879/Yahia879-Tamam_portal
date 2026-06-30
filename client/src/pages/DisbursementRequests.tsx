@@ -675,7 +675,7 @@ export default function DisbursementRequests() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-right">
                                 {request.requestedAt
-                                  ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
+                                  ? new Date(request.requestedAt).toLocaleDateString("ar-SA", { timeZone: "UTC" })
                                   : "-"}
                               </TableCell>
                               <TableCell className="text-right">
@@ -971,7 +971,7 @@ export default function DisbursementRequests() {
                               <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{Number(request.amount).toLocaleString()} ريال</p>
                             </div>
                             <span className="text-[10px] text-muted-foreground">
-                              {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
+                              {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA", { timeZone: "UTC" }) : "-"}
                             </span>
                           </div>
                         </div>
@@ -1476,7 +1476,7 @@ export default function DisbursementRequests() {
                     <Label className="text-muted-foreground">تاريخ الطلب</Label>
                     <p className="font-medium">
                       {selectedRequest.requestedAt
-                        ? new Date(selectedRequest.requestedAt).toLocaleDateString("ar-SA")
+                        ? new Date(selectedRequest.requestedAt).toLocaleDateString("ar-SA", { timeZone: "UTC" })
                         : "-"}
                     </p>
                   </div>
@@ -2147,7 +2147,7 @@ export default function DisbursementRequests() {
                         <td className="py-4 px-4 border-l h-16"></td>
                         <td className="py-4 px-4">
                           {selectedOrder.approvedAt
-                            ? new Date(selectedOrder.approvedAt).toLocaleDateString("ar-SA")
+                            ? new Date(selectedOrder.approvedAt).toLocaleDateString("ar-SA", { timeZone: "UTC" })
                             : ""}
                         </td>
                       </tr>
