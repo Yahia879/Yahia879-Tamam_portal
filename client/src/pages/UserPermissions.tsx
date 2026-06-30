@@ -272,6 +272,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
+    if (permId === "disbursements.sign") {
+      if (!isChecked("disbursements.add") && !isChecked("disbursements.create_custom")) {
+        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
+        return;
+      }
+    }
+
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
     const newState = !currentState;
@@ -346,6 +354,20 @@ export default function UserPermissions() {
             updated["disbursements.create_custom"] = false;
           } else {
             delete updated["disbursements.create_custom"];
+          }
+        }
+        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما
+        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
+          // تحقق من الحالة الفعلية بعد الإلغاء
+          const addActive = permId === "disbursements.add" ? false : (updated["disbursements.add"] !== undefined ? updated["disbursements.add"] : (rolePermissions?.includes("disbursements.add") || false));
+          const customActive = permId === "disbursements.create_custom" ? false : (updated["disbursements.create_custom"] !== undefined ? updated["disbursements.create_custom"] : (rolePermissions?.includes("disbursements.create_custom") || false));
+          if (!addActive && !customActive) {
+            const defSign = rolePermissions?.includes("disbursements.sign") || false;
+            if (defSign) {
+              updated["disbursements.sign"] = false;
+            } else {
+              delete updated["disbursements.sign"];
+            }
           }
         }
       }

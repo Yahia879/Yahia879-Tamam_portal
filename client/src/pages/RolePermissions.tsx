@@ -231,6 +231,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
+    if (permId === "disbursements.sign") {
+      if (!selectedPerms.includes("disbursements.add") && !selectedPerms.includes("disbursements.create_custom")) {
+        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
+        return;
+      }
+    }
+
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
       
@@ -290,6 +298,14 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض طلبات الصرف' أو 'إنشاء طلب صرف'، نقوم تلقائياً بإلغاء تفعيل 'انشاء طلبات صرف مخصصة'
         if (permId === "disbursements.view" || permId === "disbursements.add") {
           next = next.filter(id => id !== "disbursements.create_custom");
+        }
+        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما مفعلة
+        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
+          const remainingAdd = permId === "disbursements.add" ? false : next.includes("disbursements.add");
+          const remainingCustom = permId === "disbursements.create_custom" ? false : next.includes("disbursements.create_custom");
+          if (!remainingAdd && !remainingCustom) {
+            next = next.filter(id => id !== "disbursements.sign");
+          }
         }
         return next;
       } else {
