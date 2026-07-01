@@ -1915,3 +1915,18 @@ export const notificationTriggerSettings = mysqlTable("notification_trigger_sett
 export type NotificationTriggerSetting = typeof notificationTriggerSettings.$inferSelect;
 export type InsertNotificationTriggerSetting = typeof notificationTriggerSettings.$inferInsert;
 
+// ==================== طلبات الاستثناء لتقديم طلبات جديدة ====================
+export const requestExceptions = mysqlTable("request_exceptions", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  reason: text("reason").notNull(),
+  attachment: varchar("attachment", { length: 500 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RequestException = typeof requestExceptions.$inferSelect;
+export type InsertRequestException = typeof requestExceptions.$inferInsert;
+
+

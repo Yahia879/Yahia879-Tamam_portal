@@ -16,6 +16,9 @@ import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -74,12 +77,28 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     enabled: !!user && user.role === "service_requester" && user.requesterType === "imam"
   });
 
+  // الحصول على أحدث طلب استثناء للمستخدم
+  const { data: exceptionStatus, isLoading: exceptionStatusLoading, refetch: refetchException } = trpc.requests.getLatestException.useQuery(undefined, {
+    enabled: !!user && user.role === "service_requester" && user.requesterType === "imam"
+  });
+
   const isImamBlocked = useMemo(() => {
     if (user?.role !== "service_requester" || user?.requesterType !== "imam") return false;
     if (myRequests.length === 0) return false;
     const latestRequest = myRequests[0];
-    return latestRequest.status !== "completed" && latestRequest.status !== "rejected";
-  }, [user, myRequests]);
+    if (latestRequest.status === "completed" || latestRequest.status === "rejected") return false;
+
+    // التحقق من وجود استثناء معتمد تم إنشاؤه بعد الطلب الأخير
+    if (exceptionStatus && exceptionStatus.status === "approved") {
+      const exceptionDate = new Date(exceptionStatus.createdAt);
+      const requestDate = new Date(latestRequest.createdAt);
+      if (exceptionDate > requestDate) {
+        return false; // ليس محظوراً!
+      }
+    }
+
+    return true;
+  }, [user, myRequests, exceptionStatus]);
 
   const [currentStep, setCurrentStep] = useState<Step>('service-selection');
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -88,6 +107,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState("");
+  const [exceptionFile, setExceptionFile] = useState<File | null>(null);
+  const [isSubmittingException, setIsSubmittingException] = useState(false);
+
+  const submitExceptionMutation = trpc.requests.submitException.useMutation();
 
   // الحصول على البرامج الفعالة من قاعدة البيانات
   const { data: activePrograms = [], isLoading: programsLoading } = trpc.programs.getActive.useQuery();
@@ -295,6 +321,49 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       alert(error?.message || 'حدث خطأ أثناء إرسال الطلب');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleExceptionSubmit = async () => {
+    if (!exceptionReason.trim()) {
+      alert("يرجى كتابة سبب طلب الاستثناء");
+      return;
+    }
+
+    setIsSubmittingException(true);
+    try {
+      let fileUrl: string | null = null;
+      if (exceptionFile) {
+        const formDataForUpload = new FormData();
+        formDataForUpload.append('file', exceptionFile);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formDataForUpload,
+        });
+
+        if (!response.ok) {
+          throw new Error('فشل رفع الملف المرفق');
+        }
+
+        const data = await response.json();
+        fileUrl = data.url;
+      }
+
+      await submitExceptionMutation.mutateAsync({
+        reason: exceptionReason,
+        attachment: fileUrl,
+      });
+
+      alert("تم تقديم طلب الاستثناء بنجاح وهو قيد المراجعة حالياً");
+      setIsExceptionModalOpen(false);
+      setExceptionReason("");
+      setExceptionFile(null);
+      refetchException();
+    } catch (err: any) {
+      alert(err?.message || "حدث خطأ أثناء إرسال طلب الاستثناء");
+    } finally {
+      setIsSubmittingException(false);
     }
   };
 
@@ -810,6 +879,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 متابعة طلباتي السابقة
               </Button>
             </Link>
+
+            {exceptionStatus && exceptionStatus.status === "pending" ? (
+              <Button disabled variant="outline" className="h-10 px-5 rounded-xl font-bold bg-slate-100 text-slate-500">
+                طلب الاستثناء قيد المراجعة حالياً
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => setIsExceptionModalOpen(true)} 
+                className="h-10 px-5 rounded-xl font-bold bg-amber-600 hover:bg-amber-700 text-white transition-all"
+              >
+                طلب استثناء
+              </Button>
+            )}
+
             <Link href="/requester">
               <Button variant="outline" className="h-10 px-5 rounded-xl font-bold transition-all">
                 العودة للوحة التحكم
@@ -817,6 +900,71 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             </Link>
           </div>
         </div>
+
+        <Dialog open={isExceptionModalOpen} onOpenChange={setIsExceptionModalOpen}>
+          <DialogContent className="sm:max-w-lg" dir="rtl">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-lg font-bold">تقديم طلب استثناء لإنشاء طلب جديد</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4 text-right">
+              <div className="space-y-2">
+                <Label htmlFor="reason" className="text-sm font-bold text-slate-700 dark:text-slate-300">سبب طلب الاستثناء / مبررات التقديم <span className="text-destructive">*</span></Label>
+                <Textarea 
+                  id="reason" 
+                  value={exceptionReason} 
+                  onChange={(e) => setExceptionReason(e.target.value)} 
+                  placeholder="يرجى كتابة سبب طلب الاستثناء بالتفصيل هنا..." 
+                  className="min-h-[120px] rounded-xl text-xs sm:text-sm leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="attachment" className="text-sm font-bold text-slate-700 dark:text-slate-300">مرفق إثبات (اختياري)</Label>
+                <div className="flex items-center gap-3">
+                  <Input 
+                    type="file" 
+                    id="attachment" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setExceptionFile(e.target.files[0]);
+                      }
+                    }} 
+                    className="h-10 text-xs sm:text-sm rounded-xl cursor-pointer"
+                  />
+                </div>
+                {exceptionFile && (
+                  <p className="text-xs text-muted-foreground mt-1">الملف المختار: {exceptionFile.name}</p>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-row gap-2 justify-end pt-4 border-t border-border">
+              <Button 
+                onClick={handleExceptionSubmit} 
+                disabled={isSubmittingException || submitExceptionMutation.isPending}
+                className="h-10 px-6 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white"
+              >
+                {isSubmittingException || submitExceptionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "تقديم طلب الاستثناء"
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsExceptionModalOpen(false);
+                  setExceptionReason("");
+                  setExceptionFile(null);
+                }} 
+                className="h-10 px-5 rounded-xl font-bold"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
 

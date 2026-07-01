@@ -29,8 +29,9 @@ import {
   programs,
   contractPayments,
   payments,
+  requestExceptions,
 } from "../../drizzle/schema";
-import { eq, and, desc, sql, inArray, or, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, or, gte, lte, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -143,7 +144,10 @@ export const requestsRouter = router({
 
         if (userRow && userRow.requesterType === "imam") {
           const previousRequests = await db
-            .select({ status: mosqueRequests.status })
+            .select({ 
+              status: mosqueRequests.status,
+              createdAt: mosqueRequests.createdAt 
+            })
             .from(mosqueRequests)
             .where(eq(mosqueRequests.userId, ctx.user.id))
             .orderBy(desc(mosqueRequests.createdAt))
@@ -152,10 +156,25 @@ export const requestsRouter = router({
           if (previousRequests.length > 0) {
             const latestRequest = previousRequests[0];
             if (latestRequest.status !== "completed" && latestRequest.status !== "rejected") {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "لا يمكنك تقديم طلب جديد لوجود طلب سابق قيد المعالجة ولم يكتمل بعد"
-              });
+              // التحقق من وجود استثناء معتمد تم إنشاؤه بعد الطلب الأخير
+              const activeException = await db
+                .select()
+                .from(requestExceptions)
+                .where(
+                  and(
+                    eq(requestExceptions.userId, ctx.user.id),
+                    eq(requestExceptions.status, "approved"),
+                    gt(requestExceptions.createdAt, latestRequest.createdAt)
+                  )
+                )
+                .limit(1);
+
+              if (activeException.length === 0) {
+                throw new TRPCError({
+                  code: "FORBIDDEN",
+                  message: "لا يمكنك تقديم طلب جديد لوجود طلب سابق قيد المعالجة ولم يكتمل بعد"
+                });
+              }
             }
           }
         }
@@ -2951,5 +2970,120 @@ export const requestsRouter = router({
           lateCount,
         }
       };
+    }),
+
+  // تقديم طلب استثناء
+  submitException: protectedProcedure
+    .input(
+      z.object({
+        reason: z.string(),
+        attachment: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.insert(requestExceptions).values({
+        userId: ctx.user.id,
+        reason: input.reason,
+        attachment: input.attachment,
+        status: "pending",
+      });
+
+      // إرسال إشعار للمشرفين
+      try {
+        const admins = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(inArray(users.role, ["super_admin", "system_admin"]));
+
+        for (const admin of admins) {
+          await createNotification({
+            userId: admin.id,
+            type: "system",
+            title: "طلب استثناء جديد",
+            message: `قام المستفيد ${ctx.user.name} بتقديم طلب استثناء لإنشاء طلب جديد.`,
+            relatedType: "user",
+            relatedId: ctx.user.id,
+          });
+        }
+      } catch (err) {
+        console.error("Error sending admin notifications for exception:", err);
+      }
+
+      return { success: true };
+    }),
+
+  // الحصول على أحدث حالة طلب استثناء للمستخدم الحالي
+  getLatestException: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return null;
+
+    const result = await db
+      .select()
+      .from(requestExceptions)
+      .where(eq(requestExceptions.userId, ctx.user.id))
+      .orderBy(desc(requestExceptions.createdAt))
+      .limit(1);
+
+    return result[0] || null;
+  }),
+
+  // الحصول على كل طلبات الاستثناء (للمسؤولين)
+  getExceptionRequests: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return [];
+
+    const results = await db
+      .select({
+        exception: requestExceptions,
+        userName: users.name,
+        userEmail: users.email,
+        userPhone: users.phone,
+      })
+      .from(requestExceptions)
+      .innerJoin(users, eq(requestExceptions.userId, users.id))
+      .orderBy(desc(requestExceptions.createdAt));
+
+    return results;
+  }),
+
+  // مراجعة طلب الاستثناء (للمسؤولين)
+  reviewException: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.enum(["approved", "rejected"]),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db
+        .update(requestExceptions)
+        .set({ status: input.status })
+        .where(eq(requestExceptions.id, input.id));
+
+      const [exRow] = await db.select().from(requestExceptions).where(eq(requestExceptions.id, input.id)).limit(1);
+      if (exRow) {
+        try {
+          await createNotification({
+            userId: exRow.userId,
+            type: "system",
+            title: input.status === "approved" ? "تم قبول طلب الاستثناء" : "تم رفض طلب الاستثناء",
+            message: input.status === "approved"
+              ? "تم قبول طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب جديد."
+              : "عذراً، تم رفض طلب الاستثناء الخاص بك.",
+            relatedType: "user",
+            relatedId: exRow.userId,
+          });
+        } catch (err) {
+          console.error("Error sending user notification for exception review:", err);
+        }
+      }
+
+      return { success: true };
     }),
 });
