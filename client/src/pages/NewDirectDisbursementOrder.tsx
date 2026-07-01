@@ -202,11 +202,32 @@ export default function NewDirectDisbursementOrder() {
 
   const handleSubmit = () => {
     const isSadad = requestType === "sadad_invoice";
+    const customSupplierMetadata = [{
+      name: "custom_supplier_info",
+      url: JSON.stringify({
+        name: isSadad ? formData.billerName : formData.beneficiaryName,
+        bank: isSadad ? formData.billerCode : formData.beneficiaryBank,
+        iban: isSadad ? formData.sadadNumber : formData.beneficiaryIban,
+        work: formData.title,
+        agreedAmount: formData.amount,
+        bankAccountName: formData.bankAccountName || "",
+        requestType: requestType,
+        fundingSupport: formData.fundingSupport,
+        mainProjectName: formData.mainProjectName,
+        customProjectName: formData.customProjectName || "",
+        billerName: isSadad ? formData.billerName : "",
+        sadadNumber: isSadad ? formData.sadadNumber : "",
+        billerCode: isSadad ? formData.billerCode : "",
+      }),
+      type: "metadata"
+    }];
+
     createDirectOrderMutation.mutate({
       projectId: null,
       title: formData.title,
       amount: formData.amount,
       dateMiladi: formData.dateMiladi,
+      attachments: customSupplierMetadata,
       
       // بيانات المستفيد
       beneficiaryName: isSadad ? formData.billerName : formData.beneficiaryName,

@@ -333,7 +333,7 @@ export default function DisbursementOrderPrint() {
                           اسم المشروع
                         </td>
                         <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={3}>
-                          {isCustomType ? "—" : (project?.name || customSupplier?.customProjectName || "—")}
+                          {customSupplier?.customProjectName || linkedRequestInfo?.customProjectName || (project?.name || "—")}
                         </td>
                       </tr>
 
