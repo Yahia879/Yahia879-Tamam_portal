@@ -609,7 +609,7 @@ export default function ProgramCustomization() {
                                 e.stopPropagation();
                                 toggleExpand(program.id);
                               }}
-                              className="h-7 px-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/5 hover:bg-primary/10 rounded-md"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 bg-muted hover:bg-muted/80 rounded-md"
                             >
                               <span>تفاصيل البرنامج (الوصف والشروط)</span>
                               {expandedIds[program.id] ? (
@@ -621,23 +621,25 @@ export default function ProgramCustomization() {
                           </div>
 
                           {expandedIds[program.id] && (
-                            <div className="mt-3 space-y-2 border-t pt-2 transition-all">
-                              <div>
-                                <h4 className="text-xs font-bold text-foreground">الوصف:</h4>
-                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
-                                  {program.description}
-                                </p>
-                              </div>
+                            <div className="mt-3 bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-3 transition-all text-right" dir="rtl">
+                              {program.description && (
+                                <div>
+                                  <h4 className="text-xs font-bold text-primary mb-1">الوصف:</h4>
+                                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                                    {program.description}
+                                  </p>
+                                </div>
+                              )}
                               {(() => {
                                 const conds = parseConditions(program.conditions);
                                 if (conds.filter(Boolean).length === 0) return null;
                                 return (
-                                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
-                                    <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
+                                  <div className={program.description ? "pt-2.5 border-t border-primary/10" : ""}>
+                                    <h4 className="text-xs font-bold text-primary mb-1.5">شروط التقديم:</h4>
                                     <div className="space-y-1">
                                       {conds.filter(Boolean).map((cond: string, index: number) => (
                                         <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                          <span className="text-primary">•</span>
+                                          <span className="text-primary font-bold">•</span>
                                           <span>{cond}</span>
                                         </div>
                                       ))}
