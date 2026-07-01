@@ -59,7 +59,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [notesRequiredType, setNotesRequiredType] = useState("document");
+  const [notesRequiredType, setNotesRequiredType] = useState("file");
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
 
@@ -71,6 +71,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   useEffect(() => {
     if (user) {
       setNotes(user.adminNotes || "");
+      setNotesRequiredType(user.notesRequiredType || "file");
     }
   }, [user]);
 
@@ -307,6 +308,37 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                   ) : showNotesForm ? (
                     /* نموذج كتابة الملاحظات */
                     <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 transition-all text-right">
+                      {/* اختيار نوع المرفق المطلوب */}
+                      <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                          طريقة الرد المطلوبة من طالب الخدمة
+                        </label>
+                        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
+                          <button
+                            type="button"
+                            onClick={() => setNotesRequiredType("text")}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                              notesRequiredType === "text"
+                                ? "bg-primary text-white shadow-sm"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                            }`}
+                          >
+                            رد كتابي (نصي)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNotesRequiredType("file")}
+                            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                              notesRequiredType === "file"
+                                ? "bg-primary text-white shadow-sm"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                            }`}
+                          >
+                            مرفق ملف/صورة (PDF، صور)
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           ملاحظات طالب الخدمة
@@ -318,37 +350,6 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           rows={3}
                           className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
                         />
-                      </div>
-
-                      {/* اختيار نوع المرفق المطلوب */}
-                      <div className="space-y-2 border-t pt-3">
-                        <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
-                          نوع المرفق المطلوب من المستفيد عند معالجة الملاحظة
-                        </label>
-                        <div className="flex gap-4">
-                          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
-                            <input
-                              type="radio"
-                              name="notesRequiredType"
-                              value="document"
-                              checked={notesRequiredType === "document"}
-                              onChange={() => setNotesRequiredType("document")}
-                              className="accent-primary h-4 w-4"
-                            />
-                            مستند كتابي (PDF, Word)
-                          </label>
-                          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
-                            <input
-                              type="radio"
-                              name="notesRequiredType"
-                              value="image"
-                              checked={notesRequiredType === "image"}
-                              onChange={() => setNotesRequiredType("image")}
-                              className="accent-primary h-4 w-4"
-                            />
-                            مرفقات صور (JPG, PNG)
-                          </label>
-                        </div>
                       </div>
 
                       <div className="flex gap-2 border-t pt-3">
@@ -375,7 +376,40 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     </div>
                   ) : (
                     /* نموذج رفض / إيقاف الحساب */
-                    <div className="space-y-4 bg-red-50/20 dark:bg-red-950/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all text-right">
+                    <div className="space-y-4 bg-red-50/20 dark:bg-red-955/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all text-right">
+                      {/* اختيار نوع المرفق المطلوب عند الرفض */}
+                      {user.status !== "active" && (
+                        <div className="space-y-2 pb-3 border-b border-red-100/20 dark:border-red-900/10">
+                          <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
+                            طريقة الرد المطلوبة من المستفيد عند معالجة الرفض
+                          </label>
+                          <div className="flex gap-2 p-1 bg-red-100/10 dark:bg-slate-800 rounded-xl w-full">
+                            <button
+                              type="button"
+                              onClick={() => setNotesRequiredType("text")}
+                              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                                notesRequiredType === "text"
+                                  ? "bg-red-600 text-white shadow-sm"
+                                  : "text-slate-650 dark:text-slate-300 hover:bg-red-200/20 dark:hover:bg-slate-700/50"
+                              }`}
+                            >
+                              رد كتابي (نصي)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setNotesRequiredType("file")}
+                              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                                notesRequiredType === "file"
+                                  ? "bg-red-600 text-white shadow-sm"
+                                  : "text-slate-655 dark:text-slate-300 hover:bg-red-200/20 dark:hover:bg-slate-700/50"
+                              }`}
+                            >
+                              مرفق ملف/صورة (PDF، صور)
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-red-700 dark:text-red-400">
                           {user.status === "active" ? "سبب إيقاف الحساب" : "سبب رفض الحساب (ملاحظات الرفض)"}
@@ -388,39 +422,6 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           className="w-full text-sm p-3 rounded-xl border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-955 focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
                         />
                       </div>
-
-                      {/* اختيار نوع المرفق المطلوب عند الرفض */}
-                      {user.status !== "active" && (
-                        <div className="space-y-2 border-t pt-3">
-                          <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
-                            نوع المرفق المطلوب من المستفيد عند معالجة الرفض
-                          </label>
-                          <div className="flex gap-4">
-                            <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
-                              <input
-                                type="radio"
-                                name="notesRequiredType"
-                                value="document"
-                                checked={notesRequiredType === "document"}
-                                onChange={() => setNotesRequiredType("document")}
-                                className="accent-red-600 h-4 w-4"
-                              />
-                              مستند كتابي (PDF, Word)
-                            </label>
-                            <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
-                              <input
-                                type="radio"
-                                name="notesRequiredType"
-                                value="image"
-                                checked={notesRequiredType === "image"}
-                                onChange={() => setNotesRequiredType("image")}
-                                className="accent-red-600 h-4 w-4"
-                              />
-                              مرفقات صور (JPG, PNG)
-                            </label>
-                          </div>
-                        </div>
-                      )}
 
                       <div className="flex gap-2 border-t pt-3">
                         <Button
@@ -539,8 +540,25 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
             </CardContent>
           </Card>
 
+          {/* الرد الكتابي للمستفيد */}
+          {user.remarksDocument && user.notesRequiredType === "text" && (
+            <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl flex flex-col overflow-hidden text-right">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  الرد الكتابي للمستفيد
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border text-sm font-semibold leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                  {user.remarksDocument}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* مرفقات الملاحظة */}
-          {user.remarksDocument && (
+          {user.remarksDocument && user.notesRequiredType === "file" && (
             <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl flex flex-col overflow-hidden">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
                 <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -573,7 +591,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             download
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white text-slate-950 rounded-lg hover:bg-slate-100 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white text-slate-955 rounded-lg hover:bg-slate-100 transition-all"
                           >
                             <Download className="w-3.5 h-3.5" />
                             تنزيل

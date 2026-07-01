@@ -2,24 +2,25 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Upload, LogOut, CheckCircle2, Loader2, Check, AlertCircle } from "lucide-react";
+import { AlertTriangle, Upload, LogOut, CheckCircle2, Loader2, Check, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
 export default function RequesterNotesResponseScreen() {
   const { user, logout } = useAuth();
   const [file, setFile] = useState<File | null>(null);
+  const [textResponse, setTextResponse] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitResponse = trpc.users.submitNotesResponse.useMutation({
     onSuccess: () => {
-      toast.success("تم إرسال المرفق وتحديث طلب التسجيل بنجاح.");
+      toast.success("تم إرسال الرد وتحديث طلب التسجيل بنجاح.");
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     },
     onError: () => {
-      toast.error("حدث خطأ أثناء إرسال المرفق.");
+      toast.error("حدث خطأ أثناء إرسال الرد.");
       setIsSubmitting(false);
     },
   });
@@ -27,20 +28,7 @@ export default function RequesterNotesResponseScreen() {
   if (!user) return null;
 
   const isSuspended = user.status === "suspended";
-  const isImageRequired = user.notesRequiredType === "image";
-
-  // Dynamic file upload properties
-  const acceptAttribute = isImageRequired 
-    ? ".jpg,.jpeg,.png,.webp" 
-    : ".pdf,.doc,.docx";
-
-  const labelText = isImageRequired 
-    ? "رفع مستند إثبات الصفة الجديد (مرفقات صور) *" 
-    : "رفع مستند إثبات الصفة الجديد (مستندات كتابية) *";
-
-  const descText = isImageRequired
-    ? "صور فقط: JPG، PNG، WEBP (الحد الأقصى 10 ميجابايت)"
-    : "مستندات فقط: PDF، Word (الحد الأقصى 10 ميجابايت)";
+  const isFileType = user.notesRequiredType === "file";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -52,18 +40,10 @@ export default function RequesterNotesResponseScreen() {
       }
       
       const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
-      if (isImageRequired) {
-        if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExtension || '')) {
-          toast.error("يرجى اختيار ملف صورة فقط (JPG, PNG, WEBP)");
-          e.target.value = "";
-          return;
-        }
-      } else {
-        if (!['pdf', 'doc', 'docx'].includes(fileExtension || '')) {
-          toast.error("يرجى اختيار مستند كتابي فقط (PDF, Word)");
-          e.target.value = "";
-          return;
-        }
+      if (!['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'].includes(fileExtension || '')) {
+        toast.error("يرجى اختيار مستند كتابي أو صورة فقط (PDF, Word, JPG, PNG)");
+        e.target.value = "";
+        return;
       }
     }
     setFile(selectedFile);
@@ -71,35 +51,54 @@ export default function RequesterNotesResponseScreen() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      toast.error("يرجى اختيار ملف المرفق أولاً");
-      return;
-    }
 
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("فشل رفع الملف");
+    if (isFileType) {
+      if (!file) {
+        toast.error("يرجى اختيار ملف المرفق أولاً");
+        return;
       }
 
-      const uploadData = await response.json();
-      const fileUrl = uploadData.url;
+      setIsSubmitting(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      await submitResponse.mutateAsync({
-        remarksDocument: fileUrl,
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error("حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى.");
-      setIsSubmitting(false);
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("فشل رفع الملف");
+        }
+
+        const uploadData = await response.json();
+        const fileUrl = uploadData.url;
+
+        await submitResponse.mutateAsync({
+          remarksDocument: fileUrl,
+        });
+      } catch (err) {
+        console.error(err);
+        toast.error("حدث خطأ أثناء رفع الملف. يرجى المحاولة مرة أخرى.");
+        setIsSubmitting(false);
+      }
+    } else {
+      if (!textResponse.trim()) {
+        toast.error("يرجى كتابة الرد المطلـوب أولاً");
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        await submitResponse.mutateAsync({
+          remarksDocument: textResponse.trim(),
+        });
+      } catch (err) {
+        console.error(err);
+        toast.error("حدث خطأ أثناء إرسال الرد. يرجى المحاولة مرة أخرى.");
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -112,8 +111,8 @@ export default function RequesterNotesResponseScreen() {
             <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">تحديث طلب التسجيل</CardTitle>
             <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {isSuspended 
-                ? "يرجى مراجعة سبب الرفض وإرفاق المستند المطلوب لتحديث الطلب" 
-                : "يرجى مراجعة ملاحظات الإدارة وإرفاق المستند المطلوب لتحديث الطلب"}
+                ? "يرجى مراجعة سبب الرفض وتقديم المعلومات المطلوبة لتحديث الطلب" 
+                : "يرجى مراجعة ملاحظات الإدارة وتقديم المعلومات المطلوبة لتحديث الطلب"}
             </CardDescription>
           </div>
           <Button 
@@ -152,48 +151,66 @@ export default function RequesterNotesResponseScreen() {
             </div>
           )}
 
-          {/* نموذج رفع المرفق */}
+          {/* نموذج الاستجابة */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
-                {labelText}
-              </label>
-              
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 bg-slate-50/30 dark:bg-slate-900/10 hover:bg-slate-50/70 dark:hover:bg-slate-900/20 group">
-                <input
-                  id="responseProofFile"
-                  type="file"
-                  accept={acceptAttribute}
-                  onChange={handleFileChange}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
-                <label htmlFor="responseProofFile" className="cursor-pointer block">
-                  <div className="text-slate-500 flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-md border border-slate-100 dark:border-slate-750 group-hover:scale-105 transition-transform">
-                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
-                    </div>
-                    {file ? (
-                      <div className="text-green-600 dark:text-green-450 font-bold flex items-center justify-center gap-2 bg-green-50/80 dark:bg-green-950/20 px-3 py-1.5 rounded-xl border border-green-150">
-                        <Check className="w-4.5 h-4.5" />
-                        <span className="truncate max-w-[240px] text-xs sm:text-sm">{file.name}</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">اضغط لاختيار ملف أو اسحبه هنا</p>
-                        <p className="text-xs text-slate-400">{descText}</p>
-                      </div>
-                    )}
-                  </div>
+            {isFileType ? (
+              /* نموذج رفع المرفق */
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                  رفع مستند إثبات الصفة الجديد <span className="text-red-500">*</span>
                 </label>
+                
+                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 bg-slate-50/30 dark:bg-slate-900/10 hover:bg-slate-50/70 dark:hover:bg-slate-900/20 group">
+                  <input
+                    id="responseProofFile"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={isSubmitting}
+                  />
+                  <label htmlFor="responseProofFile" className="cursor-pointer block">
+                    <div className="text-slate-500 flex flex-col items-center justify-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-md border border-slate-100 dark:border-slate-750 group-hover:scale-105 transition-transform">
+                        <Upload className="w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
+                      </div>
+                      {file ? (
+                        <div className="text-green-600 dark:text-green-450 font-bold flex items-center justify-center gap-2 bg-green-50/80 dark:bg-green-950/20 px-3 py-1.5 rounded-xl border border-green-150">
+                          <Check className="w-4.5 h-4.5" />
+                          <span className="truncate max-w-[240px] text-xs sm:text-sm">{file.name}</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">اضغط لاختيار ملف أو اسحبه هنا</p>
+                          <p className="text-xs text-slate-400">PDF، صور، أو مستندات (الحد الأقصى 10 ميجابايت)</p>
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* نموذج الرد الكتابي */
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
+                  اكتب الرد أو المعلومات المطلوبة لتحديث الطلب <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={textResponse}
+                  onChange={(e) => setTextResponse(e.target.value)}
+                  placeholder="اكتب ردك بالتفصيل هنا..."
+                  rows={4}
+                  disabled={isSubmitting}
+                  className="w-full text-sm p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
+                />
+              </div>
+            )}
 
             {/* أزرار الإجراءات */}
             <div className="pt-2">
               <Button
                 type="submit"
-                disabled={isSubmitting || !file}
+                disabled={isSubmitting || (isFileType ? !file : !textResponse.trim())}
                 className="w-full bg-primary hover:bg-primary/95 text-white font-bold h-11 sm:h-12 rounded-2xl transition-all shadow-md shadow-primary/10 dark:shadow-none text-sm sm:text-base gap-2"
               >
                 {isSubmitting ? (
@@ -204,7 +221,7 @@ export default function RequesterNotesResponseScreen() {
                 ) : (
                   <>
                     <CheckCircle2 className="w-4.5 h-4.5" />
-                    إرسال المرفق وتحديث الطلب
+                    إرسال الرد وتحديث الطلب
                   </>
                 )}
               </Button>
