@@ -264,7 +264,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             setShowRejectForm(true);
                             setNotes(user.adminNotes || "");
                           }}
-                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
+                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-rose-600 dark:text-rose-455 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
                           <XCircle className="w-4.5 h-4.5" />
                           رفض الحساب
@@ -276,7 +276,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Button
                           onClick={() => toggleStatus.mutate({ userId: user.id, status: "suspended" })}
                           disabled={toggleStatus.isPending}
-                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
+                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-rose-600 dark:text-rose-455 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
                           <XCircle className="w-4.5 h-4.5" />
                           إيقاف الحساب
@@ -376,21 +376,21 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     </div>
                   ) : (
                     /* نموذج رفض / إيقاف الحساب */
-                    <div className="space-y-4 bg-red-50/20 dark:bg-red-955/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all text-right">
+                    <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 transition-all text-right">
                       {/* اختيار نوع المرفق المطلوب عند الرفض */}
                       {user.status !== "active" && (
                         <div className="space-y-2 pb-3 border-b border-red-100/20 dark:border-red-900/10">
                           <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
                             طريقة الرد المطلوبة من المستفيد عند معالجة الرفض
                           </label>
-                          <div className="flex gap-2 p-1 bg-red-100/10 dark:bg-slate-800 rounded-xl w-full">
+                          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full">
                             <button
                               type="button"
                               onClick={() => setNotesRequiredType("text")}
                               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "text"
-                                  ? "bg-red-600 text-white shadow-sm"
-                                  : "text-slate-650 dark:text-slate-300 hover:bg-red-200/20 dark:hover:bg-slate-700/50"
+                                  ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
+                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
                               }`}
                             >
                               رد كتابي (نصي)
@@ -400,8 +400,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                               onClick={() => setNotesRequiredType("file")}
                               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "file"
-                                  ? "bg-red-600 text-white shadow-sm"
-                                  : "text-slate-655 dark:text-slate-300 hover:bg-red-200/20 dark:hover:bg-slate-700/50"
+                                  ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
+                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
                               }`}
                             >
                               مرفق ملف/صورة (PDF، صور)
@@ -411,7 +411,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                       )}
 
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-red-700 dark:text-red-400">
+                        <label className="text-xs font-bold text-rose-600 dark:text-rose-455">
                           {user.status === "active" ? "سبب إيقاف الحساب" : "سبب رفض الحساب (ملاحظات الرفض)"}
                         </label>
                         <textarea
@@ -419,7 +419,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           onChange={(e) => setNotes(e.target.value)}
                           placeholder={user.status === "active" ? "يرجى كتابة سبب إيقاف الحساب بالتفصيل هنا..." : "يرجى كتابة سبب رفض الحساب بالتفصيل هنا..."}
                           rows={3}
-                          className="w-full text-sm p-3 rounded-xl border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-955 focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
+                          className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none resize-none transition-all"
                         />
                       </div>
 
@@ -436,7 +436,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             );
                           }}
                           disabled={toggleStatus.isPending}
-                          className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 rounded-xl"
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 rounded-xl transition-colors"
                         >
                           {toggleStatus.isPending 
                             ? (user.status === "active" ? "جاري الإيقاف..." : "جاري الرفض...") 
