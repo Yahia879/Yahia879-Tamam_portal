@@ -73,7 +73,7 @@ export default function RequesterNotesResponseScreen() {
   const isSuspended = user.status === "suspended";
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-tr from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 font-sans text-right" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-tr from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 text-right" dir="rtl">
       <Card className="w-full max-w-lg border border-slate-200/80 dark:border-slate-800/80 shadow-2xl rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md transition-all">
         {/* رأس البطاقة */}
         <CardHeader className="bg-slate-50/60 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-850 px-6 py-5 flex flex-row items-center justify-between">
