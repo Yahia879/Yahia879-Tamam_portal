@@ -389,7 +389,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                               onClick={() => setNotesRequiredType("text")}
                               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "text"
-                                  ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
+                                  ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-350 shadow-sm border border-rose-200/20"
                                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
                               }`}
                             >
@@ -400,7 +400,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                               onClick={() => setNotesRequiredType("file")}
                               className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
                                 notesRequiredType === "file"
-                                  ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
+                                  ? "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-350 shadow-sm border border-rose-200/20"
                                   : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
                               }`}
                             >
