@@ -829,9 +829,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursement_orders.view") ||
     allPermissions.has("disbursement_orders.approve") ||
     allPermissions.has("disbursement_orders.reject") ||
-    allPermissions.has("disbursement_orders.view_details")
+    allPermissions.has("disbursement_orders.view_details") ||
+    allPermissions.has("disbursement_orders.create_direct")
   ) {
     allPermissions.add("disbursement_orders");
+  } else {
+    allPermissions.delete("disbursement_orders");
   }
   if (
     allPermissions.has("progress_reports.view") ||

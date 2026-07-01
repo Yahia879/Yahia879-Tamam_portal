@@ -288,6 +288,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم أوامر الصرف إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("disbursement_orders.") && permId !== "disbursement_orders.view") {
+      if (!isChecked("disbursement_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
+        return;
+      }
+    }
+
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
     const newState = !currentState;
@@ -358,6 +366,9 @@ export default function UserPermissions() {
         }
         if (permId === "disbursements.view") {
           cascadeRevoke("disbursements.");
+        }
+        if (permId === "disbursement_orders.view") {
+          cascadeRevoke("disbursement_orders.");
         }
 
         // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما
