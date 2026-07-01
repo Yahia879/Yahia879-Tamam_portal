@@ -176,13 +176,15 @@ export default function DisbursementOrders() {
             <p className="text-muted-foreground">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
           </div>
           {canApproveOrder && (
-            <Button 
-              onClick={() => navigate("/disbursement-orders/new-direct")} 
-              className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-sm h-11"
-            >
-              <Plus className="w-5 h-5" />
-              إضافة أمر صرف
-            </Button>
+            <div className="w-full sm:w-auto flex justify-end">
+              <Button 
+                onClick={() => navigate("/disbursement-orders/new-direct")} 
+                className="w-full sm:w-auto gradient-primary text-white font-bold"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                إنشاء أمر صرف مخصص
+              </Button>
+            </div>
           )}
         </div>
 
