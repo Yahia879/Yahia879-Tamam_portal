@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -17,30 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   ArrowRight,
   Send,
-  Plus,
-  Trash2,
   Building2,
-  FileText,
-  AlertCircle,
   CheckCircle,
   ArrowLeft,
-  Info,
-  Eye,
   Check,
   Coins,
-  Wallet,
-  Banknote,
-  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,12 +80,6 @@ const SADAD_BILLERS: Record<string, string> = {
   "090": "الشركة الوطنية للغاز والتصنيع (غازكو)"
 };
 
-interface AttachmentEntry {
-  name: string;
-  url: string;
-  type: string;
-}
-
 export default function NewDirectDisbursementOrder() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -111,16 +87,13 @@ export default function NewDirectDisbursementOrder() {
   // الحالات والخطوات
   const [step, setStep] = useState<number>(1);
   const [requestType, setRequestType] = useState<string>("supplier_one_time");
-  const [billerSearch, setBillerSearch] = useState("");
 
   // بيانات النموذج
   const [formData, setFormData] = useState({
-    projectId: undefined as number | undefined,
     fundingSupport: "",
     mainProjectName: "",
     customProjectName: "",
     title: "",
-    description: "",
     amount: 0,
     dateMiladi: new Date().toISOString().split("T")[0],
     
@@ -134,11 +107,7 @@ export default function NewDirectDisbursementOrder() {
     billerName: "",
   });
 
-  const [attachments, setAttachments] = useState<AttachmentEntry[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-
   // استعلامات TRPC
-  const { data: projects } = trpc.projects.getAll.useQuery({});
   const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
@@ -211,50 +180,10 @@ export default function NewDirectDisbursementOrder() {
     }));
   };
 
-  // رفع الملفات
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    
-    setIsUploading(true);
-    const uploadData = new FormData();
-    uploadData.append("file", file);
-
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: uploadData,
-      });
-
-      if (!res.ok) {
-        throw new Error("فشل رفع الملف");
-      }
-
-      const data = await res.json();
-      setAttachments(prev => [
-        ...prev,
-        {
-          name: file.name,
-          url: data.url,
-          type: file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "pdf" : "other",
-        }
-      ]);
-      toast.success("تم رفع الملف بنجاح");
-    } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء رفع الملف");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
-
   // التحقق من صلاحية البيانات للخطوة التالية
   const isNextDisabled = () => {
     if (!formData.mainProjectName || !formData.fundingSupport) return true;
-    if (!formData.title || formData.amount <= 0 || !formData.dateMiladi) return true;
+    if (!formData.title || formData.amount <= 0 || !formData.dateMiladi || !formData.customProjectName) return true;
 
     if (requestType === "sadad_invoice") {
       return !formData.billerName || !formData.billerCode || !formData.sadadNumber;
@@ -274,12 +203,10 @@ export default function NewDirectDisbursementOrder() {
   const handleSubmit = () => {
     const isSadad = requestType === "sadad_invoice";
     createDirectOrderMutation.mutate({
-      projectId: formData.projectId || null,
+      projectId: null,
       title: formData.title,
-      description: formData.description,
       amount: formData.amount,
       dateMiladi: formData.dateMiladi,
-      attachments: attachments.length > 0 ? attachments : undefined,
       
       // بيانات المستفيد
       beneficiaryName: isSadad ? formData.billerName : formData.beneficiaryName,
@@ -458,7 +385,7 @@ export default function NewDirectDisbursementOrder() {
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <Building2 className="h-4.5 w-4.5 text-primary" />
-                  بيانات المستفيد وطريقة الدفع
+                  بيانات المستفيد
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">تفاصيل تحويل المبالغ المالية</CardDescription>
               </CardHeader>
@@ -574,71 +501,6 @@ export default function NewDirectDisbursementOrder() {
               </CardContent>
             </Card>
 
-            {/* المرفقات ومستندات الإثبات */}
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <Upload className="h-4.5 w-4.5 text-primary" />
-                  المستندات والمرفقات الرسمية (فاتورة / إثبات)
-                </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">قم برفع نسخة الفاتورة أو مستند إثبات الصرف لدعم العملية</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-4 text-right" dir="rtl">
-                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-8 bg-slate-50/50 dark:bg-slate-900/30">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    accept="image/*,application/pdf"
-                  />
-                  <label 
-                    htmlFor="file-upload" 
-                    className={`flex flex-col items-center gap-2 cursor-pointer text-slate-500 hover:text-primary transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
-                  >
-                    <Upload className="w-10 h-10 text-slate-400" />
-                    <span className="text-xs sm:text-sm font-bold">
-                      {isUploading ? "جاري الرفع..." : "انقر هنا لاختيار ملف الفاتورة أو المرفق"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">يدعم ملفات PDF والصور حتى 10 ميجا</span>
-                  </label>
-                </div>
-
-                {attachments.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl border border-border/40">
-                    <Table dir="rtl">
-                      <TableHeader className="bg-muted/40">
-                        <TableRow>
-                          <TableHead className="text-right">اسم الملف</TableHead>
-                          <TableHead className="text-right">النوع</TableHead>
-                          <TableHead className="text-left">الإجراءات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {attachments.map((file, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell className="text-right font-semibold text-xs sm:text-sm">{file.name}</TableCell>
-                            <TableCell className="text-right text-xs text-muted-foreground">{file.type === "pdf" ? "PDF مستند" : "صورة"}</TableCell>
-                            <TableCell className="text-left">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeAttachment(idx)}
-                                className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* أزرار الانتقال */}
             <div className="flex justify-end gap-3 pt-4">
               <Button
@@ -675,7 +537,7 @@ export default function NewDirectDisbursementOrder() {
 
                 {/* 2. تفاصيل الصرف */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">معلومات الفاتورة والصرف</h3>
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">معلومات الصرف</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">عنوان أمر الصرف</span><strong>{formData.title}</strong></div>
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">تاريخ الصرف</span><strong>{formData.dateMiladi}</strong></div>
@@ -703,39 +565,6 @@ export default function NewDirectDisbursementOrder() {
                     )}
                   </div>
                 </div>
-
-                {/* 4. قائمة المرفقات المعاينة */}
-                {attachments.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">المرفقات والوثائق الرسمية ({attachments.length})</h3>
-                    <div className="border border-border/40 rounded-xl overflow-hidden">
-                      <Table dir="rtl">
-                        <TableBody>
-                          {attachments.map((file, idx) => (
-                            <TableRow key={idx}>
-                              <TableCell className="text-right font-semibold text-xs sm:text-sm">
-                                <span className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4 text-primary" />
-                                  {file.name}
-                                </span>
-                              </TableCell>
-                              <TableCell className="text-left">
-                                <a 
-                                  href={file.url} 
-                                  target="_blank" 
-                                  rel="noreferrer"
-                                  className="text-xs font-bold text-primary hover:underline cursor-pointer"
-                                >
-                                  عرض الملف
-                                </a>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
               </CardContent>
               <CardFooter className="bg-muted/30 border-t border-border/40 p-4 sm:p-6 flex justify-between gap-3">
                 <Button
