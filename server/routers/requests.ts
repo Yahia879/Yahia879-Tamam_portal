@@ -44,7 +44,7 @@ import {
   PREREQUISITE_ERROR_MESSAGES,
   type PrerequisiteType,
 } from "@shared/constants";
-import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval } from "./notifications";
+import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
 
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
@@ -2991,6 +2991,20 @@ export const requestsRouter = router({
         status: "pending",
       });
 
+      // إرسال إشعار للإمام نفسه
+      try {
+        await createNotification({
+          userId: ctx.user.id,
+          type: "system",
+          title: "تم تقديم طلب الاستثناء",
+          message: "تم استلام طلب الاستثناء الخاص بك وهو قيد المراجعة حالياً من قبل الإدارة.",
+          relatedType: "user",
+          relatedId: ctx.user.id,
+        });
+      } catch (err) {
+        console.error("Error sending self notification to user:", err);
+      }
+
       // إرسال إشعار للمشرفين
       try {
         const admins = await db
@@ -3069,16 +3083,30 @@ export const requestsRouter = router({
       const [exRow] = await db.select().from(requestExceptions).where(eq(requestExceptions.id, input.id)).limit(1);
       if (exRow) {
         try {
+          const [targetUser] = await db.select().from(users).where(eq(users.id, exRow.userId)).limit(1);
+
+          const isApproved = input.status === "approved";
+          const emailTitle = "إشعار جديد من جمعية عمارة المساجد (منارة)";
+          const emailMessage = isApproved 
+            ? `بوابة تمام - قبول طلب الاستثناء\n\nالسلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه قد تم قبول طلب الاستثناء الخاص بكم رقم ${exRow.id} لإنشاء طلب جديد. يمكنك الآن الدخول للبوابة وتقديم طلبك الجديد.\n\nجمعية عمارة المساجد\n\nهذا البريد تم إرساله تلقائياً من نظام التنبيهات لجمعية عمارة المساجد (منارة).`
+            : `تم رفض طلب الاستثناء\n\nعذراً، تم رفض طلب الاستثناء الخاص بك.`;
+
+          // 1. Send in-app notification on website
           await createNotification({
             userId: exRow.userId,
             type: "system",
-            title: input.status === "approved" ? "تم قبول طلب الاستثناء" : "تم رفض طلب الاستثناء",
-            message: input.status === "approved"
+            title: isApproved ? "تم قبول طلب الاستثناء" : "تم رفض طلب الاستثناء",
+            message: isApproved
               ? "تم قبول طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب جديد."
               : "عذراً، تم رفض طلب الاستثناء الخاص بك.",
             relatedType: "user",
             relatedId: exRow.userId,
           });
+
+          // 2. Mandatory email sending
+          if (targetUser && targetUser.email) {
+            await sendEmailNotification(targetUser.email, emailTitle, emailMessage);
+          }
         } catch (err) {
           console.error("Error sending user notification for exception review:", err);
         }

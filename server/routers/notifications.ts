@@ -215,6 +215,8 @@ export async function createNotification(data: {
     let triggerId: string | null = null;
     if (data.title === "تقديم رد على الرفض" || data.title === "تقديم رد على الملاحظات" || data.message.includes("بتقديم رد على")) {
       triggerId = "notes_response_submitted";
+    } else if (data.title === "طلب استثناء جديد" || data.message.includes("بتقديم طلب استثناء")) {
+      triggerId = "exception_request_submitted";
     } else if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
       triggerId = "request_created_admin";
     } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
@@ -300,7 +302,8 @@ export async function createNotification(data: {
       data.relatedType === "request" || 
       data.type === "request" || 
       data.type === "request_update" ||
-      data.type === "mosque";
+      data.type === "mosque" ||
+      triggerId === "exception_request_submitted";
 
     if (isFinancial) {
       isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
@@ -367,9 +370,11 @@ export async function createNotification(data: {
     }
 
     if ((isEmailEnabled || user.role === "service_requester") && user.email) {
-      sendEmailNotification(user.email, data.title, data.message).catch((err) => {
-        console.error("Async Email error:", err);
-      });
+      if (!data.title.includes("طلب الاستثناء")) {
+        sendEmailNotification(user.email, data.title, data.message).catch((err) => {
+          console.error("Async Email error:", err);
+        });
+      }
     }
 
     if (isWhatsappEnabled && user.phone && user.role !== "service_requester") {

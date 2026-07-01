@@ -21,6 +21,26 @@ async function main() {
        VALUES ('notes_response_submitted', 'system_admin', 'in_app', 1) 
        ON DUPLICATE KEY UPDATE \`enabled\` = 1`
     );
+    await connection.query(
+      `INSERT INTO \`notification_trigger_settings\` (\`triggerId\`, \`roleId\`, \`channel\`, \`enabled\`) 
+       VALUES ('exception_request_submitted', 'super_admin', 'in_app', 1) 
+       ON DUPLICATE KEY UPDATE \`enabled\` = 1`
+    );
+    await connection.query(
+      `INSERT INTO \`notification_trigger_settings\` (\`triggerId\`, \`roleId\`, \`channel\`, \`enabled\`) 
+       VALUES ('exception_request_submitted', 'system_admin', 'in_app', 1) 
+       ON DUPLICATE KEY UPDATE \`enabled\` = 1`
+    );
+    await connection.query(
+      `INSERT INTO \`notification_trigger_settings\` (\`triggerId\`, \`roleId\`, \`channel\`, \`enabled\`) 
+       VALUES ('exception_request_submitted', 'super_admin', 'email', 1) 
+       ON DUPLICATE KEY UPDATE \`enabled\` = 1`
+    );
+    await connection.query(
+      `INSERT INTO \`notification_trigger_settings\` (\`triggerId\`, \`roleId\`, \`channel\`, \`enabled\`) 
+       VALUES ('exception_request_submitted', 'system_admin', 'email', 1) 
+       ON DUPLICATE KEY UPDATE \`enabled\` = 1`
+    );
     console.log("Inserted settings successfully.");
 
     const [rows] = await connection.query("SELECT * FROM `notification_trigger_settings`");

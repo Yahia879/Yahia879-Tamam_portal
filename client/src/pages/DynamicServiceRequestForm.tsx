@@ -884,6 +884,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <Button disabled variant="outline" className="h-10 px-5 rounded-xl font-bold bg-slate-100 text-slate-500">
                 طلب الاستثناء قيد المراجعة حالياً
               </Button>
+            ) : exceptionStatus && exceptionStatus.status === "rejected" ? (
+              <Button disabled variant="outline" className="h-10 px-5 rounded-xl font-bold bg-red-50 text-red-600 border border-red-200/50">
+                تم رفض طلب الاستثناء السابق
+              </Button>
             ) : (
               <Button 
                 onClick={() => setIsExceptionModalOpen(true)} 

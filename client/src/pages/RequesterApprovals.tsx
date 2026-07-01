@@ -56,6 +56,7 @@ import {
   Calendar,
   Shield,
   X,
+  Download,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -634,6 +635,24 @@ export default function RequesterApprovals() {
               title="إغلاق"
             >
               <X className="w-5 h-5" />
+            </button>
+
+            {/* Download button */}
+            <button 
+              onClick={() => {
+                if (!previewUrl) return;
+                const link = document.createElement("a");
+                link.href = previewUrl;
+                link.download = previewUrl.split("/").pop() || "attachment";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="absolute top-4 left-4 bg-slate-800/85 hover:bg-primary/85 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
+              title="تحميل"
+            >
+              <Download className="w-4 h-4" />
+              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
             </button>
 
             {/* Document/Image container */}
