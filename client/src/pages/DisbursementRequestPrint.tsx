@@ -51,7 +51,27 @@ function numberToArabicText(num: number): string {
     return rest ? `${result} و${convertHundreds(rest)}` : result;
   }
 
-  return `فقط ${convertMillions(Math.floor(num))} ريال`;
+  function getHalalasText(halalas: number): string {
+    if (halalas === 1) return "هللة واحدة";
+    if (halalas === 2) return "هللتان";
+    const masculineOnes = ["", "", "", "ثلاث", "أربع", "خمس", "ست", "سبع", "ثمان", "تسع", "عشر"];
+    if (halalas >= 3 && halalas <= 10) {
+      return `${masculineOnes[halalas]} هللات`;
+    }
+    return `${convertHundreds(halalas)} هللة`;
+  }
+
+  const integerPart = Math.floor(num);
+  const decimalPart = Math.round((num - integerPart) * 100);
+
+  const integerText = convertMillions(integerPart);
+  
+  if (decimalPart > 0) {
+    const decimalText = getHalalasText(decimalPart);
+    return `فقط ${integerText} ريال و${decimalText}`;
+  }
+  
+  return `فقط ${integerText} ريال`;
 }
 
 function toHijriDate(date: Date): string {
