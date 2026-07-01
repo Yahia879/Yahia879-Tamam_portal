@@ -57,7 +57,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const hasApprovePermission = usePermission("requesters.approve");
   const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -132,6 +132,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const StatusIcon = statusInfo?.icon ?? Clock;
 
   const isImageFile = user.proofDocument ? /\.(jpg|jpeg|png|webp)$/i.test(user.proofDocument) : false;
+  const isRemarksImage = user.remarksDocument ? /\.(jpg|jpeg|png|webp)$/i.test(user.remarksDocument) : false;
 
   return (
     <DashboardLayout>
@@ -412,7 +413,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             size="sm"
                             variant="secondary"
                             className="font-bold gap-1 rounded-lg"
-                            onClick={() => setIsFullscreen(true)}
+                            onClick={() => setFullscreenUrl(user.proofDocument)}
                           >
                             <Maximize2 className="w-3.5 h-3.5" />
                             ملء الشاشة
@@ -470,23 +471,101 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
               )}
             </CardContent>
           </Card>
+
+          {/* مرفقات الملاحظة */}
+          {user.remarksDocument && (
+            <Card className="border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl flex flex-col overflow-hidden">
+              <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-amber-500" />
+                  مرفقات الملاحظة
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-4 flex-1 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    {isRemarksImage ? (
+                      <div className="relative border rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 group aspect-square flex items-center justify-center p-2.5 shadow-inner transition-all hover:border-amber-500/30">
+                        <img
+                          src={user.remarksDocument}
+                          alt="مرفقات الملاحظة"
+                          className="max-h-full max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                        <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="font-bold gap-1 rounded-lg"
+                            onClick={() => setFullscreenUrl(user.remarksDocument)}
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            ملء الشاشة
+                          </Button>
+                          <a
+                            href={user.remarksDocument}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white text-slate-950 rounded-lg hover:bg-slate-100 transition-all"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            تنزيل
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-6 rounded-xl border border-dashed text-center space-y-3 bg-slate-50 dark:bg-slate-900">
+                        <FileText className="w-10 h-10 text-muted-foreground/50 mx-auto" />
+                        <div className="space-y-1">
+                          <p className="font-semibold text-xs text-foreground">ملف غير صوري (PDF/مستند)</p>
+                          <p className="text-[10px] text-muted-foreground">يمكنك تحميله واستعراضه مباشرة</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-2 border-t">
+                    <a
+                      href={user.remarksDocument}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-amber-600 bg-amber-500/10 rounded-xl hover:bg-amber-500/20 transition-all text-center"
+                    >
+                      <FileText className="w-4 h-4" />
+                      عرض في نافذة جديدة
+                    </a>
+                    <a
+                      href={user.remarksDocument}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-center"
+                    >
+                      <Download className="w-4 h-4" />
+                      تحميل الملف
+                    </a>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
       {/* مودال العرض ملء الشاشة للمستند المرفق */}
-      {isFullscreen && user?.proofDocument && (
+      {fullscreenUrl && (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col justify-between p-4 md:p-6" dir="rtl">
           {/* شريط الأدوات العلوي */}
           <div className="flex items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               <span className="text-sm font-bold truncate max-w-[200px] md:max-w-md">
-                إثبات الصفة: {user.name} ({getRequesterTypeLabel(user.requesterType)})
+                معاينة المستند: {user.name} ({getRequesterTypeLabel(user.requesterType)})
               </span>
             </div>
             <div className="flex items-center gap-2">
               <a
-                href={user.proofDocument}
+                href={fullscreenUrl}
                 download
                 target="_blank"
                 rel="noreferrer"
@@ -498,7 +577,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
               <Button
                 variant="ghost"
                 className="text-white hover:bg-white/10 h-10 w-10 p-0 rounded-xl"
-                onClick={() => setIsFullscreen(false)}
+                onClick={() => setFullscreenUrl(null)}
               >
                 <Minimize2 className="w-5 h-5" />
               </Button>
@@ -508,8 +587,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
           {/* المعاينة في المنتصف */}
           <div className="flex-1 flex items-center justify-center overflow-hidden my-4">
             <img
-              src={user.proofDocument}
-              alt="إثبات الصفة ملء الشاشة"
+              src={fullscreenUrl}
+              alt="المستند المرفق ملء الشاشة"
               className="max-h-full max-w-full object-contain rounded-lg select-none"
             />
           </div>

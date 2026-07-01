@@ -422,7 +422,7 @@ export const usersRouter = router({
   submitNotesResponse: protectedProcedure
     .input(
       z.object({
-        proofDocument: z.string(),
+        remarksDocument: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -432,7 +432,7 @@ export const usersRouter = router({
       await db
         .update(users)
         .set({
-          proofDocument: input.proofDocument,
+          remarksDocument: input.remarksDocument,
           status: "pending",
           adminNotes: null, // Clear the notes
         })

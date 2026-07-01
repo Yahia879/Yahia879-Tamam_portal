@@ -149,6 +149,7 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   deletedAt: datetime("deletedAt"),
   adminNotes: text("adminNotes"),
+  remarksDocument: text("remarksDocument"),
 });
 
 // جدول الموظفين (بيانات إضافية للموظفين)
