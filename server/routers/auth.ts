@@ -164,11 +164,10 @@ export const authRouter = router({
       const user = userResult[0];
 
       // التحقق من حالة الحساب
-      const isPendingNotesRequester = user.role === "service_requester" && 
-                                      (user.status === "pending" || user.status === "suspended") && 
-                                      user.adminNotes;
+      const isRequesterAllowed = user.role === "service_requester" && 
+                                 (user.status === "pending" || user.status === "suspended");
 
-      if (!isPendingNotesRequester) {
+      if (!isRequesterAllowed) {
         if (user.status === "pending") {
           throw new TRPCError({ code: "FORBIDDEN", message: "حسابك قيد المراجعة. يرجى انتظار الاعتماد." });
         }
