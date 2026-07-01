@@ -8,14 +8,34 @@ export const programsRouter = router({
   // الحصول على جميع البرامج
   getAll: publicProcedure.query(async () => {
     const db = (await getDb())!;
-    return await db.select().from(programs).orderBy(asc(programs.createdAt));
+    return await db.select().from(programs).orderBy(asc(programs.sortOrder), asc(programs.createdAt));
   }),
 
   // الحصول على البرامج الفعالة فقط
   getActive: publicProcedure.query(async () => {
     const db = (await getDb())!;
-    return await db.select().from(programs).where(eq(programs.isActive, true)).orderBy(asc(programs.createdAt));
+    return await db.select().from(programs).where(eq(programs.isActive, true)).orderBy(asc(programs.sortOrder), asc(programs.createdAt));
   }),
+
+  // تحديث ترتيب البرامج
+  updateOrder: protectedProcedure
+    .input(
+      z.object({
+        orders: z.array(
+          z.object({
+            id: z.string(),
+            sortOrder: z.number(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      for (const item of input.orders) {
+        await db.update(programs).set({ sortOrder: item.sortOrder }).where(eq(programs.id, item.id));
+      }
+      return { success: true };
+    }),
 
   // إضافة برنامج جديد
   create: protectedProcedure

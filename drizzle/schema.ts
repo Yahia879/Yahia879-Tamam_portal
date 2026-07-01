@@ -224,6 +224,7 @@ export const programs = mysqlTable("programs", {
   requiresMosque: boolean("requiresMosque").default(true),
   isActive: boolean("isActive").default(true),
   conditions: json("conditions"),
+  sortOrder: int("sortOrder").default(0),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

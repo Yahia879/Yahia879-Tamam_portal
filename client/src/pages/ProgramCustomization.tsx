@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight, GripVertical } from 'lucide-react';
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -66,6 +66,64 @@ export default function ProgramCustomization() {
       utils.programs.getAll.invalidate();
     },
   });
+  const updateOrderMutation = trpc.programs.updateOrder.useMutation({
+    onSuccess: () => {
+      utils.programs.getAll.invalidate();
+    },
+  });
+
+  const [localPrograms, setLocalPrograms] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (programs) {
+      setLocalPrograms((prev) => {
+        const isSame = prev.length === programs.length && 
+          prev.every((p, i) => 
+            p.id === programs[i].id && 
+            p.sortOrder === programs[i].sortOrder && 
+            p.name === programs[i].name && 
+            p.isActive === programs[i].isActive && 
+            p.description === programs[i].description && 
+            p.color === programs[i].color
+          );
+        if (isSame) return prev;
+        return programs;
+      });
+    }
+  }, [programs]);
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const items = [...localPrograms];
+    const draggedItem = items[draggedIndex];
+    items.splice(draggedIndex, 1);
+    items.splice(index, 0, draggedItem);
+
+    setDraggedIndex(index);
+    setLocalPrograms(items);
+  };
+
+  const handleDragEnd = async () => {
+    setDraggedIndex(null);
+    const orders = localPrograms.map((p, idx) => ({
+      id: p.id,
+      sortOrder: idx + 1,
+    }));
+    try {
+      await updateOrderMutation.mutateAsync({ orders });
+    } catch (err) {
+      console.error('Failed to update programs sort order:', err);
+    }
+  };
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ProgramCustomization>>({});
@@ -368,144 +426,164 @@ export default function ProgramCustomization() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {programs.map((program: any) => (
-              <Card key={program.id} className={`transition-all overflow-hidden ${!program.isActive ? 'bg-muted/30 opacity-70 grayscale-[0.5]' : 'hover:shadow-sm'}`}>
-                <CardContent className="p-4 sm:p-6">
-                  {editingId === program.id ? (
-                    // وضع التحرير
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-foreground">
-                            اسم البرنامج
-                          </label>
-                          <Input
-                            value={editData.name || ''}
-                            onChange={(e) =>
-                              setEditData({ ...editData, name: e.target.value })
-                            }
-                            className="h-10"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-foreground">
-                            اللون
-                          </label>
-                          <div className="flex gap-2 flex-wrap">
-                            {colors.map((color) => (
-                              <button
-                                key={color}
-                                type="button"
-                                onClick={() =>
-                                  setEditData({ ...editData, color })
-                                }
-                                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
-                                  editData.color === color
-                                    ? 'ring-2 ring-offset-2 ring-primary scale-110'
-                                    : 'hover:scale-105'
-                                }`}
-                              />
-                            ))}
+            {localPrograms.map((program: any, index: number) => {
+              const isDragging = draggedIndex === index;
+              return (
+                <Card 
+                  key={program.id} 
+                  draggable={canEdit && editingId !== program.id}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`transition-all overflow-hidden ${
+                    canEdit && editingId !== program.id ? 'cursor-grab' : ''
+                  } ${
+                    isDragging ? 'opacity-40 border-dashed border-2 border-primary' : ''
+                  } ${
+                    !program.isActive ? 'bg-muted/30 opacity-70 grayscale-[0.5]' : 'hover:shadow-sm'
+                  }`}
+                >
+                  <CardContent className="p-4 sm:p-6">
+                    {editingId === program.id ? (
+                      // وضع التحرير
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-foreground">
+                              اسم البرنامج
+                            </label>
+                            <Input
+                              value={editData.name || ''}
+                              onChange={(e) =>
+                                setEditData({ ...editData, name: e.target.value })
+                              }
+                              className="h-10"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-foreground">
+                              اللون
+                            </label>
+                            <div className="flex gap-2 flex-wrap">
+                              {colors.map((color) => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() =>
+                                    setEditData({ ...editData, color })
+                                  }
+                                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${color} transition-all ${
+                                    editData.color === color
+                                      ? 'ring-2 ring-offset-2 ring-primary scale-110'
+                                      : 'hover:scale-105'
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-foreground">
-                          الوصف
-                        </label>
-                        <Textarea
-                          value={editData.description || ''}
-                          onChange={(e) =>
-                            setEditData({
-                              ...editData,
-                              description: e.target.value,
-                            })
-                          }
-                          rows={3}
-                          className="text-sm"
-                        />
-                      </div>
-
-                      <div className="space-y-2 pt-2 border-t">
-                        <label className="block text-sm font-medium text-foreground">
-                          الشروط والأحكام الخاصة بالبرنامج
-                        </label>
                         <div className="space-y-2">
-                          {(editData.conditions || []).map((cond: string, index: number) => (
-                            <div key={index} className="flex gap-2 items-center">
-                              <Input
-                                value={cond}
-                                onChange={(e) => {
-                                  const updated = [...(editData.conditions || [])];
-                                  updated[index] = e.target.value;
-                                  setEditData({ ...editData, conditions: updated });
-                                }}
-                                placeholder={`الشرط رقم ${index + 1}`}
-                                className="flex-1 h-9 text-sm"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                type="button"
-                                onClick={() => {
-                                  setEditData({
-                                    ...editData,
-                                    conditions: (editData.conditions || []).filter((_: any, i: number) => i !== index)
-                                  });
-                                }}
-                                className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
+                          <label className="block text-sm font-medium text-foreground">
+                            الوصف
+                          </label>
+                          <Textarea
+                            value={editData.description || ''}
+                            onChange={(e) =>
                               setEditData({
                                 ...editData,
-                                conditions: [...(editData.conditions || []), ""]
-                              });
-                            }}
-                            className="h-8 text-xs"
+                                description: e.target.value,
+                              })
+                            }
+                            rows={3}
+                            className="text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t">
+                          <label className="block text-sm font-medium text-foreground">
+                            الشروط والأحكام الخاصة بالبرنامج
+                          </label>
+                          <div className="space-y-2">
+                            {(editData.conditions || []).map((cond: string, index: number) => (
+                              <div key={index} className="flex gap-2 items-center">
+                                <Input
+                                  value={cond}
+                                  onChange={(e) => {
+                                    const updated = [...(editData.conditions || [])];
+                                    updated[index] = e.target.value;
+                                    setEditData({ ...editData, conditions: updated });
+                                  }}
+                                  placeholder={`الشرط رقم ${index + 1}`}
+                                  className="flex-1 h-9 text-sm"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  type="button"
+                                  onClick={() => {
+                                    setEditData({
+                                      ...editData,
+                                      conditions: (editData.conditions || []).filter((_: any, i: number) => i !== index)
+                                    });
+                                  }}
+                                  className="text-red-500 hover:bg-red-50 h-9 w-9 flex-shrink-0"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                  setEditData({
+                                    ...editData,
+                                    conditions: [...(editData.conditions || []), ""]
+                                  });
+                              }}
+                              className="h-8 text-xs"
+                            >
+                              <Plus className="w-3.5 h-3.5 ml-1" />
+                              إضافة شرط
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            onClick={() => setEditingId(null)}
+                            className="w-full sm:w-auto h-9"
                           >
-                            <Plus className="w-3.5 h-3.5 ml-1" />
-                            إضافة شرط
+                            <X className="w-4 h-4 ml-2" />
+                            إلغاء
+                          </Button>
+                          <Button
+                            onClick={() => handleSaveEdit(program.id)}
+                            className="gradient-primary text-white w-full sm:w-auto h-9"
+                            disabled={updateMutation.isPending}
+                          >
+                            {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+                            حفظ التعديلات
                           </Button>
                         </div>
                       </div>
-
-                      <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2 border-t">
-                        <Button
-                          variant="outline"
-                          onClick={() => setEditingId(null)}
-                          className="w-full sm:w-auto h-9"
-                        >
-                          <X className="w-4 h-4 ml-2" />
-                          إلغاء
-                        </Button>
-                        <Button
-                          onClick={() => handleSaveEdit(program.id)}
-                          className="gradient-primary text-white w-full sm:w-auto h-9"
-                          disabled={updateMutation.isPending}
-                        >
-                          {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
-                          حفظ التعديلات
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    // وضع العرض
-                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div
-                          className={`w-12 h-12 rounded-xl ${program.color} flex items-center justify-center flex-shrink-0 shadow-sm`}
-                        >
-                          <span className="text-white text-xl">📦</span>
-                        </div>
+                    ) : (
+                      // وضع العرض
+                      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                          {canEdit && (
+                            <div className="text-muted-foreground/40 hover:text-foreground cursor-grab active:cursor-grabbing self-center p-1">
+                              <GripVertical className="w-5 h-5" />
+                            </div>
+                          )}
+                          <div
+                            className={`w-12 h-12 rounded-xl ${program.color} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                          >
+                            <span className="text-white text-xl">📦</span>
+                          </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
@@ -588,7 +666,8 @@ export default function ProgramCustomization() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
 
