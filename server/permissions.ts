@@ -159,6 +159,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursement_orders.approve": ["financial.approve"],
   "disbursement_orders.reject": ["financial.approve"],
   "disbursement_orders.view_details": ["disbursement_orders.view_details"],
+  "disbursement_orders.create_direct": ["disbursement_orders.create_direct"],
 
   financial_reports: ["financial_reports.view"],
   "financial_reports.view": ["financial_reports.view"],
@@ -510,6 +511,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
+      { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
     ];
 
     for (const p of customPerms) {

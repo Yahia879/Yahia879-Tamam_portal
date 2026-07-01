@@ -570,7 +570,8 @@ export default function UserPermissions() {
       disbursement_orders: {
         view: "عرض أوامر الصرف",
         approve: "اعتماد أوامر الصرف",
-        reject: "رفض أوامر الصرف"
+        reject: "رفض أوامر الصرف",
+        create_direct: "انشاء امر صرف مخصص"
       },
       progress_reports: {
         view: "عرض تقارير الإنجاز",
@@ -680,7 +681,7 @@ export default function UserPermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },

@@ -153,6 +153,7 @@ export default function DisbursementOrders() {
   const canApproveOrder = usePermission("disbursement_orders.approve");
   const canRejectOrder = usePermission("disbursement_orders.reject");
   const canViewDetails = usePermission("disbursement_orders.view_details");
+  const canCreateDirectOrder = usePermission("disbursement_orders.create_direct");
 
   // تعيين الأوامر مباشرة من استجابة الخادم
   const filteredOrders = ordersData?.orders || [];
@@ -175,7 +176,7 @@ export default function DisbursementOrders() {
             <h1 className="text-2xl font-bold">أوامر الصرف</h1>
             <p className="text-muted-foreground">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
           </div>
-          {canApproveOrder && (
+          {canCreateDirectOrder && (
             <div className="w-full sm:w-auto flex justify-end">
               <Button 
                 onClick={() => navigate("/disbursement-orders/new-direct")} 

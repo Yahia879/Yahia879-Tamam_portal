@@ -562,6 +562,7 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
             { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
+            { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
           ]
         },
         {
@@ -710,6 +711,7 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.approve", nameAr: "اعتماد أوامر الصرف" },
             { id: "disbursement_orders.reject", nameAr: "رفض أوامر الصرف" },
+            { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
           ]
         },
         {
