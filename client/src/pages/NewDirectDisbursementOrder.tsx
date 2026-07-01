@@ -83,6 +83,21 @@ function numberToArabicText(num: number): string {
   return `${convertThousands(intPart)} ريال سعودي فقط لا غير`;
 }
 
+const SADAD_BILLERS: Record<string, string> = {
+  "001": "شركة الاتصالات السعودية (STC)",
+  "002": "الشركة السعودية للكهرباء",
+  "003": "شركة المياه الوطنية",
+  "050": "وزارة الداخلية - المرور",
+  "085": "وزارة الموارد البشرية والتنمية الاجتماعية",
+  "101": "وزارة التجارة",
+  "144": "الهيئة السعودية للمواصفات والمقاييس والجودة",
+  "166": "المؤسسة العامة للتأمينات الاجتماعية",
+  "017": "موبايلي",
+  "044": "زين",
+  "022": "الخطوط السعودية",
+  "090": "الشركة الوطنية للغاز والتصنيع (غازكو)"
+};
+
 interface AttachmentEntry {
   name: string;
   url: string;
@@ -96,6 +111,7 @@ export default function NewDirectDisbursementOrder() {
   // الحالات والخطوات
   const [step, setStep] = useState<number>(1);
   const [requestType, setRequestType] = useState<string>("supplier_one_time");
+  const [billerSearch, setBillerSearch] = useState("");
 
   // بيانات النموذج
   const [formData, setFormData] = useState({
@@ -112,7 +128,7 @@ export default function NewDirectDisbursementOrder() {
     beneficiaryName: "",
     beneficiaryBank: "",
     beneficiaryIban: "",
-    paymentMethod: "bank_transfer",
+    bankAccountName: "",
     sadadNumber: "",
     billerCode: "",
     billerName: "",
@@ -126,6 +142,7 @@ export default function NewDirectDisbursementOrder() {
   const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
+  const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
 
   const createDirectOrderMutation = trpc.disbursements.createDirectOrder.useMutation({
     onSuccess: (data) => {
@@ -137,15 +154,57 @@ export default function NewDirectDisbursementOrder() {
     },
   });
 
+  // معالجة تغيير اسم المستفيد والبحث عن مورد متطابق للتعبئة التلقائية
+  const handleBeneficiaryNameChange = (val: string) => {
+    setFormData(prev => {
+      const matched = allSuppliers?.find(s => s.name.trim() === val.trim());
+      if (matched) {
+        return {
+          ...prev,
+          beneficiaryName: val,
+          bankAccountName: matched.bankAccountName || prev.bankAccountName,
+          beneficiaryBank: matched.bankName || prev.beneficiaryBank,
+          beneficiaryIban: matched.iban || prev.beneficiaryIban
+        };
+      }
+      return {
+        ...prev,
+        beneficiaryName: val
+      };
+    });
+  };
+
+  // معالجة تغيير رمز المفوتر للبحث التلقائي في سداد والتعبئة التلقائية
+  const handleBillerCodeChange = (val: string) => {
+    const matchedBiller = sadadBillersData?.values?.find((v: any) => v.value === val);
+    const matchedName = matchedBiller ? matchedBiller.valueAr : SADAD_BILLERS[val];
+    setFormData(prev => ({
+      ...prev,
+      billerCode: val,
+      billerName: matchedName || prev.billerName
+    }));
+  };
+
+  const handleBillerSelect = (billerValue: string) => {
+    const matchedBiller = sadadBillersData?.values?.find((v: any) => v.value === billerValue);
+    if (matchedBiller) {
+      setFormData(prev => ({
+        ...prev,
+        billerCode: matchedBiller.value,
+        billerName: matchedBiller.valueAr
+      }));
+    }
+  };
+
   // تغيير نوع الصرف
   const handleRequestTypeChange = (value: string) => {
     setRequestType(value);
     setFormData(prev => ({
       ...prev,
-      paymentMethod: value === "sadad_invoice" ? "sadad" : "bank_transfer",
       beneficiaryName: "",
       beneficiaryBank: "",
       beneficiaryIban: "",
+      bankAccountName: "",
       sadadNumber: "",
       billerCode: "",
       billerName: "",
@@ -200,7 +259,7 @@ export default function NewDirectDisbursementOrder() {
     if (requestType === "sadad_invoice") {
       return !formData.billerName || !formData.billerCode || !formData.sadadNumber;
     } else {
-      return !formData.beneficiaryName || !formData.beneficiaryBank || !formData.beneficiaryIban;
+      return !formData.beneficiaryName || !formData.beneficiaryBank || !formData.beneficiaryIban || !formData.bankAccountName;
     }
   };
 
@@ -226,7 +285,8 @@ export default function NewDirectDisbursementOrder() {
       beneficiaryName: isSadad ? formData.billerName : formData.beneficiaryName,
       beneficiaryBank: isSadad ? formData.billerCode : formData.beneficiaryBank,
       beneficiaryIban: isSadad ? formData.sadadNumber : formData.beneficiaryIban,
-      paymentMethod: formData.paymentMethod,
+      beneficiaryAccountName: isSadad ? undefined : formData.bankAccountName,
+      paymentMethod: isSadad ? "sadad" : "bank_transfer",
       sadadNumber: isSadad ? formData.sadadNumber : undefined,
       billerCode: isSadad ? formData.billerCode : undefined,
     });
@@ -345,38 +405,14 @@ export default function NewDirectDisbursementOrder() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* اختيار المشروع التقني المرتبط (اختياري) */}
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط بالنظام (اختياري)</Label>
-                    <Select
-                      value={formData.projectId ? String(formData.projectId) : ""}
-                      onValueChange={(value) => setFormData({ ...formData, projectId: value ? (value === "none" ? undefined : parseInt(value)) : undefined })}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                        <SelectValue placeholder="اختر المشروع بالنظام إن وجد" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="none" className="text-right">لا يوجد مشروع مرتبط</SelectItem>
-                        {projects?.map((proj: any) => (
-                          <SelectItem key={proj.id} value={String(proj.id)} className="text-right">
-                            {proj.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* الاسم الفرعي / المخصص للمشروع */}
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الاسم الفرعي للمشروع *</Label>
-                    <Input
-                      placeholder="مثال: ترميم دورات المياه بمسجد الميقات"
-                      value={formData.customProjectName}
-                      onChange={(e) => setFormData({ ...formData, customProjectName: e.target.value })}
-                      className="border-border rounded-xl h-11 text-right focus:ring-primary"
-                    />
-                  </div>
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع المخصص *</Label>
+                  <Input
+                    placeholder="مثال: ترميم دورات المياه بمسجد الميقات"
+                    value={formData.customProjectName}
+                    onChange={(e) => setFormData({ ...formData, customProjectName: e.target.value })}
+                    className="border-border rounded-xl h-11 text-right focus:ring-primary w-full"
+                  />
                 </div>
 
                 <Separator className="my-2 border-border/40" />
@@ -414,16 +450,6 @@ export default function NewDirectDisbursementOrder() {
                     />
                   </div>
                 </div>
-
-                <div className="space-y-2 text-right">
-                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال والتفاصيل (اختياري)</Label>
-                  <Textarea
-                    placeholder="اكتب هنا تفاصيل الأعمال والجهة والبنود المخصصة..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="border-border rounded-xl text-right min-h-[90px]"
-                  />
-                </div>
               </CardContent>
             </Card>
 
@@ -439,27 +465,23 @@ export default function NewDirectDisbursementOrder() {
               <CardContent className="pt-6 space-y-6 text-right" dir="rtl">
                 {requestType === "sadad_invoice" ? (
                   /* واجهة فواتير نظام سداد */
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الجهة المفوترة *</Label>
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (للتعبئة التلقائية)</Label>
                       <Select
-                        value={formData.billerName}
-                        onValueChange={(val) => {
-                          const biller = sadadBillersData?.values?.find((v: any) => v.valueAr === val);
-                          setFormData({ 
-                            ...formData, 
-                            billerName: val, 
-                            billerCode: biller ? biller.value : "" 
-                          });
-                        }}
+                        value={formData.billerCode || ""}
+                        onValueChange={handleBillerSelect}
                       >
-                        <SelectTrigger className="text-right border-border rounded-xl h-11 bg-background w-full" dir="rtl">
-                          <SelectValue placeholder="اختر المفوتر (مثل: شركة الكهرباء)" />
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                          <SelectValue placeholder="اختر المفوتر للتعبئة التلقائية" />
                         </SelectTrigger>
-                        <SelectContent dir="rtl">
+                        <SelectContent dir="rtl" className="max-h-64">
                           {sadadBillersData?.values?.map((val: any) => (
-                            <SelectItem key={val.id} value={val.valueAr} className="text-right">
-                              {val.valueAr} ({val.value})
+                            <SelectItem key={val.id} value={val.value} className="text-right cursor-pointer py-2.5">
+                              <div className="flex items-center justify-between w-full gap-4 text-xs font-bold">
+                                <span className="text-slate-800 dark:text-slate-200">{val.valueAr}</span>
+                                <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">{val.value}</span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -471,31 +493,57 @@ export default function NewDirectDisbursementOrder() {
                       <Input
                         placeholder="رمز المفوتر بالنظام"
                         value={formData.billerCode}
-                        onChange={(e) => setFormData({ ...formData, billerCode: e.target.value })}
-                        className="border-border rounded-xl h-11 text-right font-mono"
+                        onChange={(e) => handleBillerCodeChange(e.target.value)}
+                        className="border-border rounded-xl h-11 text-right font-mono bg-background"
                       />
                     </div>
 
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الحساب / رقم سداد الفاتورة *</Label>
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المفوتر *</Label>
+                      <Input
+                        placeholder="أدخل اسم المفوتر"
+                        value={formData.billerName}
+                        onChange={(e) => setFormData({ ...formData, billerName: e.target.value })}
+                        className="border-border rounded-xl h-11 text-right bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم سداد *</Label>
                       <Input
                         placeholder="رقم الفاتورة للسداد"
                         value={formData.sadadNumber}
                         onChange={(e) => setFormData({ ...formData, sadadNumber: e.target.value })}
-                        className="border-border rounded-xl h-11 text-right font-mono"
+                        className="border-border rounded-xl h-11 text-right font-mono bg-background"
                       />
                     </div>
                   </div>
                 ) : (
                   /* واجهة التحويل البنكي للموردين والجهات الأخرى */
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2 text-right">
                         <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد / المورد *</Label>
                         <Input
                           placeholder="الاسم الثلاثي أو اسم الشركة"
+                          list="suppliers-list"
                           value={formData.beneficiaryName}
-                          onChange={(e) => setFormData({ ...formData, beneficiaryName: e.target.value })}
+                          onChange={(e) => handleBeneficiaryNameChange(e.target.value)}
+                          className="border-border rounded-xl h-11 text-right"
+                        />
+                        <datalist id="suppliers-list">
+                          {allSuppliers?.map((s: any) => (
+                            <option key={s.id} value={s.name} />
+                          ))}
+                        </datalist>
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الحساب البنكي *</Label>
+                        <Input
+                          placeholder="أدخل اسم الحساب البنكي"
+                          value={formData.bankAccountName}
+                          onChange={(e) => setFormData({ ...formData, bankAccountName: e.target.value })}
                           className="border-border rounded-xl h-11 text-right"
                         />
                       </div>
@@ -519,25 +567,6 @@ export default function NewDirectDisbursementOrder() {
                           className="border-border rounded-xl h-11 text-left font-mono"
                           dir="ltr"
                         />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 text-right">
-                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">طريقة الدفع *</Label>
-                        <Select
-                          value={formData.paymentMethod}
-                          onValueChange={(val) => setFormData({ ...formData, paymentMethod: val })}
-                        >
-                          <SelectTrigger className="text-right border-border rounded-xl h-11 bg-background w-full" dir="rtl">
-                            <SelectValue placeholder="اختر طريقة الدفع" />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl">
-                            <SelectItem value="bank_transfer" className="text-right">تحويل بنكي</SelectItem>
-                            <SelectItem value="check" className="text-right">إصدار شيك رسمي</SelectItem>
-                            <SelectItem value="custody" className="text-right">صرف عهدة مالية</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                     </div>
                   </>
@@ -640,7 +669,7 @@ export default function NewDirectDisbursementOrder() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">المشروع الرئيسي</span><strong>{formData.mainProjectName}</strong></div>
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">التمويل / الدعم</span><strong>{formData.fundingSupport}</strong></div>
-                    <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">الاسم الفرعي للمشروع</span><strong>{formData.customProjectName}</strong></div>
+                    <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم المشروع المخصص</span><strong>{formData.customProjectName}</strong></div>
                   </div>
                 </div>
 
@@ -651,9 +680,6 @@ export default function NewDirectDisbursementOrder() {
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">عنوان أمر الصرف</span><strong>{formData.title}</strong></div>
                     <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">تاريخ الصرف</span><strong>{formData.dateMiladi}</strong></div>
                     <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">المبلغ الإجمالي</span><strong className="text-lg text-primary">{formData.amount.toLocaleString()} ريال سعودي ({numberToArabicText(formData.amount)})</strong></div>
-                    {formData.description && (
-                      <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">الوصف والتفاصيل</span><p className="whitespace-pre-line bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-100 dark:border-slate-900 mt-1">{formData.description}</p></div>
-                    )}
                   </div>
                 </div>
 
@@ -670,9 +696,9 @@ export default function NewDirectDisbursementOrder() {
                     ) : (
                       <>
                         <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم المستفيد</span><strong>{formData.beneficiaryName}</strong></div>
+                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم الحساب البنكي</span><strong>{formData.bankAccountName}</strong></div>
                         <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">البنك المعتمد</span><strong>{formData.beneficiaryBank}</strong></div>
-                        <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">رقم الآيبان (IBAN)</span><strong className="font-mono text-base">{formData.beneficiaryIban}</strong></div>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">طريقة الدفع</span><strong>{formData.paymentMethod === "bank_transfer" ? "تحويل بنكي" : formData.paymentMethod === "check" ? "إصدار شيك" : "صرف من العهدة"}</strong></div>
+                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">رقم الآيبان (IBAN)</span><strong className="font-mono text-base">{formData.beneficiaryIban}</strong></div>
                       </>
                     )}
                   </div>
