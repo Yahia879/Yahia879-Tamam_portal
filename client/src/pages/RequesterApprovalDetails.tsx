@@ -22,7 +22,7 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 // ترجمة صفة طالب الخدمة
@@ -58,18 +58,27 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [showNotesForm, setShowNotesForm] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
     { enabled: !isNaN(userId) }
   );
 
+  useEffect(() => {
+    if (user) {
+      setNotes(user.adminNotes || "");
+    }
+  }, [user]);
+
   const toggleStatus = trpc.users.toggleStatus.useMutation({
     onSuccess: (_, variables) => {
       toast.success(
         variables.status === "active"
           ? "تم اعتماد الحساب بنجاح"
-          : "تم إيقاف الحساب بنجاح"
+          : "تم رفض/إيقاف الحساب بنجاح"
       );
       refetch();
     },
@@ -78,10 +87,15 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     },
   });
 
-  const handleToggleStatus = (action: "active" | "suspended") => {
-    if (!user) return;
-    toggleStatus.mutate({ userId: user.id, status: action });
-  };
+  const updateNotes = trpc.users.updateAdminNotes.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ الملاحظات بنجاح");
+      refetch();
+    },
+    onError: () => {
+      toast.error("حدث خطأ أثناء حفظ الملاحظات");
+    },
+  });
 
   if (isLoading) {
     return (
@@ -213,31 +227,152 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "—"}
                   </span>
                 </div>
+                {user.adminNotes && (
+                  <div className="col-span-1 sm:col-span-2 space-y-1 bg-amber-50/50 dark:bg-amber-950/10 p-3.5 rounded-xl border border-amber-200/50 dark:border-amber-900/30">
+                    <span className="text-xs text-amber-800 dark:text-amber-400 font-bold block">ملاحظات الإدارة:</span>
+                    <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-semibold leading-relaxed">
+                      {user.adminNotes}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* أزرار اتخاذ القرار */}
+              {/* أزرار اتخاذ القرار وإدارة الملاحظات */}
               {canApprove && (
-                <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-                  {user.status !== "active" && (
-                    <Button
-                      onClick={() => handleToggleStatus("active")}
-                      disabled={toggleStatus.isPending}
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-green-200 dark:shadow-none"
-                    >
-                      <CheckCircle2 className="w-4.5 h-4.5" />
-                      اعتماد الحساب
-                    </Button>
-                  )}
-                  {user.status === "active" && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleToggleStatus("suspended")}
-                      disabled={toggleStatus.isPending}
-                      className="font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none"
-                    >
-                      <XCircle className="w-4.5 h-4.5" />
-                      إيقاف الحساب
-                    </Button>
+                <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800 text-right">
+                  {!showNotesForm && !showRejectForm ? (
+                    <div className="flex flex-wrap gap-3">
+                      {/* اعتماد الحساب */}
+                      {user.status !== "active" && (
+                        <Button
+                          onClick={() => toggleStatus.mutate({ userId: user.id, status: "active" })}
+                          disabled={toggleStatus.isPending}
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-green-200 dark:shadow-none"
+                        >
+                          <CheckCircle2 className="w-4.5 h-4.5" />
+                          اعتماد الحساب
+                        </Button>
+                      )}
+
+                      {/* ذكر ملاحظات لطالب الخدمة */}
+                      <Button
+                        onClick={() => {
+                          setShowNotesForm(true);
+                          setNotes(user.adminNotes || "");
+                        }}
+                        variant="outline"
+                        className="font-bold gap-2 px-5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                      >
+                        <FileText className="w-4.5 h-4.5" />
+                        ذكر ملاحظات لطالب الخدمة
+                      </Button>
+
+                      {/* رفض الطلب (للحسابات قيد المراجعة) */}
+                      {user.status === "pending" && (
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            setShowRejectForm(true);
+                            setNotes(user.adminNotes || "");
+                          }}
+                          className="font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none"
+                        >
+                          <XCircle className="w-4.5 h-4.5" />
+                          رفض الطلب
+                        </Button>
+                      )}
+
+                      {/* إيقاف الحساب (للحسابات النشطة) */}
+                      {user.status === "active" && (
+                        <Button
+                          variant="destructive"
+                          onClick={() => toggleStatus.mutate({ userId: user.id, status: "suspended" })}
+                          disabled={toggleStatus.isPending}
+                          className="font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none"
+                        >
+                          <XCircle className="w-4.5 h-4.5" />
+                          إيقاف الحساب
+                        </Button>
+                      )}
+                    </div>
+                  ) : showNotesForm ? (
+                    /* نموذج كتابة الملاحظات */
+                    <div className="space-y-3 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 transition-all">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          ملاحظات طالب الخدمة
+                        </label>
+                        <textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="اكتب الملاحظات لطالب الخدمة"
+                          rows={3}
+                          className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            updateNotes.mutate(
+                              { userId: user.id, notes },
+                              { onSuccess: () => setShowNotesForm(false) }
+                            );
+                          }}
+                          disabled={updateNotes.isPending}
+                          className="bg-primary hover:bg-primary/95 text-white font-bold px-5 rounded-xl"
+                        >
+                          {updateNotes.isPending ? "جاري الإرسال..." : "الارسال لطالب الخدمة"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShowNotesForm(false)}
+                          className="font-bold px-5 rounded-xl border border-slate-200"
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* نموذج رفض الطلب */
+                    <div className="space-y-3 bg-red-50/20 dark:bg-red-950/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-red-700 dark:text-red-400">
+                          سبب رفض الطلب (ملاحظات الرفض)
+                        </label>
+                        <textarea
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="يرجى كتابة سبب رفض الطلب بالتفصيل هنا..."
+                          rows={3}
+                          className="w-full text-sm p-3 rounded-xl border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-955 focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (!notes.trim()) {
+                              toast.error("يرجى كتابة سبب الرفض أولاً");
+                              return;
+                            }
+                            toggleStatus.mutate(
+                              { userId: user.id, status: "suspended", notes },
+                              { onSuccess: () => setShowRejectForm(false) }
+                            );
+                          }}
+                          disabled={toggleStatus.isPending}
+                          className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 rounded-xl"
+                        >
+                          {toggleStatus.isPending ? "جاري الرفض..." : "تأكيد رفض الطلب"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShowRejectForm(false)}
+                          className="font-bold px-5 rounded-xl border border-slate-200"
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

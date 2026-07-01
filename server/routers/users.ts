@@ -315,6 +315,7 @@ export const usersRouter = router({
       z.object({
         userId: z.number(),
         status: z.enum(["active", "pending", "suspended", "blocked"]),
+        notes: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -336,9 +337,34 @@ export const usersRouter = router({
           message: "لا يمكن إيقاف أو تنشيط حساب المدير العام" 
         });
       }
+
+      const updateData: any = { status: input.status };
+      if (input.notes !== undefined) {
+        updateData.adminNotes = input.notes;
+      }
+
       await db
         .update(users)
-        .set({ status: input.status })
+        .set(updateData)
+        .where(eq(users.id, input.userId));
+      return { success: true };
+    }),
+
+  // Update administrator notes/remarks for a user
+  updateAdminNotes: permissionProcedure("users.edit")
+    .input(
+      z.object({
+        userId: z.number(),
+        notes: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      await db
+        .update(users)
+        .set({ adminNotes: input.notes })
         .where(eq(users.id, input.userId));
       return { success: true };
     }),
