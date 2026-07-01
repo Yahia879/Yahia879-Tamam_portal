@@ -14,6 +14,7 @@ import {
   Bell,
   Percent,
   ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -66,6 +67,12 @@ export default function RequesterDashboard() {
   const { data: myMosques } = trpc.mosques.getMyMosques.useQuery();
   // جلب الإشعارات
   const { data: notifications } = trpc.notifications.getMyNotifications.useQuery({ limit: 10 });
+  // جلب إعدادات الجمعية (الشعار والاسم)
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
+  const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
+  const orgName = orgSettings?.organizationName || 'بوابة تمام';
+  const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
   const pendingRequests = myRequests?.filter(r => r.status === "pending") || [];
   const inProgressRequests = myRequests?.filter(r => r.status === "in_progress") || [];
@@ -80,13 +87,13 @@ export default function RequesterDashboard() {
           <div className="flex items-center justify-between h-14 sm:h-16">
             <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img 
-                src="/logo.svg" 
+                src={mainLogoSrc} 
                 alt="شعار بوابة تمام" 
-                className="h-8 w-8 sm:h-10 sm:w-auto shrink-0"
+                className="h-8 w-8 sm:h-10 sm:w-auto shrink-0 object-contain"
               />
               <div className="min-w-0">
-                <h1 className="font-bold text-sm sm:text-lg text-foreground truncate">بوابة تمام</h1>
-                <p className="hidden sm:block text-[10px] text-muted-foreground truncate">للعناية بالمساجد</p>
+                <h1 className="font-bold text-sm sm:text-lg text-foreground truncate">{orgName}</h1>
+                <p className="hidden sm:block text-[10px] text-muted-foreground truncate">{orgNameShort}</p>
               </div>
             </Link>
 

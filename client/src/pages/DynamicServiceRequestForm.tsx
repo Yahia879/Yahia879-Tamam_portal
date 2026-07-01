@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { 
@@ -33,7 +33,8 @@ import {
   Sun, 
   Droplets, 
   GlassWater,
-  Info
+  Info,
+  ArrowRight
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, any> = {
@@ -289,10 +290,17 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const content = (
     <div className="max-w-4xl mx-auto px-4">
-      {/* رأس الصفحة */}
-      <div className="mb-6 sm:mb-8 text-center">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2">طلبات خدمات المساجد</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+      {/* رأس الصفحة مع زر الرجوع */}
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+          <Button variant="ghost" size="icon" className="flex-shrink-0">
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </Link>
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+        </div>
       </div>
 
       {/* شريط التقدم */}

@@ -2,11 +2,13 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Link } from "wouter";
 
 const notificationIcons: Record<string, any> = {
   request_update: FileText,
@@ -18,6 +20,7 @@ const notificationIcons: Record<string, any> = {
 };
 
 export default function Notifications() {
+  const { user } = useAuth();
   const utils = trpc.useContext();
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -62,9 +65,16 @@ export default function Notifications() {
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">الإشعارات</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">جميع الإشعارات والتنبيهات</p>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link href={user?.role === "service_requester" ? "/requester" : "/dashboard"}>
+              <Button variant="ghost" size="icon" className="flex-shrink-0">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">الإشعارات</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">جميع الإشعارات والتنبيهات</p>
+            </div>
           </div>
           <Button 
             variant="outline" 
