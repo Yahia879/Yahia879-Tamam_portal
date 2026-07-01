@@ -55,7 +55,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const [, navigate] = useLocation();
   const { user: currentUser } = useAuth();
   const hasApprovePermission = usePermission("requesters.approve");
-  const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
+  const canApprove = hasApprovePermission;
 
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");

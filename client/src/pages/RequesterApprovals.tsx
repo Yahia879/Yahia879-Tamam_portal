@@ -85,7 +85,8 @@ export default function RequesterApprovals() {
   const { user: currentUser } = useAuth();
   const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("requesters.approve");
-  const canApprove = hasApprovePermission || ["super_admin", "system_admin"].includes(currentUser?.role ?? "");
+  const hasViewPermission = usePermission("requesters.view");
+  const canApprove = hasApprovePermission;
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -99,7 +100,7 @@ export default function RequesterApprovals() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
-    enabled: canApprove
+    enabled: hasViewPermission || hasApprovePermission
   });
 
   const reviewExceptionMutation = trpc.requests.reviewException.useMutation({
@@ -555,28 +556,32 @@ export default function RequesterApprovals() {
                               )}
                             </TableCell>
                             <TableCell className="py-4 pl-6 text-left">
-                              {isPending ? (
-                                <div className="flex gap-2 justify-end">
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-8.5 rounded-lg text-xs px-3.5"
-                                    onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'approved' })}
-                                    disabled={reviewExceptionMutation.isPending}
-                                  >
-                                    قبول
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="destructive"
-                                    className="font-bold h-8.5 rounded-lg text-xs px-3.5"
-                                    onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'rejected' })}
-                                    disabled={reviewExceptionMutation.isPending}
-                                  >
-                                    رفض
-                                  </Button>
-                                </div>
+                              {canApprove ? (
+                                isPending ? (
+                                  <div className="flex gap-2 justify-end">
+                                    <Button 
+                                      size="sm" 
+                                      className="bg-green-600 hover:bg-green-700 text-white font-bold h-8.5 rounded-lg text-xs px-3.5"
+                                      onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'approved' })}
+                                      disabled={reviewExceptionMutation.isPending}
+                                    >
+                                      قبول
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="destructive"
+                                      className="font-bold h-8.5 rounded-lg text-xs px-3.5"
+                                      onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'rejected' })}
+                                      disabled={reviewExceptionMutation.isPending}
+                                    >
+                                      رفض
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs font-semibold">تمت المراجعة</span>
+                                )
                               ) : (
-                                <span className="text-muted-foreground text-xs font-semibold">تمت المراجعة</span>
+                                <span className="text-muted-foreground text-xs font-semibold">—</span>
                               )}
                             </TableCell>
                           </TableRow>
