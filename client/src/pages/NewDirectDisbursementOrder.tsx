@@ -256,7 +256,7 @@ export default function NewDirectDisbursementOrder() {
             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${step === 2 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
               2
             </div>
-            <span className={`text-xs sm:text-sm font-bold ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>المراجعة والاعتماد</span>
+            <span className={`text-xs sm:text-sm font-bold ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>المطابقة والبيانات المالية</span>
           </div>
         </div>
 
@@ -514,76 +514,203 @@ export default function NewDirectDisbursementOrder() {
             </div>
           </div>
         ) : (
-          /* الخطوة الثانية: المراجعة والاعتماد */
+          /* الخطوة الثانية: المطابقة والبيانات المالية */
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <CheckCircle className="h-4.5 w-4.5 text-primary" />
-                  مراجعة تفاصيل أمر الصرف قبل الإرسال
+                  الخطوة 2: المطابقة والبيانات المالية
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">تأكد من صحة كافة تفاصيل البنود والتحويل المالي المعبأة</CardDescription>
+                <CardDescription className="text-right text-xs">تأكد من صحة كافة تفاصيل البنود والتحويل المالي المعبأة قبل الإرسال</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5 pt-6 text-right" dir="rtl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تاريخ الصرف الميلادي *</Label>
+                    <Input
+                      type="date"
+                      value={formData.dateMiladi}
+                      readOnly
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">التمويل / الدعم *</Label>
+                    <Input
+                      value={formData.fundingSupport}
+                      readOnly
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع الرئيسي *</Label>
+                    <Input
+                      value={formData.mainProjectName}
+                      readOnly
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع المخصص *</Label>
+                    <Input
+                      value={formData.customProjectName}
+                      readOnly
+                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان أمر الصرف *</Label>
+                  <Input
+                    value={formData.title}
+                    readOnly
+                    className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* تفاصيل الجهة المستفيدة ودفعات سداد */}
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <div className="text-right space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold justify-start">
+                    <Building2 className="h-4.5 w-4.5 text-primary" />
+                    الدفعة التي سوف تصرف (المستفيد والمبالغ الفعلية)
+                  </CardTitle>
+                  <CardDescription className="text-right text-xs">تفاصيل تحويل المبالغ المالية الفعلية المستحقة</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6 text-right" dir="rtl">
+                <div className="p-5 rounded-xl border border-border bg-slate-50/20 dark:bg-slate-900/10 space-y-4 hover:border-primary/30 transition-colors">
+                  {requestType === "sadad_invoice" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الجهة المفوترة *</Label>
+                        <Input
+                          value={formData.billerName}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رمز المفوتر *</Label>
+                        <Input
+                          value={formData.billerCode}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم سداد *</Label>
+                        <Input
+                          value={formData.sadadNumber}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد / المورد *</Label>
+                        <Input
+                          value={formData.beneficiaryName}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الحساب البنكي *</Label>
+                        <Input
+                          value={formData.bankAccountName}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم البنك *</Label>
+                        <Input
+                          value={formData.beneficiaryBank}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                        />
+                      </div>
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN) *</Label>
+                        <Input
+                          value={formData.beneficiaryIban}
+                          readOnly
+                          className="text-right border-border rounded-xl h-10 font-mono font-bold text-slate-900 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ملخص الدفعة والتقرير المالي */}
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground justify-start">
+                  <Coins className="w-4.5 h-4.5 text-primary" />
+                  ملخص الصرف والتقرير المالي
+                </CardTitle>
+                <CardDescription className="text-right text-xs">تفاصيل التدقيق والمجاميع المالية لأمر الصرف المالي</CardDescription>
               </CardHeader>
               <CardContent className="pt-6 space-y-6 text-right" dir="rtl">
-                {/* 1. تفاصيل المشروع */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">بيانات المشروع والتمويل</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">المشروع الرئيسي</span><strong>{formData.mainProjectName}</strong></div>
-                    <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">التمويل / الدعم</span><strong>{formData.fundingSupport}</strong></div>
-                    <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم المشروع المخصص</span><strong>{formData.customProjectName}</strong></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
+                      {formData.customProjectName}
+                    </span>
                   </div>
                 </div>
 
-                {/* 2. تفاصيل الصرف */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">معلومات الصرف</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">عنوان أمر الصرف</span><strong>{formData.title}</strong></div>
-                    <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">تاريخ الصرف</span><strong>{formData.dateMiladi}</strong></div>
-                    <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">المبلغ الإجمالي</span><strong className="text-lg text-primary">{formData.amount.toLocaleString()} ريال سعودي ({numberToArabicText(formData.amount)})</strong></div>
-                  </div>
-                </div>
+                <Separator />
 
-                {/* 3. تفاصيل المستفيد */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 border-r-4 border-primary pr-2">بيانات المستفيد المالي</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-                    {requestType === "sadad_invoice" ? (
-                      <>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم الجهة المفوترة</span><strong>{formData.billerName}</strong></div>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">رمز المفوتر</span><strong>{formData.billerCode}</strong></div>
-                        <div className="text-xs sm:text-sm col-span-1 md:col-span-2"><span className="text-muted-foreground block text-[10px] sm:text-xs">رقم الحساب / سداد الفاتورة</span><strong className="font-mono text-base">{formData.sadadNumber}</strong></div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم المستفيد</span><strong>{formData.beneficiaryName}</strong></div>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">اسم الحساب البنكي</span><strong>{formData.bankAccountName}</strong></div>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">البنك المعتمد</span><strong>{formData.beneficiaryBank}</strong></div>
-                        <div className="text-xs sm:text-sm"><span className="text-muted-foreground block text-[10px] sm:text-xs">رقم الآيبان (IBAN)</span><strong className="font-mono text-base">{formData.beneficiaryIban}</strong></div>
-                      </>
-                    )}
+                <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
+                    <span className="text-xl sm:text-2xl font-black text-primary">
+                      {formData.amount.toLocaleString()} <span className="text-xs font-semibold">ريال سعودي</span>
+                    </span>
+                  </div>
+                  <div className="text-xs text-left">
+                    <span className="text-muted-foreground block text-[9px] text-left">تفقيط المبلغ</span>
+                    <span className="font-bold text-foreground text-left block">{numberToArabicText(formData.amount)}</span>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="bg-muted/30 border-t border-border/40 p-4 sm:p-6 flex justify-between gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="rounded-xl font-bold px-6 border-slate-200 dark:border-slate-855"
-                >
-                  العودة وتعديل البيانات
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createDirectOrderMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold px-8 rounded-xl gap-2 shadow-sm transition-all"
-                >
-                  {createDirectOrderMutation.isPending ? "جاري الحفظ..." : "تأكيد وإنشاء أمر الصرف"}
-                  <Send className="w-4 h-4" />
-                </Button>
-              </CardFooter>
             </Card>
+
+            {/* Navigation Actions */}
+            <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
+              <Button
+                onClick={handleSubmit}
+                disabled={createDirectOrderMutation.isPending}
+                className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto cursor-pointer"
+              >
+                {createDirectOrderMutation.isPending ? "جاري الحفظ..." : "تأكيد وإنشاء أمر الصرف"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setStep(1)}
+                className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto cursor-pointer"
+              >
+                السابق
+              </Button>
+            </div>
           </div>
         )}
       </div>
