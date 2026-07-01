@@ -729,6 +729,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // 7. إضافة مفاتيح الصلاحيات البسيطة تلقائياً لتوافق الواجهة الجانبية والتحقق من المسارات
   if (allPermissions.has("mosques.view")) {
     allPermissions.add("mosques");
+  } else {
+    allPermissions.delete("mosques");
   }
   if (
     allPermissions.has("requests.view") ||
@@ -737,6 +739,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("requests.manage_as_quick_response")
   ) {
     allPermissions.add("requests");
+  } else {
+    allPermissions.delete("requests");
   }
   if (allPermissions.has("disbursement_orders.view")) {
     allPermissions.add("disbursement_orders.view_details");
@@ -744,6 +748,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (allPermissions.has("mosque_map.view")) {
     allPermissions.add("mosque_map");
     allPermissions.add("mosques_map");
+  } else {
+    allPermissions.delete("mosque_map");
+    allPermissions.delete("mosques_map");
   }
   if (allPermissions.has("appointments.view_all") || allPermissions.has("appointments.view_own")) {
     allPermissions.add("appointments");
@@ -756,13 +763,20 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (allPermissions.has("projects.view")) {
     allPermissions.add("projects");
+  } else {
+    allPermissions.delete("projects");
   }
   if (allPermissions.has("reports.view") || allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
     allPermissions.add("reports");
+  } else {
+    allPermissions.delete("reports");
   }
   if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
     allPermissions.add("requesters");
     allPermissions.add("service_requester_accounts");
+  } else {
+    allPermissions.delete("requesters");
+    allPermissions.delete("service_requester_accounts");
   }
 
 
