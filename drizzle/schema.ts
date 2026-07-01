@@ -150,6 +150,7 @@ export const users = mysqlTable("users", {
   deletedAt: datetime("deletedAt"),
   adminNotes: text("adminNotes"),
   remarksDocument: text("remarksDocument"),
+  notesRequiredType: text("notesRequiredType"),
 });
 
 // جدول الموظفين (بيانات إضافية للموظفين)

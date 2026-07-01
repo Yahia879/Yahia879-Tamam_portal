@@ -59,6 +59,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [notesRequiredType, setNotesRequiredType] = useState("document");
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
 
@@ -305,7 +306,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     </div>
                   ) : showNotesForm ? (
                     /* نموذج كتابة الملاحظات */
-                    <div className="space-y-3 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 transition-all">
+                    <div className="space-y-4 bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 transition-all text-right">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           ملاحظات طالب الخدمة
@@ -318,11 +319,43 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           className="w-full text-sm p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
                         />
                       </div>
-                      <div className="flex gap-2">
+
+                      {/* اختيار نوع المرفق المطلوب */}
+                      <div className="space-y-2 border-t pt-3">
+                        <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
+                          نوع المرفق المطلوب من المستفيد عند معالجة الملاحظة
+                        </label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="notesRequiredType"
+                              value="document"
+                              checked={notesRequiredType === "document"}
+                              onChange={() => setNotesRequiredType("document")}
+                              className="accent-primary h-4 w-4"
+                            />
+                            مستند كتابي (PDF, Word)
+                          </label>
+                          <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="notesRequiredType"
+                              value="image"
+                              checked={notesRequiredType === "image"}
+                              onChange={() => setNotesRequiredType("image")}
+                              className="accent-primary h-4 w-4"
+                            />
+                            مرفقات صور (JPG, PNG)
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 border-t pt-3">
                         <Button
                           onClick={() => {
                             updateNotes.mutate(
-                              { userId: user.id, notes },
+                              { userId: user.id, notes, notesRequiredType },
                               { onSuccess: () => setShowNotesForm(false) }
                             );
                           }}
@@ -342,7 +375,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     </div>
                   ) : (
                     /* نموذج رفض / إيقاف الحساب */
-                    <div className="space-y-3 bg-red-50/20 dark:bg-red-950/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all">
+                    <div className="space-y-4 bg-red-50/20 dark:bg-red-950/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all text-right">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-red-700 dark:text-red-400">
                           {user.status === "active" ? "سبب إيقاف الحساب" : "سبب رفض الحساب (ملاحظات الرفض)"}
@@ -355,7 +388,41 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           className="w-full text-sm p-3 rounded-xl border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-955 focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
                         />
                       </div>
-                      <div className="flex gap-2">
+
+                      {/* اختيار نوع المرفق المطلوب عند الرفض */}
+                      {user.status !== "active" && (
+                        <div className="space-y-2 border-t pt-3">
+                          <label className="text-xs font-bold text-slate-750 dark:text-slate-300 block">
+                            نوع المرفق المطلوب من المستفيد عند معالجة الرفض
+                          </label>
+                          <div className="flex gap-4">
+                            <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
+                              <input
+                                type="radio"
+                                name="notesRequiredType"
+                                value="document"
+                                checked={notesRequiredType === "document"}
+                                onChange={() => setNotesRequiredType("document")}
+                                className="accent-red-600 h-4 w-4"
+                              />
+                              مستند كتابي (PDF, Word)
+                            </label>
+                            <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer">
+                              <input
+                                type="radio"
+                                name="notesRequiredType"
+                                value="image"
+                                checked={notesRequiredType === "image"}
+                                onChange={() => setNotesRequiredType("image")}
+                                className="accent-red-600 h-4 w-4"
+                              />
+                              مرفقات صور (JPG, PNG)
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 border-t pt-3">
                         <Button
                           onClick={() => {
                             if (!notes.trim()) {
@@ -363,7 +430,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                               return;
                             }
                             toggleStatus.mutate(
-                              { userId: user.id, status: "suspended", notes },
+                              { userId: user.id, status: "suspended", notes, notesRequiredType },
                               { onSuccess: () => setShowRejectForm(false) }
                             );
                           }}

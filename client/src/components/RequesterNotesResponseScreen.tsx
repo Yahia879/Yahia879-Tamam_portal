@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Upload, LogOut, CheckCircle2, Loader2, FileText, Check, AlertCircle } from "lucide-react";
+import { AlertTriangle, Upload, LogOut, CheckCircle2, Loader2, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 
@@ -24,12 +24,47 @@ export default function RequesterNotesResponseScreen() {
     },
   });
 
+  if (!user) return null;
+
+  const isSuspended = user.status === "suspended";
+  const isImageRequired = user.notesRequiredType === "image";
+
+  // Dynamic file upload properties
+  const acceptAttribute = isImageRequired 
+    ? ".jpg,.jpeg,.png,.webp" 
+    : ".pdf,.doc,.docx";
+
+  const labelText = isImageRequired 
+    ? "رفع مستند إثبات الصفة الجديد (مرفقات صور) *" 
+    : "رفع مستند إثبات الصفة الجديد (مستندات كتابية) *";
+
+  const descText = isImageRequired
+    ? "صور فقط: JPG، PNG، WEBP (الحد الأقصى 10 ميجابايت)"
+    : "مستندات فقط: PDF، Word (الحد الأقصى 10 ميجابايت)";
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
-    if (selectedFile && selectedFile.size > 10 * 1024 * 1024) {
-      toast.error("حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.");
-      e.target.value = "";
-      return;
+    if (selectedFile) {
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast.error("حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.");
+        e.target.value = "";
+        return;
+      }
+      
+      const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase();
+      if (isImageRequired) {
+        if (!['jpg', 'jpeg', 'png', 'webp'].includes(fileExtension || '')) {
+          toast.error("يرجى اختيار ملف صورة فقط (JPG, PNG, WEBP)");
+          e.target.value = "";
+          return;
+        }
+      } else {
+        if (!['pdf', 'doc', 'docx'].includes(fileExtension || '')) {
+          toast.error("يرجى اختيار مستند كتابي فقط (PDF, Word)");
+          e.target.value = "";
+          return;
+        }
+      }
     }
     setFile(selectedFile);
   };
@@ -68,18 +103,18 @@ export default function RequesterNotesResponseScreen() {
     }
   };
 
-  if (!user) return null;
-
-  const isSuspended = user.status === "suspended";
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-tr from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 text-right" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-tr from-slate-50 to-slate-100 dark:from-slate-955 dark:to-slate-900 text-right" dir="rtl">
       <Card className="w-full max-w-lg border border-slate-200/80 dark:border-slate-800/80 shadow-2xl rounded-3xl overflow-hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md transition-all">
         {/* رأس البطاقة */}
         <CardHeader className="bg-slate-50/60 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-850 px-6 py-5 flex flex-row items-center justify-between">
           <div className="space-y-1">
             <CardTitle className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">تحديث طلب التسجيل</CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">يرجى مراجعة الملاحظات وإرفاق المستند المطلـوب</CardDescription>
+            <CardDescription className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              {isSuspended 
+                ? "يرجى مراجعة سبب الرفض وإرفاق المستند المطلوب لتحديث الطلب" 
+                : "يرجى مراجعة ملاحظات الإدارة وإرفاق المستند المطلوب لتحديث الطلب"}
+            </CardDescription>
           </div>
           <Button 
             variant="ghost" 
@@ -121,14 +156,14 @@ export default function RequesterNotesResponseScreen() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">
-                رفع مرفق يثبت الصفة الجديد <span className="text-red-500">*</span>
+                {labelText}
               </label>
               
               <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-primary/50 dark:hover:border-primary/50 rounded-2xl p-6 text-center cursor-pointer transition-all duration-300 bg-slate-50/30 dark:bg-slate-900/10 hover:bg-slate-50/70 dark:hover:bg-slate-900/20 group">
                 <input
                   id="responseProofFile"
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  accept={acceptAttribute}
                   onChange={handleFileChange}
                   className="hidden"
                   disabled={isSubmitting}
@@ -146,7 +181,7 @@ export default function RequesterNotesResponseScreen() {
                     ) : (
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-slate-800 dark:text-slate-200">اضغط لاختيار ملف أو اسحبه هنا</p>
-                        <p className="text-xs text-slate-400">PDF، صور، أو مستندات (الحد الأقصى 10 ميجابايت)</p>
+                        <p className="text-xs text-slate-400">{descText}</p>
                       </div>
                     )}
                   </div>

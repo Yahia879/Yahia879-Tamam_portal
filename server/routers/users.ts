@@ -316,6 +316,7 @@ export const usersRouter = router({
         userId: z.number(),
         status: z.enum(["active", "pending", "suspended", "blocked"]),
         notes: z.string().optional(),
+        notesRequiredType: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -341,6 +342,9 @@ export const usersRouter = router({
       const updateData: any = { status: input.status };
       if (input.notes !== undefined) {
         updateData.adminNotes = input.notes;
+      }
+      if (input.notesRequiredType !== undefined) {
+        updateData.notesRequiredType = input.notesRequiredType;
       }
 
       await db
@@ -386,6 +390,7 @@ export const usersRouter = router({
       z.object({
         userId: z.number(),
         notes: z.string(),
+        notesRequiredType: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -394,7 +399,10 @@ export const usersRouter = router({
 
       await db
         .update(users)
-        .set({ adminNotes: input.notes })
+        .set({ 
+          adminNotes: input.notes,
+          notesRequiredType: input.notesRequiredType || null,
+        })
         .where(eq(users.id, input.userId));
 
       // Fetch user to send email
