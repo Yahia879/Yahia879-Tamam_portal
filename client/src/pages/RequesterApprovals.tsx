@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckSquare,
   Users,
@@ -233,33 +234,29 @@ export default function RequesterApprovals() {
         </div>
 
         {/* التبويبات */}
-        <div className="flex border-b border-border gap-6">
-          <button 
-            onClick={() => setActiveTab('requests')}
-            className={`pb-3 font-bold text-xs sm:text-sm transition-all border-b-2 ${
-              activeTab === 'requests' 
-                ? 'border-primary text-primary' 
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            طلبات تسجيل الحسابات
-          </button>
-          <button 
-            onClick={() => setActiveTab('exceptions')}
-            className={`pb-3 font-bold text-xs sm:text-sm transition-all border-b-2 flex items-center gap-2 ${
-              activeTab === 'exceptions' 
-                ? 'border-primary text-primary' 
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <span>طلبات الاستثناء للطلبات المتكررة</span>
-            {pendingExceptionsCount > 0 && (
-              <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
-                {pendingExceptionsCount}
-              </span>
-            )}
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} dir="rtl" className="w-full">
+          <TabsList className="bg-muted/60 p-1.5 inline-flex w-fit justify-start h-auto border shadow-sm whitespace-nowrap mb-6">
+            <TabsTrigger 
+              value="requests" 
+              className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+            >
+              <CheckSquare className="h-4 w-4" />
+              طلبات تسجيل الحسابات
+            </TabsTrigger>
+            <TabsTrigger 
+              value="exceptions" 
+              className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+            >
+              <FileText className="h-4 w-4" />
+              <span>طلبات الاستثناء</span>
+              {pendingExceptionsCount > 0 && (
+                <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                  {pendingExceptionsCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {activeTab === 'requests' ? (
           <Card className="border-0 shadow-sm overflow-hidden">
@@ -478,9 +475,9 @@ export default function RequesterApprovals() {
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
-                      <TableHead className="text-right">طالب الاستثناء</TableHead>
+                      <TableHead className="text-right">اسم الإمام</TableHead>
                       <TableHead className="text-right">التاريخ</TableHead>
-                      <TableHead className="text-right">سبب طلب الاستثناء</TableHead>
+                      <TableHead className="text-right">سبب الاستثناء</TableHead>
                       <TableHead className="text-right">المرفق</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-left pl-6">الإجراءات</TableHead>
@@ -497,51 +494,77 @@ export default function RequesterApprovals() {
                       exceptionRequests.map(({ exception, userName, userEmail, userPhone }) => {
                         const isPending = exception.status === "pending";
                         return (
-                          <TableRow key={exception.id} className="hover:bg-muted/20 transition-colors">
-                            <TableCell className="py-3 sm:py-4 font-semibold text-xs sm:text-sm text-foreground">
-                              <div>{userName}</div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                                {userPhone} | {userEmail}
+                          <TableRow key={exception.id} className="hover:bg-muted/15 transition-colors">
+                            <TableCell className="py-4 pr-6">
+                              <div className="flex flex-col gap-1 text-right">
+                                <span className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-slate-200">
+                                  {userName}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Phone className="w-3.5 h-3.5 text-primary/70" />
+                                    <span className="font-semibold">{userPhone || "—"}</span>
+                                  </span>
+                                  <span className="text-slate-300 dark:text-slate-700">|</span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Mail className="w-3.5 h-3.5 text-primary/70" />
+                                    <span>{userEmail || "—"}</span>
+                                  </span>
+                                </div>
                               </div>
                             </TableCell>
-                            <TableCell className="py-3 sm:py-4 text-xs text-muted-foreground font-mono">
-                              {new Date(exception.createdAt).toLocaleDateString('ar-SA')}
+                            <TableCell className="py-4">
+                              <div className="flex flex-col text-right">
+                                <span className="font-bold text-slate-700 dark:text-slate-300 font-mono text-xs sm:text-sm">
+                                  {new Date(exception.createdAt).toLocaleDateString('ar-SA')}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                  {new Date(exception.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </TableCell>
-                            <TableCell className="py-3 sm:py-4 text-xs sm:text-sm text-foreground max-w-xs">
-                              <span title={exception.reason} className="block truncate">{exception.reason}</span>
+                            <TableCell className="py-4 text-right max-w-xs">
+                              <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-350 whitespace-pre-wrap leading-relaxed">
+                                {exception.reason}
+                              </p>
                             </TableCell>
-                            <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
+                            <TableCell className="py-4">
                               {exception.attachment ? (
-                                <a 
-                                  href={exception.attachment} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-primary hover:underline font-bold inline-flex items-center gap-1"
-                                >
-                                  <FileText className="w-3.5 h-3.5" />
-                                  <span>عرض المرفق</span>
-                                </a>
+                                <div className="flex flex-col gap-1 text-right max-w-[220px]">
+                                  <a 
+                                    href={exception.attachment} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all text-xs font-bold w-fit"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>عرض المرفق</span>
+                                  </a>
+                                  <span className="text-[9px] text-muted-foreground truncate font-mono block max-w-[180px]" title={exception.attachment}>
+                                    ({exception.attachment})
+                                  </span>
+                                </div>
                               ) : (
                                 <span className="text-muted-foreground text-xs">لا يوجد مرفق</span>
                               )}
                             </TableCell>
-                            <TableCell className="py-3 sm:py-4 text-xs sm:text-sm">
+                            <TableCell className="py-4">
                               {exception.status === "pending" && (
-                                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-0 font-bold">قيد الانتظار</Badge>
+                                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-0 font-bold px-2.5 py-1">قيد الانتظار</Badge>
                               )}
                               {exception.status === "approved" && (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-bold">مقبول</Badge>
+                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-bold px-2.5 py-1">مقبول</Badge>
                               )}
                               {exception.status === "rejected" && (
-                                <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-0 font-bold">مرفوض</Badge>
+                                <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-0 font-bold px-2.5 py-1">مرفوض</Badge>
                               )}
                             </TableCell>
-                            <TableCell className="py-3 sm:py-4 pl-6 text-left">
+                            <TableCell className="py-4 pl-6 text-left">
                               {isPending ? (
                                 <div className="flex gap-2 justify-end">
                                   <Button 
                                     size="sm" 
-                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-8 rounded-lg text-xs"
+                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-8.5 rounded-lg text-xs px-3.5"
                                     onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'approved' })}
                                     disabled={reviewExceptionMutation.isPending}
                                   >
@@ -550,7 +573,7 @@ export default function RequesterApprovals() {
                                   <Button 
                                     size="sm" 
                                     variant="destructive"
-                                    className="font-bold h-8 rounded-lg text-xs"
+                                    className="font-bold h-8.5 rounded-lg text-xs px-3.5"
                                     onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'rejected' })}
                                     disabled={reviewExceptionMutation.isPending}
                                   >
@@ -558,7 +581,7 @@ export default function RequesterApprovals() {
                                   </Button>
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground text-xs">تمت المراجعة</span>
+                                <span className="text-muted-foreground text-xs font-semibold">تمت المراجعة</span>
                               )}
                             </TableCell>
                           </TableRow>
