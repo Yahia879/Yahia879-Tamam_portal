@@ -455,6 +455,7 @@ export default function NotificationCustomization() {
 
   // المشغلات/الأحداث التفصيلية التي ترسل إشعارات
   const NOTIFICATION_TRIGGERS = [
+    { id: "notes_response_submitted", category: "request", nameAr: "تقديم رد من المستفيد على الملاحظات/الرفض", description: "قام المستفيد بتقديم رد كتابي أو رفع المرفق المطلوب لحسابه" },
     { id: "mosque_created", category: "request", nameAr: "إضافة مسجد جديد بانتظار الموافقة", description: "تم إضافة مسجد جديد وهو بانتظار الموافقة" },
     { id: "mosque_approved", category: "request", nameAr: "قبول طلب تسجيل مسجد", description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان" },
     { id: "request_created_admin", category: "request", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },

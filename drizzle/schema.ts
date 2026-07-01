@@ -151,6 +151,7 @@ export const users = mysqlTable("users", {
   adminNotes: text("adminNotes"),
   remarksDocument: text("remarksDocument"),
   notesRequiredType: text("notesRequiredType"),
+  rejectionResponse: text("rejectionResponse"),
 });
 
 // جدول الموظفين (بيانات إضافية للموظفين)

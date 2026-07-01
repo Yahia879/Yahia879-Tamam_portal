@@ -1,46 +1,87 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, LogOut } from "lucide-react";
+import { Clock, LogOut, XCircle } from "lucide-react";
 
 export default function RequesterPendingScreen() {
   const { user, logout } = useAuth();
 
   if (!user) return null;
 
+  const isRejectedFinally = user.notesRequiredType === "none" && user.status === "suspended";
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-slate-50 via-slate-100 to-primary/5 dark:from-slate-950 dark:via-slate-900 dark:to-primary/5 text-right relative overflow-hidden" dir="rtl">
       {/* Background Decorative Glow Blobs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 dark:bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 dark:bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className={`absolute top-1/4 left-1/4 w-96 h-96 ${isRejectedFinally ? "bg-red-500/5" : "bg-primary/5"} rounded-full blur-3xl pointer-events-none`}></div>
+      <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 ${isRejectedFinally ? "bg-red-500/5" : "bg-primary/5"} rounded-full blur-3xl pointer-events-none`}></div>
 
-      <Card className="w-full max-w-md border border-slate-200/60 dark:border-slate-800/80 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl transition-all duration-500 hover:shadow-primary/5 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10">
+      <Card className={`w-full max-w-md border border-slate-200/60 dark:border-slate-800/80 shadow-2xl rounded-[2.5rem] overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl transition-all duration-500 ${isRejectedFinally ? "hover:shadow-red-500/5" : "hover:shadow-primary/5"} animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10`}>
         <CardContent className="p-8 sm:p-10 flex flex-col items-center">
           
-          {/* Status Badge */}
-          <div className="mb-6 px-4 py-1.5 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary text-xs font-bold flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            تحت التدقيق والمراجعة
-          </div>
+          {isRejectedFinally ? (
+            <>
+              {/* Status Badge (Rejected) */}
+              <div className="mb-6 px-4 py-1.5 rounded-full bg-red-100/10 dark:bg-red-950/20 border border-red-200/30 dark:border-red-900/30 text-red-500 text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                تم رفض الحساب نهائياً
+              </div>
 
-          {/* Pulsing Radar Alert Icon */}
-          <div className="relative flex items-center justify-center my-6">
-            <div className="absolute w-24 h-24 bg-primary/10 dark:bg-primary/15 rounded-full animate-ping duration-[3000ms]"></div>
-            <div className="absolute w-20 h-20 bg-primary/20 dark:bg-primary/20 rounded-full animate-pulse duration-[2000ms]"></div>
-            <div className="relative w-16 h-16 bg-gradient-to-tr from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25 dark:shadow-none transform rotate-3 hover:rotate-0 transition-transform duration-350">
-              <Clock className="w-8 h-8 text-white" />
-            </div>
-          </div>
+              {/* Pulsing Radar Rejected Icon */}
+              <div className="relative flex items-center justify-center my-6">
+                <div className="absolute w-24 h-24 bg-red-500/10 dark:bg-red-500/15 rounded-full animate-ping duration-[3000ms]"></div>
+                <div className="absolute w-20 h-20 bg-red-500/20 dark:bg-red-500/20 rounded-full animate-pulse duration-[2000ms]"></div>
+                <div className="relative w-16 h-16 bg-gradient-to-tr from-red-500 to-red-650 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/25 dark:shadow-none transform rotate-3 hover:rotate-0 transition-transform duration-350">
+                  <XCircle className="w-8 h-8 text-white" />
+                </div>
+              </div>
 
-          {/* Heading and Content */}
-          <div className="space-y-4 text-center">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              حسابك قيد المراجعة حالياً
-            </h2>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-              طلب تسجيلك قيد التدقيق والمراجعة من قبل إدارة الجمعية. سنقوم بإشعارك عبر البريد الإلكتروني فور اعتماد الحساب وتفعيله.
-            </p>
-          </div>
+              {/* Heading and Content */}
+              <div className="space-y-4 text-center w-full">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  تم رفض طلب التسجيل
+                </h2>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  نود إحاطتكم بأنه بعد دراسة ومراجعة طلبكم من قبل إدارة الجمعية، تم رفض طلب التسجيل نهائياً.
+                </p>
+
+                {/* Rejection Notes Box */}
+                {user.adminNotes && (
+                  <div className="p-4 rounded-2xl border border-red-100 dark:border-red-900/25 bg-red-50/10 dark:bg-red-950/5 text-right mt-2">
+                    <p className="text-xs font-bold text-red-500 dark:text-red-400 mb-1">سبب الرفض الموضح من الإدارة:</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-350 leading-relaxed whitespace-pre-wrap">{user.adminNotes}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Status Badge (Pending) */}
+              <div className="mb-6 px-4 py-1.5 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                تحت التدقيق والمراجعة
+              </div>
+
+              {/* Pulsing Radar Pending Icon */}
+              <div className="relative flex items-center justify-center my-6">
+                <div className="absolute w-24 h-24 bg-primary/10 dark:bg-primary/15 rounded-full animate-ping duration-[3000ms]"></div>
+                <div className="absolute w-20 h-20 bg-primary/20 dark:bg-primary/20 rounded-full animate-pulse duration-[2000ms]"></div>
+                <div className="relative w-16 h-16 bg-gradient-to-tr from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25 dark:shadow-none transform rotate-3 hover:rotate-0 transition-transform duration-350">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+              </div>
+
+              {/* Heading and Content */}
+              <div className="space-y-4 text-center">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  حسابك قيد المراجعة حالياً
+                </h2>
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  طلب تسجيلك قيد التدقيق والمراجعة من قبل إدارة الجمعية. سنقوم بإشعارك عبر البريد الإلكتروني فور اعتماد الحساب وتفعيله.
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Action Button */}
           <div className="w-full mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/80">

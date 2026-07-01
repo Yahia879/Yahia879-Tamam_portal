@@ -10,8 +10,8 @@ async function main() {
   }
   const connection = await mysql.createConnection(process.env.DATABASE_URL);
   try {
-    const [rows] = await connection.query("SELECT `id`, `name`, `role`, `email` FROM `users` WHERE `role` != 'service_requester'");
-    console.log("Admins/Staff in system:", rows);
+    const [rows] = await connection.query("SELECT * FROM `notification_trigger_settings` WHERE `triggerId` = 'notes_response_submitted'");
+    console.log("Rows in notification_trigger_settings for notes_response_submitted:", rows);
   } catch (err) {
     console.error(err);
   } finally {

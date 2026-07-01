@@ -52,7 +52,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
     user.role === "service_requester" &&
     (user.status === "pending" || user.status === "suspended")
   ) {
-    if (user.adminNotes) {
+    if (user.adminNotes && user.notesRequiredType !== "none") {
       return <RequesterNotesResponseScreen />;
     } else {
       return <RequesterPendingScreen />;

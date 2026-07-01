@@ -213,7 +213,9 @@ export async function createNotification(data: {
 
     // الكشف عن الـ triggerId بناءً على بيانات الإشعار أولاً
     let triggerId: string | null = null;
-    if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
+    if (data.title === "تقديم رد على الرفض" || data.title === "تقديم رد على الملاحظات" || data.message.includes("بتقديم رد على")) {
+      triggerId = "notes_response_submitted";
+    } else if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
       triggerId = "request_created_admin";
     } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
       triggerId = "request_created_beneficiary";
@@ -1639,7 +1641,39 @@ export async function notifyDisbursementOrderRejection(
   }
 }
 
+export async function notifyNotesResponseSubmitted(
+  requesterId: number,
+  isRejectionResponse: boolean
+) {
+  const db = await getDb();
+  if (!db) return;
 
+  try {
+    const [requester] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, requesterId))
+      .limit(1);
 
+    if (!requester) return;
 
+    // Get administrators/officers to notify
+    const officerIds = await getRequestOfficerIds(db);
 
+    const title = isRejectionResponse ? "تقديم رد على الرفض" : "تقديم رد على الملاحظات";
+    const message = `قام المستفيد ${requester.name} بتقديم رد على ${isRejectionResponse ? "الرفض" : "الملاحظات"}`;
+
+    for (const userId of officerIds) {
+      await createNotification({
+        userId,
+        type: "request_update",
+        title,
+        message,
+        relatedType: "requester_approval",
+        relatedId: requesterId,
+      });
+    }
+  } catch (error) {
+    console.error("Error in notifyNotesResponseSubmitted:", error);
+  }
+}

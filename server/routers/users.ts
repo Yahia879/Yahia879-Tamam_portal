@@ -437,14 +437,29 @@ export const usersRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database connection failed");
 
+      const updateData: any = {
+        status: "pending",
+        adminNotes: null, // Clear the notes
+      };
+
+      const isSuspended = ctx.user.status === "suspended";
+      if (ctx.user.status === "suspended") {
+        updateData.rejectionResponse = input.remarksDocument;
+      } else {
+        updateData.remarksDocument = input.remarksDocument;
+      }
+
       await db
         .update(users)
-        .set({
-          remarksDocument: input.remarksDocument,
-          status: "pending",
-          adminNotes: null, // Clear the notes
-        })
+        .set(updateData)
         .where(eq(users.id, ctx.user.id));
+
+      try {
+        const { notifyNotesResponseSubmitted } = await import("./notifications");
+        await notifyNotesResponseSubmitted(ctx.user.id, isSuspended);
+      } catch (err) {
+        console.error("Failed to send notes response notification:", err);
+      }
 
       return { success: true };
     }),

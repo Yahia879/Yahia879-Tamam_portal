@@ -10,8 +10,11 @@ async function main() {
   }
   const connection = await mysql.createConnection(process.env.DATABASE_URL);
   try {
-    const [rows] = await connection.query("SELECT `id`, `name`, `role`, `email` FROM `users` WHERE `role` != 'service_requester'");
-    console.log("Admins/Staff in system:", rows);
+    const [roles] = await connection.query("SELECT * FROM `roles` WHERE `id` IN ('super_admin', 'system_admin')");
+    console.log("Roles settings:", roles);
+
+    const [allSettings] = await connection.query("SELECT * FROM `notification_trigger_settings`");
+    console.log("All trigger settings overrides:", allSettings);
   } catch (err) {
     console.error(err);
   } finally {

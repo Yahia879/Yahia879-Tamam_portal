@@ -10,8 +10,8 @@ async function main() {
   }
   const connection = await mysql.createConnection(process.env.DATABASE_URL);
   try {
-    const [rows] = await connection.query("SELECT `id`, `name`, `role`, `email` FROM `users` WHERE `role` != 'service_requester'");
-    console.log("Admins/Staff in system:", rows);
+    const [rows] = await connection.query("SELECT * FROM `notifications` ORDER BY `id` DESC LIMIT 10");
+    console.log("Recent notifications:", rows);
   } catch (err) {
     console.error(err);
   } finally {
