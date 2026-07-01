@@ -30,7 +30,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+
 
 // تم استبدال programIcons بمكون ProgramIcon
 
@@ -156,6 +158,20 @@ export default function RequesterDashboard() {
             نسعد بخدمتك في بوابة تمام للعناية بالمساجد
           </p>
         </div>
+
+        {user?.status === "pending" && (
+          <div className="mb-8 max-w-2xl mx-auto text-right" dir="rtl">
+            <Alert className="border-yellow-250 bg-yellow-50/40 dark:bg-yellow-950/15 dark:border-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-2xl flex items-center gap-3">
+              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-500 shrink-0" />
+              <div>
+                <AlertTitle className="font-bold text-sm">حسابك قيد المراجعة حالياً</AlertTitle>
+                <AlertDescription className="text-xs sm:text-sm mt-0.5">
+                  طلب تسجيلك قيد التدقيق والمراجعة من قبل إدارة الجمعية. سنقوم بإشعارك عبر البريد الإلكتروني فور اعتماد الحساب وتفعيله.
+                </AlertDescription>
+              </div>
+            </Alert>
+          </div>
+        )}
 
         {/* أزرار الإجراءات الرئيسية */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">

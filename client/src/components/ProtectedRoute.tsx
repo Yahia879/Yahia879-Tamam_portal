@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import RequesterNotesResponseScreen from "./RequesterNotesResponseScreen";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -43,6 +44,15 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return null;
+  }
+
+  // إذا كان طالب خدمة ولديه ملاحظات من الإدارة ولم يتم تفعيل حسابه بعد
+  if (
+    user.role === "service_requester" &&
+    (user.status === "pending" || user.status === "suspended") &&
+    user.adminNotes
+  ) {
+    return <RequesterNotesResponseScreen />;
   }
 
   return <>{children}</>;

@@ -347,6 +347,36 @@ export const usersRouter = router({
         .update(users)
         .set(updateData)
         .where(eq(users.id, input.userId));
+
+      // Fetch user to get their email and name for notifications
+      const [updatedUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      if (updatedUser) {
+        let emailTitle = "";
+        let emailMessage = "";
+        
+        if (input.status === "active") {
+          emailTitle = "تم اعتماد حسابك في بوابة تمام";
+          emailMessage = `مرحباً ${updatedUser.name}،\n\nنود إفادتك بأنه تم اعتماد وتفعيل حسابك بنجاح في بوابة تمام التابعة لجمعية عمارة المساجد (منارة). يمكنك الآن تسجيل الدخول والاستفادة من الخدمات.`;
+        } else if (input.status === "suspended") {
+          emailTitle = "تم إيقاف/رفض حسابك في بوابة تمام";
+          emailMessage = `مرحباً ${updatedUser.name}،\n\nنود إفادتك بأنه تم رفض أو تعليق حسابك في بوابة تمام.\n\nسبب الرفض/الملاحظات: ${input.notes || "لا توجد ملاحظات إضافية"}\n\nيرجى تسجيل الدخول إلى البوابة لتعديل البيانات أو إرفاق المستند المطلوب.`;
+        }
+
+        if (emailTitle && updatedUser.email) {
+          try {
+            const { sendEmailNotification } = await import("./notifications");
+            await sendEmailNotification(updatedUser.email, emailTitle, emailMessage);
+          } catch (e) {
+            console.error("Failed to send email notification:", e);
+          }
+        }
+      }
+
       return { success: true };
     }),
 
@@ -366,6 +396,48 @@ export const usersRouter = router({
         .update(users)
         .set({ adminNotes: input.notes })
         .where(eq(users.id, input.userId));
+
+      // Fetch user to send email
+      const [updatedUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+
+      if (updatedUser && updatedUser.status === "pending" && updatedUser.email) {
+        const emailTitle = "ملاحظات جديدة على طلب التسجيل الخاص بك";
+        const emailMessage = `مرحباً ${updatedUser.name}،\n\nتمت إضافة ملاحظات جديدة على طلب التسجيل الخاص بك في بوابة تمام.\n\nالملاحظات: ${input.notes}\n\nيرجى تسجيل الدخول لتحديث البيانات ورفع المرفق المطلوب.`;
+        try {
+          const { sendEmailNotification } = await import("./notifications");
+          await sendEmailNotification(updatedUser.email, emailTitle, emailMessage);
+        } catch (e) {
+          console.error("Failed to send email notification:", e);
+        }
+      }
+
+      return { success: true };
+    }),
+
+  // Service requester submits document in response to notes
+  submitNotesResponse: protectedProcedure
+    .input(
+      z.object({
+        proofDocument: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database connection failed");
+
+      await db
+        .update(users)
+        .set({
+          proofDocument: input.proofDocument,
+          status: "pending",
+          adminNotes: null, // Clear the notes
+        })
+        .where(eq(users.id, ctx.user.id));
+
       return { success: true };
     }),
 
