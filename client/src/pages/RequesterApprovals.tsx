@@ -55,6 +55,7 @@ import {
   Phone,
   Calendar,
   Shield,
+  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -94,6 +95,7 @@ export default function RequesterApprovals() {
   } | null>(null);
 
   const [activeTab, setActiveTab] = useState<'requests' | 'exceptions'>('requests');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
     enabled: canApprove
@@ -519,30 +521,23 @@ export default function RequesterApprovals() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="py-4 text-xs text-muted-foreground font-mono">
-                              {new Date(exception.createdAt).toLocaleDateString('ar-SA')}
+                            <TableCell className="text-muted-foreground text-sm whitespace-nowrap text-right py-4">
+                              {exception.createdAt ? new Date(exception.createdAt).toLocaleDateString("ar-SA") : "—"}
                             </TableCell>
                             <TableCell className="py-4 text-right max-w-xs">
-                              <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-350 whitespace-pre-wrap leading-relaxed">
+                              <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-355 whitespace-pre-wrap leading-relaxed">
                                 {exception.reason}
                               </p>
                             </TableCell>
                             <TableCell className="py-4">
                               {exception.attachment ? (
-                                <div className="flex flex-col gap-1 text-right max-w-[220px]">
-                                  <a 
-                                    href={exception.attachment} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all text-xs font-bold w-fit"
-                                  >
-                                    <FileText className="w-3.5 h-3.5" />
-                                    <span>عرض المرفق</span>
-                                  </a>
-                                  <span className="text-[10px] text-muted-foreground truncate font-mono block max-w-[200px]" dir="ltr" title={attachmentUrl}>
-                                    ({attachmentUrl})
-                                  </span>
-                                </div>
+                                <button 
+                                  onClick={() => setPreviewUrl(attachmentUrl)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all text-xs font-bold w-fit cursor-pointer"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>عرض المرفق</span>
+                                </button>
                               ) : (
                                 <span className="text-muted-foreground text-xs">لا يوجد مرفق</span>
                               )}
@@ -621,6 +616,47 @@ export default function RequesterApprovals() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
+      {previewUrl && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div 
+            className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button 
+              onClick={() => setPreviewUrl(null)}
+              className="absolute top-4 right-4 bg-slate-800/85 hover:bg-red-600/85 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Document/Image container */}
+            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
+              {/\.(pdf)$/i.test(previewUrl) ? (
+                <iframe 
+                  src={previewUrl} 
+                  title="معاينة المستند" 
+                  className="w-full h-full border border-slate-800 rounded-lg bg-white shadow-lg"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center overflow-auto">
+                  <img 
+                    src={previewUrl} 
+                    alt="معاينة المرفق" 
+                    className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
