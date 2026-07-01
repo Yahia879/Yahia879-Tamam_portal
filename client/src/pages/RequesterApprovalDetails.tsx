@@ -254,8 +254,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         </Button>
                       )}
 
-                      {/* إيقاف / رفض الحساب */}
-                      {(user.status === "pending" || user.status === "active") && (
+                      {/* رفض الحساب (للحساب قيد المراجعة) */}
+                      {user.status === "pending" && (
                         <Button
                           onClick={() => {
                             setShowRejectForm(true);
@@ -264,28 +264,42 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
                           <XCircle className="w-4.5 h-4.5" />
-                          {user.status === "active" ? "إيقاف الحساب" : "رفض الحساب"}
+                          رفض الحساب
                         </Button>
                       )}
 
-                      {/* ذكر ملاحظات لطالب الخدمة أو حالة الانتظار */}
-                      {user.status === "pending" && user.adminNotes ? (
-                        <div className="text-xs sm:text-sm font-bold text-amber-600 bg-amber-50/70 dark:bg-amber-955/20 px-4 py-2 rounded-xl border border-amber-200/40 dark:border-amber-900/30 flex items-center gap-1.5 shrink-0">
-                          <Clock className="w-4 h-4 animate-pulse" />
-                          بانتظار رد طالب الخدمة على المرفق
-                        </div>
-                      ) : (
+                      {/* إيقاف الحساب (للحساب النشط) */}
+                      {user.status === "active" && (
                         <Button
-                          onClick={() => {
-                            setShowNotesForm(true);
-                            setNotes(user.adminNotes || "");
-                          }}
-                          variant="outline"
-                          className="font-bold gap-2 px-5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                          onClick={() => toggleStatus.mutate({ userId: user.id, status: "suspended" })}
+                          disabled={toggleStatus.isPending}
+                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
-                          <FileText className="w-4.5 h-4.5" />
-                          ذكر ملاحظات لطالب الخدمة
+                          <XCircle className="w-4.5 h-4.5" />
+                          إيقاف الحساب
                         </Button>
+                      )}
+
+                      {/* ذكر ملاحظات لطالب الخدمة أو حالة الانتظار (يظهر فقط للحساب قيد المراجعة) */}
+                      {user.status === "pending" && (
+                        user.adminNotes ? (
+                          <div className="text-xs sm:text-sm font-bold text-amber-600 bg-amber-50/70 dark:bg-amber-955/20 px-4 py-2 rounded-xl border border-amber-200/40 dark:border-amber-900/30 flex items-center gap-1.5 shrink-0">
+                            <Clock className="w-4 h-4 animate-pulse" />
+                            بانتظار رد طالب الخدمة على المرفق
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => {
+                              setShowNotesForm(true);
+                              setNotes(user.adminNotes || "");
+                            }}
+                            variant="outline"
+                            className="font-bold gap-2 px-5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <FileText className="w-4.5 h-4.5" />
+                            ذكر ملاحظات لطالب الخدمة
+                          </Button>
+                        )
                       )}
                     </div>
                   ) : showNotesForm ? (
