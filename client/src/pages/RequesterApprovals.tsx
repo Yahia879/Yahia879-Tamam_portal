@@ -235,27 +235,29 @@ export default function RequesterApprovals() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} dir="rtl" className="w-full">
-          <TabsList className="bg-muted/60 p-1.5 inline-flex w-fit justify-start h-auto border shadow-sm whitespace-nowrap mb-6">
-            <TabsTrigger 
-              value="requests" 
-              className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
-            >
-              <CheckSquare className="h-4 w-4" />
-              طلبات تسجيل الحسابات
-            </TabsTrigger>
-            <TabsTrigger 
-              value="exceptions" 
-              className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
-            >
-              <FileText className="h-4 w-4" />
-              <span>طلبات الاستثناء</span>
-              {pendingExceptionsCount > 0 && (
-                <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
-                  {pendingExceptionsCount}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center w-full mb-6">
+            <TabsList className="bg-muted/60 p-1.5 inline-flex w-fit h-auto border shadow-sm whitespace-nowrap">
+              <TabsTrigger 
+                value="requests" 
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+              >
+                <CheckSquare className="h-4 w-4" />
+                طلبات تسجيل الحسابات
+              </TabsTrigger>
+              <TabsTrigger 
+                value="exceptions" 
+                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+              >
+                <FileText className="h-4 w-4" />
+                <span>طلبات الاستثناء</span>
+                {pendingExceptionsCount > 0 && (
+                  <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                    {pendingExceptionsCount}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
 
         {activeTab === 'requests' ? (
@@ -493,6 +495,10 @@ export default function RequesterApprovals() {
                     ) : (
                       exceptionRequests.map(({ exception, userName, userEmail, userPhone }) => {
                         const isPending = exception.status === "pending";
+                        const attachmentUrl = exception.attachment 
+                          ? (exception.attachment.startsWith("http") ? exception.attachment : `${window.location.origin}${exception.attachment}`) 
+                          : "";
+
                         return (
                           <TableRow key={exception.id} className="hover:bg-muted/15 transition-colors">
                             <TableCell className="py-4 pr-6">
@@ -513,15 +519,8 @@ export default function RequesterApprovals() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="py-4">
-                              <div className="flex flex-col text-right">
-                                <span className="font-bold text-slate-700 dark:text-slate-300 font-mono text-xs sm:text-sm">
-                                  {new Date(exception.createdAt).toLocaleDateString('ar-SA')}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                                  {new Date(exception.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
+                            <TableCell className="py-4 text-xs text-muted-foreground font-mono">
+                              {new Date(exception.createdAt).toLocaleDateString('ar-SA')}
                             </TableCell>
                             <TableCell className="py-4 text-right max-w-xs">
                               <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-350 whitespace-pre-wrap leading-relaxed">
@@ -540,8 +539,8 @@ export default function RequesterApprovals() {
                                     <FileText className="w-3.5 h-3.5" />
                                     <span>عرض المرفق</span>
                                   </a>
-                                  <span className="text-[9px] text-muted-foreground truncate font-mono block max-w-[180px]" title={exception.attachment}>
-                                    ({exception.attachment})
+                                  <span className="text-[10px] text-muted-foreground truncate font-mono block max-w-[200px]" dir="ltr" title={attachmentUrl}>
+                                    ({attachmentUrl})
                                   </span>
                                 </div>
                               ) : (
