@@ -242,56 +242,49 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                 <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800 text-right">
                   {!showNotesForm && !showRejectForm ? (
                     <div className="flex flex-wrap gap-3">
-                      {/* اعتماد الحساب */}
+                       {/* اعتماد الحساب */}
                       {user.status !== "active" && (
                         <Button
                           onClick={() => toggleStatus.mutate({ userId: user.id, status: "active" })}
                           disabled={toggleStatus.isPending}
-                          className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-green-200 dark:shadow-none"
+                          className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
                           <CheckCircle2 className="w-4.5 h-4.5" />
                           اعتماد الحساب
                         </Button>
                       )}
 
-                      {/* ذكر ملاحظات لطالب الخدمة */}
-                      <Button
-                        onClick={() => {
-                          setShowNotesForm(true);
-                          setNotes(user.adminNotes || "");
-                        }}
-                        variant="outline"
-                        className="font-bold gap-2 px-5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-                      >
-                        <FileText className="w-4.5 h-4.5" />
-                        ذكر ملاحظات لطالب الخدمة
-                      </Button>
-
-                      {/* رفض الطلب (للحسابات قيد المراجعة) */}
-                      {user.status === "pending" && (
+                      {/* إيقاف / رفض الحساب */}
+                      {(user.status === "pending" || user.status === "active") && (
                         <Button
-                          variant="destructive"
                           onClick={() => {
                             setShowRejectForm(true);
                             setNotes(user.adminNotes || "");
                           }}
-                          className="font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none"
+                          className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-700 dark:text-red-400 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
                           <XCircle className="w-4.5 h-4.5" />
-                          رفض الطلب
+                          {user.status === "active" ? "إيقاف الحساب" : "رفض الحساب"}
                         </Button>
                       )}
 
-                      {/* إيقاف الحساب (للحسابات النشطة) */}
-                      {user.status === "active" && (
+                      {/* ذكر ملاحظات لطالب الخدمة أو حالة الانتظار */}
+                      {user.status === "pending" && user.adminNotes ? (
+                        <div className="text-xs sm:text-sm font-bold text-amber-600 bg-amber-50/70 dark:bg-amber-955/20 px-4 py-2 rounded-xl border border-amber-200/40 dark:border-amber-900/30 flex items-center gap-1.5 shrink-0">
+                          <Clock className="w-4 h-4 animate-pulse" />
+                          بانتظار رد طالب الخدمة على المرفق
+                        </div>
+                      ) : (
                         <Button
-                          variant="destructive"
-                          onClick={() => toggleStatus.mutate({ userId: user.id, status: "suspended" })}
-                          disabled={toggleStatus.isPending}
-                          className="font-bold gap-2 px-6 rounded-xl transition-all shadow-md shadow-red-200 dark:shadow-none"
+                          onClick={() => {
+                            setShowNotesForm(true);
+                            setNotes(user.adminNotes || "");
+                          }}
+                          variant="outline"
+                          className="font-bold gap-2 px-5 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
                         >
-                          <XCircle className="w-4.5 h-4.5" />
-                          إيقاف الحساب
+                          <FileText className="w-4.5 h-4.5" />
+                          ذكر ملاحظات لطالب الخدمة
                         </Button>
                       )}
                     </div>
@@ -333,16 +326,16 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                       </div>
                     </div>
                   ) : (
-                    /* نموذج رفض الطلب */
+                    /* نموذج رفض / إيقاف الحساب */
                     <div className="space-y-3 bg-red-50/20 dark:bg-red-950/10 p-4 rounded-xl border border-red-200/40 dark:border-red-900/30 transition-all">
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-red-700 dark:text-red-400">
-                          سبب رفض الطلب (ملاحظات الرفض)
+                          {user.status === "active" ? "سبب إيقاف الحساب" : "سبب رفض الحساب (ملاحظات الرفض)"}
                         </label>
                         <textarea
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          placeholder="يرجى كتابة سبب رفض الطلب بالتفصيل هنا..."
+                          placeholder={user.status === "active" ? "يرجى كتابة سبب إيقاف الحساب بالتفصيل هنا..." : "يرجى كتابة سبب رفض الحساب بالتفصيل هنا..."}
                           rows={3}
                           className="w-full text-sm p-3 rounded-xl border border-red-200/50 dark:border-red-900/40 bg-white dark:bg-slate-955 focus:ring-1 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
                         />
@@ -351,7 +344,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <Button
                           onClick={() => {
                             if (!notes.trim()) {
-                              toast.error("يرجى كتابة سبب الرفض أولاً");
+                              toast.error(user.status === "active" ? "يرجى كتابة سبب إيقاف الحساب أولاً" : "يرجى كتابة سبب الرفض أولاً");
                               return;
                             }
                             toggleStatus.mutate(
@@ -362,7 +355,9 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           disabled={toggleStatus.isPending}
                           className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 rounded-xl"
                         >
-                          {toggleStatus.isPending ? "جاري الرفض..." : "تأكيد رفض الطلب"}
+                          {toggleStatus.isPending 
+                            ? (user.status === "active" ? "جاري الإيقاف..." : "جاري الرفض...") 
+                            : (user.status === "active" ? "تأكيد إيقاف الحساب" : "تأكيد رفض الحساب")}
                         </Button>
                         <Button
                           variant="ghost"
