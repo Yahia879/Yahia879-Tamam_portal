@@ -467,10 +467,7 @@ export const disbursementsRouter = router({
         description: input.description,
         amount: input.amount.toString(),
         paymentType: input.paymentType,
-        dateMiladi: input.dateMiladi ? (() => {
-          const d = new Date(input.dateMiladi);
-          return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
-        })() : null,
+        dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
         completionPercentage: input.completionPercentage,
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
         status: "pending",
@@ -645,10 +642,7 @@ export const disbursementsRouter = router({
           amount: input.amount.toString(),
           paymentType: input.paymentType,
           completionPercentage: input.completionPercentage,
-          dateMiladi: input.dateMiladi ? (() => {
-            const d = new Date(input.dateMiladi);
-            return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
-          })() : null,
+          dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
           contractPaymentId: validatedContractPaymentId,
           paymentId: validatedPaymentId,
           attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : undefined,
@@ -1269,6 +1263,134 @@ export const disbursementsRouter = router({
       return {
         success: true,
         id: result.insertId,
+        orderNumber,
+        message: "تم إنشاء أمر الصرف بنجاح",
+      };
+    }),
+
+  // إنشاء أمر صرف مباشر بدون طلب مسبق
+  createDirectOrder: permissionProcedure("disbursements.create")
+    .input(
+      z.object({
+        projectId: z.number().optional().nullable(),
+        contractId: z.number().optional().nullable(),
+        contractPaymentId: z.number().optional().nullable(),
+        paymentId: z.number().optional().nullable(),
+        title: z.string().min(1, "عنوان الطلب مطلوب"),
+        description: z.string().optional(),
+        amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
+        dateMiladi: z.string().optional(),
+        attachments: z.array(z.object({
+          name: z.string(),
+          url: z.string(),
+          type: z.string().optional(),
+        })).optional(),
+        beneficiaryName: z.string().min(1, "اسم المستفيد مطلوب"),
+        beneficiaryBank: z.string().optional(),
+        beneficiaryIban: z.string().optional(),
+        paymentMethod: z.string().optional(),
+        sadadNumber: z.string().optional(),
+        billerCode: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      let creatorSignatureName = "";
+      let creatorSignatureDepartment = "";
+      const [userSignData] = await db
+        .select({ signatureName: users.signatureName, signatureDepartment: users.signatureDepartment })
+        .from(users)
+        .where(eq(users.id, ctx.user.id));
+      if (userSignData) {
+        creatorSignatureName = userSignData.signatureName || "";
+        creatorSignatureDepartment = userSignData.signatureDepartment || "";
+      }
+
+      const requestNumber = await generateDisbursementRequestNumber(db);
+
+      const [reqResult] = await db.insert(disbursementRequests).values({
+        requestNumber,
+        projectId: input.projectId || null,
+        contractId: input.contractId || null,
+        contractPaymentId: input.contractPaymentId || null,
+        paymentId: input.paymentId || null,
+        title: input.title,
+        description: input.description || null,
+        amount: input.amount.toString(),
+        paymentType: "progress",
+        dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
+        attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
+        status: "approved", // معتمد مباشرة
+        requestedBy: ctx.user.id,
+        creatorSignatureName,
+        creatorSignatureDepartment,
+      });
+
+      const disbursementRequestId = Number(reqResult.insertId);
+
+      const orderNumber = await generateDisbursementOrderNumber(db);
+
+      const [orderResult] = await db.insert(disbursementOrders).values({
+        orderNumber,
+        disbursementRequestId,
+        amount: input.amount.toString(),
+        beneficiaryName: input.beneficiaryName,
+        beneficiaryBank: input.beneficiaryBank || null,
+        beneficiaryIban: input.beneficiaryIban || null,
+        paymentMethod: input.paymentMethod || "bank_transfer",
+        sadadNumber: input.sadadNumber || null,
+        billerCode: input.billerCode || null,
+        status: "pending",
+        createdBy: ctx.user.id,
+      });
+
+      const orderId = Number(orderResult.insertId);
+
+      try {
+        await notifyDisbursementOrderCreation(
+          orderId,
+          orderNumber,
+          requestNumber,
+          input.amount.toString(),
+          input.projectId || null
+        );
+
+        // إرسال إشعار للمدير العام لاعتماد أمر الصرف
+        const managers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(
+            sql`${users.role} IN ('super_admin', 'system_admin', 'general_manager')`,
+            isNull(users.deletedAt)
+          ));
+
+        // جلب بيانات المشروع
+        const project = input.projectId
+          ? (await db
+              .select({ name: projects.name })
+              .from(projects)
+              .where(eq(projects.id, input.projectId)))[0]
+          : null;
+
+        for (const manager of managers) {
+          await createNotification({
+            userId: manager.id,
+            title: "أمر صرف جديد يحتاج اعتماد",
+            message: `تم إنشاء أمر صرف مباشر جديد رقم ${orderNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(input.amount).toLocaleString("ar-SA")} ريال. يرجى الاعتماد.`,
+            type: "warning",
+            relatedType: "disbursement_order",
+            relatedId: orderId,
+          });
+        }
+      } catch (err) {
+        console.error("Error sending notifications for direct order creation:", err);
+      }
+
+      return {
+        success: true,
+        id: orderId,
         orderNumber,
         message: "تم إنشاء أمر الصرف بنجاح",
       };

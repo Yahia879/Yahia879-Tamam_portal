@@ -128,6 +128,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursements": "disbursement_requests",
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
+  "/disbursement-orders/new-direct": "disbursement_orders",
 
   // ── تقارير الإنجاز ──
   "/progress-reports": "progress_reports",

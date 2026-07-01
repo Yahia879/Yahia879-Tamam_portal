@@ -89,6 +89,7 @@ import NewDisbursementRequest from "./pages/NewDisbursementRequest";
 import NewLinkedDisbursementRequest from "./pages/NewLinkedDisbursementRequest";
 import EditLinkedDisbursementRequest from "./pages/EditLinkedDisbursementRequest";
 import NewDisbursementOrder from "./pages/NewDisbursementOrder";
+import NewDirectDisbursementOrder from "./pages/NewDirectDisbursementOrder";
 import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ProgressReports from "./pages/ProgressReports";
@@ -307,6 +308,7 @@ function Router() {
       
       {/* أوامر الصرف - إدارية */}
       <Route path="/disbursement-orders">{() => <AdminRoute component={DisbursementOrders} />}</Route>
+      <Route path="/disbursement-orders/new-direct">{() => <AdminRoute component={NewDirectDisbursementOrder} />}</Route>
       <Route path="/disbursement-orders/new/:requestId">{() => <AdminRoute component={NewDisbursementOrder} />}</Route>
       <Route path="/disbursement-orders/:id/print">{() => <AdminRoute component={DisbursementOrderPrint} />}</Route>
       <Route path="/disbursement-orders/:id">{() => <AdminRoute component={DisbursementOrderDetails} />}</Route>

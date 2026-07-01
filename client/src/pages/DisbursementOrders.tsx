@@ -52,6 +52,7 @@ import {
   PlayCircle,
   ChevronLeft,
   MoreVertical,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -174,6 +175,15 @@ export default function DisbursementOrders() {
             <h1 className="text-2xl font-bold">أوامر الصرف</h1>
             <p className="text-muted-foreground">إدارة واعتماد وتنفيذ أوامر الصرف المالية</p>
           </div>
+          {canApproveOrder && (
+            <Button 
+              onClick={() => navigate("/disbursement-orders/new-direct")} 
+              className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 px-6 rounded-xl transition-all shadow-sm h-11"
+            >
+              <Plus className="w-5 h-5" />
+              إضافة أمر صرف
+            </Button>
+          )}
         </div>
 
         {/* بطاقات الإحصائيات المحدثة والأنيقة */}
