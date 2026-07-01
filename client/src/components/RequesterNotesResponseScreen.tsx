@@ -106,9 +106,9 @@ export default function RequesterNotesResponseScreen() {
               </p>
             </div>
           ) : (
-            <div className="p-4 rounded-2xl border border-amber-200/80 bg-amber-50/50 dark:bg-amber-955/10 dark:border-amber-900/30 text-amber-900 dark:text-amber-300 space-y-2">
-              <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                <AlertCircle className="h-5 w-5 shrink-0" />
+            <div className="p-4 rounded-2xl border border-primary/20 bg-primary/5 dark:bg-primary/10 dark:border-primary/30 text-primary space-y-2">
+              <div className="flex items-center gap-2 text-primary">
+                <AlertCircle className="h-5 w-5 shrink-0 animate-pulse" />
                 <span className="font-bold text-sm">ملاحظات الإدارة</span>
               </div>
               <p className="text-sm font-semibold leading-relaxed text-slate-700 dark:text-slate-300 pr-7">
