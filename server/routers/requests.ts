@@ -134,6 +134,33 @@ export const requestsRouter = router({
         });
       }
 
+      if (isRequester) {
+        const [userRow] = await db
+          .select({ requesterType: users.requesterType })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+
+        if (userRow && userRow.requesterType === "imam") {
+          const previousRequests = await db
+            .select({ status: mosqueRequests.status })
+            .from(mosqueRequests)
+            .where(eq(mosqueRequests.userId, ctx.user.id))
+            .orderBy(desc(mosqueRequests.createdAt))
+            .limit(1);
+
+          if (previousRequests.length > 0) {
+            const latestRequest = previousRequests[0];
+            if (latestRequest.status !== "completed" && latestRequest.status !== "rejected") {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "لا يمكنك تقديم طلب جديد لوجود طلب سابق قيد المعالجة ولم يكتمل بعد"
+              });
+            }
+          }
+        }
+      }
+
       // التحقق من وجود المسجد (برنامج بنيان والبرامج التي لا تتطلب مسجداً)
       let mosqueData = null;
       

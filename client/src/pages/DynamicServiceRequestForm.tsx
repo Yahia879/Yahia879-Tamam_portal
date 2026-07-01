@@ -13,7 +13,7 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { 
@@ -68,6 +68,19 @@ const parseConditions = (conditions: any): string[] => {
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+
+  // الحصول على طلبات المستخدم للتحقق من الإمام
+  const { data: myRequests = [], isLoading: myRequestsLoading } = trpc.requests.getMyRequests.useQuery(undefined, {
+    enabled: !!user && user.role === "service_requester" && user.requesterType === "imam"
+  });
+
+  const isImamBlocked = useMemo(() => {
+    if (user?.role !== "service_requester" || user?.requesterType !== "imam") return false;
+    if (myRequests.length === 0) return false;
+    const latestRequest = myRequests[0];
+    return latestRequest.status !== "completed" && latestRequest.status !== "rejected";
+  }, [user, myRequests]);
+
   const [currentStep, setCurrentStep] = useState<Step>('service-selection');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -739,6 +752,88 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       </Card>
     </div>
   );
+
+  if (myRequestsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background/50 backdrop-blur-sm">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isImamBlocked) {
+    const blockContent = (
+      <div className="max-w-4xl mx-auto px-4">
+        {/* رأس الصفحة مع زر الرجوع */}
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+            <Button variant="ghost" size="icon" className="flex-shrink-0">
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-base sm:text-lg font-bold">لا يمكن تقديم طلب جديد حالياً</AlertTitle>
+            <AlertDescription className="text-xs sm:text-sm leading-relaxed mt-1">
+              عذراً، بصفتك إمام مسجد، لا يمكنك تقديم طلب جديد لوجود طلب سابق لك قيد المعالجة ولم يكتمل بعد.
+              {myRequests[0] && (
+                <div className="mt-4 p-4 rounded-xl border border-red-200/20 bg-red-500/5 text-right space-y-1.5 max-w-md">
+                  <div>
+                    <span className="font-bold text-red-700 dark:text-red-400">رقم الطلب السابق: </span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{myRequests[0].requestNumber}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-red-700 dark:text-red-400">تاريخ التقديم: </span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 font-mono">
+                      {new Date(myRequests[0].createdAt).toLocaleDateString('ar-SA')}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-red-700 dark:text-red-400">حالة الطلب: </span>
+                    <span className="font-bold text-amber-600 dark:text-amber-500">تحت المعالجة</span>
+                  </div>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Link href="/my-requests">
+              <Button className="h-10 px-5 rounded-xl font-bold bg-primary hover:bg-primary/95 text-white transition-all">
+                متابعة طلباتي السابقة
+              </Button>
+            </Link>
+            <Link href="/requester">
+              <Button variant="outline" className="h-10 px-5 rounded-xl font-bold transition-all">
+                العودة للوحة التحكم
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (!showLayout) {
+      return (
+        <div dir="rtl" className="w-full">
+          {blockContent}
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-background py-4 sm:py-8" dir="rtl">
+        {blockContent}
+      </div>
+    );
+  }
 
   if (!showLayout) {
     return (
