@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight, GripVertical } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -128,6 +128,11 @@ export default function ProgramCustomization() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<ProgramCustomization>>({});
   const [showAddNew, setShowAddNew] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
   const [newProgram, setNewProgram] = useState<Partial<ProgramCustomization>>({
     name: '',
     description: '',
@@ -595,26 +600,54 @@ export default function ProgramCustomization() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
-                            {program.description}
-                          </p>
-                          {(() => {
-                            const conds = parseConditions(program.conditions);
-                            if (conds.filter(Boolean).length === 0) return null;
-                            return (
-                              <div className="mt-2 space-y-1 bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
-                                <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
-                                <div className="space-y-1">
-                                  {conds.filter(Boolean).map((cond: string, index: number) => (
-                                    <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                      <span className="text-primary">•</span>
-                                      <span>{cond}</span>
-                                    </div>
-                                  ))}
-                                </div>
+
+                          <div className="mt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(program.id);
+                              }}
+                              className="h-7 px-2 text-xs text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/5 hover:bg-primary/10 rounded-md"
+                            >
+                              <span>تفاصيل البرنامج (الوصف والشروط)</span>
+                              {expandedIds[program.id] ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+
+                          {expandedIds[program.id] && (
+                            <div className="mt-3 space-y-2 border-t pt-2 transition-all">
+                              <div>
+                                <h4 className="text-xs font-bold text-foreground">الوصف:</h4>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                                  {program.description}
+                                </p>
                               </div>
-                            );
-                          })()}
+                              {(() => {
+                                const conds = parseConditions(program.conditions);
+                                if (conds.filter(Boolean).length === 0) return null;
+                                return (
+                                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/10" dir="rtl">
+                                    <h4 className="text-xs font-bold text-primary mb-1">شروط التقديم:</h4>
+                                    <div className="space-y-1">
+                                      {conds.filter(Boolean).map((cond: string, index: number) => (
+                                        <div key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                          <span className="text-primary">•</span>
+                                          <span>{cond}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-[10px] sm:text-xs text-muted-foreground">
                             {program.requiresMosque && (
                               <span className="flex items-center gap-1 text-emerald-600 font-medium">
