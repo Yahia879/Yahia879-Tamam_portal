@@ -66,13 +66,14 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsSuspended(false);
     
-    if (!email || !password) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       toast.error("يرجى إدخال البريد الإلكتروني وكلمة المرور");
       return;
     }
 
     loginMutation.mutate({
-      email,
+      email: trimmedEmail,
       password,
     });
   };

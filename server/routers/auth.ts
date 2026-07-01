@@ -164,14 +164,20 @@ export const authRouter = router({
       const user = userResult[0];
 
       // التحقق من حالة الحساب
-      if (user.status === "pending") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "حسابك قيد المراجعة. يرجى انتظار الاعتماد." });
-      }
-      if (user.status === "suspended") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
-      }
-      if (user.status === "blocked") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "حسابك محظور." });
+      const isPendingNotesRequester = user.role === "service_requester" && 
+                                      (user.status === "pending" || user.status === "suspended") && 
+                                      user.adminNotes;
+
+      if (!isPendingNotesRequester) {
+        if (user.status === "pending") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "حسابك قيد المراجعة. يرجى انتظار الاعتماد." });
+        }
+        if (user.status === "suspended") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ROLE_SUSPENDED: عذراً، لا يمكن تسجيل الدخول. هذا الدور موقوف حالياً، يرجى مراجعة الإدارة" });
+        }
+        if (user.status === "blocked") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "حسابك محظور." });
+        }
       }
 
       // التحقق من كلمة المرور

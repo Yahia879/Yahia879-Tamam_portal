@@ -72,19 +72,20 @@ export default function Login() {
     e.preventDefault();
     setIsSuspended(false);
     
-    if (!phone || !password) {
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone || !password) {
       toast.error("يرجى إدخال رقم الجوال وكلمة المرور");
       return;
     }
 
     // التحقق من صيغة رقم الجوال
-    if (!/^05\d{8}$/.test(phone)) {
+    if (!/^05\d{8}$/.test(trimmedPhone)) {
       toast.error("يرجى إدخال رقم جوال صحيح (05XXXXXXXX)");
       return;
     }
 
     loginMutation.mutate({
-      phone,
+      phone: trimmedPhone,
       password,
     });
   };
