@@ -220,7 +220,7 @@ export default function DisbursementOrderPrint() {
                     <div className="text-base font-bold text-[#1a5f4a] print:text-sm">
                       {orgSettings?.officialReportsName || ""}
                     </div>
-                    <div className="text-xs text-gray-550 font-medium">مكتب إدارة المشاريع PMO</div>
+                    <div className="text-xs text-gray-550 font-medium">الادارة المالية</div>
                   </div>
                 </div>
               </div>

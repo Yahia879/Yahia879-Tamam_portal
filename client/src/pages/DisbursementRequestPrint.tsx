@@ -481,7 +481,7 @@ export default function DisbursementRequestPrint() {
                 {/* معد الطلب - يظهر فقط إذا كان لديه صلاحية التوقيع وعبّأ معلومات التوقيع */}
                 {request?.creatorHasSignPermission && request?.requestedBySignatureName && request?.requestedBySignatureDepartment && (
                   <div className="p-2">
-                    <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
+                    <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
                       {request.requestedBySignatureDepartment}
                     </div>
                     <div className="space-y-2 text-xs">
@@ -493,7 +493,7 @@ export default function DisbursementRequestPrint() {
 
                 {/* المدير التنفيذي */}
                 <div className="p-2">
-                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-12">
+                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
                     المدير التنفيذي
                   </div>
                   <div className="space-y-2 text-xs">
