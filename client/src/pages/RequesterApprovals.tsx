@@ -57,6 +57,7 @@ import {
   Shield,
   X,
   Download,
+  Info,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -624,63 +625,90 @@ export default function RequesterApprovals() {
       </AlertDialog>
 
       {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
-      {previewUrl && (
-        <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewUrl(null)}
-        >
+      {previewUrl && (() => {
+        const getDocName = (url: string) => {
+          if (!url) return "مرفق";
+          try {
+            const fileName = decodeURIComponent(url).split("/").pop() || "";
+            const parts = fileName.split("-");
+            if (parts.length > 1 && !isNaN(Number(parts[0]))) {
+              return parts.slice(1).join("-").split(".")[0];
+            }
+            const cleanName = fileName.replace(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}_?/, "").split(".")[0];
+            return cleanName || "مرفق";
+          } catch {
+            return "مرفق";
+          }
+        };
+        const docName = getDocName(previewUrl);
+
+        return (
           <div 
-            className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            onClick={() => setPreviewUrl(null)}
           >
-            {/* Close button */}
-            <button 
-              onClick={() => setPreviewUrl(null)}
-              className="absolute top-4 right-4 bg-slate-800/85 hover:bg-red-600/85 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
-              title="إغلاق"
+            <div 
+              className="relative max-w-5xl w-full h-[90vh] flex flex-col justify-between bg-[#0b0f19] border border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Close button */}
+              <button 
+                onClick={() => setPreviewUrl(null)}
+                className="absolute top-4 right-4 bg-[#1e293b]/80 hover:bg-red-600 hover:text-white text-slate-300 rounded-full p-2 transition-all z-10 shadow-lg cursor-pointer"
+                title="إغلاق"
+              >
+                <X className="w-5.5 h-5.5" />
+              </button>
 
-            {/* Download button */}
-            <button 
-              onClick={() => {
-                if (!previewUrl) return;
-                const link = document.createElement("a");
-                link.href = previewUrl;
-                link.download = previewUrl.split("/").pop() || "attachment";
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
-              className="absolute top-4 left-4 bg-slate-800/85 hover:bg-primary/85 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
-              title="تحميل"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
-            </button>
+              {/* Download button */}
+              <button 
+                onClick={() => {
+                  if (!previewUrl) return;
+                  const link = document.createElement("a");
+                  link.href = previewUrl;
+                  link.download = previewUrl.split("/").pop() || "attachment";
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="absolute top-4 left-4 bg-[#1e293b]/80 hover:bg-[#334155] text-slate-200 rounded-full py-1.5 px-4 transition-all z-10 shadow-lg flex items-center gap-1.5 cursor-pointer text-xs font-bold"
+                title="تحميل"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تحميل</span>
+              </button>
 
-            {/* Document/Image container */}
-            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
-              {/\.(pdf)$/i.test(previewUrl) ? (
-                <iframe 
-                  src={previewUrl} 
-                  title="معاينة المستند" 
-                  className="w-full h-full border border-slate-800 rounded-lg bg-white shadow-lg"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center overflow-auto">
-                  <img 
+              {/* Document/Image container */}
+              <div className="w-full flex-1 flex items-center justify-center p-4 overflow-hidden mt-14 mb-2">
+                {/\.(pdf)$/i.test(previewUrl) ? (
+                  <iframe 
                     src={previewUrl} 
-                    alt="معاينة المرفق" 
-                    className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                    title="معاينة المستند" 
+                    className="w-full h-full border border-slate-800/80 rounded-lg bg-white shadow-lg"
                   />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto">
+                    <img 
+                      src={previewUrl} 
+                      alt="معاينة المرفق" 
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md border border-slate-800/80 bg-white"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Footer bar */}
+              <div className="w-full bg-[#070b13] border-t border-slate-800/80 px-5 py-3.5 flex items-center justify-between text-slate-400 text-xs font-bold z-10">
+                <span className="text-slate-400">{docName}</span>
+                <div className="flex items-center gap-2" dir="rtl">
+                  <Info className="w-4 h-4 text-slate-500" />
+                  <span>معاينة مستند - {docName}</span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </DashboardLayout>
   );
 }
