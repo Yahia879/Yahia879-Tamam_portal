@@ -46,7 +46,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   financial_approval: ["financial.view", "financial.approve", "financial.reject"],
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve"],
-  disbursement_orders: ["disbursements.view", "disbursements.create", "disbursements.approve"],
+  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["reports.view", "reports.create"],
   financial_report: ["reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
@@ -746,6 +746,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (allPermissions.has("disbursement_orders.view")) {
     allPermissions.add("disbursement_orders.view_details");
+  } else {
+    allPermissions.delete("disbursement_orders.view_details");
   }
   if (allPermissions.has("mosque_map.view")) {
     allPermissions.add("mosque_map");
