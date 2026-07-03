@@ -868,7 +868,7 @@ export const requestsRouter = router({
       const isCriticalTransition = criticalStages.includes(input.newStage);
       
       if (!input.skipPrerequisites || isCriticalTransition) {
-        const prerequisites = getPrerequisites(oldStage, input.newStage, requestTrack);
+        const prerequisites = getPrerequisites(oldStage, input.newStage, requestTrack, request[0].technicalEvalDecision || undefined);
         const missingPrerequisites: string[] = [];
 
         for (const prereq of prerequisites) {

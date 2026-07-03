@@ -986,9 +986,16 @@ export const STAGE_PREREQUISITES: Record<string, StagePrerequisite[]> = {
 export function getPrerequisites(
   currentStage: string,
   nextStage: string,
-  requestTrack: string = 'standard'
+  requestTrack: string = 'standard',
+  technicalEvalDecision?: string
 ): StagePrerequisite[] {
   const key = `${currentStage}_to_${nextStage}`;
+  
+  if (technicalEvalDecision === 'convert_to_donation') {
+    if (currentStage === 'execution' && nextStage === 'closed') {
+      return [];
+    }
+  }
   
   // التحقق من المسار للحالات الخاصة
   if (currentStage === 'execution' && nextStage === 'closed') {
