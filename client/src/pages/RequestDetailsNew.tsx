@@ -585,6 +585,7 @@ export default function RequestDetailsNew() {
       ...activeAction,
       title: "بانتظار صرف المبلغ للمستفيد",
       description: "يرجى متابعة صرف المبلغ المستهدف للمستفيد من خلال طلبات الصرف المرتبطة بفرصة التبرع. بعد إتمام كامل الصرف، يمكنك الانتقال إلى مرحلة الاستلام والإغلاق.",
+      actionButton: undefined,
     };
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
     activeAction = null;
