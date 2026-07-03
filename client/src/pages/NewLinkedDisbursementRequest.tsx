@@ -280,6 +280,7 @@ export default function NewLinkedDisbursementRequest() {
     setIsDonationLinked(checked);
     if (checked) {
       setIsCustom(true);
+      setRequestType("supplier_one_time");
       setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
     } else {
       setIsCustom(!canCreateStandard);
@@ -959,7 +960,7 @@ export default function NewLinkedDisbursementRequest() {
                       <SelectValue placeholder="اختر نوع طلب الصرف" />
                     </SelectTrigger>
                     <SelectContent>
-                      {canCreateStandard && (
+                      {canCreateStandard && !isDonationLinked && (
                         <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
                       )}
                       {canCreateCustom && (
