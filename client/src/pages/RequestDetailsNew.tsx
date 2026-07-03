@@ -2912,7 +2912,7 @@ export default function RequestDetailsNew() {
             </div>
 
             {/* قالب التقرير القابل للطباعة */}
-            <div id="printable-commitment-form" className="space-y-8 p-8 border-[3px] border-[#1a5f4a] rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm relative">
+            <div id="printable-commitment-form" className="space-y-4 p-6 border-[3px] border-[#1a5f4a] rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm relative">
               <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
                   body * {
@@ -2922,17 +2922,27 @@ export default function RequestDetailsNew() {
                     visibility: visible !important;
                   }
                   #printable-commitment-form {
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
+                    position: relative !important;
                     width: 100% !important;
                     border: 3px solid #1a5f4a !important;
                     background-color: white !important;
                     color: black !important;
-                    padding: 30px !important;
-                    margin: 0 !important;
+                    padding: 24px !important;
+                    margin: 0 auto !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
+                  }
+                  #printable-commitment-form .gold-line {
+                    position: absolute !important;
+                    top: 6px !important;
+                    bottom: 6px !important;
+                    left: 6px !important;
+                    right: 6px !important;
+                    height: calc(100% - 12px) !important;
+                    width: calc(100% - 12px) !important;
+                    border: 1px solid #d4a574 !important;
+                    border-radius: 4px !important;
+                    display: block !important;
                   }
                   .no-print {
                     display: none !important;
@@ -2940,9 +2950,9 @@ export default function RequestDetailsNew() {
                 }
               `}} />
               {/* خط ذهبي داخلي رفيع للإطار */}
-              <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+              <div className="gold-line absolute border border-[#d4a574] rounded pointer-events-none" style={{ top: '6px', bottom: '6px', left: '6px', right: '6px', height: 'calc(100% - 12px)', width: 'calc(100% - 12px)' }}></div>
 
-              <div className="relative z-10 flex flex-col justify-start space-y-6">
+              <div className="relative z-10 space-y-6">
                 {/* الترويسة - الشعار والتاريخ */}
                 <div className="flex flex-row justify-between items-start border-b-2 border-slate-200 pb-4">
                   <div className="flex items-center gap-3">
@@ -3011,38 +3021,37 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {/* الشروط والأحكام */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">2. الشروط والأحكام الخاصة بالبرنامج</h3>
-                  <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
+                <div className="space-y-2">
+                  <h3 className="text-base font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">2. الشروط والأحكام الخاصة بالبرنامج</h3>
+                  <div className="border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
                     {commitmentFormData.terms}
                   </div>
                 </div>
 
                 {/* الشروط الإضافية */}
                 {commitmentFormData.additionalTerms.trim() && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">3. شروط التزام إضافية</h3>
-                    <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
+                  <div className="space-y-2">
+                    <h3 className="text-base font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">3. شروط التزام إضافية</h3>
+                    <div className="border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
                       {commitmentFormData.additionalTerms}
                     </div>
                   </div>
                 )}
 
                 {/* التعهد والالتزام */}
-                <div className="space-y-4 pt-4">
+                <div className="space-y-2 pt-2">
                   <p className="leading-relaxed font-medium text-sm text-slate-700 dark:text-slate-300">
                     أتعهد أنا طالب الخدمة الموضحة بياناتي أعلاه بالالتزام التام بكافة الشروط والأحكام والبنود المنصوص عليها في هذه الوثيقة، وتحمل كافة المسؤوليات المترتبة على ذلك.
                   </p>
                 </div>
 
                 {/* التوقيعات */}
-                <div className="pt-12 border-t border-slate-200 dark:border-slate-800 flex justify-center pb-8">
-                  <div className="text-center space-y-8 w-64">
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة</span>
-                    <div className="h-16"></div>
-                    <div className="border-t border-slate-200 dark:border-slate-800 pt-3 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                      <p className="text-right">الاسم: {request?.requester?.name || "________________________"}</p>
-                      <p className="text-right">التوقيع: ________________________</p>
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center pb-2">
+                  <div className="text-center w-72">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs mb-1">طالب الخدمة</span>
+                    <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900/30 text-right text-xs text-slate-650 dark:text-slate-400 space-y-1.5">
+                      <p className="font-medium">الاسم: {request?.requester?.name || "غير محدد"}</p>
+                      <p className="font-medium">التوقيع: ________________________</p>
                     </div>
                   </div>
                 </div>
