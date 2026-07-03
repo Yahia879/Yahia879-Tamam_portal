@@ -37,6 +37,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import {
   Receipt,
   Search,
@@ -189,6 +191,194 @@ export default function Quotations() {
       toast.error(errorMessage);
     },
   });
+
+  const downloadQuotationTemplate = async () => {
+    if (!boqData?.items || boqData.items.length === 0) {
+      toast.error("لا توجد بنود في جدول الكميات لتسعيرها");
+      return;
+    }
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("QuotationTemplate", {
+        views: [{ showGridLines: true, rightToLeft: true }]
+      });
+
+      // 1. إضافة ورقة عمل مخفية للموردين
+      const supplierSheet = workbook.addWorksheet("SuppliersData");
+      supplierSheet.state = "hidden";
+      
+      const supplierNames = (suppliers || []).map((s: any) => s.name);
+      if (supplierNames.length === 0) {
+        supplierNames.push("لا يوجد موردين نشطين");
+      }
+
+      supplierNames.forEach((name, index) => {
+        supplierSheet.getCell(`A${index + 1}`).value = name;
+      });
+
+      // 2. تصميم الواجهة الرئيسية لعرض السعر
+      worksheet.getCell("A1").value = "المورد *";
+      worksheet.getCell("B1").value = ""; // خلية الاختيار للمورد
+      
+      // تفعيل القائمة المنسدلة لخلية المورد B1
+      worksheet.getCell("B1").dataValidation = {
+        type: "list",
+        allowBlank: false,
+        formulae: [`SuppliersData!$A$1:$A$${supplierNames.length}`],
+        showErrorMessage: true,
+        errorTitle: "خطأ في اختيار المورد",
+        error: "يرجى اختيار المورد من القائمة المنسدلة المتاحة"
+      };
+
+      worksheet.getCell("A2").value = "تاريخ انتهاء صلاحية العرض";
+      worksheet.getCell("B2").value = ""; // خلية التاريخ
+      worksheet.getCell("B2").note = "يرجى كتابة التاريخ بصيغة السنة-الشهر-اليوم YYYY-MM-DD";
+
+      // صف فارغ
+      worksheet.addRow([]);
+
+      // صف العناوين للبنود
+      worksheet.addRow(["اسم البند", "الوحدة", "الكمية", "سعر الوحدة"]);
+
+      // إدراج بنود جدول الكميات
+      boqData.items.forEach((item: any) => {
+        worksheet.addRow([
+          item.itemName,
+          item.unit,
+          parseFloat(item.quantity),
+          "" // حقل سعر الوحدة فارغ للتعبئة
+        ]);
+      });
+
+      // تنسيقات الأعمدة لتسهيل الرؤية والقراءة
+      worksheet.getColumn(1).width = 40; // اسم البند
+      worksheet.getColumn(2).width = 15; // الوحدة
+      worksheet.getColumn(3).width = 15; // الكمية
+      worksheet.getColumn(4).width = 20; // سعر الوحدة
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Quotation_Template.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("تم تحميل قالب عرض السعر بنجاح");
+    } catch (error) {
+      console.error("Failed to generate Quotation template:", error);
+      toast.error("حدث خطأ أثناء تحميل القالب");
+    }
+  };
+
+  const handleQuotationExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const buffer = evt.target?.result as ArrayBuffer;
+        const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+
+        if (rows.length < 4) {
+          toast.error("الملف فارغ أو لا يحتوي على بنود التسعير");
+          return;
+        }
+
+        // 1. قراءة المورد من خلية B1
+        const row0 = rows[0] as any[];
+        const supplierName = row0 && row0.length > 1 ? String(row0[1]).trim() : "";
+        if (supplierName) {
+          const matchedSupplier = (suppliers || []).find((s: any) => s.name.trim() === supplierName);
+          if (matchedSupplier) {
+            setSelectedSupplierId(matchedSupplier.id.toString());
+            toast.info(`تم تحديد المورد: ${matchedSupplier.name}`);
+          } else {
+            toast.warning(`لم يتم العثور على مورد مطابق لـ "${supplierName}" في النظام`);
+          }
+        }
+
+        // 2. قراءة تاريخ الانتهاء من خلية B2
+        const row1 = rows[1] as any[];
+        let validUntilStr = row1 && row1.length > 1 ? String(row1[1]).trim() : "";
+        if (validUntilStr) {
+          if (/^\d+(\.\d+)?$/.test(validUntilStr)) {
+            const dateNum = parseFloat(validUntilStr);
+            const dateObj = new Date(Math.round((dateNum - 25569) * 86400 * 1000));
+            validUntilStr = dateObj.toISOString().split("T")[0];
+          } else {
+            const parsedDate = new Date(validUntilStr);
+            if (!isNaN(parsedDate.getTime())) {
+              validUntilStr = parsedDate.toISOString().split("T")[0];
+            }
+          }
+          setFormData(prev => ({ ...prev, validUntil: validUntilStr }));
+        }
+
+        // 3. قراءة البنود والأسعار بدءاً من السطر الخامس
+        const headers = (rows[3] as any[]).map(h => String(h || "").trim().toLowerCase());
+        const nameIdx = headers.findIndex(h => h.includes("اسم البند") || h === "name");
+        const priceIdx = headers.findIndex(h => h.includes("سعر الوحدة") || h === "price");
+
+        if (nameIdx === -1 || priceIdx === -1) {
+          toast.error("الملف غير مطابق للقالب. يجب وجود أعمدة: اسم البند وسعر الوحدة.");
+          return;
+        }
+
+        const priceMap: Record<string, string> = {};
+        for (let i = 4; i < rows.length; i++) {
+          const row = rows[i] as any[];
+          if (!row || row.length === 0) continue;
+
+          const itemName = row[nameIdx];
+          const priceVal = row[priceIdx];
+
+          if (itemName && priceVal !== undefined && priceVal !== null && String(priceVal).trim() !== "") {
+            const priceNum = parseFloat(String(priceVal));
+            if (!isNaN(priceNum) && priceNum >= 0) {
+              priceMap[String(itemName).trim()] = priceNum.toString();
+            }
+          }
+        }
+
+        setQuotationItems(prev => {
+          let updatedCount = 0;
+          const updated = prev.map(item => {
+            const importedPrice = priceMap[item.itemName.trim()];
+            if (importedPrice !== undefined) {
+              updatedCount++;
+              const price = parseFloat(importedPrice);
+              return {
+                ...item,
+                unitPrice: importedPrice,
+                totalPrice: price * item.quantity
+              };
+            }
+            return item;
+          });
+
+          if (updatedCount > 0) {
+            toast.success(`تم استيراد أسعار لـ ${updatedCount} بنود من ملف Excel بنجاح`);
+          } else {
+            toast.warning("لم يتم العثور على أي أسعار مطابقة لبنود جدول الكميات");
+          }
+          return updated;
+        });
+
+      } catch (error) {
+        console.error("Failed to parse Excel file:", error);
+        toast.error("فشل قراءة ملف Excel، يرجى التأكد من صيغة الملف وجودته");
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
 
   // اعتماد عرض سعر
   const approveQuotationMutation = trpc.projects.updateQuotationStatus.useMutation({
@@ -1001,6 +1191,41 @@ export default function Quotations() {
               <DialogDescription className="text-base text-right sm:text-right">أدخل تفاصيل عرض السعر من المورد مع تسعير كل بند</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4 text-right">
+              {/* خيارات الاستيراد والتصدير عبر Excel */}
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 p-4">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-sm">تعبئة عرض السعر عبر Excel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="quotation-excel-upload"
+                    className="hidden"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleQuotationExcelUpload}
+                  />
+                  <Button
+                    onClick={downloadQuotationTemplate}
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 ml-2" />
+                    تحميل قالب التسعير (Excel)
+                  </Button>
+                  <Button
+                    onClick={() => document.getElementById("quotation-excel-upload")?.click()}
+                    variant="outline"
+                    className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                    size="sm"
+                  >
+                    <Upload className="h-4 w-4 ml-2" />
+                    رفع عرض السعر المسعر (Excel)
+                  </Button>
+                </div>
+              </div>
+
               {/* معلومات المورد - في الأعلى */}
               <div className="p-5 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border-2 border-primary/20">
                 <div className="flex items-center gap-3 mb-4 justify-start">
