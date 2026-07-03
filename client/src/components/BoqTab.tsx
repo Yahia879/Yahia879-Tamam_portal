@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import BoqFormDialog from "./BoqFormDialog";
 import { getStageOrder } from "../../../shared/constants";
+import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
 interface BoqTabProps {
@@ -108,20 +109,53 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       }
     });
 
-    const downloadTemplate = () => {
-      const headers = [
-        ["التصنيف", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"],
-        ["الأعمال الإنشائية", "مثال: أعمال الحفر والتسوية", "متر مكعب", 120, 35]
-      ];
-      const worksheet = XLSX.utils.aoa_to_sheet(headers);
-      worksheet["!views"] = [{ RTL: true }];
-      const workbook = XLSX.utils.book_new();
-      workbook.Workbook = {
-        Views: [{ RTL: true }]
-      };
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
-      XLSX.writeFile(workbook, "BOQ_Template.xlsx");
-      toast.success("تم تحميل القالب الاسترشادي بنجاح");
+    const downloadTemplate = async () => {
+      try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Template", {
+          views: [{ showGridLines: true, rightToLeft: true }]
+        });
+
+        // إضافة العناوين والمثال
+        worksheet.addRow(["التصنيف", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"]);
+        worksheet.addRow(["أعمال إنشائية", "مثال: أعمال الحفر والتسوية", "متر مكعب", 120, 35]);
+
+        // قائمة التصنيفات المعتمدة
+        const categoriesList = [
+          "أعمال إنشائية",
+          "أعمال كهربائية",
+          "أعمال سباكة",
+          "تكييف وتبريد",
+          "تشطيبات",
+          "نجارة",
+          "دهانات",
+          "أرضيات",
+          "أخرى"
+        ];
+
+        // تفعيل القائمة المنسدلة لعمود التصنيف (العامود A) من السطر 2 وحتى 100
+        (worksheet as any).dataValidations.add("A2:A100", {
+          type: "list",
+          allowBlank: true,
+          formulae: [`"${categoriesList.join(",")}"`],
+          showErrorMessage: true,
+          errorTitle: "خطأ في التصنيف",
+          error: "يرجى اختيار تصنيف صالح من القائمة المتاحة"
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "BOQ_Template.xlsx";
+        a.click();
+        window.URL.revokeObjectURL(url);
+        toast.success("تم تحميل القالب الاسترشادي بنجاح");
+      } catch (error) {
+        console.error("Failed to generate Excel template:", error);
+        toast.error("حدث خطأ أثناء تحميل القالب");
+      }
     };
 
     const normalizeArabic = (str: string) => {
