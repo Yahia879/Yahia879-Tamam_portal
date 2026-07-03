@@ -772,7 +772,12 @@ export const requestsRouter = router({
       
       // تحديد المسار بناءً على نوع الطلب
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
-      const stages = isQuickResponse ? quickResponseStages : standardStages;
+      const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
+      const stages = isQuickResponse 
+        ? quickResponseStages 
+        : isDonation 
+          ? ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"] 
+          : standardStages;
       const currentIndex = stages.indexOf(oldStage);
       const newIndex = stages.indexOf(input.newStage);
       

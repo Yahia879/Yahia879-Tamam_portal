@@ -491,7 +491,10 @@ export default function RequestDetailsNew() {
   };
 
   // Get workflow based on request track
-  const workflow = request ? getWorkflowForRequest(request.requestTrack || 'standard') : WORKFLOW_STEPS;
+  const rawWorkflow = request ? getWorkflowForRequest(request.requestTrack || 'standard') : WORKFLOW_STEPS;
+  const workflow = request?.technicalEvalDecision === 'convert_to_donation'
+    ? rawWorkflow.filter(s => s.id !== 'handover')
+    : rawWorkflow;
 
   // Get next stage
   const getNextStage = (currentStage: string) => {
