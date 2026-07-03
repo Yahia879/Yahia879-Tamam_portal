@@ -246,6 +246,7 @@ export default function RequestDetailsNew() {
   const [donationTitle, setDonationTitle] = useState("");
   const [donationTargetAmount, setDonationTargetAmount] = useState("");
   const [donationDescription, setDonationDescription] = useState("");
+  const [disbursementType, setDisbursementType] = useState<string>("single_invoice");
 
 
 
@@ -286,9 +287,10 @@ export default function RequestDetailsNew() {
       setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
     } else if (selectedDecision === 'convert_to_donation' && request) {
       setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
-      setDonationTitle(request.mosque?.name ? `فرصة تبرع لمسجد ${request.mosque.name}` : `فرصة تبرع لطلب رقم ${request.requestNumber}`);
+      setDonationTitle(request.requestNumber ? `فرصة تبرع لطلب رقم ${request.requestNumber}` : "");
       setDonationTargetAmount(request.estimatedCost ? request.estimatedCost.toString() : "");
       setDonationDescription(request.mosque?.name ? `فرصة تبرع لتنفيذ الأعمال المطلوبة لمسجد ${request.mosque.name}` : "");
+      setDisbursementType("single_invoice");
     }
   }, [selectedDecision, request]);
   const utils = trpc.useUtils();
@@ -405,6 +407,7 @@ export default function RequestDetailsNew() {
       setDonationTitle("");
       setDonationTargetAmount("");
       setDonationDescription("");
+      setDisbursementType("single_invoice");
       utils.requests.getById.invalidate({ id: requestId });
       if (wasConverting) {
         setLocation(`/requests/${requestId}`);
@@ -2289,7 +2292,7 @@ export default function RequestDetailsNew() {
                   <>
                     <div className="mb-4 border-t pt-4 border-slate-100 dark:border-slate-800">
                       <label className="block text-sm font-medium mb-2 text-foreground">
-                        عنوان فرصة التبرع <span className="text-red-500">*</span>
+                        اسم فرصة التبرع <span className="text-red-500">*</span>
                       </label>
                       <Input
                         value={donationTitle}
@@ -2301,7 +2304,33 @@ export default function RequestDetailsNew() {
 
                     <div className="mb-4">
                       <label className="block text-sm font-medium mb-2 text-foreground">
-                        المبلغ المستهدف (ريال) <span className="text-red-500">*</span>
+                        نوع الصرف <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex flex-col gap-2 mt-2">
+                        <label className="flex items-center gap-2 cursor-pointer text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={disbursementType === 'single_invoice'}
+                            onChange={() => setDisbursementType('single_invoice')}
+                            className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                          />
+                          <span className="text-sm">سداد مورد بفاتورة واحدة</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-foreground">
+                          <input
+                            type="checkbox"
+                            checked={disbursementType === 'sadaad_invoices'}
+                            onChange={() => setDisbursementType('sadaad_invoices')}
+                            className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                          />
+                          <span className="text-sm">فواتير نظام سداد</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        المبلغ الذي سوف يصرف <span className="text-red-500">*</span>
                       </label>
                       <Input
                         type="number"
@@ -2310,19 +2339,6 @@ export default function RequestDetailsNew() {
                         onChange={(e) => setDonationTargetAmount(e.target.value)}
                         placeholder="مثال: 50000"
                         className="w-full text-right"
-                      />
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium mb-2 text-foreground">
-                        وصف فرصة التبرع
-                      </label>
-                      <Textarea
-                        value={donationDescription}
-                        onChange={(e) => setDonationDescription(e.target.value)}
-                        placeholder="اكتب وصفاً مختصراً يوضح تفاصيل فرصة التبرع للداعمين..."
-                        rows={3}
-                        className="text-right"
                       />
                     </div>
                   </>
@@ -2429,6 +2445,7 @@ export default function RequestDetailsNew() {
                   setDonationTitle("");
                   setDonationTargetAmount("");
                   setDonationDescription("");
+                  setDisbursementType("single_invoice");
                 }}
               >
                 إلغاء
@@ -2487,7 +2504,7 @@ export default function RequestDetailsNew() {
                     scheduledTime: selectedDecision === 'quick_response' ? scheduledTime : undefined,
                     donationTitle: selectedDecision === 'convert_to_donation' ? donationTitle.trim() : undefined,
                     donationTargetAmount: selectedDecision === 'convert_to_donation' ? parseFloat(donationTargetAmount) : undefined,
-                    donationDescription: selectedDecision === 'convert_to_donation' ? donationDescription.trim() : undefined,
+                    donationDescription: selectedDecision === 'convert_to_donation' ? (disbursementType === 'single_invoice' ? 'سداد مورد بفاتورة واحدة' : 'فواتير نظام سداد') : undefined,
                     justification: justification || undefined,
                   });
                 }}
