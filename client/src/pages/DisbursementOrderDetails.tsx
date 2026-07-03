@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, Printer, CheckCircle, XCircle, Clock, Banknote, Building2, CreditCard, FileText } from "lucide-react";
+import { ArrowRight, Printer, CheckCircle, XCircle, Clock, Banknote, Building2, CreditCard, FileText, ExternalLink } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -328,6 +328,55 @@ export default function DisbursementOrderDetails() {
                     </div>
                   )}
                 </div>
+
+                {(() => {
+                  const parsedAttachments = (() => {
+                    if (!order.disbursementRequest?.attachmentsJson) return [];
+                    try {
+                      return JSON.parse(order.disbursementRequest.attachmentsJson);
+                    } catch (e) {
+                      return [];
+                    }
+                  })();
+                  const linkAttachments = parsedAttachments.filter((att: any) => att.type === "link" || (att.url && att.url.startsWith("http")));
+
+                  if (linkAttachments.length === 0) return null;
+
+                  return (
+                    <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-3 my-4 text-right">
+                      <p className="text-xs text-muted-foreground text-right font-bold">الروابط المرفقة</p>
+                      <div className="flex flex-col gap-2">
+                        {linkAttachments.map((link: any, idx: number) => {
+                          let hostname = "";
+                          try {
+                            hostname = new URL(link.url).hostname;
+                          } catch (e) {}
+
+                          return (
+                            <a
+                              key={idx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-2.5 bg-blue-50/40 hover:bg-blue-50/80 border border-blue-100/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30 dark:border-blue-900/30 rounded-xl transition-all group"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ExternalLink className="h-4 w-4 text-blue-500 shrink-0 group-hover:text-blue-700 transition-colors" />
+                                <span className="text-xs font-bold text-blue-700 dark:text-blue-400 truncate">{link.name || "رابط خارجي"}</span>
+                              </div>
+                              {hostname && (
+                                <span className="text-[10px] text-muted-foreground font-mono bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-800">
+                                  {hostname}
+                                </span>
+                              )}
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 <Button
                   variant="outline"
                   className="w-full"

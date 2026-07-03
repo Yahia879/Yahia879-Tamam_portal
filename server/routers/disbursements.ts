@@ -979,6 +979,7 @@ export const disbursementsRouter = router({
           approvedAt: disbursementOrders.approvedAt,
           requestNumber: disbursementRequests.requestNumber,
           requestTitle: disbursementRequests.description,
+          attachmentsJson: disbursementRequests.attachmentsJson,
           projectId: projects.id,
           projectName: projects.name,
           projectBudget: projects.budget,
