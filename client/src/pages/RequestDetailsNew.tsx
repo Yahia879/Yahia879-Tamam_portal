@@ -2931,16 +2931,14 @@ export default function RequestDetailsNew() {
                     margin: 8mm !important;
                   }
                   html, body {
-                    height: 100% !important;
-                    overflow: hidden !important;
+                    height: auto !important;
+                    overflow: visible !important;
                     background-color: white !important;
                   }
                   #printable-commitment-form {
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
+                    position: relative !important;
                     width: 100% !important;
-                    height: 100% !important;
+                    height: auto !important;
                     border: 3px solid #1a5f4a !important;
                     background-color: white !important;
                     color: black !important;
