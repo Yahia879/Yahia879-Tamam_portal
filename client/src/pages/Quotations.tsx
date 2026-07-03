@@ -380,6 +380,345 @@ export default function Quotations() {
     e.target.value = "";
   };
 
+  const downloadBulkQuotationTemplate = async () => {
+    if (!boqData?.items || boqData.items.length === 0) {
+      toast.error("لا توجد بنود في جدول الكميات لتسعيرها");
+      return;
+    }
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("QuotationsTemplate", {
+        views: [{ showGridLines: true, rightToLeft: true }]
+      });
+
+      // 1. إضافة ورقة عمل مخفية للموردين
+      const supplierSheet = workbook.addWorksheet("SuppliersData");
+      supplierSheet.state = "hidden";
+      
+      const supplierNames = (suppliers || []).map((s: any) => s.name);
+      if (supplierNames.length === 0) {
+        supplierNames.push("لا يوجد موردين نشطين");
+      }
+
+      supplierNames.forEach((name, index) => {
+        supplierSheet.getCell(`A${index + 1}`).value = name;
+      });
+
+      // 2. تصميم الواجهة الرئيسية لعروض الأسعار المتعددة
+      const borderThin = {
+        top: { style: "thin" as const, color: { argb: "FFD1D5DB" } },
+        bottom: { style: "thin" as const, color: { argb: "FFD1D5DB" } },
+        left: { style: "thin" as const, color: { argb: "FFD1D5DB" } },
+        right: { style: "thin" as const, color: { argb: "FFD1D5DB" } }
+      };
+
+      // دالة لتوليد اسم العمود من الرقم (1 = A, 2 = B, 3 = C, 4 = D...)
+      const getColLetter = (n: number): string => {
+        let letter = "";
+        while (n > 0) {
+          let temp = (n - 1) % 26;
+          letter = String.fromCharCode(65 + temp) + letter;
+          n = Math.floor((n - temp) / 26);
+        }
+        return letter;
+      };
+
+      // عناوين الجنب
+      const cellA1 = worksheet.getCell("A1");
+      cellA1.value = "اسم المورد *";
+      cellA1.font = { name: "Arial", size: 10, bold: true };
+      cellA1.alignment = { horizontal: "right", vertical: "middle" };
+      cellA1.border = borderThin;
+
+      const cellA2 = worksheet.getCell("A2");
+      cellA2.value = "تاريخ صلاحية العرض (YYYY-MM-DD)";
+      cellA2.font = { name: "Arial", size: 10, bold: true };
+      cellA2.alignment = { horizontal: "right", vertical: "middle" };
+      cellA2.border = borderThin;
+
+      // خلايا التوضيح للأعمدة B, C
+      ["B1", "C1", "B2", "C2"].forEach(cellId => {
+        const cell = worksheet.getCell(cellId);
+        cell.border = borderThin;
+      });
+
+      // تحديد عدد الأعمدة للموردين: نمنحهم 50 عموداً كاملاً لتسعير عدد غير محدود من الموردين
+      const activeSupplierCount = suppliers ? suppliers.length : 0;
+      const totalSupplierCols = Math.max(activeSupplierCount + 30, 50); // إتاحة 50 عموداً على الأقل
+      
+      const supplierCols: string[] = [];
+      for (let i = 0; i < totalSupplierCols; i++) {
+        supplierCols.push(getColLetter(i + 4));
+      }
+      
+      supplierCols.forEach((col, idx) => {
+        const cellSupplier = worksheet.getCell(`${col}1`);
+        if (suppliers && idx < suppliers.length) {
+          cellSupplier.value = suppliers[idx].name;
+        } else {
+          // تركه فارغاً تماماً بدلاً من الكلمات الإرشادية ليكون الملف نظيفاً
+          cellSupplier.value = "";
+        }
+        cellSupplier.font = { name: "Arial", size: 10, bold: true };
+        cellSupplier.alignment = { horizontal: "center", vertical: "middle" };
+        cellSupplier.border = borderThin;
+
+        // القائمة المنسدلة متاحة للجميع
+        cellSupplier.dataValidation = {
+          type: "list",
+          allowBlank: true,
+          formulae: [`SuppliersData!$A$1:$A$${supplierNames.length}`],
+          showErrorMessage: true,
+          errorTitle: "خطأ في اختيار المورد",
+          error: "يرجى اختيار المورد من القائمة المنسدلة المتاحة"
+        };
+        
+        const cellDate = worksheet.getCell(`${col}2`);
+        cellDate.value = "";
+        cellDate.alignment = { horizontal: "center", vertical: "middle" };
+        cellDate.border = borderThin;
+        cellDate.note = "يرجى كتابة التاريخ بصيغة السنة-الشهر-اليوم YYYY-MM-DD";
+      });
+
+      worksheet.addRow([]);
+
+      const headers = ["اسم البند", "الوحدة", "الكمية"];
+      supplierCols.forEach((col, idx) => {
+        if (suppliers && idx < suppliers.length) {
+          headers.push(`سعر ${suppliers[idx].name} (ريال)`);
+        } else {
+          headers.push(`سعر المورد (ريال)`);
+        }
+      });
+
+      const headerRow = worksheet.addRow(headers);
+      headerRow.height = 28;
+      headerRow.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 10, bold: true };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = borderThin;
+      });
+
+      boqData.items.forEach((item: any) => {
+        const rowData = [
+          item.itemName,
+          item.unit,
+          parseFloat(item.quantity)
+        ];
+        for (let i = 0; i < totalSupplierCols; i++) {
+          rowData.push("");
+        }
+
+        const row = worksheet.addRow(rowData);
+        row.height = 24;
+        row.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 10 };
+          cell.border = borderThin;
+          if (colNum === 1) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+          } else if (colNum === 2 || colNum === 3) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          } else {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+            cell.numFmt = "#,##0.00";
+          }
+        });
+      });
+
+      worksheet.getColumn(1).width = 45;
+      worksheet.getColumn(2).width = 15;
+      worksheet.getColumn(3).width = 15;
+      supplierCols.forEach((col, idx) => {
+        const colNum = idx + 4;
+        worksheet.getColumn(colNum).width = 25;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Bulk_Quotations_Template.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("تم تحميل قالب عروض الأسعار المتعددة بنجاح");
+    } catch (error) {
+      console.error("Failed to generate bulk quotation template:", error);
+      toast.error("حدث خطأ أثناء تحميل القالب");
+    }
+  };
+
+  const handleBulkQuotationExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!selectedRequestId) {
+      toast.error("يرجى تحديد الطلب أولاً");
+      return;
+    }
+    if (!boqData?.items || boqData.items.length === 0) {
+      toast.error("لا توجد بنود في جدول الكميات لتسعيرها");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const buffer = evt.target?.result as ArrayBuffer;
+        const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+
+        if (rows.length < 4) {
+          toast.error("الملف فارغ أو لا يحتوي على بنود التسعير");
+          return;
+        }
+
+        const row0 = rows[0] as any[];
+        const row1 = rows[1] as any[];
+        const headers = (rows[3] as any[]).map(h => String(h || "").trim().toLowerCase());
+
+        const nameIdx = headers.findIndex(h => h.includes("اسم البند") || h === "name");
+
+        if (nameIdx === -1) {
+          toast.error("الملف غير مطابق للقالب. يجب وجود عمود اسم البند.");
+          return;
+        }
+
+        const supplierColsIndices: number[] = [];
+        for (let colIdx = 3; colIdx < row0.length; colIdx++) {
+          const sName = row0[colIdx] ? String(row0[colIdx]).trim() : "";
+          if (sName && !sName.includes("اختر المورد")) {
+            supplierColsIndices.push(colIdx);
+          }
+        }
+
+        if (supplierColsIndices.length === 0) {
+          toast.error("لم يتم العثور على أي أسماء موردين في الصف الأول من الملف المرفوع");
+          return;
+        }
+
+        toast.info(`جاري معالجة ${supplierColsIndices.length} عروض أسعار...`);
+        let importedCount = 0;
+        let failedCount = 0;
+        const processedSupplierIds = new Set<number>();
+
+        for (const colIdx of supplierColsIndices) {
+          const supplierName = String(row0[colIdx]).trim();
+          const matchedSupplier = (suppliers || []).find((s: any) => s.name.trim() === supplierName);
+
+          if (!matchedSupplier) {
+            toast.error(`المورد "${supplierName}" غير مسجل في النظام، تم تخطي هذا العمود`);
+            failedCount++;
+            continue;
+          }
+
+          // 1. التحقق مما إذا كان المورد لديه عرض سعر مسبق في النظام
+          const alreadyInDb = quotationsData?.quotations?.some((q: any) => q.supplierId === matchedSupplier.id);
+          if (alreadyInDb) {
+            toast.error(`المورد "${supplierName}" لديه عرض سعر مسجل مسبقاً، تم تخطي هذا العمود`);
+            failedCount++;
+            continue;
+          }
+
+          // 2. التحقق من التكرار داخل نفس ملف الإكسل المرفوع (نأخذ أول عمود فقط)
+          if (processedSupplierIds.has(matchedSupplier.id)) {
+            toast.warning(`المورد "${supplierName}" مكرر في ملف Excel، تم أخذ عرض السعر الأول وتخطي المكرر`);
+            continue;
+          }
+
+          processedSupplierIds.add(matchedSupplier.id);
+
+          let validUntil: Date | undefined = undefined;
+          let validUntilStr = row1 && row1.length > colIdx ? String(row1[colIdx]).trim() : "";
+          if (validUntilStr) {
+            if (/^\d+(\.\d+)?$/.test(validUntilStr)) {
+              const dateNum = parseFloat(validUntilStr);
+              validUntil = new Date(Math.round((dateNum - 25569) * 86400 * 1000));
+            } else {
+              const parsedDate = new Date(validUntilStr);
+              if (!isNaN(parsedDate.getTime())) {
+                validUntil = parsedDate;
+              }
+            }
+          }
+
+          const items: any[] = [];
+          let totalAmount = 0;
+
+          for (let i = 4; i < rows.length; i++) {
+            const row = rows[i] as any[];
+            if (!row || row.length === 0) continue;
+
+            const itemName = row[nameIdx] ? String(row[nameIdx]).trim() : "";
+            if (!itemName) continue;
+
+            const boqItem = boqData.items.find((item: any) => item.itemName.trim() === itemName);
+            if (!boqItem) continue;
+
+            const priceVal = row[colIdx];
+            const priceNum = priceVal !== undefined && priceVal !== null && String(priceVal).trim() !== "" 
+              ? parseFloat(String(priceVal)) 
+              : 0;
+
+            const quantity = parseFloat(boqItem.quantity);
+            const itemTotalPrice = (priceNum || 0) * quantity;
+            totalAmount += itemTotalPrice;
+
+            items.push({
+              boqItemId: boqItem.id,
+              itemName: boqItem.itemName,
+              quantity,
+              unit: boqItem.unit,
+              unitPrice: priceNum || 0,
+              totalPrice: itemTotalPrice
+            });
+          }
+
+          if (items.length === 0) {
+            toast.error(`لا توجد أسعار صالحة لعرض سعر المورد: ${supplierName}`);
+            failedCount++;
+            continue;
+          }
+
+          try {
+            await addQuotationMutation.mutateAsync({
+              requestId: parseInt(selectedRequestId),
+              supplierId: matchedSupplier.id,
+              totalAmount,
+              finalAmount: totalAmount,
+              validUntil,
+              items,
+              includesTax: false,
+              notes: "تم الاستيراد تلقائياً من ملف Excel متعدد"
+            });
+            importedCount++;
+          } catch (error: any) {
+            console.error(`Failed to create quotation for ${supplierName}:`, error);
+            toast.error(`فشل حفظ عرض سعر المورد: ${supplierName}`);
+            failedCount++;
+          }
+        }
+
+        if (importedCount > 0) {
+          toast.success(`تم بنجاح استيراد وحفظ ${importedCount} عروض أسعار للموردين`);
+          refetchQuotations();
+        }
+        if (failedCount > 0) {
+          toast.warning(`فشل استيراد ${failedCount} عروض أسعار`);
+        }
+
+      } catch (error) {
+        console.error("Failed to parse bulk Excel file:", error);
+        toast.error("فشل قراءة ملف Excel، يرجى التأكد من صيغة الملف وجودته");
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  };
+
   // اعتماد عرض سعر
   const approveQuotationMutation = trpc.projects.updateQuotationStatus.useMutation({
     onSuccess: () => {
@@ -978,11 +1317,38 @@ export default function Quotations() {
         {/* جدول عروض الأسعار */}
         {selectedRequestId && (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
               <CardTitle className="flex items-center gap-2">
                 <Receipt className="h-5 w-5" />
                 عروض الأسعار المقدمة
               </CardTitle>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  id="bulk-quotation-excel-upload"
+                  className="hidden"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleBulkQuotationExcelUpload}
+                />
+                <Button
+                  onClick={downloadBulkQuotationTemplate}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 ml-2" />
+                  تحميل قالب تسعير متعدد (Excel)
+                </Button>
+                <Button
+                  onClick={() => document.getElementById("bulk-quotation-excel-upload")?.click()}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                  size="sm"
+                >
+                  <Upload className="h-4 w-4 ml-2" />
+                  رفع عروض الأسعار المتعددة (Excel)
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {quotationsLoading ? (
