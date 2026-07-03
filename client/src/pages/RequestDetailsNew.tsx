@@ -347,33 +347,43 @@ export default function RequestDetailsNew() {
   const [commitmentFormData, setCommitmentFormData] = useState({
     title: "",
     expectedCost: "",
-    terms: `1. يلتزم طالب الخدمة بتوفير كافة التسهيلات والموافقات الرسمية اللازمة لتنفيذ الأعمال في موقع المسجد.
-2. يلتزم طالب الخدمة بالمحافظة التامة على التجهيزات والمعدات المنفذة بعد استلام المشروع وضمان صيانتها الدورية.
-3. يلتزم طالب الخدمة بعدم إجراء أي تعديلات أو إضافات على الأعمال المنفذة دون موافقة خطية مسبقة من إدارة المشاريع.
-4. يلتزم طالب الخدمة بالتعاون الكامل مع المهندسين المشرفين وفرق العمل الميدانية طوال فترة التنفيذ.`,
+    terms: "",
     additionalTerms: ""
   });
 
   useEffect(() => {
     if (commitmentFormOpen && request) {
+      let formattedConditions = "";
+      const rawConditions = (request as any).programConditions;
+      if (rawConditions) {
+        try {
+          let parsed: any = null;
+          if (typeof rawConditions === 'string') {
+            parsed = JSON.parse(rawConditions);
+          } else {
+            parsed = rawConditions;
+          }
+          if (Array.isArray(parsed)) {
+            formattedConditions = parsed.map((c: any, index: number) => `${index + 1}. ${c}`).join("\n");
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            formattedConditions = JSON.stringify(parsed, null, 2);
+          } else {
+            formattedConditions = String(parsed);
+          }
+        } catch (e) {
+          formattedConditions = String(rawConditions);
+        }
+      }
+
       setCommitmentFormData(prev => ({
         ...prev,
         title: request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `طلب رقم ${request.requestNumber}`,
-        expectedCost: boqTotal > 0 ? boqTotal.toString() : "",
+        expectedCost: "",
+        terms: formattedConditions || "لا يوجد شروط محددة للبرنامج.",
       }));
       setCommitmentFormMode('edit');
     }
-  }, [commitmentFormOpen, request, boqTotal]);
-
-  // تحديث التكلفة التلقائية فور توفر إجمالي جدول الكميات المحسوب
-  useEffect(() => {
-    if (boqTotal > 0 && commitmentFormOpen) {
-      setCommitmentFormData(prev => ({
-        ...prev,
-        expectedCost: boqTotal.toString()
-      }));
-    }
-  }, [boqTotal, commitmentFormOpen]);
+  }, [commitmentFormOpen, request]);
 
   const handlePrintCommitment = () => {
     const printContent = document.getElementById("printable-commitment-form");
@@ -1239,7 +1249,7 @@ export default function RequestDetailsNew() {
                         percentage: progress,
                       }}
                       commitmentFormButton={
-                        request.currentStage === 'technical_eval' && !isFieldTeam && !isQuickResponseUser
+                        request.currentStage === 'technical_eval' && !isFieldTeam && !isQuickResponseUser && request.requester?.role === 'service_requester'
                           ? {
                               label: 'نموذج التزام طالب الخدمة',
                               onClick: () => setCommitmentFormOpen(true),
@@ -2820,14 +2830,9 @@ export default function RequestDetailsNew() {
                     type="number"
                     value={commitmentFormData.expectedCost}
                     onChange={(e) => setCommitmentFormData(prev => ({ ...prev, expectedCost: e.target.value }))}
-                    className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm font-semibold text-green-600 dark:text-green-400"
-                    placeholder="سيتم الملء تلقائياً أو أدخل القيمة يدوياً..."
+                    className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm"
+                    placeholder="أدخل التكلفة المتوقعة..."
                   />
-                  {boqTotal > 0 && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 text-[10px] px-2 py-1 rounded-md border border-green-200/50 dark:border-green-900/30">
-                      محسوب تلقائياً
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

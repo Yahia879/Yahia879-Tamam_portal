@@ -258,6 +258,7 @@ export const requestsRouter = router({
       const result = await db.select({
         request: mosqueRequests,
         programName: programs.name,
+        programConditions: programs.conditions,
       }).from(mosqueRequests)
         .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
         .where(eq(mosqueRequests.id, input.id))
@@ -270,6 +271,7 @@ export const requestsRouter = router({
       const request = {
         ...result[0].request,
         programName: result[0].programName,
+        programConditions: result[0].programConditions,
       };
 
       const isOwner = request.userId === ctx.user.id;
@@ -335,6 +337,7 @@ export const requestsRouter = router({
         name: users.name,
         email: users.email,
         phone: users.phone,
+        role: users.role,
       }).from(users).where(eq(users.id, request.userId as number)).limit(1);
 
       // الحصول على بيانات المسؤول عن الزيارة الميدانية
