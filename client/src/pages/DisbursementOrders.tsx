@@ -130,8 +130,8 @@ export default function DisbursementOrders() {
         ]);
       });
 
-      // Set column widths to 30 for A, B, C, E, F
-      ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+      // Set column widths to 30 for A through I
+      ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
         worksheet.getColumn(col).width = 30;
       });
 

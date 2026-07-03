@@ -183,7 +183,7 @@ export default function DisbursementRequests() {
         });
 
         // Set column widths
-        ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+        ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
           worksheet.getColumn(col).width = 30;
         });
 
@@ -240,7 +240,7 @@ export default function DisbursementRequests() {
         });
 
         // Set column widths
-        ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
           worksheet.getColumn(col).width = 30;
         });
 
