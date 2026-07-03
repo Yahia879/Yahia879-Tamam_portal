@@ -110,11 +110,15 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const downloadTemplate = () => {
       const headers = [
-        ["اسم البند / Item Name", "الفئة (القسم) / Category", "الوحدة / Unit", "الكمية / Quantity", "سعر الوحدة / Unit Price"],
+        ["اسم البند", "الفئة (القسم)", "الوحدة", "الكمية", "سعر الوحدة"],
         ["مثال: أعمال الحفر والتسوية", "الأعمال الإنشائية", "متر مكعب", 120, 35]
       ];
       const worksheet = XLSX.utils.aoa_to_sheet(headers);
+      worksheet["!views"] = [{ RTL: true }];
       const workbook = XLSX.utils.book_new();
+      workbook.Workbook = {
+        Views: [{ RTL: true }]
+      };
       XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
       XLSX.writeFile(workbook, "BOQ_Template.xlsx");
       toast.success("تم تحميل القالب الاسترشادي بنجاح");
@@ -152,12 +156,12 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           // قراءة العناوين
           const headers = (rows[0] as any[]).map(h => String(h || "").trim().toLowerCase());
           
-          const nameIdx = headers.findIndex(h => h.includes("اسم البند") || h.includes("item name") || h === "name");
+          const nameIdx = headers.findIndex(h => h.trim() === "اسم البند" || h.includes("item name") || h === "name");
           const descIdx = headers.findIndex(h => h.includes("وصف") || h.includes("description") || h === "desc");
           const categoryIdx = headers.findIndex(h => h.includes("فئة") || h.includes("قسم") || h === "category");
-          const unitIdx = headers.findIndex(h => h.includes("وحدة") || h.includes("unit"));
-          const qtyIdx = headers.findIndex(h => h.includes("كمية") || h.includes("quantity") || h === "qty");
-          const priceIdx = headers.findIndex(h => h.includes("سعر الوحدة") || h.includes("unit price") || h === "price");
+          const unitIdx = headers.findIndex(h => h.trim() === "الوحدة" || h === "unit");
+          const qtyIdx = headers.findIndex(h => h.trim() === "الكمية" || h.includes("quantity") || h === "qty");
+          const priceIdx = headers.findIndex(h => h.trim() === "سعر الوحدة" || h.includes("unit price") || h === "price");
 
           if (nameIdx === -1 || unitIdx === -1 || qtyIdx === -1) {
             toast.error("الملف غير مطابق للقالب. يجب وجود أعمدة: اسم البند، الوحدة، والكمية على الأقل.");
