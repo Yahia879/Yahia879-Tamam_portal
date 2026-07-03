@@ -110,14 +110,25 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const downloadTemplate = () => {
       const headers = [
-        ["اسم البند / Item Name", "الوصف / Description", "الفئة (القسم) / Category", "الوحدة / Unit", "الكمية / Quantity", "سعر الوحدة / Unit Price"],
-        ["مثال: أعمال الحفر والتسوية", "حفر وتوريد تربة نظيفة ودكها", "الأعمال الإنشائية", "متر مكعب", 120, 35]
+        ["اسم البند / Item Name", "الفئة (القسم) / Category", "الوحدة / Unit", "الكمية / Quantity", "سعر الوحدة / Unit Price"],
+        ["مثال: أعمال الحفر والتسوية", "الأعمال الإنشائية", "متر مكعب", 120, 35]
       ];
       const worksheet = XLSX.utils.aoa_to_sheet(headers);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
       XLSX.writeFile(workbook, "BOQ_Template.xlsx");
       toast.success("تم تحميل القالب الاسترشادي بنجاح");
+    };
+
+    const normalizeArabic = (str: string) => {
+      return String(str || "")
+        .replace(/[أإآء]/g, "ا")
+        .replace(/ة/g, "ه")
+        .replace(/ى/g, "ي")
+        .replace(/ال/g, "")
+        .replace(/\s+/g, "")
+        .trim()
+        .toLowerCase();
     };
 
     const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,10 +202,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
             let category = "other";
             if (categoryIdx !== -1 && row[categoryIdx]) {
-              const rawCat = String(row[categoryIdx]).trim();
+              const rawCat = normalizeArabic(String(row[categoryIdx]));
               // محاولة مطابقة الفئة بالعربية أو الإنجليزية
               const matchedCat = Object.entries(ITEM_CATEGORIES).find(([key, val]) => 
-                rawCat.toLowerCase() === key.toLowerCase() || rawCat === val
+                rawCat === normalizeArabic(key) || rawCat === normalizeArabic(val)
               );
               category = matchedCat ? matchedCat[0] : "other";
             }
