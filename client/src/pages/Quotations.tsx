@@ -1337,7 +1337,7 @@ export default function Quotations() {
                   size="sm"
                 >
                   <Download className="h-4 w-4 ml-2" />
-                  تحميل قالب تسعير متعدد (Excel)
+                  تحميل قالب عروض الأسعار
                 </Button>
                 <Button
                   onClick={() => document.getElementById("bulk-quotation-excel-upload")?.click()}
@@ -1346,7 +1346,7 @@ export default function Quotations() {
                   size="sm"
                 >
                   <Upload className="h-4 w-4 ml-2" />
-                  رفع عروض الأسعار المتعددة (Excel)
+                  رفع قالب عروض الاسعار
                 </Button>
               </div>
             </CardHeader>
