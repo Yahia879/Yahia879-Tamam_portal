@@ -62,7 +62,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
@@ -146,6 +146,8 @@ export default function DisbursementRequests() {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
+      const workbook = new ExcelJS.Workbook();
+
       if (activeTab === "requests") {
         const allData = await utils.disbursements.listRequests.fetch({
           status: statusFilter !== "all" ? statusFilter as any : undefined,
@@ -155,29 +157,45 @@ export default function DisbursementRequests() {
           limit: 5000,
         });
 
-        const excelRows = (allData?.requests || []).map((req: any) => ({
-          "رقم الطلب": req.requestNumber || "-",
-          "العنوان / الوصف": req.title || req.description || "-",
-          "المشروع": req.projectName || "-",
-          "المبلغ (ريال)": Number(req.amount) || 0,
-          "نوع الدفعة": req.paymentType === "advance" ? "دفعة مقدمة" :
-                        req.paymentType === "progress" ? "دفعة جارية" :
-                        req.paymentType === "final" ? "دفعة ختامية" :
-                        req.paymentType === "retention" ? "دفعة مستخلص" : req.paymentType || "-",
-          "الحالة": req.status === "draft" ? "مسودة" :
-                    req.status === "pending" ? "قيد الاعتماد" :
-                    req.status === "approved" ? "معتمد" :
-                    req.status === "rejected" ? "مرفوض" :
-                    req.status === "paid" ? "مدفوع" : req.status || "-",
-          "تاريخ الطلب": req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ar-SA") : "-",
-          "الجهة الطالبة": req.requesterName || "-",
-        }));
+        const worksheet = workbook.addWorksheet("طلبات الصرف", {
+          views: [{ showGridLines: true, rightToLeft: true }]
+        });
 
-        const worksheet = XLSX.utils.json_to_sheet(excelRows);
-        worksheet["!dir"] = "rtl";
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "طلبات الصرف");
-        XLSX.writeFile(workbook, `تقرير_طلبات_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`);
+        // Add headers
+        worksheet.addRow(["رقم الطلب", "العنوان", "المشروع", "المبلغ (ريال)", "الحالة", "تاريخ الطلب"]);
+
+        // Add rows
+        (allData?.requests || []).forEach((req: any) => {
+          const statusText = req.status === "draft" ? "مسودة" :
+                             req.status === "pending" ? "قيد الاعتماد" :
+                             req.status === "approved" ? "معتمد" :
+                             req.status === "rejected" ? "مرفوض" :
+                             req.status === "paid" ? "مدفوع" : req.status || "-";
+
+          worksheet.addRow([
+            req.requestNumber || "-",
+            req.title || req.description || "-",
+            req.projectName || "-",
+            Number(req.amount) || 0,
+            statusText,
+            req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ar-SA") : "-",
+          ]);
+        });
+
+        // Set column widths
+        ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+          worksheet.getColumn(col).width = 30;
+        });
+
+        // Write buffer and download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `تقرير_طلبات_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
       } else {
         const allData = await utils.disbursements.listOrders.fetch({
           status: statusFilter !== "all" ? statusFilter as any : undefined,
@@ -186,28 +204,51 @@ export default function DisbursementRequests() {
           limit: 5000,
         });
 
-        const excelRows = (allData?.orders || []).map((order: any) => ({
-          "رقم الأمر": order.orderNumber || "-",
-          "رقم طلب الصرف": order.requestNumber || "-",
-          "المشروع": order.projectName || "-",
-          "المستفيد": order.beneficiaryName || "-",
-          "المبلغ (ريال)": Number(order.amount) || 0,
-          "طريقة الدفع": order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
-                          order.paymentMethod === "check" ? "شيك" :
-                          order.paymentMethod === "custody" ? "عهدة" : order.paymentMethod || "-",
-          "الحالة": order.status === "pending" ? "قيد الاعتماد" :
-                    order.status === "approved" ? "معتمد" :
-                    order.status === "executed" ? "منفذ" :
-                    order.status === "rejected" ? "مرفوض" : order.status || "-",
-          "البنك": order.beneficiaryBank || "-",
-          "الآيبان": order.beneficiaryIban || "-",
-        }));
+        const worksheet = workbook.addWorksheet("أوامر الصرف", {
+          views: [{ showGridLines: true, rightToLeft: true }]
+        });
 
-        const worksheet = XLSX.utils.json_to_sheet(excelRows);
-        worksheet["!dir"] = "rtl";
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "أوامر الصرف");
-        XLSX.writeFile(workbook, `تقرير_أوامر_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`);
+        // Add headers
+        worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك", "الآيبان"]);
+
+        // Add rows
+        (allData?.orders || []).forEach((order: any) => {
+          const paymentMethodText = order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
+                                    order.paymentMethod === "check" ? "شيك" :
+                                    order.paymentMethod === "custody" ? "عهدة" : order.paymentMethod || "-";
+
+          const statusText = order.status === "pending" ? "قيد الاعتماد" :
+                             order.status === "approved" ? "معتمد" :
+                             order.status === "executed" ? "منفذ" :
+                             order.status === "rejected" ? "مرفوض" : order.status || "-";
+
+          worksheet.addRow([
+            order.orderNumber || "-",
+            order.requestNumber || "-",
+            order.projectName || "-",
+            order.beneficiaryName || "-",
+            Number(order.amount) || 0,
+            paymentMethodText,
+            statusText,
+            order.beneficiaryBank || "-",
+            order.beneficiaryIban || "-",
+          ]);
+        });
+
+        // Set column widths
+        ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+          worksheet.getColumn(col).width = 30;
+        });
+
+        // Write buffer and download
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `تقرير_أوامر_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
       }
       toast.success("تم تصدير ملف Excel بنجاح");
     } catch (error) {
@@ -697,8 +738,8 @@ export default function DisbursementRequests() {
                 <Button 
                   onClick={handleExportExcel} 
                   disabled={isExporting}
-                  variant="outline" 
-                  className="w-full lg:w-auto h-10 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/40 dark:text-indigo-400 dark:hover:bg-indigo-950/20 font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5"
+                  variant="outline"
+                  className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
                 >
                   {isExporting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
