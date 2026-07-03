@@ -30,6 +30,7 @@ import {
   contractPayments,
   payments,
   requestExceptions,
+  donationOpportunities,
 } from "../../drizzle/schema";
 import { eq, and, desc, sql, inArray, or, gte, lte, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -1736,7 +1737,7 @@ export const requestsRouter = router({
   technicalEvalDecision: protectedProcedure
     .input(z.object({
       requestId: z.number(),
-      decision: z.enum(['apologize', 'suspend', 'quick_response', 'convert_to_project']),
+      decision: z.enum(['apologize', 'suspend', 'quick_response', 'convert_to_project', 'convert_to_donation']),
       justification: z.string().optional(),
       notes: z.string().optional(),
       projectName: z.string().optional(), // اسم المشروع عند التحويل
@@ -1746,6 +1747,9 @@ export const requestsRouter = router({
       endDate: z.string().optional(), // تاريخ الانتهاء المتوقع
       scheduledDate: z.string().optional(), // تاريخ الاستجابة السريعة المجدولة
       scheduledTime: z.string().optional(), // وقت الاستجابة السريعة المجدولة
+      donationTitle: z.string().optional(), // عنوان فرصة التبرع
+      donationTargetAmount: z.number().optional(), // المبلغ المستهدف للتبرع
+      donationDescription: z.string().optional(), // وصف فرصة التبرع
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -1829,8 +1833,8 @@ export const requestsRouter = router({
         }
       }
 
-      // إذا كان القرار هو التحويل لمشروع، إعادة تعيين المسار لـ standard وتحديد المسؤول
-      if (input.decision === 'convert_to_project') {
+      // إذا كان القرار هو التحويل لمشروع أو فرصة تبرع، إعادة تعيين المسار لـ standard وتحديد المسؤول
+      if (input.decision === 'convert_to_project' || input.decision === 'convert_to_donation') {
         updateData.requestTrack = 'standard';
         if (input.managerId) {
           updateData.assignedTo = input.managerId;
@@ -1885,6 +1889,9 @@ export const requestsRouter = router({
         case 'convert_to_project':
           notificationMessage = `تم اعتماد طلبك رقم ${request[0].requestNumber} وتحويله إلى مشروع`;
           break;
+        case 'convert_to_donation':
+          notificationMessage = `تم اعتماد طلبك رقم ${request[0].requestNumber} وتحويله إلى فرصة تبرع`;
+          break;
       }
 
       // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
@@ -1927,9 +1934,10 @@ export const requestsRouter = router({
             relatedId: input.requestId,
           });
         }
-      } else if (input.decision === 'convert_to_project') {
+      } else if (input.decision === 'convert_to_project' || input.decision === 'convert_to_donation') {
         // إنشاء المشروع تلقائياً مع اسم المشروع المدخل
         const existingProject = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+        let newProjectId: number;
         if (existingProject.length === 0) {
           // توليد رقم مشروع جديد
           const currentYear = new Date().getFullYear();
@@ -1954,6 +1962,8 @@ export const requestsRouter = router({
             startDate: input.startDate ? new Date(input.startDate) : undefined,
             expectedEndDate: input.endDate ? new Date(input.endDate) : undefined,
           });
+          newProjectId = newProject.insertId;
+          
           // إنشاء المراحل الافتراضية
           const defaultPhases = [
             { phaseName: 'المرحلة الأولى : الإنشاء والتخطيط', phaseOrder: 1 },
@@ -1965,14 +1975,30 @@ export const requestsRouter = router({
           ];
           for (const phase of defaultPhases) {
             await db.insert(projectPhases).values({
-              projectId: newProject.insertId,
+              projectId: newProjectId,
               phaseName: phase.phaseName,
               phaseOrder: phase.phaseOrder,
               completionPercentage: phase.phaseOrder === 1 ? 100 : 0,
               status: phase.phaseOrder === 1 ? 'completed' : (phase.phaseOrder === 2 ? 'in_progress' : 'pending'),
             });
           }
+        } else {
+          newProjectId = existingProject[0].id;
         }
+
+        // إذا كان القرار هو فرصة تبرع، قم بإنشاء فرصة التبرع في قاعدة البيانات
+        if (input.decision === 'convert_to_donation') {
+          await db.insert(donationOpportunities).values({
+            requestId: input.requestId,
+            projectId: newProjectId,
+            title: input.donationTitle || input.projectName || `فرصة تبرع: ${request[0].requestNumber}`,
+            targetAmount: input.donationTargetAmount?.toString() || request[0].estimatedCost?.toString() || "0",
+            description: input.donationDescription || input.justification || null,
+            status: 'active',
+            isPublic: true,
+          });
+        }
+
         // إشعار الإدارة المالية ومكتب المشاريع
         const financialTeam = await db.select({ id: users.id })
           .from(users)
@@ -1981,16 +2007,17 @@ export const requestsRouter = router({
         for (const member of financialTeam) {
           await createNotification({
             userId: member.id,
-            title: 'مشروع جديد للتقييم المالي',
-            message: `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مشروع ويحتاج للتقييم المالي`,
+            title: input.decision === 'convert_to_donation' ? 'فرصة تبرع جديدة للتقييم المالي' : 'مشروع جديد للتقييم المالي',
+            message: input.decision === 'convert_to_donation' 
+              ? `تم تحويل الطلب رقم ${request[0].requestNumber} إلى فرصة تبرع ويحتاج للتقييم المالي`
+              : `تم تحويل الطلب رقم ${request[0].requestNumber} إلى مشروع ويحتاج للتقييم المالي`,
             type: 'info',
             relatedType: 'request',
-            relatedId: input.requestId,
           });
         }
-      }
+      } 
 
-      return { 
+      return {
         success: true, 
         message: `تم ${option.name} بنجاح`,
         nextStage: option.nextStage,

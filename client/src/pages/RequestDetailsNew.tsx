@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2 } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
   Select, 
@@ -242,6 +242,13 @@ export default function RequestDetailsNew() {
   const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
   const [showRejectionReportDialog, setShowRejectionReportDialog] = useState(false);
 
+  // States for donation opportunity
+  const [donationTitle, setDonationTitle] = useState("");
+  const [donationTargetAmount, setDonationTargetAmount] = useState("");
+  const [donationDescription, setDonationDescription] = useState("");
+
+
+
 
 
   const { data: quickResponseTeamMembers } = trpc.requests.getQuickResponseTeamMembers.useQuery(undefined, {
@@ -273,6 +280,17 @@ export default function RequestDetailsNew() {
   // Fetch request data
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
+
+  useEffect(() => {
+    if (selectedDecision === 'convert_to_project' && request) {
+      setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+    } else if (selectedDecision === 'convert_to_donation' && request) {
+      setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+      setDonationTitle(request.mosque?.name ? `فرصة تبرع لمسجد ${request.mosque.name}` : `فرصة تبرع لطلب رقم ${request.requestNumber}`);
+      setDonationTargetAmount(request.estimatedCost ? request.estimatedCost.toString() : "");
+      setDonationDescription(request.mosque?.name ? `فرصة تبرع لتنفيذ الأعمال المطلوبة لمسجد ${request.mosque.name}` : "");
+    }
+  }, [selectedDecision, request]);
   const utils = trpc.useUtils();
 
   // Fetch unread comments count
@@ -377,18 +395,20 @@ export default function RequestDetailsNew() {
     onSuccess: (data) => {
       toast.success(data.message);
       setShowTechnicalEvalDialog(false);
-      const wasConverting = selectedDecision === 'convert_to_project';
+      const wasConverting = selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation';
       setSelectedDecision(null);
       setJustification("");
       setProjectName("");
       setStartDate("");
       setExpectedEndDate("");
       setDurationDays("");
+      setDonationTitle("");
+      setDonationTargetAmount("");
+      setDonationDescription("");
       utils.requests.getById.invalidate({ id: requestId });
       if (wasConverting) {
         setLocation(`/requests/${requestId}`);
-      }
-    },
+      }    },
     onError: (error) => {
       toast.error(error.message);
     },
@@ -893,7 +913,7 @@ export default function RequestDetailsNew() {
           <>
             {/* Progress Stepper */}
             <ProgressStepper
-              steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack) }))}
+              steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack || undefined) }))}
               currentStep={request.currentStage}
               completedSteps={completedSteps}
             />
@@ -1242,26 +1262,6 @@ export default function RequestDetailsNew() {
               {/* خيارات التقييم الفني */}
               {request.currentStage === 'technical_eval' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {/* التحويل إلى مشروع */}
-                  <button 
-                    className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
-                    onClick={() => {
-                      setSelectedDecision('convert_to_project');
-                      setShowTechnicalEvalDialog(true);
-                    }}
-                    disabled={technicalEvalMutation.isPending}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
-                        <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
-                      </div>
-                    </div>
-                  </button>
-
                   {/* الاستجابة السريعة */}
                   <button 
                     className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
@@ -1282,7 +1282,47 @@ export default function RequestDetailsNew() {
                     </div>
                   </button>
 
-                  {/* التعليق */}
+                  {/* التحويل إلى مشروع */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('convert_to_project');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
+                        <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* تحويل إلى فرصة تبرع */}
+                  <button 
+                    className="group p-4 rounded-xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 hover:border-pink-400 transition-all text-right disabled:opacity-50 dark:bg-pink-950/20 dark:border-pink-900/50 shadow-sm"
+                    onClick={() => {
+                      setSelectedDecision('convert_to_donation');
+                      setShowTechnicalEvalDialog(true);
+                    }}
+                    disabled={technicalEvalMutation.isPending}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center shrink-0">
+                        <HeartHandshake className="w-6 h-6 text-pink-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="font-bold text-pink-800 dark:text-pink-200 text-sm sm:text-base mb-1">التحويل إلى فرصة تبرع</h5>
+                        <p className="text-[11px] sm:text-sm text-pink-600 dark:text-pink-400 leading-tight">تحويل الطلب لفرصة تبرع عامة لجمع المبالغ المطلوبة</p>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* التعليق المؤقت */}
                   <button 
                     className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
                     onClick={() => {
@@ -1297,7 +1337,7 @@ export default function RequestDetailsNew() {
                       </div>
                       <div className="min-w-0">
                         <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
-                        <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متطلبات إضافية</p>
+                        <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متملبات إضافية</p>
                       </div>
                     </div>
                   </button>
@@ -2166,8 +2206,8 @@ export default function RequestDetailsNew() {
       {/* Technical Evaluation Dialog */}
       {showTechnicalEvalDialog && selectedDecision && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-bold mb-4">
+          <div className={`bg-white dark:bg-slate-900 rounded-lg p-6 w-full mx-4 shadow-xl border dark:border-slate-800 transition-all duration-200 ${selectedDecision === 'convert_to_donation' ? 'max-w-lg' : 'max-w-md'}`}>
+            <h3 className="text-lg font-bold mb-4 text-foreground">
               {TECHNICAL_EVAL_OPTION_LABELS[selectedDecision]}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -2177,7 +2217,7 @@ export default function RequestDetailsNew() {
             {/* حقل المبررات (مطلوب للاعتذار والتعليق) */}
             {(selectedDecision === 'apologize' || selectedDecision === 'suspend') && (
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-foreground">
                   المبررات <span className="text-red-500">*</span>
                 </label>
                 <Textarea
@@ -2189,31 +2229,31 @@ export default function RequestDetailsNew() {
               </div>
             )}
 
-            {/* حقل اسم المشروع (مطلوب عند التحويل لمشروع) */}
-            {selectedDecision === 'convert_to_project' && (
-              <div className="space-y-4">
+            {/* حقل اسم المشروع والفرصة (مطلوب عند التحويل لمشروع أو فرصة تبرع) */}
+            {(selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-right">
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     اسم المشروع <span className="text-red-500">*</span>
                   </label>
                   <Input
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="أدخل اسماً واضحاً للمشروع..."
-                    className="w-full"
+                    className="w-full text-right"
                   />
                   <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     المدة المتوقعة للانتهاء (بالأيام) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative flex items-center">
                     <Input
                       type="number"
                       min="1"
-                    value={durationDays}
+                      value={durationDays}
                       onChange={(e) => setDurationDays(e.target.value)}
                       placeholder="مثال: 30"
                       className="w-full pl-12 text-right"
@@ -2226,13 +2266,13 @@ export default function RequestDetailsNew() {
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     مدير المشروع <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={selectedManagerId || ''}
                     onChange={(e) => setSelectedManagerId(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-right"
                   >
                     <option value="" disabled>-- اختر مدير المشروع --</option>
                     {managers?.map((manager: any) => (
@@ -2243,13 +2283,58 @@ export default function RequestDetailsNew() {
                   </select>
                   <p className="text-xs text-muted-foreground mt-1">سيتم إسناد الطلب وإدارة المشروع لهذا المستخدم</p>
                 </div>
+
+                {/* حقول إضافية لفرصة التبرع */}
+                {selectedDecision === 'convert_to_donation' && (
+                  <>
+                    <div className="mb-4 border-t pt-4 border-slate-100 dark:border-slate-800">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        عنوان فرصة التبرع <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        value={donationTitle}
+                        onChange={(e) => setDonationTitle(e.target.value)}
+                        placeholder="مثال: فرصة تبرع لترميم مسجد الفتح"
+                        className="w-full text-right"
+                      />
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        المبلغ المستهدف (ريال) <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={donationTargetAmount}
+                        onChange={(e) => setDonationTargetAmount(e.target.value)}
+                        placeholder="مثال: 50000"
+                        className="w-full text-right"
+                      />
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        وصف فرصة التبرع
+                      </label>
+                      <Textarea
+                        value={donationDescription}
+                        onChange={(e) => setDonationDescription(e.target.value)}
+                        placeholder="اكتب وصفاً مختصراً يوضح تفاصيل فرصة التبرع للداعمين..."
+                        rows={3}
+                        className="text-right"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
+
             {/* تحديد المسؤول للاستجابة السريعة */}
             {selectedDecision === 'quick_response' && (
-              <div className="space-y-4">
+              <div className="space-y-4 text-right">
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     الشخص المسؤول <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -2259,7 +2344,7 @@ export default function RequestDetailsNew() {
                       setScheduledDate("");
                       setScheduledTime("");
                     }}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-right"
                   >
                     <option value="" disabled>-- اختر الشخص المسؤول --</option>
                     {quickResponseTeamMembers?.map((member) => (
@@ -2273,7 +2358,7 @@ export default function RequestDetailsNew() {
                 {selectedQuickResponseMemberId && (
                   <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div>
-                      <label className="block text-sm font-medium mb-2">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
                         تاريخ الاستجابة السريعة <span className="text-red-500">*</span>
                       </label>
                       <Input
@@ -2283,18 +2368,18 @@ export default function RequestDetailsNew() {
                           setScheduledDate(e.target.value);
                           setScheduledTime("");
                         }}
-                        className="w-full"
+                        className="w-full text-right"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
                         وقت الاستجابة السريعة <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={scheduledTime || ''}
                         onChange={(e) => setScheduledTime(e.target.value)}
                         disabled={!scheduledDate}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-right"
                       >
                         <option value="" disabled>-- اختر الساعة --</option>
                         {Array.from({ length: 24 }, (_, i) => {
@@ -2315,18 +2400,19 @@ export default function RequestDetailsNew() {
 
             {/* ملاحظات إضافية (اختياري) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">ملاحظات (اختياري)</label>
+              <div className="mb-4 text-right">
+                <label className="block text-sm font-medium mb-2 text-foreground">ملاحظات (اختياري)</label>
                 <Textarea
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
                   placeholder="أضف ملاحظات إضافية..."
                   rows={3}
+                  className="text-right"
                 />
               </div>
             )}
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-end mt-6">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2340,22 +2426,33 @@ export default function RequestDetailsNew() {
                   setDurationDays("");
                   setScheduledDate("");
                   setScheduledTime("");
+                  setDonationTitle("");
+                  setDonationTargetAmount("");
+                  setDonationDescription("");
                 }}
               >
                 إلغاء
               </Button>
               <Button
                 onClick={() => {
-                  if (selectedDecision === 'convert_to_project' && !projectName.trim()) {
+                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && !projectName.trim()) {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
-                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
+                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && !selectedManagerId) {
                     toast.error("يجب تحديد مدير المشروع");
                     return;
                   }
-                  if (selectedDecision === 'convert_to_project' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
+                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
                     toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
+                    return;
+                  }
+                  if (selectedDecision === 'convert_to_donation' && !donationTitle.trim()) {
+                    toast.error("يجب إدخال عنوان فرصة التبرع");
+                    return;
+                  }
+                  if (selectedDecision === 'convert_to_donation' && (!donationTargetAmount || isNaN(parseFloat(donationTargetAmount)) || parseFloat(donationTargetAmount) <= 0)) {
+                    toast.error("يجب إدخال مبلغ صحيح مستهدف للتبرع");
                     return;
                   }
                   if (selectedDecision === 'quick_response' && !scheduledDate) {
@@ -2369,7 +2466,7 @@ export default function RequestDetailsNew() {
                   
                   let calculatedStartDate = undefined;
                   let calculatedEndDate = undefined;
-                  if (selectedDecision === 'convert_to_project') {
+                  if (selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') {
                     const start = new Date();
                     const end = new Date();
                     const days = parseInt(durationDays || "0", 10);
@@ -2381,24 +2478,29 @@ export default function RequestDetailsNew() {
                   technicalEvalMutation.mutate({
                     requestId,
                     decision: selectedDecision as any,
-                    projectName: selectedDecision === 'convert_to_project' ? projectName.trim() : undefined,
-                    managerId: selectedDecision === 'convert_to_project' && selectedManagerId ? parseInt(selectedManagerId) : undefined,
+                    projectName: (selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') ? projectName.trim() : undefined,
+                    managerId: (selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && selectedManagerId ? parseInt(selectedManagerId) : undefined,
                     assignedToId: selectedDecision === 'quick_response' && selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : undefined,
                     startDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedStartDate,
                     endDate: selectedDecision === 'quick_response' ? scheduledDate : calculatedEndDate,
                     scheduledDate: selectedDecision === 'quick_response' ? scheduledDate : undefined,
                     scheduledTime: selectedDecision === 'quick_response' ? scheduledTime : undefined,
+                    donationTitle: selectedDecision === 'convert_to_donation' ? donationTitle.trim() : undefined,
+                    donationTargetAmount: selectedDecision === 'convert_to_donation' ? parseFloat(donationTargetAmount) : undefined,
+                    donationDescription: selectedDecision === 'convert_to_donation' ? donationDescription.trim() : undefined,
                     justification: justification || undefined,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
+                  ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
+                  (selectedDecision === 'convert_to_donation' && (!donationTitle.trim() || !donationTargetAmount || isNaN(parseFloat(donationTargetAmount)) || parseFloat(donationTargetAmount) <= 0)) ||
                   (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !scheduledDate || !scheduledTime))
                 }
                 className={
                   selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
+                  selectedDecision === 'convert_to_donation' ? 'bg-pink-600 hover:bg-pink-700' :
                   selectedDecision === 'quick_response' ? 'bg-purple-600 hover:bg-purple-700' :
                   selectedDecision === 'suspend' ? 'bg-amber-500 hover:bg-amber-600' :
                   'bg-red-600 hover:bg-red-700'

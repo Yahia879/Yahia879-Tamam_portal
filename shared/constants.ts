@@ -704,6 +704,19 @@ export const TECHNICAL_EVAL_OPTIONS = {
     icon: 'FolderKanban',
     color: '#22C55E',
   },
+  convert_to_donation: {
+    key: 'convert_to_donation',
+    name: 'التحويل إلى فرصة تبرع',
+    nameEn: 'Convert to Donation Opportunity',
+    description: 'تحويل الطلب إلى فرصة تبرع لجمع المبالغ المالية المطلوبة',
+    requiresJustification: false,
+    nextStage: 'boq_preparation',
+    resultStatus: 'in_progress',
+    allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
+    createsProject: true,
+    icon: 'HeartHandshake',
+    color: '#EC4899',
+  },
 } as const;
 
 export const TECHNICAL_EVAL_OPTION_LABELS: Record<string, string> = {
@@ -711,6 +724,7 @@ export const TECHNICAL_EVAL_OPTION_LABELS: Record<string, string> = {
   suspend: 'تعليق الطلب',
   quick_response: 'التحويل إلى الاستجابة السريعة',
   convert_to_project: 'التحويل إلى مشروع',
+  convert_to_donation: 'التحويل إلى فرصة تبرع',
 };
 
 // ==================== الخطوات الفرعية لكل مرحلة ====================

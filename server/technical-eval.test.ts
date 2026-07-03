@@ -3,13 +3,14 @@ import { TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS } from "@shared/co
 
 describe("التقييم الفني - الخيارات الأربعة", () => {
   describe("الثوابت", () => {
-    it("يجب أن تحتوي على 4 خيارات", () => {
+    it("يجب أن تحتوي على 5 خيارات", () => {
       const options = Object.keys(TECHNICAL_EVAL_OPTIONS);
-      expect(options).toHaveLength(4);
+      expect(options).toHaveLength(5);
       expect(options).toContain("apologize");
       expect(options).toContain("suspend");
       expect(options).toContain("quick_response");
       expect(options).toContain("convert_to_project");
+      expect(options).toContain("convert_to_donation");
     });
 
     it("يجب أن يكون لكل خيار اسم ووصف", () => {
@@ -25,6 +26,7 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
       expect(TECHNICAL_EVAL_OPTION_LABELS.suspend).toBe("تعليق الطلب");
       expect(TECHNICAL_EVAL_OPTION_LABELS.quick_response).toBe("التحويل إلى الاستجابة السريعة");
       expect(TECHNICAL_EVAL_OPTION_LABELS.convert_to_project).toBe("التحويل إلى مشروع");
+      expect(TECHNICAL_EVAL_OPTION_LABELS.convert_to_donation).toBe("التحويل إلى فرصة تبرع");
     });
   });
 
@@ -88,6 +90,26 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
 
   describe("خيار التحويل إلى مشروع", () => {
     const option = TECHNICAL_EVAL_OPTIONS.convert_to_project;
+
+    it("لا يتطلب مبررات", () => {
+      expect(option.requiresJustification).toBe(false);
+    });
+
+    it("يجب أن ينتقل لإعداد جدول الكميات", () => {
+      expect(option.nextStage).toBe("boq_preparation");
+    });
+
+    it("يجب أن تكون الحالة النهائية in_progress", () => {
+      expect(option.resultStatus).toBe("in_progress");
+    });
+
+    it("يجب أن ينشئ مشروع", () => {
+      expect(option.createsProject).toBe(true);
+    });
+  });
+
+  describe("خيار التحويل إلى فرصة تبرع", () => {
+    const option = TECHNICAL_EVAL_OPTIONS.convert_to_donation;
 
     it("لا يتطلب مبررات", () => {
       expect(option.requiresJustification).toBe(false);
