@@ -389,35 +389,7 @@ export default function RequestDetailsNew() {
   }, [commitmentFormOpen, request]);
 
   const handlePrintCommitment = () => {
-    const printContent = document.getElementById("printable-commitment-form");
-    if (!printContent) return;
-
-    const win = window.open("", "_blank");
-    if (!win) {
-      toast.error("يرجى السماح بالنوافذ المنبثقة لطباعة النموذج");
-      return;
-    }
-
-    win.document.write(`
-      <html>
-        <head>
-          <title>نموذج التزام طالب الخدمة</title>
-          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-          <style>
-            body {
-              font-family: 'Arial', sans-serif;
-              direction: rtl;
-              padding: 40px;
-              background-color: #fff;
-            }
-          </style>
-        </head>
-        <body onload="window.print(); window.close();">
-          ${printContent.innerHTML}
-        </body>
-      </html>
-    `);
-    win.document.close();
+    window.print();
   };
 
   // Fetch Quotations for validation
@@ -2941,6 +2913,32 @@ export default function RequestDetailsNew() {
 
             {/* قالب التقرير القابل للطباعة */}
             <div id="printable-commitment-form" className="space-y-8 p-8 border-[3px] border-[#1a5f4a] rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm relative">
+              <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                  body * {
+                    visibility: hidden !important;
+                  }
+                  #printable-commitment-form, #printable-commitment-form * {
+                    visibility: visible !important;
+                  }
+                  #printable-commitment-form {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    border: 3px solid #1a5f4a !important;
+                    background-color: white !important;
+                    color: black !important;
+                    padding: 30px !important;
+                    margin: 0 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                  }
+                  .no-print {
+                    display: none !important;
+                  }
+                }
+              `}} />
               {/* خط ذهبي داخلي رفيع للإطار */}
               <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
