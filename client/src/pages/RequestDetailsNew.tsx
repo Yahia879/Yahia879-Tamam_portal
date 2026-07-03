@@ -3046,12 +3046,12 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {/* التوقيعات */}
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center pb-2">
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center pb-4">
                   <div className="text-center w-72">
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-xs mb-1">طالب الخدمة</span>
-                    <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 bg-slate-50 dark:bg-slate-900/30 text-right text-xs text-slate-650 dark:text-slate-400 space-y-1.5">
-                      <p className="font-medium">الاسم: {request?.requester?.name || "غير محدد"}</p>
-                      <p className="font-medium">التوقيع: ________________________</p>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm mb-6">طالب الخدمة</span>
+                    <div className="border-t border-slate-200 dark:border-slate-800 pt-3 text-xs text-slate-600 dark:text-slate-400 space-y-2">
+                      <p className="text-right">الاسم: ___________________________________</p>
+                      <p className="text-right">التوقيع: _________________________________</p>
                     </div>
                   </div>
                 </div>
