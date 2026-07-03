@@ -493,7 +493,14 @@ export default function RequestDetailsNew() {
   // Get workflow based on request track
   const rawWorkflow = request ? getWorkflowForRequest(request.requestTrack || 'standard') : WORKFLOW_STEPS;
   const workflow = request?.technicalEvalDecision === 'convert_to_donation'
-    ? rawWorkflow.filter(s => s.id !== 'handover')
+    ? [
+        { id: "submitted", label: "تقديم الطلب", order: 1 },
+        { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+        { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
+        { id: "technical_eval", label: "التقييم الفني", order: 4 },
+        { id: "execution", label: "التنفيذ", order: 5 },
+        { id: "closed", label: "الإغلاق", order: 6 },
+      ]
     : rawWorkflow;
 
   // Get next stage
