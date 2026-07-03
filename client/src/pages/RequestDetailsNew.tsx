@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -364,6 +364,16 @@ export default function RequestDetailsNew() {
       setCommitmentFormMode('edit');
     }
   }, [commitmentFormOpen, request, boqTotal]);
+
+  // تحديث التكلفة التلقائية فور توفر إجمالي جدول الكميات المحسوب
+  useEffect(() => {
+    if (boqTotal > 0 && commitmentFormOpen) {
+      setCommitmentFormData(prev => ({
+        ...prev,
+        expectedCost: boqTotal.toString()
+      }));
+    }
+  }, [boqTotal, commitmentFormOpen]);
 
   const handlePrintCommitment = () => {
     const printContent = document.getElementById("printable-commitment-form");
@@ -2777,73 +2787,117 @@ export default function RequestDetailsNew() {
       <ColoredDialog
         open={commitmentFormOpen}
         onOpenChange={setCommitmentFormOpen}
-        title={commitmentFormMode === 'edit' ? "نموذج التزام طالب الخدمة" : "معاينة وثيقة التزام طالب الخدمة"}
+        title={commitmentFormMode === 'edit' ? "وثيقة نموذج التزام طالب الخدمة" : "معاينة وثيقة التزام طالب الخدمة"}
         color="indigo"
         fullScreen={commitmentFormMode === 'print_preview'}
       >
         {commitmentFormMode === 'edit' ? (
           <div className="space-y-6 p-1 text-right" dir="rtl">
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-base font-bold mb-2 block">اسم الطلب *</Label>
-                <Input
-                  value={commitmentFormData.title}
-                  onChange={(e) => setCommitmentFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="h-11"
-                />
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-500" />
+                  <span>اسم الطلب / المشروع *</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    value={commitmentFormData.title}
+                    onChange={(e) => setCommitmentFormData(prev => ({ ...prev, title: e.target.value }))}
+                    className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm"
+                    placeholder="مثال: مشروع ترميم جامع الرحمة"
+                  />
+                </div>
               </div>
-              <div>
-                <Label className="text-base font-bold mb-2 block">التكلفة المتوقعة (ريال) *</Label>
-                <Input
-                  type="number"
-                  value={commitmentFormData.expectedCost}
-                  onChange={(e) => setCommitmentFormData(prev => ({ ...prev, expectedCost: e.target.value }))}
-                  className="h-11"
-                  placeholder="مثال: 12500"
-                />
+
+              <div className="space-y-2">
+                <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-indigo-500" />
+                  <span>التكلفة المتوقعة (ريال) *</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={commitmentFormData.expectedCost}
+                    onChange={(e) => setCommitmentFormData(prev => ({ ...prev, expectedCost: e.target.value }))}
+                    className="h-12 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl pr-3 shadow-sm text-sm font-semibold text-green-600 dark:text-green-400"
+                    placeholder="سيتم الملء تلقائياً أو أدخل القيمة يدوياً..."
+                  />
+                  {boqTotal > 0 && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 text-[10px] px-2 py-1 rounded-md border border-green-200/50 dark:border-green-900/30">
+                      محسوب تلقائياً
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div>
-              <Label className="text-base font-bold mb-2 block">الشروط والأحكام الخاصة بالبرنامج *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-indigo-500" />
+                <span>الشروط والأحكام الخاصة بالبرنامج *</span>
+              </Label>
               <Textarea
                 value={commitmentFormData.terms}
                 onChange={(e) => setCommitmentFormData(prev => ({ ...prev, terms: e.target.value }))}
-                className="min-h-[140px] leading-relaxed"
+                className="min-h-[140px] leading-relaxed border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl p-4 text-sm shadow-sm"
               />
             </div>
 
-            <div>
-              <Label className="text-base font-bold mb-2 block">شروط التزام إضافية</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <FolderKanban className="w-4 h-4 text-indigo-500" />
+                <span>شروط التزام إضافية</span>
+              </Label>
               <Textarea
                 value={commitmentFormData.additionalTerms}
                 onChange={(e) => setCommitmentFormData(prev => ({ ...prev, additionalTerms: e.target.value }))}
-                placeholder="أدخل أي شروط إضافية تود إلحاقها بالنموذج..."
-                className="min-h-[80px]"
+                placeholder="أدخل أي شروط إضافية خاصة تود إلحاقها بالنموذج..."
+                className="min-h-[85px] border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl p-4 text-sm shadow-sm"
               />
             </div>
 
             {/* معلومات طالب الخدمة (غير قابلة للتعديل) */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-900 border rounded-lg space-y-2">
-              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">معلومات طالب الخدمة (قراءة فقط)</h4>
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-3 shadow-inner">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <User className="w-4 h-4 text-indigo-500" />
+                  <span>معلومات طالب الخدمة المتعهد</span>
+                </h4>
+                <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-semibold">
+                  قراءة فقط
+                </span>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
-                <div>
-                  <span className="font-semibold block text-slate-800 dark:text-slate-300">الاسم:</span>
-                  <span>{request?.requester?.name || "غير محدد"}</span>
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <User className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">الاسم الكامل</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold">{request?.requester?.name || "غير محدد"}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold block text-slate-800 dark:text-slate-300">رقم الجوال:</span>
-                  <span>{request?.requester?.phone || "غير محدد"}</span>
+
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <Phone className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">رقم الجوال</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">{request?.requester?.phone || "غير محدد"}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-semibold block text-slate-800 dark:text-slate-300">البريد الإلكتروني:</span>
-                  <span>{request?.requester?.email || "غير محدد"}</span>
+
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">البريد الإلكتروني</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold truncate block max-w-[180px]">{request?.requester?.email || "غير محدد"}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button variant="outline" onClick={() => setCommitmentFormOpen(false)} className="h-11 px-6">
+            <div className="flex justify-end gap-3 pt-5 border-t border-slate-100 dark:border-slate-850">
+              <Button variant="outline" onClick={() => setCommitmentFormOpen(false)} className="h-12 px-6 rounded-xl text-sm font-bold">
                 إلغاء
               </Button>
               <Button
@@ -2854,9 +2908,9 @@ export default function RequestDetailsNew() {
                   }
                   setCommitmentFormMode('print_preview');
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white h-11 px-6 font-bold"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all"
               >
-                تأكيد النموذج
+                تأكيد ومعاينة النموذج
               </Button>
             </div>
           </div>
