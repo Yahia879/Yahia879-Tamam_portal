@@ -292,13 +292,13 @@ export default function NewLinkedDisbursementRequest() {
 
     setFormData(prev => ({
       ...prev,
-      projectId: 0,
+      projectId: isDonationLinked ? prev.projectId : 0,
       contractId: 0,
       contractPaymentId: 0,
       title: "",
       description: "",
       completionPercentage: custom ? 100 : 0,
-      customProjectName: "",
+      customProjectName: isDonationLinked ? prev.customProjectName : "",
       beneficiaryName: "",
       bankAccountName: "",
       bankName: "",
