@@ -71,7 +71,7 @@ const superAdminGroups = [
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
-      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
+      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "create_donation", "sign"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
     ]
   },
@@ -171,6 +171,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       delete: "حذف طلب صرف",
       approve: "اعتماد طلبات الصرف",
       create_custom: "انشاء طلبات صرف مخصصة",
+      create_donation: "انشاء طلب صرف لفرصة تبرع",
       sign: "توقيع طلبات الصرف"
     },
     disbursement_orders: {
@@ -470,10 +471,18 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
+    // منع تفعيل صلاحية إضافة طلبات الصرف لفرص التبرع إلا إذا كانت صلاحية العرض مفعلة
+    if (permId === "disbursements.create_donation") {
+      if (!selectedPerms.includes("disbursements.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة أو فرصة تبرع مفعلة
     if (permId === "disbursements.sign") {
-      if (!selectedPerms.includes("disbursements.add") && !selectedPerms.includes("disbursements.create_custom")) {
-        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
+      if (!selectedPerms.includes("disbursements.add") && !selectedPerms.includes("disbursements.create_custom") && !selectedPerms.includes("disbursements.create_donation")) {
+        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أو 'انشاء طلب صرف لفرصة تبرع' أولاً");
         return;
       }
     }
@@ -549,11 +558,12 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
         }
 
-        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما مفعلة
-        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
+        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أو 'انشاء طلب صرف لفرصة تبرع'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما مفعلة
+        if (permId === "disbursements.add" || permId === "disbursements.create_custom" || permId === "disbursements.create_donation") {
           const remainingAdd = permId === "disbursements.add" ? false : next.includes("disbursements.add");
           const remainingCustom = permId === "disbursements.create_custom" ? false : next.includes("disbursements.create_custom");
-          if (!remainingAdd && !remainingCustom) {
+          const remainingDonation = permId === "disbursements.create_donation" ? false : next.includes("disbursements.create_donation");
+          if (!remainingAdd && !remainingCustom && !remainingDonation) {
             next = next.filter(id => id !== "disbursements.sign");
           }
         }

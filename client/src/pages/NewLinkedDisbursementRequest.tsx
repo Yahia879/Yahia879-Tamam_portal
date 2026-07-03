@@ -123,6 +123,7 @@ export default function NewLinkedDisbursementRequest() {
   const userPermissions = (user as any)?.permissions || [];
   const canCreateStandard = userPermissions.includes("disbursements.add");
   const canCreateCustom = userPermissions.includes("disbursements.create_custom");
+  const canCreateDonationDisbursement = userPermissions.includes("disbursements.create_donation");
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
@@ -890,25 +891,27 @@ export default function NewLinkedDisbursementRequest() {
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
                 {/* خيار ربط فرصة تبرع معتمدة */}
-                <div className="flex items-center gap-3 p-3.5 bg-pink-50/50 dark:bg-pink-950/10 rounded-xl border border-pink-100 dark:border-pink-900/30 text-right animate-in fade-in duration-200">
-                  <Checkbox
-                    id="link-donation-opportunity"
-                    checked={isDonationLinked}
-                    onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
-                    className="w-4.5 h-4.5 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
-                  />
-                  <div className="space-y-0.5 min-w-0">
-                    <label 
-                      htmlFor="link-donation-opportunity" 
-                      className="text-xs sm:text-sm font-bold text-pink-800 dark:text-pink-300 cursor-pointer"
-                    >
-                      المشروع المرتبط (فرصة التبرع)
-                    </label>
-                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                      تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع
-                    </p>
+                {canCreateDonationDisbursement && (
+                  <div className="flex items-center gap-3 p-3.5 bg-pink-50/50 dark:bg-pink-950/10 rounded-xl border border-pink-100 dark:border-pink-900/30 text-right animate-in fade-in duration-200">
+                    <Checkbox
+                      id="link-donation-opportunity"
+                      checked={isDonationLinked}
+                      onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
+                      className="w-4.5 h-4.5 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
+                    />
+                    <div className="space-y-0.5 min-w-0">
+                      <label 
+                        htmlFor="link-donation-opportunity" 
+                        className="text-xs sm:text-sm font-bold text-pink-800 dark:text-pink-300 cursor-pointer"
+                      >
+                        المشروع المرتبط (فرصة التبرع)
+                      </label>
+                      <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                        تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {isDonationLinked && (
                   <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">

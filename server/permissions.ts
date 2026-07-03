@@ -181,6 +181,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "disbursements.add": ["disbursements.create"],
   "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom"],
+  "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
 };
 
 /**
@@ -509,6 +510,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "pending_reports.view", moduleId: "pending_reports", action: "view", nameAr: "عرض التقارير", nameEn: "View Reports" },
       { id: "pending_reports.intervene", moduleId: "pending_reports", action: "intervene", nameAr: "تدخل لرفع التقرير", nameEn: "Intervene to Upload Report" },
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
+      { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
@@ -817,6 +819,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursements.view") ||
     allPermissions.has("disbursements.add") ||
     allPermissions.has("disbursements.create_custom") ||
+    allPermissions.has("disbursements.create_donation") ||
     allPermissions.has("disbursements.edit") ||
     allPermissions.has("disbursements.delete") ||
     allPermissions.has("disbursements.approve")
@@ -824,7 +827,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("disbursements");
     allPermissions.add("disbursement_requests");
   }
-  if (allPermissions.has("disbursements.add") || allPermissions.has("disbursements.create_custom")) {
+  if (
+    allPermissions.has("disbursements.add") ||
+    allPermissions.has("disbursements.create_custom") ||
+    allPermissions.has("disbursements.create_donation")
+  ) {
     allPermissions.add("disbursements.create");
   }
   if (
