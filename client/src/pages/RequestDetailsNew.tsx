@@ -2915,20 +2915,38 @@ export default function RequestDetailsNew() {
             <div id="printable-commitment-form" className="space-y-4 p-6 border-[3px] border-[#1a5f4a] rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm relative">
               <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
+                  /* إخفاء الصفحة الخلفية بالكامل وعناصر التحكم */
+                  #root, header, aside, footer, nav, .no-print, [role="dialog"] > button {
+                    display: none !important;
+                  }
                   body * {
                     visibility: hidden !important;
                   }
                   #printable-commitment-form, #printable-commitment-form * {
                     visibility: visible !important;
                   }
+                  /* تحديد حجم صفحة A4 مغلقة */
+                  @page {
+                    size: A4;
+                    margin: 8mm !important;
+                  }
+                  html, body {
+                    height: 100% !important;
+                    overflow: hidden !important;
+                    background-color: white !important;
+                  }
                   #printable-commitment-form {
-                    position: relative !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
                     width: 100% !important;
+                    height: 100% !important;
                     border: 3px solid #1a5f4a !important;
                     background-color: white !important;
                     color: black !important;
-                    padding: 24px !important;
-                    margin: 0 auto !important;
+                    padding: 20px !important;
+                    margin: 0 !important;
+                    box-sizing: border-box !important;
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                   }
@@ -2943,9 +2961,6 @@ export default function RequestDetailsNew() {
                     border: 1px solid #d4a574 !important;
                     border-radius: 4px !important;
                     display: block !important;
-                  }
-                  .no-print {
-                    display: none !important;
                   }
                 }
               `}} />
