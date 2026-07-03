@@ -746,7 +746,7 @@ export default function DisbursementRequests() {
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  <span>تصدير إلى Excel</span>
+                  <span dir="rtl">تصدير إلى Excel</span>
                 </Button>
               </div>
             </div>
