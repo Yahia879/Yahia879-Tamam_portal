@@ -34,6 +34,7 @@ import {
   Loader2,
   Lock,
   AlertTriangle,
+  X,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -118,15 +119,30 @@ export default function ProjectDetailsPage() {
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
+  const [isEditingManager, setIsEditingManager] = useState(false);
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const canEditProjectName = isAdmin || userPermissions.includes("projects.view_details");
+  const canChangeManager = isAdmin || user?.role === 'projects_office';
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
     id: parseInt(id || "0") 
   });
+
+  // جلب مديري المشاريع المتاحين
+  const { data: managersResult } = trpc.users.getAll.useQuery(
+    {
+      roles: ['project_manager'],
+      permission: 'projects.assign_as_manager',
+      limit: 100,
+    },
+    {
+      enabled: !!canChangeManager
+    }
+  );
+  const projectManagers = managersResult?.items || [];
 
   useEffect(() => {
     if (project) {
@@ -156,6 +172,20 @@ export default function ProjectDetailsPage() {
       refetch();
     },
   });
+
+  const handleUpdateManager = (managerId: number) => {
+    updateProjectMutation.mutate({
+      id: parseInt(id || "0"),
+      managerId
+    }, {
+      onSuccess: () => {
+        toast.success("تم تحديث مدير المشروع بنجاح");
+      },
+      onError: (err) => {
+        toast.error(err.message || "حدث خطأ أثناء تحديث مدير المشروع");
+      }
+    });
+  };
 
 
 
@@ -516,7 +546,49 @@ export default function ProjectDetailsPage() {
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <p className="font-bold text-foreground">{project.managerName || "غير محدد"}</p>
+                    {isEditingManager ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="flex-1">
+                          <Select
+                            value={project.managerId?.toString() || ""}
+                            onValueChange={(val) => handleUpdateManager(parseInt(val))}
+                          >
+                            <SelectTrigger className="h-9 w-full border-slate-200 text-xs font-semibold focus:ring-indigo-500/20 bg-white dark:bg-slate-950">
+                              <SelectValue placeholder="اختر مدير المشروع..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {projectManagers.map((m: any) => (
+                                <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setIsEditingManager(false)} 
+                          className="h-8 w-8 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 rounded-lg shrink-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground">{project.managerName || "غير محدد"}</p>
+                        {canChangeManager && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0"
+                            onClick={() => setIsEditingManager(true)} 
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   </div>
                   </CardContent>
