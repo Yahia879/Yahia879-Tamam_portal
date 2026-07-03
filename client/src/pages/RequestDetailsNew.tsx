@@ -337,6 +337,13 @@ export default function RequestDetailsNew() {
   );
   const hasApprovedQuotation = quotationsResult?.quotations?.some((q: any) => q.status === 'accepted' || q.status === 'approved');
 
+  // Check disbursement request status for donation opportunity
+  const { data: disbursementStatus } = trpc.disbursements.checkRequestDisbursementStatus.useQuery(
+    { requestId },
+    { enabled: !!requestId && request?.currentStage === 'execution' && request?.technicalEvalDecision === 'convert_to_donation' }
+  );
+  const isDonationDisbursementApproved = !!disbursementStatus?.hasApprovedDisbursement;
+
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
     onSuccess: () => {
@@ -1208,19 +1215,29 @@ export default function RequestDetailsNew() {
                                     variant: 'default' as const,
                                   }
                                 : undefined
-                              : {
-                                  label: "الانتقال إلى مرحلة الاستلام",
-                                  onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
-                                  variant: 'default' as const,
-                                  disabled: cannotTransitionToHandover,
-                                  title: cannotTransitionToHandover
-                                    ? !hasPayments
-                                      ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
-                                      : !allPaymentsPaid
-                                        ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
-                                        : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
-                                    : undefined,
-                                }
+                              : request.technicalEvalDecision === 'convert_to_donation'
+                                ? {
+                                    label: "إغلاق الطلب",
+                                    onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+                                    variant: 'default' as const,
+                                    disabled: !isDonationDisbursementApproved,
+                                    title: !isDonationDisbursementApproved
+                                      ? "لا يمكن إغلاق الطلب: يجب إنشاء طلب صرف مرتبط واعتماده في صفحة أوامر الصرف أولاً"
+                                      : undefined,
+                                  }
+                                : {
+                                    label: "الانتقال إلى مرحلة الاستلام",
+                                    onClick: () => updateStageMutation.mutate({ requestId, newStage: 'handover' as any }),
+                                    variant: 'default' as const,
+                                    disabled: cannotTransitionToHandover,
+                                    title: cannotTransitionToHandover
+                                      ? !hasPayments
+                                        ? "لا يمكن الانتقال لمرحلة الاستلام: لا توجد دفعات مسجلة للمشروع"
+                                        : !allPaymentsPaid
+                                          ? "لا يمكن الانتقال لمرحلة الاستلام: يجب سداد جميع الدفعات أولاً"
+                                          : "لا يمكن الانتقال لمرحلة الاستلام: إجمالي قيم المدفوعات لا يساوي إجمالي قيمة العقد"
+                                      : undefined,
+                                  }
                           : request.currentStage === 'handover' &&
                             latestFinalReport &&
                             user?.role !== 'corporate_comm' &&

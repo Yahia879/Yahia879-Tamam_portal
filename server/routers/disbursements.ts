@@ -360,6 +360,48 @@ export const disbursementsRouter = router({
       return list;
     }),
 
+  // التحقق من حالة صرف فرصة التبرع للطلب
+  checkRequestDisbursementStatus: permissionProcedure("disbursements.view")
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const requests = await db
+        .select({
+          id: disbursementRequests.id,
+          attachmentsJson: disbursementRequests.attachmentsJson,
+          orderStatus: disbursementOrders.status,
+        })
+        .from(disbursementRequests)
+        .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId));
+
+      const matchingApprovedRequest = requests.find(req => {
+        if (!req.attachmentsJson) return false;
+        try {
+          const attachments = typeof req.attachmentsJson === 'string' 
+            ? JSON.parse(req.attachmentsJson) 
+            : req.attachmentsJson;
+          if (Array.isArray(attachments)) {
+            const metadataObj = attachments.find((a: any) => a.name === 'custom_supplier_info' && a.type === 'metadata');
+            if (metadataObj && metadataObj.url) {
+              const meta = JSON.parse(metadataObj.url);
+              if (meta.mosqueRequestId === input.requestId) {
+                return req.orderStatus === 'approved' || req.orderStatus === 'executed';
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing attachmentsJson:", e);
+        }
+        return false;
+      });
+
+      return {
+        hasApprovedDisbursement: !!matchingApprovedRequest,
+      };
+    }),
+
   // إنشاء طلب صرف جديد
   createRequest: permissionProcedure("disbursements.create")
     .input(
