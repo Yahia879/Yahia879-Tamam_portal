@@ -2783,7 +2783,7 @@ export default function RequestDetailsNew() {
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-indigo-500" />
-                  <span>اسم الطلب / المشروع *</span>
+                  <span>اسم الطلب *</span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -2849,7 +2849,7 @@ export default function RequestDetailsNew() {
                 </span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
                   <User className="w-4 h-4 text-slate-400" />
                   <div>
@@ -2873,6 +2873,26 @@ export default function RequestDetailsNew() {
                     <span className="text-slate-800 dark:text-slate-200 font-bold truncate block max-w-[180px]">{request?.requester?.email || "غير محدد"}</span>
                   </div>
                 </div>
+
+                {request?.requester?.city && (
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <span className="font-semibold text-slate-400 block text-[10px]">المدينة</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.city}</span>
+                    </div>
+                  </div>
+                )}
+
+                {request?.requester?.nationalId && (
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <span className="font-semibold text-slate-400 block text-[10px]">رقم الهوية الوطنية</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.nationalId}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
