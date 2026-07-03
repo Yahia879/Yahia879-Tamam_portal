@@ -710,7 +710,7 @@ export const TECHNICAL_EVAL_OPTIONS = {
     nameEn: 'Convert to Donation Opportunity',
     description: 'تحويل الطلب إلى فرصة تبرع لجمع المبالغ المالية المطلوبة',
     requiresJustification: false,
-    nextStage: 'boq_preparation',
+    nextStage: 'execution',
     resultStatus: 'in_progress',
     allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
     createsProject: true,

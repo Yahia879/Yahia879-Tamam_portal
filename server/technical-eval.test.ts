@@ -115,8 +115,8 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
       expect(option.requiresJustification).toBe(false);
     });
 
-    it("يجب أن ينتقل لإعداد جدول الكميات", () => {
-      expect(option.nextStage).toBe("boq_preparation");
+    it("يجب أن ينتقل لمرحلة التنفيذ", () => {
+      expect(option.nextStage).toBe("execution");
     });
 
     it("يجب أن تكون الحالة النهائية in_progress", () => {

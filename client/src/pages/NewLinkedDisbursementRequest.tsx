@@ -140,6 +140,7 @@ export default function NewLinkedDisbursementRequest() {
 
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
+  const [isDonationLinked, setIsDonationLinked] = useState(false);
   const [requestType, setRequestType] = useState<string>(() => {
     if (savedState?.requestType) {
       const val = savedState.requestType;
@@ -267,6 +268,18 @@ export default function NewLinkedDisbursementRequest() {
         billerCode: matchedBiller.value,
         billerName: matchedBiller.valueAr
       }));
+    }
+  };
+
+  const handleDonationLinkedChange = (checked: boolean) => {
+    setIsDonationLinked(checked);
+    if (checked) {
+      setIsCustom(true);
+      setFormData(prev => ({ ...prev, projectId: 0 }));
+    } else {
+      setIsCustom(!canCreateStandard);
+      setRequestType(canCreateStandard ? "project_linked" : "supplier_one_time");
+      setFormData(prev => ({ ...prev, projectId: 0 }));
     }
   };
 
@@ -436,6 +449,24 @@ export default function NewLinkedDisbursementRequest() {
     { projectId: formData.projectId },
     { enabled: formData.projectId > 0 }
   );
+
+  // جلب فرصة التبرع المرتبطة بالمشروع المحدد
+  const { data: donationOpportunity } = trpc.disbursements.getDonationOpportunity.useQuery(
+    { projectId: formData.projectId },
+    { enabled: isDonationLinked && formData.projectId > 0 }
+  );
+
+  useEffect(() => {
+    if (isDonationLinked && donationOpportunity) {
+      if (donationOpportunity.description === "سداد مورد بفاتورة واحدة") {
+        setRequestType("supplier_one_time");
+        setIsCustom(true);
+      } else if (donationOpportunity.description === "فواتير نظام سداد") {
+        setRequestType("sadad_invoice");
+        setIsCustom(true);
+      }
+    }
+  }, [isDonationLinked, donationOpportunity]);
 
   // دالة للتحقق مما إذا كان تقرير الإنجاز مرتبطاً بطلب صرف سابق
   const isReportLinked = (report: any) => {
@@ -756,7 +787,7 @@ export default function NewLinkedDisbursementRequest() {
     }] : [];
     
     createMutation.mutate({
-      projectId: isCustom ? null : formData.projectId,
+      projectId: formData.projectId && formData.projectId > 0 ? formData.projectId : null,
       contractId: isCustom ? undefined : (formData.contractId || undefined),
       contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
       paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
@@ -860,12 +891,65 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
+                {/* خيار ربط فرصة تبرع معتمدة */}
+                <div className="flex items-center gap-3 p-3.5 bg-pink-50/50 dark:bg-pink-950/10 rounded-xl border border-pink-100 dark:border-pink-900/30 text-right animate-in fade-in duration-200">
+                  <Checkbox
+                    id="link-donation-opportunity"
+                    checked={isDonationLinked}
+                    onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
+                    className="w-4.5 h-4.5 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <label 
+                      htmlFor="link-donation-opportunity" 
+                      className="text-xs sm:text-sm font-bold text-pink-800 dark:text-pink-300 cursor-pointer"
+                    >
+                      المشروع المرتبط (فرصة التبرع) [اختياري]
+                    </label>
+                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                      تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع وتحديد نوع الصرف تلقائياً
+                    </p>
+                  </div>
+                </div>
+
+                {isDonationLinked && (
+                  <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
+                    <Select
+                      value={formData.projectId.toString()}
+                      onValueChange={(value) => {
+                        const projId = parseInt(value);
+                        const selectedProj = projects?.find((p: any) => p.id === projId);
+                        setFormData({ 
+                          ...formData, 
+                          projectId: projId, 
+                          contractId: 0,
+                          customProjectName: selectedProj ? selectedProj.name : formData.customProjectName
+                        });
+                        setSelectedReportId(null);
+                      }}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm" dir="rtl">
+                        <SelectValue placeholder="اختر المشروع لربطه بفرصة التبرع" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
+                          <SelectItem key={project.id} value={project.id.toString()} className="text-right">
+                            {project.name} - {project.projectNumber}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 {/* خيار نوع طلب الصرف كقائمة منسدلة */}
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف *</Label>
                   <Select
                     value={requestType}
                     onValueChange={handleRequestTypeChange}
+                    disabled={isDonationLinked}
                   >
                     <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                       <SelectValue placeholder="اختر نوع طلب الصرف" />
@@ -929,7 +1013,7 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                {!isCustom ? (
+                {!isCustom && (
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع *</Label>
                     <Select
@@ -951,7 +1035,9 @@ export default function NewLinkedDisbursementRequest() {
                       </SelectContent>
                     </Select>
                   </div>
-                ) : (
+                )}
+
+                {isCustom && (
                   <div className="space-y-4 animate-slide-up text-right">
                     {requestType === "custom_standard" && (
                       <>

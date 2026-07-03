@@ -321,6 +321,22 @@ export const disbursementsRouter = router({
       };
     }),
 
+  // جلب فرصة التبرع المرتبطة بمشروع معين
+  getDonationOpportunity: permissionProcedure("disbursements.view")
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [opportunity] = await db
+        .select()
+        .from(donationOpportunities)
+        .where(eq(donationOpportunities.projectId, input.projectId))
+        .limit(1);
+
+      return opportunity || null;
+    }),
+
   // إنشاء طلب صرف جديد
   createRequest: permissionProcedure("disbursements.create")
     .input(
