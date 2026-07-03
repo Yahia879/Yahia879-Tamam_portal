@@ -120,28 +120,42 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         worksheet.addRow(["التصنيف", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"]);
         worksheet.addRow(["أعمال إنشائية", "مثال: أعمال الحفر والتسوية", "متر مكعب", 120, 35]);
 
-        // قائمة التصنيفات المعتمدة
-        const categoriesList = [
-          "أعمال إنشائية",
-          "أعمال كهربائية",
-          "أعمال سباكة",
-          "تكييف وتبريد",
-          "تشطيبات",
-          "نجارة",
-          "دهانات",
-          "أرضيات",
-          "أخرى"
-        ];
+        // قائمة التصنيفات المعتمدة ديناميكياً من الموقع
+        const cleanCategories = allCategories
+          .filter((cat: any) => cat.type === "boq_category")
+          .map((cat: any) => (cat.nameAr || cat.name || "").trim())
+          .filter(Boolean);
 
-        // تفعيل القائمة المنسدلة لعمود التصنيف (العامود A) من السطر 2 وحتى 100
-        (worksheet as any).dataValidations.add("A2:A100", {
-          type: "list",
-          allowBlank: true,
-          formulae: [`"${categoriesList.join(",")}"`],
-          showErrorMessage: true,
-          errorTitle: "خطأ في التصنيف",
-          error: "يرجى اختيار تصنيف صالح من القائمة المتاحة"
+        const categoriesList = cleanCategories.length > 0
+          ? cleanCategories
+          : [
+              "أعمال إنشائية",
+              "أعمال كهربائية",
+              "أعمال سباكة",
+              "تكييف وتبريد",
+              "تشطيبات",
+              "نجارة",
+              "دهانات",
+              "أرضيات",
+              "أخرى"
+            ];
+
+        // إنشاء ورقة عمل مخفية لوضع التصنيفات بداخلها تفادياً لتلف الملف في Excel بسبب الحروف العربية والرموز
+        const catSheet = workbook.addWorksheet("CategoriesData");
+        catSheet.state = "hidden";
+        categoriesList.forEach((cat, index) => {
+          catSheet.getCell(`A${index + 1}`).value = cat;
         });
+
+        // تفعيل القائمة المنسدلة لعمود التصنيف (العامود A) بالإشارة لورقة العمل المخفية من السطر 2 وحتى 100
+        const listFormula = `CategoriesData!$A$1:$A$${categoriesList.length}`;
+        for (let i = 2; i <= 100; i++) {
+          worksheet.getCell(`A${i}`).dataValidation = {
+            type: "list",
+            allowBlank: true,
+            formulae: [listFormula]
+          };
+        }
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -241,11 +255,21 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
             let category = "other";
             if (categoryIdx !== -1 && row[categoryIdx]) {
               const rawCat = normalizeArabic(String(row[categoryIdx]));
-              // محاولة مطابقة الفئة بالعربية أو الإنجليزية
-              const matchedCat = Object.entries(ITEM_CATEGORIES).find(([key, val]) => 
-                rawCat === normalizeArabic(key) || rawCat === normalizeArabic(val)
-              );
-              category = matchedCat ? matchedCat[0] : "other";
+              // محاولة مطابقة الفئة بالعربية أو الإنجليزية من التصنيفات الديناميكية في الموقع
+              const matchedCat = (allCategories || [])
+                .filter((cat: any) => cat.type === "boq_category")
+                .find((cat: any) => 
+                  rawCat === normalizeArabic(cat.name) || rawCat === normalizeArabic(cat.nameAr)
+                );
+              if (matchedCat) {
+                category = matchedCat.name;
+              } else {
+                // محاولة مطابقة الفئة ضد القائمة الاستاتيكية الاحتياطية
+                const matchedStatic = Object.entries(ITEM_CATEGORIES).find(([key, val]) => 
+                  rawCat === normalizeArabic(key) || rawCat === normalizeArabic(val)
+                );
+                category = matchedStatic ? matchedStatic[0] : "other";
+              }
             }
 
             itemsToInsert.push({
