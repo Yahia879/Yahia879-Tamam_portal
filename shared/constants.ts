@@ -713,7 +713,7 @@ export const TECHNICAL_EVAL_OPTIONS = {
     nextStage: 'execution',
     resultStatus: 'in_progress',
     allowedRoles: ['super_admin', 'system_admin', 'projects_office'],
-    createsProject: true,
+    createsProject: false,
     icon: 'HeartHandshake',
     color: '#EC4899',
   },

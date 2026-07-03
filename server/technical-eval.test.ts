@@ -123,8 +123,8 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
       expect(option.resultStatus).toBe("in_progress");
     });
 
-    it("يجب أن ينشئ مشروع", () => {
-      expect(option.createsProject).toBe(true);
+    it("يجب ألا ينشئ مشروع", () => {
+      expect(option.createsProject).toBe(false);
     });
   });
 

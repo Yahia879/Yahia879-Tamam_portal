@@ -337,6 +337,29 @@ export const disbursementsRouter = router({
       return opportunity || null;
     }),
 
+  // جلب فرص التبرع النشطة
+  getActiveDonations: permissionProcedure("disbursements.view")
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const list = await db
+        .select({
+          id: donationOpportunities.id,
+          title: donationOpportunities.title,
+          targetAmount: donationOpportunities.targetAmount,
+          collectedAmount: donationOpportunities.collectedAmount,
+          status: donationOpportunities.status,
+          requestId: donationOpportunities.requestId,
+          requestNumber: mosqueRequests.requestNumber,
+        })
+        .from(donationOpportunities)
+        .leftJoin(mosqueRequests, eq(donationOpportunities.requestId, mosqueRequests.id))
+        .where(eq(donationOpportunities.status, 'active'));
+
+      return list;
+    }),
+
   // إنشاء طلب صرف جديد
   createRequest: permissionProcedure("disbursements.create")
     .input(

@@ -1935,62 +1935,64 @@ export const requestsRouter = router({
           });
         }
       } else if (input.decision === 'convert_to_project' || input.decision === 'convert_to_donation') {
-        // إنشاء المشروع تلقائياً مع اسم المشروع المدخل
-        const existingProject = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
-        let newProjectId: number;
-        if (existingProject.length === 0) {
-          // توليد رقم مشروع جديد
-          const currentYear = new Date().getFullYear();
-          const [existingSeq] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
-          let sequence: number;
-          if (existingSeq) {
-            sequence = existingSeq.lastSequence + 1;
-            await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
-          } else {
-            sequence = 1;
-            await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
-          }
-          const projectNumber = `PRJ-${currentYear}-${String(sequence).padStart(4, '0')}`;
-          const projectNameToUse = input.projectName || input.notes || `مشروع مسجد ${request[0].requestNumber}`;
-          const [newProject] = await db.insert(projects).values({
-            projectNumber,
-            requestId: input.requestId,
-            name: projectNameToUse,
-            managerId: input.managerId,
-            status: 'planning',
-            completionPercentage: 17, // 1/6 تقريبا
-            startDate: input.startDate ? new Date(input.startDate) : undefined,
-            expectedEndDate: input.endDate ? new Date(input.endDate) : undefined,
-          });
-          newProjectId = newProject.insertId;
-          
-          // إنشاء المراحل الافتراضية
-          const defaultPhases = [
-            { phaseName: 'المرحلة الأولى : الإنشاء والتخطيط', phaseOrder: 1 },
-            { phaseName: 'المرحلة الثانية : إعداد جدول الكميات', phaseOrder: 2 },
-            { phaseName: 'المرحلة الثالثة : اعتماد عرض السعر المناسب', phaseOrder: 3 },
-            { phaseName: 'المرحلة الرابعة : التعاقد', phaseOrder: 4 },
-            { phaseName: 'المرحلة الخامسة : صرف المدفوعات', phaseOrder: 5 },
-            { phaseName: 'المرحلة السادسة : المراجعة والإغلاق', phaseOrder: 6 },
-          ];
-          for (const phase of defaultPhases) {
-            await db.insert(projectPhases).values({
-              projectId: newProjectId,
-              phaseName: phase.phaseName,
-              phaseOrder: phase.phaseOrder,
-              completionPercentage: phase.phaseOrder === 1 ? 100 : 0,
-              status: phase.phaseOrder === 1 ? 'completed' : (phase.phaseOrder === 2 ? 'in_progress' : 'pending'),
+        let newProjectId: number | null = null;
+        if (input.decision === 'convert_to_project') {
+          // إنشاء المشروع تلقائياً مع اسم المشروع المدخل
+          const existingProject = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+          if (existingProject.length === 0) {
+            // توليد رقم مشروع جديد
+            const currentYear = new Date().getFullYear();
+            const [existingSeq] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
+            let sequence: number;
+            if (existingSeq) {
+              sequence = existingSeq.lastSequence + 1;
+              await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
+            } else {
+              sequence = 1;
+              await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
+            }
+            const projectNumber = `PRJ-${currentYear}-${String(sequence).padStart(4, '0')}`;
+            const projectNameToUse = input.projectName || input.notes || `مشروع مسجد ${request[0].requestNumber}`;
+            const [newProject] = await db.insert(projects).values({
+              projectNumber,
+              requestId: input.requestId,
+              name: projectNameToUse,
+              managerId: input.managerId,
+              status: 'planning',
+              completionPercentage: 17, // 1/6 تقريبا
+              startDate: input.startDate ? new Date(input.startDate) : undefined,
+              expectedEndDate: input.endDate ? new Date(input.endDate) : undefined,
             });
+            newProjectId = newProject.insertId;
+            
+            // إنشاء المراحل الافتراضية
+            const defaultPhases = [
+              { phaseName: 'المرحلة الأولى : الإنشاء والتخطيط', phaseOrder: 1 },
+              { phaseName: 'المرحلة الثانية : إعداد جدول الكميات', phaseOrder: 2 },
+              { phaseName: 'المرحلة الثالثة : اعتماد عرض السعر المناسب', phaseOrder: 3 },
+              { phaseName: 'المرحلة الرابعة : التعاقد', phaseOrder: 4 },
+              { phaseName: 'المرحلة الخامسة : صرف المدفوعات', phaseOrder: 5 },
+              { phaseName: 'المرحلة السادسة : المراجعة والإغلاق', phaseOrder: 6 },
+            ];
+            for (const phase of defaultPhases) {
+              await db.insert(projectPhases).values({
+                projectId: newProjectId,
+                phaseName: phase.phaseName,
+                phaseOrder: phase.phaseOrder,
+                completionPercentage: phase.phaseOrder === 1 ? 100 : 0,
+                status: phase.phaseOrder === 1 ? 'completed' : (phase.phaseOrder === 2 ? 'in_progress' : 'pending'),
+              });
+            }
+          } else {
+            newProjectId = existingProject[0].id;
           }
-        } else {
-          newProjectId = existingProject[0].id;
         }
 
         // إذا كان القرار هو فرصة تبرع، قم بإنشاء فرصة التبرع في قاعدة البيانات
         if (input.decision === 'convert_to_donation') {
           await db.insert(donationOpportunities).values({
             requestId: input.requestId,
-            projectId: newProjectId,
+            projectId: null,
             title: input.donationTitle || input.projectName || `فرصة تبرع: ${request[0].requestNumber}`,
             targetAmount: input.donationTargetAmount?.toString() || request[0].estimatedCost?.toString() || "0",
             description: input.donationDescription || input.justification || null,

@@ -168,6 +168,8 @@ export default function NewLinkedDisbursementRequest() {
   // بيانات النموذج
   const [formData, setFormData] = useState<{
     projectId: number;
+    donationOpportunityId: number;
+    mosqueRequestId: number;
     contractId: number;
     title: string;
     description: string;
@@ -187,6 +189,8 @@ export default function NewLinkedDisbursementRequest() {
     billerCode: string;
   }>(() => savedState?.formData ?? {
     projectId: 0,
+    donationOpportunityId: 0,
+    mosqueRequestId: 0,
     contractId: 0,
     title: "",
     description: "",
@@ -275,11 +279,11 @@ export default function NewLinkedDisbursementRequest() {
     setIsDonationLinked(checked);
     if (checked) {
       setIsCustom(true);
-      setFormData(prev => ({ ...prev, projectId: 0 }));
+      setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
     } else {
       setIsCustom(!canCreateStandard);
       setRequestType(canCreateStandard ? "project_linked" : "supplier_one_time");
-      setFormData(prev => ({ ...prev, projectId: 0 }));
+      setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
     }
   };
 
@@ -293,6 +297,8 @@ export default function NewLinkedDisbursementRequest() {
     setFormData(prev => ({
       ...prev,
       projectId: isDonationLinked ? prev.projectId : 0,
+      donationOpportunityId: isDonationLinked ? prev.donationOpportunityId : 0,
+      mosqueRequestId: isDonationLinked ? prev.mosqueRequestId : 0,
       contractId: 0,
       contractPaymentId: 0,
       title: "",
@@ -411,6 +417,12 @@ export default function NewLinkedDisbursementRequest() {
   
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
+  
+  // جلب فرص التبرع النشطة
+  const { data: donationOpportunities } = trpc.disbursements.getActiveDonations.useQuery(
+    undefined,
+    { enabled: isDonationLinked }
+  );
   
   // جلب الموردين النشطين
   const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
@@ -756,6 +768,8 @@ export default function NewLinkedDisbursementRequest() {
         billerName: formData.billerName || "",
         sadadNumber: formData.sadadNumber || "",
         billerCode: formData.billerCode || "",
+        donationOpportunityId: isDonationLinked ? formData.donationOpportunityId : undefined,
+        mosqueRequestId: isDonationLinked ? formData.mosqueRequestId : undefined,
       }),
       type: "metadata"
     }] : [];
@@ -900,26 +914,28 @@ export default function NewLinkedDisbursementRequest() {
                   <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
                     <Select
-                      value={formData.projectId.toString()}
+                      value={formData.donationOpportunityId.toString()}
                       onValueChange={(value) => {
-                        const projId = parseInt(value);
-                        const selectedProj = projects?.find((p: any) => p.id === projId);
+                        const oppId = parseInt(value);
+                        const selectedOpp = donationOpportunities?.find((o: any) => o.id === oppId);
                         setFormData({ 
                           ...formData, 
-                          projectId: projId, 
+                          donationOpportunityId: oppId,
+                          mosqueRequestId: selectedOpp ? (selectedOpp.requestId ?? 0) : 0,
+                          projectId: 0, 
                           contractId: 0,
-                          customProjectName: selectedProj ? selectedProj.name : formData.customProjectName
+                          customProjectName: selectedOpp ? selectedOpp.title : formData.customProjectName
                         });
                         setSelectedReportId(null);
                       }}
                     >
                       <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm" dir="rtl">
-                        <SelectValue placeholder="اختر المشروع لربطه بفرصة التبرع" />
+                        <SelectValue placeholder="اختر فرصة التبرع للربط بها" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
-                        {projects?.filter((p: any) => p.technicalEvalDecision === 'convert_to_donation').map((project: { id: number; name: string; projectNumber: string }) => (
-                          <SelectItem key={project.id} value={project.id.toString()} className="text-right">
-                            {project.name} - {project.projectNumber}
+                        {donationOpportunities?.map((opp: any) => (
+                          <SelectItem key={opp.id} value={opp.id.toString()} className="text-right">
+                            {opp.title} - {opp.requestNumber}
                           </SelectItem>
                         ))}
                       </SelectContent>
