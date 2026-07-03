@@ -623,6 +623,58 @@ export const projectsRouter = router({
 
   // ==================== جداول الكميات (BOQ) ====================
 
+  // إضافة بنود متعددة في جدول الكميات دفعة واحدة
+  bulkAddBOQItems: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      items: z.array(z.object({
+        itemName: z.string().min(1),
+        itemDescription: z.string().optional(),
+        unit: z.string().min(1),
+        quantity: z.number().positive(),
+        unitPrice: z.number().optional(),
+        category: z.string().optional(),
+      }))
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // البحث عن مشروع مرتبط بالطلب (إن وُجد)
+      let projectId: number | null = null;
+      const [existingProject] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.requestId, input.requestId))
+        .limit(1);
+      
+      if (existingProject) {
+        projectId = existingProject.id;
+      }
+
+      if (input.items.length === 0) return { success: true, count: 0 };
+
+      // تحضير القيم للإدخال
+      const valuesToInsert = input.items.map(item => {
+        const totalPrice = item.unitPrice ? item.quantity * item.unitPrice : null;
+        return {
+          projectId: projectId,
+          requestId: input.requestId,
+          itemName: item.itemName,
+          itemDescription: item.itemDescription,
+          unit: item.unit,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice?.toString(),
+          totalPrice: totalPrice?.toString(),
+          category: item.category || "other",
+        };
+      });
+
+      await db.insert(quantitySchedules).values(valuesToInsert);
+
+      return { success: true, count: valuesToInsert.length, projectId };
+    }),
+
   // إضافة بند في جدول الكميات
   addBOQItem: protectedProcedure
     .input(z.object({

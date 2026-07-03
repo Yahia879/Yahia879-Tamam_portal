@@ -20,9 +20,12 @@ import {
   Trash2,
   Loader2,
   FileText,
+  Download,
+  Upload,
 } from "lucide-react";
 import BoqFormDialog from "./BoqFormDialog";
 import { getStageOrder } from "../../../shared/constants";
+import * as XLSX from "xlsx";
 
 interface BoqTabProps {
   requestId: number;
@@ -93,6 +96,138 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         toast.error(error.message || "حدث خطأ أثناء حذف البند");
       },
     });
+
+    const bulkMutation = trpc.projects.bulkAddBOQItems.useMutation({
+      onSuccess: (data) => {
+        toast.success(`تم استيراد ${data.count} بنود بنجاح`);
+        utils.projects.getBOQ.invalidate();
+        refetch();
+      },
+      onError: (err) => {
+        toast.error(err.message || "حدث خطأ أثناء استيراد البنود");
+      }
+    });
+
+    const downloadTemplate = () => {
+      const headers = [
+        ["اسم البند / Item Name", "الوصف / Description", "الفئة (القسم) / Category", "الوحدة / Unit", "الكمية / Quantity", "سعر الوحدة / Unit Price"],
+        ["مثال: أعمال الحفر والتسوية", "حفر وتوريد تربة نظيفة ودكها", "الأعمال الإنشائية", "متر مكعب", 120, 35]
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(headers);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+      XLSX.writeFile(workbook, "BOQ_Template.xlsx");
+      toast.success("تم تحميل القالب الاسترشادي بنجاح");
+    };
+
+    const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const buffer = evt.target?.result as ArrayBuffer;
+          const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const rows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1 });
+
+          if (rows.length < 2) {
+            toast.error("الملف فارغ أو لا يحتوي على بنود");
+            return;
+          }
+
+          // قراءة العناوين
+          const headers = (rows[0] as any[]).map(h => String(h || "").trim().toLowerCase());
+          
+          const nameIdx = headers.findIndex(h => h.includes("اسم البند") || h.includes("item name") || h === "name");
+          const descIdx = headers.findIndex(h => h.includes("وصف") || h.includes("description") || h === "desc");
+          const categoryIdx = headers.findIndex(h => h.includes("فئة") || h.includes("قسم") || h === "category");
+          const unitIdx = headers.findIndex(h => h.includes("وحدة") || h.includes("unit"));
+          const qtyIdx = headers.findIndex(h => h.includes("كمية") || h.includes("quantity") || h === "qty");
+          const priceIdx = headers.findIndex(h => h.includes("سعر الوحدة") || h.includes("unit price") || h === "price");
+
+          if (nameIdx === -1 || unitIdx === -1 || qtyIdx === -1) {
+            toast.error("الملف غير مطابق للقالب. يجب وجود أعمدة: اسم البند، الوحدة، والكمية على الأقل.");
+            return;
+          }
+
+          const itemsToInsert: any[] = [];
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i] as any[];
+            if (!row || row.length === 0) continue;
+
+            const itemName = row[nameIdx];
+            const unit = row[unitIdx];
+            const quantityVal = row[qtyIdx];
+
+            // تخطي السطور الفارغة
+            if (!itemName && !unit && !quantityVal) continue;
+
+            if (!itemName) {
+              toast.error(`السطر رقم ${i + 1}: اسم البند مطلوب`);
+              return;
+            }
+            if (!unit) {
+              toast.error(`السطر رقم ${i + 1}: الوحدة مطلوبة`);
+              return;
+            }
+            
+            const quantity = parseFloat(String(quantityVal || ""));
+            if (isNaN(quantity) || quantity <= 0) {
+              toast.error(`السطر رقم ${i + 1}: الكمية يجب أن تكون رقماً أكبر من صفر`);
+              return;
+            }
+
+            let unitPrice: number | undefined = undefined;
+            if (priceIdx !== -1 && row[priceIdx] !== undefined && row[priceIdx] !== null && String(row[priceIdx]).trim() !== "") {
+              unitPrice = parseFloat(String(row[priceIdx]));
+              if (isNaN(unitPrice) || unitPrice < 0) {
+                toast.error(`السطر رقم ${i + 1}: سعر الوحدة يجب أن يكون رقماً أكبر من أو يساوي صفر`);
+                return;
+              }
+            }
+
+            let category = "other";
+            if (categoryIdx !== -1 && row[categoryIdx]) {
+              const rawCat = String(row[categoryIdx]).trim();
+              // محاولة مطابقة الفئة بالعربية أو الإنجليزية
+              const matchedCat = Object.entries(ITEM_CATEGORIES).find(([key, val]) => 
+                rawCat.toLowerCase() === key.toLowerCase() || rawCat === val
+              );
+              category = matchedCat ? matchedCat[0] : "other";
+            }
+
+            itemsToInsert.push({
+              itemName: String(itemName).trim(),
+              itemDescription: descIdx !== -1 && row[descIdx] ? String(row[descIdx]).trim() : "",
+              unit: String(unit).trim(),
+              quantity,
+              unitPrice,
+              category
+            });
+          }
+
+          if (itemsToInsert.length === 0) {
+            toast.error("لم يتم العثور على أي بنود صالحة للاستيراد");
+            return;
+          }
+
+          bulkMutation.mutate({
+            requestId,
+            items: itemsToInsert
+          });
+
+        } catch (error) {
+          console.error("Failed to parse Excel file:", error);
+          toast.error("فشل قراءة ملف Excel، يرجى التأكد من صيغة الملف وجودته");
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+      e.target.value = "";
+    };
 
     const handleDeleteItem = (id: number) => {
       if (isLocked) {
@@ -172,14 +307,46 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
               <Calculator className="h-5 w-5 text-teal-600" />
               <span className="font-semibold text-sm">إدارة بنود جدول الكميات</span>
             </div>
-            <Button
-              onClick={() => setShowAddDialog(true)}
-              className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة بند
-            </Button>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                id="boq-excel-upload"
+                className="hidden"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleExcelUpload}
+              />
+              <Button
+                onClick={downloadTemplate}
+                variant="outline"
+                className="border-teal-600 text-teal-600 hover:bg-teal-50 text-xs sm:text-sm"
+                size="sm"
+              >
+                <Download className="h-4 w-4 ml-2" />
+                تحميل القالب
+              </Button>
+              <Button
+                onClick={() => document.getElementById("boq-excel-upload")?.click()}
+                variant="outline"
+                className="border-teal-600 text-teal-600 hover:bg-teal-50 text-xs sm:text-sm"
+                size="sm"
+                disabled={bulkMutation.isPending}
+              >
+                {bulkMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                ) : (
+                  <Upload className="h-4 w-4 ml-2" />
+                )}
+                استيراد بنود (Excel)
+              </Button>
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة بند
+              </Button>
+            </div>
           </div>
         )}
 
