@@ -59,8 +59,10 @@ import {
   Download,
   ChevronLeft,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
@@ -136,8 +138,85 @@ function numberToArabicText(num: number): string {
 export default function DisbursementRequests() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+  const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      if (activeTab === "requests") {
+        const allData = await utils.disbursements.listRequests.fetch({
+          status: statusFilter !== "all" ? statusFilter as any : undefined,
+          requestType: requestTypeFilter !== "all" ? requestTypeFilter : undefined,
+          search: searchTerm || undefined,
+          page: 1,
+          limit: 5000,
+        });
+
+        const excelRows = (allData?.requests || []).map((req: any) => ({
+          "رقم الطلب": req.requestNumber || "-",
+          "العنوان / الوصف": req.title || req.description || "-",
+          "المشروع": req.projectName || "-",
+          "المبلغ (ريال)": Number(req.amount) || 0,
+          "نوع الدفعة": req.paymentType === "advance" ? "دفعة مقدمة" :
+                        req.paymentType === "progress" ? "دفعة جارية" :
+                        req.paymentType === "final" ? "دفعة ختامية" :
+                        req.paymentType === "retention" ? "دفعة مستخلص" : req.paymentType || "-",
+          "الحالة": req.status === "draft" ? "مسودة" :
+                    req.status === "pending" ? "قيد الاعتماد" :
+                    req.status === "approved" ? "معتمد" :
+                    req.status === "rejected" ? "مرفوض" :
+                    req.status === "paid" ? "مدفوع" : req.status || "-",
+          "تاريخ الطلب": req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ar-SA") : "-",
+          "الجهة الطالبة": req.requesterName || "-",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelRows);
+        worksheet["!dir"] = "rtl";
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "طلبات الصرف");
+        XLSX.writeFile(workbook, `تقرير_طلبات_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`);
+      } else {
+        const allData = await utils.disbursements.listOrders.fetch({
+          status: statusFilter !== "all" ? statusFilter as any : undefined,
+          search: searchTerm || undefined,
+          page: 1,
+          limit: 5000,
+        });
+
+        const excelRows = (allData?.orders || []).map((order: any) => ({
+          "رقم الأمر": order.orderNumber || "-",
+          "رقم طلب الصرف": order.requestNumber || "-",
+          "المشروع": order.projectName || "-",
+          "المستفيد": order.beneficiaryName || "-",
+          "المبلغ (ريال)": Number(order.amount) || 0,
+          "طريقة الدفع": order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
+                          order.paymentMethod === "check" ? "شيك" :
+                          order.paymentMethod === "custody" ? "عهدة" : order.paymentMethod || "-",
+          "الحالة": order.status === "pending" ? "قيد الاعتماد" :
+                    order.status === "approved" ? "معتمد" :
+                    order.status === "executed" ? "منفذ" :
+                    order.status === "rejected" ? "مرفوض" : order.status || "-",
+          "البنك": order.beneficiaryBank || "-",
+          "الآيبان": order.beneficiaryIban || "-",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelRows);
+        worksheet["!dir"] = "rtl";
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "أوامر الصرف");
+        XLSX.writeFile(workbook, `تقرير_أوامر_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`);
+      }
+      toast.success("تم تصدير ملف Excel بنجاح");
+    } catch (error) {
+      console.error("Failed to export excel:", error);
+      toast.error("حدث خطأ أثناء تصدير ملف Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
@@ -602,7 +681,7 @@ export default function DisbursementRequests() {
                   </SelectContent>
                 </Select>
 
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full lg:w-[180px]">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
@@ -614,6 +693,20 @@ export default function DisbursementRequests() {
                     <SelectItem value="rejected">مرفوض</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button 
+                  onClick={handleExportExcel} 
+                  disabled={isExporting}
+                  variant="outline" 
+                  className="w-full lg:w-auto h-10 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/40 dark:text-indigo-400 dark:hover:bg-indigo-950/20 font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5"
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  <span>تصدير إلى Excel</span>
+                </Button>
               </div>
             </div>
 
