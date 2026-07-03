@@ -2931,14 +2931,16 @@ export default function RequestDetailsNew() {
                     margin: 8mm !important;
                   }
                   html, body {
-                    height: auto !important;
-                    overflow: visible !important;
+                    height: 100% !important;
+                    overflow: hidden !important;
                     background-color: white !important;
                   }
                   #printable-commitment-form {
-                    position: relative !important;
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
                     width: 100% !important;
-                    height: auto !important;
+                    height: 100% !important;
                     border: 3px solid #1a5f4a !important;
                     background-color: white !important;
                     color: black !important;
@@ -2959,6 +2961,15 @@ export default function RequestDetailsNew() {
                     border: 1px solid #d4a574 !important;
                     border-radius: 4px !important;
                     display: block !important;
+                  }
+                  #printable-commitment-form .signatures-block {
+                    position: absolute !important;
+                    bottom: 24px !important;
+                    left: 24px !important;
+                    right: 24px !important;
+                  }
+                  #printable-commitment-form .relative {
+                    position: static !important;
                   }
                 }
               `}} />
@@ -3059,7 +3070,7 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {/* التوقيعات */}
-                <div className="break-inside-avoid pt-4">
+                <div className="signatures-block break-inside-avoid pt-4">
                   <div className="grid grid-cols-1 max-w-xs mx-auto text-center gap-6">
                     <div className="p-2">
                       <div className="font-bold text-gray-800 dark:text-slate-205 text-xs sm:text-sm mb-4">
