@@ -97,6 +97,7 @@ export const projectsRouter = router({
           managerId: projects.managerId,
           managerName: users.name,
           requestStage: mosqueRequests.currentStage,
+          technicalEvalDecision: mosqueRequests.technicalEvalDecision,
         })
         .from(projects)
         .leftJoin(users, eq(projects.managerId, users.id))

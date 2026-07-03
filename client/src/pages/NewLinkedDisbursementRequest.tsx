@@ -904,7 +904,7 @@ export default function NewLinkedDisbursementRequest() {
                       htmlFor="link-donation-opportunity" 
                       className="text-xs sm:text-sm font-bold text-pink-800 dark:text-pink-300 cursor-pointer"
                     >
-                      المشروع المرتبط (فرصة التبرع) [اختياري]
+                      المشروع المرتبط (فرصة التبرع)
                     </label>
                     <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
                       تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع وتحديد نوع الصرف تلقائياً
@@ -933,7 +933,7 @@ export default function NewLinkedDisbursementRequest() {
                         <SelectValue placeholder="اختر المشروع لربطه بفرصة التبرع" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
-                        {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
+                        {projects?.filter((p: any) => p.technicalEvalDecision === 'convert_to_donation').map((project: { id: number; name: string; projectNumber: string }) => (
                           <SelectItem key={project.id} value={project.id.toString()} className="text-right">
                             {project.name} - {project.projectNumber}
                           </SelectItem>
