@@ -53,8 +53,11 @@ import {
   ChevronLeft,
   MoreVertical,
   Plus,
+  Loader2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
+import ExcelJS from "exceljs";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
   draft: { label: "مسودة", variant: "outline", className: "border-slate-300 text-slate-600 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
@@ -77,7 +80,79 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
 export default function DisbursementOrders() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
+  const [isExporting, setIsExporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const allData = await utils.disbursements.listOrders.fetch({
+        status: statusFilter !== "all" ? statusFilter as any : undefined,
+        search: debouncedSearch || undefined,
+        page: 1,
+        limit: 5000,
+      });
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("أوامر الصرف", {
+        views: [{ showGridLines: true, rightToLeft: true }]
+      });
+
+      // Add headers
+      worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
+
+      // Add rows
+      (allData?.orders || []).forEach((order: any) => {
+        const paymentMethodText = order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
+                                  order.paymentMethod === "check" ? "شيك" :
+                                  order.paymentMethod === "custody" ? "عهدة" : 
+                                  order.paymentMethod === "sadad" ? "سداد" : order.paymentMethod || "-";
+
+        const statusText = order.status === "pending" ? "قيد الاعتماد" :
+                           order.status === "approved" ? "معتمد" :
+                           order.status === "executed" ? "منفذ" :
+                           order.status === "rejected" ? "مرفوض" : order.status || "-";
+
+        const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
+        const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
+
+        worksheet.addRow([
+          order.orderNumber || "-",
+          order.requestNumber || "-",
+          order.projectName || "-",
+          order.beneficiaryName || "-",
+          Number(order.amount) || 0,
+          paymentMethodText,
+          statusText,
+          bankOrSadad,
+          ibanOrBiller,
+        ]);
+      });
+
+      // Set column widths to 30 for A, B, C, E, F
+      ['A', 'B', 'C', 'E', 'F'].forEach(col => {
+        worksheet.getColumn(col).width = 30;
+      });
+
+      // Write buffer and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `تقرير_أوامر_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("تم تصدير ملف Excel بنجاح");
+    } catch (error) {
+      console.error("Failed to export excel:", error);
+      toast.error("حدث خطأ أثناء تصدير ملف Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -272,6 +347,20 @@ export default function DisbursementOrders() {
                   <SelectItem value="edited">تم التعديل</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button 
+                onClick={handleExportExcel} 
+                disabled={isExporting}
+                variant="outline"
+                className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                <span dir="rtl">تصدير إلى Excel</span>
+              </Button>
             </div>
 
             {isLoading ? (

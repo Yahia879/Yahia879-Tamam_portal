@@ -209,18 +209,22 @@ export default function DisbursementRequests() {
         });
 
         // Add headers
-        worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك", "الآيبان"]);
+        worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
 
         // Add rows
         (allData?.orders || []).forEach((order: any) => {
           const paymentMethodText = order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
                                     order.paymentMethod === "check" ? "شيك" :
-                                    order.paymentMethod === "custody" ? "عهدة" : order.paymentMethod || "-";
+                                    order.paymentMethod === "custody" ? "عهدة" : 
+                                    order.paymentMethod === "sadad" ? "سداد" : order.paymentMethod || "-";
 
           const statusText = order.status === "pending" ? "قيد الاعتماد" :
                              order.status === "approved" ? "معتمد" :
                              order.status === "executed" ? "منفذ" :
                              order.status === "rejected" ? "مرفوض" : order.status || "-";
+
+          const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
+          const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
 
           worksheet.addRow([
             order.orderNumber || "-",
@@ -230,8 +234,8 @@ export default function DisbursementRequests() {
             Number(order.amount) || 0,
             paymentMethodText,
             statusText,
-            order.beneficiaryBank || "-",
-            order.beneficiaryIban || "-",
+            bankOrSadad,
+            ibanOrBiller,
           ]);
         });
 
