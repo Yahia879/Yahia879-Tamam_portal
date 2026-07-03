@@ -180,7 +180,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "pending_reports.intervene": ["pending_reports.intervene"],
 
   "disbursements.add": ["disbursements.create"],
-  "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom"],
+  "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom", "disbursements.create_donation"],
   "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
 };
 
@@ -826,6 +826,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   ) {
     allPermissions.add("disbursements");
     allPermissions.add("disbursement_requests");
+  }
+  if (allPermissions.has("disbursements.create_custom")) {
+    allPermissions.add("disbursements.create_donation");
   }
   if (
     allPermissions.has("disbursements.add") ||
