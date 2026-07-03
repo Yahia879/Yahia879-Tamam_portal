@@ -1344,7 +1344,7 @@ export default function RequestDetailsNew() {
 
                   {/* الاعتذار */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50/70 hover:bg-red-50 hover:border-red-300 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('apologize');
                       setShowTechnicalEvalDialog(true);
@@ -1353,11 +1353,11 @@ export default function RequestDetailsNew() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
-                        <XCircle className="w-5 h-5 text-red-600" />
+                        <XCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-red-800 dark:text-red-200 text-xs sm:text-sm mb-0.5">الاعتذار (الرفض)</h5>
-                        <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 leading-snug">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
+                        <h5 className="font-bold text-red-700 dark:text-red-200 text-xs sm:text-sm mb-0.5">الاعتذار (الرفض)</h5>
+                        <p className="text-[10px] sm:text-[11px] text-red-500 dark:text-red-400 leading-snug">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
                       </div>
                     </div>
                   </button>
