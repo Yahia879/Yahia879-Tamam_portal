@@ -1351,7 +1351,7 @@ export const disbursementsRouter = router({
     }),
 
   // إنشاء أمر صرف مباشر بدون طلب مسبق
-  createDirectOrder: permissionProcedure("disbursements.create")
+  createDirectOrder: protectedProcedure
     .input(
       z.object({
         projectId: z.number().optional().nullable(),
@@ -1377,6 +1377,17 @@ export const disbursementsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      const hasCreatePerm = await checkPermission(ctx.user.id, "disbursements.create");
+      const hasCreateDirectPerm = await checkPermission(ctx.user.id, "disbursement_orders.create_direct");
+      const hasCreateCustomPerm = await checkPermission(ctx.user.id, "disbursements.create_custom");
+
+      if (!hasCreatePerm && !hasCreateDirectPerm && !hasCreateCustomPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية لإنشاء أمر صرف مباشر (يتطلب صلاحية disbursements.create أو disbursement_orders.create_direct أو disbursements.create_custom)",
+        });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
