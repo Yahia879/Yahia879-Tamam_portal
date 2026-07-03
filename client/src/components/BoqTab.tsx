@@ -110,8 +110,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const downloadTemplate = () => {
       const headers = [
-        ["اسم البند", "الفئة (القسم)", "الوحدة", "الكمية", "سعر الوحدة"],
-        ["مثال: أعمال الحفر والتسوية", "الأعمال الإنشائية", "متر مكعب", 120, 35]
+        ["التصنيف", "اسم البند", "الوحدة", "الكمية", "سعر الوحدة"],
+        ["الأعمال الإنشائية", "مثال: أعمال الحفر والتسوية", "متر مكعب", 120, 35]
       ];
       const worksheet = XLSX.utils.aoa_to_sheet(headers);
       worksheet["!views"] = [{ RTL: true }];
@@ -158,7 +158,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           
           const nameIdx = headers.findIndex(h => h.trim() === "اسم البند" || h.includes("item name") || h === "name");
           const descIdx = headers.findIndex(h => h.includes("وصف") || h.includes("description") || h === "desc");
-          const categoryIdx = headers.findIndex(h => h.includes("فئة") || h.includes("قسم") || h === "category");
+          const categoryIdx = headers.findIndex(h => h.includes("تصنيف") || h.includes("فئة") || h.includes("قسم") || h === "category");
           const unitIdx = headers.findIndex(h => h.trim() === "الوحدة" || h === "unit");
           const qtyIdx = headers.findIndex(h => h.trim() === "الكمية" || h.includes("quantity") || h === "qty");
           const priceIdx = headers.findIndex(h => h.trim() === "سعر الوحدة" || h.includes("unit price") || h === "price");
