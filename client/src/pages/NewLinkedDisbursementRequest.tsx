@@ -918,12 +918,14 @@ export default function NewLinkedDisbursementRequest() {
                       onValueChange={(value) => {
                         const oppId = parseInt(value);
                         const selectedOpp = donationOpportunities?.find((o: any) => o.id === oppId);
+                        const parsedAmount = selectedOpp ? parseFloat(selectedOpp.targetAmount) : 0;
                         setFormData({ 
                           ...formData, 
                           donationOpportunityId: oppId,
                           mosqueRequestId: selectedOpp ? (selectedOpp.requestId ?? 0) : 0,
-                          projectId: 0, 
+                          projectId: 0,
                           contractId: 0,
+                          amount: parsedAmount || formData.amount,
                           customProjectName: selectedOpp ? selectedOpp.title : formData.customProjectName
                         });
                         setSelectedReportId(null);
