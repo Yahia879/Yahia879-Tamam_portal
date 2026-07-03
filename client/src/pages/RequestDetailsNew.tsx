@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   Select, 
   SelectContent, 
@@ -326,9 +327,75 @@ export default function RequestDetailsNew() {
   // Fetch BOQ data for validation
   const { data: boqResult } = trpc.projects.getBOQ.useQuery(
     { requestId },
-    { enabled: request?.currentStage === 'boq_preparation' }
+    { enabled: !!request }
   );
   const hasBoqItems = boqResult?.items && boqResult.items.length > 0;
+
+  // إجمالي جدول الكميات المحسوب
+  const boqTotal = useMemo(() => {
+    if (!boqResult?.items) return 0;
+    return boqResult.items.reduce((sum: number, item: any) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unitPrice) || 0;
+      return sum + qty * price;
+    }, 0);
+  }, [boqResult]);
+
+  // حالات نموذج التزام طالب الخدمة
+  const [commitmentFormOpen, setCommitmentFormOpen] = useState(false);
+  const [commitmentFormMode, setCommitmentFormMode] = useState<'edit' | 'print_preview'>('edit');
+  const [commitmentFormData, setCommitmentFormData] = useState({
+    title: "",
+    expectedCost: "",
+    terms: `1. يلتزم طالب الخدمة بتوفير كافة التسهيلات والموافقات الرسمية اللازمة لتنفيذ الأعمال في موقع المسجد.
+2. يلتزم طالب الخدمة بالمحافظة التامة على التجهيزات والمعدات المنفذة بعد استلام المشروع وضمان صيانتها الدورية.
+3. يلتزم طالب الخدمة بعدم إجراء أي تعديلات أو إضافات على الأعمال المنفذة دون موافقة خطية مسبقة من إدارة المشاريع.
+4. يلتزم طالب الخدمة بالتعاون الكامل مع المهندسين المشرفين وفرق العمل الميدانية طوال فترة التنفيذ.`,
+    additionalTerms: ""
+  });
+
+  useEffect(() => {
+    if (commitmentFormOpen && request) {
+      setCommitmentFormData(prev => ({
+        ...prev,
+        title: request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `طلب رقم ${request.requestNumber}`,
+        expectedCost: boqTotal > 0 ? boqTotal.toString() : "",
+      }));
+      setCommitmentFormMode('edit');
+    }
+  }, [commitmentFormOpen, request, boqTotal]);
+
+  const handlePrintCommitment = () => {
+    const printContent = document.getElementById("printable-commitment-form");
+    if (!printContent) return;
+
+    const win = window.open("", "_blank");
+    if (!win) {
+      toast.error("يرجى السماح بالنوافذ المنبثقة لطباعة النموذج");
+      return;
+    }
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>نموذج التزام طالب الخدمة</title>
+          <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              direction: rtl;
+              padding: 40px;
+              background-color: #fff;
+            }
+          </style>
+        </head>
+        <body onload="window.print(); window.close();">
+          ${printContent.innerHTML}
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
 
   // Fetch Quotations for validation
   const { data: quotationsResult } = trpc.projects.getQuotationsByRequest.useQuery(
@@ -1161,6 +1228,14 @@ export default function RequestDetailsNew() {
                         total: workflow.length,
                         percentage: progress,
                       }}
+                      commitmentFormButton={
+                        request.currentStage === 'technical_eval' && !isFieldTeam && !isQuickResponseUser
+                          ? {
+                              label: 'نموذج التزام طالب الخدمة',
+                              onClick: () => setCommitmentFormOpen(true),
+                            }
+                          : undefined
+                      }
                       fieldReportButton={
                         !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
                         !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
@@ -2696,6 +2771,198 @@ export default function RequestDetailsNew() {
         fullScreen={true}
       >
         <BoqTab requestId={requestId} />
+      </ColoredDialog>
+
+      {/* نافذة نموذج التزام طالب الخدمة */}
+      <ColoredDialog
+        open={commitmentFormOpen}
+        onOpenChange={setCommitmentFormOpen}
+        title={commitmentFormMode === 'edit' ? "نموذج التزام طالب الخدمة" : "معاينة وثيقة التزام طالب الخدمة"}
+        color="indigo"
+        fullScreen={commitmentFormMode === 'print_preview'}
+      >
+        {commitmentFormMode === 'edit' ? (
+          <div className="space-y-6 p-1 text-right" dir="rtl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-base font-bold mb-2 block">اسم الطلب *</Label>
+                <Input
+                  value={commitmentFormData.title}
+                  onChange={(e) => setCommitmentFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="h-11"
+                />
+              </div>
+              <div>
+                <Label className="text-base font-bold mb-2 block">التكلفة المتوقعة (ريال) *</Label>
+                <Input
+                  type="number"
+                  value={commitmentFormData.expectedCost}
+                  onChange={(e) => setCommitmentFormData(prev => ({ ...prev, expectedCost: e.target.value }))}
+                  className="h-11"
+                  placeholder="مثال: 12500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-base font-bold mb-2 block">الشروط والأحكام الخاصة بالبرنامج *</Label>
+              <Textarea
+                value={commitmentFormData.terms}
+                onChange={(e) => setCommitmentFormData(prev => ({ ...prev, terms: e.target.value }))}
+                className="min-h-[140px] leading-relaxed"
+              />
+            </div>
+
+            <div>
+              <Label className="text-base font-bold mb-2 block">شروط التزام إضافية</Label>
+              <Textarea
+                value={commitmentFormData.additionalTerms}
+                onChange={(e) => setCommitmentFormData(prev => ({ ...prev, additionalTerms: e.target.value }))}
+                placeholder="أدخل أي شروط إضافية تود إلحاقها بالنموذج..."
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* معلومات طالب الخدمة (غير قابلة للتعديل) */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border rounded-lg space-y-2">
+              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">معلومات طالب الخدمة (قراءة فقط)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
+                <div>
+                  <span className="font-semibold block text-slate-800 dark:text-slate-300">الاسم:</span>
+                  <span>{request?.requester?.name || "غير محدد"}</span>
+                </div>
+                <div>
+                  <span className="font-semibold block text-slate-800 dark:text-slate-300">رقم الجوال:</span>
+                  <span>{request?.requester?.phone || "غير محدد"}</span>
+                </div>
+                <div>
+                  <span className="font-semibold block text-slate-800 dark:text-slate-300">البريد الإلكتروني:</span>
+                  <span>{request?.requester?.email || "غير محدد"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setCommitmentFormOpen(false)} className="h-11 px-6">
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!commitmentFormData.title.trim() || !commitmentFormData.expectedCost) {
+                    toast.error("يرجى ملء جميع الحقول المطلوبة (*)");
+                    return;
+                  }
+                  setCommitmentFormMode('print_preview');
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-11 px-6 font-bold"
+              >
+                تأكيد النموذج
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6 text-right max-w-4xl mx-auto p-4 sm:p-6" dir="rtl">
+            <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-4 rounded-xl no-print gap-2">
+              <span className="text-sm text-slate-600 dark:text-slate-300">
+                تم توليد تقرير معاينة وثيقة الالتزام بنجاح. يمكنك طباعتها الآن.
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setCommitmentFormMode('edit')} className="h-10">
+                  تعديل البيانات
+                </Button>
+                <Button onClick={handlePrintCommitment} className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 font-bold">
+                  <Printer className="h-4 w-4 ml-2" />
+                  طباعة الوثيقة
+                </Button>
+              </div>
+            </div>
+
+            {/* قالب التقرير القابل للطباعة */}
+            <div id="printable-commitment-form" className="space-y-8 p-8 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm">
+              <div className="flex items-center justify-between border-b pb-6 border-slate-200 dark:border-slate-800">
+                <div className="text-right">
+                  <h1 className="text-2xl font-bold">وثيقة التزام طالب الخدمة</h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">تاريخ الإصدار: {new Date().toLocaleDateString("ar-SA")}</p>
+                </div>
+                <div className="text-left font-black text-indigo-600 dark:text-indigo-400 text-xl tracking-wider">TAMAM PORTAL</div>
+              </div>
+
+              {/* بيانات الطلب والمستفيد */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">1. بيانات الطلب والمستفيد</h3>
+                <div className="w-full overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr className="border-b border-slate-200 dark:border-slate-800">
+                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">اسم الطلب</td>
+                        <td className="p-3">{commitmentFormData.title}</td>
+                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">التكلفة المتوقعة</td>
+                        <td className="p-3 font-semibold text-green-600 dark:text-green-400">
+                          {parseFloat(commitmentFormData.expectedCost || "0").toLocaleString("ar-SA")} ريال
+                        </td>
+                      </tr>
+                      <tr className="border-b border-slate-200 dark:border-slate-800">
+                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">اسم طالب الخدمة</td>
+                        <td className="p-3">{request?.requester?.name || "غير محدد"}</td>
+                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الجوال</td>
+                        <td className="p-3">{request?.requester?.phone || "غير محدد"}</td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">البريد الإلكتروني</td>
+                        <td className="p-3" colSpan={3}>{request?.requester?.email || "غير محدد"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* الشروط والأحكام */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">2. الشروط والأحكام الخاصة بالبرنامج</h3>
+                <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
+                  {commitmentFormData.terms}
+                </div>
+              </div>
+
+              {/* الشروط الإضافية */}
+              {commitmentFormData.additionalTerms.trim() && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">3. شروط التزام إضافية</h3>
+                  <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
+                    {commitmentFormData.additionalTerms}
+                  </div>
+                </div>
+              )}
+
+              {/* التعهد والالتزام */}
+              <div className="space-y-4 pt-4">
+                <p className="leading-relaxed font-medium text-sm text-slate-700 dark:text-slate-300">
+                  أتعهد أنا طالب الخدمة الموضحة بياناتي أعلاه بالالتزام التام بكافة الشروط والأحكام والبنود المنصوص عليها في هذه الوثيقة، وتحمل كافة المسؤوليات المترتبة على ذلك.
+                </p>
+              </div>
+
+              {/* التوقيعات */}
+              <div className="grid grid-cols-2 gap-8 pt-16 border-t border-slate-200 dark:border-slate-800">
+                <div className="text-center space-y-8">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة (المتعهد)</span>
+                  <div className="h-16"></div>
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                    <p>الاسم: ________________________</p>
+                    <p>التوقيع: ________________________</p>
+                  </div>
+                </div>
+                <div className="text-center space-y-8">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">مكتب المشاريع (المدقق)</span>
+                  <div className="h-16"></div>
+                  <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                    <p>الاسم: ________________________</p>
+                    <p>التوقيع: ________________________</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </ColoredDialog>
 
       {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}

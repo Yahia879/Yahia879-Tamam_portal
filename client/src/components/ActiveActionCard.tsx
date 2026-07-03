@@ -27,6 +27,12 @@ interface ActiveActionCardProps {
     variant?: "default" | "destructive" | "outline" | "secondary";
     disabled?: boolean;
   };
+  commitmentFormButton?: {
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "destructive" | "outline" | "secondary";
+    disabled?: boolean;
+  };
   additionalActions?: Array<{
     label: string;
     onClick: () => void;
@@ -46,6 +52,7 @@ export function ActiveActionCard({
   actionButton,
   secondaryButton,
   fieldReportButton,
+  commitmentFormButton,
   additionalActions,
   progress,
 }: ActiveActionCardProps) {
@@ -136,6 +143,24 @@ export function ActiveActionCard({
                 >
                   <FileText className="w-5 h-5 shrink-0" />
                   {fieldReportButton.label}
+                </Button>
+              </motion.div>
+            )}
+
+            {commitmentFormButton && (
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Button
+                  size="lg"
+                  variant={commitmentFormButton.variant || "outline"}
+                  onClick={commitmentFormButton.onClick}
+                  disabled={commitmentFormButton.disabled}
+                  className="w-full text-base sm:text-lg py-5 sm:py-6 flex items-center justify-center gap-2 border-primary text-primary hover:bg-primary/5"
+                >
+                  <FileText className="w-5 h-5 shrink-0" />
+                  {commitmentFormButton.label}
                 </Button>
               </motion.div>
             )}
