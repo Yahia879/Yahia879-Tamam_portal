@@ -719,6 +719,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   revokedPermissions.forEach(revokedPerm => {
     const parentKeys = reverseExpansionMap[revokedPerm] || [];
     for (const parentKey of parentKeys) {
+      if (parentKey === "disbursements.add" || parentKey === "disbursements.create_custom" || parentKey === "disbursements.create_donation") {
+        continue;
+      }
       // نحذف المفتاح الأب فقط إذا كانت كل صلاحياته الفرعية محجوبة أو غير موجودة
       const siblingPerms = PERMISSION_EXPANSION[parentKey] || [];
       const hasRemainingGranted = siblingPerms.some(

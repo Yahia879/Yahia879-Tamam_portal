@@ -335,7 +335,7 @@ export default function DisbursementRequests() {
   const hasAddPermission = usePermission("disbursements.add");
   const hasCreateCustomPermission = usePermission("disbursements.create_custom");
   const canCreateRequest = hasEditPermission;
-  const canCreateDisbursement = hasAddPermission || hasCreateCustomPermission;
+  const canCreateDisbursement = usePermission("disbursements.create");
   const canApproveRequest = hasApprovePermission;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");

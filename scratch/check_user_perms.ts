@@ -1,75 +1,27 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
+
 import { getDb } from "../server/db";
-import { mosqueRequests, users, userRoleAssignments, userPermissions } from "../drizzle/schema";
+import { users } from "../drizzle/schema";
 import { calculateUserPermissions } from "../server/permissions";
-import { eq } from "drizzle-orm";
 
 async function main() {
   const db = await getDb();
   if (!db) {
-    console.error("Database connection failed");
-    return;
+    console.error("Database not available");
+    process.exit(1);
   }
-  
-  // Find request 35
-  const [request] = await db
-    .select()
-    .from(mosqueRequests)
-    .where(eq(mosqueRequests.id, 35))
-    .limit(1);
-    
-  if (!request) {
-    console.error("Request 35 not found");
-    return;
+
+  const allUsers = await db.select().from(users);
+  console.log(`Found ${allUsers.length} users:`);
+  for (const u of allUsers) {
+    const perms = await calculateUserPermissions(u.id);
+    const hasAdd = perms.includes("disbursements.add");
+    const hasCustom = perms.includes("disbursements.create_custom");
+    const hasCreate = perms.includes("disbursements.create");
+    console.log(`User ID: ${u.id} | Name: ${u.name} | Role: ${u.role} | hasAdd: ${hasAdd} | hasCustom: ${hasCustom} | hasCreate: ${hasCreate}`);
   }
-  
-  const assignedUserId = request.finalReportAssignedTo;
-  console.log("Request 35 details:");
-  console.log(" - requestNumber:", request.requestNumber);
-  console.log(" - currentStage:", request.currentStage);
-  console.log(" - finalReportAssignedTo:", assignedUserId);
-  
-  if (!assignedUserId) {
-    console.log("No final report user assigned to this request.");
-    return;
-  }
-  
-  // Find user details
-  const [userData] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, assignedUserId))
-    .limit(1);
-    
-  if (!userData) {
-    console.error(`User with ID ${assignedUserId} not found`);
-    return;
-  }
-  
-  console.log("\nUser Details:");
-  console.log(" - Name:", userData.name);
-  console.log(" - Email:", userData.email);
-  console.log(" - Primary Role in users table:", userData.role);
-  console.log(" - Status:", userData.status);
-  
-  // Custom role assignments
-  const rolesAssigned = await db
-    .select()
-    .from(userRoleAssignments)
-    .where(eq(userRoleAssignments.userId, assignedUserId));
-  console.log("\nAssigned Roles (userRoleAssignments):", rolesAssigned);
-  
-  // Direct user permissions
-  const directPerms = await db
-    .select()
-    .from(userPermissions)
-    .where(eq(userPermissions.userId, assignedUserId));
-  console.log("\nDirect Permissions (userPermissions):", directPerms);
-  
-  // Calculated permissions
-  const calculated = await calculateUserPermissions(assignedUserId);
-  console.log("\nCalculated Permissions:", calculated);
-  console.log(" - Has 'requests.upload_final_report'?", calculated.includes("requests.upload_final_report"));
+  process.exit(0);
 }
 
 main().catch(console.error);

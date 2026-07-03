@@ -123,14 +123,17 @@ export default function UserPermissions() {
                     structureLoading;
 
   useEffect(() => {
-    if (directPermissions) {
+    if (directPermissions && structure) {
       const initialOverrides: Record<string, boolean> = {};
+      const renderedPermIds = new Set(structure.flatMap(g => g.permissions).map(p => p.id));
       directPermissions.forEach(p => {
-        initialOverrides[p.permissionId] = p.granted;
+        if (renderedPermIds.has(p.permissionId)) {
+          initialOverrides[p.permissionId] = p.granted;
+        }
       });
       setOverrides(initialOverrides);
     }
-  }, [directPermissions]);
+  }, [directPermissions, structure]);
 
   // التحقق من حالة الصلاحية المحددة (مدمجة)
   const isChecked = (permissionId: string) => {
