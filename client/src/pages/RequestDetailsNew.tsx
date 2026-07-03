@@ -324,6 +324,9 @@ export default function RequestDetailsNew() {
   );
   const latestFinalReport = finalReports?.[0] || null;
 
+  // Fetch organization settings for report templates
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   // Fetch BOQ data for validation
   const { data: boqResult } = trpc.projects.getBOQ.useQuery(
     { requestId },
@@ -2921,15 +2924,15 @@ export default function RequestDetailsNew() {
           </div>
         ) : (
           <div className="space-y-6 text-right max-w-4xl mx-auto p-4 sm:p-6" dir="rtl">
-            <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-4 rounded-xl no-print gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex justify-between items-center bg-green-50 dark:bg-green-950/20 p-4 border border-green-200/50 dark:border-green-900/30 rounded-xl no-print gap-2">
+              <span className="text-sm text-green-800 dark:text-green-300 font-medium">
                 تم توليد تقرير معاينة وثيقة الالتزام بنجاح. يمكنك طباعتها الآن.
               </span>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setCommitmentFormMode('edit')} className="h-10">
+                <Button variant="outline" onClick={() => setCommitmentFormMode('edit')} className="h-10 rounded-xl border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20">
                   تعديل البيانات
                 </Button>
-                <Button onClick={handlePrintCommitment} className="bg-indigo-600 hover:bg-indigo-700 text-white h-10 font-bold">
+                <Button onClick={handlePrintCommitment} className="bg-green-700 hover:bg-green-800 text-white h-10 font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center">
                   <Printer className="h-4 w-4 ml-2" />
                   طباعة الوثيقة
                 </Button>
@@ -2937,85 +2940,106 @@ export default function RequestDetailsNew() {
             </div>
 
             {/* قالب التقرير القابل للطباعة */}
-            <div id="printable-commitment-form" className="space-y-8 p-8 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm">
-              <div className="flex items-center justify-between border-b pb-6 border-slate-200 dark:border-slate-800">
-                <div className="text-right">
-                  <h1 className="text-2xl font-bold">وثيقة التزام طالب الخدمة</h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">تاريخ الإصدار: {new Date().toLocaleDateString("ar-SA")}</p>
-                </div>
-                <div className="text-left font-black text-indigo-600 dark:text-indigo-400 text-xl tracking-wider">TAMAM PORTAL</div>
-              </div>
+            <div id="printable-commitment-form" className="space-y-8 p-8 border-[3px] border-[#1a5f4a] rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm relative">
+              {/* خط ذهبي داخلي رفيع للإطار */}
+              <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
-              {/* بيانات الطلب والمستفيد */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">1. بيانات الطلب والمستفيد</h3>
-                <div className="w-full overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr className="border-b border-slate-200 dark:border-slate-800">
-                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">اسم الطلب</td>
-                        <td className="p-3">{commitmentFormData.title}</td>
-                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">التكلفة المتوقعة</td>
-                        <td className="p-3 font-semibold text-green-600 dark:text-green-400">
-                          {parseFloat(commitmentFormData.expectedCost || "0").toLocaleString("ar-SA")} ريال
-                        </td>
-                      </tr>
-                      <tr className="border-b border-slate-200 dark:border-slate-800">
-                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">اسم طالب الخدمة</td>
-                        <td className="p-3">{request?.requester?.name || "غير محدد"}</td>
-                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الجوال</td>
-                        <td className="p-3">{request?.requester?.phone || "غير محدد"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">البريد الإلكتروني</td>
-                        <td className="p-3" colSpan={3}>{request?.requester?.email || "غير محدد"}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="relative z-10 flex flex-col justify-start space-y-6">
+                {/* الترويسة - الشعار والتاريخ */}
+                <div className="flex flex-row justify-between items-start border-b-2 border-slate-200 pb-4">
+                  <div className="flex items-center gap-3">
+                    {orgSettings?.logoUrl ? (
+                      <img src={orgSettings.logoUrl} alt="الشعار" className="h-16 w-auto" />
+                    ) : (
+                      <div className="w-16 h-16 bg-[#1a5f4a]/10 rounded-lg flex items-center justify-center">
+                        <span className="text-[#1a5f4a] font-bold text-2xl">تمام</span>
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-base font-bold text-[#1a5f4a]">
+                        {orgSettings?.officialReportsName || "بوابة تمام"}
+                      </div>
+                      <div className="text-xs text-slate-500 font-medium">إدارة المشاريع</div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-left space-y-1">
+                    <h2 className="text-xl font-bold text-[#1a5f4a]">وثيقة التزام طالب الخدمة</h2>
+                    <p className="text-xs text-slate-500">التاريخ: {new Date().toLocaleDateString("ar-SA")}</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* الشروط والأحكام */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">2. الشروط والأحكام الخاصة بالبرنامج</h3>
-                <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
-                  {commitmentFormData.terms}
-                </div>
-              </div>
-
-              {/* الشروط الإضافية */}
-              {commitmentFormData.additionalTerms.trim() && (
+                {/* بيانات الطلب والمستفيد */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-bold border-r-4 border-indigo-600 pr-3">3. شروط التزام إضافية</h3>
+                  <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">1. بيانات الطلب والمستفيد</h3>
+                  <div className="w-full overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">اسم الطلب</td>
+                          <td className="p-3">{commitmentFormData.title}</td>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">التكلفة المتوقعة</td>
+                          <td className="p-3 font-semibold text-green-700 dark:text-green-400">
+                            {commitmentFormData.expectedCost ? parseFloat(commitmentFormData.expectedCost).toLocaleString("ar-SA") : "0"} ريال
+                          </td>
+                        </tr>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">اسم طالب الخدمة</td>
+                          <td className="p-3">{request?.requester?.name || "غير محدد"}</td>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الجوال</td>
+                          <td className="p-3">{request?.requester?.phone || "غير محدد"}</td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">البريد الإلكتروني</td>
+                          <td className="p-3" colSpan={3}>{request?.requester?.email || "غير محدد"}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* الشروط والأحكام */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">2. الشروط والأحكام الخاصة بالبرنامج</h3>
                   <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
-                    {commitmentFormData.additionalTerms}
+                    {commitmentFormData.terms}
                   </div>
                 </div>
-              )}
 
-              {/* التعهد والالتزام */}
-              <div className="space-y-4 pt-4">
-                <p className="leading-relaxed font-medium text-sm text-slate-700 dark:text-slate-300">
-                  أتعهد أنا طالب الخدمة الموضحة بياناتي أعلاه بالالتزام التام بكافة الشروط والأحكام والبنود المنصوص عليها في هذه الوثيقة، وتحمل كافة المسؤوليات المترتبة على ذلك.
-                </p>
-              </div>
-
-              {/* التوقيعات */}
-              <div className="grid grid-cols-2 gap-8 pt-16 border-t border-slate-200 dark:border-slate-800">
-                <div className="text-center space-y-8">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة (المتعهد)</span>
-                  <div className="h-16"></div>
-                  <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                    <p>الاسم: ________________________</p>
-                    <p>التوقيع: ________________________</p>
+                {/* الشروط الإضافية */}
+                {commitmentFormData.additionalTerms.trim() && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">3. شروط التزام إضافية</h3>
+                    <div className="border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300 text-sm">
+                      {commitmentFormData.additionalTerms}
+                    </div>
                   </div>
+                )}
+
+                {/* التعهد والالتزام */}
+                <div className="space-y-4 pt-4">
+                  <p className="leading-relaxed font-medium text-sm text-slate-700 dark:text-slate-300">
+                    أتعهد أنا طالب الخدمة الموضحة بياناتي أعلاه بالالتزام التام بكافة الشروط والأحكام والبنود المنصوص عليها في هذه الوثيقة، وتحمل كافة المسؤوليات المترتبة على ذلك.
+                  </p>
                 </div>
-                <div className="text-center space-y-8">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">مكتب المشاريع (المدقق)</span>
-                  <div className="h-16"></div>
-                  <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                    <p>الاسم: ________________________</p>
-                    <p>التوقيع: ________________________</p>
+
+                {/* التوقيعات */}
+                <div className="grid grid-cols-2 gap-8 pt-16 border-t border-slate-200 dark:border-slate-800">
+                  <div className="text-center space-y-8">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة (المتعهد)</span>
+                    <div className="h-16"></div>
+                    <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                      <p>الاسم: ________________________</p>
+                      <p>التوقيع: ________________________</p>
+                    </div>
+                  </div>
+                  <div className="text-center space-y-8">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">مكتب المشاريع (المدقق)</span>
+                    <div className="h-16"></div>
+                    <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                      <p>الاسم: ________________________</p>
+                      <p>التوقيع: ________________________</p>
+                    </div>
                   </div>
                 </div>
               </div>
