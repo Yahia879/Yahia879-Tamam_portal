@@ -1223,16 +1223,14 @@ export default function Quotations() {
             )}
             {selectedRequestId && (
               <div className="mt-4 flex justify-end gap-3">
-                <PermissionGuard permission="quotations.add">
-                  <Button onClick={() => setShowAddDialog(true)}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة عرض سعر للطلب المحدد
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
-                    <Link2 className="h-4 w-4 ml-2" />
-                    إضافة رابط
-                  </Button>
-                </PermissionGuard>
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة عرض سعر للطلب المحدد
+                </Button>
+                <Button variant="outline" onClick={() => setShowAddLinkDialog(true)}>
+                  <Link2 className="h-4 w-4 ml-2" />
+                  إضافة رابط
+                </Button>
               </div>
             )}
           </CardContent>
@@ -1518,7 +1516,6 @@ export default function Quotations() {
                         <Receipt className="h-12 w-12 text-muted-foreground mb-4" />
                         <h3 className="text-lg font-semibold mb-2">لا توجد عروض أسعار مسجلة</h3>
                         <p className="text-muted-foreground mb-6">يرجى إضافة عروض الأسعار أو مراجعة روابط عروض الأسعار الخارجية المرفقة أعلاه.</p>
-                        <PermissionGuard permission="quotations.add">
                           <div className="flex gap-3 justify-center">
                             <Button onClick={() => setShowAddDialog(true)}>
                               <Plus className="h-4 w-4 ml-2" />
@@ -1534,7 +1531,6 @@ export default function Quotations() {
                               </Button>
                             )}
                           </div>
-                        </PermissionGuard>
                       </div>
                     )}
                   </div>
