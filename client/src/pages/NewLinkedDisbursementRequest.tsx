@@ -450,23 +450,7 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
-  // جلب فرصة التبرع المرتبطة بالمشروع المحدد
-  const { data: donationOpportunity } = trpc.disbursements.getDonationOpportunity.useQuery(
-    { projectId: formData.projectId },
-    { enabled: isDonationLinked && formData.projectId > 0 }
-  );
 
-  useEffect(() => {
-    if (isDonationLinked && donationOpportunity) {
-      if (donationOpportunity.description === "سداد مورد بفاتورة واحدة") {
-        setRequestType("supplier_one_time");
-        setIsCustom(true);
-      } else if (donationOpportunity.description === "فواتير نظام سداد") {
-        setRequestType("sadad_invoice");
-        setIsCustom(true);
-      }
-    }
-  }, [isDonationLinked, donationOpportunity]);
 
   // دالة للتحقق مما إذا كان تقرير الإنجاز مرتبطاً بطلب صرف سابق
   const isReportLinked = (report: any) => {
@@ -907,7 +891,7 @@ export default function NewLinkedDisbursementRequest() {
                       المشروع المرتبط (فرصة التبرع)
                     </label>
                     <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                      تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع وتحديد نوع الصرف تلقائياً
+                      تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع
                     </p>
                   </div>
                 </div>
@@ -949,7 +933,6 @@ export default function NewLinkedDisbursementRequest() {
                   <Select
                     value={requestType}
                     onValueChange={handleRequestTypeChange}
-                    disabled={isDonationLinked}
                   >
                     <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                       <SelectValue placeholder="اختر نوع طلب الصرف" />
