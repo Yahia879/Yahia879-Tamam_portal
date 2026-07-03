@@ -580,6 +580,12 @@ export default function RequestDetailsNew() {
       } as any : undefined,
       canPerformAction: !!latestFinalReport,
     };
+  } else if (activeAction && request.currentStage === 'execution' && request.technicalEvalDecision === 'convert_to_donation') {
+    activeAction = {
+      ...activeAction,
+      title: "بانتظار صرف المبلغ للمستفيد",
+      description: "يرجى متابعة صرف المبلغ المستهدف للمستفيد من خلال طلبات الصرف المرتبطة بفرصة التبرع. بعد إتمام كامل الصرف، يمكنك الانتقال إلى مرحلة الاستلام والإغلاق.",
+    };
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
     activeAction = null;
   } else if (activeAction && request.currentStage === 'handover') {
