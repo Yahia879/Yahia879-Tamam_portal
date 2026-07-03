@@ -2235,57 +2235,61 @@ export default function RequestDetailsNew() {
             {/* حقل اسم المشروع والفرصة (مطلوب عند التحويل لمشروع أو فرصة تبرع) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (
               <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-right">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-foreground">
-                    اسم المشروع <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="أدخل اسماً واضحاً للمشروع..."
-                    className="w-full text-right"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
-                </div>
+                {selectedDecision === 'convert_to_project' && (
+                  <>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        اسم المشروع <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="أدخل اسماً واضحاً للمشروع..."
+                        className="w-full text-right"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">سيظهر هذا الاسم في صفحة الطلب وصفحة المشاريع</p>
+                    </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-foreground">
-                    المدة المتوقعة للانتهاء (بالأيام) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={durationDays}
-                      onChange={(e) => setDurationDays(e.target.value)}
-                      placeholder="مثال: 30"
-                      className="w-full pl-12 text-right"
-                    />
-                    <span className="absolute left-3 text-sm text-muted-foreground font-medium pointer-events-none">
-                      يوم
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        المدة المتوقعة للانتهاء (بالأيام) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={durationDays}
+                          onChange={(e) => setDurationDays(e.target.value)}
+                          placeholder="مثال: 30"
+                          className="w-full pl-12 text-right"
+                        />
+                        <span className="absolute left-3 text-sm text-muted-foreground font-medium pointer-events-none">
+                          يوم
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
+                    </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-foreground">
-                    مدير المشروع <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedManagerId || ''}
-                    onChange={(e) => setSelectedManagerId(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-right"
-                  >
-                    <option value="" disabled>-- اختر مدير المشروع --</option>
-                    {managers?.map((manager: any) => (
-                      <option key={manager.id} value={manager.id.toString()}>
-                        {manager.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-1">سيتم إسناد الطلب وإدارة المشروع لهذا المستخدم</p>
-                </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium mb-2 text-foreground">
+                        مدير المشروع <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedManagerId || ''}
+                        onChange={(e) => setSelectedManagerId(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-right"
+                      >
+                        <option value="" disabled>-- اختر مدير المشروع --</option>
+                        {managers?.map((manager: any) => (
+                          <option key={manager.id} value={manager.id.toString()}>
+                            {manager.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground mt-1">سيتم إسناد الطلب وإدارة المشروع لهذا المستخدم</p>
+                    </div>
+                  </>
+                )}
 
                 {/* حقول إضافية لفرصة التبرع */}
                 {selectedDecision === 'convert_to_donation' && (
@@ -2452,15 +2456,15 @@ export default function RequestDetailsNew() {
               </Button>
               <Button
                 onClick={() => {
-                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && !projectName.trim()) {
+                  if (selectedDecision === 'convert_to_project' && !projectName.trim()) {
                     toast.error("يجب إدخال اسم المشروع");
                     return;
                   }
-                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && !selectedManagerId) {
+                  if (selectedDecision === 'convert_to_project' && !selectedManagerId) {
                     toast.error("يجب تحديد مدير المشروع");
                     return;
                   }
-                  if ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
+                  if (selectedDecision === 'convert_to_project' && (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0)) {
                     toast.error("يجب إدخال المدة المتوقعة للانتهاء بالأيام");
                     return;
                   }
@@ -2483,7 +2487,7 @@ export default function RequestDetailsNew() {
                   
                   let calculatedStartDate = undefined;
                   let calculatedEndDate = undefined;
-                  if (selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') {
+                  if (selectedDecision === 'convert_to_project') {
                     const start = new Date();
                     const end = new Date();
                     const days = parseInt(durationDays || "0", 10);
@@ -2511,7 +2515,7 @@ export default function RequestDetailsNew() {
                 disabled={
                   technicalEvalMutation.isPending ||
                   ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
-                  ((selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
+                  (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
                   (selectedDecision === 'convert_to_donation' && (!donationTitle.trim() || !donationTargetAmount || isNaN(parseFloat(donationTargetAmount)) || parseFloat(donationTargetAmount) <= 0)) ||
                   (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !scheduledDate || !scheduledTime))
                 }
