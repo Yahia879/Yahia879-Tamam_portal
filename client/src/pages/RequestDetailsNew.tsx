@@ -2989,10 +2989,18 @@ export default function RequestDetailsNew() {
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الجوال</td>
                           <td className="p-3">{request?.requester?.phone || "غير محدد"}</td>
                         </tr>
-                        <tr>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">البريد الإلكتروني</td>
-                          <td className="p-3" colSpan={3}>{request?.requester?.email || "غير محدد"}</td>
+                          <td className="p-3">{request?.requester?.email || "غير محدد"}</td>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">المدينة</td>
+                          <td className="p-3">{request?.requester?.city || "غير محدد"}</td>
                         </tr>
+                        {request?.requester?.nationalId && (
+                          <tr>
+                            <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الهوية الوطنية</td>
+                            <td className="p-3" colSpan={3}>{request.requester.nationalId}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -3024,21 +3032,13 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {/* التوقيعات */}
-                <div className="grid grid-cols-2 gap-8 pt-16 border-t border-slate-200 dark:border-slate-800">
-                  <div className="text-center space-y-8">
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة (المتعهد)</span>
+                <div className="pt-16 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                  <div className="text-center space-y-8 w-64">
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">طالب الخدمة</span>
                     <div className="h-16"></div>
                     <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                      <p>الاسم: ________________________</p>
-                      <p>التوقيع: ________________________</p>
-                    </div>
-                  </div>
-                  <div className="text-center space-y-8">
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block text-sm">مكتب المشاريع (المدقق)</span>
-                    <div className="h-16"></div>
-                    <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                      <p>الاسم: ________________________</p>
-                      <p>التوقيع: ________________________</p>
+                      <p className="text-right">الاسم: {request?.requester?.name || "________________________"}</p>
+                      <p className="text-right">التوقيع: ________________________</p>
                     </div>
                   </div>
                 </div>

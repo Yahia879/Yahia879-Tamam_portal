@@ -338,6 +338,8 @@ export const requestsRouter = router({
         email: users.email,
         phone: users.phone,
         role: users.role,
+        nationalId: users.nationalId,
+        city: users.city,
       }).from(users).where(eq(users.id, request.userId as number)).limit(1);
 
       // الحصول على بيانات المسؤول عن الزيارة الميدانية
