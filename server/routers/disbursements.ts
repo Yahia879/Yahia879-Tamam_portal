@@ -355,7 +355,8 @@ export const disbursementsRouter = router({
         })
         .from(donationOpportunities)
         .leftJoin(mosqueRequests, eq(donationOpportunities.requestId, mosqueRequests.id))
-        .where(eq(donationOpportunities.status, 'active'));
+        .where(eq(donationOpportunities.status, 'active'))
+        .orderBy(desc(donationOpportunities.createdAt));
 
       return list;
     }),
