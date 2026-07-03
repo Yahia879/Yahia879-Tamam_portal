@@ -1261,103 +1261,103 @@ export default function RequestDetailsNew() {
 
               {/* خيارات التقييم الفني */}
               {request.currentStage === 'technical_eval' && activeAction.canPerformAction && !isFieldTeam && !isQuickResponseUser && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                   {/* الاستجابة السريعة */}
                   <button 
-                    className="group p-4 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-400 transition-all text-right disabled:opacity-50 dark:bg-purple-950/20 dark:border-purple-900 dark:hover:bg-purple-950/40 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('quick_response');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
-                        <Zap className="w-6 h-6 text-purple-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5 text-purple-600" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-purple-800 dark:text-purple-200 text-sm sm:text-base mb-1">الاستجابة السريعة</h5>
-                        <p className="text-[11px] sm:text-sm text-purple-600 dark:text-purple-400 leading-tight">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
+                        <h5 className="font-bold text-purple-800 dark:text-purple-200 text-xs sm:text-sm mb-0.5">الاستجابة السريعة</h5>
+                        <p className="text-[10px] sm:text-[11px] text-purple-600 dark:text-purple-400 leading-snug">تحويل للحالات البسيطة التي تحتاج تدخل فوري مباشر</p>
                       </div>
                     </div>
                   </button>
 
                   {/* التحويل إلى مشروع */}
                   <button 
-                    className="group p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 transition-all text-right disabled:opacity-50 dark:bg-green-950/20 dark:border-green-900 dark:hover:bg-green-950/40 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('convert_to_project');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-green-800 dark:text-green-200 text-sm sm:text-base mb-1">التحويل إلى مشروع</h5>
-                        <p className="text-[11px] sm:text-sm text-green-600 dark:text-green-400 leading-tight">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
+                        <h5 className="font-bold text-green-800 dark:text-green-200 text-xs sm:text-sm mb-0.5">التحويل إلى مشروع</h5>
+                        <p className="text-[10px] sm:text-[11px] text-green-600 dark:text-green-400 leading-snug">إكمال الطلب والموافقة عليه وتحويله لمشروع رسمي</p>
                       </div>
                     </div>
                   </button>
 
                   {/* تحويل إلى فرصة تبرع */}
                   <button 
-                    className="group p-4 rounded-xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 hover:border-pink-400 transition-all text-right disabled:opacity-50 dark:bg-pink-950/20 dark:border-pink-900/50 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-pink-200 bg-pink-50 hover:bg-pink-100 hover:border-pink-400 transition-all text-right disabled:opacity-50 dark:bg-pink-950/20 dark:border-pink-900/50 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('convert_to_donation');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center shrink-0">
-                        <HeartHandshake className="w-6 h-6 text-pink-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-pink-100 dark:bg-pink-900 flex items-center justify-center shrink-0">
+                        <HeartHandshake className="w-5 h-5 text-pink-600" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-pink-800 dark:text-pink-200 text-sm sm:text-base mb-1">التحويل إلى فرصة تبرع</h5>
-                        <p className="text-[11px] sm:text-sm text-pink-600 dark:text-pink-400 leading-tight">تحويل الطلب لفرصة تبرع عامة لجمع المبالغ المطلوبة</p>
+                        <h5 className="font-bold text-pink-800 dark:text-pink-200 text-xs sm:text-sm mb-0.5">التحويل إلى فرصة تبرع</h5>
+                        <p className="text-[10px] sm:text-[11px] text-pink-600 dark:text-pink-400 leading-snug">تحويل الطلب لفرصة تبرع عامة لجمع المبالغ المطلوبة</p>
                       </div>
                     </div>
                   </button>
 
                   {/* التعليق المؤقت */}
                   <button 
-                    className="group p-4 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-amber-200 bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all text-right disabled:opacity-50 dark:bg-amber-950/20 dark:border-amber-900 dark:hover:bg-amber-950/40 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('suspend');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
-                        <PauseCircle className="w-6 h-6 text-amber-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
+                        <PauseCircle className="w-5 h-5 text-amber-600" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-amber-800 dark:text-amber-200 text-sm sm:text-base mb-1">التعليق المؤقت</h5>
-                        <p className="text-[11px] sm:text-sm text-amber-600 dark:text-amber-400 leading-tight">تعليق الطلب مؤقتاً لحين توفر متملبات إضافية</p>
+                        <h5 className="font-bold text-amber-800 dark:text-amber-200 text-xs sm:text-sm mb-0.5">التعليق المؤقت</h5>
+                        <p className="text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-400 leading-snug">تعليق الطلب مؤقتاً لحين توفر متملبات إضافية</p>
                       </div>
                     </div>
                   </button>
 
                   {/* الاعتذار */}
                   <button 
-                    className="group p-4 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900 dark:hover:bg-red-950/40 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('apologize');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
-                        <XCircle className="w-6 h-6 text-red-600" />
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
+                        <XCircle className="w-5 h-5 text-red-600" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-red-800 dark:text-red-200 text-sm sm:text-base mb-1">الاعتذار (الرفض)</h5>
-                        <p className="text-[11px] sm:text-sm text-red-600 dark:text-red-400 leading-tight">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
+                        <h5 className="font-bold text-red-800 dark:text-red-200 text-xs sm:text-sm mb-0.5">الاعتذار (الرفض)</h5>
+                        <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 leading-snug">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
                       </div>
                     </div>
                   </button>
