@@ -344,6 +344,16 @@ export default function RequestDetailsNew() {
     nationalId: ""
   });
 
+  const isDirty = useMemo(() => {
+    return (
+      requesterData.name !== (request?.requester?.name || "") ||
+      requesterData.phone !== (request?.requester?.phone || "") ||
+      requesterData.email !== (request?.requester?.email || "") ||
+      requesterData.city !== (request?.requester?.city || "") ||
+      requesterData.nationalId !== (request?.requester?.nationalId || "")
+    );
+  }, [requesterData, request]);
+
   const updateUserMutation = trpc.users.update.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث بيانات المستفيد بنجاح");
@@ -2909,14 +2919,6 @@ export default function RequestDetailsNew() {
                   <User className="w-4 h-4 text-indigo-500" />
                   <span>معلومات طالب الخدمة المتعهد</span>
                 </h4>
-                <Button 
-                  type="button" 
-                  onClick={handleUpdateRequester}
-                  disabled={updateUserMutation.isPending}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs h-9 flex items-center gap-1.5 shadow-sm transition-all"
-                >
-                  {updateUserMutation.isPending ? "جاري الحفظ..." : "تعديل وحفظ البيانات"}
-                </Button>
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -2962,7 +2964,7 @@ export default function RequestDetailsNew() {
                     value={requesterData.city || "none"} 
                     onValueChange={(val) => setRequesterData(prev => ({ ...prev, city: val === "none" ? "" : val }))}
                   >
-                    <SelectTrigger className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right">
+                    <SelectTrigger dir="rtl" className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right flex flex-row-reverse justify-between items-center">
                       <SelectValue placeholder="غير محدد" />
                     </SelectTrigger>
                     <SelectContent>
@@ -2988,6 +2990,19 @@ export default function RequestDetailsNew() {
                   />
                 </div>
               </div>
+
+              {isDirty && (
+                <div className="flex justify-end pt-3 border-t border-slate-200/50 dark:border-slate-800/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <Button 
+                    type="button" 
+                    onClick={handleUpdateRequester}
+                    disabled={updateUserMutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs h-10 flex items-center gap-1.5 shadow-md transition-all"
+                  >
+                    {updateUserMutation.isPending ? "جاري حفظ التعديلات..." : "تعديل وحفظ التعديلات"}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-5 border-t border-slate-100 dark:border-slate-850">
