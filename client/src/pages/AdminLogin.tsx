@@ -101,7 +101,7 @@ export default function AdminLogin() {
           >
             <img 
               src={logoSrc}
-              alt="شعار بوابة تمام" 
+              alt={`شعار ${orgSettings?.organizationName || "بوابة تمام"}`} 
               className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = "/logo.svg";

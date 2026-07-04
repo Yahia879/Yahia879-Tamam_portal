@@ -44,6 +44,9 @@ export default function Register() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // جلب إعدادات الجمعية لعرض الشعار والألوان
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -210,22 +213,47 @@ export default function Register() {
     }
   };
 
+  const primaryColor = orgSettings?.colorPrimary1 || "#0d9488";
+  const secondaryColor = orgSettings?.colorPrimary2 || "#0f766e";
+
+  if (loading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin" style={{ color: primaryColor }} />
+      </div>
+    );
+  }
+
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-muted/30">
-        <Card className="w-full max-w-[95%] sm:max-w-md border-0 shadow-lg rounded-2xl sm:rounded-3xl transition-all duration-300">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 sm:p-8"
+        style={{
+          background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
+        }}
+      >
+        <Card className="w-full max-w-[95%] sm:max-w-md border-0 shadow-lg rounded-2xl sm:rounded-3xl bg-white/95 transition-all duration-300">
           <CardContent className="pt-8 pb-8 px-5 sm:px-8 text-center">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 shadow-sm">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">تم التسجيل بنجاح!</h2>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">تم التسجيل بنجاح!</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-6">
               تم إنشاء حسابك بنجاح. يرجى انتظار اعتماد حسابك من قبل الإدارة.
               سيتم إشعارك عبر البريد الإلكتروني عند تفعيل حسابك.
             </p>
             <div className="space-y-3">
               <Link href="/login">
-                <Button className="w-full gradient-primary text-white font-semibold">
+                <Button 
+                  className="w-full text-white font-semibold"
+                  style={{ backgroundColor: primaryColor }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = secondaryColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                  }}
+                >
                   الذهاب لتسجيل الدخول
                 </Button>
               </Link>
@@ -242,27 +270,32 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-2 sm:p-4 md:p-8">
+    <div 
+      className="min-h-screen flex items-center justify-center p-2 sm:p-4 md:p-8"
+      style={{
+        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${primaryColor}cc 100%)`
+      }}
+    >
       {/* النموذج في الوسط */}
       <div className="w-full max-w-lg">
         <div className="w-full">
-          {/* الشعار */}
-          <Link href="/" className="flex flex-col items-center mb-6 sm:mb-8">
-            <img
-              src="/logo.svg"
-              alt="شعار بوابة تمام"
-              className="h-16 sm:h-20 mb-3 object-contain"
-            />
-            <div className="text-center">
-              <h1 className="font-bold text-lg sm:text-xl text-foreground">بوابة تمام</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">للعناية بالمساجد</p>
-            </div>
-          </Link>
+          <Card className="border-0 shadow-xl rounded-2xl sm:rounded-3xl bg-white/95 transition-all duration-300">
+            <CardHeader className="space-y-1 pb-4 px-5 sm:px-8 pt-6 sm:pt-8 text-center">
+              {/* الشعار */}
+              <Link href="/" className="inline-flex flex-col items-center mb-6">
+                <img
+                  src={orgSettings?.logoUrl || "/logo.svg"}
+                  alt={`شعار ${orgSettings?.organizationName || "بوابة تمام"}`}
+                  className="h-16 sm:h-20 mb-3 object-contain mx-auto"
+                />
+                <h1 className="font-bold text-xl sm:text-2xl text-gray-900">
+                  {orgSettings?.organizationName || "بوابة تمام"}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500">للعناية بالمساجد</p>
+              </Link>
 
-          <Card className="border-0 shadow-xl rounded-2xl sm:rounded-3xl transition-all duration-300">
-            <CardHeader className="space-y-1 pb-4 px-5 sm:px-8 pt-6 sm:pt-8">
-              <CardTitle className="text-xl sm:text-2xl font-bold">إنشاء حساب جديد</CardTitle>
-              <CardDescription className="text-sm sm:text-base">
+              <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 border-t pt-6 mt-4">إنشاء حساب جديد</CardTitle>
+              <CardDescription className="text-sm sm:text-base text-gray-600">
                 سجل كطالب خدمة للاستفادة من خدمات البوابة
               </CardDescription>
             </CardHeader>
@@ -458,7 +491,14 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  className="w-full gradient-primary text-white h-10 sm:h-11 font-bold shadow-md hover:shadow-lg transition-all"
+                  className="w-full text-white h-10 sm:h-11 font-bold shadow-md hover:shadow-lg transition-all"
+                  style={{ backgroundColor: primaryColor }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = secondaryColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                  }}
                   disabled={isSubmitting || registerMutation.isPending}
                 >
                   {isSubmitting || registerMutation.isPending ? (
@@ -472,22 +512,25 @@ export default function Register() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-sm text-muted-foreground">
+              <div className="mt-6 space-y-3 text-center">
+                <p className="text-sm text-gray-600">
                   لديك حساب بالفعل؟{" "}
-                  <Link href="/login" className="text-primary hover:underline font-bold">
+                  <Link href="/login" className="font-bold hover:underline" style={{ color: primaryColor }}>
                     تسجيل الدخول
                   </Link>
                 </p>
+                <Link href="/" className="block text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                  ← العودة إلى الصفحة الرئيسية
+                </Link>
               </div>
             </CardContent>
           </Card>
 
-          <p className="mt-6 text-center text-[10px] sm:text-xs text-muted-foreground px-4">
+          <p className="mt-6 text-center text-[10px] sm:text-xs text-white/70 px-4">
             بإنشاء حساب، أنت توافق على{" "}
-            <a href="#" className="text-primary hover:underline">شروط الاستخدام</a>
+            <a href="#" className="underline hover:text-white transition-colors">شروط الاستخدام</a>
             {" "}و{" "}
-            <a href="#" className="text-primary hover:underline">سياسة الخصوصية</a>
+            <a href="#" className="underline hover:text-white transition-colors">سياسة الخصوصية</a>
           </p>
         </div>
       </div>

@@ -105,7 +105,7 @@ export default function Login() {
         <div className="text-center mb-6 sm:mb-8">
           <img 
             src={orgSettings?.logoUrl || "/logo.svg"} 
-            alt="شعار بوابة تمام" 
+            alt={`شعار ${orgSettings?.organizationName || "بوابة تمام"}`} 
             className="h-16 sm:h-20 mx-auto mb-4 object-contain"
           />
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
