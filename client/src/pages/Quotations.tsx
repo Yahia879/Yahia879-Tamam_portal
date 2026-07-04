@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { PROGRAM_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
@@ -1178,10 +1179,7 @@ export default function Quotations() {
                       <TableCell className="font-medium text-right">{request.mosqueName || "غير محدد"}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">
-                          {request.programType === 'construction' ? 'بناء' :
-                           request.programType === 'renovation' ? 'ترميم' :
-                           request.programType === 'expansion' ? 'توسعة' :
-                           request.programType === 'maintenance' ? 'صيانة' : request.programType}
+                          {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">{new Date(request.createdAt).toLocaleDateString('ar-SA')}</TableCell>

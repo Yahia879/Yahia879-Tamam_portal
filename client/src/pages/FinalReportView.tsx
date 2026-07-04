@@ -1,5 +1,6 @@
 import { useParams, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { PROGRAM_LABELS } from "@shared/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -291,7 +292,9 @@ export default function FinalReportView() {
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 mb-1">نوع البرنامج</p>
-                  <p className="font-semibold text-gray-800">{request.programType || "—"}</p>
+                  <p className="font-semibold text-gray-800">
+                    {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType || "—"}
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-xs text-gray-500 mb-1">الأولوية</p>
