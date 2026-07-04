@@ -162,7 +162,7 @@ export default function FinalReportView() {
 
           {/* معلومات أساسية */}
           <div className="px-8 py-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
               <div className="text-center">
                 <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
                   <Building2 className="w-5 h-5 text-emerald-600" />
@@ -178,10 +178,17 @@ export default function FinalReportView() {
                 <p className="font-semibold text-gray-800 text-sm">{formatDate(report.completionDate)}</p>
               </div>
               <div className="text-center">
+                <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                  <DollarSign className="w-5 h-5 text-purple-600" />
+                </div>
+                <p className="text-xs text-gray-500 mb-1">قيمة العقد</p>
+                <p className="font-semibold text-gray-800 text-sm">{formatCurrency((report as any).contractAmount)}</p>
+              </div>
+              <div className="text-center">
                 <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
                   <DollarSign className="w-5 h-5 text-amber-600" />
                 </div>
-                <p className="text-xs text-gray-500 mb-1">التكلفة الإجمالية</p>
+                <p className="text-xs text-gray-500 mb-1">تكلفة التنفيذ الفعلية</p>
                 <p className="font-semibold text-gray-800 text-sm">{formatCurrency(report.totalCost)}</p>
               </div>
               <div className="text-center">
@@ -240,6 +247,28 @@ export default function FinalReportView() {
             </div>
           )}
         </div>
+
+        {/* روابط ومرفقات التقرير */}
+        {(report as any).linkUrl && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 print:hidden">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              روابط ومرفقات التقرير الختامي
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">الرابط المرفق:</span>
+              <a 
+                href={(report as any).linkUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                {(report as any).linkName || "رابط التقرير الخارجي"}
+                <ArrowRight className="w-4 h-4 rotate-180" />
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* تفاصيل المشروع */}
         {project && (

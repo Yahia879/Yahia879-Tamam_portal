@@ -428,6 +428,9 @@ export const finalReports = mysqlTable("final_reports", {
   achievements: text("achievements"),
   challenges: text("challenges"),
   totalCost: decimal("totalCost", { precision: 15, scale: 2 }),
+  contractAmount: decimal("contractAmount", { precision: 15, scale: 2 }),
+  linkName: varchar("linkName", { length: 255 }),
+  linkUrl: varchar("linkUrl", { length: 500 }),
   completionDate: datetime("completionDate"),
   satisfactionRating: int("satisfactionRating"), // 1-5
   createdAt: timestamp("createdAt").defaultNow().notNull(),

@@ -1531,6 +1531,7 @@ export const projectsRouter = router({
           startDate: contractsEnhanced.startDate,
           endDate: contractsEnhanced.endDate,
           supplierName: contractsEnhanced.secondPartyName,
+          managementPercentage: contractsEnhanced.managementPercentage,
         })
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.projectId, proj.id));

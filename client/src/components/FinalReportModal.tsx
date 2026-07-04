@@ -362,8 +362,19 @@ export function FinalReportModal({ requestId, isOpen, onClose }: FinalReportModa
                       <div key={idx} className="bg-emerald-50 dark:bg-emerald-950/20 p-6 rounded-lg border-2 border-emerald-200">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                           {renderInfoRow("تاريخ الإغلاق", formatDate(fr.completionDate || fr.createdAt))}
-                          {renderInfoRow("التكلفة النهائية الفعلية", <span className="text-xl font-black text-emerald-700">{formatCurrency(fr.totalCost)}</span>)}
+                          {renderInfoRow("قيمة العقد", <span className="font-bold text-slate-800">{formatCurrency(fr.contractAmount)}</span>)}
+                          {renderInfoRow("تكلفة التنفيذ الفعلية", <span className="text-xl font-black text-emerald-700">{formatCurrency(fr.totalCost)}</span>)}
                           {renderInfoRow("تقييم الرضا العام", `${fr.satisfactionRating || "---"} / 5`)}
+                          {fr.linkUrl && renderInfoRow("رابط التقرير الختامي", (
+                            <a 
+                              href={fr.linkUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+                            >
+                              {fr.linkName || "رابط خارجي"}
+                            </a>
+                          ))}
                         </div>
                         <div className="space-y-4">
                           <div>

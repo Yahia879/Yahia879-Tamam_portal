@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
@@ -36,6 +37,10 @@ export default function FinalReportForm() {
   const [achievements, setAchievements] = useState("");
   const [challenges, setChallenges] = useState("");
   const [totalCost, setTotalCost] = useState("");
+  const [contractAmount, setContractAmount] = useState("");
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [showAttachmentFields, setShowAttachmentFields] = useState<boolean>(false);
   const [completionDate, setCompletionDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -70,12 +75,39 @@ export default function FinalReportForm() {
       setAchievements(existingReport.achievements || "");
       setChallenges(existingReport.challenges || "");
       setTotalCost(existingReport.totalCost || "");
+      setContractAmount((existingReport as any).contractAmount || "");
+      setLinkName((existingReport as any).linkName || "");
+      setLinkUrl((existingReport as any).linkUrl || "");
+      if ((existingReport as any).linkUrl) {
+        setShowAttachmentFields(true);
+      }
       if (existingReport.completionDate) {
         setCompletionDate(new Date(existingReport.completionDate).toISOString().split("T")[0]);
       }
       setSatisfactionRating(existingReport.satisfactionRating || 5);
     }
   }, [existingReport]);
+
+  const projectContracts = (linkedProject as any)?.contracts || [];
+  const projectPayments = (linkedProject as any)?.payments || [];
+
+  const totalPaymentsSum = projectPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
+  const totalContractsSum = projectContracts.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0);
+
+  // حساب التكلفة الكلية للمشروع
+  const totalProjectCostSum = projectContracts.reduce((sum: number, c: any) => {
+    const amt = parseFloat(c.amount || "0");
+    const pct = parseFloat(c.managementPercentage || "0");
+    return sum + amt + (amt * pct) / 100;
+  }, 0);
+
+  // تعبئة تلقائية لبيانات العقد الجديد
+  useEffect(() => {
+    if (!existingReport && projectContracts.length > 0) {
+      setContractAmount(totalContractsSum.toString());
+      setTotalCost(totalProjectCostSum.toString());
+    }
+  }, [existingReport, projectContracts, totalContractsSum, totalProjectCostSum]);
 
   // mutation لإنشاء/تحديث التقرير الختامي
   const createFinalReportMutation = trpc.finalReports.create.useMutation({
@@ -92,12 +124,6 @@ export default function FinalReportForm() {
       setIsSubmitting(false);
     },
   });
-
-  const projectContracts = (linkedProject as any)?.contracts || [];
-  const projectPayments = (linkedProject as any)?.payments || [];
-
-  const totalPaymentsSum = projectPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0);
-  const totalContractsSum = projectContracts.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0);
 
   const hasPayments = projectPayments.length > 0;
   const allPaymentsPaid = hasPayments && projectPayments.every((p: any) => p.status === 'paid');
@@ -158,6 +184,9 @@ export default function FinalReportForm() {
       achievements: achievements.trim() || undefined,
       challenges: challenges.trim() || undefined,
       totalCost: totalCost ? totalCost : undefined,
+      contractAmount: contractAmount ? contractAmount : undefined,
+      linkName: showAttachmentFields ? linkName.trim() || undefined : undefined,
+      linkUrl: showAttachmentFields ? linkUrl.trim() || undefined : undefined,
       completionDate: completionDate || undefined,
       satisfactionRating,
     });
@@ -323,11 +352,26 @@ export default function FinalReportForm() {
             <Separator />
 
             {/* التكلفة الإجمالية وتاريخ الإتمام */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="contractAmount" className="font-semibold flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-purple-600" />
+                  قيمة العقد (ريال) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="contractAmount"
+                  type="number"
+                  placeholder="أدخل قيمة العقد"
+                  value={contractAmount}
+                  onChange={(e) => setContractAmount(e.target.value)}
+                  min="0"
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="totalCost" className="font-semibold flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-green-600" />
-                  التكلفة الإجمالية الفعلية (ريال)
+                  تكلفة التنفيذ الفعلية (ريال) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="totalCost"
@@ -336,6 +380,7 @@ export default function FinalReportForm() {
                   value={totalCost}
                   onChange={(e) => setTotalCost(e.target.value)}
                   min="0"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -350,6 +395,53 @@ export default function FinalReportForm() {
                   onChange={(e) => setCompletionDate(e.target.value)}
                 />
               </div>
+            </div>
+
+            <Separator />
+
+            {/* إضافة رابط خارجي */}
+            <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4">
+              <div className="flex items-center gap-2 justify-start">
+                <Checkbox 
+                  id="add-external-link" 
+                  checked={showAttachmentFields}
+                  onCheckedChange={(checked) => {
+                    setShowAttachmentFields(!!checked);
+                    if (!checked) {
+                      setLinkName("");
+                      setLinkUrl("");
+                    }
+                  }}
+                />
+                <Label htmlFor="add-external-link" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  إضافة رابط للتقرير الختامي
+                </Label>
+              </div>
+
+              {showAttachmentFields && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-800/50">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الرابط (اختياري)</Label>
+                    <Input
+                      placeholder="مثال: عرض سعر شركة الأعمال"
+                      value={linkName}
+                      onChange={(e) => setLinkName(e.target.value)}
+                      className="border-border rounded-xl h-11 text-right bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الرابط (اختياري)</Label>
+                    <Input
+                      placeholder="https://example.com/quotation"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      className="border-border rounded-xl h-11 text-left bg-background"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />
