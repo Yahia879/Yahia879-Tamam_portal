@@ -131,7 +131,7 @@ export default function FinalReportView() {
       </div>
 
       {/* محتوى التقرير */}
-      <div className="max-w-4xl mx-auto px-6 py-8 print:px-0 print:py-0">
+      <div id="report-print-area" className="max-w-4xl mx-auto px-6 py-8 print:px-0 print:py-0">
         {/* رأس التقرير */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6 print:rounded-none print:shadow-none print:border-0">
           {/* شريط العنوان الأخضر */}
@@ -181,7 +181,7 @@ export default function FinalReportView() {
                 <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-2">
                   <DollarSign className="w-5 h-5 text-purple-600" />
                 </div>
-                <p className="text-xs text-gray-500 mb-1">قيمة العقد</p>
+                <p className="text-xs text-gray-500 mb-1">قيمة المشروع</p>
                 <p className="font-semibold text-gray-800 text-sm">{formatCurrency((report as any).contractAmount)}</p>
               </div>
               <div className="text-center">
@@ -248,28 +248,6 @@ export default function FinalReportView() {
           )}
         </div>
 
-        {/* روابط ومرفقات التقرير */}
-        {(report as any).linkUrl && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 print:hidden">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              روابط ومرفقات التقرير الختامي
-            </h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">الرابط المرفق:</span>
-              <a 
-                href={(report as any).linkUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-              >
-                {(report as any).linkName || "رابط التقرير الخارجي"}
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </a>
-            </div>
-          </div>
-        )}
-
         {/* تفاصيل المشروع */}
         {project && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6 print:rounded-none print:shadow-none">
@@ -300,7 +278,7 @@ export default function FinalReportView() {
               </div>
               <div className="bg-gray-50 rounded-xl p-4">
                 <p className="text-xs text-gray-500 mb-1">تاريخ الإنجاز الفعلي</p>
-                <p className="font-semibold text-gray-800">{formatDate(project.actualEndDate)}</p>
+                <p className="font-semibold text-gray-800">{formatDate(report.completionDate)}</p>
               </div>
             </div>
           </div>
@@ -351,6 +329,28 @@ export default function FinalReportView() {
           </div>
         </div>
 
+        {/* روابط ومرفقات التقرير */}
+        {(report as any).linkUrl && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 print:hidden">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              روابط ومرفقات التقرير الختامي
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">الرابط المرفق:</span>
+              <a 
+                href={(report as any).linkUrl} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                {(report as any).linkName || "رابط التقرير الخارجي"}
+                <ArrowRight className="w-4 h-4 rotate-180" />
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* معلومات المُعِد */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6 print:rounded-none print:shadow-none">
           <div className="flex items-center gap-4">
@@ -379,10 +379,60 @@ export default function FinalReportView() {
       {/* أنماط CSS للطباعة */}
       <style>{`
         @media print {
-          body { background: white !important; }
-          .print\\:hidden { display: none !important; }
-          .print\\:block { display: block !important; }
-          @page { margin: 2cm; }
+          /* إخفاء عناصر التحكم والواجهة الخلفية */
+          #root, header, aside, footer, nav, .print\:hidden {
+            display: none !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #report-print-area, #report-print-area * {
+            visibility: visible !important;
+          }
+          /* تهيئة قياسات صفحة A4 وتوزيعها على صفحة واحدة */
+          @page {
+            size: A4;
+            margin: 6mm !important;
+          }
+          html, body {
+            height: 100% !important;
+            overflow: hidden !important;
+            background-color: white !important;
+          }
+          #report-print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: white !important;
+            color: black !important;
+            padding: 10px !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* تقليص حجوم الخطوط وهوامش العناصر لتناسب صفحة واحدة تماماً */
+          .text-2xl { font-size: 1.15rem !important; line-height: 1.5rem !important; }
+          .text-xl { font-size: 1rem !important; }
+          .text-lg { font-size: 0.85rem !important; margin-bottom: 0.25rem !important; }
+          .p-8 { padding: 0.75rem !important; }
+          .p-6 { padding: 0.5rem !important; }
+          .mb-6 { margin-bottom: 0.35rem !important; }
+          .py-8 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+          .py-6 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+          .gap-6 { gap: 0.35rem !important; }
+          .gap-4 { gap: 0.25rem !important; }
+          .rounded-2xl { rounded: 0.5rem !important; }
+          .space-y-6 > * + * { margin-top: 0.35rem !important; }
+          .grid-cols-5 {
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+          }
+          .shadow-sm { box-shadow: none !important; }
+          .border { border: 1px solid #e2e8f0 !important; }
+          /* إخفاء تذييل الطباعة إن تسبب في تجاوز الصفحة */
+          .mt-8 { margin-top: 0.5rem !important; }
         }
       `}</style>
     </div>
