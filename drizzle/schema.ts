@@ -851,6 +851,8 @@ export const organizationSettings = mysqlTable("organization_settings", {
   logoUrl: varchar("logoUrl", { length: 500 }),
   stampUrl: varchar("stampUrl", { length: 500 }),
   secondaryLogoUrl: varchar("secondaryLogoUrl", { length: 500 }), // شعار ثانوي (رؤية 2030 مثلاً)
+  technicalSupervisorLogoUrl: varchar("technicalSupervisorLogoUrl", { length: 500 }),
+  administrativeSupervisorLogoUrl: varchar("administrativeSupervisorLogoUrl", { length: 500 }),
   // البيانات البنكية
   bankName: varchar("bankName", { length: 100 }),
   bankAccountName: varchar("bankAccountName", { length: 255 }),

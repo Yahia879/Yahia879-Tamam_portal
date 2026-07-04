@@ -86,6 +86,8 @@ export const organizationRouter = router({
       logoUrl: z.string().optional(),
       stampUrl: z.string().optional(),
       secondaryLogoUrl: z.string().optional(),
+      technicalSupervisorLogoUrl: z.string().optional(),
+      administrativeSupervisorLogoUrl: z.string().optional(),
       // البيانات البنكية
       bankName: z.string().optional(),
       bankAccountName: z.string().optional(),
@@ -156,6 +158,8 @@ export const organizationRouter = router({
         logoUrl: input.logoUrl !== undefined ? (input.logoUrl || null) : (existing?.logoUrl || null),
         stampUrl: input.stampUrl !== undefined ? (input.stampUrl || null) : (existing?.stampUrl || null),
         secondaryLogoUrl: input.secondaryLogoUrl !== undefined ? (input.secondaryLogoUrl || null) : (existing?.secondaryLogoUrl || null),
+        technicalSupervisorLogoUrl: input.technicalSupervisorLogoUrl !== undefined ? (input.technicalSupervisorLogoUrl || null) : (existing?.technicalSupervisorLogoUrl || null),
+        administrativeSupervisorLogoUrl: input.administrativeSupervisorLogoUrl !== undefined ? (input.administrativeSupervisorLogoUrl || null) : (existing?.administrativeSupervisorLogoUrl || null),
         bankName: input.bankName || null,
         bankAccountName: input.bankAccountName || null,
         iban: input.iban || null,
@@ -192,7 +196,7 @@ export const organizationRouter = router({
   // رفع الشعار
   uploadLogo: protectedProcedure
     .input(z.object({
-      type: z.enum(["logo", "stamp", "secondaryLogo"]),
+      type: z.enum(["logo", "stamp", "secondaryLogo", "technical_supervision", "admin_supervision"]),
       fileData: z.string(), // Base64 encoded file
       fileName: z.string(),
       mimeType: z.string(),
@@ -259,6 +263,8 @@ export const organizationRouter = router({
         logo: "logoUrl",
         stamp: "stampUrl",
         secondaryLogo: "secondaryLogoUrl",
+        technical_supervision: "technicalSupervisorLogoUrl",
+        admin_supervision: "administrativeSupervisorLogoUrl",
       };
       
       const updateField = fieldMap[input.type];

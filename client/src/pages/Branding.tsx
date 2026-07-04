@@ -48,12 +48,16 @@ export default function Branding() {
   const [mainLogo, setMainLogo] = useState<string | null>(null);
   const [whiteLogo, setWhiteLogo] = useState<string | null>(null);
   const [darkLogo, setDarkLogo] = useState<string | null>(null);
+  const [technicalLogo, setTechnicalLogo] = useState<string | null>(null);
+  const [adminLogo, setAdminLogo] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
 
   // مراجع حقول الملفات
   const mainLogoRef = useRef<HTMLInputElement>(null);
   const whiteLogoRef = useRef<HTMLInputElement>(null);
   const darkLogoRef = useRef<HTMLInputElement>(null);
+  const technicalLogoRef = useRef<HTMLInputElement>(null);
+  const adminLogoRef = useRef<HTMLInputElement>(null);
 
   // جلب إعدادات الجمعية
   const { data: orgSettings, refetch } = trpc.organization.getSettings.useQuery();
@@ -66,6 +70,8 @@ export default function Branding() {
       if (orgSettings.logoUrl) setMainLogo(orgSettings.logoUrl);
       if (orgSettings.secondaryLogoUrl) setWhiteLogo(orgSettings.secondaryLogoUrl);
       if (orgSettings.stampUrl) setDarkLogo(orgSettings.stampUrl);
+      if ((orgSettings as any).technicalSupervisorLogoUrl) setTechnicalLogo((orgSettings as any).technicalSupervisorLogoUrl);
+      if ((orgSettings as any).administrativeSupervisorLogoUrl) setAdminLogo((orgSettings as any).administrativeSupervisorLogoUrl);
       // تحميل الألوان
       if ((orgSettings as any).colorPrimary1) setColorPrimary1((orgSettings as any).colorPrimary1);
       if ((orgSettings as any).colorPrimary2) setColorPrimary2((orgSettings as any).colorPrimary2);
@@ -93,6 +99,8 @@ export default function Branding() {
         logoUrl: mainLogo || orgSettings.logoUrl || undefined,
         secondaryLogoUrl: whiteLogo || orgSettings.secondaryLogoUrl || undefined,
         stampUrl: darkLogo || orgSettings.stampUrl || undefined,
+        technicalSupervisorLogoUrl: technicalLogo || (orgSettings as any).technicalSupervisorLogoUrl || undefined,
+        administrativeSupervisorLogoUrl: adminLogo || (orgSettings as any).administrativeSupervisorLogoUrl || undefined,
         colorPrimary1,
         colorPrimary2,
         colorSecondary1,
@@ -162,7 +170,7 @@ export default function Branding() {
 
   // دالة حذف الشعار
   const handleRemoveLogo = (
-    type: "logo" | "secondaryLogo" | "stamp",
+    type: string,
     setLogo: (url: string | null) => void
   ) => {
     setLogo(null);
@@ -414,7 +422,7 @@ export default function Branding() {
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center hover:border-amber-500 hover:bg-amber-50/50 transition-all cursor-pointer bg-white group"
+                     className="border-2 border-dashed border-amber-300 rounded-2xl p-8 sm:p-12 text-center hover:border-amber-500 hover:bg-amber-50/50 transition-all cursor-pointer bg-white group"
                     onClick={() => darkLogoRef.current?.click()}
                   >
                     {uploading === "stamp" ? (
@@ -439,6 +447,112 @@ export default function Branding() {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) handleLogoUpload(file, "stamp", setDarkLogo);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* جهة الإشراف الفني */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-indigo-600" />
+                  <Label className="text-sm sm:text-base font-semibold">جهة الإشراف الفني</Label>
+                </div>
+                {technicalLogo ? (
+                  <div className="border-2 border-indigo-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
+                    <img src={technicalLogo} alt="جهة الإشراف الفني" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                      onClick={() => handleRemoveLogo("technical_supervision", setTechnicalLogo)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الفني للتقارير</p>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-indigo-300 rounded-2xl p-8 sm:p-12 text-center hover:border-indigo-500 hover:bg-indigo-50/50 transition-all cursor-pointer bg-white group"
+                    onClick={() => technicalLogoRef.current?.click()}
+                  >
+                    {uploading === "technical_supervision" ? (
+                      <>
+                        <Loader2 className="w-10 h-10 text-indigo-600 mx-auto mb-3 animate-spin" />
+                        <p className="text-sm font-bold text-indigo-600">جاري رفع الشعار...</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                          <Upload className="w-8 h-8 text-indigo-500" />
+                        </div>
+                        <p className="text-sm font-bold text-foreground">انقر لرفع شعار الإشراف الفني</p>
+                        <p className="text-xs text-muted-foreground mt-2">PNG أو JPG بأبعاد مناسبة</p>
+                      </>
+                    )}
+                    <input
+                      ref={technicalLogoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, "technical_supervision" as any, setTechnicalLogo);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* جهة الإشراف الإداري */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-sky-600" />
+                  <Label className="text-sm sm:text-base font-semibold">جهة الإشراف الإداري</Label>
+                </div>
+                {adminLogo ? (
+                  <div className="border-2 border-sky-300/30 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
+                    <img src={adminLogo} alt="جهة الإشراف الإداري" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-3 left-3 h-8 w-8 rounded-full shadow-lg"
+                      onClick={() => handleRemoveLogo("admin_supervision", setAdminLogo)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار جهة الإشراف الإداري للتقارير</p>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed border-sky-300 rounded-2xl p-8 sm:p-12 text-center hover:border-sky-500 hover:bg-sky-50/50 transition-all cursor-pointer bg-white group"
+                    onClick={() => adminLogoRef.current?.click()}
+                  >
+                    {uploading === "admin_supervision" ? (
+                      <>
+                        <Loader2 className="w-10 h-10 text-sky-600 mx-auto mb-3 animate-spin" />
+                        <p className="text-sm font-bold text-sky-600">جاري رفع الشعار...</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                          <Upload className="w-8 h-8 text-sky-500" />
+                        </div>
+                        <p className="text-sm font-bold text-foreground">انقر لرفع شعار الإشراف الإداري</p>
+                        <p className="text-xs text-muted-foreground mt-2">PNG أو JPG بأبعاد مناسبة</p>
+                      </>
+                    )}
+                    <input
+                      ref={adminLogoRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file, "admin_supervision" as any, setAdminLogo);
                         e.target.value = "";
                       }}
                     />
