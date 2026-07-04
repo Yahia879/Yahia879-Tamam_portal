@@ -389,6 +389,12 @@ export default function FinalReportView() {
           #report-print-area, #report-print-area * {
             visibility: visible !important;
           }
+          /* تمكين طباعة الألوان والخلفيات وتدرجات الألوان بالكامل */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
           /* تهيئة قياسات صفحة A4 وتوزيعها على صفحة واحدة */
           @page {
             size: A4;
@@ -397,7 +403,7 @@ export default function FinalReportView() {
           html, body {
             height: 100% !important;
             overflow: hidden !important;
-            background-color: white !important;
+            background-color: #f9fafb !important;
           }
           #report-print-area {
             position: absolute !important;
@@ -405,13 +411,10 @@ export default function FinalReportView() {
             top: 0 !important;
             width: 100% !important;
             height: 100% !important;
-            background-color: white !important;
-            color: black !important;
+            background-color: #f9fafb !important;
             padding: 10px !important;
             margin: 0 !important;
             box-sizing: border-box !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
           }
           /* تقليص حجوم الخطوط وهوامش العناصر لتناسب صفحة واحدة تماماً */
           .text-2xl { font-size: 1.15rem !important; line-height: 1.5rem !important; }
@@ -429,8 +432,6 @@ export default function FinalReportView() {
           .grid-cols-5 {
             grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
           }
-          .shadow-sm { box-shadow: none !important; }
-          .border { border: 1px solid #e2e8f0 !important; }
           /* إخفاء تذييل الطباعة إن تسبب في تجاوز الصفحة */
           .mt-8 { margin-top: 0.5rem !important; }
         }
