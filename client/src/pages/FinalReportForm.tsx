@@ -356,7 +356,7 @@ export default function FinalReportForm() {
               <div className="space-y-2">
                 <Label htmlFor="contractAmount" className="font-semibold flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-purple-600" />
-                  قيمة العقد (ريال) <span className="text-red-500">*</span>
+                  تكلفة المشروع <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="contractAmount"
@@ -371,7 +371,7 @@ export default function FinalReportForm() {
               <div className="space-y-2">
                 <Label htmlFor="totalCost" className="font-semibold flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-green-600" />
-                  تكلفة التنفيذ الفعلية (ريال) <span className="text-red-500">*</span>
+                  التكلفة التنفيذ الفعلية <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="totalCost"
@@ -397,56 +397,6 @@ export default function FinalReportForm() {
               </div>
             </div>
 
-            <Separator />
-
-            {/* إضافة رابط خارجي */}
-            <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4">
-              <div className="flex items-center gap-2 justify-start">
-                <Checkbox 
-                  id="add-external-link" 
-                  checked={showAttachmentFields}
-                  onCheckedChange={(checked) => {
-                    setShowAttachmentFields(!!checked);
-                    if (!checked) {
-                      setLinkName("");
-                      setLinkUrl("");
-                    }
-                  }}
-                />
-                <Label htmlFor="add-external-link" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                  إضافة رابط للتقرير الختامي
-                </Label>
-              </div>
-
-              {showAttachmentFields && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-800/50">
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الرابط (اختياري)</Label>
-                    <Input
-                      placeholder="مثال: عرض سعر شركة الأعمال"
-                      value={linkName}
-                      onChange={(e) => setLinkName(e.target.value)}
-                      className="border-border rounded-xl h-11 text-right bg-background"
-                    />
-                  </div>
-
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الرابط (اختياري)</Label>
-                    <Input
-                      placeholder="https://example.com/quotation"
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      className="border-border rounded-xl h-11 text-left bg-background"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* تقييم الرضا */}
             <div className="space-y-3">
               <Label className="font-semibold flex items-center gap-2">
                 <Star className="w-4 h-4 text-yellow-500" />
@@ -478,6 +428,53 @@ export default function FinalReportForm() {
                   {satisfactionRating === 5 && "ممتاز"}
                 </span>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* إضافة رابط خارجي */}
+            <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4">
+              <div className="flex items-center gap-2 justify-start">
+                <Checkbox 
+                  id="add-external-link" 
+                  checked={showAttachmentFields}
+                  onCheckedChange={(checked) => {
+                    setShowAttachmentFields(!!checked);
+                    if (!checked) {
+                      setLinkName("");
+                      setLinkUrl("");
+                    }
+                  }}
+                />
+                <Label htmlFor="add-external-link" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  إضافة رابط للتقرير الختامي
+                </Label>
+              </div>
+
+              {showAttachmentFields && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-800/50">
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الرابط (اختياري)</Label>
+                    <Input
+                      placeholder="مثال: صور الإنجاز أو تقرير الاستلام النهائي"
+                      value={linkName}
+                      onChange={(e) => setLinkName(e.target.value)}
+                      className="border-border rounded-xl h-11 text-right bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الرابط (اختياري)</Label>
+                    <Input
+                      placeholder="https://drive.google.com/final-handover-report"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      className="border-border rounded-xl h-11 text-left bg-background"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* تنبيه */}
