@@ -2964,7 +2964,7 @@ export default function RequestDetailsNew() {
                     value={requesterData.city || "none"} 
                     onValueChange={(val) => setRequesterData(prev => ({ ...prev, city: val === "none" ? "" : val }))}
                   >
-                    <SelectTrigger dir="rtl" className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right flex flex-row-reverse justify-between items-center">
+                    <SelectTrigger dir="rtl" style={{ width: "100%" }} className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs text-right flex justify-between items-center">
                       <SelectValue placeholder="غير محدد" />
                     </SelectTrigger>
                     <SelectContent>
