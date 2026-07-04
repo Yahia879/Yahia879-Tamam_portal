@@ -327,6 +327,64 @@ export default function RequestDetailsNew() {
   // Fetch organization settings for report templates
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  // Fetch categories for cities list
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const cities = useMemo(() => {
+    return allCategories
+      .filter((cat: any) => (cat.type === "city" || cat.type === "cities") && cat.isActive !== false)
+      .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }, [allCategories]);
+
+  // State to manage requester info in commitment form modal
+  const [requesterData, setRequesterData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    city: "",
+    nationalId: ""
+  });
+
+  const updateUserMutation = trpc.users.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات المستفيد بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث البيانات");
+    }
+  });
+
+  const handleUpdateRequester = async () => {
+    if (!request?.requester?.id) {
+      toast.error("بيانات المستفيد غير متوفرة");
+      return;
+    }
+    if (!requesterData.name.trim()) {
+      toast.error("الاسم الكامل مطلوب");
+      return;
+    }
+    if (!requesterData.email.trim()) {
+      toast.error("البريد الإلكتروني مطلوب");
+      return;
+    }
+    if (!requesterData.phone.trim()) {
+      toast.error("رقم الجوال مطلوب");
+      return;
+    }
+
+    const isConfirmed = window.confirm("هل أنت متأكد؟ سوف يتم تعديل بيانات المستفيد في قواعد البيانات.");
+    if (!isConfirmed) return;
+
+    updateUserMutation.mutate({
+      id: request.requester.id,
+      name: requesterData.name,
+      email: requesterData.email,
+      phone: requesterData.phone,
+      city: requesterData.city || null,
+      nationalId: requesterData.nationalId || null,
+    });
+  };
+
   // Fetch BOQ data for validation
   const { data: boqResult } = trpc.projects.getBOQ.useQuery(
     { requestId },
@@ -384,6 +442,13 @@ export default function RequestDetailsNew() {
         expectedCost: "",
         terms: formattedConditions || "لا يوجد شروط محددة للبرنامج.",
       }));
+      setRequesterData({
+        name: request.requester?.name || "",
+        phone: request.requester?.phone || "",
+        email: request.requester?.email || "",
+        city: request.requester?.city || "",
+        nationalId: request.requester?.nationalId || ""
+      });
       setCommitmentFormMode('edit');
     }
   }, [commitmentFormOpen, request]);
@@ -2837,62 +2902,91 @@ export default function RequestDetailsNew() {
               />
             </div>
 
-            {/* معلومات طالب الخدمة (غير قابلة للتعديل) */}
-            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-3 shadow-inner">
-              <div className="flex items-center justify-between">
+            {/* معلومات طالب الخدمة (قابلة للتعديل) */}
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4 shadow-inner">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h4 className="font-black text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <User className="w-4 h-4 text-indigo-500" />
                   <span>معلومات طالب الخدمة المتعهد</span>
                 </h4>
-                <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-semibold">
-                  قراءة فقط
-                </span>
+                <Button 
+                  type="button" 
+                  onClick={handleUpdateRequester}
+                  disabled={updateUserMutation.isPending}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs h-9 flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  {updateUserMutation.isPending ? "جاري الحفظ..." : "تعديل وحفظ البيانات"}
+                </Button>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                  <User className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <span className="font-semibold text-slate-400 block text-[10px]">الاسم الكامل</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold">{request?.requester?.name || "غير محدد"}</span>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {/* الاسم الكامل */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">الاسم الكامل *</Label>
+                  <Input
+                    value={requesterData.name}
+                    onChange={(e) => setRequesterData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="غير محدد"
+                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
+                  />
                 </div>
 
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                  <Phone className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <span className="font-semibold text-slate-400 block text-[10px]">رقم الجوال</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">{request?.requester?.phone || "غير محدد"}</span>
-                  </div>
+                {/* رقم الجوال */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الجوال *</Label>
+                  <Input
+                    value={requesterData.phone}
+                    onChange={(e) => setRequesterData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="غير محدد"
+                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
+                    dir="ltr"
+                  />
                 </div>
 
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                  <Mail className="w-4 h-4 text-slate-400" />
-                  <div>
-                    <span className="font-semibold text-slate-400 block text-[10px]">البريد الإلكتروني</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold truncate block max-w-[180px]">{request?.requester?.email || "غير محدد"}</span>
-                  </div>
+                {/* البريد الإلكتروني */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">البريد الإلكتروني *</Label>
+                  <Input
+                    value={requesterData.email}
+                    onChange={(e) => setRequesterData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="غير محدد"
+                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
+                    dir="ltr"
+                  />
                 </div>
 
-                {request?.requester?.city && (
-                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <span className="font-semibold text-slate-400 block text-[10px]">المدينة</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.city}</span>
-                    </div>
-                  </div>
-                )}
+                {/* المدينة */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">المدينة</Label>
+                  <Select 
+                    value={requesterData.city || "none"} 
+                    onValueChange={(val) => setRequesterData(prev => ({ ...prev, city: val === "none" ? "" : val }))}
+                  >
+                    <SelectTrigger className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right">
+                      <SelectValue placeholder="غير محدد" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">غير محدد</SelectItem>
+                      {cities.map((city: any) => (
+                        <SelectItem key={city.name} value={city.nameAr || city.name}>
+                          {city.nameAr || city.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                {request?.requester?.nationalId && (
-                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
-                    <FileText className="w-4 h-4 text-slate-400" />
-                    <div>
-                      <span className="font-semibold text-slate-400 block text-[10px]">رقم الهوية الوطنية</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.nationalId}</span>
-                    </div>
-                  </div>
-                )}
+                {/* رقم الهوية الوطنية */}
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الهوية الوطنية</Label>
+                  <Input
+                    value={requesterData.nationalId}
+                    onChange={(e) => setRequesterData(prev => ({ ...prev, nationalId: e.target.value }))}
+                    placeholder="غير محدد"
+                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
+                    dir="ltr"
+                  />
+                </div>
               </div>
             </div>
 
@@ -3026,7 +3120,7 @@ export default function RequestDetailsNew() {
                   <h3 className="text-lg font-bold border-r-4 border-[#1a5f4a] pr-3 text-slate-800 dark:text-slate-200">1. بيانات الطلب والمستفيد</h3>
                   <div className="w-full overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
                     <table className="w-full text-sm">
-                      <tbody>
+                                            <tbody>
                         <tr className="border-b border-slate-200 dark:border-slate-800">
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">اسم الطلب</td>
                           <td className="p-3">{commitmentFormData.title}</td>
@@ -3041,24 +3135,16 @@ export default function RequestDetailsNew() {
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الجوال</td>
                           <td className="p-3">{request?.requester?.phone || "غير محدد"}</td>
                         </tr>
-                        <tr className={request?.requester?.nationalId ? "border-b border-slate-200 dark:border-slate-800" : ""}>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">البريد الإلكتروني</td>
-                          {request?.requester?.city ? (
-                            <>
-                              <td className="p-3">{request.requester.email}</td>
-                              <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">المدينة</td>
-                              <td className="p-3">{request.requester.city}</td>
-                            </>
-                          ) : (
-                            <td className="p-3" colSpan={3}>{request?.requester?.email || "غير محدد"}</td>
-                          )}
+                          <td className="p-3">{request?.requester?.email || "غير محدد"}</td>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">المدينة</td>
+                          <td className="p-3">{request?.requester?.city || "غير محدد"}</td>
                         </tr>
-                        {request?.requester?.nationalId && (
-                          <tr>
-                            <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الهوية الوطنية</td>
-                            <td className="p-3" colSpan={3}>{request.requester.nationalId}</td>
-                          </tr>
-                        )}
+                        <tr>
+                          <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold">رقم الهوية الوطنية</td>
+                          <td className="p-3" colSpan={3}>{request?.requester?.nationalId || "غير محدد"}</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>

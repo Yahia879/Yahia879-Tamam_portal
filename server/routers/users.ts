@@ -476,6 +476,8 @@ export const usersRouter = router({
         status: z.enum(["active", "pending", "suspended", "blocked"]).optional(),
         department: z.string().optional(),
         position: z.string().optional(),
+        city: z.string().optional().nullable(),
+        nationalId: z.string().optional().nullable(),
       })
     )
     .mutation(async ({ input, ctx }) => {
