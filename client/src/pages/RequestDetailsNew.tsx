@@ -2912,97 +2912,63 @@ export default function RequestDetailsNew() {
               />
             </div>
 
-            {/* معلومات طالب الخدمة (قابلة للتعديل) */}
-            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-4 shadow-inner">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+            {/* معلومات طالب الخدمة (غير قابلة للتعديل) */}
+            <div className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-2xl space-y-3 shadow-inner">
+              <div className="flex items-center justify-between">
                 <h4 className="font-black text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <User className="w-4 h-4 text-indigo-500" />
                   <span>معلومات طالب الخدمة المتعهد</span>
                 </h4>
+                <span className="text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full font-semibold">
+                  قراءة فقط
+                </span>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {/* الاسم الكامل */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">الاسم الكامل *</Label>
-                  <Input
-                    value={requesterData.name}
-                    onChange={(e) => setRequesterData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="غير محدد"
-                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <User className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">الاسم الكامل</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold">{request?.requester?.name || "غير محدد"}</span>
+                  </div>
                 </div>
 
-                {/* رقم الجوال */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الجوال *</Label>
-                  <Input
-                    value={requesterData.phone}
-                    onChange={(e) => setRequesterData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="غير محدد"
-                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
-                    dir="ltr"
-                  />
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <Phone className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">رقم الجوال</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">{request?.requester?.phone || "غير محدد"}</span>
+                  </div>
                 </div>
 
-                {/* البريد الإلكتروني */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">البريد الإلكتروني *</Label>
-                  <Input
-                    value={requesterData.email}
-                    onChange={(e) => setRequesterData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="غير محدد"
-                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
-                    dir="ltr"
-                  />
+                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <Mail className="w-4 h-4 text-slate-400" />
+                  <div>
+                    <span className="font-semibold text-slate-400 block text-[10px]">البريد الإلكتروني</span>
+                    <span className="text-slate-800 dark:text-slate-200 font-bold truncate block max-w-[180px]">{request?.requester?.email || "غير محدد"}</span>
+                  </div>
                 </div>
 
-                {/* المدينة */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">المدينة</Label>
-                  <Select 
-                    value={requesterData.city || "none"} 
-                    onValueChange={(val) => setRequesterData(prev => ({ ...prev, city: val === "none" ? "" : val }))}
-                  >
-                    <SelectTrigger dir="rtl" style={{ width: "100%" }} className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs text-right flex justify-between items-center">
-                      <SelectValue placeholder="غير محدد" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">غير محدد</SelectItem>
-                      {cities.map((city: any) => (
-                        <SelectItem key={city.name} value={city.nameAr || city.name}>
-                          {city.nameAr || city.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {request?.requester?.city && (
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <span className="font-semibold text-slate-400 block text-[10px]">المدينة</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.city}</span>
+                    </div>
+                  </div>
+                )}
 
-                {/* رقم الهوية الوطنية */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم الهوية الوطنية</Label>
-                  <Input
-                    value={requesterData.nationalId}
-                    onChange={(e) => setRequesterData(prev => ({ ...prev, nationalId: e.target.value }))}
-                    placeholder="غير محدد"
-                    className="h-10 border-slate-200 dark:border-slate-800 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl px-3 shadow-sm text-xs w-full text-right"
-                    dir="ltr"
-                  />
-                </div>
+                {request?.requester?.nationalId && (
+                  <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm animate-in fade-in">
+                    <FileText className="w-4 h-4 text-slate-400" />
+                    <div>
+                      <span className="font-semibold text-slate-400 block text-[10px]">رقم الهوية الوطنية</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{request.requester.nationalId}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {isDirty && (
-                <div className="flex justify-end pt-3 border-t border-slate-200/50 dark:border-slate-800/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                  <Button 
-                    type="button" 
-                    onClick={handleUpdateRequester}
-                    disabled={updateUserMutation.isPending}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs h-10 flex items-center gap-1.5 shadow-md transition-all"
-                  >
-                    {updateUserMutation.isPending ? "جاري حفظ التعديلات..." : "تعديل وحفظ التعديلات"}
-                  </Button>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-5 border-t border-slate-100 dark:border-slate-850">
