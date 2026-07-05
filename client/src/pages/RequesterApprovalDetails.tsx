@@ -77,6 +77,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const [editNationalId, setEditNationalId] = useState("");
   const [editCity, setEditCity] = useState("");
   const [editRequesterType, setEditRequesterType] = useState("");
+  const [editCustomRequesterType, setEditCustomRequesterType] = useState("");
   const [editCreatedAt, setEditCreatedAt] = useState("");
 
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
@@ -111,7 +112,19 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
       setEditPhone(user.phone || "");
       setEditNationalId(user.nationalId || "");
       setEditCity(user.city || "");
-      setEditRequesterType(user.requesterType || "");
+      
+      const reqType = user.requesterType || "";
+      if (["imam", "muezzin", "donor"].includes(reqType)) {
+        setEditRequesterType(reqType);
+        setEditCustomRequesterType("");
+      } else if (reqType) {
+        setEditRequesterType("other");
+        setEditCustomRequesterType(reqType);
+      } else {
+        setEditRequesterType("");
+        setEditCustomRequesterType("");
+      }
+      
       setEditCreatedAt(formatDateForInput(user.createdAt));
     }
   }, [user]);
@@ -333,7 +346,12 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         <User className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none z-10" />
                         <Select 
                           value={editRequesterType || "none"} 
-                          onValueChange={(val) => setEditRequesterType(val === "none" ? "" : val)}
+                          onValueChange={(val) => {
+                            setEditRequesterType(val === "none" ? "" : val);
+                            if (val !== "other") {
+                              setEditCustomRequesterType("");
+                            }
+                          }}
                         >
                           <SelectTrigger dir="rtl" className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground text-right">
                             <SelectValue placeholder="غير محدد" />
@@ -348,6 +366,22 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         </Select>
                       </div>
                     </div>
+
+                    {/* حقل مخصص لصفة طالب الخدمة عند اختيار أخرى */}
+                    {editRequesterType === "other" && (
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground font-medium block">اكتب صفة طالب الخدمة الأخرى *</span>
+                        <div className="relative flex items-center">
+                          <User className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                          <Input
+                            value={editCustomRequesterType}
+                            onChange={(e) => setEditCustomRequesterType(e.target.value)}
+                            placeholder="أدخل الصفة الأخرى"
+                            className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* تاريخ التسجيل */}
                     <div className="space-y-1">
@@ -371,6 +405,10 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           toast.error("يرجى ملء الحقول المطلوبة (*)");
                           return;
                         }
+                        if (editRequesterType === "other" && !editCustomRequesterType.trim()) {
+                          toast.error("يرجى كتابة صفة طالب الخدمة الأخرى");
+                          return;
+                        }
                         updateUserMutation.mutate({
                           id: user.id,
                           name: editName,
@@ -378,7 +416,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           phone: editPhone,
                           nationalId: editNationalId || null,
                           city: editCity || null,
-                          requesterType: editRequesterType || null,
+                          requesterType: editRequesterType === "other" ? editCustomRequesterType : (editRequesterType || null),
                           createdAt: editCreatedAt || undefined,
                         });
                       }}
@@ -395,7 +433,19 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                         setEditPhone(user.phone || "");
                         setEditNationalId(user.nationalId || "");
                         setEditCity(user.city || "");
-                        setEditRequesterType(user.requesterType || "");
+                        
+                        const reqType = user.requesterType || "";
+                        if (["imam", "muezzin", "donor"].includes(reqType)) {
+                          setEditRequesterType(reqType);
+                          setEditCustomRequesterType("");
+                        } else if (reqType) {
+                          setEditRequesterType("other");
+                          setEditCustomRequesterType(reqType);
+                        } else {
+                          setEditRequesterType("");
+                          setEditCustomRequesterType("");
+                        }
+                        
                         setEditCreatedAt(formatDateForInput(user.createdAt));
                         setIsEditing(false);
                       }}
