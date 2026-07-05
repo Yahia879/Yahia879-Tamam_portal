@@ -478,6 +478,8 @@ export const usersRouter = router({
         position: z.string().optional(),
         city: z.string().optional().nullable(),
         nationalId: z.string().optional().nullable(),
+        requesterType: z.string().optional().nullable(),
+        createdAt: z.string().or(z.date()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -502,7 +504,11 @@ export const usersRouter = router({
       }
 
       const { id, department, position, ...updateData } = input;
-      await db.update(users).set(updateData as any).where(eq(users.id, id));
+      const parsedUpdateData: any = { ...updateData };
+      if (updateData.createdAt) {
+        parsedUpdateData.createdAt = new Date(updateData.createdAt);
+      }
+      await db.update(users).set(parsedUpdateData).where(eq(users.id, id));
 
       // تحديث بيانات الموظف إذا وُجدت
       if (department !== undefined || position !== undefined) {

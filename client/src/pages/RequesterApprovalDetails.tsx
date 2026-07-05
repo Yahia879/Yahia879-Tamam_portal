@@ -21,9 +21,13 @@ import {
   Download,
   Maximize2,
   Minimize2,
+  Edit,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 // ترجمة صفة طالب الخدمة
 const getRequesterTypeLabel = (type: string | null | undefined) => {
@@ -56,6 +60,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const { user: currentUser } = useAuth();
   const hasApprovePermission = usePermission("requesters.approve");
   const canApprove = hasApprovePermission;
+  const hasEditPermission = usePermission("users.edit");
+  const canEdit = hasEditPermission || ["super_admin", "system_admin"].includes(currentUser?.role || "");
 
   const [fullscreenUrl, setFullscreenUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
@@ -63,15 +69,50 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
 
+  // States for user information editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editNationalId, setEditNationalId] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editRequesterType, setEditRequesterType] = useState("");
+  const [editCreatedAt, setEditCreatedAt] = useState("");
+
   const { data: user, isLoading, refetch } = trpc.users.getById.useQuery(
     { id: userId },
     { enabled: !isNaN(userId) }
   );
 
+  // Fetch categories for cities list
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const cities = useMemo(() => {
+    return allCategories
+      .filter((cat: any) => (cat.type === "city" || cat.type === "cities") && cat.isActive !== false)
+      .sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }, [allCategories]);
+
+  const formatDateForInput = (dateVal: string | Date | null | undefined) => {
+    if (!dateVal) return "";
+    const date = new Date(dateVal);
+    if (isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     if (user) {
       setNotes(user.adminNotes || "");
       setNotesRequiredType(user.notesRequiredType || "file");
+      setEditName(user.name || "");
+      setEditEmail(user.email || "");
+      setEditPhone(user.phone || "");
+      setEditNationalId(user.nationalId || "");
+      setEditCity(user.city || "");
+      setEditRequesterType(user.requesterType || "");
+      setEditCreatedAt(formatDateForInput(user.createdAt));
     }
   }, [user]);
 
@@ -96,6 +137,17 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     },
     onError: () => {
       toast.error("حدث خطأ أثناء حفظ الملاحظات");
+    },
+  });
+
+  const updateUserMutation = trpc.users.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث بيانات طالب الخدمة بنجاح");
+      setIsEditing(false);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تحديث البيانات");
     },
   });
 
@@ -177,14 +229,185 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* معلومات طالب الخدمة */}
           <Card className="lg:col-span-2 border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/20 dark:shadow-none rounded-2xl">
-            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4">
+            <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 px-6 py-4 flex flex-row items-center justify-between">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
                 البيانات الأساسية للمستخدم
               </CardTitle>
+              {canEdit && !isEditing && (
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  variant="outline"
+                  size="sm"
+                  className="font-bold gap-1 rounded-xl h-9"
+                >
+                  <Edit className="w-4 h-4" />
+                  تعديل البيانات
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 text-right">
+              {isEditing ? (
+                <div className="space-y-6 text-right">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                    {/* الاسم الكامل */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">الاسم الكامل *</span>
+                      <div className="relative flex items-center">
+                        <User className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* البريد الإلكتروني */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">البريد الإلكتروني *</span>
+                      <div className="relative flex items-center" dir="ltr">
+                        <Mail className="absolute left-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm font-semibold text-foreground text-right"
+                        />
+                      </div>
+                    </div>
+
+                    {/* رقم الجوال */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">رقم الجوال *</span>
+                      <div className="relative flex items-center" dir="ltr">
+                        <Phone className="absolute left-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pl-10 pr-3.5 w-full text-sm font-semibold text-foreground text-right"
+                        />
+                      </div>
+                    </div>
+
+                    {/* رقم الهوية الوطنية */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">رقم الهوية الوطنية</span>
+                      <div className="relative flex items-center">
+                        <Shield className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          value={editNationalId}
+                          onChange={(e) => setEditNationalId(e.target.value)}
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {/* المدينة */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">المدينة</span>
+                      <div className="relative flex items-center">
+                        <MapPin className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none z-10" />
+                        <Select 
+                          value={editCity || "none"} 
+                          onValueChange={(val) => setEditCity(val === "none" ? "" : val)}
+                        >
+                          <SelectTrigger dir="rtl" className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground text-right">
+                            <SelectValue placeholder="غير محدد" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">غير محدد</SelectItem>
+                            {cities.map((city: any) => (
+                              <SelectItem key={city.id || city.name} value={city.nameAr || city.name}>
+                                {city.nameAr || city.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* صفة طالب الخدمة */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">صفة طالب الخدمة</span>
+                      <div className="relative flex items-center">
+                        <User className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none z-10" />
+                        <Select 
+                          value={editRequesterType || "none"} 
+                          onValueChange={(val) => setEditRequesterType(val === "none" ? "" : val)}
+                        >
+                          <SelectTrigger dir="rtl" className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground text-right">
+                            <SelectValue placeholder="غير محدد" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">غير محدد</SelectItem>
+                            <SelectItem value="imam">إمام</SelectItem>
+                            <SelectItem value="muezzin">مؤذن</SelectItem>
+                            <SelectItem value="donor">متبرع</SelectItem>
+                            <SelectItem value="other">أخرى</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* تاريخ التسجيل */}
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground font-medium block">تاريخ التسجيل</span>
+                      <div className="relative flex items-center">
+                        <Calendar className="absolute right-3.5 w-4.5 h-4.5 text-muted-foreground pointer-events-none" />
+                        <Input
+                          type="date"
+                          value={editCreatedAt}
+                          onChange={(e) => setEditCreatedAt(e.target.value)}
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <Button
+                      onClick={() => {
+                        if (!editName.trim() || !editEmail.trim() || !editPhone.trim()) {
+                          toast.error("يرجى ملء الحقول المطلوبة (*)");
+                          return;
+                        }
+                        updateUserMutation.mutate({
+                          id: user.id,
+                          name: editName,
+                          email: editEmail,
+                          phone: editPhone,
+                          nationalId: editNationalId || null,
+                          city: editCity || null,
+                          requesterType: editRequesterType || null,
+                          createdAt: editCreatedAt || undefined,
+                        });
+                      }}
+                      disabled={updateUserMutation.isPending}
+                      className="bg-primary hover:bg-primary/95 text-white font-bold px-6 h-11 rounded-xl gap-1.5"
+                    >
+                      {updateUserMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditName(user.name || "");
+                        setEditEmail(user.email || "");
+                        setEditPhone(user.phone || "");
+                        setEditNationalId(user.nationalId || "");
+                        setEditCity(user.city || "");
+                        setEditRequesterType(user.requesterType || "");
+                        setEditCreatedAt(formatDateForInput(user.createdAt));
+                        setIsEditing(false);
+                      }}
+                      className="font-bold px-6 h-11 rounded-xl"
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 text-right">
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground font-medium block">الاسم الكامل</span>
                   <span className="text-sm font-semibold flex items-center gap-2 text-foreground bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -469,6 +692,8 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                     </div>
                   )}
                 </div>
+              )}
+                </>
               )}
             </CardContent>
           </Card>
