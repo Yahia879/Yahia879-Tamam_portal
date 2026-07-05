@@ -358,7 +358,7 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           type="date"
                           value={editCreatedAt}
                           onChange={(e) => setEditCreatedAt(e.target.value)}
-                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground"
+                          className="h-11 border-slate-100 dark:border-slate-800 focus:border-primary/50 bg-slate-50 dark:bg-slate-900 rounded-xl pr-10 pl-3.5 w-full text-sm font-semibold text-foreground [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
                         />
                       </div>
                     </div>
