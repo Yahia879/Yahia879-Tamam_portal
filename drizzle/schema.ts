@@ -1058,6 +1058,7 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   title: varchar("title", { length: 255 }),
   description: text("description"),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  adminFees: decimal("adminFees", { precision: 15, scale: 2 }),
   paymentType: mysqlEnum("paymentType", ["advance", "progress", "final", "retention"]).default("progress"),
   dateMiladi: date("dateMiladi"),
   completionPercentage: int("completionPercentage"), // نسبة الإنجاز المرتبطة بالدفعة

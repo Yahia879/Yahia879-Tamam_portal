@@ -240,7 +240,11 @@ export default function DisbursementRequestPrint() {
   const hasContract = !!contract;
   const actualProjectCost = hasContract ? parseFloat(contract.contractAmount || "0") : amount;
   const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
-  const adminFees = (actualProjectCost * managementPercentage) / 100;
+  const adminFees = request.adminFees 
+    ? parseFloat(request.adminFees.toString()) 
+    : (customSupplier?.adminFees 
+        ? parseFloat(customSupplier.adminFees) 
+        : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
   const totalOpportunityValue = actualProjectCost + adminFees;
 
   if (supportSources.length === 0 && supportingEntity) {
@@ -270,7 +274,7 @@ export default function DisbursementRequestPrint() {
 
   const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
 
-  const projectAddress = contract?.mosqueCity || 
+  const projectAddress = customSupplier?.projectCity || contract?.mosqueCity || 
     [
       project?.city, 
       project?.district, 

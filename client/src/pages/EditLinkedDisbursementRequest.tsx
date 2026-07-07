@@ -65,6 +65,8 @@ export default function EditLinkedDisbursementRequest() {
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>([]);
 
+  const [customSupplierInfo, setCustomSupplierInfo] = useState<any>(null);
+
   // استعلام جلب طلب الصرف الحالي
   const { data: request, isLoading: isRequestLoading } = trpc.disbursements.getRequestById.useQuery(
     { id: requestId },
@@ -166,6 +168,7 @@ export default function EditLinkedDisbursementRequest() {
         }
 
         if (customSupplier) {
+          setCustomSupplierInfo(customSupplier);
           setSuppliers([
             {
               id: crypto.randomUUID(),
@@ -324,6 +327,7 @@ export default function EditLinkedDisbursementRequest() {
     const customSupplierMetadata = isCustom ? [{
       name: "custom_supplier_info",
       url: JSON.stringify({
+        ...(customSupplierInfo || {}),
         name: suppliers[0]?.name || "",
         bank: suppliers[0]?.bank || "",
         iban: suppliers[0]?.iban || "",
@@ -338,6 +342,7 @@ export default function EditLinkedDisbursementRequest() {
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
+      adminFees: request?.adminFees ? parseFloat(request.adminFees.toString()) : (customSupplierInfo?.adminFees ? parseFloat(customSupplierInfo.adminFees) : undefined),
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,

@@ -185,6 +185,9 @@ export default function NewLinkedDisbursementRequest() {
     bankName: string;
     iban: string;
     amount: number;
+    adminFees: number;
+    projectCity: string;
+    customCity: string;
     billerName: string;
     sadadNumber: string;
     billerCode: string;
@@ -206,6 +209,9 @@ export default function NewLinkedDisbursementRequest() {
     bankName: "",
     iban: "",
     amount: 0,
+    adminFees: 0,
+    projectCity: "",
+    customCity: "",
     billerName: "",
     sadadNumber: "",
     billerCode: "",
@@ -312,6 +318,9 @@ export default function NewLinkedDisbursementRequest() {
       bankName: "",
       iban: "",
       amount: 0,
+      adminFees: 0,
+      projectCity: "",
+      customCity: "",
       billerName: "",
       sadadNumber: "",
       billerCode: "",
@@ -326,7 +335,8 @@ export default function NewLinkedDisbursementRequest() {
       const typeLabel = requestType === "supplier_one_time" ? "سداد مورد لمرة واحدة" : "مصروفات منوعة";
       setFormData(prev => {
         const newTitle = `${typeLabel} - ${prev.customProjectName || ""}`;
-        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}`;
+        const resolvedCity = prev.projectCity === "other" ? prev.customCity : prev.projectCity;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
         if (prev.title === newTitle && prev.description === newDesc) return prev;
         return {
           ...prev,
@@ -365,7 +375,8 @@ export default function NewLinkedDisbursementRequest() {
     } else if (requestType === "sadad_invoice") {
       setFormData(prev => {
         const newTitle = `فواتير نظام سداد - ${prev.customProjectName || ""}`;
-        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالمفوتر: ${prev.billerName || ""}\nرقم سداد: ${prev.sadadNumber || ""}\nرمز المفوتر: ${prev.billerCode || ""}\nالمبلغ: ${prev.amount || 0}`;
+        const resolvedCity = prev.projectCity === "other" ? prev.customCity : prev.projectCity;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمفوتر: ${prev.billerName || ""}\nرقم سداد: ${prev.sadadNumber || ""}\nرمز المفوتر: ${prev.billerCode || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
         if (prev.title === newTitle && prev.description === newDesc) return prev;
         return {
           ...prev,
@@ -412,6 +423,9 @@ export default function NewLinkedDisbursementRequest() {
     formData.bankName,
     formData.iban,
     formData.amount,
+    formData.adminFees,
+    formData.projectCity,
+    formData.customCity,
     formData.billerName,
     formData.sadadNumber,
     formData.billerCode
@@ -434,6 +448,8 @@ export default function NewLinkedDisbursementRequest() {
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
   // جلب معلومات المفوتر ديناميكياً
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
+  // جلب المدن
+  const { data: citiesData } = trpc.categories.getCategoryByType.useQuery({ type: "city" });
   const filteredBillers = sadadBillersData?.values?.filter((val: any) => {
     const term = billerSearch.trim().toLowerCase();
     if (!term) return true;
@@ -672,23 +688,29 @@ export default function NewLinkedDisbursementRequest() {
     if (requestType === "supplier_one_time" || requestType === "misc_expenses") {
       return (
         !formData.customProjectName ||
+        !formData.projectCity ||
+        (formData.projectCity === "other" && !formData.customCity) ||
         !formData.beneficiaryName ||
         !formData.bankAccountName ||
         !formData.bankName ||
         !formData.iban ||
         !formData.dateMiladi ||
-        formData.amount <= 0
+        formData.amount <= 0 ||
+        formData.adminFees < 0
       );
     }
     
     if (requestType === "sadad_invoice") {
       return (
         !formData.customProjectName ||
+        !formData.projectCity ||
+        (formData.projectCity === "other" && !formData.customCity) ||
         !formData.billerName ||
         !formData.sadadNumber ||
         !formData.billerCode ||
         !formData.dateMiladi ||
-        formData.amount <= 0
+        formData.amount <= 0 ||
+        formData.adminFees < 0
       );
     }
     
@@ -730,6 +752,20 @@ export default function NewLinkedDisbursementRequest() {
       toast.error("يرجى إدخال مبلغ صحيح");
       return;
     }
+    if (formData.adminFees < 0) {
+      toast.error("الأجور الإدارية لا يمكن أن تكون سالبة");
+      return;
+    }
+    if (isCustom && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")) {
+      if (!formData.projectCity) {
+        toast.error("يرجى اختيار عنوان المشروع");
+        return;
+      }
+      if (formData.projectCity === "other" && !formData.customCity) {
+        toast.error("يرجى كتابة عنوان المشروع البديل");
+        return;
+      }
+    }
     if (suppliers.some(s => !s.name)) {
       toast.error("يرجى اختيار المورد المستفيد");
       return;
@@ -752,6 +788,7 @@ export default function NewLinkedDisbursementRequest() {
     }
     
     const isManual = paymentIdRaw.startsWith("manual-");
+    const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
     // إدراج الحقول المخصصة في المرفقات كـ metadata لحفظها بالكامل في قاعدة البيانات
     const customSupplierMetadata = isCustom ? [{
@@ -772,6 +809,8 @@ export default function NewLinkedDisbursementRequest() {
         billerCode: formData.billerCode || "",
         donationOpportunityId: isDonationLinked ? formData.donationOpportunityId : undefined,
         mosqueRequestId: isDonationLinked ? formData.mosqueRequestId : undefined,
+        adminFees: formData.adminFees || 0,
+        projectCity: resolvedCity || "",
       }),
       type: "metadata"
     }] : [];
@@ -794,6 +833,7 @@ export default function NewLinkedDisbursementRequest() {
       title: formData.title,
       description: formData.description,
       amount: totalAmount,
+      adminFees: (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? formData.adminFees : undefined,
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
@@ -1096,6 +1136,39 @@ export default function NewLinkedDisbursementRequest() {
                         </div>
 
                         <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان المشروع *</Label>
+                          <Select
+                            value={formData.projectCity}
+                            onValueChange={(value) => setFormData({ ...formData, projectCity: value, customCity: value === "other" ? "" : value })}
+                          >
+                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                              <SelectValue placeholder="اختر عنوان المشروع (المدينة)" />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {citiesData?.values?.map((city: any) => (
+                                <SelectItem key={city.id} value={city.valueAr} className="text-right">
+                                  {city.valueAr}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="other" className="text-right text-primary font-bold">أخرى (إدخال يدوي)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {formData.projectCity === "other" && (
+                          <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان المشروع (كتابة يدوي) *</Label>
+                            <Input
+                              value={formData.customCity}
+                              onChange={(e) => setFormData({ ...formData, customCity: e.target.value })}
+                              placeholder="أدخل اسم المدينة"
+                              required
+                              className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
                           <Input
                             list="suppliers-list"
@@ -1168,6 +1241,18 @@ export default function NewLinkedDisbursementRequest() {
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
                           />
                         </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الأجور الإدارية *</Label>
+                          <Input
+                            type="number"
+                            value={formData.adminFees || ""}
+                            onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
                       </>
                     )}
 
@@ -1183,6 +1268,39 @@ export default function NewLinkedDisbursementRequest() {
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
                           />
                         </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان المشروع *</Label>
+                          <Select
+                            value={formData.projectCity}
+                            onValueChange={(value) => setFormData({ ...formData, projectCity: value, customCity: value === "other" ? "" : value })}
+                          >
+                            <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                              <SelectValue placeholder="اختر عنوان المشروع (المدينة)" />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {citiesData?.values?.map((city: any) => (
+                                <SelectItem key={city.id} value={city.valueAr} className="text-right">
+                                  {city.valueAr}
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="other" className="text-right text-primary font-bold">أخرى (إدخال يدوي)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {formData.projectCity === "other" && (
+                          <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
+                            <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">عنوان المشروع (كتابة يدوي) *</Label>
+                            <Input
+                              value={formData.customCity}
+                              onChange={(e) => setFormData({ ...formData, customCity: e.target.value })}
+                              placeholder="أدخل اسم المدينة"
+                              required
+                              className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                            />
+                          </div>
+                        )}
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (للتعبئة التلقائية)</Label>
@@ -1256,6 +1374,18 @@ export default function NewLinkedDisbursementRequest() {
                             type="number"
                             value={formData.amount || ""}
                             onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الأجور الإدارية *</Label>
+                          <Input
+                            type="number"
+                            value={formData.adminFees || ""}
+                            onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
                             placeholder="0.00"
                             required
                             className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
@@ -1743,6 +1873,13 @@ export default function NewLinkedDisbursementRequest() {
                     </span>
                   </div>
                   
+                  {formData.adminFees > 0 && (
+                    <div className="text-xs text-left">
+                      <span className="text-muted-foreground block text-[9px]">الأجور الإدارية</span>
+                      <span className="font-bold text-foreground">{(formData.adminFees || 0).toLocaleString()} ريال</span>
+                    </div>
+                  )}
+
                   {!isCustom && contractDetails && (
                     <div className="text-xs text-left">
                       <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>

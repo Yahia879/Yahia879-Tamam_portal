@@ -234,7 +234,7 @@ describe("نظام طلبات الصرف وأوامر الصرف", () => {
       // تحديث حالة طلب الصرف إلى "مصروف"
       await db!.execute(sql`
         UPDATE disbursement_requests 
-        SET status = 'processed' 
+        SET status = 'paid' 
         WHERE id = ${testRequestId}
       `);
 
@@ -243,7 +243,7 @@ describe("نظام طلبات الصرف وأوامر الصرف", () => {
       `);
 
       const paidRequest = (requests as any[])[0];
-      expect(paidRequest.status).toBe("processed");
+      expect(paidRequest.status).toBe("paid");
     });
   });
 
