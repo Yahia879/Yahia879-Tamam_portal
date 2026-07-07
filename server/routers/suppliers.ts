@@ -10,7 +10,7 @@ import {
   supplierApprovalStatuses,
   workFields,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, like, or } from "drizzle-orm";
+import { eq, desc, and, sql, like, or, ne } from "drizzle-orm";
 import { notifySupplierRegistration, notifySupplierApproval, notifySupplierRejection } from "./notifications";
 
 // مخطط تسجيل المورد - الخطوة 1: معلومات الكيان
@@ -74,10 +74,11 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من عدم وجود مورد بنفس السجل التجاري
+      const cleanCR = input.commercialRegister.trim();
       const existing = await db
         .select()
         .from(suppliers)
-        .where(eq(suppliers.commercialRegister, input.commercialRegister))
+        .where(eq(suppliers.commercialRegister, cleanCR))
         .limit(1);
 
       if (existing.length > 0) {
@@ -90,7 +91,7 @@ export const suppliersRouter = router({
       const [result] = await db.insert(suppliers).values({
         name: input.name,
         entityType: input.entityType,
-        commercialRegister: input.commercialRegister,
+        commercialRegister: cleanCR,
         commercialActivity: input.commercialActivity,
         yearsOfExperience: input.yearsOfExperience,
         workFields: input.workFields,
@@ -145,10 +146,11 @@ export const suppliersRouter = router({
       // التحقق من الصلاحيات (يتم عبر permissionProcedure أعلاه)
 
       // التحقق من تكرار السجل التجاري
+      const cleanCR = input.commercialRegister.trim();
       const existing = await db
         .select()
         .from(suppliers)
-        .where(eq(suppliers.commercialRegister, input.commercialRegister))
+        .where(eq(suppliers.commercialRegister, cleanCR))
         .limit(1);
 
       if (existing.length > 0) {
@@ -160,7 +162,7 @@ export const suppliersRouter = router({
 
       const [result] = await db.insert(suppliers).values({
         name: input.name,
-        commercialRegister: input.commercialRegister,
+        commercialRegister: cleanCR,
         contactPerson: input.contactPerson,
         phone: input.phone,
         email: input.email,
@@ -587,6 +589,23 @@ export const suppliersRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const { id, ...updateData } = input;
+
+      // التحقق من عدم تكرار السجل التجاري لمورد آخر عند التحديث
+      if (updateData.commercialRegister) {
+        const cleanCR = updateData.commercialRegister.trim();
+        const existing = await db
+          .select({ id: suppliers.id })
+          .from(suppliers)
+          .where(and(eq(suppliers.commercialRegister, cleanCR), ne(suppliers.id, id)))
+          .limit(1);
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "رقم السجل التجاري هذا مستخدم من قِبل مورد آخر",
+          });
+        }
+        updateData.commercialRegister = cleanCR;
+      }
 
       await db
         .update(suppliers)

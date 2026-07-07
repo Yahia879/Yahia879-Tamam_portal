@@ -114,6 +114,14 @@ export const authRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال مسجل مسبقاً" });
       }
 
+      // التحقق من عدم تكرار رقم الهوية الوطنية
+      if (input.nationalId && input.nationalId.trim() !== "") {
+        const existingUserByNationalId = await db.select().from(users).where(eq(users.nationalId, input.nationalId.trim())).limit(1);
+        if (existingUserByNationalId.length > 0) {
+          throw new TRPCError({ code: "CONFLICT", message: "رقم الهوية هذا مسجل مسبقاً" });
+        }
+      }
+
       // إنشاء salt وتشفير كلمة المرور
       const salt = generateSalt();
       const passwordHash = hashPassword(input.password, salt);

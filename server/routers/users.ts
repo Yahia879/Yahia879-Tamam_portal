@@ -254,7 +254,15 @@ export const usersRouter = router({
       // التحقق من عدم تكرار البريد الإلكتروني
       const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
       if (existing) {
-        throw new TRPCError({ code: "CONFLICT", message: "هذا المستخدم مسجل مسبقاً" });
+        throw new TRPCError({ code: "CONFLICT", message: "هذا البريد الإلكتروني مستخدم سابقاً" });
+      }
+
+      // التحقق من عدم تكرار رقم الجوال
+      if (input.phone && input.phone.trim() !== "") {
+        const [existingPhone] = await db.select({ id: users.id }).from(users).where(eq(users.phone, input.phone)).limit(1);
+        if (existingPhone) {
+          throw new TRPCError({ code: "CONFLICT", message: "رقم الجوال هذا مستخدم سابقاً" });
+        }
       }
 
       // تشفير كلمة المرور
