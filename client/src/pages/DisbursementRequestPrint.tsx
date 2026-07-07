@@ -374,7 +374,7 @@ export default function DisbursementRequestPrint() {
                   </div>
                   <div className="flex border-b border-gray-200">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">اسم المشروع:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{project?.name || "—"}</span>
+                    <span className="p-2.5 text-gray-800 font-bold flex-1">{isCustomType ? (customSupplier?.customProjectName || "—") : (project?.name || "—")}</span>
                   </div>
                   <div className="flex col-span-2">
                     <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">عنوان المشروع:</span>
