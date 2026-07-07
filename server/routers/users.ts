@@ -518,6 +518,21 @@ export const usersRouter = router({
         }
       }
 
+      // التحقق من عدم استخدام رقم الجوال من قِبل مستخدم آخر
+      if (input.phone && input.phone.trim() !== "") {
+        const [existingUserByPhone] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.phone, input.phone), ne(users.id, input.id)))
+          .limit(1);
+        if (existingUserByPhone) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "رقم الجوال هذا مستخدم سابقاً"
+          });
+        }
+      }
+
       const { id, department, position, ...updateData } = input;
       const parsedUpdateData: any = { ...updateData };
       if (updateData.createdAt) {
