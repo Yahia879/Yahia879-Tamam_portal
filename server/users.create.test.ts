@@ -28,7 +28,7 @@ function createAdminContext(): TrpcContext {
 
 function createNonAdminContext(): TrpcContext {
   const user: AuthenticatedUser = {
-    id: 2,
+    id: 999999,
     openId: "regular-user",
     email: "user@tamam.sa",
     name: "مستخدم عادي",

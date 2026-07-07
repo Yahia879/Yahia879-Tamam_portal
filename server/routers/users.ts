@@ -3,7 +3,7 @@ import { router, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure } from "../permissions";
 import { getDb } from "../db";
 import { users, employees, userRoleAssignments, passwordResetTokens, roles } from "../../drizzle/schema";
-import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull } from "drizzle-orm";
+import { eq, count, and, inArray, notInArray, desc, like, or, sql, isNull, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomBytes, pbkdf2Sync } from "crypto";
 
@@ -499,6 +499,21 @@ export const usersRouter = router({
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "لا يمكن إيقاف حساب المدير العام"
+          });
+        }
+      }
+
+      // التحقق من عدم استخدام البريد الإلكتروني من قِبل مستخدم آخر
+      if (input.email) {
+        const [existingUser] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.email, input.email), ne(users.id, input.id)))
+          .limit(1);
+        if (existingUser) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "هذا البريد الإلكتروني مستخدم سابقاً"
           });
         }
       }

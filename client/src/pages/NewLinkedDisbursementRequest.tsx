@@ -864,10 +864,10 @@ export default function NewLinkedDisbursementRequest() {
               </Button>
               <div className="text-right">
                 <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
-                  طلب صرف مرتبط بتقرير إنجاز
+                  إنشاء طلب صرف مالي جديد
                 </h1>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
-                  إنشاء طلب صرف معتمد على تقارير الإنجاز المدققة ومطابقتها مالياً بنظام تمام
+                  إنشاء طلب صرف مرتبط بتقرير إنجاز معتمد أو طلب صرف مخصص لمورد أو فاتورة أو مصروفات منوعة 
                 </p>
               </div>
             </div>

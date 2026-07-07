@@ -258,15 +258,38 @@ export default function ProgressReportPrint() {
           .max-w-\\[210mm\\] {
             width: 210mm !important;
             max-width: 210mm !important;
-            padding: 10mm !important; /* Safe margin from A4 physical page edges */
+            padding: 8mm !important; /* Safe margin from A4 physical page edges */
             margin: 0 auto !important;
           }
           /* Keep frame border inside our custom page margin */
           .border-\\[3px\\] {
             border-width: 2px !important;
-            padding: 18px !important;
+            padding: 12px !important;
             margin: 0 !important;
             box-shadow: none !important;
+            height: 280mm !important; /* Force exact single page height for A4 */
+          }
+          .mb-6 {
+            margin-bottom: 8px !important;
+          }
+          .mb-4 {
+            margin-bottom: 6px !important;
+          }
+          .mb-3 {
+            margin-bottom: 4px !important;
+          }
+          .py-4 {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+          }
+          .p-4 {
+            padding: 6px !important;
+          }
+          .p-6 {
+            padding: 10px !important;
+          }
+          .min-h-screen {
+            min-height: 0 !important;
           }
         }
       `}</style>
@@ -640,24 +663,6 @@ export default function ProgressReportPrint() {
         </DialogContent>
       </Dialog>
 
-      {/* أنماط الطباعة المخصصة لـ A4 */}
-      <style>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          body {
-            background-color: white !important;
-            color: black !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
-        }
-      `}</style>
     </>
   );
 }

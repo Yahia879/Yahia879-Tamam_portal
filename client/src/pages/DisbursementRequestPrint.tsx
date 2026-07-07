@@ -554,15 +554,35 @@ export default function DisbursementRequestPrint() {
             max-width: 100% !important;
             width: 100% !important;
             box-shadow: none !important;
-            padding: 10mm !important;
+            padding: 8mm !important;
             margin: 0 !important;
             min-height: 0 !important;
             height: auto !important;
           }
           .print-inner {
-            min-height: 277mm !important;
+            min-height: 275mm !important;
             border-width: 2px !important;
-            padding: 15px !important;
+            padding: 12px !important;
+          }
+          /* تقليص الفراغات والهوامش أثناء الطباعة لضمان ملاءمة الصفحة الواحدة */
+          .mb-6 {
+            margin-bottom: 8px !important;
+          }
+          .mb-4 {
+            margin-bottom: 6px !important;
+          }
+          .p-2.5 {
+            padding: 6px !important;
+          }
+          .p-2 {
+            padding: 5px !important;
+          }
+          .py-4 {
+            padding-top: 6px !important;
+            padding-bottom: 6px !important;
+          }
+          .h-10 {
+            height: 24px !important;
           }
         }
       `}</style>
