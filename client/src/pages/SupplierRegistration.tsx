@@ -21,7 +21,8 @@ import {
   MapPin,
   Send,
   Plus,
-  Trash2
+  Trash2,
+  ArrowRight
 } from "lucide-react";
 
 // مجالات العمل المتاحة
@@ -251,9 +252,22 @@ export default function SupplierRegistration() {
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8" dir="rtl">
       <div className="container max-w-4xl mx-auto px-2 sm:px-4">
         {/* العنوان */}
-        <div className="text-center mb-6 sm:mb-8 px-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">تسجيل مورد جديد</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-2">قم بتعبئة البيانات المطلوبة للتسجيل كمورد معتمد</p>
+        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              window.history.back();
+            }}
+            type="button"
+            className="shrink-0"
+          >
+            <ArrowRight className="w-5 h-5 text-gray-700" />
+          </Button>
+          <div className="text-right">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">تسجيل مورد جديد</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">قم بتعبئة البيانات المطلوبة للتسجيل كمورد معتمد</p>
+          </div>
         </div>
 
         <div className="space-y-4 sm:space-y-6">

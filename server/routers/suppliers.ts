@@ -84,7 +84,7 @@ export const suppliersRouter = router({
       if (existing.length > 0) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "يوجد مورد مسجل بنفس رقم السجل التجاري",
+          message: "رقم السجل التجاري مستخدم مسبقاً",
         });
       }
 
@@ -156,7 +156,7 @@ export const suppliersRouter = router({
       if (existing.length > 0) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "يوجد مورد مسجل بنفس رقم السجل التجاري",
+          message: "رقم السجل التجاري مستخدم مسبقاً",
         });
       }
 

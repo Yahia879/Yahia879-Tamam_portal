@@ -274,12 +274,30 @@ export default function DisbursementRequestPrint() {
 
   const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
 
+  // محاولة الحصول على اسم الحي للطلبات المرتبطة ببرنامج بنيان
+  const getNeighborhoodName = () => {
+    if (project?.programType === "bunyan" && project?.programData) {
+      try {
+        const data = typeof project.programData === "string" 
+          ? JSON.parse(project.programData) 
+          : project.programData;
+        return data?.neighborhoodName || "";
+      } catch (e) {
+        console.error("Failed to parse project programData for neighborhood name", e);
+      }
+    }
+    return "";
+  };
+
+  const neighborhoodName = getNeighborhoodName();
+
   const projectAddress = customSupplier?.projectCity || contract?.mosqueCity || 
     [
       project?.city, 
       project?.district, 
       project?.address === "موقع محدد على الخريطة" ? "" : project?.address
     ].filter(Boolean).join(" - ") || 
+    neighborhoodName ||
     "—";
 
   return (

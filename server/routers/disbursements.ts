@@ -228,6 +228,8 @@ export const disbursementsRouter = router({
             city: mosques.city,
             address: mosques.address,
             district: mosques.district,
+            programType: mosqueRequests.programType,
+            programData: mosqueRequests.programData,
           })
           .from(projects)
           .leftJoin(users, eq(projects.managerId, users.id))
