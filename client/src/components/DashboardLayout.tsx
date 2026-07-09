@@ -50,6 +50,7 @@ import {
   Layers,
   ShieldAlert,
   Languages,
+  LifeBuoy,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -165,6 +166,12 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     });
   }
 
+  // 5. الدعم الفني (لكل الأدوار المسجلة)
+  groups.push({
+    label: isEn ? "Support" : "الدعم الفني",
+    items: [{ icon: LifeBuoy, label: isEn ? "Technical Support" : "الدعم الفني", path: "/support" }],
+  });
+
   // 6. الإعدادات (للمدراء)
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
@@ -264,6 +271,18 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     groups.push({
       label: isEn ? "User Management" : "إدارة المستخدمين",
       items: userManagementItems,
+    });
+  }
+
+  // 5. الدعم الفني
+  const supportItems: MenuItem[] = [];
+  if (permissions.includes("Create_Ticket") || permissions.includes("View_Tickets") || ["super_admin", "system_admin"].includes(role)) {
+    supportItems.push({ icon: LifeBuoy, label: isEn ? "Technical Support" : "الدعم الفني", path: "/support" });
+  }
+  if (supportItems.length > 0) {
+    groups.push({
+      label: isEn ? "Support" : "الدعم الفني",
+      items: supportItems,
     });
   }
 
