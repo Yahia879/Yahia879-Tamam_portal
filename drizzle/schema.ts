@@ -1935,4 +1935,21 @@ export const requestExceptions = mysqlTable("request_exceptions", {
 export type RequestException = typeof requestExceptions.$inferSelect;
 export type InsertRequestException = typeof requestExceptions.$inferInsert;
 
+// ==================== طلبات الدعم الفني ====================
+export const supportTickets = mysqlTable("support_tickets", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  ticketType: mysqlEnum("ticketType", ["technical_issue", "suggestion"]).notNull(),
+  description: text("description").notNull(),
+  attachments: json("attachments"), // array of strings (urls)
+  status: mysqlEnum("status", ["pending", "resolved", "needs_clarification"]).default("pending").notNull(),
+  replies: json("replies"), // array of objects { id: string, senderId: number, senderName: string, message: string, createdAt: string }
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = typeof supportTickets.$inferInsert;
+
+
 

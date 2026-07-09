@@ -21,6 +21,8 @@ import { z } from "zod";
  * بالصلاحيات الدقيقة المستخدمة في permissionProcedure
  */
 const PERMISSION_EXPANSION: Record<string, string[]> = {
+  Create_Ticket: ["Create_Ticket"],
+  View_Tickets: ["View_Tickets"],
   staff_management: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
@@ -442,7 +444,23 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: pending_reports");
     }
 
+    // Ensure 'technical_support' module exists in the modules table
+    const [existingSupportModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "technical_support")).limit(1);
+    if (!existingSupportModule) {
+      await db.insert(modules).values({
+        id: "technical_support",
+        nameAr: "الدعم الفني",
+        nameEn: "Technical Support",
+        icon: "LifeBuoy",
+        displayOrder: 12,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: technical_support");
+    }
+
     const customPerms = [
+      { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
+      { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
