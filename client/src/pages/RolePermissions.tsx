@@ -35,7 +35,8 @@ import {
   Layers,
   Tag,
   Bell,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LifeBuoy
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -852,6 +853,12 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "الدعم الفني",
+      modules: [
+        { id: "technical_support", nameAr: "الدعم الفني", icon: LifeBuoy, perms: ["view", "create"] }
+      ]
+    },
+    {
       title: "إدارة المستخدمين",
       modules: [
         { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
@@ -1047,6 +1054,10 @@ export default function RolePermissions() {
         add: "إضافة موعد جديد",
         edit: "تعديل موعد",
         delete: "حذف موعد"
+      },
+      technical_support: {
+        view: "عرض التذاكر",
+        create: "إرسال التذاكر"
       }
     };
 
@@ -1082,6 +1093,12 @@ export default function RolePermissions() {
       ],
     },
     {
+      title: "الدعم الفني",
+      subsections: [
+        { id: "technical_support", nameAr: "الدعم الفني" },
+      ],
+    },
+    {
       title: "إدارة المستخدمين",
       subsections: [
         { id: "staff_management", nameAr: "إدارة المستخدمين" },
@@ -1105,10 +1122,16 @@ export default function RolePermissions() {
         id: m.id,
         nameAr: m.nameAr,
         icon: m.icon,
-        permissions: perms.map(p => ({
-          id: `${m.id}.${p}`,
-          nameAr: getDescriptiveLabel(m.id, p),
-        }))
+        permissions: perms.map(p => {
+          let id = `${m.id}.${p}`;
+          if (m.id === "technical_support") {
+            id = p === "view" ? "View_Tickets" : "Create_Ticket";
+          }
+          return {
+            id,
+            nameAr: getDescriptiveLabel(m.id, p),
+          };
+        })
       };
     })
   }));
