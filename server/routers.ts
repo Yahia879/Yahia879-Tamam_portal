@@ -24,6 +24,7 @@ import { finalReportsRouter } from "./routers/finalReports";
 import { analyticsRouter } from "./routers/analytics";
 import { jobPositionsRouter } from "./routers/jobPositions";
 import { programsRouter } from "./routers/programs";
+import { supportTicketsRouter } from "./routers/supportTickets";
 
 export const appRouter = router({
   system: systemRouter,
@@ -33,6 +34,9 @@ export const appRouter = router({
 
   // إدارة البرامج
   programs: programsRouter,
+
+  // الدعم الفني
+  supportTickets: supportTicketsRouter,
 
   // إدارة المساجد
   mosques: mosquesRouter,
