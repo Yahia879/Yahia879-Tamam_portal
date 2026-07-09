@@ -45,6 +45,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
+  LifeBuoy,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -656,6 +657,10 @@ export default function UserPermissions() {
         add: "إضافة بند جديد",
         edit: "تعديل بنود",
         delete: "حذف بنود"
+      },
+      technical_support: {
+        view: "عرض التذاكر",
+        create: "إرسال التذاكر"
       }
     };
     return mapping[moduleId]?.[action] || action;
@@ -697,6 +702,12 @@ export default function UserPermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
+      ]
+    },
+    {
+      title: "الدعم الفني",
+      modules: [
+        { id: "technical_support", nameAr: "الدعم الفني", icon: LifeBuoy, perms: ["view", "create"] }
       ]
     },
     {
@@ -862,10 +873,16 @@ export default function UserPermissions() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {group.modules.map((module) => {
                   const Icon = module.icon || Shield;
-                  const modulePerms = module.perms.map(p => ({
-                    id: `${module.id}.${p}`,
-                    nameAr: getDescriptiveLabel(module.id, p)
-                  }));
+                  const modulePerms = module.perms.map(p => {
+                    let id = `${module.id}.${p}`;
+                    if (module.id === "technical_support") {
+                      id = p === "view" ? "View_Tickets" : "Create_Ticket";
+                    }
+                    return {
+                      id,
+                      nameAr: getDescriptiveLabel(module.id, p)
+                    };
+                  });
 
                   const activePerms = modulePerms.filter((p) => isChecked(p.id));
                   const grantedCount = activePerms.length; 

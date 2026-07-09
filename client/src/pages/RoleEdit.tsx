@@ -38,7 +38,8 @@ import {
   Tag,
   Save,
   Bell,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LifeBuoy
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -73,6 +74,12 @@ const superAdminGroups = [
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
+    ]
+  },
+  {
+    title: "الدعم الفني",
+    modules: [
+      { id: "technical_support", nameAr: "الدعم الفني", icon: LifeBuoy, perms: ["view", "create"] }
     ]
   },
   {
@@ -261,6 +268,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       add: "إضافة موعد جديد",
       edit: "تعديل موعد",
       delete: "حذف موعد"
+    },
+    technical_support: {
+      view: "عرض التذاكر",
+      create: "إرسال التذاكر"
     }
   };
 
@@ -604,10 +615,16 @@ export default function RoleEdit() {
         id: m.id,
         nameAr: m.nameAr,
         icon: m.icon,
-        permissions: m.perms.map(p => ({
-          id: `${m.id}.${p}`,
-          nameAr: getDescriptiveLabel(m.id, p),
-        }))
+        permissions: m.perms.map(p => {
+          let id = `${m.id}.${p}`;
+          if (m.id === "technical_support") {
+            id = p === "view" ? "View_Tickets" : "Create_Ticket";
+          }
+          return {
+            id,
+            nameAr: getDescriptiveLabel(m.id, p),
+          };
+        })
       }))
     }));
   }, []);

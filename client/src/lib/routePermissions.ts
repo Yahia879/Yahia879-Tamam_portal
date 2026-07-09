@@ -177,6 +177,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/contract-templates": ["settings_center", "settings_contracts.view"],
   "/program-customization": "programs_services",
   "/partners": "settings_center",
+  "/support": ["Create_Ticket", "View_Tickets"],
 };
 
 /**
