@@ -109,6 +109,7 @@ import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import JobPositions from "./pages/JobPositions";
 import StaffManagement from "./pages/StaffManagement";
 import ProgramCustomization from "./pages/ProgramCustomization";
+import SupportTickets from "./pages/SupportTickets";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -340,8 +341,14 @@ function Router() {
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
-      <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
-      
+      <Route path="/support">
+        {() => (
+          <ProtectedRoute allowedRoles={["service_requester", "field_team", "quick_response", "projects_office", "super_admin", "system_admin", "project_manager", "corporate_comm", "financial"]}>
+            <SupportTickets />
+          </ProtectedRoute>
+        )}
+      </Route>
+
       {/* صفحة 404 */}
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
