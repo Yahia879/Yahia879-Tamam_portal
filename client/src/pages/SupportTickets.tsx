@@ -629,23 +629,7 @@ export default function SupportTickets() {
         {/* 1. واجهة المستخدمين (طالبي الخدمة) */}
         {/* ======================================================== */}
         {hasCreate && !hasView && (
-          <div className="space-y-6">
-            {/* Statistics Cards Summary for User */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "إجمالي تذاكرك", count: userTotal, color: "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" },
-                { label: "⏳ قيد الانتظار", count: userPending, color: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/30 text-amber-700 dark:text-amber-450" },
-                { label: "✅ تم الحل", count: userResolved, color: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450" },
-                { label: "❓ تحتاج توضيح", count: userNeedsClarification, color: "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/30 text-rose-700 dark:text-rose-455" },
-              ].map((stat, idx) => (
-                <div key={idx} className={`p-4 rounded-xl border flex flex-col justify-between shadow-2xs ${stat.color}`}>
-                  <span className="text-xs font-bold opacity-80">{stat.label}</span>
-                  <span className="text-2xl font-black mt-2 leading-none">{stat.count}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* My Tickets List (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -769,30 +753,13 @@ export default function SupportTickets() {
               </Card>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* ======================================================== */}
         {/* 2. لوحة تحكم المسؤول (Admins) */}
         {/* ======================================================== */}
         {hasView && (
-          <div className="space-y-6">
-            {/* Statistics Cards Summary for Admin */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: "إجمالي التذاكر الواردة", count: adminTotal, color: "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" },
-                { label: "⏳ قيد الانتظار", count: adminPending, color: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/30 text-amber-700 dark:text-amber-450" },
-                { label: "✅ تم الحل", count: adminResolved, color: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450" },
-                { label: "❓ تحتاج توضيح", count: adminNeedsClarification, color: "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/30 text-rose-700 dark:text-rose-455" },
-              ].map((stat, idx) => (
-                <div key={idx} className={`p-4 rounded-xl border flex flex-col justify-between shadow-2xs ${stat.color}`}>
-                  <span className="text-xs font-bold opacity-80">{stat.label}</span>
-                  <span className="text-2xl font-black mt-2 leading-none">{stat.count}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Tickets List Column (1/3 width) */}
             <div className="lg:col-span-1 space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
@@ -801,22 +768,22 @@ export default function SupportTickets() {
               </h2>
 
               {/* Advanced Admin Filters */}
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 space-y-3.5 shadow-2xs">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-4 shadow-xs">
                 {/* Search */}
                 <div className="relative">
                   <Input
                     value={adminSearchQuery}
                     onChange={(e) => setAdminSearchQuery(e.target.value)}
                     placeholder="ابحث بالاسم، الرقم، الوصف..."
-                    className="pr-10 pl-4 h-9 text-right rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs"
+                    className="pr-11 pl-4 h-11 text-right rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm font-medium"
                   />
-                  <Search className="w-4 h-4 text-slate-400 absolute top-2.5 right-3" />
+                  <Search className="w-5 h-5 text-slate-400 absolute top-3.5 right-3.5" />
                 </div>
                 
                 {/* Status Filter Chips */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-slate-450 block">حالة التذكرة:</span>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">حالة التذكرة:</span>
+                  <div className="flex flex-wrap gap-2">
                     {[
                       { key: "all", label: "الكل", count: allTickets?.length || 0 },
                       { key: "pending", label: "قيد الانتظار", count: allTickets?.filter(t => t.status === "pending").length || 0 },
@@ -826,17 +793,17 @@ export default function SupportTickets() {
                       <button
                         key={statusChip.key}
                         onClick={() => setAdminStatusFilter(statusChip.key)}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${
                           adminStatusFilter === statusChip.key
-                            ? "bg-primary text-primary-foreground shadow-2xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            ? "bg-primary text-primary-foreground shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-700"
                         }`}
                       >
                         {statusChip.label}
-                        <span className={`px-1.5 py-0.1 rounded-full text-[9px] ${
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${
                           adminStatusFilter === statusChip.key
                             ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-550 dark:text-slate-300"
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
                         }`}>
                           {statusChip.count}
                         </span>
@@ -846,8 +813,8 @@ export default function SupportTickets() {
                 </div>
 
                 {/* Type Filter Chips */}
-                <div className="space-y-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-                  <span className="text-[10px] font-bold text-slate-455 block">نوع التذكرة:</span>
+                <div className="space-y-2 pt-3.5 border-t border-slate-100 dark:border-slate-800/80">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-450 block">نوع التذكرة:</span>
                   <div className="flex flex-wrap gap-2">
                     {[
                       { key: "all", label: "الكل" },
@@ -857,10 +824,10 @@ export default function SupportTickets() {
                       <button
                         key={typeChip.key}
                         onClick={() => setAdminTypeFilter(typeChip.key)}
-                        className={`text-xs font-bold transition-all ${
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
                           adminTypeFilter === typeChip.key
-                            ? "text-primary underline underline-offset-4"
-                            : "text-slate-500 hover:text-slate-700 dark:text-slate-450 dark:hover:text-slate-300"
+                            ? "bg-teal-650 text-white dark:bg-teal-500 shadow-xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                         }`}
                       >
                         {typeChip.label}
@@ -1091,8 +1058,7 @@ export default function SupportTickets() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* Selected Ticket Viewer for User (Dialog details & chat) */}
         {hasCreate && !hasView && selectedTicketId && selectedTicket && (
