@@ -7,10 +7,10 @@ import { TRPCError } from "@trpc/server";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { nanoid } from "nanoid";
 
-// Safe image URL validation regex (only png, jpg, jpeg, webp)
-const safeImageRegex = /\.(png|jpg|jpeg|webp)(\?.*)?$/i;
-const attachmentSchema = z.string().url().refine((url) => safeImageRegex.test(url), {
-  message: "يُسمح فقط برفع الصور بصيغ آمنة (PNG, JPG, JPEG, WEBP)",
+// Executable files blacklist validation regex (blocks exe, bat, cmd, sh, msi, dll, scr, vbs, com, bin, jar, app, dmg, elf)
+const executableRegex = /\.(exe|bat|cmd|sh|msi|dll|scr|vbs|com|bin|jar|app|dmg|elf)(\?.*)?$/i;
+const attachmentSchema = z.string().url().refine((url) => !executableRegex.test(url), {
+  message: "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
 });
 
 export const supportTicketsRouter = router({

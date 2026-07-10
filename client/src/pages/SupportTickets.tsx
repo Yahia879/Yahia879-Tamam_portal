@@ -41,6 +41,7 @@ import {
   Loader2,
   FileQuestion,
   ShieldAlert,
+  FileText,
 } from "lucide-react";
 
 const getSafeAttachments = (attachments: any): string[] => {
@@ -57,6 +58,46 @@ const getSafeAttachments = (attachments: any): string[] => {
     }
   }
   return [];
+};
+
+const getSafeReplies = (replies: any): any[] => {
+  if (!replies) return [];
+  if (Array.isArray(replies)) return replies;
+  if (typeof replies === "string") {
+    try {
+      const parsed = JSON.parse(replies);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const renderFileThumbnail = (url: string) => {
+  const extension = url.split(".").pop()?.toLowerCase() || "";
+  const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(extension);
+  const isVideo = ["mp4", "mov", "avi", "mkv", "webm"].includes(extension);
+
+  if (isImage) {
+    return <img src={url} alt="attachment" className="w-full h-full object-cover" />;
+  }
+
+  if (isVideo) {
+    return (
+      <div className="w-full h-full bg-slate-950 flex items-center justify-center relative">
+        <video src={url} className="w-full h-full object-cover opacity-80" muted />
+        <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded">فيديو</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center p-2 border border-slate-100">
+      <FileText className="w-8 h-8 text-slate-400 mb-1" />
+      <span className="text-[10px] text-slate-500 font-medium truncate max-w-full uppercase">{extension}</span>
+    </div>
+  );
 };
 
 export default function SupportTickets() {
@@ -129,15 +170,18 @@ export default function SupportTickets() {
 
   // File Upload Handlers
   const uploadFile = async (file: File) => {
-    // Client-side validation
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("نوع الملف غير مدعوم. يُسمح فقط بالصور بصيغة PNG, JPG, JPEG, WEBP");
+    // Client-side validation: accept images, videos, and files, prevent executables
+    const executableExtensions = [
+      "exe", "bat", "cmd", "sh", "msi", "dll", "scr", "vbs", "com", "bin", "jar", "app", "dmg", "elf"
+    ];
+    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
+    if (executableExtensions.includes(fileExtension)) {
+      toast.error("نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("حجم الصورة كبير جداً، الحد الأقصى هو 5 ميجابايت");
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
       return;
     }
 
@@ -318,7 +362,7 @@ export default function SupportTickets() {
                   تواصل مع الدعم الفني
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-xl sm:rounded-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+              <DialogContent className="max-w-4xl w-[95vw] sm:rounded-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader className="text-right">
                   <DialogTitle className="text-2xl font-bold">إنشاء تذكرة دعم جديدة</DialogTitle>
                   <DialogDescription>
@@ -360,14 +404,14 @@ export default function SupportTickets() {
 
                   {/* Attachments Section */}
                   <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 block">المرفقات والصور</label>
+                    <label className="text-sm font-semibold text-gray-700 block">المرفقات والملفات</label>
                     
                     {/* Thumbnails of already uploaded files */}
                     {attachments.length > 0 && (
                       <div className="grid grid-cols-4 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                         {attachments.map((url, idx) => (
                           <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white">
-                            <img src={url} alt={`attachment-${idx}`} className="w-full h-full object-cover" />
+                            {renderFileThumbnail(url)}
                             <button
                               type="button"
                               onClick={() => removeAttachment(idx)}
@@ -393,17 +437,17 @@ export default function SupportTickets() {
                         ) : (
                           <ImageIcon className="w-4 h-4 text-gray-500" />
                         )}
-                        رفع ملف صورة
+                        إرفاق ملف / صورة / فيديو
                       </Button>
                       <input
                         id="support-file-input"
                         type="file"
-                        accept="image/*"
+                        accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                         className="hidden"
                         onChange={handleFileChange}
                         disabled={uploading}
                       />
-                      {uploading && <span className="text-xs text-gray-500 animate-pulse">جاري معالجة الصورة ورفعها...</span>}
+                      {uploading && <span className="text-xs text-gray-500 animate-pulse">جاري معالجة الملف ورفعه...</span>}
                     </div>
                   </div>
 
@@ -656,7 +700,7 @@ export default function SupportTickets() {
                                   rel="noopener noreferrer"
                                   className="block border border-gray-200 rounded-lg overflow-hidden hover:opacity-90 transition-opacity bg-white aspect-square shadow-sm"
                                 >
-                                  <img src={url} alt={`attachment-${index}`} className="w-full h-full object-cover" />
+                                  {renderFileThumbnail(url)}
                                 </a>
                               ))}
                             </div>
@@ -670,9 +714,9 @@ export default function SupportTickets() {
                       <div className="space-y-4">
                         <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">الردود والمراسلات</div>
                         
-                        {selectedTicket.replies && (selectedTicket.replies as any[]).length > 0 ? (
+                        {getSafeReplies(selectedTicket.replies).length > 0 ? (
                           <div className="space-y-3">
-                            {(selectedTicket.replies as any[]).map((reply) => {
+                            {getSafeReplies(selectedTicket.replies).map((reply) => {
                               const isMe = reply.senderId === user?.id;
                               return (
                                 <div
@@ -767,7 +811,7 @@ export default function SupportTickets() {
                             rel="noopener noreferrer"
                             className="block border border-gray-200 rounded-lg overflow-hidden hover:opacity-90 bg-white aspect-square shadow-sm"
                           >
-                            <img src={url} alt={`attachment-${idx}`} className="w-full h-full object-cover" />
+                            {renderFileThumbnail(url)}
                           </a>
                         ))}
                       </div>
@@ -781,9 +825,9 @@ export default function SupportTickets() {
                 <div className="space-y-4 text-right">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">الردود والمراسلات</span>
                   
-                  {selectedTicket.replies && (selectedTicket.replies as any[]).length > 0 ? (
+                  {getSafeReplies(selectedTicket.replies).length > 0 ? (
                     <div className="space-y-3">
-                      {(selectedTicket.replies as any[]).map((reply) => {
+                      {getSafeReplies(selectedTicket.replies).map((reply) => {
                         const isMe = reply.senderId === user?.id;
                         return (
                           <div

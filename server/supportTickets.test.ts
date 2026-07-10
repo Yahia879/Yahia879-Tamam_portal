@@ -131,18 +131,9 @@ describe("Support Tickets Router", () => {
       ).rejects.toThrow();
     });
 
-    it("should reject attachments with unsafe file extensions", async () => {
+    it("should reject attachments with unsafe executable file extensions", async () => {
       const ctx = createMockContext("service_requester");
       const caller = appRouter.createCaller(ctx);
-
-      // PDF is NOT allowed in support tickets attachments (only png, jpg, jpeg, webp)
-      await expect(
-        caller.supportTickets.createTicket({
-          ticketType: "technical_issue",
-          description: "واجهة النظام معطلة تماماً عند الضغط على تسجيل الخروج",
-          attachments: ["https://example.com/files/document.pdf"],
-        })
-      ).rejects.toThrow();
 
       // Executable file is NOT allowed
       await expect(
@@ -152,9 +143,18 @@ describe("Support Tickets Router", () => {
           attachments: ["https://example.com/files/malware.exe"],
         })
       ).rejects.toThrow();
+
+      // Shell script is NOT allowed
+      await expect(
+        caller.supportTickets.createTicket({
+          ticketType: "technical_issue",
+          description: "واجهة النظام معطلة تماماً عند الضغط على تسجيل الخروج",
+          attachments: ["https://example.com/files/exploit.sh"],
+        })
+      ).rejects.toThrow();
     });
 
-    it("should accept attachments with safe image extensions", async () => {
+    it("should accept attachments with safe image, video, and document extensions", async () => {
       const ctx = createMockContext("service_requester");
       const caller = appRouter.createCaller(ctx);
 
@@ -164,8 +164,8 @@ describe("Support Tickets Router", () => {
         attachments: [
           "https://example.com/images/bug1.png",
           "https://example.com/images/bug2.jpg",
-          "https://example.com/images/bug3.jpeg",
-          "https://example.com/images/bug4.webp",
+          "https://example.com/files/document.pdf",
+          "https://example.com/videos/screenrec.mp4",
         ],
       });
 
