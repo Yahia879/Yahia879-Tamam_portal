@@ -42,6 +42,9 @@ import {
   FileQuestion,
   ShieldAlert,
   FileText,
+  X,
+  Search,
+  Filter
 } from "lucide-react";
 
 const getSafeAttachments = (attachments: any): string[] => {
@@ -95,7 +98,7 @@ const renderFileThumbnail = (url: string) => {
   return (
     <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center p-2 border border-slate-100">
       <FileText className="w-8 h-8 text-slate-400 mb-1" />
-      <span className="text-[10px] text-slate-500 font-medium truncate max-w-full uppercase">{extension}</span>
+      <span className="text-[10px] text-slate-550 font-medium truncate max-w-full uppercase">{extension}</span>
     </div>
   );
 };
@@ -116,6 +119,12 @@ export default function SupportTickets() {
   const [uploading, setUploading] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+
+  // Search & Filter State
+  const [faqSearch, setFaqSearch] = useState("");
+  const [adminStatusFilter, setAdminStatusFilter] = useState<string>("all");
+  const [adminTypeFilter, setAdminTypeFilter] = useState<string>("all");
+  const [adminSearchQuery, setAdminSearchQuery] = useState("");
 
   // Queries
   const { data: myTickets, isLoading: loadingMyTickets } = trpc.supportTickets.getMyTickets.useQuery(undefined, {
@@ -203,7 +212,7 @@ export default function SupportTickets() {
 
       const data = await response.json();
       setAttachments((prev) => [...prev, data.url]);
-      toast.success("تم رفع الصورة بنجاح");
+      toast.success("تم رفع الملف بنجاح");
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء رفع الملف");
     } finally {
@@ -269,27 +278,27 @@ export default function SupportTickets() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 gap-1 font-normal">
-            <Clock className="w-3.5 h-3.5" />
+          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
+            <Clock className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} />
             قيد الانتظار
           </Badge>
         );
       case "resolved":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 gap-1 font-normal">
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
             <CheckCircle2 className="w-3.5 h-3.5" />
             تم الحل
           </Badge>
         );
       case "needs_clarification":
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1 font-normal">
-            <AlertCircle className="w-3.5 h-3.5" />
+          <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 animate-bounce" />
             تحتاج توضيح
           </Badge>
         );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary" className="rounded-full text-xs py-0.5 px-2.5 shrink-0">{status}</Badge>;
     }
   };
 
@@ -305,7 +314,7 @@ export default function SupportTickets() {
     },
     {
       q: "كيف يمكنني إرفاق لقطة الشاشة (Screenshot) للتوضيح؟",
-      a: "عند تعبئة نموذج التذكرة، يمكنك ببساطة الضغط على حقل 'وصف المشكلة' ثم الضغط على Ctrl+V (أو Paste) للصق لقطة الشاشة مباشرة، وسيتم رفعها تلقائياً.",
+      a: "عند تعبئة نموذج التذكرة، يمكنك ببساطة الضغط على حقل 'الوصف والتفاصيل' ثم الضغط على Ctrl+V (أو Paste) للصق لقطة الشاشة مباشرة، وسيتم رفعها تلقائياً.",
     },
     {
       q: "هل يمكنني تعديل بيانات التذكرة بعد إرسالها؟",
@@ -313,12 +322,40 @@ export default function SupportTickets() {
     },
   ];
 
+  // Filtered FAQs based on user search query
+  const filteredFaqs = faqItems.filter((faq) => {
+    if (!faqSearch.trim()) return true;
+    const q = faqSearch.toLowerCase();
+    return faq.q.toLowerCase().includes(q) || faq.a.toLowerCase().includes(q);
+  });
+
+  // Filtered tickets on admin dashboard
+  const filteredTickets = allTickets?.filter((ticket) => {
+    // Status filter
+    if (adminStatusFilter !== "all" && ticket.status !== adminStatusFilter) {
+      return false;
+    }
+    // Type filter
+    if (adminTypeFilter !== "all" && ticket.ticketType !== adminTypeFilter) {
+      return false;
+    }
+    // Search query
+    if (adminSearchQuery.trim()) {
+      const q = adminSearchQuery.toLowerCase();
+      const matchId = ticket.id.toString().includes(q);
+      const matchUser = ticket.userName?.toLowerCase().includes(q) || false;
+      const matchDesc = ticket.description.toLowerCase().includes(q);
+      return matchId || matchUser || matchDesc;
+    }
+    return true;
+  });
+
   if (!user) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-          <p className="text-gray-500">جاري تحميل البيانات والتحقق منها...</p>
+          <p className="text-gray-500 font-bold">جاري تحميل البيانات والتحقق منها...</p>
         </div>
       </DashboardLayout>
     );
@@ -328,9 +365,9 @@ export default function SupportTickets() {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-          <ShieldAlert className="w-16 h-16 text-destructive mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">غير مصرح لك بالوصول</h2>
-          <p className="text-gray-600">ليس لديك صلاحية لعرض أو تقديم تذاكر الدعم الفني.</p>
+          <ShieldAlert className="w-16 h-16 text-destructive mb-4 animate-pulse" />
+          <h2 className="text-2xl font-black text-gray-800 mb-2">غير مصرح لك بالوصول</h2>
+          <p className="text-gray-600 font-semibold">ليس لديك صلاحية لعرض أو تقديم تذاكر الدعم الفني.</p>
         </div>
       </DashboardLayout>
     );
@@ -338,144 +375,238 @@ export default function SupportTickets() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-1 md:p-4 dir-rtl text-right">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
-              <LifeBuoy className="w-8 h-8 text-primary" />
-              الدعم الفني
-            </h1>
-            <p className="text-gray-500 mt-1 text-sm">
-              {hasView
-                ? "إدارة تذاكر الدعم الفني والردود وتحديث الحالات والشكاوى الواردة"
-                : "تواصل مع فريق الدعم الفني واطلع على الأسئلة الشائعة والمقترحات"}
-            </p>
-          </div>
+      <div className="space-y-6 p-1 md:p-4 text-right" dir="rtl">
+        {/* Banner / Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-700 via-teal-800 to-[#09707e] text-white p-6 md:p-8 shadow-md">
+          {/* Islamic pattern background overlay */}
+          <div className="absolute inset-0 opacity-10 bg-cover bg-center islamic-pattern" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
+                <LifeBuoy className="w-9 h-9 text-gold animate-pulse" />
+                مركز الدعم الفني
+              </h1>
+              <p className="text-teal-50/90 max-w-xl text-sm md:text-base leading-relaxed font-medium">
+                {hasView
+                  ? "لوحة إدارة تذاكر الدعم الفني، متابعة بلاغات المستخدمين، الردود وتحديث حالات الطلبات والمقترحات الواردة."
+                  : "مرحباً بك في مركز الدعم. نحن هنا لمساعدتك! يمكنك تقديم تذكرة لمشكلة فنية تواجهها، أو اقتراح ميزة ترغب بإضافتها."}
+              </p>
+            </div>
 
-          {/* User Create Ticket Button */}
-          {hasCreate && !hasView && (
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 font-bold px-5">
-                  <Plus className="w-5 h-5" />
-                  تواصل مع الدعم الفني
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="fixed top-0 left-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none rounded-none border-none p-0 m-0 flex flex-col bg-background overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <ScrollArea className="flex-1 w-full">
-                  <div className="w-full px-6 py-10 md:px-10 flex flex-col space-y-6 text-right">
-                    <DialogHeader className="text-right">
-                      <DialogTitle className="text-3xl font-extrabold flex items-center gap-2 text-gray-900">
-                        <LifeBuoy className="w-8 h-8 text-primary" />
-                        إنشاء تذكرة دعم جديدة
-                      </DialogTitle>
-                      <DialogDescription className="text-sm text-gray-500 mt-1">
-                        يرجى تعبئة النموذج أدناه وتوضيح المشكلة أو المقترح بأكبر قدر ممكن من التفاصيل.
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <form onSubmit={handleSubmitTicket} className="space-y-6 pt-4 text-right">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 block">نوع التذكرة</label>
-                        <Select
-                          value={ticketType}
-                          onValueChange={(val: any) => setTicketType(val)}
-                        >
-                          <SelectTrigger className="w-full text-right justify-between flex-row-reverse h-11">
-                            <SelectValue placeholder="اختر نوع الطلب" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="technical_issue">مشكلة فنية</SelectItem>
-                            <SelectItem value="suggestion">مقترح</SelectItem>
-                          </SelectContent>
-                        </Select>
+            {/* User Create Ticket Button */}
+            {hasCreate && !hasView && (
+              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="btn-gold gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
+                    <Plus className="w-5 h-5" />
+                    تواصل مع الدعم الفني
+                  </Button>
+                </DialogTrigger>
+                <DialogContent
+                  dir="rtl"
+                  showCloseButton={false}
+                  className="!fixed !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-none !p-0 !m-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  {/* Modal Header */}
+                  <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 py-4 md:px-10 flex items-center justify-between shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <LifeBuoy className="w-5 h-5" />
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-gray-700 block">الوصف والتفاصيل</label>
-                        <Textarea
-                          placeholder="اكتب تفاصيل المشكلة الفنية أو المقترح هنا... (الحد الأدنى 10 أحرف)"
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          onPaste={handlePaste}
-                          className="min-h-[220px] text-right text-base leading-relaxed p-4"
-                          required
-                        />
-                        <p className="text-xs text-gray-400">
-                          💡 نصيحة: يمكنك نسخ أي لقطة شاشة ولصقها مباشرة (Ctrl+V) في هذا الحقل لرفعها كمرفق.
-                        </p>
+                      <div>
+                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50">
+                          إنشاء تذكرة دعم جديدة
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                          يرجى تعبئة النموذج أدناه وتوضيح التفاصيل بأكبر قدر ممكن.
+                        </DialogDescription>
                       </div>
+                    </div>
+                    
+                    {/* RTL Close button on left */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsCreateOpen(false)}
+                      className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <X className="w-5 h-5 text-slate-500" />
+                    </Button>
+                  </div>
 
-                      {/* Attachments Section */}
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-gray-700 block">المرفقات والملفات</label>
+                  <ScrollArea className="flex-1 w-full bg-slate-50/50 dark:bg-slate-900/10">
+                    <div className="w-full max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col space-y-8 text-right">
+                      <form onSubmit={handleSubmitTicket} className="space-y-6 text-right bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
                         
-                        {/* Thumbnails of already uploaded files */}
-                        {attachments.length > 0 && (
-                          <div className="grid grid-cols-4 md:grid-cols-6 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                            {attachments.map((url, idx) => (
-                              <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white">
-                                {renderFileThumbnail(url)}
-                                <button
-                                  type="button"
-                                  onClick={() => removeAttachment(idx)}
-                                  className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-sm opacity-90 transition-opacity"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                        {/* Custom Ticket Type Chooser */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">نوع التذكرة</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                              type="button"
+                              onClick={() => setTicketType("technical_issue")}
+                              className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-4 ${
+                                ticketType === "technical_issue"
+                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                  : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                              }`}
+                            >
+                              <div className={`p-2.5 rounded-lg shrink-0 ${
+                                ticketType === "technical_issue" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
+                              }`}>
+                                <AlertCircle className="w-6 h-6" />
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <div>
+                                <div className="font-bold text-base text-slate-950 dark:text-white">مشكلة فنية</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">عطل بالبوابة، مشكلة بالدخول، خطأ في البيانات أو مشكلة فنية أخرى</div>
+                              </div>
+                            </button>
 
-                        <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setTicketType("suggestion")}
+                              className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-4 ${
+                                ticketType === "suggestion"
+                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                  : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                              }`}
+                            >
+                              <div className={`p-2.5 rounded-lg shrink-0 ${
+                                ticketType === "suggestion" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
+                              }`}>
+                                <LifeBuoy className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <div className="font-bold text-base text-slate-950 dark:text-white">مقترح وتحسين</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">فكرة لتحسين تجربة الاستخدام، ميزة جديدة ترغب بإضافتها أو ملاحظات عامة</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Description field */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">الوصف والتفاصيل</label>
+                          <div className="relative">
+                            <Textarea
+                              placeholder="يرجى وصف المشكلة الفنية أو المقترح بالتفصيل هنا... (الحد الأدنى 10 أحرف)"
+                              value={description}
+                              onChange={(e) => setDescription(e.target.value)}
+                              onPaste={handlePaste}
+                              className="min-h-[220px] text-right text-base leading-relaxed p-4 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary shadow-xs transition-all bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
+                              required
+                            />
+                            <span className="absolute bottom-3 left-3 text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
+                              {description.length} حرف
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
+                            <span>💡 تلميح:</span>
+                            <span>يمكنك نسخ أي لقطة شاشة (Screenshot) ولصقها مباشرة (Ctrl+V) في حقل الوصف لرفعها كمرفق تلقائياً.</span>
+                          </p>
+                        </div>
+
+                        {/* Attachments */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">المرفقات والملفات الداعمة</label>
+                          
+                          {attachments.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                              {attachments.map((url, idx) => (
+                                <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-2xs hover:shadow-xs transition-all">
+                                  {renderFileThumbnail(url)}
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => removeAttachment(idx)}
+                                      className="bg-red-650 hover:bg-red-700 text-white rounded-full p-2 shadow-md transform scale-90 group-hover:scale-100 transition-all hover:scale-105"
+                                      title="حذف الملف"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-center w-full">
+                            <label
+                              htmlFor="support-file-input"
+                              className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                                uploading
+                                  ? "border-primary/50 bg-primary/5 cursor-not-allowed"
+                                  : "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 bg-white dark:bg-slate-950"
+                              }`}
+                            >
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                {uploading ? (
+                                  <>
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">جاري معالجة الملف ورفعه...</p>
+                                    <p className="text-xs text-slate-400 mt-1 font-semibold">الرجاء الانتظار قليلاً</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-850 flex items-center justify-center text-slate-550 mb-2">
+                                      <ImageIcon className="w-5 h-5 text-slate-500" />
+                                    </div>
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                      اضغط لرفع ملف أو صورة أو فيديو
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-1 font-medium">
+                                      يمكنك إرفاق صور، فيديوهات، أو ملفات PDF حتى 50 ميجابايت
+                                    </p>
+                                  </>
+                                )}
+                              </div>
+                              <input
+                                id="support-file-input"
+                                type="file"
+                                accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                className="hidden"
+                                onChange={handleFileChange}
+                                disabled={uploading}
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Footer buttons */}
+                        <div className="flex items-center justify-start gap-3 pt-6 border-t border-slate-200 dark:border-slate-800 flex-row-reverse">
+                          <Button
+                            type="submit"
+                            disabled={createTicketMutation.isPending || uploading}
+                            className="font-bold px-8 h-11 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all rounded-xl"
+                          >
+                            {createTicketMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin shrink-0 ml-2" />
+                                جاري الإرسال...
+                              </>
+                            ) : (
+                              "إرسال التذكرة"
+                            )}
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
-                            className="gap-2 text-gray-600 h-11 px-5"
-                            disabled={uploading}
-                            onClick={() => document.getElementById("support-file-input")?.click()}
+                            onClick={() => setIsCreateOpen(false)}
+                            disabled={createTicketMutation.isPending}
+                            className="px-8 h-11 text-base rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
                           >
-                            {uploading ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                            ) : (
-                              <ImageIcon className="w-4 h-4 text-gray-500" />
-                            )}
-                            إرفاق ملف / صورة / فيديو
+                            إلغاء
                           </Button>
-                          <input
-                            id="support-file-input"
-                            type="file"
-                            accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                            className="hidden"
-                            onChange={handleFileChange}
-                            disabled={uploading}
-                          />
-                          {uploading && <span className="text-xs text-gray-500 animate-pulse">جاري معالجة الملف ورفعه...</span>}
                         </div>
-                      </div>
-
-                      <DialogFooter className="gap-2 sm:justify-start pt-6 border-t border-gray-100 flex-row-reverse">
-                        <Button type="submit" disabled={createTicketMutation.isPending || uploading} className="font-bold px-8 h-11 text-base">
-                          {createTicketMutation.isPending ? "جاري الإرسال..." : "إرسال التذكرة"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsCreateOpen(false)}
-                          disabled={createTicketMutation.isPending}
-                          className="px-8 h-11 text-base"
-                        >
-                          إلغاء
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
-          )}
+                      </form>
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
 
         {/* ======================================================== */}
@@ -485,16 +616,23 @@ export default function SupportTickets() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* My Tickets List (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-gray-600" />
-                تذاكرك الحالية
-              </h2>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-slate-500" />
+                  تذاكرك الحالية
+                  {myTickets && myTickets.length > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">
+                      {myTickets.length}
+                    </span>
+                  )}
+                </h2>
+              </div>
 
               {loadingMyTickets ? (
                 <div className="space-y-3">
                   {[1, 2].map((i) => (
-                    <Card key={i} className="animate-pulse">
-                      <CardContent className="h-24 bg-gray-50 rounded-xl" />
+                    <Card key={i} className="animate-pulse bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <CardContent className="h-28 rounded-xl" />
                     </Card>
                   ))}
                 </div>
@@ -503,28 +641,36 @@ export default function SupportTickets() {
                   {myTickets.map((ticket) => (
                     <Card
                       key={ticket.id}
-                      className={`cursor-pointer transition-all border hover:border-primary/50 hover:shadow-sm ${
-                        selectedTicketId === ticket.id ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-gray-200"
+                      className={`cursor-pointer transition-all border shadow-2xs hover:shadow-xs card-hover ${
+                        selectedTicketId === ticket.id
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350 dark:hover:border-slate-700"
+                      } ${
+                        ticket.status === "pending"
+                          ? "border-r-4 border-r-amber-500"
+                          : ticket.status === "resolved"
+                          ? "border-r-4 border-r-emerald-500"
+                          : "border-r-4 border-r-rose-500"
                       }`}
                       onClick={() => setSelectedTicketId(ticket.id)}
                     >
-                      <CardHeader className="p-4 pb-2">
-                        <div className="flex justify-between items-start">
-                          <span className="text-xs text-gray-400">
+                      <CardHeader className="p-4 pb-2 text-right">
+                        <div className="flex justify-between items-start flex-row-reverse">
+                          {renderStatusBadge(ticket.status)}
+                          <span className="text-[10px] text-slate-400 font-mono">
                             #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
                           </span>
-                          {renderStatusBadge(ticket.status)}
                         </div>
-                        <CardTitle className="text-base font-bold text-gray-800 mt-2">
+                        <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right">
                           {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                      <CardContent className="p-4 pt-0 text-right">
+                        <p className="text-sm text-slate-655 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
                           {ticket.description}
                         </p>
                         {ticket.replies && (ticket.replies as any[]).length > 0 && (
-                          <div className="mt-3 text-xs text-primary flex items-center gap-1.5 font-semibold">
+                          <div className="mt-3 text-xs text-primary flex items-center gap-1.5 font-bold">
                             <MessageSquare className="w-3.5 h-3.5" />
                             يوجد {(ticket.replies as any[]).length} ردود ومراسلات
                           </div>
@@ -534,38 +680,59 @@ export default function SupportTickets() {
                   ))}
                 </div>
               ) : (
-                <Card className="border-dashed border-2 border-gray-200 bg-gray-50/50">
-                  <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                    <FileQuestion className="w-12 h-12 text-gray-300 mb-3" />
-                    <p className="font-bold text-gray-700">لا توجد تذاكر دعم فني بعد</p>
-                    <p className="text-sm text-gray-400 max-w-md mt-1">
-                      إذا واجهت أي عطل أو أردت تقديم مقترح، انقر على زر "تواصل مع الدعم الفني" لتقديم تذكرتك الأولى.
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl shadow-3xs">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4 animate-bounce">
+                    <FileQuestion className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">لا توجد تذاكر دعم فني بعد</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed font-medium">
+                    إذا واجهت أي مشكلة فنية أو أردت تقديم اقتراح لتحسين البوابة، يمكنك إنشاء تذكرة دعم فني جديدة في أي وقت.
+                  </p>
+                  <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2 px-6">
+                    <Plus className="w-4 h-4" />
+                    إنشاء تذكرتك الأولى
+                  </Button>
+                </div>
               )}
             </div>
 
             {/* FAQ & Quick Support (1/3 width) */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <FileQuestion className="w-5 h-5 text-gray-600" />
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileQuestion className="w-5 h-5 text-slate-550" />
                 الأسئلة الشائعة
               </h2>
-              <Card className="border border-gray-200 overflow-hidden shadow-sm">
-                <CardContent className="p-4">
-                  <Accordion type="single" collapsible className="w-full">
-                    {faqItems.map((item, idx) => (
-                      <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-gray-100 last:border-0 py-1">
-                        <AccordionTrigger className="text-right hover:no-underline font-semibold text-gray-800 text-sm py-3 leading-relaxed">
-                          {item.q}
-                        </AccordionTrigger>
-                        <AccordionContent className="text-gray-600 text-xs leading-relaxed pt-1 pb-3">
-                          {item.a}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+              <Card className="border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs bg-white dark:bg-slate-900 rounded-2xl">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-850">
+                  <div className="relative">
+                    <Input
+                      value={faqSearch}
+                      onChange={(e) => setFaqSearch(e.target.value)}
+                      placeholder="ابحث في الأسئلة الشائعة..."
+                      className="pr-10 pl-4 h-9 text-right rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute top-2.5 right-3" />
+                  </div>
+                </div>
+                <CardContent className="p-4 pt-1 text-right">
+                  {filteredFaqs.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full">
+                      {filteredFaqs.map((item, idx) => (
+                        <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-slate-100 dark:border-slate-850 last:border-0 py-1">
+                          <AccordionTrigger className="text-right hover:no-underline font-bold text-slate-700 dark:text-slate-350 text-sm py-3.5 leading-relaxed hover:text-primary transition-colors">
+                            {item.q}
+                          </AccordionTrigger>
+                          <AccordionContent className="text-slate-650 dark:text-slate-400 text-xs leading-relaxed pt-1 pb-3.5 font-medium text-right">
+                            {item.a}
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-semibold">
+                      لا توجد نتائج بحث مطابقة.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -577,205 +744,298 @@ export default function SupportTickets() {
         {/* ======================================================== */}
         {hasView && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Tickets List Table (1.2/3 width) */}
-            <div className="lg:col-span-1.5 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-gray-600" />
+            {/* Tickets List Column (1/3 width) */}
+            <div className="lg:col-span-1 space-y-4">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-slate-550" />
                 قائمة التذاكر الواردة
               </h2>
 
+              {/* Advanced Admin Filters */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800/80 space-y-3.5 shadow-2xs">
+                {/* Search */}
+                <div className="relative">
+                  <Input
+                    value={adminSearchQuery}
+                    onChange={(e) => setAdminSearchQuery(e.target.value)}
+                    placeholder="ابحث بالاسم، الرقم، الوصف..."
+                    className="pr-10 pl-4 h-9 text-right rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute top-2.5 right-3" />
+                </div>
+                
+                {/* Status Filter Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-450 block">حالة التذكرة:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { key: "all", label: "الكل", count: allTickets?.length || 0 },
+                      { key: "pending", label: "قيد الانتظار", count: allTickets?.filter(t => t.status === "pending").length || 0 },
+                      { key: "resolved", label: "تم الحل", count: allTickets?.filter(t => t.status === "resolved").length || 0 },
+                      { key: "needs_clarification", label: "تحتاج توضيح", count: allTickets?.filter(t => t.status === "needs_clarification").length || 0 },
+                    ].map(statusChip => (
+                      <button
+                        key={statusChip.key}
+                        onClick={() => setAdminStatusFilter(statusChip.key)}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 ${
+                          adminStatusFilter === statusChip.key
+                            ? "bg-primary text-primary-foreground shadow-2xs"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        }`}
+                      >
+                        {statusChip.label}
+                        <span className={`px-1.5 py-0.1 rounded-full text-[9px] ${
+                          adminStatusFilter === statusChip.key
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-slate-200 dark:bg-slate-700 text-slate-550 dark:text-slate-300"
+                        }`}>
+                          {statusChip.count}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Type Filter Chips */}
+                <div className="space-y-1.5 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+                  <span className="text-[10px] font-bold text-slate-455 block">نوع التذكرة:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: "all", label: "الكل" },
+                      { key: "technical_issue", label: "مشاكل فنية" },
+                      { key: "suggestion", label: "مقترحات" }
+                    ].map(typeChip => (
+                      <button
+                        key={typeChip.key}
+                        onClick={() => setAdminTypeFilter(typeChip.key)}
+                        className={`text-xs font-bold transition-all ${
+                          adminTypeFilter === typeChip.key
+                            ? "text-primary underline underline-offset-4"
+                            : "text-slate-500 hover:text-slate-700 dark:text-slate-450 dark:hover:text-slate-300"
+                        }`}
+                      >
+                        {typeChip.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tickets List */}
               {loadingAllTickets ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
-                    <Card key={i} className="animate-pulse">
-                      <CardContent className="h-20 bg-gray-50 rounded-xl" />
+                    <Card key={i} className="animate-pulse bg-white dark:bg-slate-900 border border-slate-200">
+                      <CardContent className="h-20 rounded-xl" />
                     </Card>
                   ))}
                 </div>
-              ) : allTickets && allTickets.length > 0 ? (
-                <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
-                  {allTickets.map((ticket) => (
-                    <Card
+              ) : filteredTickets && filteredTickets.length > 0 ? (
+                <div className="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1">
+                  {filteredTickets.map((ticket) => (
+                    <div
                       key={ticket.id}
-                      className={`cursor-pointer transition-all border hover:border-primary/50 ${
-                        selectedTicketId === ticket.id ? "border-primary bg-primary/5" : "border-gray-200"
+                      className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs text-right ${
+                        selectedTicketId === ticket.id
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/10"
+                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                      } ${
+                        ticket.status === "pending"
+                          ? "border-r-4 border-r-amber-500"
+                          : ticket.status === "resolved"
+                          ? "border-r-4 border-r-emerald-500"
+                          : "border-r-4 border-r-rose-500"
                       }`}
                       onClick={() => setSelectedTicketId(ticket.id)}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="space-y-1 text-right">
-                            <span className="text-xs text-gray-400">
-                              #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+                      <div className="flex justify-between items-start gap-2 flex-row-reverse">
+                        {renderStatusBadge(ticket.status)}
+                        <div className="space-y-1 text-right">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-400 font-mono">#{ticket.id}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
                             </span>
-                            <h3 className="font-bold text-gray-900 text-sm">
-                              {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
-                            </h3>
-                            <p className="text-xs text-gray-500 font-semibold">{ticket.userName || "مستفيد"}</p>
                           </div>
-                          {renderStatusBadge(ticket.status)}
+                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                            {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || "مستفيد"}</p>
                         </div>
-                        <p className="text-xs text-gray-600 line-clamp-1 mt-2">{ticket.description}</p>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-2 font-medium">{ticket.description}</p>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <Card className="border-dashed border-2 border-gray-200 bg-gray-50">
+                <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                   <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                    <CheckCircle2 className="w-12 h-12 text-gray-300 mb-3" />
-                    <p className="font-bold text-gray-700">لا توجد تذاكر دعم فني واردة</p>
-                    <p className="text-sm text-gray-400 mt-1">كل شيء على ما يرام! لا توجد طلبات معلقة.</p>
+                    <CheckCircle2 className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3" />
+                    <p className="font-bold text-slate-700 dark:text-slate-300">لا توجد تذاكر دعم فني واردة</p>
+                    <p className="text-sm text-slate-400 mt-1 font-medium">كل شيء على ما يرام! لا توجد طلبات مطابقة.</p>
                   </CardContent>
                 </Card>
               )}
             </div>
 
-            {/* Selected Ticket Conversation Panel (1.8/3 width) */}
+            {/* Selected Ticket Conversation Panel (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-gray-600" />
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-slate-550" />
                 معاينة التذكرة والرد عليها
               </h2>
 
               {selectedTicketId ? (
                 loadingTicketDetails ? (
-                  <Card className="animate-pulse h-[60vh] bg-gray-50 border border-gray-200 rounded-2xl" />
+                  <Card className="animate-pulse h-[65vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl" />
                 ) : selectedTicket ? (
-                  <Card className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[65vh]">
-                    {/* Header */}
-                    <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                      <div>
+                  <Card className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm flex flex-col min-h-[68vh] bg-white dark:bg-slate-900">
+                    {/* Panel Header */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-gray-400 font-mono">#{selectedTicket.id}</span>
-                          <span className="font-bold text-gray-900">
+                          <span className="text-xs font-mono bg-slate-250 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">#{selectedTicket.id}</span>
+                          <span className="font-bold text-slate-900 dark:text-white">
                             {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                           </span>
                           {renderStatusBadge(selectedTicket.status)}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1 font-semibold">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 font-bold text-right">
                           المرسل: {selectedTicket.userName} ({selectedTicket.userEmail}) •{" "}
                           {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
                         </div>
                       </div>
 
                       {/* Status select for Admin */}
-                      {hasView && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 font-semibold shrink-0">تحديث الحالة:</span>
-                          <Select
-                            value={selectedTicket.status}
-                            onValueChange={handleStatusChange}
-                          >
-                            <SelectTrigger className="w-[140px] text-right justify-between flex-row-reverse h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">قيد الانتظار</SelectItem>
-                              <SelectItem value="resolved">تم الحل</SelectItem>
-                              <SelectItem value="needs_clarification">تحتاج توضيح</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-bold shrink-0">تحديث الحالة:</span>
+                        <Select
+                          value={selectedTicket.status}
+                          onValueChange={handleStatusChange}
+                        >
+                          <SelectTrigger className="w-[140px] text-right justify-between flex-row-reverse h-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="text-xs font-semibold">
+                            <SelectItem value="pending">⏳ قيد الانتظار</SelectItem>
+                            <SelectItem value="resolved">✅ تم الحل</SelectItem>
+                            <SelectItem value="needs_clarification">❓ تحتاج توضيح</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
 
                     {/* Content Scroll Area */}
-                    <ScrollArea className="flex-1 p-5 bg-white space-y-4">
-                      {/* Ticket Description */}
-                      <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 space-y-3">
-                        <div className="font-bold text-gray-800 text-sm border-b border-gray-200/60 pb-1.5 flex items-center gap-1.5">
-                          <User className="w-4 h-4 text-primary" />
-                          نص المشكلة / المقترح الوارد:
-                        </div>
-                        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                          {selectedTicket.description}
-                        </p>
-
-                        {/* Attachments */}
-                        {getSafeAttachments(selectedTicket.attachments).length > 0 && (
-                          <div className="pt-3 border-t border-gray-200/50">
-                            <span className="text-xs font-bold text-gray-500 block mb-2 flex items-center gap-1">
-                              <Paperclip className="w-3.5 h-3.5" />
-                              المرفقات:
-                            </span>
-                            <div className="grid grid-cols-4 gap-2">
-                              {getSafeAttachments(selectedTicket.attachments).map((url, index) => (
-                                <a
-                                  key={index}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block border border-gray-200 rounded-lg overflow-hidden hover:opacity-90 transition-opacity bg-white aspect-square shadow-sm"
-                                >
-                                  {renderFileThumbnail(url)}
-                                </a>
-                              ))}
+                    <ScrollArea className="flex-1 p-5 bg-slate-50/20 dark:bg-slate-900/10">
+                      <div className="space-y-6">
+                        {/* Ticket Description */}
+                        <div className="bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4 text-right">
+                          <div className="font-bold text-slate-850 dark:text-slate-200 text-sm border-b border-slate-100 dark:border-slate-850 pb-2 flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              <User className="w-4 h-4" />
                             </div>
+                            <span>شرح المشكلة / المقترح الوارد:</span>
                           </div>
-                        )}
-                      </div>
+                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                            {selectedTicket.description}
+                          </p>
 
-                      <Separator className="my-5" />
-
-                      {/* Chat / Replies Section */}
-                      <div className="space-y-4">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">الردود والمراسلات</div>
-                        
-                        {getSafeReplies(selectedTicket.replies).length > 0 ? (
-                          <div className="space-y-3">
-                            {getSafeReplies(selectedTicket.replies).map((reply) => {
-                              const isMe = reply.senderId === user?.id;
-                              return (
-                                <div
-                                  key={reply.id}
-                                  className={`flex gap-2.5 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                                    <User className="w-4 h-4 text-gray-600" />
-                                  </div>
-                                  <div
-                                    className={`rounded-2xl p-3 text-sm leading-relaxed ${
-                                      isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"
-                                    }`}
+                          {/* Attachments */}
+                          {getSafeAttachments(selectedTicket.attachments).length > 0 && (
+                            <div className="pt-4 border-t border-slate-100 dark:border-slate-850">
+                              <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2.5 flex items-center gap-1.5">
+                                <Paperclip className="w-3.5 h-3.5" />
+                                الملفات المرفقة ({getSafeAttachments(selectedTicket.attachments).length})
+                              </span>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                {getSafeAttachments(selectedTicket.attachments).map((url, index) => (
+                                  <a
+                                    key={index}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:opacity-90 transition-opacity bg-white dark:bg-slate-950 aspect-square shadow-2xs hover:shadow-xs"
                                   >
-                                    <span className="text-[10px] font-bold block mb-1 opacity-80">
-                                      {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
-                                    </span>
-                                    {reply.message}
+                                    {renderFileThumbnail(url)}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="relative flex items-center justify-center my-6">
+                          <Separator className="w-full" />
+                          <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[10px] font-bold text-slate-400 tracking-wider">
+                            المراسلات والردود
+                          </span>
+                        </div>
+
+                        {/* Chat / Replies Section */}
+                        <div className="space-y-4">
+                          {getSafeReplies(selectedTicket.replies).length > 0 ? (
+                            <div className="space-y-4">
+                              {getSafeReplies(selectedTicket.replies).map((reply) => {
+                                const isMe = reply.senderId === user?.id;
+                                return (
+                                  <div
+                                    key={reply.id}
+                                    className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
+                                  >
+                                    <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-350 dark:border-slate-705 flex items-center justify-center shrink-0">
+                                      <User className="w-4 h-4 text-slate-600 dark:text-slate-405" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div
+                                        className={`rounded-2xl p-4 text-sm leading-relaxed shadow-2xs ${
+                                          isMe
+                                            ? "bg-teal-650 text-white rounded-tr-none"
+                                            : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                        }`}
+                                      >
+                                        <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                      </div>
+                                      <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
+                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-center text-xs text-gray-400 py-6">
-                            لا توجد ردود على هذه التذكرة بعد.
-                          </div>
-                        )}
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center text-xs text-slate-400 dark:text-slate-550 py-10">
+                              لا توجد ردود على هذه التذكرة بعد. يمكنك كتابة أول رد في الحقل أدناه.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </ScrollArea>
 
                     {/* Footer - Send message */}
-                    <form onSubmit={handleSendReply} className="p-4 bg-gray-50 border-t border-gray-200 flex items-center gap-3">
+                    <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3">
                       <Input
                         value={replyMessage}
                         onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="اكتب ردك أو استفسارك هنا..."
-                        className="flex-grow bg-white text-right h-10 rounded-xl"
+                        placeholder="اكتب ردك هنا وسيجري إرساله للمستفيد..."
+                        className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
                         required
                       />
-                      <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={addReplyMutation.isPending}>
-                        <Send className="w-4 h-4" />
+                      <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md" disabled={addReplyMutation.isPending}>
+                        {addReplyMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 transform rotate-180" />
+                        )}
                       </Button>
                     </form>
                   </Card>
                 ) : null
               ) : (
-                <Card className="border border-gray-200 bg-gray-50/50 rounded-2xl min-h-[400px] flex flex-col items-center justify-center text-center p-6 shadow-inner">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mb-3" />
-                  <p className="font-bold text-gray-700">لم يتم تحديد تذكرة</p>
-                  <p className="text-sm text-gray-400 mt-1 max-w-sm">
+                <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-6 shadow-inner">
+                  <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3" />
+                  <p className="font-bold text-slate-700 dark:text-slate-300">لم يتم تحديد تذكرة</p>
+                  <p className="text-sm text-slate-400 mt-1 max-w-sm font-medium">
                     الرجاء اختيار إحدى التذاكر من القائمة الجانبية لمعاينة تفاصيلها، وقراءة المراسلات، وإرسال الردود.
                   </p>
                 </Card>
@@ -784,98 +1044,139 @@ export default function SupportTickets() {
           </div>
         )}
 
-        {/* Selected Ticket Viewer for User (Drawer-like or Modal-like layout if selected) */}
+        {/* Selected Ticket Viewer for User (Dialog details & chat) */}
         {hasCreate && !hasView && selectedTicketId && selectedTicket && (
           <Dialog open={!!selectedTicketId} onOpenChange={(open) => !open && setSelectedTicketId(null)}>
-            <DialogContent className="max-w-3xl sm:rounded-2xl flex flex-col max-h-[90vh] overflow-hidden p-0">
-              <DialogHeader className="p-5 border-b border-gray-100 text-right">
-                <div className="flex justify-between items-center gap-2 flex-wrap flex-row-reverse">
-                  {renderStatusBadge(selectedTicket.status)}
-                  <DialogTitle className="text-xl font-bold">
-                    #{selectedTicket.id} • {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
-                  </DialogTitle>
+            <DialogContent
+              dir="rtl"
+              showCloseButton={false}
+              className="max-w-3xl sm:rounded-2xl flex flex-col max-h-[90vh] overflow-hidden p-0 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+            >
+              {/* Custom Header with close button on left */}
+              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="space-y-1 text-right">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
+                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
+                      {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
+                    </DialogTitle>
+                    {renderStatusBadge(selectedTicket.status)}
+                  </div>
+                  <DialogDescription className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                    تاريخ التقديم: {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
+                  </DialogDescription>
                 </div>
-                <DialogDescription className="text-xs mt-1 text-right">
-                  تاريخ التقديم: {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
-                </DialogDescription>
-              </DialogHeader>
+                
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedTicketId(null)}
+                  className="w-8 h-8 rounded-full hover:bg-slate-200/80 dark:hover:bg-slate-800/80"
+                >
+                  <X className="w-4 h-4 text-slate-500" />
+                </Button>
+              </div>
 
-              <ScrollArea className="flex-grow p-5 space-y-4">
-                {/* Description */}
-                <div className="bg-gray-50 rounded-xl p-4 text-right">
-                  <div className="font-bold text-gray-800 text-xs mb-1.5">تفاصيل التذكرة:</div>
-                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selectedTicket.description}</p>
-                  
-                  {/* Attachments */}
-                  {getSafeAttachments(selectedTicket.attachments).length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-gray-200/60">
-                      <span className="text-xs font-bold text-gray-500 block mb-2">المرفقات:</span>
-                      <div className="grid grid-cols-4 gap-2">
-                        {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
-                          <a
-                            key={idx}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block border border-gray-200 rounded-lg overflow-hidden hover:opacity-90 bg-white aspect-square shadow-sm"
-                          >
-                            {renderFileThumbnail(url)}
-                          </a>
-                        ))}
-                      </div>
+              <ScrollArea className="flex-grow p-5 space-y-5 bg-slate-50/10 dark:bg-slate-900/10">
+                <div className="space-y-5">
+                  {/* Description Card */}
+                  <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 text-right space-y-3 shadow-2xs">
+                    <div className="font-bold text-slate-800 dark:text-slate-200 text-xs pb-1.5 border-b border-slate-100 dark:border-slate-850 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-primary" />
+                      <span>تفاصيل بلاغك:</span>
                     </div>
-                  )}
-                </div>
-
-                <Separator className="my-5" />
-
-                {/* Conversation List */}
-                <div className="space-y-4 text-right">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">الردود والمراسلات</span>
-                  
-                  {getSafeReplies(selectedTicket.replies).length > 0 ? (
-                    <div className="space-y-3">
-                      {getSafeReplies(selectedTicket.replies).map((reply) => {
-                        const isMe = reply.senderId === user?.id;
-                        return (
-                          <div
-                            key={reply.id}
-                            className={`flex gap-2.5 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                              <User className="w-4 h-4 text-gray-600" />
-                            </div>
-                            <div
-                              className={`rounded-2xl p-3 text-sm leading-relaxed ${
-                                isMe ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-gray-100 text-gray-800 rounded-tl-none"
-                              }`}
+                    <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                      {selectedTicket.description}
+                    </p>
+                    
+                    {/* Attachments */}
+                    {getSafeAttachments(selectedTicket.attachments).length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850">
+                        <span className="text-xs font-bold text-slate-450 dark:text-slate-500 block mb-2 flex items-center gap-1.5">
+                          <Paperclip className="w-3.5 h-3.5" />
+                          المرفقات ({getSafeAttachments(selectedTicket.attachments).length})
+                        </span>
+                        <div className="grid grid-cols-4 gap-2">
+                          {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
+                            <a
+                              key={idx}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs"
                             >
-                              <span className="text-[10px] font-bold block mb-1 opacity-80">
-                                {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
-                              </span>
-                              {reply.message}
+                              {renderFileThumbnail(url)}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative flex items-center justify-center my-4">
+                    <Separator className="w-full" />
+                    <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[9px] font-bold text-slate-400 tracking-wider">
+                      الردود والمراسلات
+                    </span>
+                  </div>
+
+                  {/* Conversation List */}
+                  <div className="space-y-4">
+                    {getSafeReplies(selectedTicket.replies).length > 0 ? (
+                      <div className="space-y-4">
+                        {getSafeReplies(selectedTicket.replies).map((reply) => {
+                          const isMe = reply.senderId === user?.id;
+                          return (
+                            <div
+                              key={reply.id}
+                              className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
+                            >
+                              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 flex items-center justify-center shrink-0">
+                                <User className="w-4 h-4 text-slate-500" />
+                              </div>
+                              <div className="space-y-1">
+                                <div
+                                  className={`rounded-2xl p-3.5 text-sm leading-relaxed shadow-2xs ${
+                                    isMe
+                                      ? "bg-teal-650 text-white rounded-tr-none"
+                                      : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                  }`}
+                                >
+                                  <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                </div>
+                                <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
+                                  {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center text-xs text-gray-400 py-6">لا توجد ردود على هذه التذكرة بعد.</div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-8">
+                        لا توجد ردود على هذه التذكرة بعد. سيقوم فريق الدعم بالرد عليك قريباً.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </ScrollArea>
 
               {/* Send Reply Input */}
-              <form onSubmit={handleSendReply} className="p-4 bg-gray-50 border-t border-gray-100 flex items-center gap-3">
+              <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-955 border-t border-slate-100 dark:border-slate-850 flex items-center gap-3">
                 <Input
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="اكتب استفساراً أو رداً إضافياً..."
-                  className="flex-grow bg-white text-right h-10 rounded-xl"
+                  placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
+                  className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
                   required
                 />
-                <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-xl" disabled={addReplyMutation.isPending}>
-                  <Send className="w-4 h-4" />
+                <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending}>
+                  {addReplyMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4 transform rotate-180" />
+                  )}
                 </Button>
               </form>
             </DialogContent>
