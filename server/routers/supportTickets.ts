@@ -144,6 +144,7 @@ export const supportTicketsRouter = router({
       z.object({
         ticketId: z.number(),
         message: z.string().min(1, "الرد لا يمكن أن يكون فارغاً"),
+        attachments: z.array(attachmentSchema).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -211,6 +212,7 @@ export const supportTicketsRouter = router({
         senderId: ctx.user.id,
         senderName: senderName,
         message: input.message,
+        attachments: input.attachments || [],
         createdAt: new Date().toISOString(),
       };
 

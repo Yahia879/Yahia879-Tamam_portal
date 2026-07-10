@@ -46,7 +46,8 @@ import {
   Search,
   Filter,
   Info,
-  Lightbulb
+  Lightbulb,
+  Download
 } from "lucide-react";
 
 const getSafeAttachments = (attachments: any): string[] => {
@@ -121,6 +122,9 @@ export default function SupportTickets() {
   const [uploading, setUploading] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
+  const [replyAttachments, setReplyAttachments] = useState<string[]>([]);
+  const [replyUploading, setReplyUploading] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string } | null>(null);
 
   // Search & Filter State
   const [faqSearch, setFaqSearch] = useState("");
@@ -161,6 +165,7 @@ export default function SupportTickets() {
   const addReplyMutation = trpc.supportTickets.addReply.useMutation({
     onSuccess: () => {
       setReplyMessage("");
+      setReplyAttachments([]);
       utils.supportTickets.getTicketById.invalidate({ id: selectedTicketId || 0 });
       utils.supportTickets.getAllTickets.invalidate();
       utils.supportTickets.getMyTickets.invalidate();
@@ -251,6 +256,53 @@ export default function SupportTickets() {
     }
   };
 
+  const uploadReplyFile = async (file: File) => {
+    const executableExtensions = [
+      "exe", "bat", "cmd", "sh", "msi", "dll", "scr", "vbs", "com", "bin", "jar", "app", "dmg", "elf"
+    ];
+    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
+    if (executableExtensions.includes(fileExtension)) {
+      toast.error("نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
+      return;
+    }
+
+    setReplyUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "support-tickets");
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "فشل رفع الملف");
+      }
+
+      const data = await response.json();
+      setReplyAttachments((prev) => [...prev, data.url]);
+      toast.success("تم رفع الملف بنجاح");
+    } catch (error: any) {
+      toast.error(error.message || "حدث خطأ أثناء رفع الملف");
+    } finally {
+      setReplyUploading(false);
+    }
+  };
+
+  const handleReplyFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await uploadReplyFile(e.target.files[0]);
+    }
+  };
+
   const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
@@ -283,10 +335,12 @@ export default function SupportTickets() {
 
   const handleSendReply = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyMessage.trim() || !selectedTicketId) return;
+    if (!selectedTicketId) return;
+    if (!replyMessage.trim() && replyAttachments.length === 0) return;
     addReplyMutation.mutate({
       ticketId: selectedTicketId,
-      message: replyMessage,
+      message: replyMessage.trim() || "تم إرفاق ملف/مستند",
+      attachments: replyAttachments,
     });
   };
 
@@ -296,6 +350,40 @@ export default function SupportTickets() {
       ticketId: selectedTicketId,
       status,
     });
+  };
+
+  const handleViewAttachment = (url: string) => {
+    if (!url) return;
+    const filename = decodeURIComponent(url.split("/").pop() || "مرفق");
+    setPreviewDoc({ url, title: filename });
+  };
+
+  const getFileTypeFromUrl = (url: string) => {
+    const ext = url.split("?")[0].split(".").pop()?.toLowerCase() || "";
+    if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) {
+      return "image";
+    }
+    if (ext === "pdf") {
+      return "pdf";
+    }
+    if (["doc", "docx"].includes(ext)) {
+      return "word";
+    }
+    if (["xls", "xlsx"].includes(ext)) {
+      return "excel";
+    }
+    return "other";
+  };
+
+  const handleDownloadPreview = () => {
+    if (!previewDoc) return;
+    const link = document.createElement("a");
+    link.href = previewDoc.url;
+    link.download = previewDoc.title;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("تم تحميل الملف بنجاح");
   };
 
   // Status badge renderer
@@ -348,10 +436,6 @@ export default function SupportTickets() {
     {
       q: "ما هي الفترة الزمنية المتوقعة للرد على التذكرة؟",
       a: "يعمل فريق الدعم الفني على مراجعة التذاكر والرد عليها خلال 24 ساعة كحد أقصى. سيتم إرسال إشعار لك فور إضافة أي رد جديد من قبل الفريق المتابع.",
-    },
-    {
-      q: "كيف يمكنني إرفاق لقطة شاشة (Screenshot) لتوضيح المشكلة؟",
-      a: "أثاء تعبئة نموذج التذكرة، يمكنك ببساطة نسخ لقطة الشاشة من جهازك بالضغط على (Ctrl+C)، ثم النقر داخل حقل 'الوصف والتفاصيل' والضغط على (Ctrl+V) للصقها ورفعها تلقائياً.",
     },
     {
       q: "ماذا تعني الحالات المختلفة للتذكرة؟",
@@ -799,15 +883,14 @@ export default function SupportTickets() {
                               </span>
                               <div className="grid grid-cols-4 gap-2">
                                 {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
-                                  <a
+                                  <button
                                     key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs"
+                                    type="button"
+                                    onClick={() => handleViewAttachment(url)}
+                                    className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs w-full text-right p-0 focus:outline-none"
                                   >
                                     {renderFileThumbnail(url)}
-                                  </a>
+                                  </button>
                                 ))}
                               </div>
                             </div>
@@ -844,6 +927,20 @@ export default function SupportTickets() {
                                         }`}
                                       >
                                         <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                        {getSafeAttachments((reply as any).attachments).length > 0 && (
+                                          <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 min-w-[180px]`}>
+                                            {getSafeAttachments((reply as any).attachments).map((url, index) => (
+                                              <button
+                                                key={index}
+                                                type="button"
+                                                onClick={() => handleViewAttachment(url)}
+                                                className="block border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-3xs w-full text-right p-0 focus:outline-none"
+                                              >
+                                                {renderFileThumbnail(url)}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                       <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
                                         {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
@@ -862,23 +959,65 @@ export default function SupportTickets() {
                       </div>
                     </div>
 
-                    {/* Send Reply Input */}
-                    <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-850 flex items-center gap-3 shrink-0">
-                      <Input
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
-                        className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
-                        required
-                      />
-                      <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending}>
-                        {addReplyMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4 transform rotate-180" />
-                        )}
-                      </Button>
-                    </form>
+                    <div className="border-t border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-900 flex flex-col shrink-0">
+                      {/* Attached files preview list */}
+                      {replyAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-3 bg-slate-100/50 dark:bg-slate-950/50 border-b border-slate-150 dark:border-slate-850">
+                          {replyAttachments.map((url, idx) => (
+                            <div key={idx} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+                              {renderFileThumbnail(url)}
+                              <button
+                                type="button"
+                                onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute top-0 right-0 bg-red-650 hover:bg-red-700 text-white rounded-bl-lg p-1 transition-all"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <form onSubmit={handleSendReply} className="p-4 flex items-center gap-3">
+                        <input
+                          type="file"
+                          id="user-reply-file-input"
+                          accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          className="hidden"
+                          onChange={handleReplyFileChange}
+                          disabled={replyUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => document.getElementById("user-reply-file-input")?.click()}
+                          disabled={replyUploading}
+                          className="h-11 w-11 shrink-0 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850"
+                        >
+                          {replyUploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          ) : (
+                            <Paperclip className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                          )}
+                        </Button>
+
+                        <Input
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
+                          className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
+                          required={replyAttachments.length === 0}
+                        />
+                        <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending || replyUploading}>
+                          {addReplyMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4 transform rotate-180" />
+                          )}
+                        </Button>
+                      </form>
+                    </div>
                   </div>
                 ) : (
                   /* Placeholder when no ticket is selected */
@@ -1137,15 +1276,14 @@ export default function SupportTickets() {
                               </span>
                               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                 {getSafeAttachments(selectedTicket.attachments).map((url, index) => (
-                                  <a
+                                  <button
                                     key={index}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:opacity-90 transition-opacity bg-white dark:bg-slate-950 aspect-square shadow-2xs hover:shadow-xs"
+                                    type="button"
+                                    onClick={() => handleViewAttachment(url)}
+                                    className="block border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:opacity-90 transition-opacity bg-white dark:bg-slate-955 aspect-square shadow-2xs hover:shadow-xs w-full text-right p-0 focus:outline-none"
                                   >
                                     {renderFileThumbnail(url)}
-                                  </a>
+                                  </button>
                                 ))}
                               </div>
                             </div>
@@ -1178,10 +1316,24 @@ export default function SupportTickets() {
                                         className={`rounded-2xl p-4 text-sm leading-relaxed shadow-2xs ${
                                           isMe
                                             ? "bg-teal-600 text-white rounded-tr-none"
-                                            : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                            : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
                                         }`}
                                       >
                                         <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                        {getSafeAttachments((reply as any).attachments).length > 0 && (
+                                          <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 min-w-[180px]`}>
+                                            {getSafeAttachments((reply as any).attachments).map((url, index) => (
+                                              <button
+                                                key={index}
+                                                type="button"
+                                                onClick={() => handleViewAttachment(url)}
+                                                className="block border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-3xs w-full text-right p-0 focus:outline-none"
+                                              >
+                                                {renderFileThumbnail(url)}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                       <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
                                         {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
@@ -1200,23 +1352,65 @@ export default function SupportTickets() {
                       </div>
                     </div>
 
-                    {/* Footer - Send message */}
-                    <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3">
-                      <Input
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="اكتب ردك هنا وسيجري إرساله للمستفيد..."
-                        className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
-                        required
-                      />
-                      <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md" disabled={addReplyMutation.isPending}>
-                        {addReplyMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Send className="w-4 h-4 transform rotate-180" />
-                        )}
-                      </Button>
-                    </form>
+                    <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-col shrink-0">
+                      {/* Attached files preview list */}
+                      {replyAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-3 bg-slate-100/50 dark:bg-slate-950/50 border-b border-slate-150 dark:border-slate-850">
+                          {replyAttachments.map((url, idx) => (
+                            <div key={idx} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+                              {renderFileThumbnail(url)}
+                              <button
+                                type="button"
+                                onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                className="absolute top-0 right-0 bg-red-650 hover:bg-red-700 text-white rounded-bl-lg p-1 transition-all"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <form onSubmit={handleSendReply} className="p-4 flex items-center gap-3">
+                        <input
+                          type="file"
+                          id="admin-reply-file-input"
+                          accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          className="hidden"
+                          onChange={handleReplyFileChange}
+                          disabled={replyUploading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => document.getElementById("admin-reply-file-input")?.click()}
+                          disabled={replyUploading}
+                          className="h-11 w-11 shrink-0 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850"
+                        >
+                          {replyUploading ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          ) : (
+                            <Paperclip className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                          )}
+                        </Button>
+
+                        <Input
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          placeholder="اكتب ردك هنا وسيجري إرساله للمستفيد..."
+                          className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
+                          required={replyAttachments.length === 0}
+                        />
+                        <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md" disabled={addReplyMutation.isPending || replyUploading}>
+                          {addReplyMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4 transform rotate-180" />
+                          )}
+                        </Button>
+                      </form>
+                    </div>
                   </Card>
                 ) : null
               ) : (
@@ -1233,6 +1427,88 @@ export default function SupportTickets() {
         </div>
       )}
 
+      {/* نافذة معاينة الصور والمرفقات الفاخرة (Lightbox Modal) */}
+      {previewDoc && (() => {
+        const fileType = getFileTypeFromUrl(previewDoc.url);
+        const isImage = fileType === "image";
+        const isPdf = fileType === "pdf";
+
+        return (
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            onClick={() => setPreviewDoc(null)}
+          >
+            <div 
+              className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button 
+                onClick={() => setPreviewDoc(null)}
+                className="absolute top-4 right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+ 
+              {/* Download button */}
+              <button 
+                onClick={handleDownloadPreview}
+                className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
+                title="تحميل"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+              </button>
+
+              {/* Document/Image container */}
+              <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
+                {isImage ? (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto">
+                    <img 
+                      src={previewDoc.url} 
+                      alt={previewDoc.title} 
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                    />
+                  </div>
+                ) : isPdf ? (
+                  <iframe 
+                    src={previewDoc.url} 
+                    title={previewDoc.title} 
+                    className="w-full h-full border border-slate-800 rounded-lg bg-white shadow-lg"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-850 border border-slate-700/60 rounded-2xl max-w-md w-full text-center shadow-lg">
+                    <div className="p-4 bg-slate-800 rounded-full mb-4">
+                      <FileText className="w-12 h-12 text-primary" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-100 mb-2">{previewDoc.title}</h3>
+                    <p className="text-xs text-slate-400 mb-6 max-w-xs leading-relaxed">
+                      هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه.
+                    </p>
+                    <Button 
+                      onClick={handleDownloadPreview}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      تحميل المستند
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Caption/Name */}
+              <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <Info className="h-4 w-4 text-slate-400" />
+                  معاينة المرفق - {previewDoc.title}
+                </p>
+                <p className="text-xs font-bold truncate max-w-[200px]" dir="ltr">{previewDoc.title}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       </div>
     </DashboardLayout>
