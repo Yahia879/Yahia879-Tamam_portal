@@ -180,7 +180,27 @@ export const supportTicketsRouter = router({
         .limit(1);
 
       const senderName = sender[0]?.name || "مستخدم";
-      const currentReplies = (ticket.replies as any[]) || [];
+      
+      // معالجة آمنة للردود: التأكد من أنها مصفوفة صحيحة وليست نص JSON
+      let currentReplies: any[] = [];
+      const rawReplies = ticket.replies;
+      if (Array.isArray(rawReplies)) {
+        // تصفية العناصر الصحيحة فقط (كائنات تحتوي على id و message)
+        currentReplies = rawReplies.filter(
+          (r: any) => r && typeof r === "object" && r.id && r.message
+        );
+      } else if (typeof rawReplies === "string" && rawReplies.trim()) {
+        try {
+          const parsed = JSON.parse(rawReplies);
+          if (Array.isArray(parsed)) {
+            currentReplies = parsed.filter(
+              (r: any) => r && typeof r === "object" && r.id && r.message
+            );
+          }
+        } catch {
+          currentReplies = [];
+        }
+      }
       
       const newReply = {
         id: nanoid(),
@@ -218,4 +238,48 @@ export const supportTicketsRouter = router({
 
       return { success: true };
     }),
+
+  // تنظيف الردود التالفة في جميع التذاكر (للمسؤولين)
+  cleanupReplies: permissionProcedure("View_Tickets").mutation(async () => {
+    const db = (await getDb())!;
+    
+    const allTicketsData = await db.select().from(supportTickets);
+    let fixedCount = 0;
+
+    for (const ticket of allTicketsData) {
+      let rawReplies = ticket.replies;
+      let cleanReplies: any[] = [];
+      let needsFix = false;
+
+      if (typeof rawReplies === "string") {
+        try {
+          rawReplies = JSON.parse(rawReplies);
+        } catch {
+          rawReplies = [];
+          needsFix = true;
+        }
+      }
+
+      if (Array.isArray(rawReplies)) {
+        cleanReplies = rawReplies.filter(
+          (r: any) => r && typeof r === "object" && r.id && r.message
+        );
+        if (cleanReplies.length !== (rawReplies as any[]).length) {
+          needsFix = true;
+        }
+      } else {
+        needsFix = true;
+      }
+
+      if (needsFix) {
+        await db
+          .update(supportTickets)
+          .set({ replies: cleanReplies })
+          .where(eq(supportTickets.id, ticket.id));
+        fixedCount++;
+      }
+    }
+
+    return { success: true, fixedCount, totalChecked: allTicketsData.length };
+  }),
 });
