@@ -382,7 +382,7 @@ export default function SupportTickets() {
           <div className="absolute inset-0 opacity-10 bg-cover bg-center islamic-pattern" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3 !leading-normal py-1">
                 <LifeBuoy className="w-9 h-9 text-gold animate-pulse" />
                 مركز الدعم الفني
               </h1>
@@ -409,13 +409,13 @@ export default function SupportTickets() {
                   onOpenAutoFocus={(e) => e.preventDefault()}
                 >
                   {/* Modal Header */}
-                  <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 py-4 md:px-10 flex items-center justify-between shadow-xs">
+                  <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 pt-6 pb-4 md:px-10 flex items-center justify-between shadow-xs">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                         <LifeBuoy className="w-5 h-5" />
                       </div>
                       <div>
-                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50">
+                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50 !leading-normal py-0.5">
                           إنشاء تذكرة دعم جديدة
                         </DialogTitle>
                         <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
@@ -617,7 +617,7 @@ export default function SupportTickets() {
             {/* My Tickets List (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                   <MessageSquare className="w-5 h-5 text-slate-500" />
                   تذاكرك الحالية
                   {myTickets && myTickets.length > 0 && (
@@ -661,7 +661,7 @@ export default function SupportTickets() {
                             #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
                           </span>
                         </div>
-                        <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right">
+                        <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right !leading-normal py-0.5">
                           {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                         </CardTitle>
                       </CardHeader>
@@ -698,7 +698,7 @@ export default function SupportTickets() {
 
             {/* FAQ & Quick Support (1/3 width) */}
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <FileQuestion className="w-5 h-5 text-slate-550" />
                 الأسئلة الشائعة
               </h2>
@@ -746,7 +746,7 @@ export default function SupportTickets() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Tickets List Column (1/3 width) */}
             <div className="lg:col-span-1 space-y-4">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <MessageSquare className="w-5 h-5 text-slate-550" />
                 قائمة التذاكر الواردة
               </h2>
@@ -857,7 +857,7 @@ export default function SupportTickets() {
                               • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
                             </span>
                           </div>
-                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm">
+                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5">
                             {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                           </h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || "مستفيد"}</p>
@@ -880,7 +880,7 @@ export default function SupportTickets() {
 
             {/* Selected Ticket Conversation Panel (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <MessageSquare className="w-5 h-5 text-slate-550" />
                 معاينة التذكرة والرد عليها
               </h2>
@@ -895,7 +895,7 @@ export default function SupportTickets() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono bg-slate-250 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">#{selectedTicket.id}</span>
-                          <span className="font-bold text-slate-900 dark:text-white">
+                          <span className="font-bold text-slate-900 dark:text-white !leading-normal py-0.5">
                             {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                           </span>
                           {renderStatusBadge(selectedTicket.status)}
@@ -1053,11 +1053,11 @@ export default function SupportTickets() {
               className="max-w-3xl sm:rounded-2xl flex flex-col max-h-[90vh] overflow-hidden p-0 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
             >
               {/* Custom Header with close button on left */}
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="pt-6 pb-4 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
                 <div className="space-y-1 text-right">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
-                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
+                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-white !leading-normal py-0.5">
                       {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
                     </DialogTitle>
                     {renderStatusBadge(selectedTicket.status)}
