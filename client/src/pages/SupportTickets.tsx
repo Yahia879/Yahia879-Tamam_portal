@@ -759,83 +759,62 @@ export default function SupportTickets() {
         {/* 2. لوحة تحكم المسؤول (Admins) */}
         {/* ======================================================== */}
         {hasView && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Tickets List Column (1/3 width) */}
-            <div className="lg:col-span-1 space-y-4">
+          <div className="space-y-6">
+            {/* Advanced Admin Filters (Like /pending-reports) */}
+            <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm rounded-2xl">
+              <CardContent className="p-4 text-right">
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Search Input */}
+                  <div className="flex-1 relative">
+                    <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      value={adminSearchQuery}
+                      onChange={(e) => setAdminSearchQuery(e.target.value)}
+                      placeholder="ابحث برقم التذكرة، اسم المرسل، أو محتوى التذكرة..."
+                      className="pr-11 pl-4 h-11 text-right rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm font-medium"
+                    />
+                  </div>
+                  
+                  {/* Dropdowns */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Status Dropdown */}
+                    <Select value={adminStatusFilter} onValueChange={(val) => setAdminStatusFilter(val)}>
+                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
+                        <SelectValue placeholder="حالة التذكرة" />
+                      </SelectTrigger>
+                      <SelectContent className="text-sm font-semibold">
+                        <SelectItem value="all">جميع الحالات ({allTickets?.length || 0})</SelectItem>
+                        <SelectItem value="pending">⏳ قيد الانتظار ({allTickets?.filter(t => t.status === "pending").length || 0})</SelectItem>
+                        <SelectItem value="resolved">✅ تم الحل ({allTickets?.filter(t => t.status === "resolved").length || 0})</SelectItem>
+                        <SelectItem value="needs_clarification">❓ تحتاج توضيح ({allTickets?.filter(t => t.status === "needs_clarification").length || 0})</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Type Dropdown */}
+                    <Select value={adminTypeFilter} onValueChange={(val) => setAdminTypeFilter(val)}>
+                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
+                        <SelectValue placeholder="نوع التذكرة" />
+                      </SelectTrigger>
+                      <SelectContent className="text-sm font-semibold">
+                        <SelectItem value="all">جميع الأنواع ({allTickets?.length || 0})</SelectItem>
+                        <SelectItem value="technical_issue">⚠️ مشاكل فنية ({allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})</SelectItem>
+                        <SelectItem value="suggestion">💡 مقترحات ({allTickets?.filter(t => t.ticketType === "suggestion").length || 0})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Tickets List Column (1/3 width) */}
+              <div className="lg:col-span-1 space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <MessageSquare className="w-5 h-5 text-slate-550" />
                 قائمة التذاكر الواردة
               </h2>
 
-              {/* Advanced Admin Filters */}
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-4 shadow-xs">
-                {/* Search */}
-                <div className="relative">
-                  <Input
-                    value={adminSearchQuery}
-                    onChange={(e) => setAdminSearchQuery(e.target.value)}
-                    placeholder="ابحث بالاسم، الرقم، الوصف..."
-                    className="pr-11 pl-4 h-11 text-right rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm font-medium"
-                  />
-                  <Search className="w-5 h-5 text-slate-400 absolute top-3.5 right-3.5" />
-                </div>
-                
-                {/* Status Filter Chips */}
-                <div className="space-y-2">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 block">حالة التذكرة:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { key: "all", label: "الكل", count: allTickets?.length || 0 },
-                      { key: "pending", label: "قيد الانتظار", count: allTickets?.filter(t => t.status === "pending").length || 0 },
-                      { key: "resolved", label: "تم الحل", count: allTickets?.filter(t => t.status === "resolved").length || 0 },
-                      { key: "needs_clarification", label: "تحتاج توضيح", count: allTickets?.filter(t => t.status === "needs_clarification").length || 0 },
-                    ].map(statusChip => (
-                      <button
-                        key={statusChip.key}
-                        onClick={() => setAdminStatusFilter(statusChip.key)}
-                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${
-                          adminStatusFilter === statusChip.key
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 hover:bg-slate-200 dark:hover:bg-slate-700"
-                        }`}
-                      >
-                        {statusChip.label}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                          adminStatusFilter === statusChip.key
-                            ? "bg-primary-foreground/20 text-primary-foreground"
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
-                        }`}>
-                          {statusChip.count}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Type Filter Chips */}
-                <div className="space-y-2 pt-3.5 border-t border-slate-100 dark:border-slate-800/80">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-450 block">نوع التذكرة:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { key: "all", label: "الكل" },
-                      { key: "technical_issue", label: "مشاكل فنية" },
-                      { key: "suggestion", label: "مقترحات" }
-                    ].map(typeChip => (
-                      <button
-                        key={typeChip.key}
-                        onClick={() => setAdminTypeFilter(typeChip.key)}
-                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                          adminTypeFilter === typeChip.key
-                            ? "bg-teal-650 text-white dark:bg-teal-500 shadow-xs"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                        }`}
-                      >
-                        {typeChip.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
               {/* Tickets List */}
               {loadingAllTickets ? (
@@ -1058,7 +1037,8 @@ export default function SupportTickets() {
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Selected Ticket Viewer for User (Dialog details & chat) */}
         {hasCreate && !hasView && selectedTicketId && selectedTicket && (
