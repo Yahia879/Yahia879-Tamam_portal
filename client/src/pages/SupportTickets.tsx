@@ -452,7 +452,7 @@ export default function SupportTickets() {
                     </Button>
                   </div>
 
-                  <ScrollArea className="flex-1 w-full bg-slate-50/50 dark:bg-slate-900/10">
+                  <div className="flex-1 w-full overflow-y-auto bg-slate-50/50 dark:bg-slate-900/10">
                     <div className="w-full max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col space-y-8 text-right">
                       <form onSubmit={handleSubmitTicket} className="space-y-6 text-right bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
                         
@@ -618,7 +618,7 @@ export default function SupportTickets() {
                         </div>
                       </form>
                     </div>
-                  </ScrollArea>
+                  </div>
                 </DialogContent>
               </Dialog>
             )}
@@ -921,7 +921,7 @@ export default function SupportTickets() {
                     </div>
 
                     {/* Content Scroll Area */}
-                    <ScrollArea className="flex-1 p-5 bg-slate-50/20 dark:bg-slate-900/10">
+                    <div className="flex-1 overflow-y-auto p-5 bg-slate-50/20 dark:bg-slate-900/10">
                       <div className="space-y-6">
                         {/* Ticket Description */}
                         <div className="bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4 text-right">
@@ -1005,7 +1005,7 @@ export default function SupportTickets() {
                           )}
                         </div>
                       </div>
-                    </ScrollArea>
+                    </div>
 
                     {/* Footer - Send message */}
                     <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center gap-3">
@@ -1074,7 +1074,7 @@ export default function SupportTickets() {
                 </Button>
               </div>
 
-              <ScrollArea className="flex-grow p-5 space-y-5 bg-slate-50/10 dark:bg-slate-900/10">
+              <div className="flex-grow overflow-y-auto p-5 bg-slate-50/10 dark:bg-slate-900/10">
                 <div className="space-y-5">
                   {/* Description Card */}
                   <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 text-right space-y-3 shadow-2xs">
@@ -1156,7 +1156,7 @@ export default function SupportTickets() {
                     )}
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Send Reply Input */}
               <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-955 border-t border-slate-100 dark:border-slate-850 flex items-center gap-3">
