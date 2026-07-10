@@ -2,10 +2,11 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { supportTickets, users } from "../../drizzle/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { nanoid } from "nanoid";
+import { createNotification } from "./notifications";
 
 // Executable files blacklist validation regex (blocks exe, bat, cmd, sh, msi, dll, scr, vbs, com, bin, jar, app, dmg, elf)
 const executableRegex = /\.(exe|bat|cmd|sh|msi|dll|scr|vbs|com|bin|jar|app|dmg|elf)(\?.*)?$/i;
@@ -16,6 +17,40 @@ const attachmentSchema = z.string()
   .refine((url) => !executableRegex.test(url), {
     message: "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
   });
+
+async function notifyUsersWithPermission(
+  permission: string,
+  title: string,
+  message: string,
+  relatedType: string,
+  relatedId: number,
+  excludeUserId?: number
+) {
+  try {
+    const db = (await getDb())!;
+    const candidateUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(isNull(users.deletedAt));
+
+    for (const u of candidateUsers) {
+      if (excludeUserId && u.id === excludeUserId) continue;
+      const hasPerm = await checkPermission(u.id, permission);
+      if (hasPerm) {
+        await createNotification({
+          userId: u.id,
+          type: "info",
+          title,
+          message,
+          relatedType,
+          relatedId,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error in notifyUsersWithPermission:", error);
+  }
+}
 
 export const supportTicketsRouter = router({
   // إنشاء تذكرة جديدة (للمستخدمين العاديين الذين يملكون صلاحية Create_Ticket)
@@ -39,7 +74,29 @@ export const supportTicketsRouter = router({
         replies: [],
       };
 
-      await db.insert(supportTickets).values(newTicket);
+      const result = await db.insert(supportTickets).values(newTicket);
+      const insertedId = result[0].insertId;
+
+      try {
+        const [creator] = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+        const creatorName = creator?.name || "مسؤول";
+
+        await notifyUsersWithPermission(
+          "View_Tickets",
+          "تذكرة دعم فني جديدة",
+          `قام المسؤول ${creatorName} بتقديم تذكرة دعم فني جديدة رقم #${insertedId}`,
+          "support_ticket",
+          insertedId,
+          ctx.user.id
+        );
+      } catch (err) {
+        console.error("Failed to send support ticket creation notification:", err);
+      }
+
       return { success: true };
     }),
 
@@ -223,6 +280,33 @@ export const supportTicketsRouter = router({
         .set({ replies: updatedReplies })
         .where(eq(supportTickets.id, input.ticketId));
 
+      try {
+        const title = "رد جديد على التذكرة";
+        const isOwner = ctx.user.id === ticket.userId;
+
+        if (isOwner) {
+          await notifyUsersWithPermission(
+            "View_Tickets",
+            title,
+            `قام المسؤول ${senderName} بإضافة رد جديد على تذكرة الدعم رقم #${ticket.id}`,
+            "support_ticket",
+            ticket.id,
+            ctx.user.id
+          );
+        } else {
+          await createNotification({
+            userId: ticket.userId,
+            type: "info",
+            title,
+            message: `قام ${senderName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
+            relatedType: "support_ticket",
+            relatedId: ticket.id,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to send support ticket reply notification:", err);
+      }
+
       return { success: true, reply: newReply };
     }),
 
@@ -237,10 +321,57 @@ export const supportTicketsRouter = router({
     .mutation(async ({ input }) => {
       const db = (await getDb())!;
       
+      const ticketResult = await db
+        .select({ id: supportTickets.id, userId: supportTickets.userId })
+        .from(supportTickets)
+        .where(eq(supportTickets.id, input.ticketId))
+        .limit(1);
+
+      if (ticketResult.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "التذكرة غير موجودة",
+        });
+      }
+      const ticket = ticketResult[0];
+
       await db
         .update(supportTickets)
         .set({ status: input.status })
         .where(eq(supportTickets.id, input.ticketId));
+
+      try {
+        const statusNamesAr = {
+          pending: "قيد الانتظار",
+          resolved: "تم الحل",
+          needs_clarification: "تحتاج توضيح",
+        };
+
+        const title = "تحديث حالة التذكرة";
+        const message = `تم تغيير حالة تذكرة الدعم رقم #${ticket.id} إلى: ${statusNamesAr[input.status]}`;
+
+        // 1. Notify the owner directly
+        await createNotification({
+          userId: ticket.userId,
+          type: "info",
+          title,
+          message,
+          relatedType: "support_ticket",
+          relatedId: ticket.id,
+        });
+
+        // 2. Also notify other users with "Create_Ticket" permission
+        await notifyUsersWithPermission(
+          "Create_Ticket",
+          title,
+          message,
+          "support_ticket",
+          ticket.id,
+          ticket.userId
+        );
+      } catch (err) {
+        console.error("Failed to send support ticket status update notification:", err);
+      }
 
       return { success: true };
     }),

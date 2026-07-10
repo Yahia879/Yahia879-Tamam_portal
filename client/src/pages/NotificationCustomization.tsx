@@ -81,6 +81,10 @@ const RequestNotificationsTooltip = () => (
             <span className="font-semibold block text-red-600 dark:text-red-400 mb-0.5">تغيير حالة الطلب للإغلاق:</span>
             قام المدير العام عبدالإله المرزوق بنقل الطلب رقم REQ-2026-DAA-0142 إلى مرحلة: الإغلاق
           </div>
+          <div className="bg-muted/50 p-2 rounded-lg border-r-4 border-teal-650">
+            <span className="font-semibold block text-teal-600 dark:text-teal-400 mb-0.5">تذاكر الدعم الفني:</span>
+            وصول تذكرة دعم فني جديدة، تغيير حالة تذكرة الدعم، أو إضافة رد جديد على تذاكر الدعم.
+          </div>
         </div>
       </div>
     </div>
@@ -470,6 +474,9 @@ export default function NotificationCustomization() {
     { id: "stage_contracting", category: "request", nameAr: "تغير حالة الطلب لـ التعاقد", description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد" },
     { id: "stage_execution", category: "request", nameAr: "تغير حالة الطلب لـ التنفيذ", description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ" },
     { id: "stage_closed", category: "request", nameAr: "تغير حالة الطلب لـ الإغلاق", description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق" },
+    { id: "support_ticket_created", category: "request", nameAr: "اشعار وصول تذكرة دعم", description: "قام المسؤول محمد بإضافة رد جديد على تذكرة الدعم رقم #7" },
+    { id: "support_ticket_status_changed", category: "request", nameAr: "اشعار تغير حالة التذكرة", description: "تم تغيير حالة تذكرة الدعم رقم #7 إلى: تحتاج توضيح" },
+    { id: "support_ticket_reply_added", category: "request", nameAr: "اشعار رد عالتذكرة", description: "قام مدير النظام بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #7" },
     
     // === قسم المالية والعقود ===
     { id: "supplier_created", category: "financial", nameAr: "إضافة مورد جديد", description: 'تم تسجيل مورد جديد في البوابة: "محمد الأشعري" وهو بانتظار المراجعة والاعتماد' },

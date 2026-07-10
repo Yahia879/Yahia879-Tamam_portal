@@ -269,6 +269,12 @@ export async function createNotification(data: {
       triggerId = "disbursement_order_approved";
     } else if (data.title === "رفض أمر صرف" || data.message.includes("تم رفض أمر الصرف")) {
       triggerId = "disbursement_order_rejected";
+    } else if (data.title === "تذكرة دعم فني جديدة" || data.message.includes("بتقديم تذكرة دعم فني جديدة")) {
+      triggerId = "support_ticket_created";
+    } else if (data.title === "تحديث حالة التذكرة" || data.message.includes("تغيير حالة تذكرة الدعم")) {
+      triggerId = "support_ticket_status_changed";
+    } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم")) {
+      triggerId = "support_ticket_reply_added";
     }
 
     const financialTriggerIds = [
@@ -300,10 +306,12 @@ export async function createNotification(data: {
 
     const isRequest = 
       data.relatedType === "request" || 
+      data.relatedType === "support_ticket" || 
       data.type === "request" || 
       data.type === "request_update" ||
       data.type === "mosque" ||
-      triggerId === "exception_request_submitted";
+      triggerId === "exception_request_submitted" ||
+      (triggerId !== null && triggerId.startsWith("support_ticket_"));
 
     if (isFinancial) {
       isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
