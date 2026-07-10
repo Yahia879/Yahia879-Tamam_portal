@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -44,7 +44,9 @@ import {
   FileText,
   X,
   Search,
-  Filter
+  Filter,
+  Info,
+  Lightbulb
 } from "lucide-react";
 
 const getSafeAttachments = (attachments: any): string[] => {
@@ -129,15 +131,17 @@ export default function SupportTickets() {
   // Queries
   const { data: myTickets, isLoading: loadingMyTickets } = trpc.supportTickets.getMyTickets.useQuery(undefined, {
     enabled: hasCreate && !hasView,
+    refetchInterval: 15000,
   });
 
   const { data: allTickets, isLoading: loadingAllTickets } = trpc.supportTickets.getAllTickets.useQuery(undefined, {
     enabled: hasView,
+    refetchInterval: 15000,
   });
 
   const { data: selectedTicket, isLoading: loadingTicketDetails } = trpc.supportTickets.getTicketById.useQuery(
     { id: selectedTicketId || 0 },
-    { enabled: !!selectedTicketId }
+    { enabled: !!selectedTicketId, refetchInterval: 15000 }
   );
 
   // Mutations
@@ -176,6 +180,27 @@ export default function SupportTickets() {
       toast.error(err.message || "فشل تحديث الحالة");
     },
   });
+
+  // تنظيف الردود التالفة عند أول تحميل (للمسؤولين فقط)
+  const cleanupMutation = trpc.supportTickets.cleanupReplies.useMutation({
+    onSuccess: (data) => {
+      if (data.fixedCount > 0) {
+        console.log(`[Support] Cleaned up corrupted replies in ${data.fixedCount} tickets`);
+        utils.supportTickets.getAllTickets.invalidate();
+        utils.supportTickets.getMyTickets.invalidate();
+        if (selectedTicketId) {
+          utils.supportTickets.getTicketById.invalidate({ id: selectedTicketId });
+        }
+      }
+    },
+  });
+  const cleanupRanRef = useRef(false);
+  useEffect(() => {
+    if (hasView && !cleanupRanRef.current) {
+      cleanupRanRef.current = true;
+      cleanupMutation.mutate();
+    }
+  }, [hasView]);
 
   // File Upload Handlers
   const uploadFile = async (file: File) => {
@@ -278,7 +303,7 @@ export default function SupportTickets() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
             <Clock className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} />
             قيد الانتظار
           </Badge>
@@ -399,7 +424,7 @@ export default function SupportTickets() {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3 !leading-normal py-1">
-                <LifeBuoy className="w-9 h-9 text-gold animate-pulse" />
+                <LifeBuoy className="w-9 h-9 text-teal-200 animate-pulse" />
                 مركز الدعم الفني
               </h1>
               <p className="text-teal-50/90 max-w-xl text-sm md:text-base leading-relaxed font-medium">
@@ -413,7 +438,7 @@ export default function SupportTickets() {
             {hasCreate && !hasView && (
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button className="btn-gold gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
+                  <Button className="bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
                     <Plus className="w-5 h-5" />
                     تواصل مع الدعم الفني
                   </Button>
@@ -519,7 +544,7 @@ export default function SupportTickets() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
-                            <span>💡 تلميح:</span>
+                            <Info className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span>يمكنك نسخ أي لقطة شاشة (Screenshot) ولصقها مباشرة (Ctrl+V) في حقل الوصف لرفعها كمرفق تلقائياً.</span>
                           </p>
                         </div>
@@ -629,90 +654,248 @@ export default function SupportTickets() {
         {/* 1. واجهة المستخدمين (طالبي الخدمة) */}
         {/* ======================================================== */}
         {hasCreate && !hasView && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* My Tickets List (2/3 width) */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
-                  <MessageSquare className="w-5 h-5 text-slate-500" />
-                  تذاكرك الحالية
-                  {myTickets && myTickets.length > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">
-                      {myTickets.length}
-                    </span>
-                  )}
-                </h2>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: selectedTicketId ? '70vh' : 'auto' }}>
+              {/* My Tickets List (1/3 width - right side in RTL) */}
+              <div className="lg:col-span-1 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
+                    <MessageSquare className="w-5 h-5 text-slate-500" />
+                    تذاكرك الحالية
+                    {myTickets && myTickets.length > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">
+                        {myTickets.length}
+                      </span>
+                    )}
+                  </h2>
+                </div>
+
+                {loadingMyTickets ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <Card key={i} className="animate-pulse bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <CardContent className="h-28 rounded-xl" />
+                      </Card>
+                    ))}
+                  </div>
+                ) : myTickets && myTickets.length > 0 ? (
+                  <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+                    {myTickets.map((ticket) => (
+                      <Card
+                        key={ticket.id}
+                        className={`cursor-pointer transition-all border shadow-2xs hover:shadow-xs card-hover ${
+                          selectedTicketId === ticket.id
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350 dark:hover:border-slate-700"
+                        } ${
+                          ticket.status === "pending"
+                            ? "border-r-4 border-r-blue-500"
+                            : ticket.status === "resolved"
+                            ? "border-r-4 border-r-emerald-500"
+                            : "border-r-4 border-r-rose-500"
+                        }`}
+                        onClick={() => setSelectedTicketId(ticket.id)}
+                      >
+                        <CardHeader className="p-4 pb-2 text-right">
+                          <div className="flex justify-between items-start flex-row-reverse">
+                            {renderStatusBadge(ticket.status)}
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+                            </span>
+                          </div>
+                          <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
+                            <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                            {ticket.ticketType === "technical_issue" ? (
+                              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            ) : (
+                              <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
+                            )}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 text-right">
+                          <p className="text-sm text-slate-655 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
+                            {ticket.description}
+                          </p>
+                          {getSafeReplies(ticket.replies).length > 0 && (
+                            <div className="mt-3 text-xs text-primary flex items-center gap-1.5 font-bold">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              يوجد {getSafeReplies(ticket.replies).length} ردود ومراسلات
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl shadow-3xs">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4 animate-bounce">
+                      <FileQuestion className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">لا توجد تذاكر دعم فني بعد</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed font-medium">
+                      إذا واجهت أي مشكلة فنية أو أردت تقديم اقتراح لتحسين البوابة، يمكنك إنشاء تذكرة دعم فني جديدة في أي وقت.
+                    </p>
+                    <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2 px-6">
+                      <Plus className="w-4 h-4" />
+                      إنشاء تذكرتك الأولى
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              {loadingMyTickets ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <Card key={i} className="animate-pulse bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                      <CardContent className="h-28 rounded-xl" />
-                    </Card>
-                  ))}
-                </div>
-              ) : myTickets && myTickets.length > 0 ? (
-                <div className="space-y-3">
-                  {myTickets.map((ticket) => (
-                    <Card
-                      key={ticket.id}
-                      className={`cursor-pointer transition-all border shadow-2xs hover:shadow-xs card-hover ${
-                        selectedTicketId === ticket.id
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                          : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350 dark:hover:border-slate-700"
-                      } ${
-                        ticket.status === "pending"
-                          ? "border-r-4 border-r-amber-500"
-                          : ticket.status === "resolved"
-                          ? "border-r-4 border-r-emerald-500"
-                          : "border-r-4 border-r-rose-500"
-                      }`}
-                      onClick={() => setSelectedTicketId(ticket.id)}
-                    >
-                      <CardHeader className="p-4 pb-2 text-right">
-                        <div className="flex justify-between items-start flex-row-reverse">
-                          {renderStatusBadge(ticket.status)}
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+              {/* Ticket Detail & Replies Panel (2/3 width - left side in RTL) */}
+              <div className="lg:col-span-2">
+                {selectedTicketId && selectedTicket ? (
+                  <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden" style={{ height: '70vh' }}>
+                    {/* Panel Header */}
+                    <div className="pt-5 pb-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
+                      <div className="space-y-1 text-right">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white !leading-normal py-0.5 flex items-center gap-1.5">
+                            {selectedTicket.ticketType === "technical_issue" ? (
+                              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            ) : (
+                              <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
+                            )}
+                            <span>{selectedTicket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                          </h3>
+                          {renderStatusBadge(selectedTicket.status)}
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                          تاريخ التقديم: {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedTicketId(null)}
+                        className="w-8 h-8 rounded-full hover:bg-slate-200/80 dark:hover:bg-slate-800/80"
+                      >
+                        <X className="w-4 h-4 text-slate-500" />
+                      </Button>
+                    </div>
+
+                    {/* Scrollable Content */}
+                    <div className="flex-1 overflow-y-auto p-5 bg-slate-50/10 dark:bg-slate-900/10">
+                      <div className="space-y-5">
+                        {/* Description Card */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 text-right space-y-3 shadow-2xs">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 text-xs pb-1.5 border-b border-slate-100 dark:border-slate-850 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-primary" />
+                            <span>تفاصيل بلاغك:</span>
+                          </div>
+                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                            {selectedTicket.description}
+                          </p>
+                          
+                          {/* Attachments */}
+                          {getSafeAttachments(selectedTicket.attachments).length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850">
+                              <span className="text-xs font-bold text-slate-450 dark:text-slate-500 block mb-2 flex items-center gap-1.5">
+                                <Paperclip className="w-3.5 h-3.5" />
+                                المرفقات ({getSafeAttachments(selectedTicket.attachments).length})
+                              </span>
+                              <div className="grid grid-cols-4 gap-2">
+                                {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs"
+                                  >
+                                    {renderFileThumbnail(url)}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="relative flex items-center justify-center my-4">
+                          <Separator className="w-full" />
+                          <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[9px] font-bold text-slate-400 tracking-wider">
+                            الردود والمراسلات
                           </span>
                         </div>
-                        <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right !leading-normal py-0.5">
-                          {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0 text-right">
-                        <p className="text-sm text-slate-655 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                          {ticket.description}
-                        </p>
-                        {ticket.replies && (ticket.replies as any[]).length > 0 && (
-                          <div className="mt-3 text-xs text-primary flex items-center gap-1.5 font-bold">
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            يوجد {(ticket.replies as any[]).length} ردود ومراسلات
-                          </div>
+
+                        {/* Conversation List */}
+                        <div className="space-y-4">
+                          {getSafeReplies(selectedTicket.replies).length > 0 ? (
+                            <div className="space-y-4">
+                              {getSafeReplies(selectedTicket.replies).map((reply) => {
+                                const isMe = reply.senderId === user?.id;
+                                return (
+                                  <div
+                                    key={reply.id}
+                                    className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
+                                  >
+                                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 flex items-center justify-center shrink-0">
+                                      <User className="w-4 h-4 text-slate-500" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div
+                                        className={`rounded-2xl p-3.5 text-sm leading-relaxed shadow-2xs ${
+                                          isMe
+                                            ? "bg-teal-600 text-white rounded-tr-none"
+                                            : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                        }`}
+                                      >
+                                        <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                      </div>
+                                      <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
+                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-8">
+                              لا توجد ردود على هذه التذكرة بعد. سيقوم فريق الدعم بالرد عليك قريباً.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Send Reply Input */}
+                    <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-850 flex items-center gap-3 shrink-0">
+                      <Input
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
+                        className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
+                        required
+                      />
+                      <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending}>
+                        {addReplyMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4 transform rotate-180" />
                         )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl shadow-3xs">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4 animate-bounce">
-                    <FileQuestion className="w-8 h-8" />
+                      </Button>
+                    </form>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">لا توجد تذاكر دعم فني بعد</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed font-medium">
-                    إذا واجهت أي مشكلة فنية أو أردت تقديم اقتراح لتحسين البوابة، يمكنك إنشاء تذكرة دعم فني جديدة في أي وقت.
-                  </p>
-                  <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2 px-6">
-                    <Plus className="w-4 h-4" />
-                    إنشاء تذكرتك الأولى
-                  </Button>
-                </div>
-              )}
+                ) : (
+                  /* Placeholder when no ticket is selected */
+                  <div className="flex flex-col items-center justify-center h-full min-h-[40vh] text-center bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4">
+                      <MessageSquare className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">اختر تذكرة لعرض التفاصيل</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed font-medium">
+                      اضغط على أي تذكرة من القائمة لعرض تفاصيلها والردود والمراسلات المتعلقة بها.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* FAQ & Quick Support (1/3 width) */}
+            {/* FAQ Section - Below the main grid */}
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <FileQuestion className="w-5 h-5 text-slate-550" />
@@ -720,7 +903,7 @@ export default function SupportTickets() {
               </h2>
               <Card className="border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs bg-white dark:bg-slate-900 rounded-2xl">
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-850">
-                  <div className="relative">
+                  <div className="relative max-w-md">
                     <Input
                       value={faqSearch}
                       onChange={(e) => setFaqSearch(e.target.value)}
@@ -779,26 +962,26 @@ export default function SupportTickets() {
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Status Dropdown */}
                     <Select value={adminStatusFilter} onValueChange={(val) => setAdminStatusFilter(val)}>
-                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
+                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
                         <SelectValue placeholder="حالة التذكرة" />
                       </SelectTrigger>
                       <SelectContent className="text-sm font-semibold">
                         <SelectItem value="all">جميع الحالات ({allTickets?.length || 0})</SelectItem>
-                        <SelectItem value="pending">⏳ قيد الانتظار ({allTickets?.filter(t => t.status === "pending").length || 0})</SelectItem>
-                        <SelectItem value="resolved">✅ تم الحل ({allTickets?.filter(t => t.status === "resolved").length || 0})</SelectItem>
-                        <SelectItem value="needs_clarification">❓ تحتاج توضيح ({allTickets?.filter(t => t.status === "needs_clarification").length || 0})</SelectItem>
+                        <SelectItem value="pending">قيد الانتظار ({allTickets?.filter(t => t.status === "pending").length || 0})</SelectItem>
+                        <SelectItem value="resolved">تم الحل ({allTickets?.filter(t => t.status === "resolved").length || 0})</SelectItem>
+                        <SelectItem value="needs_clarification">تحتاج توضيح ({allTickets?.filter(t => t.status === "needs_clarification").length || 0})</SelectItem>
                       </SelectContent>
                     </Select>
 
                     {/* Type Dropdown */}
                     <Select value={adminTypeFilter} onValueChange={(val) => setAdminTypeFilter(val)}>
-                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
+                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
                         <SelectValue placeholder="نوع التذكرة" />
                       </SelectTrigger>
                       <SelectContent className="text-sm font-semibold">
                         <SelectItem value="all">جميع الأنواع ({allTickets?.length || 0})</SelectItem>
-                        <SelectItem value="technical_issue">⚠️ مشاكل فنية ({allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})</SelectItem>
-                        <SelectItem value="suggestion">💡 مقترحات ({allTickets?.filter(t => t.ticketType === "suggestion").length || 0})</SelectItem>
+                        <SelectItem value="technical_issue">مشاكل فنية ({allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})</SelectItem>
+                        <SelectItem value="suggestion">مقترحات ({allTickets?.filter(t => t.ticketType === "suggestion").length || 0})</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -836,7 +1019,7 @@ export default function SupportTickets() {
                           : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                       } ${
                         ticket.status === "pending"
-                          ? "border-r-4 border-r-amber-500"
+                          ? "border-r-4 border-r-blue-500"
                           : ticket.status === "resolved"
                           ? "border-r-4 border-r-emerald-500"
                           : "border-r-4 border-r-rose-500"
@@ -852,8 +1035,13 @@ export default function SupportTickets() {
                               • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
                             </span>
                           </div>
-                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5">
-                            {ticket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
+                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
+                            <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                            {ticket.ticketType === "technical_issue" ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            ) : (
+                              <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            )}
                           </h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || "مستفيد"}</p>
                         </div>
@@ -890,8 +1078,13 @@ export default function SupportTickets() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono bg-slate-250 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400">#{selectedTicket.id}</span>
-                          <span className="font-bold text-slate-900 dark:text-white !leading-normal py-0.5">
-                            {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
+                          <span className="font-bold text-slate-900 dark:text-white !leading-normal py-0.5 flex items-center gap-1.5">
+                            {selectedTicket.ticketType === "technical_issue" ? (
+                              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                            ) : (
+                              <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
+                            )}
+                            <span>{selectedTicket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
                           </span>
                           {renderStatusBadge(selectedTicket.status)}
                         </div>
@@ -912,9 +1105,9 @@ export default function SupportTickets() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="text-xs font-semibold">
-                            <SelectItem value="pending">⏳ قيد الانتظار</SelectItem>
-                            <SelectItem value="resolved">✅ تم الحل</SelectItem>
-                            <SelectItem value="needs_clarification">❓ تحتاج توضيح</SelectItem>
+                            <SelectItem value="pending">قيد الانتظار</SelectItem>
+                            <SelectItem value="resolved">تم الحل</SelectItem>
+                            <SelectItem value="needs_clarification">تحتاج توضيح</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -984,7 +1177,7 @@ export default function SupportTickets() {
                                       <div
                                         className={`rounded-2xl p-4 text-sm leading-relaxed shadow-2xs ${
                                           isMe
-                                            ? "bg-teal-650 text-white rounded-tr-none"
+                                            ? "bg-teal-600 text-white rounded-tr-none"
                                             : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
                                         }`}
                                       >
@@ -1040,144 +1233,7 @@ export default function SupportTickets() {
         </div>
       )}
 
-        {/* Selected Ticket Viewer for User (Dialog details & chat) */}
-        {hasCreate && !hasView && selectedTicketId && selectedTicket && (
-          <Dialog open={!!selectedTicketId} onOpenChange={(open) => !open && setSelectedTicketId(null)}>
-            <DialogContent
-              dir="rtl"
-              showCloseButton={false}
-              className="max-w-3xl sm:rounded-2xl flex flex-col max-h-[90vh] overflow-hidden p-0 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-            >
-              {/* Custom Header with close button on left */}
-              <div className="pt-6 pb-4 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
-                <div className="space-y-1 text-right">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
-                    <DialogTitle className="text-base font-bold text-slate-900 dark:text-white !leading-normal py-0.5">
-                      {selectedTicket.ticketType === "technical_issue" ? "⚠️ مشكلة فنية" : "💡 مقترح وتحسين"}
-                    </DialogTitle>
-                    {renderStatusBadge(selectedTicket.status)}
-                  </div>
-                  <DialogDescription className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                    تاريخ التقديم: {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
-                  </DialogDescription>
-                </div>
-                
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelectedTicketId(null)}
-                  className="w-8 h-8 rounded-full hover:bg-slate-200/80 dark:hover:bg-slate-800/80"
-                >
-                  <X className="w-4 h-4 text-slate-500" />
-                </Button>
-              </div>
 
-              <div className="flex-grow overflow-y-auto p-5 bg-slate-50/10 dark:bg-slate-900/10">
-                <div className="space-y-5">
-                  {/* Description Card */}
-                  <div className="bg-white dark:bg-slate-955 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 text-right space-y-3 shadow-2xs">
-                    <div className="font-bold text-slate-800 dark:text-slate-200 text-xs pb-1.5 border-b border-slate-100 dark:border-slate-850 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-primary" />
-                      <span>تفاصيل بلاغك:</span>
-                    </div>
-                    <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
-                      {selectedTicket.description}
-                    </p>
-                    
-                    {/* Attachments */}
-                    {getSafeAttachments(selectedTicket.attachments).length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850">
-                        <span className="text-xs font-bold text-slate-450 dark:text-slate-500 block mb-2 flex items-center gap-1.5">
-                          <Paperclip className="w-3.5 h-3.5" />
-                          المرفقات ({getSafeAttachments(selectedTicket.attachments).length})
-                        </span>
-                        <div className="grid grid-cols-4 gap-2">
-                          {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
-                            <a
-                              key={idx}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs"
-                            >
-                              {renderFileThumbnail(url)}
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative flex items-center justify-center my-4">
-                    <Separator className="w-full" />
-                    <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[9px] font-bold text-slate-400 tracking-wider">
-                      الردود والمراسلات
-                    </span>
-                  </div>
-
-                  {/* Conversation List */}
-                  <div className="space-y-4">
-                    {getSafeReplies(selectedTicket.replies).length > 0 ? (
-                      <div className="space-y-4">
-                        {getSafeReplies(selectedTicket.replies).map((reply) => {
-                          const isMe = reply.senderId === user?.id;
-                          return (
-                            <div
-                              key={reply.id}
-                              className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
-                            >
-                              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 flex items-center justify-center shrink-0">
-                                <User className="w-4 h-4 text-slate-500" />
-                              </div>
-                              <div className="space-y-1">
-                                <div
-                                  className={`rounded-2xl p-3.5 text-sm leading-relaxed shadow-2xs ${
-                                    isMe
-                                      ? "bg-teal-650 text-white rounded-tr-none"
-                                      : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
-                                  }`}
-                                >
-                                  <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
-                                </div>
-                                <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
-                                  {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-8">
-                        لا توجد ردود على هذه التذكرة بعد. سيقوم فريق الدعم بالرد عليك قريباً.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Send Reply Input */}
-              <form onSubmit={handleSendReply} className="p-4 bg-slate-50 dark:bg-slate-955 border-t border-slate-100 dark:border-slate-850 flex items-center gap-3">
-                <Input
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
-                  className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
-                  required
-                />
-                <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending}>
-                  {addReplyMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4 transform rotate-180" />
-                  )}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </DashboardLayout>
   );
