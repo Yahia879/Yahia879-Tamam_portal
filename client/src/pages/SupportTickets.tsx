@@ -302,23 +302,39 @@ export default function SupportTickets() {
     }
   };
 
+  // User Ticket Stats Calculations
+  const userTotal = myTickets?.length || 0;
+  const userPending = myTickets?.filter(t => t.status === "pending").length || 0;
+  const userResolved = myTickets?.filter(t => t.status === "resolved").length || 0;
+  const userNeedsClarification = myTickets?.filter(t => t.status === "needs_clarification").length || 0;
+
+  // Admin Ticket Stats Calculations
+  const adminTotal = allTickets?.length || 0;
+  const adminPending = allTickets?.filter(t => t.status === "pending").length || 0;
+  const adminResolved = allTickets?.filter(t => t.status === "resolved").length || 0;
+  const adminNeedsClarification = allTickets?.filter(t => t.status === "needs_clarification").length || 0;
+
   // FAQ Items
   const faqItems = [
     {
-      q: "كيف يمكنني تقديم طلب خدمة لمسجد؟",
-      a: "يمكنك ذلك بالذهاب إلى صفحة 'الطلبات' من القائمة الجانبية، ثم النقر على زر 'طلب خدمة جديد' واختيار نوع الخدمة وتعبئة البيانات المطلوبة الخاصة بالمسجد.",
+      q: "كيف يمكنني تقديم تذكرة دعم فني جديدة؟",
+      a: "يمكنك تقديم تذكرة جديدة بالضغط على زر 'تواصل مع الدعم الفني' في أعلى الصفحة، ثم اختيار نوع الطلب (مشكلة فنية أو مقترح)، وكتابة التفاصيل وإرفاق الملفات اللازمة.",
     },
     {
-      q: "ما هي الفترة الزمنية المتوقعة لمعالجة التذاكر الفنية؟",
-      a: "يعمل فريق الاستجابة والدعم الفني على حل المشكلات الطارئة خلال 24 ساعة، والمقترحات العامة يتم تحويلها للإدارات المختصة لدراستها ومراجعتها.",
+      q: "ما هي الفترة الزمنية المتوقعة للرد على التذكرة؟",
+      a: "يعمل فريق الدعم الفني على مراجعة التذاكر والرد عليها خلال 24 ساعة كحد أقصى. سيتم إرسال إشعار لك فور إضافة أي رد جديد من قبل الفريق المتابع.",
     },
     {
-      q: "كيف يمكنني إرفاق لقطة الشاشة (Screenshot) للتوضيح؟",
-      a: "عند تعبئة نموذج التذكرة، يمكنك ببساطة الضغط على حقل 'الوصف والتفاصيل' ثم الضغط على Ctrl+V (أو Paste) للصق لقطة الشاشة مباشرة، وسيتم رفعها تلقائياً.",
+      q: "كيف يمكنني إرفاق لقطة شاشة (Screenshot) لتوضيح المشكلة؟",
+      a: "أثاء تعبئة نموذج التذكرة، يمكنك ببساطة نسخ لقطة الشاشة من جهازك بالضغط على (Ctrl+C)، ثم النقر داخل حقل 'الوصف والتفاصيل' والضغط على (Ctrl+V) للصقها ورفعها تلقائياً.",
     },
     {
-      q: "هل يمكنني تعديل بيانات التذكرة بعد إرسالها؟",
-      a: "لا يمكن تعديل التذكرة مباشرة بعد الإرسال، ولكن يمكنك كتابة رد توضيحي إضافي داخل التذكرة للتواصل مع الدعم الفني.",
+      q: "ماذا تعني الحالات المختلفة للتذكرة؟",
+      a: "تتغير حالة التذكرة لتعبر عن تقدم العمل: (قيد الانتظار) تعني أن التذكرة تحت المراجعة، (تم الحل) تعني أنه تم معالجة المشكلة وإغلاق البلاغ بنجاح، (تحتاج توضيح) تعني أن الدعم يحتاج معلومات إضافية منك.",
+    },
+    {
+      q: "هل يمكنني إعادة فتح التذكرة بعد إغلاقها؟",
+      a: "نعم، إذا تم تحويل حالة التذكرة إلى 'تم الحل' ولكن المشكلة لا تزال مستمرة، يمكنك كتابة رد توضيحي إضافي داخل نفس التذكرة وسيعاد فتحها تلقائياً لمتابعتها مجدداً.",
     },
   ];
 
@@ -613,7 +629,23 @@ export default function SupportTickets() {
         {/* 1. واجهة المستخدمين (طالبي الخدمة) */}
         {/* ======================================================== */}
         {hasCreate && !hasView && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            {/* Statistics Cards Summary for User */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "إجمالي تذاكرك", count: userTotal, color: "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" },
+                { label: "⏳ قيد الانتظار", count: userPending, color: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/30 text-amber-700 dark:text-amber-450" },
+                { label: "✅ تم الحل", count: userResolved, color: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450" },
+                { label: "❓ تحتاج توضيح", count: userNeedsClarification, color: "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/30 text-rose-700 dark:text-rose-455" },
+              ].map((stat, idx) => (
+                <div key={idx} className={`p-4 rounded-xl border flex flex-col justify-between shadow-2xs ${stat.color}`}>
+                  <span className="text-xs font-bold opacity-80">{stat.label}</span>
+                  <span className="text-2xl font-black mt-2 leading-none">{stat.count}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* My Tickets List (2/3 width) */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -737,13 +769,30 @@ export default function SupportTickets() {
               </Card>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* ======================================================== */}
         {/* 2. لوحة تحكم المسؤول (Admins) */}
         {/* ======================================================== */}
         {hasView && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            {/* Statistics Cards Summary for Admin */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "إجمالي التذاكر الواردة", count: adminTotal, color: "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200" },
+                { label: "⏳ قيد الانتظار", count: adminPending, color: "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/60 dark:border-amber-900/30 text-amber-700 dark:text-amber-450" },
+                { label: "✅ تم الحل", count: adminResolved, color: "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/60 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-450" },
+                { label: "❓ تحتاج توضيح", count: adminNeedsClarification, color: "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/60 dark:border-rose-900/30 text-rose-700 dark:text-rose-455" },
+              ].map((stat, idx) => (
+                <div key={idx} className={`p-4 rounded-xl border flex flex-col justify-between shadow-2xs ${stat.color}`}>
+                  <span className="text-xs font-bold opacity-80">{stat.label}</span>
+                  <span className="text-2xl font-black mt-2 leading-none">{stat.count}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Tickets List Column (1/3 width) */}
             <div className="lg:col-span-1 space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
@@ -1042,7 +1091,8 @@ export default function SupportTickets() {
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Selected Ticket Viewer for User (Dialog details & chat) */}
         {hasCreate && !hasView && selectedTicketId && selectedTicket && (
