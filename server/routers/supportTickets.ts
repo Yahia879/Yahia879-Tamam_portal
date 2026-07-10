@@ -9,9 +9,13 @@ import { nanoid } from "nanoid";
 
 // Executable files blacklist validation regex (blocks exe, bat, cmd, sh, msi, dll, scr, vbs, com, bin, jar, app, dmg, elf)
 const executableRegex = /\.(exe|bat|cmd|sh|msi|dll|scr|vbs|com|bin|jar|app|dmg|elf)(\?.*)?$/i;
-const attachmentSchema = z.string().url().refine((url) => !executableRegex.test(url), {
-  message: "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
-});
+const attachmentSchema = z.string()
+  .refine((url) => url.startsWith("/") || /^(https?:\/\/)/i.test(url), {
+    message: "رابط الملف غير صالح",
+  })
+  .refine((url) => !executableRegex.test(url), {
+    message: "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
+  });
 
 export const supportTicketsRouter = router({
   // إنشاء تذكرة جديدة (للمستخدمين العاديين الذين يملكون صلاحية Create_Ticket)
