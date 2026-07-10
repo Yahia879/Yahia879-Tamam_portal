@@ -362,109 +362,117 @@ export default function SupportTickets() {
                   تواصل مع الدعم الفني
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl w-[95vw] sm:rounded-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <DialogHeader className="text-right">
-                  <DialogTitle className="text-2xl font-bold">إنشاء تذكرة دعم جديدة</DialogTitle>
-                  <DialogDescription>
-                    يرجى تعبئة النموذج أدناه وتوضيح المشكلة أو المقترح بأكبر قدر ممكن من التفاصيل.
-                  </DialogDescription>
-                </DialogHeader>
+              <DialogContent className="fixed top-0 left-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none max-h-none rounded-none border-none p-0 m-0 flex flex-col bg-background overflow-hidden" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <ScrollArea className="flex-1 w-full">
+                  <div className="w-full px-6 py-10 md:px-10 flex flex-col space-y-6 text-right">
+                    <DialogHeader className="text-right">
+                      <DialogTitle className="text-3xl font-extrabold flex items-center gap-2 text-gray-900">
+                        <LifeBuoy className="w-8 h-8 text-primary" />
+                        إنشاء تذكرة دعم جديدة
+                      </DialogTitle>
+                      <DialogDescription className="text-sm text-gray-500 mt-1">
+                        يرجى تعبئة النموذج أدناه وتوضيح المشكلة أو المقترح بأكبر قدر ممكن من التفاصيل.
+                      </DialogDescription>
+                    </DialogHeader>
 
-                <form onSubmit={handleSubmitTicket} className="space-y-4 py-4 text-right">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 block">نوع التذكرة</label>
-                    <Select
-                      value={ticketType}
-                      onValueChange={(val: any) => setTicketType(val)}
-                    >
-                      <SelectTrigger className="w-full text-right justify-between flex-row-reverse">
-                        <SelectValue placeholder="اختر نوع الطلب" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="technical_issue">مشكلة فنية</SelectItem>
-                        <SelectItem value="suggestion">مقترح</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 block">الوصف والتفاصيل</label>
-                    <Textarea
-                      placeholder="اكتب تفاصيل المشكلة الفنية أو المقترح هنا... (الحد الأدنى 10 أحرف)"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      onPaste={handlePaste}
-                      className="min-h-[120px] text-right"
-                      required
-                    />
-                    <p className="text-xs text-gray-400">
-                      💡 نصيحة: يمكنك نسخ أي لقطة شاشة ولصقها مباشرة (Ctrl+V) في هذا الحقل لرفعها كمرفق.
-                    </p>
-                  </div>
-
-                  {/* Attachments Section */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-700 block">المرفقات والملفات</label>
-                    
-                    {/* Thumbnails of already uploaded files */}
-                    {attachments.length > 0 && (
-                      <div className="grid grid-cols-4 gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        {attachments.map((url, idx) => (
-                          <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white">
-                            {renderFileThumbnail(url)}
-                            <button
-                              type="button"
-                              onClick={() => removeAttachment(idx)}
-                              className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-sm opacity-90 transition-opacity"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
+                    <form onSubmit={handleSubmitTicket} className="space-y-6 pt-4 text-right">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 block">نوع التذكرة</label>
+                        <Select
+                          value={ticketType}
+                          onValueChange={(val: any) => setTicketType(val)}
+                        >
+                          <SelectTrigger className="w-full text-right justify-between flex-row-reverse h-11">
+                            <SelectValue placeholder="اختر نوع الطلب" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="technical_issue">مشكلة فنية</SelectItem>
+                            <SelectItem value="suggestion">مقترح</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
 
-                    <div className="flex items-center gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="gap-2 text-gray-600"
-                        disabled={uploading}
-                        onClick={() => document.getElementById("support-file-input")?.click()}
-                      >
-                        {uploading ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        ) : (
-                          <ImageIcon className="w-4 h-4 text-gray-500" />
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 block">الوصف والتفاصيل</label>
+                        <Textarea
+                          placeholder="اكتب تفاصيل المشكلة الفنية أو المقترح هنا... (الحد الأدنى 10 أحرف)"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          onPaste={handlePaste}
+                          className="min-h-[220px] text-right text-base leading-relaxed p-4"
+                          required
+                        />
+                        <p className="text-xs text-gray-400">
+                          💡 نصيحة: يمكنك نسخ أي لقطة شاشة ولصقها مباشرة (Ctrl+V) في هذا الحقل لرفعها كمرفق.
+                        </p>
+                      </div>
+
+                      {/* Attachments Section */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-semibold text-gray-700 block">المرفقات والملفات</label>
+                        
+                        {/* Thumbnails of already uploaded files */}
+                        {attachments.length > 0 && (
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            {attachments.map((url, idx) => (
+                              <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white">
+                                {renderFileThumbnail(url)}
+                                <button
+                                  type="button"
+                                  onClick={() => removeAttachment(idx)}
+                                  className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-sm opacity-90 transition-opacity"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         )}
-                        إرفاق ملف / صورة / فيديو
-                      </Button>
-                      <input
-                        id="support-file-input"
-                        type="file"
-                        accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                        className="hidden"
-                        onChange={handleFileChange}
-                        disabled={uploading}
-                      />
-                      {uploading && <span className="text-xs text-gray-500 animate-pulse">جاري معالجة الملف ورفعه...</span>}
-                    </div>
-                  </div>
 
-                  <DialogFooter className="gap-2 sm:justify-start pt-4 border-t border-gray-100">
-                    <Button type="submit" disabled={createTicketMutation.isPending || uploading} className="font-bold px-6">
-                      {createTicketMutation.isPending ? "جاري الإرسال..." : "إرسال التذكرة"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsCreateOpen(false)}
-                      disabled={createTicketMutation.isPending}
-                    >
-                      إلغاء
-                    </Button>
-                  </DialogFooter>
-                </form>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="gap-2 text-gray-600 h-11 px-5"
+                            disabled={uploading}
+                            onClick={() => document.getElementById("support-file-input")?.click()}
+                          >
+                            {uploading ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-gray-500" />
+                            )}
+                            إرفاق ملف / صورة / فيديو
+                          </Button>
+                          <input
+                            id="support-file-input"
+                            type="file"
+                            accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                            className="hidden"
+                            onChange={handleFileChange}
+                            disabled={uploading}
+                          />
+                          {uploading && <span className="text-xs text-gray-500 animate-pulse">جاري معالجة الملف ورفعه...</span>}
+                        </div>
+                      </div>
+
+                      <DialogFooter className="gap-2 sm:justify-start pt-6 border-t border-gray-100 flex-row-reverse">
+                        <Button type="submit" disabled={createTicketMutation.isPending || uploading} className="font-bold px-8 h-11 text-base">
+                          {createTicketMutation.isPending ? "جاري الإرسال..." : "إرسال التذكرة"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsCreateOpen(false)}
+                          disabled={createTicketMutation.isPending}
+                          className="px-8 h-11 text-base"
+                        >
+                          إلغاء
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </div>
+                </ScrollArea>
               </DialogContent>
             </Dialog>
           )}
