@@ -5,15 +5,40 @@ import { randomBytes } from "crypto";
 
 const router = Router();
 
-// إعدادات القيود: 5 ميجابايت وأنواع ملفات محددة
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// إعدادات القيود: 50 ميجابايت وأنواع ملفات مسموح بها (الصور، الفيديوهات، والمستندات والملفات المضغوطة)
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
-  "application/pdf"
+  "image/gif",
+  "application/pdf",
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/quicktime",
+  "video/x-matroska",
+  "video/avi",
+  "video/x-msvideo",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-rar-compressed",
+  "application/octet-stream"
 ];
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"];
+const ALLOWED_EXTENSIONS = [
+  "jpg", "jpeg", "png", "webp", "gif", 
+  "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", 
+  "mp4", "webm", "ogg", "mov", "mkv", "avi", 
+  "zip", "rar"
+];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -25,7 +50,7 @@ const upload = multer({
     if (ALLOWED_MIME_TYPES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(extension)) {
       cb(null, true);
     } else {
-      cb(new Error("نوع الملف غير مسموح به. يسمح فقط بالصور (JPEG, PNG, WEBP) وملفات PDF."));
+      cb(new Error("نوع الملف غير مسموح به. يسمح بالصور، الفيديوهات، والمستندات والملفات المضغوطة فقط."));
     }
   },
 }).single("file");
@@ -35,7 +60,7 @@ router.post("/upload", (req, res) => {
     // معالجة أخطاء multer (الحجم أو الفلتر)
     if (err instanceof multer.MulterError) {
       if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ error: "حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت." });
+        return res.status(400).json({ error: "حجم الملف كبير جداً. الحد الأقصى هو 50 ميجابايت." });
       }
       return res.status(400).json({ error: `خطأ في الرفع: ${err.message}` });
     } else if (err) {
