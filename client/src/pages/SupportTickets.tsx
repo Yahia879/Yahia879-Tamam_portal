@@ -627,10 +627,6 @@ export default function SupportTickets() {
                               {description.length} حرف
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
-                            <Info className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <span>يمكنك نسخ أي لقطة شاشة (Screenshot) ولصقها مباشرة (Ctrl+V) في حقل الوصف لرفعها كمرفق تلقائياً.</span>
-                          </p>
                         </div>
 
                         {/* Attachments */}
