@@ -761,12 +761,12 @@ export default function SupportTickets() {
                 ) : myTickets && myTickets.length > 0 ? (
                   <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
                     {myTickets.map((ticket) => (
-                      <Card
+                      <div
                         key={ticket.id}
-                        className={`cursor-pointer transition-all border shadow-2xs hover:shadow-xs card-hover ${
+                        className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs text-right ${
                           selectedTicketId === ticket.id
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-350 dark:hover:border-slate-700"
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/10"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                         } ${
                           ticket.status === "pending"
                             ? "border-r-4 border-r-blue-500"
@@ -776,34 +776,33 @@ export default function SupportTickets() {
                         }`}
                         onClick={() => setSelectedTicketId(ticket.id)}
                       >
-                        <CardHeader className="p-4 pb-2 text-right">
-                          <div className="flex justify-between items-start flex-row-reverse">
-                            {renderStatusBadge(ticket.status)}
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              #{ticket.id} • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
-                            </span>
-                          </div>
-                          <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100 mt-2 text-right !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
-                            <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
-                            {ticket.ticketType === "technical_issue" ? (
-                              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                            ) : (
-                              <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
-                            )}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 text-right">
-                          <p className="text-sm text-slate-655 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                            {ticket.description}
-                          </p>
-                          {getSafeReplies(ticket.replies).length > 0 && (
-                            <div className="mt-3 text-xs text-primary flex items-center gap-1.5 font-bold">
-                              <MessageSquare className="w-3.5 h-3.5" />
-                              يوجد {getSafeReplies(ticket.replies).length} ردود ومراسلات
+                        <div className="flex justify-between items-start gap-2 flex-row-reverse">
+                          {renderStatusBadge(ticket.status)}
+                          <div className="space-y-1 text-right">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-slate-400 font-mono">#{ticket.id}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+                              </span>
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
+                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
+                              <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                              {ticket.ticketType === "technical_issue" ? (
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              ) : (
+                                <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              )}
+                            </h3>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-605 dark:text-slate-400 line-clamp-1 mt-2 font-medium">{ticket.description}</p>
+                        {getSafeReplies(ticket.replies).length > 0 && (
+                          <div className="mt-2 text-xs text-primary flex items-center gap-1.5 font-bold justify-end">
+                            <span>يوجد {getSafeReplies(ticket.replies).length} ردود ومراسلات</span>
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
