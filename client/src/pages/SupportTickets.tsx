@@ -156,6 +156,9 @@ export default function SupportTickets() {
       setDescription("");
       setAttachments([]);
       utils.supportTickets.getMyTickets.invalidate();
+      if (hasView) {
+        utils.supportTickets.getAllTickets.invalidate();
+      }
     },
     onError: (err) => {
       toast.error(err.message || "فشل إنشاء التذكرة");
@@ -519,7 +522,7 @@ export default function SupportTickets() {
             </div>
 
             {/* User Create Ticket Button */}
-            {hasCreate && !hasView && (
+            {hasCreate && (
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
