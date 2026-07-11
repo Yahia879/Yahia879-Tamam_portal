@@ -865,7 +865,7 @@ export default function SupportTickets() {
                             <User className="w-3.5 h-3.5 text-primary" />
                             <span>تفاصيل بلاغك:</span>
                           </div>
-                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium break-words [word-break:break-word]">
                             {selectedTicket.description}
                           </p>
                           
@@ -921,7 +921,7 @@ export default function SupportTickets() {
                                             : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
                                         }`}
                                       >
-                                        <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                        <p className="whitespace-pre-wrap font-medium break-words [word-break:break-word]">{reply.message}</p>
                                         {getSafeAttachments((reply as any).attachments).length > 0 && (
                                           <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 min-w-[180px]`}>
                                             {getSafeAttachments((reply as any).attachments).map((url, index) => (
@@ -1258,7 +1258,7 @@ export default function SupportTickets() {
                             </div>
                             <span>شرح المشكلة / المقترح الوارد:</span>
                           </div>
-                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                          <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium break-words [word-break:break-word]">
                             {selectedTicket.description}
                           </p>
 
@@ -1314,7 +1314,7 @@ export default function SupportTickets() {
                                             : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
                                         }`}
                                       >
-                                        <p className="whitespace-pre-wrap font-medium">{reply.message}</p>
+                                        <p className="whitespace-pre-wrap font-medium break-words [word-break:break-word]">{reply.message}</p>
                                         {getSafeAttachments((reply as any).attachments).length > 0 && (
                                           <div className={`mt-3 pt-2.5 border-t ${isMe ? 'border-white/20' : 'border-slate-100 dark:border-slate-800'} grid grid-cols-2 gap-1.5 min-w-[180px]`}>
                                             {getSafeAttachments((reply as any).attachments).map((url, index) => (
