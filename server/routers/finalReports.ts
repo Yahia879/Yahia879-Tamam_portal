@@ -245,7 +245,7 @@ export const finalReportsRouter = router({
         if (preparedByResult.length > 0) {
           const userObj = preparedByResult[0];
           const userPerms = await calculateUserPermissions(userObj.id);
-          const hasSignPermission = userPerms.includes("pending_reports.sign");
+          const hasSignPermission = userPerms.includes("requests.sign_final_report");
           preparedBy = {
             ...userObj,
             hasSignPermission,
