@@ -296,6 +296,33 @@ export default function MosqueDetails() {
                       </div>
                     )}
                   </div>
+                ) : (user?.role !== "service_requester" && mosque.registeredByUser?.requesterType === "imam") ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">الاسم</p>
+                        <p className="font-medium">{mosque.registeredByUser.name}</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
+                        طالب الخدمة (إمام)
+                      </Badge>
+                    </div>
+                    {mosque.registeredByUser.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span>{mosque.registeredByUser.phone}</span>
+                      </div>
+                    )}
+                    {mosque.registeredByUser.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{mosque.registeredByUser.email}</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      * تم عرض هذه البيانات تلقائياً لأن طالب الخدمة المسجل للمسجد هو إمام.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-center">

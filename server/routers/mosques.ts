@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque } from "../../drizzle/schema";
+import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users } from "../../drizzle/schema";
 import { eq, and, like, desc, sql } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval } from "./notifications";
 import { checkPermission } from "../permissions";
@@ -163,12 +163,35 @@ export const mosquesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const result = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      const result = await db
+        .select({
+          mosque: mosques,
+          registeredByUserName: users.name,
+          registeredByUserPhone: users.phone,
+          registeredByUserEmail: users.email,
+          registeredByUserRole: users.role,
+          registeredByUserRequesterType: users.requesterType,
+        })
+        .from(mosques)
+        .leftJoin(users, eq(mosques.registeredBy, users.id))
+        .where(eq(mosques.id, input.id))
+        .limit(1);
+
       if (result.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
       }
 
-      const mosque = result[0];
+      const row = result[0];
+      const mosque = {
+        ...row.mosque,
+        registeredByUser: row.registeredByUserName ? {
+          name: row.registeredByUserName,
+          phone: row.registeredByUserPhone,
+          email: row.registeredByUserEmail,
+          role: row.registeredByUserRole,
+          requesterType: row.registeredByUserRequesterType,
+        } : null
+      };
 
       // تحقق من العزل لطلاب الخدمة
       if (ctx.user.role === "service_requester" && mosque.registeredBy !== ctx.user.id) {
