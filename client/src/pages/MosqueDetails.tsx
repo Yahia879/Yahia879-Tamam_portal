@@ -279,9 +279,9 @@ export default function MosqueDetails() {
               <CardContent>
                 {mosque.imamName ? (
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-muted-foreground">الاسم</p>
-                      <p className="font-medium">{mosque.imamName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground">الاسم:</span>
+                      <span className="font-medium">{mosque.imamName}</span>
                     </div>
                     {mosque.imamPhone && (
                       <div className="flex items-center gap-2">
@@ -296,16 +296,11 @@ export default function MosqueDetails() {
                       </div>
                     )}
                   </div>
-                ) : (user?.role !== "service_requester" && mosque.registeredByUser?.requesterType === "imam") ? (
+                ) : (mosque.registeredByUser?.requesterType === "imam") ? (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">الاسم</p>
-                        <p className="font-medium">{mosque.registeredByUser.name}</p>
-                      </div>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-0 text-xs">
-                        طالب الخدمة (إمام)
-                      </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-muted-foreground">الاسم:</span>
+                      <span className="font-medium">{mosque.registeredByUser.name}</span>
                     </div>
                     {mosque.registeredByUser.phone && (
                       <div className="flex items-center gap-2">
@@ -319,9 +314,6 @@ export default function MosqueDetails() {
                         <span>{mosque.registeredByUser.email}</span>
                       </div>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2 italic">
-                      * تم عرض هذه البيانات تلقائياً لأن طالب الخدمة المسجل للمسجد هو إمام.
-                    </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
