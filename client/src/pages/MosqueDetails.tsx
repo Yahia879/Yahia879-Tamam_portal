@@ -334,7 +334,7 @@ export default function MosqueDetails() {
             </Card>
 
             {/* معلومات إضافية للمسجد */}
-            {(!mosque.imamName || !mosque.address) && (
+            {((!mosque.imamName && mosque.registeredByUser?.requesterType !== "imam") || !mosque.address) && (
               <Card className="border-0 shadow-sm bg-blue-50 border border-blue-200">
                 <CardHeader>
                   <CardTitle className="text-blue-900 flex items-center gap-2">
@@ -344,7 +344,7 @@ export default function MosqueDetails() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm text-blue-800">
-                    {!mosque.imamName && (
+                    {(!mosque.imamName && mosque.registeredByUser?.requesterType !== "imam") && (
                       <div className="flex items-start gap-2">
                         <span className="text-lg">•</span>
                         <span>بيانات الإمام</span>
