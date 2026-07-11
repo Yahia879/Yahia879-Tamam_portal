@@ -52,7 +52,7 @@ const superAdminGroups = [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
-      { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+      { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene", "sign"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
     ]
   },
@@ -112,7 +112,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
     pending_reports: {
       view: "عرض التقارير",
-      intervene: "تدخل لرفع التقرير"
+      intervene: "تدخل لرفع التقرير",
+      sign: "توقيع التقرير الختامي"
     },
     mosques: {
       view: "عرض المساجد",

@@ -523,7 +523,8 @@ export default function UserPermissions() {
     const mapping: Record<string, Record<string, string>> = {
       pending_reports: {
         view: "عرض التقارير",
-        intervene: "تدخل لرفع التقرير"
+        intervene: "تدخل لرفع التقرير",
+        sign: "توقيع التقرير الختامي"
       },
       mosques: {
         view: "عرض قائمة المساجد",
@@ -679,7 +680,7 @@ export default function UserPermissions() {
           icon: Zap, 
           perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"]
         },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene", "sign"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
     },

@@ -86,6 +86,14 @@ export default function FinalReportView() {
 
   const { report, request, mosque, project, preparedBy } = data;
 
+  const getCreatorDisplayName = () => {
+    if (!preparedBy) return "غير محدد";
+    if ((preparedBy as any).hasSignPermission) {
+      return (preparedBy as any).signatureName || "";
+    }
+    return preparedBy.name || "غير محدد";
+  };
+
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) return "—";
     return new Date(date).toLocaleDateString("ar-SA", {
@@ -359,7 +367,7 @@ export default function FinalReportView() {
             </div>
             <div>
               <p className="text-xs text-gray-500">أعدّ هذا التقرير</p>
-              <p className="font-semibold text-gray-800">{preparedBy?.name || "غير محدد"}</p>
+              <p className="font-semibold text-gray-800">{getCreatorDisplayName()}</p>
               <p className="text-sm text-gray-500">{preparedBy?.email || ""}</p>
             </div>
             <div className="mr-auto text-left">

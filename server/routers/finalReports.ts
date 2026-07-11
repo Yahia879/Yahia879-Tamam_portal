@@ -232,15 +232,26 @@ export const finalReportsRouter = router({
         project = projectResult[0] || null;
       }
 
-      // جلب بيانات المُعِد
-      const preparedByResult = report.preparedBy
-        ? await db.select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          }).from(users).where(eq(users.id, report.preparedBy)).limit(1)
-        : [];
-      const preparedBy = preparedByResult[0] || null;
+      // جلب بيانات المُعِد مع التوقيع والصلاحيات
+      let preparedBy = null;
+      if (report.preparedBy) {
+        const preparedByResult = await db.select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          signatureName: users.signatureName,
+        }).from(users).where(eq(users.id, report.preparedBy)).limit(1);
+
+        if (preparedByResult.length > 0) {
+          const userObj = preparedByResult[0];
+          const userPerms = await calculateUserPermissions(userObj.id);
+          const hasSignPermission = userPerms.includes("pending_reports.sign");
+          preparedBy = {
+            ...userObj,
+            hasSignPermission,
+          };
+        }
+      }
 
       return { report, request, mosque, project, preparedBy };
     }),
