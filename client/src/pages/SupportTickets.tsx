@@ -795,7 +795,7 @@ export default function SupportTickets() {
                             </h3>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-605 dark:text-slate-400 line-clamp-1 mt-2 font-medium">{ticket.description}</p>
+                        <p className="text-xs text-slate-605 dark:text-slate-400 truncate mt-2 font-medium">{ticket.description}</p>
                         {getSafeReplies(ticket.replies).length > 0 && (
                           <div className="mt-2 text-xs text-primary flex items-center gap-1.5 font-bold justify-end">
                             <span>يوجد {getSafeReplies(ticket.replies).length} ردود ومراسلات</span>
@@ -1180,7 +1180,7 @@ export default function SupportTickets() {
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || "مستفيد"}</p>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1 mt-2 font-medium">{ticket.description}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-2 font-medium">{ticket.description}</p>
                     </div>
                   ))}
                 </div>
