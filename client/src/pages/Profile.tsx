@@ -40,7 +40,7 @@ export default function Profile() {
     }
   });
 
-  const hasSignaturePermission = (user as any)?.permissions?.includes("disbursements.sign") || (user as any)?.permissions?.includes("pending_reports.sign") || false;
+  const hasSignaturePermission = (user as any)?.permissions?.includes("disbursements.sign") || (user as any)?.permissions?.includes("requests.sign_final_report") || false;
 
   const handleSave = () => {
     updateProfileMutation.mutate({

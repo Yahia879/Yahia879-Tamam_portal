@@ -774,11 +774,11 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "sign_final_report"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene", "sign"] },
+        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       ]
     },
     {
@@ -826,8 +826,8 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene", "sign"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"] },
+        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
     },
@@ -897,8 +897,7 @@ export default function RolePermissions() {
     const mapping: Record<string, Record<string, string>> = {
       pending_reports: {
         view: "عرض التقارير",
-        intervene: "تدخل لرفع التقرير",
-        sign: "توقيع التقرير الختامي"
+        intervene: "تدخل لرفع التقرير"
       },
       mosques: {
         view: "عرض المساجد",
@@ -915,7 +914,8 @@ export default function RolePermissions() {
         view_details: "عرض تفاصيل الطلب وإدارته",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
-        upload_final_report: "رفع التقرير الختامي"
+        upload_final_report: "رفع التقرير الختامي",
+        sign_final_report: "توقيع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
