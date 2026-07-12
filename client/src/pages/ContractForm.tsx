@@ -324,7 +324,7 @@ export default function ContractForm() {
         description: "",
         duration: c.duration || 0,
         durationUnit: c.durationUnit || "months",
-        startDate: c.startDate ? new Date(c.startDate).toISOString().split('T')[0] : "",
+        startDate: c.startDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate)) : "",
         totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
         baseValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
@@ -450,7 +450,7 @@ export default function ContractForm() {
       
       // تعيين تاريخ البدء إلى اليوم إذا كان فارغاً
       if (!contractData.startDate) {
-        updates.startDate = new Date().toISOString().split('T')[0];
+        updates.startDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       }
       
       // تعيين مدة افتراضية (3 أشهر) إذا كانت فارغة
@@ -1449,7 +1449,7 @@ export default function ContractForm() {
                                     } else if (contractData.durationUnit === "years") {
                                       endDate.setFullYear(endDate.getFullYear() + contractData.duration);
                                     }
-                                    return endDate.toISOString().split('T')[0];
+                                    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(endDate);
                                   })()}
                                 />
                               </div>
