@@ -13,10 +13,10 @@ export async function getDb() {
     try {
       pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
-        timezone: "+03:00",
+        timezone: "Z",
       });
       pool.on("connection", (connection) => {
-        connection.query("SET time_zone = '+03:00'");
+        connection.query("SET time_zone = '+00:00'");
       });
       _db = drizzle(pool);
     } catch (error) {
