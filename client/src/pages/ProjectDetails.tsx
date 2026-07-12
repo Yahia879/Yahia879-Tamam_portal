@@ -62,7 +62,7 @@ export default function ProjectDetails() {
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportData, setReportData] = useState({
     title: "",
-    reportDate: new Date().toISOString().split("T")[0],
+    reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     overallProgress: 0,
     plannedProgress: 0,
     actualProgress: 0,
@@ -98,7 +98,7 @@ export default function ProjectDetails() {
       refetchReports();
       setReportData({
         title: "",
-        reportDate: new Date().toISOString().split("T")[0],
+        reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
         overallProgress: 0,
         plannedProgress: 0,
         actualProgress: 0,
