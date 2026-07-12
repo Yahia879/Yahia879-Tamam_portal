@@ -123,15 +123,7 @@ export default function Notifications() {
                             <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
                               {notification.createdAt ? (() => {
                                 const d = new Date(notification.createdAt);
-                                const localDate = new Date(
-                                  d.getUTCFullYear(),
-                                  d.getUTCMonth(),
-                                  d.getUTCDate(),
-                                  d.getUTCHours(),
-                                  d.getUTCMinutes(),
-                                  d.getUTCSeconds()
-                                );
-                                return format(localDate, 'dd MMM yyyy, hh:mm a', { locale: ar });
+                                return format(d, 'dd MMM yyyy, hh:mm a', { locale: ar });
                               })() : ""}
                             </span>
                           </div>
