@@ -2641,8 +2641,8 @@ export default function RequestDetailsNew() {
                     const end = new Date();
                     const days = parseInt(durationDays || "0", 10);
                     end.setDate(start.getDate() + days);
-                    calculatedStartDate = start.toISOString().split('T')[0];
-                    calculatedEndDate = end.toISOString().split('T')[0];
+                    calculatedStartDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(start);
+                    calculatedEndDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(end);
                   }
 
                   technicalEvalMutation.mutate({
