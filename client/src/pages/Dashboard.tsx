@@ -22,6 +22,7 @@ import {
   BarChart3,
   Settings,
   FolderKanban,
+  LifeBuoy,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect } from "react";
@@ -176,9 +177,34 @@ export default function Dashboard() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit">
-              <Target className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
+            <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
+              <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1.5 w-fit shrink-0">
+                <Target className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
+              </div>
+              <Link href="/support">
+                <div className="relative group rounded-full p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(20,184,166,0.15)] hover:shadow-[0_0_20px_rgba(20,184,166,0.35)] shrink-0 cursor-pointer">
+                  {/* Glowing rotating gradient background - blending Teal and White/Silver */}
+                  <span className="absolute inset-0 bg-gradient-to-r from-teal-400 via-white/60 to-teal-600 opacity-80 group-hover:opacity-100 animate-[spin_4s_linear_infinite]" />
+                  
+                  {/* Inner glass button - using deep brand dark teal */}
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="relative flex items-center gap-2 bg-[#022c22]/95 hover:bg-[#022c22]/90 text-white rounded-full px-3.5 py-1.5 h-auto border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pointer-events-none"
+                    title="طلب الدعم الفني"
+                  >
+                    {/* Glowing emerald status pulsing attention grabber */}
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    </span>
+                    
+                    <LifeBuoy className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:rotate-45 duration-300 text-teal-300" />
+                    <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap text-white">الدعم الفني</span>
+                  </Button>
+                </div>
+              </Link>
             </div>
           </div>
         </div>
