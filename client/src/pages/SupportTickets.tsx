@@ -333,6 +333,7 @@ export default function SupportTickets() {
       ticketType,
       description,
       attachments,
+      createdAt: new Date(),
     });
   };
 
@@ -344,6 +345,7 @@ export default function SupportTickets() {
       ticketId: selectedTicketId,
       message: replyMessage.trim() || "تم إرفاق ملف/مستند",
       attachments: replyAttachments,
+      createdAt: new Date(),
     });
   };
 
