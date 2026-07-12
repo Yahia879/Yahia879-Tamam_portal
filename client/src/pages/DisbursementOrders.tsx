@@ -142,7 +142,7 @@ export default function DisbursementOrders() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `تقرير_أوامر_الصرف_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `تقرير_أوامر_الصرف_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
 

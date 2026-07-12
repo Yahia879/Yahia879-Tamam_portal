@@ -42,7 +42,7 @@ export default function FinalReportForm() {
   const [linkUrl, setLinkUrl] = useState("");
   const [showAttachmentFields, setShowAttachmentFields] = useState<boolean>(false);
   const [completionDate, setCompletionDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
   );
   const [satisfactionRating, setSatisfactionRating] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +82,7 @@ export default function FinalReportForm() {
         setShowAttachmentFields(true);
       }
       if (existingReport.completionDate) {
-        setCompletionDate(new Date(existingReport.completionDate).toISOString().split("T")[0]);
+        setCompletionDate(new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(existingReport.completionDate)));
       }
       setSatisfactionRating(existingReport.satisfactionRating || 5);
     }
