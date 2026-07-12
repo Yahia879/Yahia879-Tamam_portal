@@ -271,7 +271,7 @@ export default function FinancialReport() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `financial-report-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `financial-report-${new Intl.DateTimeFormat('en-CA').format(new Date())}.csv`);
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
