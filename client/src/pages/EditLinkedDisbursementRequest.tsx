@@ -56,7 +56,7 @@ export default function EditLinkedDisbursementRequest() {
     title: "",
     description: "",
     completionPercentage: 0,
-    dateMiladi: new Date().toISOString().split('T')[0],
+    dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     contractPaymentId: 0,
   });
 
@@ -133,7 +133,7 @@ export default function EditLinkedDisbursementRequest() {
         title: request.title || "",
         description: request.description || "",
         completionPercentage: request.completionPercentage || 0,
-        dateMiladi: request.dateMiladi ? new Date(request.dateMiladi).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        dateMiladi: request.dateMiladi ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(request.dateMiladi)) : new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
         contractPaymentId: request.contractPaymentId || (request as any).paymentId || 0,
       });
 

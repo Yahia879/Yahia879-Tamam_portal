@@ -199,7 +199,7 @@ export default function NewLinkedDisbursementRequest() {
     title: "",
     description: "",
     completionPercentage: 0,
-    dateMiladi: new Date().toISOString().split('T')[0],
+    dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     contractPaymentId: 0,
     fundingSupport: "",
     mainProjectName: "",
@@ -517,8 +517,8 @@ export default function NewLinkedDisbursementRequest() {
       const targetContractId = (paymentInfo as any)?.contractId || 0;
       
       const reportDateFormatted = selectedReport.reportDate 
-        ? new Date(selectedReport.reportDate).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
+        ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(selectedReport.reportDate))
+        : new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
       setFormData(prev => {
         if (
