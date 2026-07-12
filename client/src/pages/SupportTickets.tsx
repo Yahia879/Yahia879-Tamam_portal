@@ -766,23 +766,25 @@ export default function SupportTickets() {
         </div>
 
         {/* Stats Cards Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {statsCards.map((stat) => (
-            <Card key={stat.label} className="border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
-              <CardContent className="p-3 md:p-4 text-right">
-                <div className="flex items-center gap-2.5 md:gap-3.5">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
-                    {stat.icon}
+        {hasView && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {statsCards.map((stat) => (
+              <Card key={stat.label} className="border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+                <CardContent className="p-3 md:p-4 text-right">
+                  <div className="flex items-center gap-2.5 md:gap-3.5">
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+                      {stat.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] md:text-xs text-muted-foreground truncate font-semibold">{stat.label}</p>
+                      <p className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 truncate mt-0.5">{stat.value}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] md:text-xs text-muted-foreground truncate font-semibold">{stat.label}</p>
-                    <p className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 truncate mt-0.5">{stat.value}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* ======================================================== */}
         {/* 1. واجهة المستخدمين (طالبي الخدمة) */}
