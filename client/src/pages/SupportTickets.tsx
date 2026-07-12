@@ -430,6 +430,38 @@ export default function SupportTickets() {
   const adminResolved = allTickets?.filter(t => t.status === "resolved").length || 0;
   const adminNeedsClarification = allTickets?.filter(t => t.status === "needs_clarification").length || 0;
 
+  const totalTicketsCount = hasView ? adminTotal : userTotal;
+  const pendingTicketsCount = hasView ? adminPending : userPending;
+  const resolvedTicketsCount = hasView ? adminResolved : userResolved;
+  const needsClarificationTicketsCount = hasView ? adminNeedsClarification : userNeedsClarification;
+
+  const statsCards = [
+    {
+      label: "جميع التذاكر",
+      value: totalTicketsCount,
+      icon: <LifeBuoy className="w-4 h-4 md:w-5 md:h-5" />,
+      iconBg: "bg-blue-100 dark:bg-blue-950/40 text-blue-600",
+    },
+    {
+      label: "قيد الانتظار",
+      value: pendingTicketsCount,
+      icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
+      iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
+    },
+    {
+      label: "تم الحل",
+      value: resolvedTicketsCount,
+      icon: <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />,
+      iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
+    },
+    {
+      label: "تحتاج توضيح",
+      value: needsClarificationTicketsCount,
+      icon: <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />,
+      iconBg: "bg-rose-100 dark:bg-rose-950/40 text-rose-600",
+    },
+  ];
+
   // FAQ Items
   const faqItems = [
     {
@@ -731,6 +763,25 @@ export default function SupportTickets() {
               </Dialog>
             )}
           </div>
+        </div>
+
+        {/* Stats Cards Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {statsCards.map((stat) => (
+            <Card key={stat.label} className="border border-slate-200/80 dark:border-slate-800/80 shadow-xs overflow-hidden bg-white dark:bg-slate-900 rounded-2xl">
+              <CardContent className="p-3 md:p-4 text-right">
+                <div className="flex items-center gap-2.5 md:gap-3.5">
+                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${stat.iconBg}`}>
+                    {stat.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate font-semibold">{stat.label}</p>
+                    <p className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100 truncate mt-0.5">{stat.value}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* ======================================================== */}
@@ -1103,7 +1154,7 @@ export default function SupportTickets() {
                         <SelectValue placeholder="حالة التذكرة" />
                       </SelectTrigger>
                       <SelectContent className="text-sm font-semibold">
-                        <SelectItem value="all">جميع الحالات ({allTickets?.length || 0})</SelectItem>
+                        <SelectItem value="all">جميع التذاكر ({allTickets?.length || 0})</SelectItem>
                         <SelectItem value="pending">قيد الانتظار ({allTickets?.filter(t => t.status === "pending").length || 0})</SelectItem>
                         <SelectItem value="resolved">تم الحل ({allTickets?.filter(t => t.status === "resolved").length || 0})</SelectItem>
                         <SelectItem value="needs_clarification">تحتاج توضيح ({allTickets?.filter(t => t.status === "needs_clarification").length || 0})</SelectItem>
