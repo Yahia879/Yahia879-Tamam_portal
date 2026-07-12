@@ -60,6 +60,7 @@ export const supportTicketsRouter = router({
         ticketType: z.enum(["technical_issue", "suggestion"]),
         description: z.string().min(10, "وصف المشكلة يجب ألا يقل عن 10 أحرف"),
         attachments: z.array(attachmentSchema).optional(),
+        createdAt: z.date().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -72,6 +73,7 @@ export const supportTicketsRouter = router({
         attachments: input.attachments || [],
         status: "pending" as const,
         replies: [],
+        createdAt: input.createdAt || new Date(),
       };
 
       const result = await db.insert(supportTickets).values(newTicket);
@@ -202,6 +204,7 @@ export const supportTicketsRouter = router({
         ticketId: z.number(),
         message: z.string().min(1, "الرد لا يمكن أن يكون فارغاً"),
         attachments: z.array(attachmentSchema).optional(),
+        createdAt: z.date().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -270,7 +273,7 @@ export const supportTicketsRouter = router({
         senderName: senderName,
         message: input.message,
         attachments: input.attachments || [],
-        createdAt: new Date().toISOString(),
+        createdAt: input.createdAt ? input.createdAt.toISOString() : new Date().toISOString(),
       };
 
       const updatedReplies = [...currentReplies, newReply];
