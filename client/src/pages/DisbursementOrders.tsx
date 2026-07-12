@@ -401,7 +401,7 @@ export default function DisbursementOrders() {
                             </Badge>
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-right">
-                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA", { timeZone: "UTC" }) : "-"}
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
@@ -533,7 +533,7 @@ export default function DisbursementOrders() {
                         {/* Card Actions Footer */}
                         <div className="flex items-center justify-between pt-3 border-t border-border/50">
                           <span className="text-[10px] text-muted-foreground font-medium">
-                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA", { timeZone: "UTC" }) : "—"}
+                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—"}
                           </span>
                           
                           <div className="flex gap-1.5">

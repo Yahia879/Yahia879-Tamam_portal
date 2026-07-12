@@ -19,6 +19,16 @@ import { checkPermission } from "./permissions";
 
 const router = Router();
 
+function formatLocalDateString(date: Date | string | null | undefined): string {
+  if (!date) return "-";
+  const d = typeof date === "string" ? new Date(date) : date;
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  } catch (e) {
+    return d.toISOString().slice(0, 10);
+  }
+}
+
 // تسميات المراحل
 const STAGE_LABELS: Record<string, string> = {
   submitted: "تقديم الطلب",
@@ -236,8 +246,8 @@ router.get("/request/:requestId/pdf", async (req, res) => {
       ["المدينة", request.mosqueCity || "-"],
       ["الحي", request.mosqueDistrict || "-"],
       ["مقدم الطلب", request.requesterName || "-"],
-      ["تاريخ التقديم", request.createdAt ? new Date(request.createdAt).toISOString().slice(0, 10) : "-"],
-      ["آخر تحديث", request.updatedAt ? new Date(request.updatedAt).toISOString().slice(0, 10) : "-"],
+      ["تاريخ التقديم", formatLocalDateString(request.createdAt)],
+      ["آخر تحديث", formatLocalDateString(request.updatedAt)],
     ];
 
     let currentY = infoY;
@@ -603,7 +613,7 @@ router.get("/reports/pdf", async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="statistical-report-${new Date().toISOString().slice(0, 10)}.pdf"`
+      `attachment; filename="statistical-report-${formatLocalDateString(new Date())}.pdf"`
     );
     doc.pipe(res);
 
@@ -634,7 +644,7 @@ router.get("/reports/pdf", async (req, res) => {
     // معايير الفلترة النشطة
     const progVal = programType && programType !== 'all' ? PROGRAM_LABELS[programType as string] || programType : 'جميع البرامج';
     const statusVal = status && status !== 'all' ? STATUS_LABELS[status as string] || status : 'جميع الحالات';
-    const dateVal = `${fromDate ? new Date(fromDate as string).toISOString().slice(0, 10) : "البداية"} - ${toDate ? new Date(toDate as string).toISOString().slice(0, 10) : "الآن"}`;
+    const dateVal = `${fromDate ? formatLocalDateString(fromDate as string) : "البداية"} - ${toDate ? formatLocalDateString(toDate as string) : "الآن"}`;
     
     const filterText = `${dateVal} :${rtl("الفترة")} | ${rtl(statusVal)} :${rtl("الحالة")} | ${rtl(progVal)} :${rtl("البرنامج")}`;
 
@@ -768,7 +778,7 @@ router.get("/reports/pdf", async (req, res) => {
         doc.rect(40, currentY, doc.page.width - 80, 26).fill(rowBg);
         doc.moveTo(40, currentY + 26).lineTo(doc.page.width - 40, currentY + 26).stroke("#f1f5f9");
 
-        const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toISOString().slice(0, 10) : "-";
+        const dateStr = formatLocalDateString(reqItem.createdAt);
         const statusStr = STATUS_LABELS[reqItem.status as string] || reqItem.status;
         const stageStr = STAGE_LABELS[reqItem.currentStage as string] || reqItem.currentStage;
         const progStr = PROGRAM_LABELS[reqItem.programType as string] || reqItem.programType;
@@ -826,7 +836,7 @@ router.get("/reports/pdf", async (req, res) => {
         .fill("#f1f5f9");
       doc.fillColor("#64748b").font(regularFont).fontSize(7.5);
       
-      const dateString = new Date().toISOString().slice(0, 10);
+      const dateString = formatLocalDateString(new Date());
       const footerText = `${pageCount} ${rtl("من")} ${i + 1} ${rtl("صفحة")} | ${rtl("بوابة تمام لخدمات المساجد")} | ${dateString} :${rtl("تقرير إحصائي رسمي مصدّر في")}`;
       doc.text(
         footerText,
@@ -940,7 +950,7 @@ router.get("/reports/excel", async (req, res) => {
     
     const progVal = programType && programType !== 'all' ? PROGRAM_LABELS[programType as string] || programType : 'جميع البرامج';
     const statusVal = status && status !== 'all' ? STATUS_LABELS[status as string] || status : 'جميع الحالات';
-    const dateVal = `${fromDate ? new Date(fromDate as string).toISOString().slice(0, 10) : "البداية"} - ${toDate ? new Date(toDate as string).toISOString().slice(0, 10) : "الآن"}`;
+    const dateVal = `${fromDate ? formatLocalDateString(fromDate as string) : "البداية"} - ${toDate ? formatLocalDateString(toDate as string) : "الآن"}`;
 
     csvContent += `"التقرير الإحصائي والتحليلي العام للطلبات والمشاريع المباشرة - بوابة تمام"\n`;
     csvContent += `"معايير التصفية النشطة:"\n`;
@@ -956,7 +966,7 @@ router.get("/reports/excel", async (req, res) => {
     csvContent += `"رقم الطلب","اسم المسجد","البرنامج","المرحلة الحالية","الحالة","تاريخ التقديم"\n`;
 
     requests.forEach((reqItem) => {
-      const dateStr = reqItem.createdAt ? new Date(reqItem.createdAt).toISOString().slice(0, 10) : "-";
+      const dateStr = formatLocalDateString(reqItem.createdAt);
       const statusStr = STATUS_LABELS[reqItem.status as string] || reqItem.status;
       const stageStr = STAGE_LABELS[reqItem.currentStage as string] || reqItem.currentStage;
       const progStr = PROGRAM_LABELS[reqItem.programType as string] || reqItem.programType;
@@ -968,7 +978,7 @@ router.get("/reports/excel", async (req, res) => {
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="statistical-report-${new Date().toISOString().slice(0, 10)}.csv"`
+      `attachment; filename="statistical-report-${formatLocalDateString(new Date())}.csv"`
     );
     res.send(csvContent);
   } catch (error) {
