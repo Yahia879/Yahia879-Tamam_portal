@@ -104,7 +104,7 @@ export default function NewDisbursementRequest() {
     title: "",
     description: "",
     completionPercentage: 0,
-    dateMiladi: new Date().toISOString().split('T')[0],
+    dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     contractPaymentId: 0,
   });
   
