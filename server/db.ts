@@ -15,6 +15,9 @@ export async function getDb() {
         uri: process.env.DATABASE_URL,
         timezone: "+03:00",
       });
+      pool.on("connection", (connection) => {
+        connection.query("SET time_zone = '+03:00'");
+      });
       _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
