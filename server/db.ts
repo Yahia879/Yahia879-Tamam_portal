@@ -11,7 +11,10 @@ let pool: mysql.Pool | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      pool = mysql.createPool(process.env.DATABASE_URL);
+      pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        timezone: "+03:00",
+      });
       _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
