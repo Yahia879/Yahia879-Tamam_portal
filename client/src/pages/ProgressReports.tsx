@@ -259,7 +259,7 @@ export default function ProgressReports() {
   const [newReport, setNewReport] = useState({
     projectId: 0,
     title: "",
-    reportDate: new Date().toISOString().split("T")[0],
+    reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     reportPeriodStart: "",
     reportPeriodEnd: "",
     overallProgress: 0,
@@ -483,7 +483,7 @@ export default function ProgressReports() {
     setNewReport({
       projectId: 0,
       title: "",
-      reportDate: new Date().toISOString().split("T")[0],
+      reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
       reportPeriodStart: "",
       reportPeriodEnd: "",
       overallProgress: 0,
@@ -618,9 +618,9 @@ export default function ProgressReports() {
     setNewReport({
       projectId: report.projectId,
       title: report.title,
-      reportDate: report.reportDate ? new Date(report.reportDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-      reportPeriodStart: report.reportPeriodStart ? new Date(report.reportPeriodStart).toISOString().split("T")[0] : "",
-      reportPeriodEnd: report.reportPeriodEnd ? new Date(report.reportPeriodEnd).toISOString().split("T")[0] : "",
+      reportDate: report.reportDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(report.reportDate)) : new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
+      reportPeriodStart: report.reportPeriodStart ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(report.reportPeriodStart)) : "",
+      reportPeriodEnd: report.reportPeriodEnd ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(report.reportPeriodEnd)) : "",
       overallProgress: report.overallProgress || 0,
       plannedProgress: report.plannedProgress || 0,
       actualProgress: report.actualProgress || 0,
