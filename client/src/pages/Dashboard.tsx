@@ -72,7 +72,7 @@ export default function Dashboard() {
       bgLight: "bg-blue-50",
       textColor: "text-blue-600",
       change: growthStats?.totalRequests.percentage,
-      trend: growthStats?.totalRequests.percentage >= 0 ? "up" : "down",
+      trend: (growthStats?.totalRequests.percentage ?? 0) >= 0 ? "up" : "down",
     },
     {
       title: "المساجد المسجلة",
@@ -82,7 +82,7 @@ export default function Dashboard() {
       bgLight: "bg-emerald-50",
       textColor: "text-emerald-600",
       change: growthStats?.registeredMosques.percentage,
-      trend: growthStats?.registeredMosques.percentage >= 0 ? "up" : "down",
+      trend: (growthStats?.registeredMosques.percentage ?? 0) >= 0 ? "up" : "down",
     },
     {
       title: "قيد التنفيذ",
@@ -92,7 +92,7 @@ export default function Dashboard() {
       bgLight: "bg-amber-50",
       textColor: "text-amber-600",
       change: growthStats?.inProgressRequests.percentage,
-      trend: growthStats?.inProgressRequests.percentage >= 0 ? "up" : "down",
+      trend: (growthStats?.inProgressRequests.percentage ?? 0) >= 0 ? "up" : "down",
     },
     {
       title: "مكتملة",
@@ -102,7 +102,7 @@ export default function Dashboard() {
       bgLight: "bg-green-50",
       textColor: "text-green-600",
       change: growthStats?.completedRequests.percentage,
-      trend: growthStats?.completedRequests.percentage >= 0 ? "up" : "down",
+      trend: (growthStats?.completedRequests.percentage ?? 0) >= 0 ? "up" : "down",
     },
   ];
 
@@ -183,27 +183,21 @@ export default function Dashboard() {
                 <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
               </div>
               <Link href="/support">
-                <div className="relative group rounded-full p-[1.5px] overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(20,184,166,0.15)] hover:shadow-[0_0_20px_rgba(20,184,166,0.35)] shrink-0 cursor-pointer">
-                  {/* Glowing rotating gradient background - blending Teal and White/Silver */}
-                  <span className="absolute inset-0 bg-gradient-to-r from-teal-400 via-white/60 to-teal-600 opacity-80 group-hover:opacity-100 animate-[spin_4s_linear_infinite]" />
+                <Button 
+                  size="default" 
+                  variant="ghost" 
+                  className="group flex items-center gap-2.5 bg-[#fafaf9] hover:bg-[#f4f4f3] text-teal-950 rounded-xl px-5 h-10 border border-neutral-200/30 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm"
+                  title="طلب الدعم الفني"
+                >
+                  {/* Soft emerald status dot with a slow, gentle ping */}
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-[ping_3s_infinite] absolute inline-flex h-full w-full rounded-full bg-emerald-600/30"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                  </span>
                   
-                  {/* Inner glass button - using deep brand dark teal */}
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="relative flex items-center gap-2 bg-[#022c22]/95 hover:bg-[#022c22]/90 text-white rounded-full px-3.5 py-1.5 h-auto border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pointer-events-none"
-                    title="طلب الدعم الفني"
-                  >
-                    {/* Glowing emerald status pulsing attention grabber */}
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                    </span>
-                    
-                    <LifeBuoy className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:rotate-45 duration-300 text-teal-300" />
-                    <span className="text-[10px] sm:text-xs font-bold whitespace-nowrap text-white">الدعم الفني</span>
-                  </Button>
-                </div>
+                  <LifeBuoy className="w-4 h-4 shrink-0 text-teal-700 transition-transform group-hover:rotate-12 duration-500" />
+                  <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">الدعم الفني</span>
+                </Button>
               </Link>
             </div>
           </div>
