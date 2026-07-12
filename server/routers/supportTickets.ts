@@ -85,12 +85,12 @@ export const supportTicketsRouter = router({
           .from(users)
           .where(eq(users.id, ctx.user.id))
           .limit(1);
-        const creatorName = creator?.name || "مسؤول";
+        const creatorName = creator?.name || "مستخدم";
 
         await notifyUsersWithPermission(
           "View_Tickets",
           "تذكرة دعم فني جديدة",
-          `قام المسؤول ${creatorName} بتقديم تذكرة دعم فني جديدة رقم #${insertedId}`,
+          `قام مقدم الطلب ${creatorName} بتقديم تذكرة دعم فني جديدة رقم #${insertedId}`,
           "support_ticket",
           insertedId,
           ctx.user.id
@@ -286,22 +286,23 @@ export const supportTicketsRouter = router({
       try {
         const title = "رد جديد على التذكرة";
         const isOwner = ctx.user.id === ticket.userId;
+        const hasViewTickets = await checkPermission(ctx.user.id, "View_Tickets");
 
         if (isOwner) {
           await notifyUsersWithPermission(
             "View_Tickets",
             title,
-            `قام المسؤول ${senderName} بإضافة رد جديد على تذكرة الدعم رقم #${ticket.id}`,
+            `قام مقدم الطلب ${senderName} بإضافة رد جديد على تذكرة الدعم رقم #${ticket.id}`,
             "support_ticket",
             ticket.id,
             ctx.user.id
           );
-        } else {
+        } else if (hasViewTickets) {
           await createNotification({
             userId: ticket.userId,
             type: "info",
             title,
-            message: `قام ${senderName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
+            message: `قام المسؤول ${senderName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
             relatedType: "support_ticket",
             relatedId: ticket.id,
           });
@@ -353,7 +354,7 @@ export const supportTicketsRouter = router({
         const title = "تحديث حالة التذكرة";
         const message = `تم تغيير حالة تذكرة الدعم رقم #${ticket.id} إلى: ${statusNamesAr[input.status]}`;
 
-        // 1. Notify the owner directly
+        // Notify the owner directly
         await createNotification({
           userId: ticket.userId,
           type: "info",
@@ -362,16 +363,6 @@ export const supportTicketsRouter = router({
           relatedType: "support_ticket",
           relatedId: ticket.id,
         });
-
-        // 2. Also notify other users with "Create_Ticket" permission
-        await notifyUsersWithPermission(
-          "Create_Ticket",
-          title,
-          message,
-          "support_ticket",
-          ticket.id,
-          ticket.userId
-        );
       } catch (err) {
         console.error("Failed to send support ticket status update notification:", err);
       }
