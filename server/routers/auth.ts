@@ -2,9 +2,9 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions } from "../../drizzle/schema";
+import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions, passwordResetTokens } from "../../drizzle/schema";
 import { calculateUserPermissions, checkPermission } from "../permissions";
-import { eq, and, isNull, inArray, sql, or } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, or, ne, gt } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { COOKIE_NAME } from "../../shared/const";
@@ -844,5 +844,175 @@ export const authRouter = router({
         message: `تم إلغاء ${input.exemptions} استثناء. الاستثناءات المتبقية: ${newExemptions}`,
         totalExemptions: newExemptions
       };
+    }),
+
+  // طلب إعادة تعيين كلمة المرور (إرسال كود 4 أرقام)
+  requestPasswordReset: publicProcedure
+    .input(z.object({
+      email: z.string().email("البريد الإلكتروني غير صالح"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // البحث عن المستخدم بشرط ألا يكون service_requester
+      const userResult = await db.select().from(users)
+        .where(
+          and(
+            eq(users.email, input.email),
+            ne(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          )
+        )
+        .limit(1);
+
+      if (userResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "البريد الإلكتروني غير مسجل كحساب موظف" });
+      }
+
+      const userObj = userResult[0];
+
+      // توليد كود مكون من 4 أرقام
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // صلاحية 15 دقيقة
+
+      // إدراج الكود في جدول رموز إعادة التعيين
+      await db.insert(passwordResetTokens).values({
+        userId: userObj.id,
+        token: code,
+        expiresAt,
+        used: false,
+      });
+
+      // تسجيل الكود في الكونسول للمطورين والتحقق المحلي
+      console.log(`[FORGOT PASSWORD OTP] User: ${userObj.email}, Code: ${code}`);
+
+      // إرسال الكود عبر البريد الإلكتروني
+      const { sendEmailNotification } = await import("./notifications");
+      const emailSent = await sendEmailNotification(
+        userObj.email,
+        "رمز التحقق لإعادة تعيين كلمة المرور - بوابة تمام",
+        `رمز التحقق الخاص بك لإعادة تعيين كلمة المرور هو: ${code}. هذا الرمز صالح لمدة 15 دقيقة.`
+      );
+
+      if (!emailSent) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل إرسال رمز التحقق إلى البريد الإلكتروني" });
+      }
+
+      return { success: true, message: "تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح" };
+    }),
+
+  // التحقق من رمز إعادة التعيين
+  verifyResetCode: publicProcedure
+    .input(z.object({
+      email: z.string().email("البريد الإلكتروني غير صالح"),
+      code: z.string().length(4, "يجب أن يتكون الرمز من 4 أرقام"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const userResult = await db.select().from(users)
+        .where(
+          and(
+            eq(users.email, input.email),
+            ne(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          )
+        )
+        .limit(1);
+
+      if (userResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      const userObj = userResult[0];
+
+      // البحث عن كود فعال وغير منتهي وغير مستخدم
+      const tokenResult = await db.select().from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.userId, userObj.id),
+            eq(passwordResetTokens.token, input.code),
+            eq(passwordResetTokens.used, false),
+            gt(passwordResetTokens.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+
+      if (tokenResult.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
+      }
+
+      return { success: true };
+    }),
+
+  // إعادة تعيين كلمة المرور باستخدام الكود
+  resetPasswordWithCode: publicProcedure
+    .input(z.object({
+      email: z.string().email("البريد الإلكتروني غير صالح"),
+      code: z.string().length(4, "يجب أن يتكون الرمز من 4 أرقام"),
+      newPassword: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const userResult = await db.select().from(users)
+        .where(
+          and(
+            eq(users.email, input.email),
+            ne(users.role, "service_requester"),
+            isNull(users.deletedAt)
+          )
+        )
+        .limit(1);
+
+      if (userResult.length === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      const userObj = userResult[0];
+
+      // التحقق من صلاحية الكود للمرة الأخيرة
+      const tokenResult = await db.select().from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.userId, userObj.id),
+            eq(passwordResetTokens.token, input.code),
+            eq(passwordResetTokens.used, false),
+            gt(passwordResetTokens.expiresAt, new Date())
+          )
+        )
+        .limit(1);
+
+      if (tokenResult.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "رمز التحقق غير صحيح أو منتهي الصلاحية" });
+      }
+
+      const activeToken = tokenResult[0];
+
+      // تشفير كلمة المرور الجديدة
+      const salt = generateSalt();
+      const newHash = hashPassword(input.newPassword, salt);
+      const passwordHash = `${salt}:${newHash}`;
+
+      // تحديث كلمة المرور في قاعدة البيانات
+      await db.update(users).set({ passwordHash }).where(eq(users.id, userObj.id));
+
+      // وسم الرمز كمستخدم
+      await db.update(passwordResetTokens)
+        .set({ used: true })
+        .where(eq(passwordResetTokens.id, activeToken.id));
+
+      // تسجيل في سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: userObj.id,
+        action: "password_reset_via_code",
+        entityType: "user",
+        entityId: userObj.id,
+      });
+
+      return { success: true, message: "تمت إعادة تعيين كلمة المرور بنجاح" };
     }),
 });
