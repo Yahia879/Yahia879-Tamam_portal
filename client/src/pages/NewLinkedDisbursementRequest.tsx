@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,44 +52,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// دالة تحويل الأرقام إلى نص عربي
 function numberToArabicText(num: number): string {
-  if (num === 0) return "صفر ريال";
-  
-  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-
-  function convertHundreds(n: number): string {
-    if (n === 0) return "";
-    if (n < 10) return ones[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) {
-      const t = Math.floor(n / 10);
-      const o = n % 10;
-      return o ? `${ones[o]} و${tens[t]}` : tens[t];
-    }
-    const h = Math.floor(n / 100);
-    const rest = n % 100;
-    return rest ? `${hundreds[h]} و${convertHundreds(rest)}` : hundreds[h];
-  }
-
-  function convertThousands(n: number): string {
-    if (n < 1000) return convertHundreds(n);
-    const thousands = Math.floor(n / 1000);
-    const rest = n % 1000;
-    let result = "";
-    if (thousands === 1) result = "ألف";
-    else if (thousands === 2) result = "ألفان";
-    else if (thousands <= 10) result = `${ones[thousands]} آلاف`;
-    else result = `${convertHundreds(thousands)} ألف`;
-    return rest ? `${result} و${convertHundreds(rest)}` : result;
-  }
-
-  const intPart = Math.floor(num);
-  return `${convertThousands(intPart)} ريال سعودي فقط لا غير`;
+  return baseNumberToArabicText(num, { prefix: "", suffix: " فقط لا غير", currency: "ريال سعودي" });
 }
+
+
 
 const SADAD_BILLERS: Record<string, string> = {
   "001": "شركة الاتصالات السعودية (STC)",
