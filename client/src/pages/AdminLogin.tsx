@@ -23,16 +23,19 @@ export default function AdminLogin() {
   const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1);
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
+  const [codeDigits, setCodeDigits] = useState(["", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // طفرات استعادة كلمة المرور
   const requestResetMutation = trpc.auth.requestPasswordReset.useMutation({
     onSuccess: (data) => {
       toast.success(data.message || "تم إرسال رمز التحقق");
       setForgotStep(2);
+      setResendCooldown(60);
     },
     onError: (error) => {
       toast.error(error.message || "فشل إرسال رمز التحقق");
@@ -56,21 +59,26 @@ export default function AdminLogin() {
       setForgotStep(1);
       setForgotEmail("");
       setResetCode("");
+      setCodeDigits(["", "", "", ""]);
       setNewPassword("");
       setConfirmNewPassword("");
+      setResendCooldown(0);
     },
     onError: (error) => {
       toast.error(error.message || "فشل إعادة تعيين كلمة المرور");
     }
   });
 
+  // مؤقت للعد التنازلي لإعادة إرسال الرمز
   useEffect(() => {
-    // التحقق من وجود رسالة إيقاف في الرابط
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("error") === "suspended") {
-      setIsSuspended(true);
-    }
-  }, []);
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+
 
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
@@ -132,6 +140,27 @@ export default function AdminLogin() {
       return;
     }
     requestResetMutation.mutate({ email: trimmed });
+  };
+
+  const handleDigitChange = (value: string, index: number) => {
+    const cleanVal = value.replace(/\D/g, "").slice(-1);
+    const newDigits = [...codeDigits];
+    newDigits[index] = cleanVal;
+    setCodeDigits(newDigits);
+    setResetCode(newDigits.join(""));
+
+    // Focus next box
+    if (cleanVal && index < 3) {
+      const nextInput = document.getElementById(`digit-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
+
+  const handleDigitKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !codeDigits[index] && index > 0) {
+      const prevInput = document.getElementById(`digit-${index - 1}`);
+      prevInput?.focus();
+    }
   };
 
   const handleVerifyCode = (e: React.FormEvent) => {
@@ -327,21 +356,28 @@ export default function AdminLogin() {
 
             {forgotStep === 2 && (
               <form onSubmit={handleVerifyCode} className="space-y-6 text-right">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-code" className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    رمز التحقق (4 أرقام)
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 justify-center text-sm font-semibold">
+                    <Lock className="w-4 h-4 text-primary" />
+                    أدخل رمز التحقق المكون من 4 أرقام
                   </Label>
-                  <Input
-                    id="reset-code"
-                    type="text"
-                    maxLength={4}
-                    value={resetCode}
-                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="1234"
-                    required
-                    className="text-center text-xl tracking-widest font-bold h-11"
-                  />
+                  
+                  <div className="flex justify-center gap-3 py-2" dir="ltr">
+                    {codeDigits.map((digit, idx) => (
+                      <Input
+                        key={idx}
+                        id={`digit-${idx}`}
+                        type="text"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleDigitChange(e.target.value, idx)}
+                        onKeyDown={(e) => handleDigitKeyDown(e, idx)}
+                        required
+                        className="w-12 h-12 text-center text-xl font-bold border-2 border-slate-400 dark:border-slate-600 rounded-md focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none bg-background text-foreground"
+                      />
+                    ))}
+                  </div>
+
                   <p className="text-xs text-muted-foreground text-center mt-1">
                     تم إرسال رمز التحقق إلى {forgotEmail}
                   </p>
@@ -354,26 +390,22 @@ export default function AdminLogin() {
                 >
                   {verifyCodeMutation.isPending ? "جاري التحقق..." : "التحقق من الرمز"}
                 </Button>
-                <div className="flex justify-between items-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => requestResetMutation.mutate({ email: forgotEmail })}
-                    disabled={requestResetMutation.isPending}
-                    className="text-xs hover:underline disabled:opacity-55"
-                    style={{ color: primaryColor }}
-                  >
-                    إعادة إرسال الرمز
-                  </button>
+                <div className="flex justify-center pt-2">
                   <button
                     type="button"
                     onClick={() => {
-                      setMode("login");
-                      setForgotStep(1);
+                      if (resendCooldown === 0) {
+                        requestResetMutation.mutate({ email: forgotEmail });
+                      }
                     }}
-                    className="text-xs hover:underline"
+                    disabled={resendCooldown > 0 || requestResetMutation.isPending}
+                    className="text-xs hover:underline disabled:opacity-55 font-semibold"
                     style={{ color: primaryColor }}
                   >
-                    العودة لتسجيل الدخول
+                    {resendCooldown > 0 
+                      ? `إعادة إرسال الرمز خلال (${resendCooldown} ثانية)` 
+                      : "إعادة إرسال الرمز"
+                    }
                   </button>
                 </div>
               </form>
