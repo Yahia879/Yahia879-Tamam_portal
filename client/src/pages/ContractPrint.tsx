@@ -3,6 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, Loader2, FileText } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
+import { numberToArabicText } from "@shared/tafqeet";
+
 
 const DURATION_UNITS: Record<string, string> = {
   days: "يوم",
@@ -116,54 +118,7 @@ function formatDuration(duration: number, unit: string | null | undefined): stri
   return `${duration} ${(unit && DURATION_UNITS[unit]) || unit || ""}`;
 }
 
-function numberToArabicText(num: number): string {
-  if (num === 0) return "صفر";
-  
-  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "عشر", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-  const teens = ["عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
 
-  function convertHundreds(n: number): string {
-    if (n === 0) return "";
-    if (n < 10) return ones[n];
-    if (n < 20) return teens[n - 10];
-    if (n < 100) {
-      const t = Math.floor(n / 10);
-      const o = n % 10;
-      return o ? `${ones[o]} و${tens[t]}` : tens[t];
-    }
-    const h = Math.floor(n / 100);
-    const rest = n % 100;
-    return rest ? `${hundreds[h]} و${convertHundreds(rest)}` : hundreds[h];
-  }
-
-  function convertThousands(n: number): string {
-    if (n < 1000) return convertHundreds(n);
-    const thousands = Math.floor(n / 1000);
-    const rest = n % 1000;
-    let result = "";
-    if (thousands === 1) result = "ألف";
-    else if (thousands === 2) result = "ألفان";
-    else if (thousands >= 3 && thousands <= 10) result = `${ones[thousands]} آلاف`;
-    else result = `${convertHundreds(thousands)} ألف`;
-    return rest ? `${result} و${convertHundreds(rest)}` : result;
-  }
-
-  function convertMillions(n: number): string {
-    if (n < 1000000) return convertThousands(n);
-    const millions = Math.floor(n / 1000000);
-    const rest = n % 1000000;
-    let result = "";
-    if (millions === 1) result = "مليون";
-    else if (millions === 2) result = "مليونان";
-    else if (millions >= 3 && millions <= 10) result = `${ones[millions]} ملايين`;
-    else result = `${convertThousands(millions)} مليون`;
-    return rest ? `${result} و${convertThousands(rest)}` : result;
-  }
-
-  return `فقط ${convertMillions(Math.floor(num))} ريال`;
-}
 
 export default function ContractPrint() {
   const params = useParams<{ id: string }>();
