@@ -51,66 +51,12 @@ async function syncProjectActualCost(db: any, projectId: number) {
   }
 }
 
-// دالة تحويل الرقم إلى نص عربي
+import { numberToArabicText as baseNumberToArabicText } from "../../shared/tafqeet";
+
 function numberToArabicText(num: number): string {
-  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-  const thousands = ["", "ألف", "ألفان", "ثلاثة آلاف", "أربعة آلاف", "خمسة آلاف", "ستة آلاف", "سبعة آلاف", "ثمانية آلاف", "تسعة آلاف"];
-  const tenThousands = ["", "عشرة آلاف", "عشرون ألف", "ثلاثون ألف", "أربعون ألف", "خمسون ألف", "ستون ألف", "سبعون ألف", "ثمانون ألف", "تسعون ألف"];
-  const hundredThousands = ["", "مائة ألف", "مائتا ألف", "ثلاثمائة ألف", "أربعمائة ألف", "خمسمائة ألف", "ستمائة ألف", "سبعمائة ألف", "ثمانمائة ألف", "تسعمائة ألف"];
-  
-  if (num === 0) return "صفر";
-  if (num >= 1000000) return `${Math.floor(num / 1000000)} مليون و${numberToArabicText(num % 1000000)}`;
-  
-  let result = "";
-  
-  // مئات الآلاف
-  const hThousands = Math.floor(num / 100000);
-  if (hThousands > 0) {
-    result += hundredThousands[hThousands] + " ";
-    num %= 100000;
-  }
-  
-  // عشرات الآلاف
-  const tThousands = Math.floor(num / 10000);
-  if (tThousands > 0) {
-    result += tenThousands[tThousands] + " ";
-    num %= 10000;
-  }
-  
-  // الآلاف
-  const th = Math.floor(num / 1000);
-  if (th > 0) {
-    result += thousands[th] + " ";
-    num %= 1000;
-  }
-  
-  // المئات
-  const h = Math.floor(num / 100);
-  if (h > 0) {
-    result += hundreds[h] + " ";
-    num %= 100;
-  }
-  
-  // العشرات والآحاد
-  if (num >= 11 && num <= 19) {
-    const special = ["أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-    result += special[num - 11] + " ";
-  } else {
-    const t = Math.floor(num / 10);
-    const o = num % 10;
-    if (o > 0 && t > 0) {
-      result += ones[o] + " و" + tens[t] + " ";
-    } else if (t > 0) {
-      result += tens[t] + " ";
-    } else if (o > 0) {
-      result += ones[o] + " ";
-    }
-  }
-  
-  return result.trim() + " ريال";
+  return baseNumberToArabicText(num, { prefix: "فقط ", suffix: " لا غير", currency: "ريال" });
 }
+
 
 // دالة توليد رقم العقد
 async function generateContractNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<{ number: string; year: number; sequence: number }> {

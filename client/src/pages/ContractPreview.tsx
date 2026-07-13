@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { numberToArabicText } from "@shared/tafqeet";
+
 import {
   Printer,
   Download,
@@ -67,50 +69,7 @@ const DURATION_UNITS: Record<string, string> = {
   years: "سنة",
 };
 
-// تحويل الرقم إلى نص عربي
-function numberToArabicText(num: number): string {
-  const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة"];
-  const tens = ["", "عشرة", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
-  const hundreds = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
-  const thousands = ["", "ألف", "ألفان", "ثلاثة آلاف", "أربعة آلاف", "خمسة آلاف", "ستة آلاف", "سبعة آلاف", "ثمانية آلاف", "تسعة آلاف"];
-  
-  if (num === 0) return "صفر";
-  if (num >= 1000000) return `${Math.floor(num / 1000000)} مليون`;
-  
-  let result = "";
-  
-  const th = Math.floor(num / 1000);
-  if (th > 0) {
-    if (th === 1) result += "ألف ";
-    else if (th === 2) result += "ألفان ";
-    else if (th <= 10) result += thousands[th] + " ";
-    else result += th + " ألف ";
-    num %= 1000;
-  }
-  
-  const h = Math.floor(num / 100);
-  if (h > 0) {
-    result += hundreds[h] + " ";
-    num %= 100;
-  }
-  
-  if (num >= 11 && num <= 19) {
-    const special = ["أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
-    result += special[num - 11] + " ";
-  } else {
-    const t = Math.floor(num / 10);
-    const o = num % 10;
-    if (o > 0 && t > 0) {
-      result += ones[o] + " و" + tens[t] + " ";
-    } else if (t > 0) {
-      result += tens[t] + " ";
-    } else if (o > 0) {
-      result += ones[o] + " ";
-    }
-  }
-  
-  return "فقط " + result.trim() + " ريال";
-}
+
 
 // تحويل التاريخ الميلادي إلى هجري (تقريبي)
 function toHijriDate(date: Date): string {
