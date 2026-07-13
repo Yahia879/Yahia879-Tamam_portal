@@ -148,6 +148,7 @@ export default function NewLinkedDisbursementRequest() {
     fundingSupport: string;
     mainProjectName: string;
     customProjectName: string;
+    requiredWorksDesc: string;
     beneficiaryName: string;
     bankAccountName: string;
     bankName: string;
@@ -172,6 +173,7 @@ export default function NewLinkedDisbursementRequest() {
     fundingSupport: "",
     mainProjectName: "",
     customProjectName: "",
+    requiredWorksDesc: "",
     beneficiaryName: "",
     bankAccountName: "",
     bankName: "",
@@ -304,7 +306,7 @@ export default function NewLinkedDisbursementRequest() {
       setFormData(prev => {
         const newTitle = `${typeLabel} - ${prev.customProjectName || ""}`;
         const resolvedCity = prev.projectCity === "other" ? prev.customCity : prev.projectCity;
-        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالأعمال المطلوبة: ${prev.requiredWorksDesc || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
         if (prev.title === newTitle && prev.description === newDesc) return prev;
         return {
           ...prev,
@@ -316,7 +318,7 @@ export default function NewLinkedDisbursementRequest() {
 
       setSuppliers(prev => {
         const first = prev[0];
-        const newWork = `${typeLabel} - ${formData.customProjectName || ""}`;
+        const newWork = formData.requiredWorksDesc || "";
         if (
           first &&
           first.name === formData.beneficiaryName &&
@@ -344,7 +346,7 @@ export default function NewLinkedDisbursementRequest() {
       setFormData(prev => {
         const newTitle = `فواتير نظام سداد - ${prev.customProjectName || ""}`;
         const resolvedCity = prev.projectCity === "other" ? prev.customCity : prev.projectCity;
-        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمفوتر: ${prev.billerName || ""}\nرقم سداد: ${prev.sadadNumber || ""}\nرمز المفوتر: ${prev.billerCode || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالأعمال المطلوبة: ${prev.requiredWorksDesc || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمفوتر: ${prev.billerName || ""}\nرقم سداد: ${prev.sadadNumber || ""}\nرمز المفوتر: ${prev.billerCode || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
         if (prev.title === newTitle && prev.description === newDesc) return prev;
         return {
           ...prev,
@@ -356,7 +358,7 @@ export default function NewLinkedDisbursementRequest() {
 
       setSuppliers(prev => {
         const first = prev[0];
-        const newWork = `سداد فاتورة - ${formData.customProjectName || ""}`;
+        const newWork = formData.requiredWorksDesc || "";
         if (
           first &&
           first.name === formData.billerName &&
@@ -658,6 +660,7 @@ export default function NewLinkedDisbursementRequest() {
         !formData.customProjectName ||
         !formData.projectCity ||
         (formData.projectCity === "other" && !formData.customCity) ||
+        !formData.requiredWorksDesc ||
         !formData.beneficiaryName ||
         !formData.bankAccountName ||
         !formData.bankName ||
@@ -673,6 +676,7 @@ export default function NewLinkedDisbursementRequest() {
         !formData.customProjectName ||
         !formData.projectCity ||
         (formData.projectCity === "other" && !formData.customCity) ||
+        !formData.requiredWorksDesc ||
         !formData.billerName ||
         !formData.sadadNumber ||
         !formData.billerCode ||
@@ -733,6 +737,10 @@ export default function NewLinkedDisbursementRequest() {
         toast.error("يرجى كتابة عنوان المشروع البديل");
         return;
       }
+      if (!formData.requiredWorksDesc) {
+        toast.error("يرجى إدخال وصف الأعمال المطلوبة");
+        return;
+      }
     }
     if (suppliers.some(s => !s.name)) {
       toast.error("يرجى اختيار المورد المستفيد");
@@ -772,6 +780,7 @@ export default function NewLinkedDisbursementRequest() {
         fundingSupport: formData.fundingSupport,
         mainProjectName: formData.mainProjectName,
         customProjectName: formData.customProjectName || "",
+        requiredWorksDesc: formData.requiredWorksDesc || "",
         billerName: formData.billerName || "",
         sadadNumber: formData.sadadNumber || "",
         billerCode: formData.billerCode || "",
@@ -1137,6 +1146,17 @@ export default function NewLinkedDisbursementRequest() {
                         )}
 
                         <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال المطلوبة *</Label>
+                          <Input
+                            value={formData.requiredWorksDesc}
+                            onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
+                            placeholder="أدخل وصف الأعمال المطلوبة"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المستفيد *</Label>
                           <Input
                             list="suppliers-list"
@@ -1269,6 +1289,17 @@ export default function NewLinkedDisbursementRequest() {
                             />
                           </div>
                         )}
+
+                        <div className="space-y-2 text-right">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال المطلوبة *</Label>
+                          <Input
+                            value={formData.requiredWorksDesc}
+                            onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
+                            placeholder="أدخل وصف الأعمال المطلوبة"
+                            required
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اختر المفوتر (للتعبئة التلقائية)</Label>

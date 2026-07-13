@@ -339,7 +339,7 @@ export default function DisbursementRequestPrint() {
                 </div>
                 <div className="p-3 bg-white text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-semibold min-h-[60px]">
                   {isCustomType 
-                    ? (customSupplier?.customProjectName || "—") 
+                    ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
                     : (parsedWorks.scheduled || request.description || request.title || "—")}
                 </div>
               </div>
@@ -387,7 +387,7 @@ export default function DisbursementRequestPrint() {
                       <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
                       <td className="p-2.5 border-l border-gray-200 text-gray-600 font-medium">
                         {isCustomType 
-                          ? (customSupplier?.customProjectName || "—") 
+                          ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
                           : (parsedWorks.actual || request.title || request.description || "—")}
                       </td>
                       <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
