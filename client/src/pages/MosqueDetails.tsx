@@ -106,7 +106,7 @@ export default function MosqueDetails() {
             {approvalLabels[mosque.approvalStatus || 'pending']}
           </span>
           <PermissionGuard permission="mosques.edit">
-            <Button variant="outline" onClick={() => toast.info("قريباً")}>
+            <Button variant="outline" onClick={() => setLocation(`/mosques/${mosqueId}/edit`)}>
               <Edit className="w-4 h-4 ml-2" />
               تعديل
             </Button>
