@@ -641,15 +641,19 @@ export const authRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const userResult = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
-      if (userResult.length === 0 || !userResult[0].passwordHash) {
+      if (userResult.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+      }
+
+      if (!userResult[0].passwordHash) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "هذا الحساب لا يحتوي على كلمة مرور مسجلة (قد يكون مسجلاً عبر نظام خارجي)" });
       }
 
       const [salt, storedHash] = userResult[0].passwordHash.split(":");
       const inputHash = hashPassword(input.currentPassword, salt);
 
       if (inputHash !== storedHash) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "كلمة المرور الحالية غير صحيحة" });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "كلمة المرور الحالية غير صحيحة" });
       }
 
       const newSalt = generateSalt();
