@@ -1147,12 +1147,13 @@ export default function NewLinkedDisbursementRequest() {
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال المطلوبة *</Label>
-                          <Input
+                          <Textarea
                             value={formData.requiredWorksDesc}
                             onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
                             placeholder="أدخل وصف الأعمال المطلوبة"
+                            rows={3}
                             required
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                            className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
                           />
                         </div>
 
@@ -1292,12 +1293,13 @@ export default function NewLinkedDisbursementRequest() {
 
                         <div className="space-y-2 text-right">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال المطلوبة *</Label>
-                          <Input
+                          <Textarea
                             value={formData.requiredWorksDesc}
                             onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
                             placeholder="أدخل وصف الأعمال المطلوبة"
+                            rows={3}
                             required
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                            className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
                           />
                         </div>
 
