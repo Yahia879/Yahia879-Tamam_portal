@@ -7,10 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Mail, Phone, Shield, Calendar, ArrowRight } from "lucide-react";
+import { User, Mail, Phone, Shield, Calendar, ArrowRight, Lock, Eye, EyeOff } from "lucide-react";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -20,6 +28,47 @@ export default function Profile() {
   const [phone, setPhone] = useState("");
   const [signatureName, setSignatureName] = useState("");
   const [signatureDepartment, setSignatureDepartment] = useState("");
+
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const changePasswordMutation = trpc.auth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("تم تغيير كلمة المرور بنجاح");
+      setIsChangePasswordOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تغيير كلمة المرور");
+    }
+  });
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error("كلمة المرور الجديدة وتأكيدها غير متطابقين");
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword,
+      newPassword,
+    });
+  };
 
   useEffect(() => {
     if (user) {
@@ -167,13 +216,120 @@ export default function Profile() {
               >
                 {updateProfileMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
               </Button>
-              <Button variant="outline" onClick={() => toast.info("قريباً")} className="h-9 sm:h-10 text-sm">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setCurrentPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setIsChangePasswordOpen(true);
+                }} 
+                className="h-9 sm:h-10 text-sm"
+              >
                 تغيير كلمة المرور
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog تغيير كلمة المرور */}
+      <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="sm:max-w-[650px] w-[95vw] p-6 sm:p-8" dir="rtl">
+          <DialogHeader className="text-right sm:text-right flex flex-col gap-1">
+            <DialogTitle className="flex items-center gap-2 text-lg text-right sm:text-right">
+              <Lock className="w-5 h-5 text-primary" />
+              تغيير كلمة المرور
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground text-right sm:text-right mt-1">
+              يرجى إدخال كلمة المرور الحالية لتأكيد هويتك، ثم تعيين كلمة مرور جديدة قوية.
+            </DialogDescription>
+          </DialogHeader>
+
+           <form onSubmit={handleChangePassword} className="space-y-4 py-2 text-right">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">كلمة المرور الحالية *</Label>
+              <div className="relative">
+                <Input
+                  type={showCurrentPassword ? "text" : "password"}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="أدخل كلمة المرور السابقة"
+                  className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background text-sm pl-10 pr-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">كلمة المرور الجديدة *</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="أدخل كلمة المرور الجديدة"
+                  className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background text-sm pl-10 pr-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+                >
+                  {showNewPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">تأكيد كلمة المرور الجديدة *</Label>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="أعد إدخال كلمة المرور الجديدة لتأكيدها"
+                  className="text-right border-border focus:ring-primary rounded-xl h-10 bg-background text-sm pl-10 pr-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                </button>
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-row-reverse gap-2 pt-4">
+              <Button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
+                className="h-10 text-sm px-5"
+              >
+                {changePasswordMutation.isPending ? "جاري التغيير..." : "تحديث كلمة المرور"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsChangePasswordOpen(false)}
+                className="h-10 text-sm px-5"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
