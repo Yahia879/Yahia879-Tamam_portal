@@ -186,38 +186,63 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
 };
 
-function formatCustomMessage(defaultTemplate: string, customTemplate: string, actualMessage: string): string {
-  try {
-    // 1. Convert defaultTemplate into a regex to extract variables
-    let regexStr = defaultTemplate.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => {
-      if (match === '{' || match === '}') return match;
-      return '\\' + match;
-    });
+const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
+  support_ticket_reply_added: [
+    "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة}",
+    "قام مقدم الطلب {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم رقم #{رقم_التذكرة}",
+    "قام مقدم الطلب {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة}",
+    "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم رقم #{رقم_التذكرة}"
+  ],
+  support_ticket_status_changed: [
+    "تم تغيير حالة تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
+    "تم تغيير حالة تذكرة الدعم رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}"
+  ],
+  notes_response_submitted: [
+    "قام المستفيد {اسم_المستفيد} بتقديم رد على الملاحظات للطلب رقم {رقم_الطلب}",
+    "قام المستفيد {اسم_المستفيد} بتقديم رد على الرفض للطلب رقم {رقم_الطلب}",
+    "قام المستفيد {اسم_المستفيد} بتقديم رد على الملاحظات",
+    "قام المستفيد {اسم_المستفيد} بتقديم رد على الرفض"
+  ]
+};
 
-    const placeholders: string[] = [];
-    const placeholderRegex = /\{([^}]+)\}/g;
-    let match;
-    while ((match = placeholderRegex.exec(defaultTemplate)) !== null) {
-      placeholders.push(match[1]);
+function formatCustomMessage(defaultTemplate: string, customTemplate: string, actualMessage: string, triggerId?: string): string {
+  try {
+    const candidateTemplates = [defaultTemplate];
+    if (triggerId && ALTERNATIVE_PATTERNS[triggerId]) {
+      candidateTemplates.push(...ALTERNATIVE_PATTERNS[triggerId]);
     }
 
-    let pattern = regexStr;
-    placeholders.forEach((placeholder) => {
-      pattern = pattern.replace(`{${placeholder}}`, "(.+?)");
-    });
-
-    const regex = new RegExp(`^${pattern}$`);
-    const actualMatch = actualMessage.match(regex);
-
-    if (actualMatch) {
-      let result = customTemplate;
-      placeholders.forEach((placeholder, index) => {
-        const value = actualMatch[index + 1];
-        if (value) {
-          result = result.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value);
-        }
+    for (const tpl of candidateTemplates) {
+      let regexStr = tpl.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => {
+        if (match === '{' || match === '}') return match;
+        return '\\' + match;
       });
-      return result;
+
+      const placeholders: string[] = [];
+      const placeholderRegex = /\{([^}]+)\}/g;
+      let match;
+      while ((match = placeholderRegex.exec(tpl)) !== null) {
+        placeholders.push(match[1]);
+      }
+
+      let pattern = regexStr;
+      placeholders.forEach((placeholder) => {
+        pattern = pattern.replace(`{${placeholder}}`, "([\\s\\S]+?)");
+      });
+
+      const regex = new RegExp(`^${pattern}$`);
+      const actualMatch = actualMessage.match(regex);
+
+      if (actualMatch) {
+        let result = customTemplate;
+        placeholders.forEach((placeholder, index) => {
+          const value = actualMatch[index + 1];
+          if (value) {
+            result = result.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value);
+          }
+        });
+        return result;
+      }
     }
   } catch (error) {
     console.error("Error formatting custom message:", error);
@@ -440,7 +465,7 @@ export async function createNotification(data: {
       if (template && template.length > 0 && template[0].templateMessage) {
         const defaultTpl = DEFAULT_TEMPLATES[triggerId];
         if (defaultTpl) {
-          customizedMessage = formatCustomMessage(defaultTpl, template[0].templateMessage, data.message);
+          customizedMessage = formatCustomMessage(defaultTpl, template[0].templateMessage, data.message, triggerId);
         }
       }
     }
