@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -823,6 +823,7 @@ export default function NotificationCustomization() {
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
+  const lastInitializedTriggerId = useRef<string | null>(null);
 
   // تحويل القالب من نص عادي إلى HTML يحتوي على أزرار المتغيرات كـ spans غير قابلة للتعديل
   const convertTemplateToHtml = (template: string, variables: { placeholder: string; nameAr: string }[]) => {
@@ -882,16 +883,19 @@ export default function NotificationCustomization() {
     }
   };
 
-  const editorRefCallback = (node: HTMLDivElement | null) => {
-    if (node && selectedTriggerForEdit) {
+  const editorRefCallback = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
       (editorRef as any).current = node;
-      const initialHtml = convertTemplateToHtml(
-        getTemplateMessage(selectedTriggerForEdit.id),
-        selectedTriggerForEdit.variables || []
-      );
-      node.innerHTML = initialHtml;
+      if (selectedTriggerForEdit && lastInitializedTriggerId.current !== selectedTriggerForEdit.id) {
+        lastInitializedTriggerId.current = selectedTriggerForEdit.id;
+        const initialHtml = convertTemplateToHtml(
+          getTemplateMessage(selectedTriggerForEdit.id),
+          selectedTriggerForEdit.variables || []
+        );
+        node.innerHTML = initialHtml;
+      }
     }
-  };
+  }, [selectedTriggerForEdit]);
 
   // جلب إعدادات مشغلات الإشعارات التفصيلية من الباكيند
   const { data: triggerSettings, refetch: refetchTriggerSettings } = trpc.notifications.getTriggerSettings.useQuery();
@@ -941,6 +945,7 @@ export default function NotificationCustomization() {
   };
 
   const handleOpenEditTemplateModal = (trigger: any) => {
+    lastInitializedTriggerId.current = null;
     setSelectedTriggerForEdit(trigger);
     setEditingTemplateMessage(getTemplateMessage(trigger.id));
     setIsEditTemplateOpen(true);
@@ -991,21 +996,157 @@ export default function NotificationCustomization() {
     }
   };
 
+  const dragCaretRef = useRef<{ container: Node | null; offset: number }>({ container: null, offset: -1 });
+
+  // مساعد لتقريب مؤشر السحب لأقرب فراغ بين الكلمات فقط (Word Boundary Snapping)
+  const snapRangeToWordBoundary = (range: Range) => {
+    const container = range.startContainer;
+    if (container.nodeType === Node.TEXT_NODE) {
+      const text = container.textContent || "";
+      const offset = range.startOffset;
+      
+      // إذا كنا في الفراغ أو بداية/نهاية النص، فلا داعي للتغيير
+      if (offset === 0 || offset === text.length || /\s/.test(text[offset - 1]) || /\s/.test(text[offset])) {
+        return range;
+      }
+      
+      // البحث عن أقرب فراغ قبل المؤشر
+      let spaceBefore = -1;
+      for (let i = offset - 1; i >= 0; i--) {
+        if (/\s/.test(text[i])) {
+          spaceBefore = i + 1; // الموقع بعد الفراغ
+          break;
+        }
+      }
+      if (spaceBefore === -1) spaceBefore = 0;
+      
+      // البحث عن أقرب فراغ بعد المؤشر
+      let spaceAfter = -1;
+      for (let i = offset; i < text.length; i++) {
+        if (/\s/.test(text[i])) {
+          spaceAfter = i; // الموقع قبل الفراغ
+          break;
+        }
+      }
+      if (spaceAfter === -1) spaceAfter = text.length;
+      
+      // اختيار الفراغ الأقرب رقمياً للمؤشر الفعلي
+      const distBefore = offset - spaceBefore;
+      const distAfter = spaceAfter - offset;
+      
+      const newOffset = distBefore <= distAfter ? spaceBefore : spaceAfter;
+      range.setStart(container, newOffset);
+      range.setEnd(container, newOffset);
+    }
+    return range;
+  };
+
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.getAttribute('data-type') === 'variable-chip') {
       target.classList.add('is-dragging');
+      e.dataTransfer.setData('text/plain', target.getAttribute('data-placeholder') || '');
+      
+      // إخفاء العنصر الأصلي بعد التقاط صورته من قبل المتصفح لتبدو وكأنها سُحبت بالكامل
+      setTimeout(() => {
+        target.style.display = 'none';
+      }, 0);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    let range: Range | null = null;
+    if ((document as any).caretRangeFromPoint) {
+      range = (document as any).caretRangeFromPoint(e.clientX, e.clientY);
+    }
+    if (range && editorRef.current?.contains(range.startContainer)) {
+      // تقريب المؤشر للمسافات بين الكلمات فقط
+      range = snapRangeToWordBoundary(range);
+      
+      const container = range.startContainer;
+      const offset = range.startOffset;
+
+      if (container !== dragCaretRef.current.container || offset !== dragCaretRef.current.offset) {
+        dragCaretRef.current = { container, offset };
+
+        const existing = editorRef.current.querySelector('[data-type="drop-placeholder"]');
+        if (existing) {
+          existing.remove();
+        }
+
+        const placeholder = document.createElement('span');
+        placeholder.setAttribute('data-type', 'drop-placeholder');
+        placeholder.setAttribute('contenteditable', 'false');
+        placeholder.className = "inline-block w-24 h-6 border-2 border-dashed border-teal-405 bg-teal-50/20 dark:bg-teal-950/20 rounded-lg mx-1 align-middle pointer-events-none transition-all duration-300 animate-pulse";
+        
+        try {
+          range.insertNode(placeholder);
+        } catch (err) {
+          console.error("Error inserting placeholder", err);
+        }
+      }
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!editorRef.current?.contains(e.relatedTarget as Node)) {
+      const existing = editorRef.current?.querySelector('[data-type="drop-placeholder"]');
+      if (existing) {
+        existing.remove();
+      }
+      dragCaretRef.current = { container: null, offset: -1 };
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    const placeholder = editorRef.current?.querySelector('[data-type="drop-placeholder"]');
+    if (placeholder) {
+      const data = e.dataTransfer.getData('text/plain');
+      if (data && selectedTriggerForEdit) {
+        // إزالة العنصر الأصلي المسحوب لتفادي التكرار
+        const draggedElement = editorRef.current?.querySelector('.is-dragging');
+        if (draggedElement) {
+          draggedElement.remove();
+        }
+
+        const chipHtml = `<span data-placeholder="${data}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-350 px-2.5 py-1 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${data}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>&nbsp;`;
+        
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = chipHtml;
+        
+        const fragment = document.createDocumentFragment();
+        let node;
+        while ((node = tempDiv.firstChild)) {
+          fragment.appendChild(node);
+        }
+        
+        placeholder.replaceWith(fragment);
+      } else {
+        placeholder.remove();
+      }
+    }
+    
+    dragCaretRef.current = { container: null, offset: -1 };
+    syncContent();
   };
 
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.getAttribute('data-type') === 'variable-chip') {
       target.classList.remove('is-dragging');
-      setTimeout(() => {
-        syncContent();
-      }, 50);
+      target.style.display = ''; // استعادة ظهور العنصر الأصلي في حالة إلغاء السحب
     }
+    const placeholder = editorRef.current?.querySelector('[data-type="drop-placeholder"]');
+    if (placeholder) {
+      placeholder.remove();
+    }
+    dragCaretRef.current = { container: null, offset: -1 };
+    setTimeout(() => {
+      syncContent();
+    }, 50);
   };
 
   const handleSaveTemplate = () => {
@@ -1459,6 +1600,9 @@ export default function NotificationCustomization() {
                   onInput={syncContent}
                   onClick={handleContentEditableClick}
                   onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                   onDragEnd={handleDragEnd}
                   className="w-full min-h-[120px] max-h-[250px] overflow-y-auto rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed text-right rtl cursor-text scrollbar-thin"
                   style={{ direction: 'rtl' }}
@@ -1522,6 +1666,11 @@ export default function NotificationCustomization() {
               </Button>
             </DialogFooter>
             <style dangerouslySetInnerHTML={{__html: `
+              @keyframes wiggle {
+                0% { transform: scale(1.08) rotate(-3deg); }
+                50% { transform: scale(1.08) rotate(3deg); }
+                100% { transform: scale(1.08) rotate(-3deg); }
+              }
               [data-type="variable-chip"] {
                 transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, opacity 0.2s;
               }
@@ -1529,11 +1678,15 @@ export default function NotificationCustomization() {
                 transform: translateY(-1.5px) rotate(0.5deg);
                 box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.15);
               }
-              [data-type="variable-chip"]:active, [data-type="variable-chip"].is-dragging {
+              [data-type="variable-chip"]:active {
                 cursor: grabbing !important;
-                transform: scale(1.08) rotate(-4deg) !important;
+                transform: scale(1.08) rotate(-3deg) !important;
                 box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2) !important;
                 opacity: 0.9;
+              }
+              [data-type="variable-chip"].is-dragging {
+                animation: wiggle 0.5s ease-in-out infinite !important;
+                opacity: 0.85;
               }
             `}} />
           </DialogContent>
