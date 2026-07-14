@@ -1951,5 +1951,16 @@ export const supportTickets = mysqlTable("support_tickets", {
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = typeof supportTickets.$inferInsert;
 
+// ==================== قوالب رسائل الإشعارات ====================
+export const notificationTemplates = mysqlTable("notification_templates", {
+  id: int("id").primaryKey().autoincrement(),
+  triggerId: varchar("triggerId", { length: 100 }).notNull().unique(),
+  templateMessage: text("templateMessage").notNull(),
+});
+
+export type NotificationTemplate = typeof notificationTemplates.$inferSelect;
+export type InsertNotificationTemplate = typeof notificationTemplates.$inferInsert;
+
+
 
 
