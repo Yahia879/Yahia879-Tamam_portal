@@ -1404,13 +1404,14 @@ export default function NotificationCustomization() {
                     <TableHeader>
                       <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
                         <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">الحدث / المشغل</TableHead>
-                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">قنوات الإرسال المحددة للحدث</TableHead>
+                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">تعديل الصياغة</TableHead>
+                        <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">قنوات الإرسال المحددة للحدث</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border/40">
                       {/* === قسم الطلبات والمساجد === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40">
+                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40">
                           قسم الطلبات والمساجد
                         </TableCell>
                       </TableRow>
@@ -1423,30 +1424,30 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="flex items-center gap-2.5">
-                                <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-7 w-7 text-sidebar-foreground bg-sidebar hover:bg-sidebar-accent border-sidebar-border rounded-lg shadow-sm transition-all duration-200 active:scale-95"
-                                        onClick={() => handleOpenEditTemplateModal(trig)}
-                                        type="button"
-                                      >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                      onClick={() => handleOpenEditTemplateModal(trig)}
+                                      type="button"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
                               <ChannelToggles
                                 inApp={inAppState.enabled}
                                 whatsapp={whatsappState.enabled}
@@ -1467,7 +1468,7 @@ export default function NotificationCustomization() {
 
                       {/* === قسم المالية والعقود === */}
                       <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
-                        <TableCell colSpan={2} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
+                        <TableCell colSpan={3} className="py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 border-t">
                           قسم المالية والعقود
                         </TableCell>
                       </TableRow>
@@ -1480,30 +1481,30 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="flex items-center gap-2.5">
-                                <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                                <TooltipProvider delayDuration={200}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-7 w-7 text-sidebar-foreground bg-sidebar hover:bg-sidebar-accent border-sidebar-border rounded-lg shadow-sm transition-all duration-200 active:scale-95"
-                                        onClick={() => handleOpenEditTemplateModal(trig)}
-                                        type="button"
-                                      >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">
-                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
+                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
                               <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                      onClick={() => handleOpenEditTemplateModal(trig)}
+                                      type="button"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
                               <ChannelToggles
                                 inApp={inAppState.enabled}
                                 whatsapp={whatsappState.enabled}
