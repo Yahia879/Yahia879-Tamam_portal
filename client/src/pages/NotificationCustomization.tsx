@@ -1118,23 +1118,28 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2.5">
                                 <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-full transition-all"
-                                  onClick={() => handleOpenEditTemplateModal(trig)}
-                                  type="button"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </Button>
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-600 hover:text-white border-teal-200 dark:border-teal-900/50 bg-teal-50/20 hover:bg-teal-600 dark:hover:bg-teal-600 rounded-lg shadow-sm transition-all duration-200"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
-                              <div className="mt-1.5 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-900/40 p-2 rounded border border-border/30 text-slate-600 dark:text-slate-400 font-mono" dir="rtl">
-                                <span className="font-bold text-teal-600 dark:text-teal-400 block text-[9px] mb-0.5 font-sans">قالب الرسالة الحالي:</span>
-                                {getTemplateMessage(trig.id)}
-                              </div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{trig.description}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
@@ -1170,23 +1175,28 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2.5">
                                 <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-full transition-all"
-                                  onClick={() => handleOpenEditTemplateModal(trig)}
-                                  type="button"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </Button>
+                                <TooltipProvider delayDuration={200}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-7 w-7 text-teal-600 hover:text-white border-teal-200 dark:border-teal-900/50 bg-teal-50/20 hover:bg-teal-600 dark:hover:bg-teal-600 rounded-lg shadow-sm transition-all duration-200"
+                                        onClick={() => handleOpenEditTemplateModal(trig)}
+                                        type="button"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
-                              <div className="mt-1.5 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-900/40 p-2 rounded border border-border/30 text-slate-600 dark:text-slate-400 font-mono" dir="rtl">
-                                <span className="font-bold text-teal-600 dark:text-teal-400 block text-[9px] mb-0.5 font-sans">قالب الرسالة الحالي:</span>
-                                {getTemplateMessage(trig.id)}
-                              </div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{trig.description}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
