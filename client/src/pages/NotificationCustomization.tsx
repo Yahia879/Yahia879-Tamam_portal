@@ -991,6 +991,23 @@ export default function NotificationCustomization() {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.getAttribute('data-type') === 'variable-chip') {
+      target.classList.add('is-dragging');
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.getAttribute('data-type') === 'variable-chip') {
+      target.classList.remove('is-dragging');
+      setTimeout(() => {
+        syncContent();
+      }, 50);
+    }
+  };
+
   const handleSaveTemplate = () => {
     if (!selectedTriggerForEdit) return;
     updateTemplateMutation.mutate({
@@ -1419,12 +1436,12 @@ export default function NotificationCustomization() {
         {/* مودال تخصيص رسالة الإشعار */}
         <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
           <DialogContent className="max-w-xl text-right" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center justify-start gap-2">
                 <Pencil className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص نص رسالة الإشعار</span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
+              <DialogDescription className="text-xs text-muted-foreground mt-1 text-right">
                 قم بتخصيص صياغة الإشعار للحدث: <strong className="text-foreground">{selectedTriggerForEdit?.nameAr}</strong>
               </DialogDescription>
             </DialogHeader>
@@ -1435,12 +1452,14 @@ export default function NotificationCustomization() {
                   نص رسالة الإشعار:
                 </label>
                 <div
-                  ref={editorRef}
+                  ref={editorRefCallback}
                   id="template-editor"
                   contentEditable
                   suppressContentEditableWarning
                   onInput={syncContent}
                   onClick={handleContentEditableClick}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
                   className="w-full min-h-[120px] max-h-[250px] overflow-y-auto rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed text-right rtl cursor-text scrollbar-thin"
                   style={{ direction: 'rtl' }}
                 />
@@ -1463,7 +1482,7 @@ export default function NotificationCustomization() {
                               onClick={() => !isUsed && handleInsertVariable(variable.placeholder)}
                               className={`inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-sm ${
                                 isUsed
-                                  ? "opacity-40 cursor-not-allowed pointer-events-none bg-slate-100 dark:bg-slate-900/30 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800"
+                                  ? "opacity-65 cursor-not-allowed pointer-events-none bg-slate-100/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-800/80"
                                   : "border-teal-200 bg-teal-50/50 dark:border-teal-900/40 dark:bg-teal-950/20 text-teal-850 dark:text-teal-400 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-600 hover:-translate-y-0.5 cursor-pointer active:scale-95"
                               }`}
                               title={isUsed ? "تم إدراج هذا المتغير بالفعل" : `إدراج ${variable.nameAr}`}
@@ -1491,7 +1510,7 @@ export default function NotificationCustomization() {
                 className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold px-5 py-2 text-xs sm:text-sm rounded-xl transition-all shadow-sm"
                 disabled={updateTemplateMutation.isPending}
               >
-                {updateTemplateMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+                {updateTemplateMutation.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
               <Button
                 variant="outline"
@@ -1502,6 +1521,21 @@ export default function NotificationCustomization() {
                 إلغاء
               </Button>
             </DialogFooter>
+            <style dangerouslySetInnerHTML={{__html: `
+              [data-type="variable-chip"] {
+                transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, opacity 0.2s;
+              }
+              [data-type="variable-chip"]:hover {
+                transform: translateY(-1.5px) rotate(0.5deg);
+                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.15), 0 2px 4px -2px rgb(0 0 0 / 0.15);
+              }
+              [data-type="variable-chip"]:active, [data-type="variable-chip"].is-dragging {
+                cursor: grabbing !important;
+                transform: scale(1.08) rotate(-4deg) !important;
+                box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.2) !important;
+                opacity: 0.9;
+              }
+            `}} />
           </DialogContent>
         </Dialog>
       </div>
