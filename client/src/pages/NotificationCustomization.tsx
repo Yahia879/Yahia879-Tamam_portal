@@ -1415,7 +1415,10 @@ export default function NotificationCustomization() {
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{trig.description}</div>
+                              <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium bg-[#09707e]/5 dark:bg-[#09707e]/10 px-2 py-0.5 rounded border border-[#09707e]/15 inline-block max-w-full truncate align-middle" title={getTemplateMessage(trig.id)}>
+                                القالب المعتمد: {getTemplateMessage(trig.id)}
+                              </div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">{trig.description}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
@@ -1472,7 +1475,10 @@ export default function NotificationCustomization() {
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{trig.description}</div>
+                              <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium bg-[#09707e]/5 dark:bg-[#09707e]/10 px-2 py-0.5 rounded border border-[#09707e]/15 inline-block max-w-full truncate align-middle" title={getTemplateMessage(trig.id)}>
+                                القالب المعتمد: {getTemplateMessage(trig.id)}
+                              </div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">{trig.description}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
