@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -822,6 +822,77 @@ export default function NotificationCustomization() {
   const [editingTemplateMessage, setEditingTemplateMessage] = useState("");
   const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
 
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // تحويل القالب من نص عادي إلى HTML يحتوي على أزرار المتغيرات كـ spans غير قابلة للتعديل
+  const convertTemplateToHtml = (template: string, variables: { placeholder: string; nameAr: string }[]) => {
+    let html = template;
+    // ترميز الرموز الخاصة لتجنب مشاكل HTML
+    html = html
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // استبدال المتغيرات بعناصر Span تفاعلية
+    variables.forEach(v => {
+      const escapedPlaceholder = v.placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(escapedPlaceholder, 'g');
+      html = html.replace(
+        regex,
+        `<span data-placeholder="${v.placeholder}" contenteditable="false" class="inline-flex items-center gap-1 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-300 px-2 py-0.5 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${v.placeholder}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>`
+      );
+    });
+    return html;
+  };
+
+  // تحويل محتوى الـ HTML من المحرر إلى قالب نصي يحتوي على المتغيرات بصيغة {placeholder}
+  const convertHtmlToTemplate = (html: string) => {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    
+    // استبدال كل span متغير بنصه الافتراضي
+    const chips = tempDiv.querySelectorAll('[data-type="variable-chip"]');
+    chips.forEach(chip => {
+      const placeholder = chip.getAttribute('data-placeholder');
+      if (placeholder) {
+        chip.replaceWith(document.createTextNode(placeholder));
+      }
+    });
+    
+    return tempDiv.innerText || tempDiv.textContent || "";
+  };
+
+  // معرفة المتغيرات المستخدمة حالياً في النص
+  const getUsedVariables = (text: string, variables: { placeholder: string; nameAr: string }[]) => {
+    const used: Record<string, boolean> = {};
+    variables.forEach(v => {
+      if (text.includes(v.placeholder)) {
+        used[v.placeholder] = true;
+      }
+    });
+    return used;
+  };
+
+  // مزامنة محتوى المحرر مع الحالة
+  const syncContent = () => {
+    if (editorRef.current && selectedTriggerForEdit) {
+      const html = editorRef.current.innerHTML;
+      const templateText = convertHtmlToTemplate(html);
+      setEditingTemplateMessage(templateText);
+    }
+  };
+
+  const editorRefCallback = (node: HTMLDivElement | null) => {
+    if (node && selectedTriggerForEdit) {
+      (editorRef as any).current = node;
+      const initialHtml = convertTemplateToHtml(
+        getTemplateMessage(selectedTriggerForEdit.id),
+        selectedTriggerForEdit.variables || []
+      );
+      node.innerHTML = initialHtml;
+    }
+  };
+
   // جلب إعدادات مشغلات الإشعارات التفصيلية من الباكيند
   const { data: triggerSettings, refetch: refetchTriggerSettings } = trpc.notifications.getTriggerSettings.useQuery();
 
@@ -876,23 +947,48 @@ export default function NotificationCustomization() {
   };
 
   const handleInsertVariable = (placeholder: string) => {
-    const textarea = document.getElementById("template-textarea") as HTMLTextAreaElement;
-    if (!textarea) return;
+    if (!editorRef.current || !selectedTriggerForEdit) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const before = text.substring(0, start);
-    const after = text.substring(end, text.length);
+    const chipHtml = `<span data-placeholder="${placeholder}" contenteditable="false" class="inline-flex items-center gap-1 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-300 px-2 py-0.5 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${placeholder}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>&nbsp;`;
 
-    const newValue = before + placeholder + after;
-    setEditingTemplateMessage(newValue);
+    editorRef.current.focus();
 
-    // إعادة التركيز للمربع النصي وتحديد موضع المؤشر
-    setTimeout(() => {
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
-    }, 0);
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+
+      if (editorRef.current.contains(range.startContainer)) {
+        range.deleteContents();
+
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = chipHtml;
+
+        const fragment = document.createDocumentFragment();
+        let node;
+        while ((node = tempDiv.firstChild)) {
+          fragment.appendChild(node);
+        }
+
+        range.insertNode(fragment);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else {
+        editorRef.current.innerHTML += chipHtml;
+      }
+    } else {
+      editorRef.current.innerHTML += chipHtml;
+    }
+
+    syncContent();
+  };
+
+  const handleContentEditableClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'BUTTON' && target.parentElement?.getAttribute('data-type') === 'variable-chip') {
+      target.parentElement.remove();
+      syncContent();
+    }
   };
 
   const handleSaveTemplate = () => {
@@ -1335,39 +1431,53 @@ export default function NotificationCustomization() {
 
             <div className="space-y-4 my-4 text-right">
               <div className="space-y-2">
-                <label htmlFor="template-textarea" className="text-xs sm:text-sm font-bold text-foreground block">
+                <label className="text-xs sm:text-sm font-bold text-foreground block text-right">
                   نص رسالة الإشعار:
                 </label>
-                <textarea
-                  id="template-textarea"
-                  rows={4}
-                  className="w-full rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed resize-none text-right"
-                  value={editingTemplateMessage}
-                  onChange={(e) => setEditingTemplateMessage(e.target.value)}
-                  placeholder="أدخل نص قالب الإشعار..."
+                <div
+                  ref={editorRef}
+                  id="template-editor"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={syncContent}
+                  onClick={handleContentEditableClick}
+                  className="w-full min-h-[120px] max-h-[250px] overflow-y-auto rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed text-right rtl cursor-text scrollbar-thin"
+                  style={{ direction: 'rtl' }}
                 />
               </div>
 
               {selectedTriggerForEdit?.variables && selectedTriggerForEdit.variables.length > 0 ? (
-                <div className="space-y-2 bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-border/40 text-right">
-                  <span className="text-[11px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 block">
-                    المتغيرات المتاحة للحدث (انقر على المتغير لإدراجه في النص):
-                  </span>
-                  <div className="flex flex-wrap gap-2 mt-1.5 justify-start" dir="ltr">
-                    {selectedTriggerForEdit.variables.map((variable: any) => (
-                      <button
-                        key={variable.placeholder}
-                        onClick={() => handleInsertVariable(variable.placeholder)}
-                        className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border border-teal-200/50 bg-teal-50/50 dark:border-teal-900/30 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/30 cursor-pointer active:scale-95 transition-all select-none"
-                        title={`إدراج ${variable.nameAr}`}
-                        type="button"
-                      >
-                        <span className="font-mono font-semibold">{variable.placeholder}</span>
-                        <span className="text-muted-foreground text-[9px]">({variable.nameAr})</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                (() => {
+                  const usedVars = getUsedVariables(editingTemplateMessage, selectedTriggerForEdit.variables);
+                  return (
+                    <div className="space-y-2 bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-border/40 text-right">
+                      <span className="text-[11px] sm:text-xs font-bold text-teal-800 dark:text-teal-450 block text-right">
+                        المتغيرات المتاحة للحدث (انقر على المتغير لإدراجه في النص):
+                      </span>
+                      <div className="flex flex-wrap gap-2 mt-1.5 justify-start" dir="rtl">
+                        {selectedTriggerForEdit.variables.map((variable: any) => {
+                          const isUsed = usedVars[variable.placeholder];
+                          return (
+                            <button
+                              key={variable.placeholder}
+                              onClick={() => !isUsed && handleInsertVariable(variable.placeholder)}
+                              className={`inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-sm ${
+                                isUsed
+                                  ? "opacity-40 cursor-not-allowed pointer-events-none bg-slate-100 dark:bg-slate-900/30 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-800"
+                                  : "border-teal-200 bg-teal-50/50 dark:border-teal-900/40 dark:bg-teal-950/20 text-teal-850 dark:text-teal-400 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-600 hover:-translate-y-0.5 cursor-pointer active:scale-95"
+                              }`}
+                              title={isUsed ? "تم إدراج هذا المتغير بالفعل" : `إدراج ${variable.nameAr}`}
+                              type="button"
+                              disabled={isUsed}
+                            >
+                              <span className="font-mono font-semibold">{variable.placeholder}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <div className="text-[11px] text-muted-foreground bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border border-border/40 text-center">
                   لا توجد متغيرات ديناميكية متاحة لهذا الإشعار.
@@ -1378,7 +1488,7 @@ export default function NotificationCustomization() {
             <DialogFooter className="flex sm:justify-start gap-2 border-t border-border/40 pt-4 mt-2">
               <Button
                 onClick={handleSaveTemplate}
-                className="bg-teal-650 hover:bg-teal-700 text-white font-bold px-5 py-2 text-xs sm:text-sm rounded-xl transition-all"
+                className="bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600 text-white font-bold px-5 py-2 text-xs sm:text-sm rounded-xl transition-all shadow-sm"
                 disabled={updateTemplateMutation.isPending}
               >
                 {updateTemplateMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
