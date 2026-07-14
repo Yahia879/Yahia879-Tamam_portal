@@ -1660,7 +1660,7 @@ export default function NotificationCustomization() {
                               className={`inline-flex items-center gap-1.5 text-[11px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-xs ${
                                  isUsed
                                    ? "opacity-65 cursor-not-allowed pointer-events-none bg-slate-100/80 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800"
-                                   : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-sidebar-accent hover:text-white hover:-translate-y-0.5 cursor-pointer active:scale-95 transition-all"
+                                   : "border-transparent bg-sidebar text-sidebar-foreground hover:bg-white hover:text-sidebar hover:border-sidebar-border dark:hover:bg-slate-950 dark:hover:text-teal-350 hover:-translate-y-0.5 cursor-pointer active:scale-95 transition-all"
                                }`}
                               title={isUsed ? "تم إدراج هذا المتغير بالفعل" : `إدراج ${variable.nameAr}`}
                               type="button"
