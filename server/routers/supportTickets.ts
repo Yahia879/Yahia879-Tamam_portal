@@ -9,13 +9,16 @@ import { nanoid } from "nanoid";
 import { createNotification } from "./notifications";
 
 // Executable files blacklist validation regex (blocks exe, bat, cmd, sh, msi, dll, scr, vbs, com, bin, jar, app, dmg, elf)
-const executableRegex = /\.(exe|bat|cmd|sh|msi|dll|scr|vbs|com|bin|jar|app|dmg|elf)(\?.*)?$/i;
-const attachmentSchema = z.string()
-  .refine((url) => url.startsWith("/") || /^(https?:\/\/)/i.test(url), {
+const executableRegex =
+  /\.(exe|bat|cmd|sh|msi|dll|scr|vbs|com|bin|jar|app|dmg|elf)(\?.*)?$/i;
+const attachmentSchema = z
+  .string()
+  .refine(url => url.startsWith("/") || /^(https?:\/\/)/i.test(url), {
     message: "رابط الملف غير صالح",
   })
-  .refine((url) => !executableRegex.test(url), {
-    message: "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
+  .refine(url => !executableRegex.test(url), {
+    message:
+      "الملف المرفق غير مدعوم أو غير آمن (يُمنع رفع الملفات البرمجية والتنفيذية)",
   });
 
 async function notifyUsersWithPermission(
@@ -65,7 +68,7 @@ export const supportTicketsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
-      
+
       const newTicket = {
         userId: ctx.user.id,
         ticketType: input.ticketType,
@@ -96,7 +99,10 @@ export const supportTicketsRouter = router({
           ctx.user.id
         );
       } catch (err) {
-        console.error("Failed to send support ticket creation notification:", err);
+        console.error(
+          "Failed to send support ticket creation notification:",
+          err
+        );
       }
 
       return { success: true };
@@ -105,7 +111,7 @@ export const supportTicketsRouter = router({
   // جلب التذاكر الخاصة بالمستخدم الحالي
   getMyTickets: protectedProcedure.query(async ({ ctx }) => {
     const db = (await getDb())!;
-    
+
     // تأكيد امتلاك صلاحية إنشاء التذاكر لرؤيتها
     const hasCreate = await checkPermission(ctx.user.id, "Create_Ticket");
     if (!hasCreate) {
@@ -125,7 +131,7 @@ export const supportTicketsRouter = router({
   // جلب جميع التذاكر (للمسؤولين)
   getAllTickets: permissionProcedure("View_Tickets").query(async () => {
     const db = (await getDb())!;
-    
+
     // جلب التذاكر مع اسم وعنوان البريد الإلكتروني للمستخدم
     const tickets = await db
       .select({
@@ -153,7 +159,7 @@ export const supportTicketsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const db = (await getDb())!;
-      
+
       const tickets = await db
         .select({
           id: supportTickets.id,
@@ -209,7 +215,7 @@ export const supportTicketsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
-      
+
       const ticketResult = await db
         .select()
         .from(supportTickets)
@@ -245,7 +251,7 @@ export const supportTicketsRouter = router({
         .limit(1);
 
       const senderName = sender[0]?.name || "مستخدم";
-      
+
       // معالجة آمنة للردود: التأكد من أنها مصفوفة صحيحة وليست نص JSON
       let currentReplies: any[] = [];
       const rawReplies = ticket.replies;
@@ -266,14 +272,16 @@ export const supportTicketsRouter = router({
           currentReplies = [];
         }
       }
-      
+
       const newReply = {
         id: nanoid(),
         senderId: ctx.user.id,
         senderName: senderName,
         message: input.message,
         attachments: input.attachments || [],
-        createdAt: input.createdAt ? input.createdAt.toISOString() : new Date().toISOString(),
+        createdAt: input.createdAt
+          ? input.createdAt.toISOString()
+          : new Date().toISOString(),
       };
 
       const updatedReplies = [...currentReplies, newReply];
@@ -286,7 +294,10 @@ export const supportTicketsRouter = router({
       try {
         const title = "رد جديد على التذكرة";
         const isOwner = ctx.user.id === ticket.userId;
-        const hasViewTickets = await checkPermission(ctx.user.id, "View_Tickets");
+        const hasViewTickets = await checkPermission(
+          ctx.user.id,
+          "View_Tickets"
+        );
 
         if (isOwner) {
           await notifyUsersWithPermission(
@@ -322,11 +333,18 @@ export const supportTicketsRouter = router({
         status: z.enum(["pending", "resolved", "needs_clarification"]),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
-      
+      let modifierName = "مسؤول الدعم";
+
       const ticketResult = await db
-        .select({ id: supportTickets.id, userId: supportTickets.userId })
+        .select({
+          id: supportTickets.id,
+          userId: supportTickets.userId,
+          status: supportTickets.status,
+          ticketType: supportTickets.ticketType,
+          replies: supportTickets.replies,
+        })
         .from(supportTickets)
         .where(eq(supportTickets.id, input.ticketId))
         .limit(1);
@@ -339,9 +357,60 @@ export const supportTicketsRouter = router({
       }
       const ticket = ticketResult[0];
 
+      const updateData: any = { status: input.status };
+
+      if (input.status === "resolved" && ticket.status !== "resolved") {
+        // جلب اسم الشخص الذي قام بتغيير حالة التذكرة
+        const modifier = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, ctx.user.id))
+          .limit(1);
+        modifierName = modifier[0]?.name || "مسؤول الدعم";
+
+        let autoReplyMessage = "";
+        if (ticket.ticketType === "technical_issue") {
+          autoReplyMessage = `تم حل المشكلة المُبلغ عنها بنجاح، في حال وجود اي ملاحظات إضافية، يسعدنا استقبالها في اي وقت \n\n${modifierName} - فريق الدعم الفني`;
+        } else if (ticket.ticketType === "suggestion") {
+          autoReplyMessage = `تمت مراجعة المقترح وتنفيذه بشكل كامل، في حال وجود اي ملاحظات او تحسينات إضافية، نسعد ب استقبالها في اي وقت\n\n${modifierName} - فريق الدعم الفني`;
+        }
+
+        if (autoReplyMessage) {
+          const autoReply = {
+            id: nanoid(),
+            senderId: ctx.user.id,
+            senderName: modifierName,
+            message: autoReplyMessage,
+            attachments: [],
+            createdAt: new Date().toISOString(),
+          };
+
+          let currentReplies: any[] = [];
+          const rawReplies = ticket.replies;
+          if (Array.isArray(rawReplies)) {
+            currentReplies = rawReplies.filter(
+              (r: any) => r && typeof r === "object" && r.id && r.message
+            );
+          } else if (typeof rawReplies === "string" && rawReplies.trim()) {
+            try {
+              const parsed = JSON.parse(rawReplies);
+              if (Array.isArray(parsed)) {
+                currentReplies = parsed.filter(
+                  (r: any) => r && typeof r === "object" && r.id && r.message
+                );
+              }
+            } catch {
+              currentReplies = [];
+            }
+          }
+
+          updateData.replies = [...currentReplies, autoReply];
+        }
+      }
+
       await db
         .update(supportTickets)
-        .set({ status: input.status })
+        .set(updateData)
         .where(eq(supportTickets.id, input.ticketId));
 
       try {
@@ -354,7 +423,7 @@ export const supportTicketsRouter = router({
         const title = "تحديث حالة التذكرة";
         const message = `تم تغيير حالة تذكرة الدعم رقم #${ticket.id} إلى: ${statusNamesAr[input.status]}`;
 
-        // Notify the owner directly
+        // Notify the owner directly about status change
         await createNotification({
           userId: ticket.userId,
           type: "info",
@@ -363,8 +432,23 @@ export const supportTicketsRouter = router({
           relatedType: "support_ticket",
           relatedId: ticket.id,
         });
+
+        // Also notify about the new reply if status was resolved
+        if (input.status === "resolved" && ticket.status !== "resolved") {
+          await createNotification({
+            userId: ticket.userId,
+            type: "info",
+            title: "رد جديد على التذكرة",
+            message: `قام المسؤول ${modifierName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
+            relatedType: "support_ticket",
+            relatedId: ticket.id,
+          });
+        }
       } catch (err) {
-        console.error("Failed to send support ticket status update notification:", err);
+        console.error(
+          "Failed to send support ticket status update notification:",
+          err
+        );
       }
 
       return { success: true };
@@ -373,7 +457,7 @@ export const supportTicketsRouter = router({
   // تنظيف الردود التالفة في جميع التذاكر (للمسؤولين)
   cleanupReplies: permissionProcedure("View_Tickets").mutation(async () => {
     const db = (await getDb())!;
-    
+
     const allTicketsData = await db.select().from(supportTickets);
     let fixedCount = 0;
 

@@ -11,11 +11,12 @@ const { mockCheckPermission, mockProcedure } = vi.hoisted(() => {
 });
 
 // Mock permissions module using hoisted variables and original imports
-vi.mock("./permissions", async (importOriginal) => {
+vi.mock("./permissions", async importOriginal => {
   const actual = await importOriginal<typeof import("./permissions")>();
   return {
     ...actual,
-    checkPermission: (userId: number, perm: string) => mockCheckPermission(userId, perm),
+    checkPermission: (userId: number, perm: string) =>
+      mockCheckPermission(userId, perm),
     permissionProcedure: (perm: string) => {
       return mockProcedure.use(async ({ ctx, next }: any) => {
         const has = await mockCheckPermission(ctx.user.id, perm);
@@ -24,7 +25,7 @@ vi.mock("./permissions", async (importOriginal) => {
         }
         return next({ ctx });
       });
-    }
+    },
   };
 });
 
@@ -41,7 +42,7 @@ const mockDb = {
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnValue(Promise.resolve([{ insertId: 1 }])),
   update: vi.fn().mockReturnThis(),
-  set: vi.fn().mockReturnValue(Promise.resolve()),
+  set: vi.fn().mockReturnThis(),
   leftJoin: vi.fn().mockReturnThis(),
 };
 
@@ -80,6 +81,10 @@ describe("Support Tickets Router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckPermission.mockReset();
+    mockDb.limit.mockReset().mockReturnValue(Promise.resolve([]));
+    mockDb.values
+      .mockReset()
+      .mockReturnValue(Promise.resolve([{ insertId: 1 }]));
   });
 
   describe("createTicket - RBAC Validation", () => {
@@ -193,7 +198,125 @@ describe("Support Tickets Router", () => {
       const ctx = createMockContext("service_requester");
       const caller = appRouter.createCaller(ctx);
 
-      await expect(caller.supportTickets.getAllTickets()).rejects.toThrow("FORBIDDEN: ليس لديك صلاحية: View_Tickets");
+      await expect(caller.supportTickets.getAllTickets()).rejects.toThrow(
+        "FORBIDDEN: ليس لديك صلاحية: View_Tickets"
+      );
+    });
+  });
+
+  describe("updateStatus - Auto Reply on Resolved", () => {
+    it("should append a technical issue auto-reply when status is changed to resolved", async () => {
+      mockCheckPermission.mockResolvedValue(true);
+      const ctx = createMockContext("system_admin");
+      const caller = appRouter.createCaller(ctx);
+
+      // Mock first select (ticket) and second select (modifier user)
+      mockDb.limit
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            userId: 1,
+            status: "pending",
+            ticketType: "technical_issue",
+            replies: [],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            name: "أحمد المسؤول",
+          },
+        ]);
+
+      const result = await caller.supportTickets.updateStatus({
+        ticketId: 1,
+        status: "resolved",
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "resolved",
+          replies: expect.arrayContaining([
+            expect.objectContaining({
+              senderName: "أحمد المسؤول",
+              message: expect.stringContaining(
+                "تم حل المشكلة المُبلغ عنها بنجاح"
+              ),
+            }),
+          ]),
+        })
+      );
+    });
+
+    it("should append a suggestion auto-reply when status is changed to resolved", async () => {
+      mockCheckPermission.mockResolvedValue(true);
+      const ctx = createMockContext("system_admin");
+      const caller = appRouter.createCaller(ctx);
+
+      // Mock first select (ticket) and second select (modifier user)
+      mockDb.limit
+        .mockResolvedValueOnce([
+          {
+            id: 2,
+            userId: 1,
+            status: "pending",
+            ticketType: "suggestion",
+            replies: [],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            name: "سارة المشرفة",
+          },
+        ]);
+
+      const result = await caller.supportTickets.updateStatus({
+        ticketId: 2,
+        status: "resolved",
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "resolved",
+          replies: expect.arrayContaining([
+            expect.objectContaining({
+              senderName: "سارة المشرفة",
+              message: expect.stringContaining(
+                "تمت مراجعة المقترح وتنفيذه بشكل كامل"
+              ),
+            }),
+          ]),
+        })
+      );
+    });
+
+    it("should not append auto-reply if ticket status was already resolved", async () => {
+      mockCheckPermission.mockResolvedValue(true);
+      const ctx = createMockContext("system_admin");
+      const caller = appRouter.createCaller(ctx);
+
+      // Mock select (ticket)
+      mockDb.limit.mockResolvedValueOnce([
+        {
+          id: 1,
+          userId: 1,
+          status: "resolved",
+          ticketType: "technical_issue",
+          replies: [],
+        },
+      ]);
+
+      const result = await caller.supportTickets.updateStatus({
+        ticketId: 1,
+        status: "resolved",
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.set).toHaveBeenCalledWith({ status: "resolved" });
     });
   });
 });
