@@ -824,6 +824,7 @@ export default function NotificationCustomization() {
 
   const editorRef = useRef<HTMLDivElement>(null);
   const lastInitializedTriggerId = useRef<string | null>(null);
+  const debounceTimerRef = useRef<any>(null);
 
   // تحويل القالب من نص عادي إلى HTML يحتوي على أزرار المتغيرات كـ spans غير قابلة للتعديل
   const convertTemplateToHtml = (template: string, variables: { placeholder: string; nameAr: string }[]) => {
@@ -881,6 +882,16 @@ export default function NotificationCustomization() {
       const templateText = convertHtmlToTemplate(html);
       setEditingTemplateMessage(templateText);
     }
+  };
+
+  // مزامنة مؤجلة أثناء الكتابة لتفادي بطء الاستجابة ولتمكين الكتابة اللحظية السلسة
+  const debouncedSyncContent = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      syncContent();
+    }, 350);
   };
 
   const editorRefCallback = useCallback((node: HTMLDivElement | null) => {
@@ -1151,9 +1162,15 @@ export default function NotificationCustomization() {
 
   const handleSaveTemplate = () => {
     if (!selectedTriggerForEdit) return;
+    
+    // قراءة النص النهائي من الـ DOM مباشرة لضمان حفظ التعديلات اللحظية غير المتزامنة بعد
+    const finalMessage = editorRef.current 
+      ? convertHtmlToTemplate(editorRef.current.innerHTML)
+      : editingTemplateMessage;
+
     updateTemplateMutation.mutate({
       triggerId: selectedTriggerForEdit.id,
-      templateMessage: editingTemplateMessage
+      templateMessage: finalMessage
     });
   };
 
@@ -1597,7 +1614,7 @@ export default function NotificationCustomization() {
                   id="template-editor"
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={syncContent}
+                  onInput={debouncedSyncContent}
                   onClick={handleContentEditableClick}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
