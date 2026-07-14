@@ -101,6 +101,16 @@ describe("Support Tickets Router", () => {
 
       expect(result).toEqual({ success: true });
       expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockDb.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          replies: expect.arrayContaining([
+            expect.objectContaining({
+              senderName: "فريق الدعم الفني",
+              message: expect.stringContaining("تم استلام التذكرة بنجاح"),
+            }),
+          ]),
+        })
+      );
     });
 
     it("should block ticket creation if user does not have Create_Ticket permission", async () => {
@@ -317,6 +327,48 @@ describe("Support Tickets Router", () => {
       expect(result).toEqual({ success: true });
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockDb.set).toHaveBeenCalledWith({ status: "resolved" });
+    });
+
+    it("should append a needs clarification auto-reply when status is changed to needs_clarification", async () => {
+      mockCheckPermission.mockResolvedValue(true);
+      const ctx = createMockContext("system_admin");
+      const caller = appRouter.createCaller(ctx);
+
+      // Mock first select (ticket) and second select (modifier user)
+      mockDb.limit
+        .mockResolvedValueOnce([
+          {
+            id: 3,
+            userId: 1,
+            status: "pending",
+            ticketType: "technical_issue",
+            replies: [],
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            name: "خالد المراجع",
+          },
+        ]);
+
+      const result = await caller.supportTickets.updateStatus({
+        ticketId: 3,
+        status: "needs_clarification",
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockDb.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "needs_clarification",
+          replies: expect.arrayContaining([
+            expect.objectContaining({
+              senderName: "خالد المراجع",
+              message: expect.stringContaining("نرجو توضيح الطلب بشكل أدق"),
+            }),
+          ]),
+        })
+      );
     });
   });
 });

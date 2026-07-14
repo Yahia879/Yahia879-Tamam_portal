@@ -69,13 +69,23 @@ export const supportTicketsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
 
+      const autoReply = {
+        id: nanoid(),
+        senderId: 0,
+        senderName: "فريق الدعم الفني",
+        message:
+          "شكرًا للتواصل معنا،\nتم استلام التذكرة بنجاح، وسيتم الرد من قبل فريق الدعم الفني في أقرب وقت ممكن.\n\nفريق الدعم الفني",
+        attachments: [],
+        createdAt: new Date().toISOString(),
+      };
+
       const newTicket = {
         userId: ctx.user.id,
         ticketType: input.ticketType,
         description: input.description,
         attachments: input.attachments || [],
         status: "pending" as const,
-        replies: [],
+        replies: [autoReply],
         createdAt: input.createdAt || new Date(),
       };
 
@@ -358,8 +368,13 @@ export const supportTicketsRouter = router({
       const ticket = ticketResult[0];
 
       const updateData: any = { status: input.status };
+      const isResolvedTransition =
+        input.status === "resolved" && ticket.status !== "resolved";
+      const isNeedsClarificationTransition =
+        input.status === "needs_clarification" &&
+        ticket.status !== "needs_clarification";
 
-      if (input.status === "resolved" && ticket.status !== "resolved") {
+      if (isResolvedTransition || isNeedsClarificationTransition) {
         // جلب اسم الشخص الذي قام بتغيير حالة التذكرة
         const modifier = await db
           .select({ name: users.name })
@@ -369,10 +384,14 @@ export const supportTicketsRouter = router({
         modifierName = modifier[0]?.name || "مسؤول الدعم";
 
         let autoReplyMessage = "";
-        if (ticket.ticketType === "technical_issue") {
-          autoReplyMessage = `تم حل المشكلة المُبلغ عنها بنجاح، في حال وجود اي ملاحظات إضافية، يسعدنا استقبالها في اي وقت \n\n${modifierName} - فريق الدعم الفني`;
-        } else if (ticket.ticketType === "suggestion") {
-          autoReplyMessage = `تمت مراجعة المقترح وتنفيذه بشكل كامل، في حال وجود اي ملاحظات او تحسينات إضافية، نسعد ب استقبالها في اي وقت\n\n${modifierName} - فريق الدعم الفني`;
+        if (isResolvedTransition) {
+          if (ticket.ticketType === "technical_issue") {
+            autoReplyMessage = `تم حل المشكلة المُبلغ عنها بنجاح، في حال وجود اي ملاحظات إضافية، يسعدنا استقبالها في اي وقت \n\n${modifierName} - فريق الدعم الفني`;
+          } else if (ticket.ticketType === "suggestion") {
+            autoReplyMessage = `تمت مراجعة المقترح وتنفيذه بشكل كامل، في حال وجود اي ملاحظات او تحسينات إضافية، نسعد ب استقبالها في اي وقت\n\n${modifierName} - فريق الدعم الفني`;
+          }
+        } else if (isNeedsClarificationTransition) {
+          autoReplyMessage = `شكرا للتواصل معنا،\nنرجو توضيح الطلب بشكل أدق لنتمكن من تقديم الدعم المطلوب ب أفضل صورة ممكنة\n\n${modifierName} - فريق الدعم الفني`;
         }
 
         if (autoReplyMessage) {
@@ -433,8 +452,8 @@ export const supportTicketsRouter = router({
           relatedId: ticket.id,
         });
 
-        // Also notify about the new reply if status was resolved
-        if (input.status === "resolved" && ticket.status !== "resolved") {
+        // Also notify about the new reply if status was resolved or needs_clarification
+        if (isResolvedTransition || isNeedsClarificationTransition) {
           await createNotification({
             userId: ticket.userId,
             type: "info",
