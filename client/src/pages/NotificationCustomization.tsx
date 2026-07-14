@@ -955,6 +955,35 @@ export default function NotificationCustomization() {
     return trigger?.defaultTemplate || "";
   };
 
+  const DUMMY_SAMPLES: Record<string, string> = {
+    "{رقم_الطلب}": "10025",
+    "{اسم_المستفيد}": "أحمد علي",
+    "{اسم_الإمام}": "الشيخ خالد",
+    "{اسم_المسجد}": "مسجد التقوى",
+    "{اسم_المسؤول}": "عبد الله محمد",
+    "{رقم_التذكرة}": "7",
+    "{الحالة_الجديدة}": "تحتاج توضيح",
+    "{اسم_المرسل}": "سعد الغامدي",
+    "{اسم_المورد}": "شركة المقاولات الحديثة",
+    "{رقم_العرض}": "QT-88",
+    "{رقم_العقد}": "CON-2024",
+    "{رقم_التقرير}": "REP-45",
+    "{اسم_المشروع}": "ترميم جامع النور",
+    "{رقم_طلب_الصرف}": "DISB-99",
+    "{رقم_أمر_الصرف}": "ORD-550",
+    "{السبب}": "عدم اكتمال المرفقات",
+    "{القيمة}": "50,000"
+  };
+
+  const getTemplatePreview = (triggerId: string) => {
+    let template = getTemplateMessage(triggerId);
+    if (!template) return "";
+    Object.entries(DUMMY_SAMPLES).forEach(([placeholder, sample]) => {
+      template = template.replace(new RegExp(placeholder, 'g'), sample);
+    });
+    return template;
+  };
+
   const handleOpenEditTemplateModal = (trigger: any) => {
     lastInitializedTriggerId.current = null;
     setSelectedTriggerForEdit(trigger);
@@ -1415,10 +1444,7 @@ export default function NotificationCustomization() {
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium bg-[#09707e]/5 dark:bg-[#09707e]/10 px-2 py-0.5 rounded border border-[#09707e]/15 inline-block max-w-full truncate align-middle" title={getTemplateMessage(trig.id)}>
-                                القالب المعتمد: {getTemplateMessage(trig.id)}
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">{trig.description}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
@@ -1475,10 +1501,7 @@ export default function NotificationCustomization() {
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
-                              <div className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium bg-[#09707e]/5 dark:bg-[#09707e]/10 px-2 py-0.5 rounded border border-[#09707e]/15 inline-block max-w-full truncate align-middle" title={getTemplateMessage(trig.id)}>
-                                القالب المعتمد: {getTemplateMessage(trig.id)}
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1.5">{trig.description}</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
