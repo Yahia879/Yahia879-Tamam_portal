@@ -5,7 +5,7 @@ import { router, protectedProcedure, adminProcedure } from "../_core/trpc";
 
 dotenv.config();
 import { getDb } from "../db";
-import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects, notificationTriggerSettings } from "../../drizzle/schema";
+import { notifications, users, roles as rolesTable, suppliers, mosqueRequests, projects, notificationTriggerSettings, notificationTemplates } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
@@ -150,6 +150,79 @@ async function sendWhatsApp(phone: string, title: string, message: string) {
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
   }
+}
+
+const DEFAULT_TEMPLATES: Record<string, string> = {
+  notes_response_submitted: "قام المستفيد {اسم_المستفيد} بتقديم رد على الملاحظات للطلب رقم {رقم_الطلب}",
+  exception_request_submitted: "قام الإمام {اسم_الإمام} بتقديم طلب استثناء للطلب رقم {رقم_الطلب}",
+  mosque_created: "تم إضافة مسجد جديد {اسم_المسجد} وهو بانتظار الموافقة",
+  mosque_approved: "تم قبول طلب تسجيل المسجد الخاص بك: {اسم_المسجد}",
+  request_created_admin: "قام المسؤول {اسم_المسؤول} بإنشاء طلب جديد رقم {رقم_الطلب}",
+  request_created_beneficiary: "تم إنشاء طلب جديد رقم {رقم_الطلب} وهو بانتظار المعالجة",
+  stage_initial_review: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: المراجعة الأولية",
+  stage_field_visit: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: الزيارة الميدانية",
+  field_visit_report_submitted: "تم رفع تقرير زيارة ميدانية من قبل الفريق الميداني للطلب رقم {رقم_الطلب}",
+  quick_report_submitted: "تم رفع تقرير الاستجابة السريعة للطلب رقم {رقم_الطلب}",
+  converted_to_project: "تم تحويل الطلب رقم {رقم_الطلب} إلى مشروع ويحتاج للتقييم المالي",
+  stage_financial_eval: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التقييم المالي واعتماد العرض",
+  stage_contracting: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التعاقد",
+  stage_execution: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التنفيذ",
+  stage_closed: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: الإغلاق",
+  support_ticket_created: "تم إنشاء تذكرة دعم فني جديدة رقم #{رقم_التذكرة}",
+  support_ticket_status_changed: "تم تغيير حالة تذكرة الدعم رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
+  support_ticket_reply_added: "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم رقم #{رقم_التذكرة}",
+  supplier_created: "تم تسجيل مورد جديد في البوابة: \"{اسم_المورد}\" وهو بانتظار المراجعة والاعتماد",
+  supplier_approved: "قام المسؤول {اسم_المسؤول} باعتماد المورد: \"{اسم_المورد}\" بنجاح",
+  supplier_rejected: "قام المسؤول {اسم_المسؤول} برفض المورد: \"{اسم_المورد}\" بسبب: {السبب}",
+  quotation_created: "تم إضافة عرض سعر جديد رقم \"{رقم_العرض}\" من قبل المورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب}",
+  quotation_approved: "تم اعتماد عرض السعر رقم \"{رقم_العرض}\" للمورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+  contract_created: "تم إنشاء عقد جديد رقم \"{رقم_العقد}\" مع المورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+  contract_approved: "تم اعتماد العقد رقم \"{رقم_العقد}\" للمورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+  progress_report_created: "تم إنشاء تقرير إنجاز جديد رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
+  progress_report_approved: "تم اعتماد تقرير الإنجاز رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
+  disbursement_request_created: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" لطلب صرف دفعة أولى للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_converted_to_order: "تم تحويل طلب الصرف رقم \"{رقم_طلب_الصرف}\" إلى أمر صرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_approved: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
+};
+
+function formatCustomMessage(defaultTemplate: string, customTemplate: string, actualMessage: string): string {
+  try {
+    // 1. Convert defaultTemplate into a regex to extract variables
+    let regexStr = defaultTemplate.replace(/[-\/\\^$*+?.()|[\]{}]/g, (match) => {
+      if (match === '{' || match === '}') return match;
+      return '\\' + match;
+    });
+
+    const placeholders: string[] = [];
+    const placeholderRegex = /\{([^}]+)\}/g;
+    let match;
+    while ((match = placeholderRegex.exec(defaultTemplate)) !== null) {
+      placeholders.push(match[1]);
+    }
+
+    let pattern = regexStr;
+    placeholders.forEach((placeholder) => {
+      pattern = pattern.replace(`{${placeholder}}`, "(.+?)");
+    });
+
+    const regex = new RegExp(`^${pattern}$`);
+    const actualMatch = actualMessage.match(regex);
+
+    if (actualMatch) {
+      let result = customTemplate;
+      placeholders.forEach((placeholder, index) => {
+        const value = actualMatch[index + 1];
+        if (value) {
+          result = result.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value);
+        }
+      });
+      return result;
+    }
+  } catch (error) {
+    console.error("Error formatting custom message:", error);
+  }
+  return actualMessage;
 }
 
 export async function createNotification(data: {
@@ -355,6 +428,23 @@ export async function createNotification(data: {
       }
     }
 
+    // جلب القالب المخصص من قاعدة البيانات وتطبيقه
+    let customizedMessage = data.message;
+    if (triggerId) {
+      const template = await db
+        .select()
+        .from(notificationTemplates)
+        .where(eq(notificationTemplates.triggerId, triggerId))
+        .limit(1);
+
+      if (template && template.length > 0 && template[0].templateMessage) {
+        const defaultTpl = DEFAULT_TEMPLATES[triggerId];
+        if (defaultTpl) {
+          customizedMessage = formatCustomMessage(defaultTpl, template[0].templateMessage, data.message);
+        }
+      }
+    }
+
     let result = null;
 
     // 3. Only insert into database notifications table if in-app notifications are enabled
@@ -363,7 +453,7 @@ export async function createNotification(data: {
         userId: data.userId,
         type: data.type as any,
         title: data.title,
-        message: data.message,
+        message: customizedMessage,
         relatedType: data.relatedType,
         relatedId: data.relatedId,
         isRead: false,
@@ -372,21 +462,21 @@ export async function createNotification(data: {
 
     // 4. Send external notifications (Email and WhatsApp)
     if (user.role === "service_requester" && user.phone) {
-      sendWhatsApp(user.phone, data.title, data.message).catch((err) => {
+      sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
         console.error("Async WhatsApp error:", err);
       });
     }
 
     if ((isEmailEnabled || user.role === "service_requester") && user.email) {
       if (!data.title.includes("طلب الاستثناء")) {
-        sendEmailNotification(user.email, data.title, data.message).catch((err) => {
+        sendEmailNotification(user.email, data.title, customizedMessage).catch((err) => {
           console.error("Async Email error:", err);
         });
       }
     }
 
     if (isWhatsappEnabled && user.phone && user.role !== "service_requester") {
-      sendWhatsApp(user.phone, data.title, data.message).catch((err) => {
+      sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
         console.error("Async WhatsApp error:", err);
       });
     }
@@ -1117,6 +1207,45 @@ export const notificationsRouter = router({
         .onDuplicateKeyUpdate({
           set: {
             enabled: input.enabled,
+          },
+        });
+
+      return { success: true };
+    }),
+
+  // جلب قوالب رسائل الإشعارات المخصصة
+  getNotificationTemplates: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+      return db.select().from(notificationTemplates);
+    }),
+
+  // تحديث أو إنشاء قالب رسالة إشعار مخصصة
+  updateNotificationTemplate: protectedProcedure
+    .input(
+      z.object({
+        triggerId: z.string(),
+        templateMessage: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      await db
+        .insert(notificationTemplates)
+        .values({
+          triggerId: input.triggerId,
+          templateMessage: input.templateMessage,
+        })
+        .onDuplicateKeyUpdate({
+          set: {
+            templateMessage: input.templateMessage,
           },
         });
 
