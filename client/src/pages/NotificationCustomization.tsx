@@ -841,7 +841,7 @@ export default function NotificationCustomization() {
       const regex = new RegExp(escapedPlaceholder, 'g');
       html = html.replace(
         regex,
-        `<span data-placeholder="${v.placeholder}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${v.placeholder}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>`
+        `<span data-placeholder="${v.placeholder}" contenteditable="false" class="relative inline-flex items-center bg-[#09707e]/10 dark:bg-[#09707e]/20 text-[#09707e] dark:text-teal-350 pr-6 pl-2.5 py-0.5 rounded-lg border border-[#09707e]/25 dark:border-[#09707e]/40 text-[11px] sm:text-xs font-bold mx-1.5 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${v.placeholder}<button type="button" class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-4.5 h-4.5 min-w-[18px] min-h-[18px] bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full text-[10px] font-extrabold transition-all duration-150 select-none shadow-xs border border-red-200/80 dark:bg-red-950/60 dark:border-red-900/60 leading-none cursor-pointer">×</button></span>`
       );
     });
     return html;
@@ -965,7 +965,7 @@ export default function NotificationCustomization() {
   const handleInsertVariable = (placeholder: string) => {
     if (!editorRef.current || !selectedTriggerForEdit) return;
 
-    const chipHtml = `<span data-placeholder="${placeholder}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${placeholder}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>&nbsp;`;
+    const chipHtml = `<span data-placeholder="${placeholder}" contenteditable="false" class="relative inline-flex items-center bg-[#09707e]/10 dark:bg-[#09707e]/20 text-[#09707e] dark:text-teal-350 pr-6 pl-2.5 py-0.5 rounded-lg border border-[#09707e]/25 dark:border-[#09707e]/40 text-[11px] sm:text-xs font-bold mx-1.5 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${placeholder}<button type="button" class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-4.5 h-4.5 min-w-[18px] min-h-[18px] bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full text-[10px] font-extrabold transition-all duration-150 select-none shadow-xs border border-red-200/80 dark:bg-red-950/60 dark:border-red-900/60 leading-none cursor-pointer">×</button></span> `;
 
     editorRef.current.focus();
 
@@ -1123,7 +1123,7 @@ export default function NotificationCustomization() {
           draggedElement.remove();
         }
 
-        const chipHtml = `<span data-placeholder="${data}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${data}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>&nbsp;`;
+        const chipHtml = `<span data-placeholder="${data}" contenteditable="false" class="relative inline-flex items-center bg-[#09707e]/10 dark:bg-[#09707e]/20 text-[#09707e] dark:text-teal-350 pr-6 pl-2.5 py-0.5 rounded-lg border border-[#09707e]/25 dark:border-[#09707e]/40 text-[11px] sm:text-xs font-bold mx-1.5 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${data}<button type="button" class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-4.5 h-4.5 min-w-[18px] min-h-[18px] bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-full text-[10px] font-extrabold transition-all duration-150 select-none shadow-xs border border-red-200/80 dark:bg-red-950/60 dark:border-red-900/60 leading-none cursor-pointer">×</button></span> `;
         
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = chipHtml;
@@ -1148,7 +1148,12 @@ export default function NotificationCustomization() {
     const target = e.target as HTMLElement;
     if (target.getAttribute('data-type') === 'variable-chip') {
       target.classList.remove('is-dragging');
-      target.style.display = ''; // استعادة ظهور العنصر الأصلي في حالة إلغاء السحب
+      if (e.dataTransfer.dropEffect === 'none') {
+        // إذا تم إفلات العنصر خارج المحرر (إلغاء السحب أو سحبه للخارج)، نقوم بحذفه تماماً كأنه نقر زر الإلغاء
+        target.remove();
+      } else {
+        target.style.display = ''; // استعادة ظهور العنصر الأصلي في حالة إلغاء السحب
+      }
     }
     const placeholder = editorRef.current?.querySelector('[data-type="drop-placeholder"]');
     if (placeholder) {
@@ -1636,7 +1641,7 @@ export default function NotificationCustomization() {
                   const usedVars = getUsedVariables(editingTemplateMessage, selectedTriggerForEdit.variables);
                   return (
                     <div className="space-y-2 bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-border/40 text-right">
-                      <span className="text-[11px] sm:text-xs font-bold text-sidebar-accent dark:text-teal-450 block text-right">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 block text-right">
                         المتغيرات المتاحة (انقر على المتغير أو اسحبه لإدراجه في النص):
                       </span>
                       <div className="flex flex-wrap gap-2 mt-1.5 justify-start" dir="rtl">
@@ -1652,16 +1657,16 @@ export default function NotificationCustomization() {
                                   e.dataTransfer.setData("text/plain", variable.placeholder);
                                 }
                               }}
-                              className={`inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-sm ${
-                                isUsed
-                                  ? "opacity-65 cursor-not-allowed pointer-events-none bg-slate-100/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-800/80"
-                                  : "border-sidebar-border/60 bg-sidebar-accent/5 hover:bg-sidebar-accent text-sidebar-accent dark:text-teal-450 hover:text-sidebar-foreground hover:-translate-y-0.5 cursor-pointer active:scale-95 transition-all"
+                              className={`inline-flex items-center gap-1.5 text-[11px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-xs ${
+                                 isUsed
+                                   ? "opacity-65 cursor-not-allowed pointer-events-none bg-slate-100/80 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800"
+                                   : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-sidebar-accent hover:text-white hover:-translate-y-0.5 cursor-pointer active:scale-95 transition-all"
                                }`}
                               title={isUsed ? "تم إدراج هذا المتغير بالفعل" : `إدراج ${variable.nameAr}`}
                               type="button"
                               disabled={isUsed}
                             >
-                              <span className="font-mono font-semibold">{variable.placeholder}</span>
+                              <span className="font-semibold">{variable.placeholder}</span>
                             </button>
                           );
                         })}
