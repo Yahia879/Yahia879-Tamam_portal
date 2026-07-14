@@ -7,10 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const RequestNotificationsTooltip = () => (
   <div className="space-y-3 text-right max-w-sm sm:max-w-md text-foreground" dir="rtl">
@@ -457,47 +458,375 @@ export default function NotificationCustomization() {
     { id: "financial_manager", nameAr: "الإدارة المالية", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
   ];
 
-  // المشغلات/الأحداث التفصيلية التي ترسل إشعارات
+
+
+  // المشغلات/الأحداث التفصيلية التي ترسل إشعارات مع القوالب والمتغيرات
   const NOTIFICATION_TRIGGERS = [
-    { id: "notes_response_submitted", category: "request", nameAr: "تقديم رد من المستفيد على الملاحظات/الرفض", description: "قام المستفيد بتقديم رد كتابي أو رفع المرفق المطلوب لحسابه" },
-    { id: "exception_request_submitted", category: "request", nameAr: "تقديم طلب استثناء جديد من الإمام", description: "قام الإمام بتقديم طلب استثناء لتقديم طلب جديد بالرغم من وجود طلب معلق" },
-    { id: "mosque_created", category: "request", nameAr: "إضافة مسجد جديد بانتظار الموافقة", description: "تم إضافة مسجد جديد وهو بانتظار الموافقة" },
-    { id: "mosque_approved", category: "request", nameAr: "قبول طلب تسجيل مسجد", description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان" },
-    { id: "request_created_admin", category: "request", nameAr: "إنشاء طلب من مسؤول آخر", description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم..." },
-    { id: "request_created_beneficiary", category: "request", nameAr: "إنشاء طلب من قبل المستفيد", description: "تم إنشاء طلب جديد وهو بانتظار المعالجة" },
-    { id: "stage_initial_review", category: "request", nameAr: "تغير حالة الطلب لـ المراجعة الأولية", description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية" },
-    { id: "stage_field_visit", category: "request", nameAr: "تغير حالة الطلب لـ الزيارة الميدانية", description: "قام المسؤول بنقل الطلب إلى مرحلة: الزيارة الميدانية" },
-    { id: "field_visit_report_submitted", category: "request", nameAr: "رفع تقرير الزيارة الميدانية من قبل فريق الزيارة الميدانية", description: "تم رفع تقرير زيارة ميدانية من قبل فريق ميداني جديد" },
-    { id: "quick_report_submitted", category: "request", nameAr: "رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة", description: "تم رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة" },
-    { id: "converted_to_project", category: "request", nameAr: "تحويل الطلب لمشروع", description: "تم تحويل الطلب إلى مشروع ويحتاج للتقييم المالي" },
-    { id: "stage_financial_eval", category: "request", nameAr: "تغير حالة الطلب لـ التقييم المالي واعتماد العرض", description: "قام المسؤول بنقل الطلب إلى مرحلة: التقييم المالي واعتماد العرض" },
-    { id: "stage_contracting", category: "request", nameAr: "تغير حالة الطلب لـ التعاقد", description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد" },
-    { id: "stage_execution", category: "request", nameAr: "تغير حالة الطلب لـ التنفيذ", description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ" },
-    { id: "stage_closed", category: "request", nameAr: "تغير حالة الطلب لـ الإغلاق", description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق" },
-    { id: "support_ticket_created", category: "request", nameAr: "اشعار وصول تذكرة دعم", description: "قام المسؤول محمد بإضافة رد جديد على تذكرة الدعم رقم #7" },
-    { id: "support_ticket_status_changed", category: "request", nameAr: "اشعار تغير حالة التذكرة", description: "تم تغيير حالة تذكرة الدعم رقم #7 إلى: تحتاج توضيح" },
-    { id: "support_ticket_reply_added", category: "request", nameAr: "اشعار رد عالتذكرة", description: "قام مدير النظام بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #7" },
-    
-    // === قسم المالية والعقود ===
-    { id: "supplier_created", category: "financial", nameAr: "إضافة مورد جديد", description: 'تم تسجيل مورد جديد في البوابة: "محمد الأشعري" وهو بانتظار المراجعة والاعتماد' },
-    { id: "supplier_approved", category: "financial", nameAr: "اعتماد مورد", description: 'قام المسؤول عبدالإله المرزوق باعتماد المورد: "محمد الأشعري" بنجاح' },
-    { id: "supplier_rejected", category: "financial", nameAr: "رفض مورد", description: 'قام المسؤول عبدالإله المرزوق برفض المورد: "محمد الأشعري" بسبب: عدم الالتزام' },
-    { id: "quotation_created", category: "financial", nameAr: "إضافة عرض سعر جديد", description: 'تم إضافة عرض سعر جديد رقم "PW9R-QJAUT2MQ-QUO" من قبل المورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124' },
-    { id: "quotation_approved", category: "financial", nameAr: "اعتماد عرض سعر", description: 'تم اعتماد عرض السعر رقم "17DF-OC08MPTC-QUO" للمورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124 بقيمة 119951.00 ريال' },
-    { id: "contract_created", category: "financial", nameAr: "إنشاء عقد جديد", description: 'تم إنشاء عقد جديد رقم "CNT-2026-0068" مع المورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000 ريال' },
-    { id: "contract_approved", category: "financial", nameAr: "اعتماد عقد", description: 'تم اعتماد العقد رقم "CNT-2026-0068" للمورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000.00 ريال' },
-    { id: "progress_report_created", category: "financial", nameAr: "إنشاء تقرير إنجاز", description: 'تم إنشاء تقرير إنجاز جديد رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014' },
-    { id: "progress_report_approved", category: "financial", nameAr: "اعتماد تقرير إنجاز", description: 'تم اعتماد تقرير الإنجاز رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014' },
-    { id: "disbursement_request_created", category: "financial", nameAr: "إنشاء طلب صرف", description: 'تم إنشاء طلب صرف جديد رقم "DR-2026-0051" لطلب صرف دفعة أولى للمشروع "مشروع تجريبي" بقيمة 1000000 ريال' },
-    { id: "disbursement_converted_to_order", category: "financial", nameAr: "تحويل طلب الصرف إلى أمر صرف", description: 'تم تحويل طلب الصرف رقم "DR-2026-0051" إلى أمر صرف رقم "DO-2026-0023" للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال' },
-    { id: "disbursement_order_approved", category: "financial", nameAr: "اعتماد أمر صرف", description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال' },
-    { id: "disbursement_order_rejected", category: "financial", nameAr: "رفض أمر صرف", description: 'تم رفض أمر الصرف رقم "DO-2026-0022" (طلب رقم DR-2026-0045) للمشروع "طلب صرف مخصص / عام" بقيمة 1001.00 ريال بسبب: لا توجد معلومات كافية' },
+    {
+      id: "notes_response_submitted",
+      category: "request",
+      nameAr: "تقديم رد من المستفيد على الملاحظات/الرفض",
+      description: "قام المستفيد بتقديم رد كتابي أو رفع المرفق المطلوب لحسابه",
+      defaultTemplate: "قام المستفيد {اسم_المستفيد} بتقديم رد على الملاحظات للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "exception_request_submitted",
+      category: "request",
+      nameAr: "تقديم طلب استثناء جديد من الإمام",
+      description: "قام الإمام بتقديم طلب استثناء لتقديم طلب جديد بالرغم من وجود طلب معلق",
+      defaultTemplate: "قام الإمام {اسم_الإمام} بتقديم طلب استثناء للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{اسم_الإمام}", nameAr: "اسم الإمام" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "mosque_created",
+      category: "request",
+      nameAr: "إضافة مسجد جديد بانتظار الموافقة",
+      description: "تم إضافة مسجد جديد وهو بانتظار الموافقة",
+      defaultTemplate: "تم إضافة مسجد جديد {اسم_المسجد} وهو بانتظار الموافقة",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "mosque_approved",
+      category: "request",
+      nameAr: "قبول طلب تسجيل مسجد",
+      description: "تم قبول طلب تسجيل المسجد الخاص بك: مسجد رحمان",
+      defaultTemplate: "تم قبول طلب تسجيل المسجد الخاص بك: {اسم_المسجد}",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "request_created_admin",
+      category: "request",
+      nameAr: "إنشاء طلب من مسؤول آخر",
+      description: "قام المدير العام عبدالإله المرزوق بإنشاء طلب جديد رقم...",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بإنشاء طلب جديد رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "request_created_beneficiary",
+      category: "request",
+      nameAr: "إنشاء طلب من قبل المستفيد",
+      description: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
+      defaultTemplate: "تم إنشاء طلب جديد رقم {رقم_الطلب} وهو بانتظار المعالجة",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_initial_review",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ المراجعة الأولية",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: المراجعة الأولية",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: المراجعة الأولية",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_field_visit",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ الزيارة الميدانية",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: الزيارة الميدانية",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: الزيارة الميدانية",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "field_visit_report_submitted",
+      category: "request",
+      nameAr: "رفع تقرير الزيارة الميدانية من قبل فريق الزيارة الميدانية",
+      description: "تم رفع تقرير زيارة ميدانية من قبل فريق ميداني جديد",
+      defaultTemplate: "تم رفع تقرير زيارة ميدانية من قبل الفريق الميداني للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "quick_report_submitted",
+      category: "request",
+      nameAr: "رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة",
+      description: "تم رفع تقرير الاستجابة السريعة من قبل فريق الاستجابة السريعة",
+      defaultTemplate: "تم رفع تقرير الاستجابة السريعة للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "converted_to_project",
+      category: "request",
+      nameAr: "تحويل الطلب لمشروع",
+      description: "تم تحويل الطلب إلى مشروع ويحتاج للتقييم المالي",
+      defaultTemplate: "تم تحويل الطلب رقم {رقم_الطلب} إلى مشروع ويحتاج للتقييم المالي",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_financial_eval",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ التقييم المالي واعتماد العرض",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: التقييم المالي واعتماد العرض",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التقييم المالي واعتماد العرض",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_contracting",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ التعاقد",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: التعاقد",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التعاقد",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_execution",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ التنفيذ",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: التنفيذ",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: التنفيذ",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "stage_closed",
+      category: "request",
+      nameAr: "تغير حالة الطلب لـ الإغلاق",
+      description: "قام المسؤول بنقل الطلب إلى مرحلة: الإغلاق",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: الإغلاق",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "support_ticket_created",
+      category: "request",
+      nameAr: "اشعار وصول تذكرة دعم",
+      description: "قام المسؤول محمد بإضافة رد جديد على تذكرة الدعم رقم #7",
+      defaultTemplate: "تم إنشاء تذكرة دعم فني جديدة رقم #{رقم_التذكرة}",
+      variables: [
+        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" }
+      ]
+    },
+    {
+      id: "support_ticket_status_changed",
+      category: "request",
+      nameAr: "اشعار تغير حالة التذكرة",
+      description: "تم تغيير حالة تذكرة الدعم رقم #7 إلى: تحتاج توضيح",
+      defaultTemplate: "تم تغيير حالة تذكرة الدعم رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
+      variables: [
+        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" },
+        { placeholder: "{الحالة_الجديدة}", nameAr: "الحالة الجديدة" }
+      ]
+    },
+    {
+      id: "support_ticket_reply_added",
+      category: "request",
+      nameAr: "اشعار رد عالتذكرة",
+      description: "قام مدير النظام بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #7",
+      defaultTemplate: "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم رقم #{رقم_التذكرة}",
+      variables: [
+        { placeholder: "{اسم_المرسل}", nameAr: "اسم المرسل" },
+        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" }
+      ]
+    },
+    {
+      id: "supplier_created",
+      category: "financial",
+      nameAr: "إضافة مورد جديد",
+      description: 'تم تسجيل مورد جديد في البوابة: "محمد الأشعري" وهو بانتظار المراجعة والاعتماد',
+      defaultTemplate: "تم تسجيل مورد جديد في البوابة: \"{اسم_المورد}\" وهو بانتظار المراجعة والاعتماد",
+      variables: [
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" }
+      ]
+    },
+    {
+      id: "supplier_approved",
+      category: "financial",
+      nameAr: "اعتماد مورد",
+      description: 'قام المسؤول عبدالإله المرزوق باعتماد المورد: "محمد الأشعري" بنجاح',
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} باعتماد المورد: \"{اسم_المورد}\" بنجاح",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" }
+      ]
+    },
+    {
+      id: "supplier_rejected",
+      category: "financial",
+      nameAr: "رفض مورد",
+      description: 'قام المسؤول عبدالإله المرزوق برفض المورد: "محمد الأشعري" بسبب: عدم الالتزام',
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} برفض المورد: \"{اسم_المورد}\" بسبب: {السبب}",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" },
+        { placeholder: "{السبب}", nameAr: "السبب" }
+      ]
+    },
+    {
+      id: "quotation_created",
+      category: "financial",
+      nameAr: "إضافة عرض سعر جديد",
+      description: 'تم إضافة عرض سعر جديد رقم "PW9R-QJAUT2MQ-QUO" من قبل المورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124',
+      defaultTemplate: "تم إضافة عرض سعر جديد رقم \"{رقم_العرض}\" من قبل المورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_العرض}", nameAr: "رقم العرض" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "quotation_approved",
+      category: "financial",
+      nameAr: "اعتماد عرض سعر",
+      description: 'تم اعتماد عرض السعر رقم "17DF-OC08MPTC-QUO" للمورد "محمد الأشعري" للطلب رقم REQ-2026-DAA-0124 بقيمة 119951.00 ريال',
+      defaultTemplate: "تم اعتماد عرض السعر رقم \"{رقم_العرض}\" للمورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_العرض}", nameAr: "رقم العرض" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "contract_created",
+      category: "financial",
+      nameAr: "إنشاء عقد جديد",
+      description: 'تم إنشاء عقد جديد رقم "CNT-2026-0068" مع المورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000 ريال',
+      defaultTemplate: "تم إنشاء عقد جديد رقم \"{رقم_العقد}\" مع المورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_العقد}", nameAr: "رقم العقد" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "contract_approved",
+      category: "financial",
+      nameAr: "اعتماد عقد",
+      description: 'تم اعتماد العقد رقم "CNT-2026-0068" للمورد "محمد" للطلب رقم REQ-2026-DAA-0151 بقيمة 300000.00 ريال',
+      defaultTemplate: "تم اعتماد العقد رقم \"{رقم_العقد}\" للمورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_العقد}", nameAr: "رقم العقد" },
+        { placeholder: "{اسم_المورد}", nameAr: "اسم المورد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "progress_report_created",
+      category: "financial",
+      nameAr: "إنشاء تقرير إنجاز",
+      description: 'تم إنشاء تقرير إنجاز جديد رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014',
+      defaultTemplate: "تم إنشاء تقرير إنجاز جديد رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_التقرير}", nameAr: "رقم التقرير" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "progress_report_approved",
+      category: "financial",
+      nameAr: "اعتماد تقرير إنجاز",
+      description: 'تم اعتماد تقرير الإنجاز رقم "RPT-2026-0030" للمشروع "مشروع تجريبي" للطلب رقم REQ-2026-DAA-014',
+      defaultTemplate: "تم اعتماد تقرير الإنجاز رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_التقرير}", nameAr: "رقم التقرير" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "disbursement_request_created",
+      category: "financial",
+      nameAr: "إنشاء طلب صرف",
+      description: 'تم إنشاء طلب صرف جديد رقم "DR-2026-0051" لطلب صرف دفعة أولى للمشروع "مشروع تجريبي" بقيمة 1000000 ريال',
+      defaultTemplate: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" لطلب صرف دفعة أولى للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "disbursement_converted_to_order",
+      category: "financial",
+      nameAr: "تحويل طلب الصرف إلى أمر صرف",
+      description: 'تم تحويل طلب الصرف رقم "DR-2026-0051" إلى أمر صرف رقم "DO-2026-0023" للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال',
+      defaultTemplate: "تم تحويل طلب الصرف رقم \"{رقم_طلب_الصرف}\" إلى أمر صرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "disbursement_order_approved",
+      category: "financial",
+      nameAr: "اعتماد أمر صرف",
+      description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "مشروع تجريبي" بقيمة 1000000.00 ريال',
+      defaultTemplate: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
+      id: "disbursement_order_rejected",
+      category: "financial",
+      nameAr: "رفض أمر صرف",
+      description: 'تم رفض أمر الصرف رقم "DO-2026-0022" (طلب رقم DR-2026-0045) للمشروع "طلب صرف مخصص / عام" بقيمة 1001.00 ريال بسبب: لا توجد معلومات كافية',
+      defaultTemplate: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
+      variables: [
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" },
+        { placeholder: "{السبب}", nameAr: "السبب" }
+      ]
+    }
   ];
 
   const [selectedTriggerRoleId, setSelectedTriggerRoleId] = useState("field_team");
 
+  // حاله المودال وتعديل القوالب
+  const [selectedTriggerForEdit, setSelectedTriggerForEdit] = useState<any>(null);
+  const [editingTemplateMessage, setEditingTemplateMessage] = useState("");
+  const [isEditTemplateOpen, setIsEditTemplateOpen] = useState(false);
+
   // جلب إعدادات مشغلات الإشعارات التفصيلية من الباكيند
   const { data: triggerSettings, refetch: refetchTriggerSettings } = trpc.notifications.getTriggerSettings.useQuery();
+
+  // جلب قوالب رسائل الإشعارات المخصصة
+  const { data: customTemplates, refetch: refetchTemplates } = trpc.notifications.getNotificationTemplates.useQuery();
 
   const updateTriggerSettingMutation = trpc.notifications.updateTriggerSetting.useMutation({
     onSuccess: () => {
@@ -506,6 +835,17 @@ export default function NotificationCustomization() {
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+    }
+  });
+
+  const updateTemplateMutation = trpc.notifications.updateNotificationTemplate.useMutation({
+    onSuccess: () => {
+      refetchTemplates();
+      toast.success("تم تحديث قالب الإشعار بنجاح");
+      setIsEditTemplateOpen(false);
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ القالب");
     }
   });
 
@@ -519,6 +859,47 @@ export default function NotificationCustomization() {
       roleId: selectedTriggerRoleId,
       channel,
       enabled: val
+    });
+  };
+
+  const getTemplateMessage = (triggerId: string) => {
+    const custom = customTemplates?.find(t => t.triggerId === triggerId);
+    if (custom) return custom.templateMessage;
+    const trigger = NOTIFICATION_TRIGGERS.find(t => t.id === triggerId);
+    return trigger?.defaultTemplate || "";
+  };
+
+  const handleOpenEditTemplateModal = (trigger: any) => {
+    setSelectedTriggerForEdit(trigger);
+    setEditingTemplateMessage(getTemplateMessage(trigger.id));
+    setIsEditTemplateOpen(true);
+  };
+
+  const handleInsertVariable = (placeholder: string) => {
+    const textarea = document.getElementById("template-textarea") as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+
+    const newValue = before + placeholder + after;
+    setEditingTemplateMessage(newValue);
+
+    // إعادة التركيز للمربع النصي وتحديد موضع المؤشر
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+    }, 0);
+  };
+
+  const handleSaveTemplate = () => {
+    if (!selectedTriggerForEdit) return;
+    updateTemplateMutation.mutate({
+      triggerId: selectedTriggerForEdit.id,
+      templateMessage: editingTemplateMessage
     });
   };
 
@@ -737,8 +1118,23 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-full transition-all"
+                                  onClick={() => handleOpenEditTemplateModal(trig)}
+                                  type="button"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                              </div>
                               <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
+                              <div className="mt-1.5 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-900/40 p-2 rounded border border-border/30 text-slate-600 dark:text-slate-400 font-mono" dir="rtl">
+                                <span className="font-bold text-teal-600 dark:text-teal-400 block text-[9px] mb-0.5 font-sans">قالب الرسالة الحالي:</span>
+                                {getTemplateMessage(trig.id)}
+                              </div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
@@ -774,8 +1170,23 @@ export default function NotificationCustomization() {
                         return (
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-950/30 rounded-full transition-all"
+                                  onClick={() => handleOpenEditTemplateModal(trig)}
+                                  type="button"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                              </div>
                               <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{trig.description}</div>
+                              <div className="mt-1.5 text-[10px] sm:text-xs bg-slate-50 dark:bg-slate-900/40 p-2 rounded border border-border/30 text-slate-600 dark:text-slate-400 font-mono" dir="rtl">
+                                <span className="font-bold text-teal-600 dark:text-teal-400 block text-[9px] mb-0.5 font-sans">قالب الرسالة الحالي:</span>
+                                {getTemplateMessage(trig.id)}
+                              </div>
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <ChannelToggles
@@ -898,6 +1309,84 @@ export default function NotificationCustomization() {
           </TabsContent>
 
         </Tabs>
+
+        {/* مودال تخصيص رسالة الإشعار */}
+        <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
+          <DialogContent className="max-w-xl text-right" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                <span>تخصيص نص رسالة الإشعار</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-1">
+                قم بتخصيص صياغة الإشعار للحدث: <strong className="text-foreground">{selectedTriggerForEdit?.nameAr}</strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 my-4 text-right">
+              <div className="space-y-2">
+                <label htmlFor="template-textarea" className="text-xs sm:text-sm font-bold text-foreground block">
+                  نص رسالة الإشعار:
+                </label>
+                <textarea
+                  id="template-textarea"
+                  rows={4}
+                  className="w-full rounded-xl border border-border bg-background p-3 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 leading-relaxed resize-none text-right"
+                  value={editingTemplateMessage}
+                  onChange={(e) => setEditingTemplateMessage(e.target.value)}
+                  placeholder="أدخل نص قالب الإشعار..."
+                />
+              </div>
+
+              {selectedTriggerForEdit?.variables && selectedTriggerForEdit.variables.length > 0 ? (
+                <div className="space-y-2 bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-border/40 text-right">
+                  <span className="text-[11px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 block">
+                    المتغيرات المتاحة للحدث (انقر على المتغير لإدراجه في النص):
+                  </span>
+                  <div className="flex flex-wrap gap-2 mt-1.5 justify-start" dir="ltr">
+                    {selectedTriggerForEdit.variables.map((variable: any) => (
+                      <button
+                        key={variable.placeholder}
+                        onClick={() => handleInsertVariable(variable.placeholder)}
+                        className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border border-teal-200/50 bg-teal-50/50 dark:border-teal-900/30 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/30 cursor-pointer active:scale-95 transition-all select-none"
+                        title={`إدراج ${variable.nameAr}`}
+                        type="button"
+                      >
+                        <span className="font-mono font-semibold">{variable.placeholder}</span>
+                        <span className="text-muted-foreground text-[9px]">({variable.nameAr})</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2 text-right">
+                    * سيتم استبدال هذه المتغيرات تلقائياً بقيمها الفعلية عند إرسال الإشعار.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border border-border/40 text-center">
+                  لا توجد متغيرات ديناميكية متاحة لهذا الإشعار.
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex sm:justify-start gap-2 border-t border-border/40 pt-4 mt-2">
+              <Button
+                onClick={handleSaveTemplate}
+                className="bg-teal-650 hover:bg-teal-700 text-white font-bold px-5 py-2 text-xs sm:text-sm rounded-xl transition-all"
+                disabled={updateTemplateMutation.isPending}
+              >
+                {updateTemplateMutation.isPending ? "جاري الحفظ..." : "حفظ التغييرات"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditTemplateOpen(false)}
+                className="font-semibold px-5 py-2 text-xs sm:text-sm rounded-xl"
+                type="button"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
