@@ -293,9 +293,7 @@ export const supportTicketsRouter = router({
           ? input.createdAt.toISOString()
           : new Date().toISOString(),
       };
- 
 
-      
       const updatedReplies = [...currentReplies, newReply];
 
       await db
