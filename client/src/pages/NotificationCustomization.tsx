@@ -7,11 +7,11 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 
 const RequestNotificationsTooltip = () => (
   <div className="space-y-3 text-right max-w-sm sm:max-w-md text-foreground" dir="rtl">
@@ -841,7 +841,7 @@ export default function NotificationCustomization() {
       const regex = new RegExp(escapedPlaceholder, 'g');
       html = html.replace(
         regex,
-        `<span data-placeholder="${v.placeholder}" contenteditable="false" class="inline-flex items-center gap-1 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-300 px-2 py-0.5 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${v.placeholder}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>`
+        `<span data-placeholder="${v.placeholder}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${v.placeholder}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>`
       );
     });
     return html;
@@ -965,7 +965,7 @@ export default function NotificationCustomization() {
   const handleInsertVariable = (placeholder: string) => {
     if (!editorRef.current || !selectedTriggerForEdit) return;
 
-    const chipHtml = `<span data-placeholder="${placeholder}" contenteditable="false" class="inline-flex items-center gap-1 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-300 px-2 py-0.5 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${placeholder}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>&nbsp;`;
+    const chipHtml = `<span data-placeholder="${placeholder}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${placeholder}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>&nbsp;`;
 
     editorRef.current.focus();
 
@@ -1123,7 +1123,7 @@ export default function NotificationCustomization() {
           draggedElement.remove();
         }
 
-        const chipHtml = `<span data-placeholder="${data}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-teal-100 dark:bg-teal-950/40 text-teal-850 dark:text-teal-350 px-2.5 py-1 rounded-lg border border-teal-300 dark:border-teal-850 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${data}<button type="button" class="text-teal-500 hover:text-teal-700 font-bold ml-1 text-xs select-none">×</button></span>&nbsp;`;
+        const chipHtml = `<span data-placeholder="${data}" contenteditable="false" class="inline-flex items-center gap-1.5 bg-sidebar-accent/10 dark:bg-sidebar-accent/20 text-sidebar-accent dark:text-teal-350 px-2.5 py-0.5 rounded-lg border border-sidebar-accent/25 dark:border-sidebar-accent/40 text-xs font-semibold mx-1 select-all cursor-grab active:cursor-grabbing align-middle" draggable="true" data-type="variable-chip">${data}<button type="button" class="inline-flex items-center justify-center w-4 h-4 min-w-[16px] min-h-[16px] bg-sidebar-accent/20 dark:bg-sidebar-accent/40 hover:bg-red-500 dark:hover:bg-red-650 text-sidebar-accent dark:text-teal-350 hover:text-white rounded text-[9px] font-bold transition-all duration-150 select-none ml-1 shadow-sm leading-none border border-sidebar-border">×</button></span>&nbsp;`;
         
         const tempDiv = document.createElement("div");
         tempDiv.innerHTML = chipHtml;
@@ -1397,7 +1397,7 @@ export default function NotificationCustomization() {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        className="h-7 w-7 text-teal-600 hover:text-white border-teal-200 dark:border-teal-900/50 bg-teal-50/20 hover:bg-teal-600 dark:hover:bg-teal-600 rounded-lg shadow-sm transition-all duration-200"
+                                        className="h-7 w-7 text-sidebar-foreground bg-sidebar hover:bg-sidebar-accent border-sidebar-border rounded-lg shadow-sm transition-all duration-200 active:scale-95"
                                         onClick={() => handleOpenEditTemplateModal(trig)}
                                         type="button"
                                       >
@@ -1454,7 +1454,7 @@ export default function NotificationCustomization() {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        className="h-7 w-7 text-teal-600 hover:text-white border-teal-200 dark:border-teal-900/50 bg-teal-50/20 hover:bg-teal-600 dark:hover:bg-teal-600 rounded-lg shadow-sm transition-all duration-200"
+                                        className="h-7 w-7 text-sidebar-foreground bg-sidebar hover:bg-sidebar-accent border-sidebar-border rounded-lg shadow-sm transition-all duration-200 active:scale-95"
                                         onClick={() => handleOpenEditTemplateModal(trig)}
                                         type="button"
                                       >
@@ -1593,7 +1593,12 @@ export default function NotificationCustomization() {
 
         {/* مودال تخصيص رسالة الإشعار */}
         <Dialog open={isEditTemplateOpen} onOpenChange={setIsEditTemplateOpen}>
-          <DialogContent className="max-w-xl text-right" dir="rtl">
+          <DialogContent className="max-w-xl text-right" dir="rtl" showCloseButton={false}>
+            {/* زر إغلاق مخصص لتفادي تداخله جهة اليمين مع العناوين العربية */}
+            <DialogClose className="absolute top-4 sm:top-5 left-4 sm:left-5 text-muted-foreground hover:text-foreground opacity-75 hover:opacity-100 transition-all rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent hover:border-border/40 focus:outline-none select-none active:scale-95 shadow-sm">
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="sr-only">إغلاق</span>
+            </DialogClose>
             <DialogHeader className="text-right">
               <DialogTitle className="text-base sm:text-lg font-bold text-foreground flex items-center justify-start gap-2">
                 <Pencil className="w-4 h-4 text-teal-600 dark:text-teal-400" />
@@ -1631,8 +1636,8 @@ export default function NotificationCustomization() {
                   const usedVars = getUsedVariables(editingTemplateMessage, selectedTriggerForEdit.variables);
                   return (
                     <div className="space-y-2 bg-slate-50 dark:bg-slate-900/30 p-3.5 rounded-xl border border-border/40 text-right">
-                      <span className="text-[11px] sm:text-xs font-bold text-teal-800 dark:text-teal-450 block text-right">
-                        المتغيرات المتاحة للحدث (انقر على المتغير لإدراجه في النص):
+                      <span className="text-[11px] sm:text-xs font-bold text-sidebar-accent dark:text-teal-450 block text-right">
+                        المتغيرات المتاحة (انقر على المتغير أو اسحبه لإدراجه في النص):
                       </span>
                       <div className="flex flex-wrap gap-2 mt-1.5 justify-start" dir="rtl">
                         {selectedTriggerForEdit.variables.map((variable: any) => {
@@ -1641,11 +1646,17 @@ export default function NotificationCustomization() {
                             <button
                               key={variable.placeholder}
                               onClick={() => !isUsed && handleInsertVariable(variable.placeholder)}
+                              draggable={!isUsed}
+                              onDragStart={(e) => {
+                                if (!isUsed) {
+                                  e.dataTransfer.setData("text/plain", variable.placeholder);
+                                }
+                              }}
                               className={`inline-flex items-center gap-1.5 text-[10px] sm:text-xs py-1.5 px-3 rounded-lg border transition-all duration-250 select-none shadow-sm ${
                                 isUsed
                                   ? "opacity-65 cursor-not-allowed pointer-events-none bg-slate-100/80 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-800/80"
-                                  : "border-teal-200 bg-teal-50/50 dark:border-teal-900/40 dark:bg-teal-950/20 text-teal-850 dark:text-teal-400 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-600 hover:-translate-y-0.5 cursor-pointer active:scale-95"
-                              }`}
+                                  : "border-sidebar-border/60 bg-sidebar-accent/5 hover:bg-sidebar-accent text-sidebar-accent dark:text-teal-450 hover:text-sidebar-foreground hover:-translate-y-0.5 cursor-pointer active:scale-95 transition-all"
+                               }`}
                               title={isUsed ? "تم إدراج هذا المتغير بالفعل" : `إدراج ${variable.nameAr}`}
                               type="button"
                               disabled={isUsed}
