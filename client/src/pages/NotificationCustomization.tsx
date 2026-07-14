@@ -1367,9 +1367,6 @@ export default function NotificationCustomization() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2 text-right">
-                    * سيتم استبدال هذه المتغيرات تلقائياً بقيمها الفعلية عند إرسال الإشعار.
-                  </p>
                 </div>
               ) : (
                 <div className="text-[11px] text-muted-foreground bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border border-border/40 text-center">
