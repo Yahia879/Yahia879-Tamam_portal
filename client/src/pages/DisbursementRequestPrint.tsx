@@ -156,6 +156,15 @@ export default function DisbursementRequestPrint() {
 
   const requestDate = new Date(request.requestedAt || new Date());
 
+  const descriptionText = isCustomType 
+    ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
+    : (parsedWorks.scheduled || request.description || request.title || "—");
+
+  const descLength = descriptionText.length;
+  const descFontSizeClass = descLength > 200 ? "text-[10px] leading-tight p-1.5" : 
+                            descLength > 100 ? "text-xs leading-snug p-2" : 
+                            "";
+
   // حساب بيانات الدعم والأجور الإدارية
   const supportingEntity = contract?.supportingEntity || "";
   let supportSources: { entity: string; customEntity?: string; amount: number }[] = [];
@@ -337,10 +346,8 @@ export default function DisbursementRequestPrint() {
                 <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
                   وصف الأعمال المطلوبة
                 </div>
-                <div className="p-3 bg-white text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap font-semibold min-h-[60px]">
-                  {isCustomType 
-                    ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
-                    : (parsedWorks.scheduled || request.description || request.title || "—")}
+                <div className={`bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold min-h-[60px] ${descFontSizeClass ? descFontSizeClass : "p-3 text-xs sm:text-sm"}`}>
+                  {descriptionText}
                 </div>
               </div>
 
