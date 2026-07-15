@@ -247,11 +247,14 @@ export default function DisbursementOrderPrint() {
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
                         وذلك مقابل/
                       </td>
-                      <td className="p-2.5 text-slate-600 font-semibold text-right" colSpan={2}>
-                        {customSupplier?.customProjectName || 
-                         (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
-                         request?.title || 
-                         "—"}
+                      <td className="p-2.5 text-slate-600 font-semibold text-right whitespace-pre-wrap break-words" colSpan={2}>
+                        {isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) ? 
+                          (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) :
+                          (customSupplier?.customProjectName || 
+                           (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
+                           request?.title || 
+                           "—")
+                        }
                       </td>
                     </tr>
                   </tbody>

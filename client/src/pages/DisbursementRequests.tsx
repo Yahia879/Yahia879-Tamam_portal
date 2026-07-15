@@ -2095,7 +2095,27 @@ export default function DisbursementRequests() {
                   </div>
                   <div>
                     <span className="text-muted-foreground text-sm">وذلك مقابل/</span>
-                    <p className="font-medium">{selectedOrder.requestTitle || selectedOrder.projectName}</p>
+                    <p className="font-medium whitespace-pre-wrap break-words">
+                      {(() => {
+                        try {
+                          if (selectedOrder.attachmentsJson) {
+                            const attachments = JSON.parse(selectedOrder.attachmentsJson);
+                            if (Array.isArray(attachments)) {
+                              const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info" || a.name === "linked_request_info");
+                              if (infoAttachment && infoAttachment.url) {
+                                const metadata = JSON.parse(infoAttachment.url);
+                                if (["supplier_one_time", "sadad_invoice", "misc_expenses"].includes(metadata.requestType) && metadata.requiredWorksDesc) {
+                                  return metadata.requiredWorksDesc;
+                                }
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          console.error(e);
+                        }
+                        return selectedOrder.requestTitle || selectedOrder.projectName || "—";
+                      })()}
+                    </p>
                   </div>
                 </div>
 
