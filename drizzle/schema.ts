@@ -1087,6 +1087,8 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
   
+  isDirect: boolean("isDirect").default(false).notNull(),
+  
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

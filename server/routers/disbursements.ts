@@ -83,13 +83,14 @@ export const disbursementsRouter = router({
         search: z.string().optional(),
         page: z.number().default(1),
         limit: z.number().default(10),
+        includeDirect: z.boolean().default(false).optional(),
       }).optional()
     )
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const { projectId, status, requestType, search, page = 1, limit = 10 } = input || {};
+      const { projectId, status, requestType, search, page = 1, limit = 10, includeDirect = false } = input || {};
 
       const conditions = [];
       if (projectId) conditions.push(eq(disbursementRequests.projectId, projectId));
@@ -99,6 +100,10 @@ export const disbursementsRouter = router({
         conditions.push(isNull(disbursementRequests.projectId));
       } else if (requestType === "linked") {
         conditions.push(isNotNull(disbursementRequests.projectId));
+      }
+
+      if (!includeDirect) {
+        conditions.push(eq(disbursementRequests.isDirect, false));
       }
 
       if (search) {
@@ -1427,6 +1432,7 @@ export const disbursementsRouter = router({
         requestedBy: ctx.user.id,
         creatorSignatureName,
         creatorSignatureDepartment,
+        isDirect: true,
       });
 
       const disbursementRequestId = Number(reqResult.insertId);
@@ -1846,7 +1852,10 @@ export const disbursementsRouter = router({
           contractPaymentId: disbursementRequests.contractPaymentId,
         })
         .from(disbursementRequests)
-        .where(eq(disbursementRequests.projectId, input.projectId))
+        .where(and(
+          eq(disbursementRequests.projectId, input.projectId),
+          eq(disbursementRequests.isDirect, false)
+        ))
         .orderBy(desc(disbursementRequests.createdAt));
 
       return { requests };
@@ -2265,12 +2274,18 @@ export const disbursementsRouter = router({
     const [pendingRequests] = await db
       .select({ count: sql<number>`count(*)` })
       .from(disbursementRequests)
-      .where(eq(disbursementRequests.status, "pending"));
+      .where(and(
+        eq(disbursementRequests.status, "pending"),
+        eq(disbursementRequests.isDirect, false)
+      ));
 
     const [approvedRequests] = await db
       .select({ count: sql<number>`count(*)` })
       .from(disbursementRequests)
-      .where(eq(disbursementRequests.status, "approved"));
+      .where(and(
+        eq(disbursementRequests.status, "approved"),
+        eq(disbursementRequests.isDirect, false)
+      ));
 
     const [pendingOrders] = await db
       .select({ count: sql<number>`count(*)` })
