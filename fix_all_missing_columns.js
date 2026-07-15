@@ -38,9 +38,10 @@ async function main() {
     console.log("\nChecking 'quick_response_reports' table...");
     await ensureColumn("quick_response_reports", "status", "varchar(50) DEFAULT NULL");
 
-    // 2. Ensure disbursement_requests has 'paymentId'
+    // 2. Ensure disbursement_requests has 'paymentId' and 'isDirect'
     console.log("\nChecking 'disbursement_requests' table...");
     await ensureColumn("disbursement_requests", "paymentId", "int DEFAULT NULL");
+    await ensureColumn("disbursement_requests", "isDirect", "tinyint(1) NOT NULL DEFAULT 0");
 
     // 3. Ensure payments has 'completionPercentage'
     console.log("\nChecking 'payments' table...");
