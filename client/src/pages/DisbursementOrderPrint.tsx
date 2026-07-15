@@ -91,15 +91,15 @@ export default function DisbursementOrderPrint() {
   let linkedRequestInfo: any = null;
   if (request?.attachmentsJson) {
     try {
-      const attachments = JSON.parse(request.attachmentsJson);
+      const attachments = typeof request.attachmentsJson === "string" ? JSON.parse(request.attachmentsJson) : request.attachmentsJson;
       if (Array.isArray(attachments)) {
         const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
         if (infoAttachment && infoAttachment.url) {
-          customSupplier = JSON.parse(infoAttachment.url);
+          customSupplier = typeof infoAttachment.url === "string" ? JSON.parse(infoAttachment.url) : infoAttachment.url;
         }
         const linkedAttachment = attachments.find((a: any) => a.name === "linked_request_info");
         if (linkedAttachment && linkedAttachment.url) {
-          linkedRequestInfo = JSON.parse(linkedAttachment.url);
+          linkedRequestInfo = typeof linkedAttachment.url === "string" ? JSON.parse(linkedAttachment.url) : linkedAttachment.url;
         }
       }
     } catch (e) {
@@ -122,6 +122,20 @@ export default function DisbursementOrderPrint() {
 
   const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
                          linkedRequestInfo?.requestType === "sadad_invoice";
+
+  const showRequestNumber = !!request && !request.isDirect;
+
+  const descriptionText = (isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc)) ? 
+                          (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) :
+                          (customSupplier?.customProjectName || 
+                           (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
+                           request?.title || 
+                           "—");
+
+  const descLength = descriptionText.length;
+  const descFontSizeClass = descLength > 200 ? "text-[10px] leading-tight p-1.5" : 
+                            descLength > 100 ? "text-xs leading-snug p-2" : 
+                            "p-2.5";
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
@@ -177,15 +191,18 @@ export default function DisbursementOrderPrint() {
 
                 <div className="text-xs space-y-1 text-right sm:text-left print:text-left">
                   <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">رقم أمر الصرف:</span>
-                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{order.orderNumber}</span>
+                    <span className="font-bold text-gray-600">رقم طلب الصرف:</span>
+                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{request?.requestNumber || order.orderNumber}</span>
                   </div>
                 </div>
               </div>
 
               {/* الترويسة العلوية - شريط العنوان الأخضر */}
               <div className="bg-[#1a5f4a] text-white font-bold text-base sm:text-lg mb-4 rounded overflow-hidden text-center py-2 font-display">
-                أمر صرف رقم {order.orderNumber} | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                {showRequestNumber 
+                  ? `أمر صرف لطلب رقم ${request.requestNumber}` 
+                  : `أمر صرف رقم ${order.orderNumber}`
+                } | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
               {/* التاريخ والموافق */}
@@ -236,10 +253,10 @@ export default function DisbursementOrderPrint() {
 
                     <tr className="border-b border-slate-300">
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
-                        رقم أمر الصرف/
+                        {showRequestNumber ? "رقم طلب الصرف/" : "رقم أمر الصرف/"}
                       </td>
                       <td className="p-2.5 text-slate-800 font-mono font-bold text-right" colSpan={2}>
-                        {order.orderNumber}
+                        {showRequestNumber ? request.requestNumber : order.orderNumber}
                       </td>
                     </tr>
 
@@ -247,14 +264,8 @@ export default function DisbursementOrderPrint() {
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
                         وذلك مقابل/
                       </td>
-                      <td className="p-2.5 text-slate-600 font-semibold text-right whitespace-pre-wrap break-words" colSpan={2}>
-                        {isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) ? 
-                          (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) :
-                          (customSupplier?.customProjectName || 
-                           (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
-                           request?.title || 
-                           "—")
-                        }
+                      <td className={`text-slate-600 font-semibold text-right whitespace-pre-wrap break-words ${descFontSizeClass}`} colSpan={2}>
+                        {descriptionText}
                       </td>
                     </tr>
                   </tbody>
@@ -458,15 +469,11 @@ export default function DisbursementOrderPrint() {
             box-shadow: none !important;
             padding: 8mm !important;
             margin: 0 !important;
-            min-height: 0 !important;
-            height: 297mm !important;
-            max-height: 297mm !important;
+            min-height: 280mm !important;
             box-sizing: border-box !important;
-            overflow: hidden !important;
           }
           .print-inner {
-            min-height: 0 !important;
-            height: 100% !important;
+            min-height: 264mm !important;
             box-sizing: border-box !important;
             padding: 10px !important;
           }
