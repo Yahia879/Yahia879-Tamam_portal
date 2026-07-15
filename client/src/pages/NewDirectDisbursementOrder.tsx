@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -63,6 +64,7 @@ export default function NewDirectDisbursementOrder() {
     fundingSupport: "",
     mainProjectName: "",
     customProjectName: "",
+    requiredWorksDesc: "",
     title: "",
     amount: 0,
     dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
@@ -155,7 +157,7 @@ export default function NewDirectDisbursementOrder() {
   // التحقق من صلاحية البيانات للخطوة التالية
   const isNextDisabled = () => {
     if (!formData.mainProjectName || !formData.fundingSupport) return true;
-    if (!formData.title || formData.amount <= 0 || !formData.dateMiladi || !formData.customProjectName) return true;
+    if (!formData.title || formData.amount <= 0 || !formData.dateMiladi || !formData.customProjectName || !formData.requiredWorksDesc) return true;
 
     if (requestType === "sadad_invoice") {
       return !formData.billerName || !formData.billerCode || !formData.sadadNumber;
@@ -195,6 +197,7 @@ export default function NewDirectDisbursementOrder() {
         fundingSupport: formData.fundingSupport,
         mainProjectName: formData.mainProjectName,
         customProjectName: formData.customProjectName || "",
+        requiredWorksDesc: formData.requiredWorksDesc || "",
         billerName: isSadad ? formData.billerName : "",
         sadadNumber: isSadad ? formData.sadadNumber : "",
         billerCode: isSadad ? formData.billerCode : "",
@@ -349,6 +352,18 @@ export default function NewDirectDisbursementOrder() {
                     value={formData.customProjectName}
                     onChange={(e) => setFormData({ ...formData, customProjectName: e.target.value })}
                     className="border-border rounded-xl h-11 text-right focus:ring-primary w-full"
+                  />
+                </div>
+
+                <div className="space-y-2 text-right">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وصف الأعمال المطلوبة *</Label>
+                  <Textarea
+                    placeholder="أدخل وصف الأعمال المطلوبة المصاحبة لأمر الصرف..."
+                    value={formData.requiredWorksDesc}
+                    onChange={(e) => setFormData({ ...formData, requiredWorksDesc: e.target.value })}
+                    rows={3}
+                    required
+                    className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
                   />
                 </div>
 
@@ -726,6 +741,12 @@ export default function NewDirectDisbursementOrder() {
                     <span className="text-[10px] text-muted-foreground block font-bold">اسم المشروع</span>
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug">
                       {formData.customProjectName}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground block font-bold">وصف الأعمال المطلوبة</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-snug whitespace-pre-wrap break-words">
+                      {formData.requiredWorksDesc || "—"}
                     </span>
                   </div>
                 </div>
