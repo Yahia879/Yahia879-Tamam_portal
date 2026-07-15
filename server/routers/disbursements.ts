@@ -23,9 +23,12 @@ import { TRPCError } from "@trpc/server";
 import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
 
 // توليد رقم طلب صرف
-async function generateDisbursementRequestNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
+async function generateDisbursementRequestNumber(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  isDirect: boolean = false
+): Promise<string> {
   const currentYear = new Date().getFullYear();
-  const prefix = `DR-${currentYear}-`;
+  const prefix = isDirect ? `DRD-${currentYear}-` : `DR-${currentYear}-`;
   
   const [lastRequest] = await db
     .select({ requestNumber: disbursementRequests.requestNumber })
@@ -1414,7 +1417,7 @@ export const disbursementsRouter = router({
         creatorSignatureDepartment = userSignData.signatureDepartment || "";
       }
 
-      const requestNumber = await generateDisbursementRequestNumber(db);
+      const requestNumber = await generateDisbursementRequestNumber(db, true);
 
       const [reqResult] = await db.insert(disbursementRequests).values({
         requestNumber,
