@@ -191,7 +191,9 @@ export default function DisbursementOrderPrint() {
 
                 <div className="text-xs space-y-1 text-right sm:text-left print:text-left">
                   <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">رقم أمر الصرف:</span>
+                    <span className="font-bold text-gray-600">
+                      {isCustomType ? "رقم أمر الصرف المخصص:" : "رقم أمر الصرف:"}
+                    </span>
                     <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{order.orderNumber}</span>
                   </div>
                 </div>
@@ -199,7 +201,10 @@ export default function DisbursementOrderPrint() {
 
               {/* الترويسة العلوية - شريط العنوان الأخضر */}
               <div className="bg-[#1a5f4a] text-white font-bold text-base sm:text-lg mb-4 rounded overflow-hidden text-center py-2 font-display">
-                أمر صرف رقم {order.orderNumber} | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                {isCustomType 
+                  ? `أمر صرف مخصص رقم ${order.orderNumber}` 
+                  : `أمر صرف رقم ${order.orderNumber}`
+                } | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
               {/* التاريخ والموافق */}
@@ -250,10 +255,16 @@ export default function DisbursementOrderPrint() {
 
                     <tr className="border-b border-slate-300">
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
-                        {showRequestNumber ? "رقم طلب الصرف/" : "رقم أمر الصرف/"}
+                        {isCustomType 
+                          ? "رقم أمر الصرف المخصص/" 
+                          : (showRequestNumber ? "رقم طلب الصرف/" : "رقم أمر الصرف/")
+                        }
                       </td>
                       <td className="p-2.5 text-slate-800 font-mono font-bold text-right" colSpan={2}>
-                        {showRequestNumber ? request.requestNumber : order.orderNumber}
+                        {isCustomType 
+                          ? order.orderNumber 
+                          : (showRequestNumber ? request.requestNumber : order.orderNumber)
+                        }
                       </td>
                     </tr>
 
