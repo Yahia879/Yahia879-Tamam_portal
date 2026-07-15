@@ -35,6 +35,24 @@ async function main() {
       console.log(`✨ Column '${columnName}' already exists in table '${tableName}'.`);
     }
 
+    // 1.5. Check and add isDirect
+    const [isDirectRows] = await connection.query(
+      `SELECT COLUMN_NAME 
+       FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = ? 
+         AND COLUMN_NAME = 'isDirect'`,
+      [tableName]
+    );
+
+    if (isDirectRows.length === 0) {
+      console.log(`⚠️ Column 'isDirect' is missing in table '${tableName}'. Adding it...`);
+      await connection.query(`ALTER TABLE \`${tableName}\` ADD \`isDirect\` tinyint(1) NOT NULL DEFAULT 0`);
+      console.log(`✅ Column 'isDirect' added successfully to '${tableName}'!`);
+    } else {
+      console.log(`✨ Column 'isDirect' already exists in table '${tableName}'.`);
+    }
+
     // 2. Also ensure status column is added to quick_response_reports here, just in case they need both
     console.log("\nChecking 'quick_response_reports' for status column...");
     const [rowsStatus] = await connection.query(
