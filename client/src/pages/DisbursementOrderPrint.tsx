@@ -191,18 +191,15 @@ export default function DisbursementOrderPrint() {
 
                 <div className="text-xs space-y-1 text-right sm:text-left print:text-left">
                   <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">رقم طلب الصرف:</span>
-                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{request?.requestNumber || order.orderNumber}</span>
+                    <span className="font-bold text-gray-600">رقم أمر الصرف:</span>
+                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{order.orderNumber}</span>
                   </div>
                 </div>
               </div>
 
               {/* الترويسة العلوية - شريط العنوان الأخضر */}
               <div className="bg-[#1a5f4a] text-white font-bold text-base sm:text-lg mb-4 rounded overflow-hidden text-center py-2 font-display">
-                {showRequestNumber 
-                  ? `أمر صرف لطلب رقم ${request.requestNumber}` 
-                  : `أمر صرف رقم ${order.orderNumber}`
-                } | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                أمر صرف رقم {order.orderNumber} | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
               {/* التاريخ والموافق */}
