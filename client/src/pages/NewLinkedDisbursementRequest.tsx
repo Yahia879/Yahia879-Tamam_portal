@@ -952,47 +952,55 @@ export default function NewLinkedDisbursementRequest() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* خيار ربط فرصة تبرع معتمدة */}
                   {canCreateDonationDisbursement ? (
-                    <div className="flex items-center gap-2.5 p-3 bg-pink-50/40 dark:bg-pink-950/5 rounded-xl border border-pink-100 dark:border-pink-900/20 text-right animate-in fade-in duration-200">
+                    <label 
+                      htmlFor="link-donation-opportunity"
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-200 text-right cursor-pointer select-none ${
+                        isDonationLinked 
+                          ? "bg-pink-50/60 dark:bg-pink-950/10 border-pink-300 dark:border-pink-900/50 shadow-xs" 
+                          : "bg-background border-border hover:border-slate-300 dark:hover:border-slate-700"
+                      }`}
+                    >
                       <Checkbox
                         id="link-donation-opportunity"
                         checked={isDonationLinked}
                         onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
-                        className="w-4 h-4 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
+                        className="w-4.5 h-4.5 border-pink-300 dark:border-pink-850 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
                       />
                       <div className="space-y-0.5 min-w-0">
-                        <label 
-                          htmlFor="link-donation-opportunity" 
-                          className="text-xs font-bold text-pink-850 dark:text-pink-300 cursor-pointer"
-                        >
+                        <span className={`text-xs sm:text-sm font-bold block ${isDonationLinked ? "text-pink-800 dark:text-pink-300" : "text-slate-700 dark:text-slate-300"}`}>
                           المشروع المرتبط (فرصة التبرع)
-                        </label>
-                        <p className="text-[10px] text-pink-600 dark:text-pink-400">
+                        </span>
+                        <p className={`text-[10px] sm:text-xs leading-tight ${isDonationLinked ? "text-pink-650 dark:text-pink-400" : "text-muted-foreground"}`}>
                           ربط طلب الصرف بفرصة تبرع
                         </p>
                       </div>
-                    </div>
+                    </label>
                   ) : null}
 
                   {/* خيار مرتبط بالمنصة السابقة */}
-                  <div className={`flex items-center gap-2.5 p-3 bg-emerald-50/40 dark:bg-emerald-950/5 rounded-xl border border-emerald-100 dark:border-emerald-900/20 text-right animate-in fade-in duration-200 ${!canCreateDonationDisbursement ? "sm:col-span-2" : ""}`}>
+                  <label 
+                    htmlFor="link-tamam-platform"
+                    className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-200 text-right cursor-pointer select-none ${!canCreateDonationDisbursement ? "sm:col-span-2" : ""} ${
+                      isTamamLinked 
+                        ? "bg-emerald-50/65 dark:bg-emerald-950/10 border-emerald-300 dark:border-emerald-900/50 shadow-xs" 
+                        : "bg-background border-border hover:border-slate-300 dark:hover:border-slate-700"
+                    }`}
+                  >
                     <Checkbox
                       id="link-tamam-platform"
                       checked={isTamamLinked}
                       onCheckedChange={(checked) => handleTamamLinkedChange(!!checked)}
-                      className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                      className="w-4.5 h-4.5 border-emerald-300 dark:border-emerald-850 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
                     />
                     <div className="space-y-0.5 min-w-0">
-                      <label 
-                        htmlFor="link-tamam-platform" 
-                        className="text-xs font-bold text-emerald-850 dark:text-emerald-300 cursor-pointer"
-                      >
+                      <span className={`text-xs sm:text-sm font-bold block ${isTamamLinked ? "text-emerald-850 dark:text-emerald-300" : "text-slate-700 dark:text-slate-300"}`}>
                         مرتبط بالمنصة السابقة
-                      </label>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                        ربط طلب الصرف بالمنصة السابقة مباشرة
+                      </span>
+                      <p className={`text-[10px] sm:text-xs leading-tight ${isTamamLinked ? "text-emerald-650 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                        إنشاء طلب صرف موجود في المنصة السابقة
                       </p>
                     </div>
-                  </div>
+                  </label>
                 </div>
 
                 {isDonationLinked && (
