@@ -178,7 +178,10 @@ export default function DisbursementRequestPrint() {
   }
 
   const hasContract = !!contract;
-  const actualProjectCost = hasContract ? parseFloat(contract.contractAmount || "0") : amount;
+  const isTamamLinked = !!customSupplier?.isTamamLinked;
+  const actualProjectCost = isTamamLinked 
+    ? parseFloat(customSupplier?.actualProjectValue?.toString() || "0") 
+    : (hasContract ? parseFloat(contract.contractAmount || "0") : amount);
   const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
   const adminFees = request.adminFees 
     ? parseFloat(request.adminFees.toString()) 

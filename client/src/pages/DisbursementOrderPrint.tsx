@@ -337,7 +337,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${(actualProjectValue - amountsSpent).toLocaleString()} ريال` 
+                            ? `${(actualProjectValue - (amountsSpent + amount)).toLocaleString()} ريال` 
                             : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
