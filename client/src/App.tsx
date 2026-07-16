@@ -78,6 +78,8 @@ import Quotations from "./pages/Quotations";
 import FinancialApproval from "./pages/FinancialApproval";
 import CategoriesManagement from "./pages/CategoriesManagement";
 import ContractTemplates from "./pages/ContractTemplates";
+import TemplatePreview from "./pages/TemplatePreview";
+import TemplatePrint from "./pages/TemplatePrint";
 import ContractsList from "./pages/ContractsList";
 import DisbursementRequests from "./pages/DisbursementRequests";
 import Handovers from "./pages/Handovers";
@@ -286,6 +288,8 @@ function Router() {
       <Route path="/contracts/:id/print">{() => <AdminRoute component={ContractPrint} />}</Route>
       <Route path="/contracts/:id">{() => <AdminRoute component={ContractPreview} />}</Route>
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
+      <Route path="/contract-templates/:id/preview">{() => <AdminRoute component={TemplatePreview} />}</Route>
+      <Route path="/contract-templates/:id/print">{() => <AdminRoute component={TemplatePrint} />}</Route>
       
       {/* التقييم المالي - إدارية */}
       <Route path="/boq-preparations">{() => <AdminRoute component={BOQ} />}</Route>
