@@ -905,28 +905,46 @@ export default function ContractForm() {
                           }`}
                           onClick={() => setContractData({ ...contractData, templateId: template.id })}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              contractData.templateId === template.id
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-gray-100"
-                            }`}>
-                              <FileText className="h-5 w-5" />
+                          <div className="flex items-start gap-3 justify-between">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className={`p-2 rounded-lg shrink-0 ${
+                                contractData.templateId === template.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-gray-100"
+                              }`}>
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1 min-w-0 text-right">
+                                <h3 className="font-medium truncate">{template.nameAr || template.name}</h3>
+                                <p className="text-sm text-muted-foreground truncate">{template.description || "لا يوجد وصف"}</p>
+                                <Badge variant="outline" className="mt-2">
+                                  {template.type === "supply" ? "توريد" :
+                                   template.type === "construction" ? "مقاولات" :
+                                   template.type === "supervision" ? "إشراف" :
+                                   template.type === "maintenance" ? "صيانة" :
+                                   template.type === "services" ? "خدمات" : template.type}
+                                </Badge>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-medium">{template.name}</h3>
-                              <p className="text-sm text-muted-foreground">{template.description}</p>
-                              <Badge variant="outline" className="mt-2">
-                                {template.type === "supply" ? "توريد" :
-                                 template.type === "construction" ? "مقاولات" :
-                                 template.type === "supervision" ? "إشراف" :
-                                 template.type === "maintenance" ? "صيانة" :
-                                 template.type === "services" ? "خدمات" : template.type}
-                              </Badge>
+                            <div className="flex flex-col items-center justify-center gap-1.5 self-stretch shrink-0">
+                              {contractData.templateId === template.id && (
+                                <Check className="h-5 w-5 text-primary shrink-0" />
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                type="button"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const currentPath = window.location.pathname + window.location.search;
+                                  navigate(`/contract-templates/${template.id}/preview?backUrl=${encodeURIComponent(currentPath)}`);
+                                }}
+                                title="معاينة القالب"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </div>
-                            {contractData.templateId === template.id && (
-                              <Check className="h-5 w-5 text-primary" />
-                            )}
                           </div>
                         </div>
                       ))}
