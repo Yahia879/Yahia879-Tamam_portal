@@ -949,47 +949,49 @@ export default function NewLinkedDisbursementRequest() {
                 <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                {/* خيار ربط فرصة تبرع معتمدة */}
-                {canCreateDonationDisbursement && (
-                  <div className="flex items-center gap-3 p-3.5 bg-pink-50/50 dark:bg-pink-950/10 rounded-xl border border-pink-100 dark:border-pink-900/30 text-right animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* خيار ربط فرصة تبرع معتمدة */}
+                  {canCreateDonationDisbursement ? (
+                    <div className="flex items-center gap-2.5 p-3 bg-pink-50/40 dark:bg-pink-950/5 rounded-xl border border-pink-100 dark:border-pink-900/20 text-right animate-in fade-in duration-200">
+                      <Checkbox
+                        id="link-donation-opportunity"
+                        checked={isDonationLinked}
+                        onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
+                        className="w-4 h-4 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
+                      />
+                      <div className="space-y-0.5 min-w-0">
+                        <label 
+                          htmlFor="link-donation-opportunity" 
+                          className="text-xs font-bold text-pink-850 dark:text-pink-300 cursor-pointer"
+                        >
+                          المشروع المرتبط (فرصة التبرع)
+                        </label>
+                        <p className="text-[10px] text-pink-600 dark:text-pink-400">
+                          ربط طلب الصرف بفرصة تبرع
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* خيار مرتبط بالمنصة السابقة */}
+                  <div className={`flex items-center gap-2.5 p-3 bg-emerald-50/40 dark:bg-emerald-950/5 rounded-xl border border-emerald-100 dark:border-emerald-900/20 text-right animate-in fade-in duration-200 ${!canCreateDonationDisbursement ? "sm:col-span-2" : ""}`}>
                     <Checkbox
-                      id="link-donation-opportunity"
-                      checked={isDonationLinked}
-                      onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
-                      className="w-4.5 h-4.5 text-pink-600 border-pink-300 rounded focus:ring-pink-500"
+                      id="link-tamam-platform"
+                      checked={isTamamLinked}
+                      onCheckedChange={(checked) => handleTamamLinkedChange(!!checked)}
+                      className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
                     />
                     <div className="space-y-0.5 min-w-0">
                       <label 
-                        htmlFor="link-donation-opportunity" 
-                        className="text-xs sm:text-sm font-bold text-pink-800 dark:text-pink-300 cursor-pointer"
+                        htmlFor="link-tamam-platform" 
+                        className="text-xs font-bold text-emerald-850 dark:text-emerald-300 cursor-pointer"
                       >
-                        المشروع المرتبط (فرصة التبرع)
+                        مرتبط بالمنصة السابقة
                       </label>
-                      <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                        تفعيل هذا الخيار لربط طلب الصرف بمشروع فرصة تبرع
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                        ربط طلب الصرف بالمنصة السابقة مباشرة
                       </p>
                     </div>
-                  </div>
-                )}
-
-                {/* خيار مرتبط بمنصة تمام */}
-                <div className="flex items-center gap-3 p-3.5 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-right animate-in fade-in duration-200">
-                  <Checkbox
-                    id="link-tamam-platform"
-                    checked={isTamamLinked}
-                    onCheckedChange={(checked) => handleTamamLinkedChange(!!checked)}
-                    className="w-4.5 h-4.5 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
-                  />
-                  <div className="space-y-0.5 min-w-0">
-                    <label 
-                      htmlFor="link-tamam-platform" 
-                      className="text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer"
-                    >
-                      مرتبط بمنصة تمام
-                    </label>
-                    <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400">
-                      تفعيل هذا الخيار لربط طلب الصرف بمنصة تمام مباشرة
-                    </p>
                   </div>
                 </div>
 
