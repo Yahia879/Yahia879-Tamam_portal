@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,17 @@ export default function DisbursementOrderPrint() {
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
+
+  // تغيير عنوان المستند ليطابق رقم أمر الصرف عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
+  useEffect(() => {
+    if (order) {
+      const originalTitle = document.title;
+      document.title = `أمر صرف رقم ${order.orderNumber}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [order]);
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 

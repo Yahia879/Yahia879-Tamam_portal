@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,17 @@ export default function DisbursementRequestPrint() {
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
+
+  // تغيير عنوان المستند ليطابق رقم طلب الصرف عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
+  useEffect(() => {
+    if (request) {
+      const originalTitle = document.title;
+      document.title = `طلب صرف رقم ${request.requestNumber}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [request]);
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
@@ -304,7 +316,7 @@ export default function DisbursementRequestPrint() {
               {/* عنوان النموذج الفاخر */}
               <div className="text-center mb-6">
                 <h1 className="text-xl sm:text-2xl font-black text-gray-800 pb-1 inline-block px-4 tracking-wide">
-                  طلب صرف
+                  طلب صرف رقم {request.requestNumber}
                 </h1>
               </div>
 
