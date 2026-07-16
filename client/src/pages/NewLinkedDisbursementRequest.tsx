@@ -110,6 +110,7 @@ export default function NewLinkedDisbursementRequest() {
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
   const [isDonationLinked, setIsDonationLinked] = useState(false);
+  const [isTamamLinked, setIsTamamLinked] = useState(() => savedState?.isTamamLinked ?? false);
   const [requestType, setRequestType] = useState<string>(() => {
     if (savedState?.requestType) {
       const val = savedState.requestType;
@@ -160,6 +161,8 @@ export default function NewLinkedDisbursementRequest() {
     billerName: string;
     sadadNumber: string;
     billerCode: string;
+    actualProjectValue?: number;
+    amountsSpent?: number;
   }>(() => savedState?.formData ?? {
     projectId: 0,
     donationOpportunityId: 0,
@@ -185,6 +188,8 @@ export default function NewLinkedDisbursementRequest() {
     billerName: "",
     sadadNumber: "",
     billerCode: "",
+    actualProjectValue: 0,
+    amountsSpent: 0,
   });
   
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
@@ -204,6 +209,7 @@ export default function NewLinkedDisbursementRequest() {
         formData,
         selectedReportId,
         suppliers,
+        isTamamLinked,
       };
       sessionStorage.setItem("new-linked-disbursement-state", JSON.stringify(stateToSave));
       navigate(`/progress-reports/${selectedReport.id}/print`);
@@ -255,8 +261,23 @@ export default function NewLinkedDisbursementRequest() {
   const handleDonationLinkedChange = (checked: boolean) => {
     setIsDonationLinked(checked);
     if (checked) {
+      setIsTamamLinked(false);
       setIsCustom(true);
       setRequestType("supplier_one_time");
+      setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
+    } else {
+      setIsCustom(!canCreateStandard);
+      setRequestType(canCreateStandard ? "project_linked" : "supplier_one_time");
+      setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
+    }
+  };
+
+  const handleTamamLinkedChange = (checked: boolean) => {
+    setIsTamamLinked(checked);
+    if (checked) {
+      setIsCustom(true);
+      setRequestType("supplier_one_time");
+      setIsDonationLinked(false);
       setFormData(prev => ({ ...prev, projectId: 0, donationOpportunityId: 0, mosqueRequestId: 0 }));
     } else {
       setIsCustom(!canCreateStandard);
@@ -306,7 +327,10 @@ export default function NewLinkedDisbursementRequest() {
       setFormData(prev => {
         const newTitle = `${typeLabel} - ${prev.customProjectName || ""}`;
         const resolvedCity = prev.projectCity === "other" ? prev.customCity : prev.projectCity;
-        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالأعمال المطلوبة: ${prev.requiredWorksDesc || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}\nالأجور الإدارية: ${prev.adminFees || 0}`;
+        const descriptionTamamFields = isTamamLinked
+          ? `\nقيمة المشروع الفعلية: ${prev.actualProjectValue || 0}\nالمبالغ التي صرفت: ${prev.amountsSpent || 0}`
+          : "";
+        const newDesc = `التمويل/الدعم: ${prev.fundingSupport || ""}\nالمشروع الرئيسي: ${prev.mainProjectName || ""}\nالمشروع المخصص: ${prev.customProjectName || ""}\nالأعمال المطلوبة: ${prev.requiredWorksDesc || ""}\nعنوان المشروع: ${resolvedCity || ""}\nالمستفيد: ${prev.beneficiaryName || ""}\nالحساب البنكي: ${prev.bankAccountName || ""}\nالبنك: ${prev.bankName || ""}\nالآيبان: ${prev.iban || ""}\nالمبلغ: ${prev.amount || 0}${descriptionTamamFields}\nالأجور الإدارية: ${prev.adminFees || 0}`;
         if (prev.title === newTitle && prev.description === newDesc) return prev;
         return {
           ...prev,
@@ -385,6 +409,7 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [
     requestType,
+    isTamamLinked,
     formData.fundingSupport,
     formData.mainProjectName,
     formData.customProjectName,
@@ -398,7 +423,9 @@ export default function NewLinkedDisbursementRequest() {
     formData.customCity,
     formData.billerName,
     formData.sadadNumber,
-    formData.billerCode
+    formData.billerCode,
+    formData.actualProjectValue,
+    formData.amountsSpent
   ]);
   
   // جلب المشاريع
@@ -667,7 +694,8 @@ export default function NewLinkedDisbursementRequest() {
         !formData.iban ||
         !formData.dateMiladi ||
         formData.amount <= 0 ||
-        formData.adminFees < 0
+        formData.adminFees < 0 ||
+        (isTamamLinked && (formData.actualProjectValue === undefined || formData.actualProjectValue <= 0 || formData.amountsSpent === undefined || formData.amountsSpent < 0))
       );
     }
     
@@ -727,6 +755,16 @@ export default function NewLinkedDisbursementRequest() {
     if (formData.adminFees < 0) {
       toast.error("الأجور الإدارية لا يمكن أن تكون سالبة");
       return;
+    }
+    if (isTamamLinked) {
+      if (formData.actualProjectValue === undefined || formData.actualProjectValue <= 0) {
+        toast.error("يرجى إدخال قيمة المشروع الفعلية");
+        return;
+      }
+      if (formData.amountsSpent === undefined || formData.amountsSpent < 0) {
+        toast.error("يرجى إدخال المبالغ التي صرفت");
+        return;
+      }
     }
     if (isCustom && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")) {
       if (!formData.projectCity) {
@@ -788,6 +826,9 @@ export default function NewLinkedDisbursementRequest() {
         mosqueRequestId: isDonationLinked ? formData.mosqueRequestId : undefined,
         adminFees: formData.adminFees || 0,
         projectCity: resolvedCity || "",
+        isTamamLinked: isTamamLinked,
+        actualProjectValue: isTamamLinked ? formData.actualProjectValue : undefined,
+        amountsSpent: isTamamLinked ? formData.amountsSpent : undefined,
       }),
       type: "metadata"
     }] : [];
@@ -931,6 +972,27 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
+                {/* خيار مرتبط بمنصة تمام */}
+                <div className="flex items-center gap-3 p-3.5 bg-emerald-50/50 dark:bg-emerald-950/10 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-right animate-in fade-in duration-200">
+                  <Checkbox
+                    id="link-tamam-platform"
+                    checked={isTamamLinked}
+                    onCheckedChange={(checked) => handleTamamLinkedChange(!!checked)}
+                    className="w-4.5 h-4.5 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <label 
+                      htmlFor="link-tamam-platform" 
+                      className="text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer"
+                    >
+                      مرتبط بمنصة تمام
+                    </label>
+                    <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400">
+                      تفعيل هذا الخيار لربط طلب الصرف بمنصة تمام مباشرة
+                    </p>
+                  </div>
+                </div>
+
                 {isDonationLinked && (
                   <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
@@ -972,6 +1034,7 @@ export default function NewLinkedDisbursementRequest() {
                   <Select
                     value={requestType}
                     onValueChange={handleRequestTypeChange}
+                    disabled={isTamamLinked}
                   >
                     <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
                       <SelectValue placeholder="اختر نوع طلب الصرف" />
@@ -991,7 +1054,6 @@ export default function NewLinkedDisbursementRequest() {
                   </Select>
                 </div>
 
-                {/* الحقول العامة - اسم المشروع الرئيسي */}
                 <div className="border-b border-border/40 pb-4 mb-4">
                   <div className="space-y-2 text-right">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم المشروع الرئيسي *</Label>
@@ -1219,29 +1281,83 @@ export default function NewLinkedDisbursementRequest() {
                           />
                         </div>
 
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ *</Label>
-                          <Input
-                            type="number"
-                            value={formData.amount || ""}
-                            onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                            placeholder="0.00"
-                            required
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                          />
-                        </div>
+                        {isTamamLinked ? (
+                          <>
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">قيمة المشروع الفعلية *</Label>
+                              <Input
+                                type="number"
+                                value={formData.actualProjectValue || ""}
+                                onChange={(e) => setFormData({ ...formData, actualProjectValue: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                              />
+                            </div>
 
-                        <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الأجور الإدارية *</Label>
-                          <Input
-                            type="number"
-                            value={formData.adminFees || ""}
-                            onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
-                            placeholder="0.00"
-                            required
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                          />
-                        </div>
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبالغ التي صرفت *</Label>
+                              <Input
+                                type="number"
+                                value={formData.amountsSpent || ""}
+                                onChange={(e) => setFormData({ ...formData, amountsSpent: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                              />
+                            </div>
+
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">قيمة الأجور الإدارية *</Label>
+                              <Input
+                                type="number"
+                                value={formData.adminFees || ""}
+                                onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                              />
+                            </div>
+
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ المطلوب صرفه *</Label>
+                              <Input
+                                type="number"
+                                value={formData.amount || ""}
+                                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-bold text-primary"
+                              />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ *</Label>
+                              <Input
+                                type="number"
+                                value={formData.amount || ""}
+                                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                              />
+                            </div>
+
+                            <div className="space-y-2 text-right">
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الأجور الإدارية *</Label>
+                              <Input
+                                type="number"
+                                value={formData.adminFees || ""}
+                                onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
+                                placeholder="0.00"
+                                required
+                                className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                              />
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
 
