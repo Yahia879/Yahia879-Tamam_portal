@@ -174,7 +174,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
     "settings_categories.edit",
     "settings_categories.delete"
   ],
-  "/contract-templates": ["settings_center", "settings_contracts.view"],
+  "/contract-templates": ["settings_center", "settings_contracts.view", "contracts"],
   "/program-customization": "programs_services",
   "/partners": "settings_center",
   "/support": ["Create_Ticket", "View_Tickets"],
@@ -229,6 +229,10 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/contracts\/\d+\/print$/, permission: "contracts" },
   { pattern: /^\/contracts\/\d+\/edit$/, permission: "contracts" },
   { pattern: /^\/contracts\/\d+$/, permission: "contracts" },
+
+  // قوالب العقود
+  { pattern: /^\/contract-templates\/\d+\/preview$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
+  { pattern: /^\/contract-templates\/\d+\/print$/, permission: ["settings_center", "settings_contracts.view", "contracts"] },
 
   // BOQ
   { pattern: /^\/boq\/\d+$/, permission: ["quotations", "requests.view_details", "boq", "boq.add", "boq.edit", "boq.delete"] },
@@ -296,6 +300,11 @@ export function getRequiredPermission(pathname: string): string | string[] | nul
   
   // مسارات طالب الخدمة
   if (REQUESTER_ROUTES.has(pathname)) return null;
+
+  // السماح بمعاينة وطباعة قوالب العقود لأي مستخدم إداري مسجل
+  if (/^\/contract-templates\/[^/]+\/preview$/.test(pathname) || /^\/contract-templates\/[^/]+\/print$/.test(pathname)) {
+    return null;
+  }
 
   // المسارات الثابتة
   if (ROUTE_PERMISSION_MAP[pathname]) {

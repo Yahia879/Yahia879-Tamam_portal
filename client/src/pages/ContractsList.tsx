@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,7 +150,11 @@ export default function ContractsList() {
   const canTemplateDelete = usePermission("contracts.template_delete");
   const canClauseAdd = usePermission("contracts.clause_add");
 
-  const [activeTab, setActiveTab] = useState("contracts");
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search || '');
+  const tabFromQuery = searchParams.get('tab');
+
+  const [activeTab, setActiveTab] = useState(tabFromQuery === "templates" ? "templates" : "contracts");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -250,11 +254,14 @@ export default function ContractsList() {
 
   // إنشاء قالب
   const createTemplateMutation = trpc.contracts.createTemplate.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("تم إنشاء القالب بنجاح");
       setShowTemplateDialog(false);
       resetTemplateForm();
       refetchTemplates();
+      if (data?.id) {
+        navigate(`/contract-templates/${data.id}/preview`);
+      }
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء القالب");
@@ -699,6 +706,17 @@ export default function ContractsList() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/contract-templates/${template.id}/preview`);
+                            }}
+                            title="معاينة"
+                          >
+                            <Eye className="h-4 w-4 text-primary" />
+                          </Button>
                           {canTemplateEdit && (
                             <Button
                               variant="ghost"
@@ -901,6 +919,20 @@ export default function ContractsList() {
           </div>
 
           <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+            {editingTemplate && (
+              <Button
+                variant="outline"
+                type="button"
+                className="gap-1 border-primary text-primary hover:bg-primary/5"
+                onClick={() => {
+                  setShowTemplateDialog(false);
+                  navigate(`/contract-templates/${editingTemplate.id}/preview`);
+                }}
+              >
+                <Eye className="h-4 w-4 ml-1" />
+                معاينة القالب
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => {
