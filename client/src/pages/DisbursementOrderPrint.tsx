@@ -113,6 +113,10 @@ export default function DisbursementOrderPrint() {
   // اسم المشروع الرئيسي
   const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
 
+  const isTamamLinked = !!customSupplier?.isTamamLinked;
+  const actualProjectValue = parseFloat(customSupplier?.actualProjectValue?.toString() || "0");
+  const amountsSpent = parseFloat(customSupplier?.amountsSpent?.toString() || "0");
+
   const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
                        customSupplier?.requestType === "sadad_invoice" || 
                        customSupplier?.requestType === "misc_expenses" ||
@@ -315,7 +319,9 @@ export default function DisbursementOrderPrint() {
                           إجمالي قيمة العقد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                          {isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—")}
+                          {isTamamLinked 
+                            ? `${actualProjectValue.toLocaleString()} ريال` 
+                            : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
 
@@ -330,7 +336,9 @@ export default function DisbursementOrderPrint() {
                           المبلغ المتبقي بعد صرف المبلغ أعلاه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
-                          {isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—")}
+                          {isTamamLinked 
+                            ? `${(actualProjectValue - amountsSpent).toLocaleString()} ريال` 
+                            : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
                     </tbody>
