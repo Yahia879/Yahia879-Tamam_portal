@@ -116,6 +116,9 @@ export default function DisbursementOrderPrint() {
   const isTamamLinked = !!customSupplier?.isTamamLinked;
   const actualProjectValue = parseFloat(customSupplier?.actualProjectValue?.toString() || "0");
   const amountsSpent = parseFloat(customSupplier?.amountsSpent?.toString() || "0");
+  const adminFees = request?.adminFees 
+    ? parseFloat(request.adminFees.toString()) 
+    : parseFloat(customSupplier?.adminFees?.toString() || "0");
 
   const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
                        customSupplier?.requestType === "sadad_invoice" || 
@@ -320,7 +323,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${actualProjectValue.toLocaleString()} ريال` 
+                            ? `${(actualProjectValue + adminFees).toLocaleString()} ريال` 
                             : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
@@ -330,14 +333,16 @@ export default function DisbursementOrderPrint() {
                           إجمالي ما تم دفعه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                          {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.totalPaid.toLocaleString()} ريال` : "—")}
+                          {isTamamLinked 
+                            ? `${(amountsSpent + amount).toLocaleString()} ريال` 
+                            : (isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.totalPaid.toLocaleString()} ريال` : "—"))}
                         </td>
                         <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           المبلغ المتبقي بعد صرف المبلغ أعلاه
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${(actualProjectValue - (amountsSpent + amount)).toLocaleString()} ريال` 
+                            ? `${((actualProjectValue + adminFees) - (amountsSpent + amount)).toLocaleString()} ريال` 
                             : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>

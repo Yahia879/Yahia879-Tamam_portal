@@ -1306,11 +1306,11 @@ export default function NewLinkedDisbursementRequest() {
                             </div>
 
                             <div className="space-y-2 text-right">
-                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبالغ التي صرفت *</Label>
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">قيمة الأجور الإدارية *</Label>
                               <Input
                                 type="number"
-                                value={formData.amountsSpent || ""}
-                                onChange={(e) => setFormData({ ...formData, amountsSpent: parseFloat(e.target.value) || 0 })}
+                                value={formData.adminFees || ""}
+                                onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
                                 placeholder="0.00"
                                 required
                                 className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
@@ -1318,11 +1318,11 @@ export default function NewLinkedDisbursementRequest() {
                             </div>
 
                             <div className="space-y-2 text-right">
-                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">قيمة الأجور الإدارية *</Label>
+                              <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبالغ التي صرفت *</Label>
                               <Input
                                 type="number"
-                                value={formData.adminFees || ""}
-                                onChange={(e) => setFormData({ ...formData, adminFees: parseFloat(e.target.value) || 0 })}
+                                value={formData.amountsSpent || ""}
+                                onChange={(e) => setFormData({ ...formData, amountsSpent: parseFloat(e.target.value) || 0 })}
                                 placeholder="0.00"
                                 required
                                 className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
