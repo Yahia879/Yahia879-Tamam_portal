@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { trpc } from "@/lib/trpc";
@@ -50,6 +51,8 @@ import {
   ChevronUp,
   Settings,
   ListOrdered,
+  Eye,
+  Printer,
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 
@@ -86,6 +89,7 @@ const CLAUSE_CATEGORIES = {
 };
 
 export default function ContractTemplates() {
+  const [, navigate] = useLocation();
   const { user } = useAuth();
   const canTemplateAdd = usePermission("contracts.template_add");
   const canTemplateEdit = usePermission("contracts.template_edit");
@@ -127,11 +131,14 @@ export default function ContractTemplates() {
 
   // إنشاء قالب
   const createTemplateMutation = trpc.contracts.createTemplate.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("تم إنشاء القالب بنجاح");
       setShowTemplateDialog(false);
       resetTemplateForm();
       refetchTemplates();
+      if (data?.id) {
+        navigate(`/contract-templates/${data.id}/preview`);
+      }
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء القالب");
@@ -398,6 +405,17 @@ export default function ContractTemplates() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/contract-templates/${template.id}/preview`);
+                        }}
+                        title="معاينة"
+                      >
+                        <Eye className="h-4 w-4 text-primary" />
+                      </Button>
                       {canTemplateEdit && (
                         <Button
                           variant="ghost"
@@ -594,7 +612,21 @@ export default function ContractTemplates() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+              {editingTemplate && (
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="gap-1 border-primary text-primary hover:bg-primary/5"
+                  onClick={() => {
+                    setShowTemplateDialog(false);
+                    navigate(`/contract-templates/${editingTemplate.id}/preview`);
+                  }}
+                >
+                  <Eye className="h-4 w-4 ml-1" />
+                  معاينة القالب
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => {
