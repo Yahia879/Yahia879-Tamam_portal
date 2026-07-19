@@ -47,6 +47,11 @@ import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import ProjectManagement from "./pages/ProjectManagement";
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
+import ProjectReportsHubPage from "./pages/ProjectReportsHubPage";
+import SemiMonthlyReportPage from "./pages/SemiMonthlyReportPage";
+import MonthlyReportPage from "./pages/MonthlyReportPage";
+import QuarterlyReportPage from "./pages/QuarterlyReportPage";
+import VisitReportPage from "./pages/VisitReportPage";
 
 // صفحات أخرى
 import Partners from "./pages/Partners";
@@ -261,6 +266,11 @@ function Router() {
       <Route path="/projects">{() => <AdminRoute component={Projects} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
+      <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
+      <Route path="/project-reports/semi-monthly">{() => <AdminRoute component={SemiMonthlyReportPage} />}</Route>
+      <Route path="/project-reports/monthly">{() => <AdminRoute component={MonthlyReportPage} />}</Route>
+      <Route path="/project-reports/quarterly">{() => <AdminRoute component={QuarterlyReportPage} />}</Route>
+      <Route path="/project-reports/visit">{() => <AdminRoute component={VisitReportPage} />}</Route>
       
       {/* صفحات أخرى - إدارية */}
       <Route path="/partners">{() => <AdminRoute component={Partners} />}</Route>

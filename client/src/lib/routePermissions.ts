@@ -130,8 +130,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
 
-  // ── تقارير الإنجاز ──
+  // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": "progress_reports",
+  "/project-reports": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/project-reports/semi-monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/project-reports/monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/project-reports/quarterly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/project-reports/visit": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
@@ -256,8 +261,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   // التقارير الختامية
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
 
-  // تقارير الإنجاز
+  // تقارير الإنجاز والمشاريع
   { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
+  { pattern: /^\/project-reports\/.*$/, permission: ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"] },
 ];
 
 /**
@@ -340,8 +346,9 @@ export function hasRouteAccess(
 ): boolean {
   // super_admin و system_admin لهما كل الصلاحيات دائماً إلا إذا سُحبت صلاحية معينة صراحةً
   if (userRole === "super_admin" || userRole === "system_admin") {
+    if (userPermissions.includes("*") || userPermissions.length === 0) return true;
     const required = getRequiredPermission(pathname);
-    if (required !== null) {
+    if (required !== null && required !== "__unknown_route__") {
       if (Array.isArray(required)) {
         if (required.every(p => !userPermissions.includes(p))) return false;
       } else {
