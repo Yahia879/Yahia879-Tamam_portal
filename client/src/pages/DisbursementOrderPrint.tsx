@@ -128,9 +128,25 @@ export default function DisbursementOrderPrint() {
   const isTamamLinked = !!customSupplier?.isTamamLinked;
   const actualProjectValue = parseFloat(customSupplier?.actualProjectValue?.toString() || "0");
   const amountsSpent = parseFloat(customSupplier?.amountsSpent?.toString() || "0");
+
+  const hasContract = !!project?.contractAmount;
+  const managementPercentage = parseFloat(project?.managementPercentage?.toString() || "0");
+
+  const actualProjectCost = isTamamLinked 
+    ? actualProjectValue 
+    : (hasContract ? parseFloat(project.contractAmount.toString()) : amount);
+
   const adminFees = request?.adminFees 
     ? parseFloat(request.adminFees.toString()) 
-    : parseFloat(customSupplier?.adminFees?.toString() || "0");
+    : (customSupplier?.adminFees 
+        ? parseFloat(customSupplier.adminFees) 
+        : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
+
+  const totalOpportunityValue = actualProjectCost + adminFees;
+
+  const resolvedFundingAmount = (project?.fundingAmount && project.fundingAmount > 0)
+    ? project.fundingAmount
+    : (totalOpportunityValue > 0 ? totalOpportunityValue : 0);
 
   const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
                        customSupplier?.requestType === "sadad_invoice" || 
@@ -328,7 +344,9 @@ export default function DisbursementOrderPrint() {
                           إجمالي قيمة الدعم
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                          {isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.fundingAmount.toLocaleString()} ريال` : "—")}
+                          {resolvedFundingAmount > 0 
+                            ? `${resolvedFundingAmount.toLocaleString()} ريال` 
+                            : (isCustomType ? `${amount.toLocaleString()} ريال` : "—")}
                         </td>
                         <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة العقد

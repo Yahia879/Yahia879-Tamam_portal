@@ -1156,13 +1156,32 @@ export const disbursementsRouter = router({
           .where(eq(projects.id, projId));
         
         if (projectData) {
-          // جلب بيانات العقد
-          const [contract] = await db
-            .select()
-            .from(contractsEnhanced)
-            .where(eq(contractsEnhanced.projectId, projectData.id));
+          // جلب بيانات العقد المرتبط بالطلب أولاً، وإلا جلب عقد المشروع
+          let contractId = request.contractId;
+          if (!contractId && request.contractPaymentId) {
+            const [paymentData] = await db
+              .select({ contractId: contractPayments.contractId })
+              .from(contractPayments)
+              .where(eq(contractPayments.id, request.contractPaymentId));
+            if (paymentData) {
+              contractId = paymentData.contractId;
+            }
+          }
 
-           let contractAmount = 0;
+          let contract = null;
+          if (contractId) {
+            [contract] = await db
+              .select()
+              .from(contractsEnhanced)
+              .where(eq(contractsEnhanced.id, contractId));
+          } else {
+            [contract] = await db
+              .select()
+              .from(contractsEnhanced)
+              .where(eq(contractsEnhanced.projectId, projectData.id));
+          }
+
+          let contractAmount = 0;
           let fundingAmount = 0;
           let fundingSource = "لا يوجد";
           if (contract) {
@@ -1171,18 +1190,45 @@ export const disbursementsRouter = router({
             
             if (contract.supportingEntity) {
               try {
-                const parsedEntities = JSON.parse(contract.supportingEntity);
-                if (Array.isArray(parsedEntities)) {
+                const str = contract.supportingEntity.trim();
+                const parsedEntities = str.startsWith("[") ? JSON.parse(str) : str;
+                if (Array.isArray(parsedEntities) && parsedEntities.length > 0) {
                   const names = parsedEntities
-                    .map(e => e.entity === "other" ? e.customEntity : e.entity)
+                    .map((e: any) => {
+                      const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : e.entity;
+                      if (parsedEntities.length > 1 && e.amount) {
+                        return `${name} (${Number(e.amount).toLocaleString()} ريال)`;
+                      }
+                      return name;
+                    })
                     .filter(Boolean);
                   if (names.length > 0) {
                     fundingSource = names.join("، ");
                   }
+                  const sumJsonAmounts = parsedEntities.reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+                  if (sumJsonAmounts > 0) {
+                    fundingAmount = sumJsonAmounts;
+                  }
+                } else if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim()) {
+                  fundingSource = contract.supportingEntity;
                 }
               } catch (e) {
-                console.error("Error parsing supportingEntity in getOrderById:", e);
+                if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim()) {
+                  fundingSource = contract.supportingEntity;
+                }
               }
+            } else if (contract.supportType) {
+              fundingSource = contract.supportType;
+            }
+
+            const managementPercentage = Number((contract as any).managementPercentage || 0);
+            const adminFeesVal = request.adminFees 
+              ? Number(request.adminFees) 
+              : (contractAmount * managementPercentage) / 100;
+            const totalOpportunityValue = contractAmount + adminFeesVal;
+
+            if (fundingAmount === 0 && totalOpportunityValue > 0) {
+              fundingAmount = totalOpportunityValue;
             }
           }
 
@@ -1216,6 +1262,7 @@ export const disbursementsRouter = router({
             fundingSource,
             totalPaid,
             remainingAmount,
+            managementPercentage: contract ? Number((contract as any).managementPercentage || 0) : 0,
           };
         }
       }
