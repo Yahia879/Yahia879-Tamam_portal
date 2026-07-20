@@ -35,7 +35,7 @@ export default function ProjectReportsHubPage() {
       project: "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
       date: "2026-07-15",
       rag: "أخضر",
-      status: "مُرسل",
+      status: "تم الاطلاع",
     },
     {
       id: "REP-002",
