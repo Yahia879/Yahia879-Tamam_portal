@@ -12,9 +12,10 @@ import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs"
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
+import { Button } from "@/components/ui/button";
 import { MOCK_PROJECTS } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
-import { User, Building2, Calendar, ShieldAlert } from "lucide-react";
+import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2 } from "lucide-react";
 
 export default function SemiMonthlyReportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
@@ -40,6 +41,25 @@ export default function SemiMonthlyReportPage() {
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
 
   const [recommendations, setRecommendations] = useState<string>("");
+  const [challenges, setChallenges] = useState<string>("");
+  const [requiredSupport, setRequiredSupport] = useState<string>("");
+  const [externalLinks, setExternalLinks] = useState<{ title: string; url: string }[]>([
+    { title: "", url: "" }
+  ]);
+
+  const handleAddLink = () => {
+    setExternalLinks([...externalLinks, { title: "", url: "" }]);
+  };
+
+  const handleRemoveLink = (index: number) => {
+    setExternalLinks(externalLinks.filter((_, i) => i !== index));
+  };
+
+  const handleLinkChange = (index: number, field: "title" | "url", value: string) => {
+    const updated = [...externalLinks];
+    updated[index][field] = value;
+    setExternalLinks(updated);
+  };
   const [needEscalation, setNeedEscalation] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [reportStatus, setReportStatus] = useState<string>("مسودة");
@@ -328,6 +348,28 @@ export default function SemiMonthlyReportPage() {
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">التحديات والعقبات</Label>
+                <Textarea
+                  placeholder="أدخل التحديات والعقبات الميدانية التي تواجه تنفيذ المشروع..."
+                  rows={3}
+                  value={challenges}
+                  onChange={(e) => setChallenges(e.target.value)}
+                  className="border-border/80 text-xs leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">الدعم المطلوب</Label>
+                <Textarea
+                  placeholder="حدد طبيعة الدعم الإداري أو الفني أو المالي المطلوب من الإدارة..."
+                  rows={3}
+                  value={requiredSupport}
+                  onChange={(e) => setRequiredSupport(e.target.value)}
+                  className="border-border/80 text-xs leading-relaxed"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">التوصيات الإدارية والتشغيلية</Label>
                 <Textarea
                   placeholder="أدخل التوصيات والخطوات القادمة المطلوبة لحل التحديات والنهوض بالمشروع..."
@@ -366,6 +408,59 @@ export default function SemiMonthlyReportPage() {
                 />
               </div>
 
+              {/* قسم الروابط الخارجية */}
+              <div className="space-y-3 pt-3 border-t border-border/60">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold flex items-center gap-1.5">
+                    <Link2 className="w-3.5 h-3.5 text-primary" />
+                    <span>الروابط الخارجية والمراجع</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddLink}
+                    className="h-8 text-xs gap-1 text-teal-600 border-teal-500/30 hover:bg-teal-500/10"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    إضافة رابط جديد
+                  </Button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {externalLinks.map((linkItem, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-muted/20 p-2.5 rounded-xl border border-border/60">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
+                        <Input
+                          placeholder="اسم الرابط (مثال: مجلد الصور، تقرير الاستشاري)"
+                          value={linkItem.title}
+                          onChange={(e) => handleLinkChange(idx, "title", e.target.value)}
+                          className="h-9 text-xs bg-background"
+                        />
+                        <Input
+                          type="url"
+                          placeholder="الرابط (https://...)"
+                          value={linkItem.url}
+                          onChange={(e) => handleLinkChange(idx, "url", e.target.value)}
+                          className="h-9 text-xs bg-background dir-ltr text-right"
+                        />
+                      </div>
+                      {externalLinks.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveLink(idx)}
+                          className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-1.5 pt-3 border-t border-border/60">
                 <Label className="text-xs font-bold">حالة التقرير</Label>
                 <Select value={reportStatus} onValueChange={setReportStatus}>
@@ -398,6 +493,9 @@ export default function SemiMonthlyReportPage() {
             gap,
             ragStatus,
             recommendations,
+            challenges,
+            requiredSupport,
+            externalLinks: externalLinks.filter((l) => l.title || l.url),
             needEscalation: needEscalation ? "نعم" : "لا",
             status: reportStatus,
           }}
