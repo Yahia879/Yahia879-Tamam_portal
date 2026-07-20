@@ -19,7 +19,6 @@ import { Calendar, Building2, User, ShieldAlert, Layers } from "lucide-react";
 export default function MonthlyReportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
   const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
-  const [ownerDepartment, setOwnerDepartment] = useState<string>(MOCK_PROJECTS[0].department);
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -43,17 +42,7 @@ export default function MonthlyReportPage() {
 
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
-  const [qualityIndicator, setQualityIndicator] = useState<string>("أخضر");
-  const [riskIndicator, setRiskIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
-
-  const [deviations, setDeviations] = useState<Record<string, any>[]>([]);
-  const [risks, setRisks] = useState<Record<string, any>[]>([
-    { description: "تأخر توريد أجهزة التكييف القياسية", severity: "متوسطة", plan: "التواصل مع المورد البديل", assignee: "م. خالد العتيبي" }
-  ]);
-  const [issues, setIssues] = useState<Record<string, any>[]>([
-    { issue: "ربط شبكة الكهرباء العامة", action: "تقديم طلب العدادات الرسمية", assignee: "م. عبد الله", dueDate: "2026-07-25", status: "مفتوح" }
-  ]);
 
   const [valueImpact, setValueImpact] = useState<string>("");
   const [recommendations, setRecommendations] = useState<string>("");
@@ -69,7 +58,6 @@ export default function MonthlyReportPage() {
     const proj = MOCK_PROJECTS.find((p) => p.id === projId);
     if (proj) {
       setProjectManager(proj.manager);
-      setOwnerDepartment(proj.department);
       setCurrentPhase(proj.currentPhase);
       if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
@@ -81,13 +69,11 @@ export default function MonthlyReportPage() {
       ragStatus === "أحمر" ||
       timeIndicator === "أحمر" ||
       costIndicator === "أحمر" ||
-      qualityIndicator === "أحمر" ||
-      riskIndicator === "أحمر" ||
       changeIndicator === "أحمر";
     if (hasRed) {
       setNeedEscalation(true);
     }
-  }, [ragStatus, timeIndicator, costIndicator, qualityIndicator, riskIndicator, changeIndicator]);
+  }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
 
   const handleSaveDraft = () => {
     setReportStatus("مسودة");
@@ -95,10 +81,6 @@ export default function MonthlyReportPage() {
   };
 
   const handleSubmit = () => {
-    if (ragStatus !== "أخضر" && deviations.length === 0) {
-      toast.error("يرجى تسطير الانحرافات نظراً لوجود فجوة إنجاز");
-      return;
-    }
     if (ragStatus === "أحمر" && !recommendations.trim()) {
       toast.error("يرجى تدوين التوصيات نظراً لوجود مؤشر أحمر");
       return;
@@ -106,7 +88,7 @@ export default function MonthlyReportPage() {
 
     setIsSubmitting(true);
     setTimeout(() => {
-      setReportStatus("مُرسل");
+      setReportStatus("تم الاطلاع");
       setIsSubmitting(false);
       toast.success("تم إرسال التقرير الشهري بنجاح إلى المكتب التنفيذي!");
     }, 800);
@@ -128,44 +110,7 @@ export default function MonthlyReportPage() {
     },
   ];
 
-  const deviationCols: ColumnDef[] = [
-    { key: "description", label: "وصف الانحراف", type: "text", placeholder: "تفاصيل الانحراف" },
-    { key: "cause", label: "السبب الرئيسي", type: "text", placeholder: "أسباب حدوثه" },
-    { key: "impact", label: "الأثر المباشر", type: "text", placeholder: "تأثيره على الأهداف" },
-  ];
 
-  const riskCols: ColumnDef[] = [
-    { key: "description", label: "وصف الخطر", type: "text", placeholder: "تحديد طبيعة الخطر" },
-    {
-      key: "severity",
-      label: "درجة الخطورة",
-      type: "select",
-      options: [
-        { value: "منخفضة", label: "منخفضة" },
-        { value: "متوسطة", label: "متوسطة" },
-        { value: "عالية", label: "عالية" },
-        { value: "حرجة", label: "حرجة" },
-      ],
-    },
-    { key: "plan", label: "خطة الاستجابة", type: "text", placeholder: "إجراءات التخفيف والوقاية" },
-    { key: "assignee", label: "المسؤول", type: "text", placeholder: "المسؤول عن المتابعة" },
-  ];
-
-  const issueCols: ColumnDef[] = [
-    { key: "issue", label: "القضية المرصودة", type: "text", placeholder: "وصف المشكلة" },
-    { key: "action", label: "الإجراء المتخذ", type: "text", placeholder: "خطوات المعالجة" },
-    { key: "assignee", label: "المسؤول", type: "text", placeholder: "الشخص المكلف" },
-    { key: "dueDate", label: "الموعد المستهدف", type: "date" },
-    {
-      key: "status",
-      label: "الحالة",
-      type: "select",
-      options: [
-        { value: "مفتوح", label: "مفتوح" },
-        { value: "مغلق", label: "مغلق" },
-      ],
-    },
-  ];
 
   const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
 
@@ -220,14 +165,6 @@ export default function MonthlyReportPage() {
                     <span>مدير المشروع</span>
                   </Label>
                   <Input value={projectManager} readOnly placeholder="مدير المشروع المرتبط" className="h-10 bg-muted/40 font-semibold border-border/60" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>الإدارة المالكة</span>
-                  </Label>
-                  <Input value={ownerDepartment} readOnly placeholder="الإدارة المالكة للمشروع" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -368,52 +305,15 @@ export default function MonthlyReportPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <RagIndicatorSelect label="مؤشر الوقت" value={timeIndicator} onChange={setTimeIndicator} />
                 <RagIndicatorSelect label="مؤشر التكلفة" value={costIndicator} onChange={setCostIndicator} />
-                <RagIndicatorSelect label="مؤشر الجودة" value={qualityIndicator} onChange={setQualityIndicator} />
-                <RagIndicatorSelect label="مؤشر المخاطر" value={riskIndicator} onChange={setRiskIndicator} />
                 <RagIndicatorSelect label="مؤشر التغيير" value={changeIndicator} onChange={setChangeIndicator} />
               </div>
             </CardContent>
           </Card>
 
-          {/* الانحرافات والمخاطر والقضايا */}
-          <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">الانحرافات والمخاطر والقضايا</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5 space-y-6">
-              <DynamicArrayTable
-                title="الانحرافات"
-                columns={deviationCols}
-                rows={deviations}
-                onChange={setDeviations}
-                emptyLabel="اضغط إضافة صف جديد لإدراج الانحرافات"
-              />
 
-              <DynamicArrayTable
-                title="سجل المخاطر الشهرية"
-                columns={riskCols}
-                rows={risks}
-                onChange={setRisks}
-                emptyLabel="اضغط إضافة صف جديد لإدراج المخاطر ودرجات الخطورة"
-              />
-
-              <DynamicArrayTable
-                title="القضايا والإجراءات"
-                columns={issueCols}
-                rows={issues}
-                onChange={setIssues}
-                emptyLabel="اضغط إضافة صف جديد لإدراج القضايا ومواعيد الإغلاق"
-              />
-            </CardContent>
-          </Card>
 
           {/* القيمة والمخرجات والقرارات */}
           <Card className="border-border/80 shadow-xs">
@@ -479,8 +379,7 @@ export default function MonthlyReportPage() {
                     <SelectValue placeholder="اختر حالة التقرير" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مسودة" className="text-xs">مسودة (Draft)</SelectItem>
-                    <SelectItem value="مُرسل" className="text-xs">مُرسل (Submitted)</SelectItem>
+                    <SelectItem value="تم الاطلاع" className="text-xs">تم الاطلاع (Reviewed)</SelectItem>
                     <SelectItem value="معتمد" className="text-xs">معتمد (Approved)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -497,7 +396,6 @@ export default function MonthlyReportPage() {
           data={{
             projectName: selectedProjName,
             projectManager,
-            ownerDepartment,
             monthYear,
             reportDate,
             plannedProgress,
