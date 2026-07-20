@@ -165,10 +165,6 @@ export default function QuarterlyReportPage() {
     },
   ];
 
-
-
-  const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
-
   return (
     <DashboardLayout>
       <div className="container max-w-6xl mx-auto py-6 px-4">
