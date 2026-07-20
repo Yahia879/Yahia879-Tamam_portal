@@ -1,12 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { FileUpload, UploadedFile } from "@/components/FileUpload";
 import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs";
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
@@ -14,7 +12,7 @@ import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/Dynam
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
-import { Calendar, Building2, User, ShieldAlert, Layers } from "lucide-react";
+import { Calendar, Building2, User, Layers } from "lucide-react";
 
 export default function MonthlyReportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
@@ -44,9 +42,6 @@ export default function MonthlyReportPage() {
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
 
-  const [valueImpact, setValueImpact] = useState<string>("");
-  const [recommendations, setRecommendations] = useState<string>("");
-  const [needEscalation, setNeedEscalation] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [reportStatus, setReportStatus] = useState<string>("مسودة");
 
@@ -64,16 +59,7 @@ export default function MonthlyReportPage() {
     }
   };
 
-  useEffect(() => {
-    const hasRed =
-      ragStatus === "أحمر" ||
-      timeIndicator === "أحمر" ||
-      costIndicator === "أحمر" ||
-      changeIndicator === "أحمر";
-    if (hasRed) {
-      setNeedEscalation(true);
-    }
-  }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
+
 
   const handleSaveDraft = () => {
     setReportStatus("مسودة");
@@ -81,10 +67,6 @@ export default function MonthlyReportPage() {
   };
 
   const handleSubmit = () => {
-    if (ragStatus === "أحمر" && !recommendations.trim()) {
-      toast.error("يرجى تدوين التوصيات نظراً لوجود مؤشر أحمر");
-      return;
-    }
 
     setIsSubmitting(true);
     setTimeout(() => {
@@ -315,42 +297,17 @@ export default function MonthlyReportPage() {
 
 
 
-          {/* التوصيات والتصعيد الإداري */}
+          {/* المرفقات وحالة التقرير */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">التوصيات والتصعيد الإداري</CardTitle>
+                  <CardTitle className="text-base font-bold text-foreground">المرفقات وحالة التقرير</CardTitle>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">التوصيات والخطوات القادمة</Label>
-                <Textarea
-                  placeholder="أدخل التوصيات الإدارية والمقترحات للتحسين..."
-                  rows={3}
-                  value={recommendations}
-                  onChange={(e) => setRecommendations(e.target.value)}
-                  className="border-border/80 text-xs leading-relaxed"
-                />
-              </div>
-
-              <div className="p-4 rounded-xl bg-card border border-border/80 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 text-amber-500" />
-                    <Label className="text-xs font-bold text-foreground">تصعيد التقرير</Label>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold">{needEscalation ? "نعم" : "لا"}</span>
-                  <Switch checked={needEscalation} onCheckedChange={setNeedEscalation} />
-                </div>
-              </div>
-
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">المرفقات والوثائق</Label>
                 <FileUpload
@@ -391,9 +348,6 @@ export default function MonthlyReportPage() {
             actualProgress,
             gap,
             ragStatus,
-            valueImpact,
-            recommendations,
-            needEscalation: needEscalation ? "نعم" : "لا",
             status: reportStatus,
           }}
         />
