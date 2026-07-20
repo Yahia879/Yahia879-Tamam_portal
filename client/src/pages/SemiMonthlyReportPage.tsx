@@ -13,13 +13,30 @@ import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSel
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
 import { MOCK_PROJECTS } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
 import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2 } from "lucide-react";
 
 export default function SemiMonthlyReportPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
-  const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+
+  const projectOptions = useMemo(() => {
+    if (dbProjectsData && dbProjectsData.length > 0) {
+      return dbProjectsData.map((p: any) => ({
+        id: String(p.id),
+        name: p.name || `مشروع رقم ${p.projectNumber}`,
+        manager: p.managerName || "غير محدد",
+        department: "إدارة المشاريع",
+        plannedProgress: 80,
+        actualProgress: p.completionPercentage || 0,
+      }));
+    }
+    return MOCK_PROJECTS;
+  }, [dbProjectsData]);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
   const [reportDate, setReportDate] = useState<string>(
@@ -69,7 +86,7 @@ export default function SemiMonthlyReportPage() {
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
-    const proj = MOCK_PROJECTS.find((p) => p.id === projId);
+    const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
@@ -137,7 +154,7 @@ export default function SemiMonthlyReportPage() {
     },
   ];
 
-  const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
+  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   return (
     <DashboardLayout>
@@ -172,7 +189,7 @@ export default function SemiMonthlyReportPage() {
                       <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_PROJECTS.map((p) => (
+                      {projectOptions.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="text-xs py-2">
                           <div className="flex items-center justify-between gap-4 w-full">
                             <span className="font-semibold">{p.name}</span>
