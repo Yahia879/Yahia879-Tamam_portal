@@ -28,7 +28,7 @@ export default function VisitReportPage() {
 
   const [purpose, setPurpose] = useState<"للاطلاع" | "لاتخاذ قرار">("للاطلاع");
   const [submittedTo, setSubmittedTo] = useState<string>(MOCK_DEPARTMENTS[0]);
-  const [reportStatus, setReportStatus] = useState<"مُرسل" | "تم الاطلاع" | "تم اتخاذ قرار">("مُرسل");
+  const [reportStatus, setReportStatus] = useState<"تم الاطلاع" | "معتمد">("تم الاطلاع");
 
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -223,9 +223,8 @@ export default function VisitReportPage() {
                       <SelectValue placeholder="اختر حالة التقرير" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="مُرسل" className="text-xs">مُرسل (Submitted)</SelectItem>
                       <SelectItem value="تم الاطلاع" className="text-xs">تم الاطلاع (Reviewed)</SelectItem>
-                      <SelectItem value="تم اتخاذ قرار" className="text-xs">تم اتخاذ قرار (Decided)</SelectItem>
+                      <SelectItem value="معتمد" className="text-xs">معتمد (Approved)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
