@@ -315,28 +315,17 @@ export default function MonthlyReportPage() {
 
 
 
-          {/* القيمة والمخرجات والقرارات */}
+          {/* التوصيات والتصعيد الإداري */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">القيمة والمخرجات والقرارات</CardTitle>
+                  <CardTitle className="text-base font-bold text-foreground">التوصيات والتصعيد الإداري</CardTitle>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">القيمة والأثر المتحقق أو المتوقع خلال الشهر</Label>
-                <Textarea
-                  placeholder="اصف الأثر الميداني المتحقق للمستفيدين أو القيمة المضافة المحققة خلال هذا الشهر..."
-                  rows={3}
-                  value={valueImpact}
-                  onChange={(e) => setValueImpact(e.target.value)}
-                  className="border-border/80 text-xs leading-relaxed"
-                />
-              </div>
-
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">التوصيات والخطوات القادمة</Label>
                 <Textarea
