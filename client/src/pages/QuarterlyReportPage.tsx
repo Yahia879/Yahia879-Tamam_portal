@@ -176,10 +176,10 @@ export default function QuarterlyReportPage() {
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
-                  <Label className="text-xs font-semibold">اسم المشروع / البرنامج</Label>
+                  <Label className="text-xs font-semibold">اسم المشروع</Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع أو البرنامج ليتم تعبئة البيانات تلقائياً" />
+                      <SelectValue placeholder="اختر المشروع ليتم تعبئة البيانات تلقائياً" />
                     </SelectTrigger>
                     <SelectContent>
                       {MOCK_PROJECTS.map((p) => (
