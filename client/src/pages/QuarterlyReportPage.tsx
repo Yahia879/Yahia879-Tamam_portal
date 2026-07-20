@@ -221,32 +221,36 @@ export default function QuarterlyReportPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>الربع / السنة</span>
+                    <span>الربع</span>
                   </Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={quarter} onValueChange={setQuarter}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background w-1/2">
-                        <SelectValue placeholder="الربع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Q1" className="text-xs">الربع الأول (Q1)</SelectItem>
-                        <SelectItem value="Q2" className="text-xs">الربع الثاني (Q2)</SelectItem>
-                        <SelectItem value="Q3" className="text-xs">الربع الثالث (Q3)</SelectItem>
-                        <SelectItem value="Q4" className="text-xs">الربع الرابع (Q4)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Select value={quarter} onValueChange={setQuarter}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
+                      <SelectValue placeholder="اختر الربع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Q1" className="text-xs">الربع الأول (Q1)</SelectItem>
+                      <SelectItem value="Q2" className="text-xs">الربع الثاني (Q2)</SelectItem>
+                      <SelectItem value="Q3" className="text-xs">الربع الثالث (Q3)</SelectItem>
+                      <SelectItem value="Q4" className="text-xs">الربع الرابع (Q4)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    <Select value={year} onValueChange={setYear}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background w-1/2">
-                        <SelectValue placeholder="السنة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2025" className="text-xs">2025</SelectItem>
-                        <SelectItem value="2026" className="text-xs">2026</SelectItem>
-                        <SelectItem value="2027" className="text-xs">2027</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    <span>السنة</span>
+                  </Label>
+                  <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
+                      <SelectValue placeholder="اختر السنة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2025" className="text-xs">2025</SelectItem>
+                      <SelectItem value="2026" className="text-xs">2026</SelectItem>
+                      <SelectItem value="2027" className="text-xs">2027</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
