@@ -89,10 +89,15 @@ export default function SemiMonthlyReportPage() {
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
     }
   };
+
+  useEffect(() => {
+    const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+    if (proj && proj.manager) {
+      setProjectManager(proj.manager);
+    }
+  }, [projectOptions, selectedProjectId]);
 
   useEffect(() => {
     const hasRedIndicator =
