@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
 import { 
   FileText, 
   Clock, 
@@ -26,13 +27,19 @@ import {
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
 
-  const recentReports = [
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+
+  const realProjects = useMemo(() => {
+    return dbProjectsData || [];
+  }, [dbProjectsData]);
+
+  const recentReports = useMemo(() => [
     {
       id: "REP-001",
       title: "تقرير نصف شهري - النصف الأول من يوليو",
       type: "تقرير نصف شهري",
       typeKey: "semi-monthly",
-      project: "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
+      project: realProjects[0]?.name || "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
       date: "2026-07-15",
       rag: "أخضر",
       status: "تم الاطلاع",
@@ -42,7 +49,7 @@ export default function ProjectReportsHubPage() {
       title: "التقرير الشهري لشهر يونيو 2026",
       type: "تقرير شهري",
       typeKey: "monthly",
-      project: "مشروع صيانة وتأهيل أنظمة التكييف - مسجد الصفا",
+      project: realProjects[1]?.name || "مشروع صيانة وتأهيل أنظمة التكييف - مسجد الصفا",
       date: "2026-06-30",
       rag: "أحمر",
       status: "معتمد",
@@ -52,7 +59,7 @@ export default function ProjectReportsHubPage() {
       title: "التقرير الربعي - Q2 2026",
       type: "تقرير ربعي",
       typeKey: "quarterly",
-      project: "مشروع تركيب منظومة الطاقة الشمسية الذكية",
+      project: realProjects[2]?.name || "مشروع تركيب منظومة الطاقة الشمسية الذكية",
       date: "2026-06-30",
       rag: "أخضر",
       status: "معتمد",
@@ -67,7 +74,7 @@ export default function ProjectReportsHubPage() {
       rag: "أصفر",
       status: "تم الاطلاع",
     },
-  ];
+  ], [realProjects]);
 
   const filteredReports = filterType === "all"
     ? recentReports

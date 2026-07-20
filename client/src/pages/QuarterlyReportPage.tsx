@@ -15,17 +15,37 @@ import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/Dynam
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen } from "lucide-react";
 
 export default function QuarterlyReportPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
-  const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+
+  const projectOptions = useMemo(() => {
+    if (dbProjectsData && dbProjectsData.length > 0) {
+      return dbProjectsData.map((p: any) => ({
+        id: String(p.id),
+        name: p.name || `مشروع رقم ${p.projectNumber}`,
+        manager: p.managerName || "غير محدد",
+        department: "إدارة المشاريع",
+        currentPhase: p.requestStage || p.status || "مرحلة التنفيذ",
+        plannedProgress: 80,
+        actualProgress: p.completionPercentage || 0,
+        cumulativeBudget: Number(p.budget) || 3500000,
+        cumulativeSpent: Number(p.actualCost) || 2450000,
+      }));
+    }
+    return MOCK_PROJECTS;
+  }, [dbProjectsData]);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(MOCK_PROJECTS[0].currentPhase);
+  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
@@ -42,8 +62,8 @@ export default function QuarterlyReportPage() {
     { title: "تركيب المنظومة الرئيسية", date: "2026-06-30", status: "منجز" },
   ]);
 
-  const [cumulativeSpent, setCumulativeSpent] = useState<number>(MOCK_PROJECTS[0].cumulativeSpent || 2450000);
-  const [cumulativeBudget, setCumulativeBudget] = useState<number>(MOCK_PROJECTS[0].cumulativeBudget || 3500000);
+  const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
+  const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
 
   const financialCommitmentPct = useMemo(() => {
     if (!cumulativeBudget || cumulativeBudget === 0) return 0;
@@ -64,8 +84,6 @@ export default function QuarterlyReportPage() {
     "تحسين تجربة المصلين ورفع كفاءة استهلاك الطاقة والمياه بنسبة 35% خلال الربع."
   );
 
-
-
   const [lessonsLearned, setLessonsLearned] = useState<string>("");
 
   const [continuationDecisions, setContinuationDecisions] = useState<string>(
@@ -81,7 +99,7 @@ export default function QuarterlyReportPage() {
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
-    const proj = MOCK_PROJECTS.find((p) => p.id === projId);
+    const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
@@ -91,6 +109,8 @@ export default function QuarterlyReportPage() {
       if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
     }
   };
+
+  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   useEffect(() => {
     const hasRed =
@@ -182,7 +202,7 @@ export default function QuarterlyReportPage() {
                       <SelectValue placeholder="اختر المشروع ليتم تعبئة البيانات تلقائياً" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_PROJECTS.map((p) => (
+                      {projectOptions.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="text-xs py-2">
                           <div className="flex items-center justify-between gap-4 w-full">
                             <span className="font-semibold">{p.name}</span>
