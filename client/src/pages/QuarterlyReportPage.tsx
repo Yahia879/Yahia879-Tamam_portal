@@ -20,7 +20,6 @@ import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Awa
 export default function QuarterlyReportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
   const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
-  const [ownerDepartment, setOwnerDepartment] = useState<string>(MOCK_PROJECTS[0].department);
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
   const [reportDate, setReportDate] = useState<string>(
@@ -53,8 +52,6 @@ export default function QuarterlyReportPage() {
 
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
-  const [qualityIndicator, setQualityIndicator] = useState<string>("أخضر");
-  const [riskIndicator, setRiskIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
 
   const [overallTrend, setOverallTrend] = useState<"متحسّن" | "ثابت" | "متراجع">("متحسّن");
@@ -67,9 +64,7 @@ export default function QuarterlyReportPage() {
     "تحسين تجربة المصلين ورفع كفاءة استهلاك الطاقة والمياه بنسبة 35% خلال الربع."
   );
 
-  const [majorRisks, setMajorRisks] = useState<Record<string, any>[]>([
-    { description: "تقلبات التوريد واختلال المهل الزمنية للمواد المصنعة", severity: "حرجة", plan: "إبرام اتفاقيات إمداد مبكرة وإيجاد بدلاء محليين", assignee: "إدارة المشتريات" }
-  ]);
+
 
   const [lessonsLearned, setLessonsLearned] = useState<string>("");
 
@@ -89,7 +84,6 @@ export default function QuarterlyReportPage() {
     const proj = MOCK_PROJECTS.find((p) => p.id === projId);
     if (proj) {
       setProjectManager(proj.manager);
-      setOwnerDepartment(proj.department);
       setCurrentPhase(proj.currentPhase);
       if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
@@ -103,13 +97,11 @@ export default function QuarterlyReportPage() {
       ragStatus === "أحمر" ||
       timeIndicator === "أحمر" ||
       costIndicator === "أحمر" ||
-      qualityIndicator === "أحمر" ||
-      riskIndicator === "أحمر" ||
       changeIndicator === "أحمر";
     if (hasRed) {
       setNeedEscalation(true);
     }
-  }, [ragStatus, timeIndicator, costIndicator, qualityIndicator, riskIndicator, changeIndicator]);
+  }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
 
   const handleSaveDraft = () => {
     setReportStatus("مسودة");
@@ -132,7 +124,7 @@ export default function QuarterlyReportPage() {
 
     setIsSubmitting(true);
     setTimeout(() => {
-      setReportStatus("مُرسل");
+      setReportStatus("تم الاطلاع");
       setIsSubmitting(false);
       toast.success("تم رفع التقرير الربعي الاستراتيجي بنجاح إلى مجلس الإدارة!");
     }, 800);
@@ -153,21 +145,7 @@ export default function QuarterlyReportPage() {
     },
   ];
 
-  const majorRiskCols: ColumnDef[] = [
-    { key: "description", label: "وصف الخطر الجوهري", type: "text", placeholder: "المخاطر ذات الأثر العالي" },
-    {
-      key: "severity",
-      label: "درجة الخطورة",
-      type: "select",
-      options: [
-        { value: "حرجة", label: "حرجة للغاية" },
-        { value: "عالية", label: "عالية جداً" },
-        { value: "متوسطة", label: "متوسطة" },
-      ],
-    },
-    { key: "plan", label: "الخطة الاستراتيجية للحد", type: "text", placeholder: "خطوات المعالجة" },
-    { key: "assignee", label: "الجهة/المسؤول", type: "text", placeholder: "المسؤول عن التنفيذ" },
-  ];
+
 
   const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
 
@@ -222,14 +200,6 @@ export default function QuarterlyReportPage() {
                     <span>مدير المشروع</span>
                   </Label>
                   <Input value={projectManager} readOnly placeholder="مدير المشروع المرتبط" className="h-10 bg-muted/40 font-semibold border-border/60" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>الإدارة المالكة</span>
-                  </Label>
-                  <Input value={ownerDepartment} readOnly placeholder="الإدارة المالكة للمشروع" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
 
                 <div className="space-y-1.5">
@@ -392,11 +362,9 @@ export default function QuarterlyReportPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <RagIndicatorSelect label="مؤشر الوقت" value={timeIndicator} onChange={setTimeIndicator} />
                 <RagIndicatorSelect label="مؤشر التكلفة" value={costIndicator} onChange={setCostIndicator} />
-                <RagIndicatorSelect label="مؤشر الجودة" value={qualityIndicator} onChange={setQualityIndicator} />
-                <RagIndicatorSelect label="مؤشر المخاطر" value={riskIndicator} onChange={setRiskIndicator} />
                 <RagIndicatorSelect label="مؤشر التغيير" value={changeIndicator} onChange={setChangeIndicator} />
               </div>
 
@@ -482,14 +450,7 @@ export default function QuarterlyReportPage() {
                 />
               </div>
 
-              <DynamicArrayTable
-                title="المخاطر الجوهرية (عالية الأثر فقط)"
-                description="جدول المخاطر الاستراتيجية والجوهرية ذات التأثير البالغ"
-                columns={majorRiskCols}
-                rows={majorRisks}
-                onChange={setMajorRisks}
-                emptyLabel="اضغط إضافة صف جديد لإدراج المخاطر الجوهرية"
-              />
+
             </CardContent>
           </Card>
 
@@ -562,8 +523,7 @@ export default function QuarterlyReportPage() {
                     <SelectValue placeholder="اختر حالة التقرير" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مسودة" className="text-xs">مسودة (Draft)</SelectItem>
-                    <SelectItem value="مُرسل" className="text-xs">مُرسل (Submitted)</SelectItem>
+                    <SelectItem value="تم الاطلاع" className="text-xs">تم الاطلاع (Reviewed)</SelectItem>
                     <SelectItem value="معتمد" className="text-xs">معتمد (Approved)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -580,7 +540,6 @@ export default function QuarterlyReportPage() {
           data={{
             projectName: selectedProjName,
             projectManager,
-            ownerDepartment,
             quarter,
             year,
             reportDate,
