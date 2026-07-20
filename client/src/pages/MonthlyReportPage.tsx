@@ -12,16 +12,34 @@ import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/Dynam
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
+import { trpc } from "@/lib/trpc";
 import { Calendar, Building2, User, Layers } from "lucide-react";
 
 export default function MonthlyReportPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
-  const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+
+  const projectOptions = useMemo(() => {
+    if (dbProjectsData && dbProjectsData.length > 0) {
+      return dbProjectsData.map((p: any) => ({
+        id: String(p.id),
+        name: p.name || `مشروع رقم ${p.projectNumber}`,
+        manager: p.managerName || "غير محدد",
+        department: "إدارة المشاريع",
+        currentPhase: p.requestStage || p.status || "مرحلة التنفيذ",
+        plannedProgress: 80,
+        actualProgress: p.completionPercentage || 0,
+      }));
+    }
+    return MOCK_PROJECTS;
+  }, [dbProjectsData]);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(MOCK_PROJECTS[0].currentPhase);
+  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
@@ -50,7 +68,7 @@ export default function MonthlyReportPage() {
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
-    const proj = MOCK_PROJECTS.find((p) => p.id === projId);
+    const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
@@ -94,7 +112,7 @@ export default function MonthlyReportPage() {
 
 
 
-  const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
+  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   return (
     <DashboardLayout>
@@ -129,7 +147,7 @@ export default function MonthlyReportPage() {
                       <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_PROJECTS.map((p) => (
+                      {projectOptions.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="text-xs py-2">
                           <div className="flex items-center justify-between gap-4 w-full">
                             <span className="font-semibold">{p.name}</span>
