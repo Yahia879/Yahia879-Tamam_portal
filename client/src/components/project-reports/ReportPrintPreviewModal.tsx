@@ -149,10 +149,42 @@ export function ReportPrintPreviewModal({
               </div>
             )}
 
+            {data.challenges && (
+              <div className="border border-border/80 rounded-xl p-4 bg-card space-y-2">
+                <h3 className="font-bold text-sm text-foreground">التحديات والعقبات</h3>
+                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{data.challenges}</p>
+              </div>
+            )}
+
+            {data.requiredSupport && (
+              <div className="border border-border/80 rounded-xl p-4 bg-card space-y-2">
+                <h3 className="font-bold text-sm text-foreground">الدعم المطلوب</h3>
+                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{data.requiredSupport}</p>
+              </div>
+            )}
+
             {data.valueImpact && (
               <div className="border border-border/80 rounded-xl p-4 bg-card space-y-2">
                 <h3 className="font-bold text-sm text-foreground">القيمة والأثر المتحقق</h3>
                 <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">{data.valueImpact}</p>
+              </div>
+            )}
+
+            {Array.isArray(data.externalLinks) && data.externalLinks.length > 0 && (
+              <div className="border border-border/80 rounded-xl p-4 bg-card space-y-2">
+                <h3 className="font-bold text-sm text-foreground">الروابط الخارجية والمراجع</h3>
+                <div className="space-y-1.5 pt-1">
+                  {data.externalLinks.map((link: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-muted/30">
+                      <span className="font-semibold text-foreground">{link.title || `رابط ${idx + 1}`}</span>
+                      {link.url && (
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-teal-600 underline truncate max-w-xs dir-ltr">
+                          {link.url}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
