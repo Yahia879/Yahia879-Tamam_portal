@@ -19,7 +19,6 @@ import { User, Building2, Calendar, ShieldAlert } from "lucide-react";
 export default function SemiMonthlyReportPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
   const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
-  const [ownerDepartment, setOwnerDepartment] = useState<string>(MOCK_PROJECTS[0].department);
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
   const [reportDate, setReportDate] = useState<string>(
@@ -39,12 +38,6 @@ export default function SemiMonthlyReportPage() {
 
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
-  const [qualityIndicator, setQualityIndicator] = useState<string>("أخضر");
-  const [riskIndicator, setRiskIndicator] = useState<string>("أخضر");
-
-  const [deviations, setDeviations] = useState<Record<string, any>[]>([]);
-  const [risks, setRisks] = useState<Record<string, any>[]>([]);
-  const [issues, setIssues] = useState<Record<string, any>[]>([]);
 
   const [recommendations, setRecommendations] = useState<string>("");
   const [needEscalation, setNeedEscalation] = useState<boolean>(false);
@@ -59,7 +52,6 @@ export default function SemiMonthlyReportPage() {
     const proj = MOCK_PROJECTS.find((p) => p.id === projId);
     if (proj) {
       setProjectManager(proj.manager);
-      setOwnerDepartment(proj.department);
       if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
     }
@@ -69,13 +61,11 @@ export default function SemiMonthlyReportPage() {
     const hasRedIndicator =
       ragStatus === "أحمر" ||
       timeIndicator === "أحمر" ||
-      costIndicator === "أحمر" ||
-      qualityIndicator === "أحمر" ||
-      riskIndicator === "أحمر";
+      costIndicator === "أحمر";
     if (hasRedIndicator) {
       setNeedEscalation(true);
     }
-  }, [ragStatus, timeIndicator, costIndicator, qualityIndicator, riskIndicator]);
+  }, [ragStatus, timeIndicator, costIndicator]);
 
   const handleSaveDraft = () => {
     setReportStatus("مسودة");
@@ -83,10 +73,6 @@ export default function SemiMonthlyReportPage() {
   };
 
   const handleSubmit = () => {
-    if (ragStatus !== "أخضر" && deviations.length === 0) {
-      toast.error("يرجى إضافة الانحرافات نظراً لتجاوز الفجوة المستهدفة");
-      return;
-    }
     if (ragStatus === "أحمر" && !recommendations.trim()) {
       toast.error("يرجى كتابة التوصيات نظراً لوجود مؤشر أحمر");
       return;
@@ -98,7 +84,7 @@ export default function SemiMonthlyReportPage() {
 
     setIsSubmitting(true);
     setTimeout(() => {
-      setReportStatus("مُرسل");
+      setReportStatus("تم الاطلاع");
       setIsSubmitting(false);
       toast.success("تم إرسال التقرير نصف الشهري بنجاح إلى الإدارة المعنية!");
     }, 800);
@@ -187,19 +173,6 @@ export default function SemiMonthlyReportPage() {
                     value={projectManager}
                     readOnly
                     placeholder="مدير المشروع المرتبط"
-                    className="h-10 bg-muted/40 font-semibold text-foreground border-border/60"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>الإدارة المالكة</span>
-                  </Label>
-                  <Input
-                    value={ownerDepartment}
-                    readOnly
-                    placeholder="الإدارة المالكة للمشروع"
                     className="h-10 bg-muted/40 font-semibold text-foreground border-border/60"
                   />
                 </div>
@@ -326,7 +299,7 @@ export default function SemiMonthlyReportPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <RagIndicatorSelect
                   label="مؤشر الوقت"
                   value={timeIndicator}
@@ -337,56 +310,11 @@ export default function SemiMonthlyReportPage() {
                   value={costIndicator}
                   onChange={setCostIndicator}
                 />
-                <RagIndicatorSelect
-                  label="مؤشر الجودة"
-                  value={qualityIndicator}
-                  onChange={setQualityIndicator}
-                />
-                <RagIndicatorSelect
-                  label="مؤشر المخاطر"
-                  value={riskIndicator}
-                  onChange={setRiskIndicator}
-                />
               </div>
             </CardContent>
           </Card>
 
-          {/* الانحرافات والقضايا */}
-          <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">الانحرافات والقضايا الميدانية</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5 space-y-6">
-              <DynamicArrayTable
-                title="الانحرافات"
-                columns={deviationCols}
-                rows={deviations}
-                onChange={setDeviations}
-                emptyLabel="اضغط إضافة صف جديد لتسجيل الانحرافات"
-              />
 
-              <DynamicArrayTable
-                title="المخاطر التشغيلية"
-                columns={riskCols}
-                rows={risks}
-                onChange={setRisks}
-                emptyLabel="اضغط إضافة صف جديد لتسجيل المخاطر"
-              />
-
-              <DynamicArrayTable
-                title="القضايا والإجراءات التصحيحية"
-                columns={issueCols}
-                rows={issues}
-                onChange={setIssues}
-                emptyLabel="اضغط إضافة صف جديد لتسجيل القضايا"
-              />
-            </CardContent>
-          </Card>
 
           {/* التوصيات والتصعيد */}
           <Card className="border-border/80 shadow-xs">
@@ -445,8 +373,7 @@ export default function SemiMonthlyReportPage() {
                     <SelectValue placeholder="اختر حالة التقرير" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="مسودة" className="text-xs">مسودة (Draft)</SelectItem>
-                    <SelectItem value="مُرسل" className="text-xs">مُرسل (Submitted)</SelectItem>
+                    <SelectItem value="تم الاطلاع" className="text-xs">تم الاطلاع (Reviewed)</SelectItem>
                     <SelectItem value="معتمد" className="text-xs">معتمد (Approved)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -463,7 +390,6 @@ export default function SemiMonthlyReportPage() {
           data={{
             projectName: selectedProjName,
             projectManager,
-            ownerDepartment,
             periodFrom,
             periodTo,
             reportDate,
