@@ -124,7 +124,7 @@ export function ReportHeaderTabs({
               className="gap-1.5 h-9 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
             >
               <Save className="w-3.5 h-3.5 text-white" />
-              حفظ التقرير
+              حفظ كمسودة
             </Button>
           )}
         </div>
