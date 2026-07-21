@@ -110,8 +110,7 @@ export default function SemiMonthlyReportPage() {
   }, [ragStatus, timeIndicator, costIndicator]);
 
   const handleSaveDraft = () => {
-    setReportStatus("مسودة");
-    toast.success("تم حفظ مسودة التقرير بنجاح");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -169,7 +168,6 @@ export default function SemiMonthlyReportPage() {
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
