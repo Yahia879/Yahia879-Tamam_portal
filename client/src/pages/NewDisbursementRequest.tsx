@@ -223,6 +223,34 @@ export default function NewDisbursementRequest() {
     }
   };
   
+  // حساب تواريخ الحظر والحد الأدنى لتاريخ الدفعة
+  const formatDateToYYYYMMDD = (d: any): string | null => {
+    if (!d) return null;
+    const dateObj = new Date(d);
+    if (isNaN(dateObj.getTime())) return null;
+    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(dateObj);
+  };
+
+  const rawContractDate = 
+    contractDetails?.contract?.startDate || 
+    contractDetails?.contract?.contractDate || 
+    projectContracts?.contracts?.[0]?.startDate || 
+    projectDetails?.startDate;
+
+  const contractStartDate = formatDateToYYYYMMDD(rawContractDate);
+
+  const existingPayments = projectDetails?.payments || [];
+  const previousPaymentDates = existingPayments
+    .map((p: any) => formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt))
+    .filter((d: string | null): d is string => !!d)
+    .sort();
+
+  const latestPrevPaymentDate = previousPaymentDates.length > 0 
+    ? previousPaymentDates[previousPaymentDates.length - 1] 
+    : null;
+
+  const minAllowedDate = [contractStartDate, latestPrevPaymentDate].filter((d): d is string => !!d).sort().pop();
+
   // إرسال للاعتماد
   const handleSubmit = () => {
     if (!formData.projectId) {
@@ -231,6 +259,14 @@ export default function NewDisbursementRequest() {
     }
     if (!formData.dateMiladi) {
       toast.error("يرجى تحديد التاريخ الميلادي");
+      return;
+    }
+    if (contractStartDate && formData.dateMiladi < contractStartDate) {
+      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractStartDate})`);
+      return;
+    }
+    if (latestPrevPaymentDate && formData.dateMiladi < latestPrevPaymentDate) {
+      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
       return;
     }
     if (!formData.title) {
@@ -268,10 +304,12 @@ export default function NewDisbursementRequest() {
     createMutation.mutate({
       projectId: formData.projectId,
       contractId: formData.contractId || undefined,
+      contractPaymentId: formData.contractPaymentId || undefined,
       amount: totalAmount,
       paymentType: "progress",
       description: formData.title,
       completionPercentage: formData.completionPercentage,
+      dateMiladi: formData.dateMiladi,
     });
   };
   
@@ -376,7 +414,19 @@ export default function NewDisbursementRequest() {
                   <Input
                     type="date"
                     value={formData.dateMiladi}
-                    onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                    min={minAllowedDate || undefined}
+                    onChange={(e) => {
+                      const selectedDate = e.target.value;
+                      if (contractStartDate && selectedDate < contractStartDate) {
+                        toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractStartDate})`);
+                        return;
+                      }
+                      if (latestPrevPaymentDate && selectedDate < latestPrevPaymentDate) {
+                        toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
+                        return;
+                      }
+                      setFormData({ ...formData, dateMiladi: selectedDate });
+                    }}
                     required
                     className="text-right"
                   />

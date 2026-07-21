@@ -896,10 +896,12 @@ export const projectsRouter = router({
     .input(z.object({
       projectId: z.number(),
       contractId: z.number().optional(),
+      contractPaymentId: z.number().optional(),
       amount: z.number().positive(),
       paymentType: z.enum(["advance", "progress", "final", "retention"]),
       description: z.string().optional(),
       completionPercentage: z.number().optional(),
+      dateMiladi: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -917,6 +919,35 @@ export const projectsRouter = router({
         completionPercentage: input.completionPercentage,
         status: "pending",
       });
+
+      // إذا كانت الدفعة مرتبطة بدفعة عقد محددة، نحدث تاريخ استحقاقها ونسبة إنجازها
+      if (input.contractPaymentId && input.dateMiladi) {
+        const updateVals: any = {
+          dueDate: input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`),
+        };
+        if (input.completionPercentage !== undefined) {
+          updateVals.completionPercentage = input.completionPercentage;
+        }
+        await db.update(contractPayments).set(updateVals).where(eq(contractPayments.id, input.contractPaymentId));
+      }
+
+      // إضافة طلب صرف مرتبط بالتاريخ المحدد لتوثيق التاريخ الميلادي للدفعة
+      if (input.dateMiladi) {
+        await db.insert(disbursementRequests).values({
+          requestNumber: `DISB-${paymentNumber}`,
+          projectId: input.projectId,
+          contractId: input.contractId,
+          contractPaymentId: input.contractPaymentId,
+          paymentId: payment.insertId,
+          title: input.description || "طلب دفعة",
+          description: input.description,
+          amount: input.amount.toString(),
+          paymentType: input.paymentType,
+          dateMiladi: input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`),
+          completionPercentage: input.completionPercentage,
+          status: "pending",
+        });
+      }
 
       return { id: payment.insertId, paymentNumber };
     }),
@@ -970,6 +1001,20 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const toLocalDateString = (d: any): string => {
+        if (!d) return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        if (typeof d === 'string') {
+          const match = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+        }
+        const dateObj = new Date(d);
+        if (isNaN(dateObj.getTime())) return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       if (input.id.startsWith("disb-")) {
         const actualId = parseInt(input.id.replace("disb-", ""));
         const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
@@ -982,13 +1027,17 @@ export const projectsRouter = router({
           title: disb.title || disb.description || "",
           description: disb.description || "",
           amount: parseFloat(disb.amount as string || "0"),
-          dateMiladi: disb.dateMiladi ? new Date(disb.dateMiladi).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          dateMiladi: toLocalDateString(disb.dateMiladi),
           completionPercentage: disb.completionPercentage || 0,
         };
       } else if (input.id.startsWith("manual-")) {
          const actualId = parseInt(input.id.replace("manual-", ""));
          const [payment] = await db.select().from(payments).where(eq(payments.id, actualId));
          if (!payment) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+         
+         // البحث عما إذا كان هناك طلب صرف مرتبط بالدفعة اليدوية للحصول على dateMiladi
+         const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+
          return {
            id: input.id,
            projectId: payment.projectId || 0,
@@ -996,7 +1045,7 @@ export const projectsRouter = router({
            title: payment.description || "",
            description: payment.description || "",
            amount: parseFloat(payment.amount as string || "0"),
-           dateMiladi: new Date(payment.createdAt).toISOString().split('T')[0],
+           dateMiladi: disb?.dateMiladi ? toLocalDateString(disb.dateMiladi) : toLocalDateString(payment.createdAt),
            completionPercentage: payment.completionPercentage || 0,
          };
       } else if (input.id.startsWith("cp-")) {
@@ -1021,7 +1070,7 @@ export const projectsRouter = router({
           title: cp.phaseName || "",
           description: cp.notes || "",
           amount: parseFloat(cp.amount as string || "0"),
-          dateMiladi: cp.dueDate ? new Date(cp.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          dateMiladi: toLocalDateString(cp.dueDate || cp.createdAt),
           completionPercentage: cp.completionPercentage || 0,
         };
       } else {
@@ -1047,7 +1096,7 @@ export const projectsRouter = router({
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.title = input.title;
         if (input.description !== undefined) updateValues.description = input.description;
-        if (input.dateMiladi !== undefined) updateValues.dateMiladi = input.dateMiladi;
+        if (input.dateMiladi !== undefined) updateValues.dateMiladi = input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`);
         if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
         
         await db.update(disbursementRequests).set(updateValues).where(eq(disbursementRequests.id, actualId));
@@ -1062,7 +1111,7 @@ export const projectsRouter = router({
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.phaseName = input.title;
         if (input.dateMiladi !== undefined) {
-          updateValues.dueDate = new Date(input.dateMiladi);
+          updateValues.dueDate = input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`);
         }
         if (input.description !== undefined) {
           updateValues.notes = input.description;

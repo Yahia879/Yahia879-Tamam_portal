@@ -208,6 +208,59 @@ export default function EditPaymentPage() {
     },
   });
   
+  // حساب تواريخ الحظر والحدود لتاريخ الدفعة عند التعديل
+  const formatDateToYYYYMMDD = (d: any): string | null => {
+    if (!d) return null;
+    const dateObj = new Date(d);
+    if (isNaN(dateObj.getTime())) return null;
+    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(dateObj);
+  };
+
+  const rawContractDate = 
+    contractDetails?.contract?.startDate || 
+    contractDetails?.contract?.contractDate || 
+    projectContracts?.contracts?.[0]?.startDate || 
+    projectDetails?.startDate;
+
+  const contractStartDate = formatDateToYYYYMMDD(rawContractDate);
+
+  const allPayments = projectDetails?.payments || [];
+  const currentPaymentIndex = allPayments.findIndex(
+    (p: any) => String(p.id) === String(paymentId) || String(p.id) === `cp-${paymentId}`
+  );
+
+  let prevPayments = allPayments;
+  let nextPayments: any[] = [];
+
+  if (currentPaymentIndex !== -1) {
+    prevPayments = allPayments.slice(0, currentPaymentIndex);
+    nextPayments = allPayments.slice(currentPaymentIndex + 1);
+  } else {
+    prevPayments = allPayments.filter(
+      (p: any) => String(p.id) !== String(paymentId) && String(p.id) !== `cp-${paymentId}`
+    );
+  }
+
+  const prevPaymentDates = prevPayments
+    .map((p: any) => formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt))
+    .filter((d: string | null): d is string => !!d)
+    .sort();
+
+  const latestPrevPaymentDate = prevPaymentDates.length > 0 
+    ? prevPaymentDates[prevPaymentDates.length - 1] 
+    : null;
+
+  const minAllowedDate = [contractStartDate, latestPrevPaymentDate].filter((d): d is string => !!d).sort().pop();
+
+  const nextPaymentDates = nextPayments
+    .map((p: any) => formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt))
+    .filter((d: string | null): d is string => !!d)
+    .sort();
+
+  const earliestNextPaymentDate = nextPaymentDates.length > 0 
+    ? nextPaymentDates[0] 
+    : null;
+
   // حفظ التغييرات
   const handleSubmit = () => {
     if (!formData.projectId) {
@@ -216,6 +269,18 @@ export default function EditPaymentPage() {
     }
     if (!formData.dateMiladi) {
       toast.error("يرجى تحديد التاريخ الميلادي");
+      return;
+    }
+    if (contractStartDate && formData.dateMiladi < contractStartDate) {
+      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractStartDate})`);
+      return;
+    }
+    if (latestPrevPaymentDate && formData.dateMiladi < latestPrevPaymentDate) {
+      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
+      return;
+    }
+    if (earliestNextPaymentDate && formData.dateMiladi > earliestNextPaymentDate) {
+      toast.error(`لا يمكن وضع تاريخ الدفعة بعد تاريخ الدفعة التالية (${earliestNextPaymentDate})`);
       return;
     }
     if (!formData.title) {
@@ -372,7 +437,24 @@ export default function EditPaymentPage() {
                   <Input
                     type="date"
                     value={formData.dateMiladi}
-                    onChange={(e) => setFormData({ ...formData, dateMiladi: e.target.value })}
+                    min={minAllowedDate || undefined}
+                    max={earliestNextPaymentDate || undefined}
+                    onChange={(e) => {
+                      const selectedDate = e.target.value;
+                      if (contractStartDate && selectedDate < contractStartDate) {
+                        toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractStartDate})`);
+                        return;
+                      }
+                      if (latestPrevPaymentDate && selectedDate < latestPrevPaymentDate) {
+                        toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
+                        return;
+                      }
+                      if (earliestNextPaymentDate && selectedDate > earliestNextPaymentDate) {
+                        toast.error(`لا يمكن وضع تاريخ الدفعة بعد تاريخ الدفعة التالية (${earliestNextPaymentDate})`);
+                        return;
+                      }
+                      setFormData({ ...formData, dateMiladi: selectedDate });
+                    }}
                     required
                     className="text-right rounded-xl h-10 border-border/60"
                   />
