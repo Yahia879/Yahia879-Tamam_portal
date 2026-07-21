@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -194,6 +194,7 @@ export default function ContractPreview() {
   const [modificationDescription, setModificationDescription] = useState("");
   const [modificationJustification, setModificationJustification] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
   
   // State لنموذج الموافقة/الرفض
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -201,6 +202,16 @@ export default function ContractPreview() {
   const [reviewNotes, setReviewNotes] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPreparingPrint(false);
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => {
+      window.removeEventListener("afterprint", handleAfterPrint);
+    };
+  }, []);
+
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
     { id: contractId! },
@@ -343,9 +354,56 @@ export default function ContractPreview() {
     setReviewDialogOpen(true);
   };
 
-  // طباعة العقد
-  const handlePrint = () => {
-    window.print();
+  // طباعة العقد بعد التأكد التام من اكتمال تحميل الختم وكافة صور الهيدر
+  const handlePrint = async () => {
+    if (isPreparingPrint) return;
+    setIsPreparingPrint(true);
+
+    try {
+      // 1. تجميع كل روابط الصور المراد التأكد من اكتمال تحميلها
+      const imageUrls: string[] = [];
+      if (orgSettings?.logoUrl) imageUrls.push(orgSettings.logoUrl);
+      if (orgSettings?.stampUrl && data?.contract?.status === "approved") imageUrls.push(orgSettings.stampUrl);
+      imageUrls.push("/assets/image-removebg-preview (1).png");
+
+      // 2. تحميل الصور في ذاكرة المتصفح عبر Image()
+      const preloadPromises = imageUrls.map((url) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          const timer = setTimeout(() => resolve(), 3500); // أقصى مهلة انتظار 3.5 ثوانٍ
+          img.onload = () => { clearTimeout(timer); resolve(); };
+          img.onerror = () => { clearTimeout(timer); resolve(); };
+          img.src = url;
+          if (img.complete) { clearTimeout(timer); resolve(); }
+        });
+      });
+
+      // 3. التحقق أيضاً من عناصر <img> المباشرة في الصفحة
+      const domImgPromises = Array.from(
+        document.querySelectorAll<HTMLImageElement>(
+          '.contract-print-stamp-footer img, img[alt="شعار الجمعية"], img[alt="شعار إضافي"], .contract-a4-page img'
+        )
+      ).map((img) => {
+        return new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth !== 0) return resolve();
+          const timer = setTimeout(() => resolve(), 3500);
+          img.onload = () => { clearTimeout(timer); resolve(); };
+          img.onerror = () => { clearTimeout(timer); resolve(); };
+        });
+      });
+
+      await Promise.all([...preloadPromises, ...domImgPromises]);
+    } catch (e) {
+      console.error("Print preload error:", e);
+    } finally {
+      // إيقاف الـ loading فوراً بعد اكتمال تحميل الصور وقبل فتح نافذة الطباعة
+      setIsPreparingPrint(false);
+    }
+
+    // فتح نافذة الطباعة بعد إعادة الزر لحالته الطبيعية
+    setTimeout(() => {
+      window.print();
+    }, 50);
   };
 
   // تحميل العقد كـ PDF
@@ -566,10 +624,20 @@ export default function ContractPreview() {
 
             <Button 
               onClick={handlePrint} 
-              className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white"
+              disabled={isPreparingPrint}
+              className="flex-1 sm:flex-none bg-green-700 hover:bg-green-800 text-white font-medium disabled:opacity-70 transition-all"
             >
-              <Printer className="h-4 w-4 ml-2" />
-              طباعة العقد
+              {isPreparingPrint ? (
+                <>
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  جاري تحميل العقد...
+                </>
+              ) : (
+                <>
+                  <Printer className="h-4 w-4 ml-2" />
+                  طباعة العقد
+                </>
+              )}
             </Button>
           </div>
         </div>
