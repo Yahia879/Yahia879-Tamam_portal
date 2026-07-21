@@ -13,10 +13,10 @@ import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs"
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
-import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
+import { MOCK_PROJECTS, MOCK_MONTHLY_REPORTS, MOCK_SEMI_MONTHLY_REPORTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen } from "lucide-react";
+import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function QuarterlyReportPage() {
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
@@ -47,6 +47,21 @@ export default function QuarterlyReportPage() {
   );
   const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
 
+  const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
+  const [selectedMonthly1Id, setSelectedMonthly1Id] = useState<string>("");
+  const [selectedMonthly2Id, setSelectedMonthly2Id] = useState<string>("");
+  const [selectedMonthly3Id, setSelectedMonthly3Id] = useState<string>("");
+  const [selectedSemiIds, setSelectedSemiIds] = useState<string[]>([]);
+  const [isAggregated, setIsAggregated] = useState<boolean>(false);
+
+  const availableMonthlyReports = useMemo(() => {
+    return MOCK_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
+  }, [selectedProjectId]);
+
+  const availableSemiReports = useMemo(() => {
+    return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
+  }, [selectedProjectId]);
+
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
 
@@ -64,6 +79,66 @@ export default function QuarterlyReportPage() {
 
   const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
   const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
+
+  const handleAggregateFromMonthly = () => {
+    const selected = [
+      availableMonthlyReports.find((r) => r.id === selectedMonthly1Id),
+      availableMonthlyReports.find((r) => r.id === selectedMonthly2Id),
+      availableMonthlyReports.find((r) => r.id === selectedMonthly3Id),
+    ].filter(Boolean) as typeof availableMonthlyReports;
+
+    if (selected.length === 0) {
+      toast.error("يرجى اختيار تقرير شهري واحد على الأقل للتجميع");
+      return;
+    }
+
+    const avgActual = Math.round(selected.reduce((acc, r) => acc + r.actualProgress, 0) / selected.length);
+    const avgPlanned = Math.round(selected.reduce((acc, r) => acc + r.plannedProgress, 0) / selected.length);
+
+    setActualProgress(avgActual);
+    setPlannedProgress(avgPlanned);
+
+    const latestBudget = selected[selected.length - 1]?.cumulativeBudget || cumulativeBudget;
+    const latestSpent = selected[selected.length - 1]?.cumulativeSpent || cumulativeSpent;
+    setCumulativeBudget(latestBudget);
+    setCumulativeSpent(latestSpent);
+
+    const combinedMilestones: any[] = [];
+    selected.forEach((r) => {
+      if (r.milestones) combinedMilestones.push(...r.milestones);
+    });
+    if (combinedMilestones.length > 0) {
+      setQuarterMilestones(combinedMilestones);
+    }
+
+    setIsAggregated(true);
+    toast.success(`تم تجميع وتوليد بيانات التقرير الربعي من ${selected.length} تقارير شهرية!`);
+  };
+
+  const handleAggregateFromSemi = () => {
+    const selected = availableSemiReports.filter((r) => selectedSemiIds.includes(r.id));
+    if (selected.length === 0) {
+      toast.error("يرجى تحديد تقرير نصف شهري واحد على الأقل من القائمة");
+      return;
+    }
+
+    const avgActual = Math.round(selected.reduce((acc, r) => acc + r.actualProgress, 0) / selected.length);
+    const avgPlanned = Math.round(selected.reduce((acc, r) => acc + r.plannedProgress, 0) / selected.length);
+
+    setActualProgress(avgActual);
+    setPlannedProgress(avgPlanned);
+
+    const combinedMilestones: any[] = [];
+    selected.forEach((r) => {
+      if (r.milestones) combinedMilestones.push(...r.milestones);
+    });
+    if (combinedMilestones.length > 0) {
+      setQuarterMilestones(combinedMilestones);
+    }
+
+    setIsAggregated(true);
+    toast.success(`تم تجميع وتوليد بيانات التقرير الربعي من ${selected.length} تقارير نصف شهرية!`);
+  };
 
   const financialCommitmentPct = useMemo(() => {
     if (!cumulativeBudget || cumulativeBudget === 0) return 0;
@@ -124,8 +199,7 @@ export default function QuarterlyReportPage() {
   }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
 
   const handleSaveDraft = () => {
-    setReportStatus("مسودة");
-    toast.success("تم حفظ مسودة التقرير الربعي بنجاح");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -173,7 +247,6 @@ export default function QuarterlyReportPage() {
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
