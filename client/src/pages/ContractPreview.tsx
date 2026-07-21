@@ -576,22 +576,29 @@ export default function ContractPreview() {
 
         {/* معاينة العقد بصفحات A4 مقسمة بنفس الشكل الأصلي */}
         <div className="w-full overflow-x-auto pb-8 print:p-0 bg-muted/30">
+          {/* عنصر الختم الرسمي للطباعة فقط بوضعية position fixed يتردد أسفل كل صفحة مطبوعة */}
+          {/* عنصر الختم الرسمي للطباعة فقط بوضعية position fixed يثبت بأسفل كل صفحة مطبوعة بنفس الموضع */}
+          {contract.status === "approved" && orgSettings?.stampUrl && (
+            <div className="contract-print-stamp-footer">
+              <img 
+                src={orgSettings.stampUrl} 
+                alt="الختم الرسمي" 
+              />
+            </div>
+          )}
           <div 
             ref={printRef}
-            className="mx-auto print:m-0 space-y-8 print:space-y-0"
+            className="mx-auto print:m-0"
             style={{ 
               width: '100%', 
               maxWidth: '210mm',
               fontFamily: 'Arial, sans-serif',
             }}
           >
-            {/* 📄 الصفحة الأولى */}
             <div 
-              className="bg-white shadow-sm sm:shadow-lg border print:border-none print:shadow-none rounded-lg p-4 sm:p-8 md:p-12 lg:p-16 print:p-6 flex flex-col justify-between relative"
+              className="contract-a4-page bg-white shadow-sm sm:shadow-lg border print:border-none print:shadow-none rounded-lg p-4 sm:p-8 md:p-12 lg:p-16 print:p-6 flex flex-col justify-between relative overflow-hidden"
               style={{ 
                 minHeight: '297mm',
-                pageBreakAfter: 'always',
-                breakAfter: 'page',
               }}
             >
               <div>
@@ -615,7 +622,7 @@ export default function ContractPreview() {
 
                 {/* عنوان العقد */}
                 <div 
-                  className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm"
+                  className="text-center py-4 px-3 sm:px-6 mb-6 rounded-lg shadow-sm break-inside-avoid"
                   style={{ backgroundColor: '#ae9b63', color: '#faf8f5' }}
                 >
                   <h1 className="text-lg sm:text-xl font-bold">
@@ -625,12 +632,12 @@ export default function ContractPreview() {
                 </div>
 
                 {/* مقدمة العقد */}
-                <p className="text-center mb-6 text-gray-700 text-sm sm:text-base">
+                <p className="text-center mb-6 text-gray-700 text-sm sm:text-base break-inside-avoid">
                   إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
                 </p>
 
                 {/* الطرف الأول */}
-                <div className="mb-6">
+                <div className="mb-6 break-inside-avoid">
                   <div 
                     className="py-2 px-4 mb-3 rounded"
                     style={{ backgroundColor: '#e8f5e9' }}
@@ -664,7 +671,7 @@ export default function ContractPreview() {
                 </div>
 
                 {/* الطرف الثاني */}
-                <div className="mb-6">
+                <div className="mb-6 break-inside-avoid">
                   <div 
                     className="py-2 px-4 mb-3 rounded"
                     style={{ backgroundColor: '#e8f5e9' }}
@@ -702,47 +709,14 @@ export default function ContractPreview() {
                 </div>
 
                 {/* التمهيد */}
-                <div className="mb-6">
+                <div className="mb-6 break-inside-avoid">
                   <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
                     حيث إن {orgSettings?.officialReportsName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
                     و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
                     فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
                   </p>
                 </div>
-              </div>
 
-              {/* الختم الرسمي كـ Overlay عائم أسفل الصفحة الأولى بدون سطر فاصل وبدون حجز مساحة */}
-              {contract.status === "approved" && orgSettings?.stampUrl && (
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center justify-center print:bottom-8">
-                  <img 
-                    src={orgSettings.stampUrl} 
-                    alt="الختم الرسمي" 
-                    className="h-32 sm:h-36 md:h-40 w-auto object-contain drop-shadow-sm opacity-90" 
-                  />
-                </div>
-              )}
-
-              {/* تذييل الصفحة الأولى */}
-              <div 
-                className="mt-8 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8"
-                style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px' }}
-              >
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
-                  <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
-                  <span className="hidden sm:inline">{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
-                  <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 📄 الصفحة الثانية */}
-            <div 
-              className="bg-white shadow-sm sm:shadow-lg border print:border-none print:shadow-none rounded-lg p-4 sm:p-8 md:p-12 lg:p-16 print:p-6 flex flex-col justify-between relative"
-              style={{ 
-                minHeight: '297mm',
-              }}
-            >
-              <div>
                 {/* بنود العقد الديناميكية */}
                 <div className="space-y-6">
                   {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
@@ -873,7 +847,7 @@ export default function ContractPreview() {
                 </div>
 
                 {/* التوقيعات مع ترك مربع الختم الرسمي فارغاً تماماً */}
-                <div className="mt-12">
+                <div className="mt-12 break-inside-avoid">
                   <div className="text-center mb-8">
                     <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
                   </div>
@@ -910,9 +884,9 @@ export default function ContractPreview() {
                 </div>
               </div>
 
-              {/* الختم الرسمي كـ Overlay عائم أسفل الصفحة الثانية بدون سطر فاصل وبدون حجز مساحة */}
+              {/* الختم الرسمي كـ Overlay عائم أسفل المعاينة الشاشية بدون حجز مساحة */}
               {contract.status === "approved" && orgSettings?.stampUrl && (
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center justify-center print:bottom-8">
+                <div className="screen-only-stamp absolute bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center justify-center">
                   <img 
                     src={orgSettings.stampUrl} 
                     alt="الختم الرسمي" 
@@ -921,9 +895,9 @@ export default function ContractPreview() {
                 </div>
               )}
 
-              {/* تذييل الصفحة الثانية */}
+              {/* تذييل الصفحة */}
               <div 
-                className="mt-8 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8"
+                className="mt-12 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8 break-inside-avoid"
                 style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px' }}
               >
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
@@ -1112,10 +1086,40 @@ export default function ContractPreview() {
           </DialogContent>
         </Dialog>
 
-        {/* أنماط الطباعة */}
+        {/* أنماط الطباعة المحسنة مع تثبيت موضع الختم ومنع تقسيم الأقسام بشكل مشوه */}
         <style>{`
+          .contract-print-stamp-footer {
+            display: none;
+          }
+
           @media print {
-            /* إخفاء شريط التنقل الجانبي والعلوي وأي أزرار أو عناصر تحكم */
+            .screen-only-stamp {
+              display: none !important;
+            }
+
+            .contract-print-stamp-footer {
+              display: block !important;
+              position: fixed !important;
+              bottom: 12mm !important;
+              left: 50% !important;
+              transform: translateX(-50%) !important;
+              z-index: 9999 !important;
+              pointer-events: none !important;
+            }
+
+            .contract-print-stamp-footer img {
+              height: 32mm !important;
+              max-height: 35mm !important;
+              width: auto !important;
+              object-fit: contain !important;
+              opacity: 0.9 !important;
+            }
+
+            .break-inside-avoid {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+
             [data-sidebar="sidebar"],
             .sidebar,
             aside,
@@ -1191,7 +1195,8 @@ export default function ContractPreview() {
             }
             
             @page {
-              size: A4;
+              size: A4 portrait;
+              margin: 12mm 15mm 22mm 15mm !important;
             }
           }
           @media screen {
