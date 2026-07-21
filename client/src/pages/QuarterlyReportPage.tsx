@@ -13,19 +13,77 @@ import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs"
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
-import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
+import { MOCK_PROJECTS, MOCK_MONTHLY_REPORTS, MOCK_SEMI_MONTHLY_REPORTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
+import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
-import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen } from "lucide-react";
+import { trpc } from "@/lib/trpc";
+import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function QuarterlyReportPage() {
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
-  const [projectManager, setProjectManager] = useState<string>(MOCK_PROJECTS[0].manager);
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+
+  const projectOptions = useMemo(() => {
+    if (dbProjectsData && dbProjectsData.length > 0) {
+      return dbProjectsData.map((p: any) => {
+        const rawStage = p.requestStage || p.status || "execution";
+        const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
+        return {
+          id: String(p.id),
+          name: p.name || `مشروع رقم ${p.projectNumber}`,
+          manager: p.managerName || "غير محدد",
+          department: "إدارة المشاريع",
+          currentPhase: arabicPhase,
+          plannedProgress: 80,
+          actualProgress: p.completionPercentage || 0,
+          cumulativeBudget: Number(p.budget) || 3500000,
+          cumulativeSpent: Number(p.actualCost) || 2450000,
+        };
+      });
+    }
+    return MOCK_PROJECTS;
+  }, [dbProjectsData]);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(MOCK_PROJECTS[0].currentPhase);
+  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
+
+  const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
+  const [selectedMonthlyId, setSelectedMonthlyId] = useState<string>("");
+  const [selectedSemiId, setSelectedSemiId] = useState<string>("");
+  const [isAggregated, setIsAggregated] = useState<boolean>(false);
+
+  const availableMonthlyReports = useMemo(() => {
+    return MOCK_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
+  }, [selectedProjectId]);
+
+  const availableSemiReports = useMemo(() => {
+    return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
+  }, [selectedProjectId]);
+
+  // Selected Monthly Report & Auto-matched Monthly Reports for the Quarter
+  const selectedMonthly = useMemo(() => {
+    return availableMonthlyReports.find((r) => r.id === selectedMonthlyId);
+  }, [availableMonthlyReports, selectedMonthlyId]);
+
+  const autoMatchedMonthlies = useMemo(() => {
+    if (!selectedMonthly) return [];
+    return availableMonthlyReports.filter((r) => r.projectId === selectedProjectId);
+  }, [availableMonthlyReports, selectedMonthly, selectedProjectId]);
+
+  // Selected Semi Report & Auto-matched Semi Reports for the Quarter
+  const selectedSemi = useMemo(() => {
+    return availableSemiReports.find((r) => r.id === selectedSemiId);
+  }, [availableSemiReports, selectedSemiId]);
+
+  const autoMatchedSemis = useMemo(() => {
+    if (!selectedSemi) return [];
+    return availableSemiReports.filter((r) => r.projectId === selectedProjectId);
+  }, [availableSemiReports, selectedSemi, selectedProjectId]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
@@ -42,8 +100,61 @@ export default function QuarterlyReportPage() {
     { title: "تركيب المنظومة الرئيسية", date: "2026-06-30", status: "منجز" },
   ]);
 
-  const [cumulativeSpent, setCumulativeSpent] = useState<number>(MOCK_PROJECTS[0].cumulativeSpent || 2450000);
-  const [cumulativeBudget, setCumulativeBudget] = useState<number>(MOCK_PROJECTS[0].cumulativeBudget || 3500000);
+  const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
+  const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
+
+  const handleAggregateFromMonthly = () => {
+    if (!selectedMonthly || autoMatchedMonthlies.length === 0) {
+      toast.error("يرجى اختيار تقرير شهري واحد للبدء بالتجميع");
+      return;
+    }
+
+    const avgActual = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedMonthlies.length);
+    const avgPlanned = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedMonthlies.length);
+
+    setActualProgress(avgActual);
+    setPlannedProgress(avgPlanned);
+
+    const latestBudget = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeBudget || cumulativeBudget;
+    const latestSpent = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeSpent || cumulativeSpent;
+    setCumulativeBudget(latestBudget);
+    setCumulativeSpent(latestSpent);
+
+    const combinedMilestones: any[] = [];
+    autoMatchedMonthlies.forEach((r) => {
+      if (r.milestones) combinedMilestones.push(...r.milestones);
+    });
+    if (combinedMilestones.length > 0) {
+      setQuarterMilestones(combinedMilestones);
+    }
+
+    setIsAggregated(true);
+    toast.success(`تم العثور آلياً على ${autoMatchedMonthlies.length} تقارير شهرية متوفرة لهذا الربع وتوليد التقرير الربعي بنجاح!`);
+  };
+
+  const handleAggregateFromSemi = () => {
+    if (!selectedSemi || autoMatchedSemis.length === 0) {
+      toast.error("يرجى اختيار تقرير نصف شهري واحد للبدء بالتجميع");
+      return;
+    }
+
+    const avgActual = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedSemis.length);
+    const avgPlanned = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedSemis.length);
+
+    setActualProgress(avgActual);
+    setPlannedProgress(avgPlanned);
+
+    const combinedMilestones: any[] = [];
+    autoMatchedSemis.forEach((r) => {
+      if (r.milestones) combinedMilestones.push(...r.milestones);
+    });
+    if (combinedMilestones.length > 0) {
+      setQuarterMilestones(combinedMilestones);
+    }
+
+    setIsAggregated(true);
+    toast.success(`تم العثور آلياً على ${autoMatchedSemis.length} تقارير نصف شهرية للمشروع وتجميع التقرير الربعي بنجاح!`);
+  };
 
   const financialCommitmentPct = useMemo(() => {
     if (!cumulativeBudget || cumulativeBudget === 0) return 0;
@@ -64,8 +175,6 @@ export default function QuarterlyReportPage() {
     "تحسين تجربة المصلين ورفع كفاءة استهلاك الطاقة والمياه بنسبة 35% خلال الربع."
   );
 
-
-
   const [lessonsLearned, setLessonsLearned] = useState<string>("");
 
   const [continuationDecisions, setContinuationDecisions] = useState<string>(
@@ -81,7 +190,7 @@ export default function QuarterlyReportPage() {
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
-    const proj = MOCK_PROJECTS.find((p) => p.id === projId);
+    const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
@@ -91,6 +200,8 @@ export default function QuarterlyReportPage() {
       if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
     }
   };
+
+  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   useEffect(() => {
     const hasRed =
@@ -104,8 +215,7 @@ export default function QuarterlyReportPage() {
   }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
 
   const handleSaveDraft = () => {
-    setReportStatus("مسودة");
-    toast.success("تم حفظ مسودة التقرير الربعي بنجاح");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -145,10 +255,6 @@ export default function QuarterlyReportPage() {
     },
   ];
 
-
-
-  const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
-
   return (
     <DashboardLayout>
       <div className="container max-w-6xl mx-auto py-6 px-4">
@@ -157,7 +263,6 @@ export default function QuarterlyReportPage() {
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
@@ -176,13 +281,207 @@ export default function QuarterlyReportPage() {
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
-                  <Label className="text-xs font-semibold">اسم المشروع / البرنامج</Label>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="w-4 h-4 text-teal-600" />
+                        <span className="text-xs font-bold text-foreground">طريقة إعداد وتعبئة التقرير الربعي الاستراتيجي</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">اختر الإدخال المباشر أو التجميع التلقائي من 3 تقارير شهرية أو 6 تقارير نصف شهرية لنفس المشروع</p>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border/80 shrink-0">
+                      <Button
+                        type="button"
+                        variant={entryMode === "manual" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("manual")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <User className="w-3 h-3" />
+                        إدخال يدوي
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={entryMode === "from_monthly" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("from_monthly")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_monthly" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <Calendar className="w-3 h-3" />
+                        تجميع من 3 شهرية
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={entryMode === "from_semi" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("from_semi")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_semi" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <Layers className="w-3 h-3" />
+                        تجميع من 6 نصف شهرية
+                      </Button>
+                    </div>
+                  </div>
+
+                  {entryMode === "from_monthly" && (
+                    <div className="p-4 rounded-xl bg-card border border-teal-600/30 space-y-4 my-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-600" />
+                          <span className="text-xs font-bold text-foreground">اختر تقرير شهري واحد وسيقوم النظام تلقائياً بربط باقي التقارير الشهرية المتاحة لهذا الربع والمشروع:</span>
+                        </div>
+                        {isAggregated && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            تم تجميع وتوليد التقرير الربعي
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-semibold">اختر التقرير الشهري للبدء</Label>
+                        <Select value={selectedMonthlyId} onValueChange={setSelectedMonthlyId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
+                            <SelectValue placeholder="اختر تقرير شهري..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableMonthlyReports.length === 0 ? (
+                              <SelectItem value="none" disabled className="text-xs">
+                                لا يوجد تقارير شهرية مسجلة لهذا المشروع
+                              </SelectItem>
+                            ) : (
+                              availableMonthlyReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {selectedMonthly && (
+                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                            <span>📌 التقرير المباشر المحدد: {selectedMonthly.title} ({selectedMonthly.actualProgress}%)</span>
+                            <Badge className="bg-teal-600 text-white text-[10px]">المشروع: {selectedProjName}</Badge>
+                          </div>
+
+                          <div className="space-y-1.5 pt-2 border-t border-border/50">
+                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير الشهرية المربوطة تلقائياً للربع ({autoMatchedMonthlies.length} من أصل 3 متوفرة):</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {autoMatchedMonthlies.map((r) => (
+                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
+                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
+                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                                </div>
+                              ))}
+                            </div>
+                            {autoMatchedMonthlies.length < 3 && (
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                                ℹ️ تذكير: متوفر {autoMatchedMonthlies.length} تقارير شهرية فقط لهذا المشروع في هذا الربع، وسيتم تجميع الإنجاز بناءً على المتاح.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAggregateFromMonthly}
+                          disabled={!selectedMonthly}
+                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          تجميع التقارير الشهرية المربوطة آلياً
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {entryMode === "from_semi" && (
+                    <div className="p-4 rounded-xl bg-card border border-teal-600/30 space-y-4 my-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-600" />
+                          <span className="text-xs font-bold text-foreground">اختر تقرير نصف شهري واحد وسيقوم النظام تلقائياً بربط باقي الأنصاف الشهريّة المتاحة لهذا الربع والمشروع:</span>
+                        </div>
+                        {isAggregated && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            تم تجميع وتوليد التقرير الربعي
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-semibold">اختر تقرير نصف شهري للبدء</Label>
+                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
+                            <SelectValue placeholder="اختر تقرير نصف شهري..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSemiReports.length === 0 ? (
+                              <SelectItem value="none" disabled className="text-xs">
+                                لا يوجد تقارير نصف شهرية مسجلة لهذا المشروع
+                              </SelectItem>
+                            ) : (
+                              availableSemiReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {selectedSemi && (
+                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                            <span>📌 التقرير المحدد: {selectedSemi.title} ({selectedSemi.period})</span>
+                            <Badge className="bg-teal-600 text-white text-[10px]">إنجاز: {selectedSemi.actualProgress}%</Badge>
+                          </div>
+
+                          <div className="space-y-1.5 pt-2 border-t border-border/50">
+                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير النصف شهرية المربوطة تلقائياً لهذا المشروع ({autoMatchedSemis.length} متوفرة):</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {autoMatchedSemis.map((r) => (
+                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
+                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
+                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAggregateFromSemi}
+                          disabled={!selectedSemi}
+                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          تجميع الأنصاف الشهرية المربوطة آلياً
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <Label className="text-xs font-semibold">اسم المشروع</Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع أو البرنامج ليتم تعبئة البيانات تلقائياً" />
+                      <SelectValue placeholder="اختر المشروع ليتم تعبئة البيانات تلقائياً" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_PROJECTS.map((p) => (
+                      {projectOptions.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="text-xs py-2">
                           <div className="flex items-center justify-between gap-4 w-full">
                             <span className="font-semibold">{p.name}</span>
@@ -205,32 +504,36 @@ export default function QuarterlyReportPage() {
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>الربع / السنة</span>
+                    <span>الربع</span>
                   </Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={quarter} onValueChange={setQuarter}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background w-1/2">
-                        <SelectValue placeholder="الربع" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Q1" className="text-xs">الربع الأول (Q1)</SelectItem>
-                        <SelectItem value="Q2" className="text-xs">الربع الثاني (Q2)</SelectItem>
-                        <SelectItem value="Q3" className="text-xs">الربع الثالث (Q3)</SelectItem>
-                        <SelectItem value="Q4" className="text-xs">الربع الرابع (Q4)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <Select value={quarter} onValueChange={setQuarter}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
+                      <SelectValue placeholder="اختر الربع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Q1" className="text-xs">الربع الأول (Q1)</SelectItem>
+                      <SelectItem value="Q2" className="text-xs">الربع الثاني (Q2)</SelectItem>
+                      <SelectItem value="Q3" className="text-xs">الربع الثالث (Q3)</SelectItem>
+                      <SelectItem value="Q4" className="text-xs">الربع الرابع (Q4)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    <Select value={year} onValueChange={setYear}>
-                      <SelectTrigger className="h-10 border-border/80 bg-background w-1/2">
-                        <SelectValue placeholder="السنة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2025" className="text-xs">2025</SelectItem>
-                        <SelectItem value="2026" className="text-xs">2026</SelectItem>
-                        <SelectItem value="2027" className="text-xs">2027</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    <span>السنة</span>
+                  </Label>
+                  <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
+                      <SelectValue placeholder="اختر السنة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2025" className="text-xs">2025</SelectItem>
+                      <SelectItem value="2026" className="text-xs">2026</SelectItem>
+                      <SelectItem value="2027" className="text-xs">2027</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
@@ -245,19 +548,11 @@ export default function QuarterlyReportPage() {
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-semibold">المرحلة الحالية من دورة الحياة</Label>
-                  <Select value={currentPhase} onValueChange={setCurrentPhase}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background">
-                      <SelectValue placeholder="اختر مرحلة المشروع الحالية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_PHASES.map((phase) => (
-                        <SelectItem key={phase} value={phase} className="text-xs">
-                          {phase}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                    <span>المرحلة الحالية من دورة الحياة (تُنعكس من الطلب تلقائياً)</span>
+                  </Label>
+                  <Input value={currentPhase} readOnly placeholder="مرحلة دورة الحياة الحالية" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
               </div>
             </CardContent>

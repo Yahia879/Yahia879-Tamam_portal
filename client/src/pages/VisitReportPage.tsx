@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,13 +10,25 @@ import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs"
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { MOCK_PROJECTS, MOCK_DEPARTMENTS } from "@/components/project-reports/MockProjectData";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target } from "lucide-react";
 
 export default function VisitReportPage() {
   const { user } = useAuth();
+  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(MOCK_PROJECTS[0].id);
+  const projectOptions = useMemo(() => {
+    if (dbProjectsData && dbProjectsData.length > 0) {
+      return dbProjectsData.map((p: any) => ({
+        id: String(p.id),
+        name: p.name || `مشروع رقم ${p.projectNumber}`,
+      }));
+    }
+    return MOCK_PROJECTS;
+  }, [dbProjectsData]);
+
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
   const [visitDate, setVisitDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -34,7 +46,7 @@ export default function VisitReportPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSaveDraft = () => {
-    toast.success("تم حفظ المسودة التمهيدية لتقرير الزيارة");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -55,7 +67,7 @@ export default function VisitReportPage() {
     }, 800);
   };
 
-  const selectedProjName = MOCK_PROJECTS.find((p) => p.id === selectedProjectId)?.name || "";
+  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   return (
     <DashboardLayout>
@@ -64,7 +76,6 @@ export default function VisitReportPage() {
           activeTab="visit"
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
@@ -92,7 +103,7 @@ export default function VisitReportPage() {
                       <SelectValue placeholder="اختر المشروع المزار" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_PROJECTS.map((p) => (
+                      {projectOptions.map((p) => (
                         <SelectItem key={p.id} value={p.id} className="text-xs py-2">
                           <span className="font-semibold">{p.name}</span>
                         </SelectItem>

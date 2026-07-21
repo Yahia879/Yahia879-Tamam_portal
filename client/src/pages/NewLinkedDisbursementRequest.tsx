@@ -1098,13 +1098,13 @@ export default function NewLinkedDisbursementRequest() {
                   <Layers className="h-4.5 w-4.5 text-primary" />
                   الخطوة 1: اختيار نوع ومسار طلب الصرف
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">حدد مسار وخيار طلب الصرف المناسب للمتابعة إلى اختيار المشروع والتقرير</CardDescription>
+                <CardDescription className="text-right text-xs text-muted-foreground">حدد مسار طلب الصرف المناسب للمتابعة إلى اختيار المشروع والتقرير</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
                 <div className="space-y-3 pb-2 border-b border-border/40">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-primary" />
-                    مسار / نوع طلب الصرف *
+                    نوع طلب الصرف *
                   </Label>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1115,27 +1115,27 @@ export default function NewLinkedDisbursementRequest() {
                         onClick={() => handleCategoryChange("approved_report")}
                         className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                           activeCategory === "approved_report"
-                            ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
-                            : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                            ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
+                            : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
                         }`}
                       >
                         <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
                           activeCategory === "approved_report"
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 group-hover:bg-blue-200"
+                            ? "bg-teal-600 text-white"
+                            : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-400 group-hover:bg-teal-200"
                         }`}>
                           <FileCheck className="w-5 h-5" />
                         </div>
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "approved_report" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "approved_report" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
                               طلب صرف مرتبط بتقرير انجاز معتمد
                             </span>
                             {activeCategory === "approved_report" && (
-                              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
                             )}
                           </div>
-                          <p className={`text-[11px] leading-relaxed ${activeCategory === "approved_report" ? "text-blue-750 dark:text-blue-300" : "text-muted-foreground"}`}>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "approved_report" ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
                             ربط طلب الصرف بتقرير إنجاز مشروع معتمد ودفعات العقد
                           </p>
                         </div>
@@ -1215,27 +1215,27 @@ export default function NewLinkedDisbursementRequest() {
                         onClick={() => handleCategoryChange("custom")}
                         className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                           activeCategory === "custom"
-                            ? "bg-purple-50/80 dark:bg-purple-950/30 border-purple-500/80 dark:border-purple-500/60 shadow-xs ring-2 ring-purple-500/20"
-                            : "bg-background border-border hover:border-purple-300 dark:hover:border-purple-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                            ? "bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-500/80 dark:border-indigo-500/60 shadow-xs ring-2 ring-indigo-500/20"
+                            : "bg-background border-border hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
                         }`}
                       >
                         <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
                           activeCategory === "custom"
-                            ? "bg-purple-600 text-white"
-                            : "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 group-hover:bg-purple-200"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 group-hover:bg-indigo-200"
                         }`}>
                           <Receipt className="w-5 h-5" />
                         </div>
                         <div className="space-y-1 min-w-0 flex-1">
                           <div className="flex items-center justify-between">
-                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "custom" ? "text-purple-900 dark:text-purple-200" : "text-foreground"}`}>
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "custom" ? "text-indigo-900 dark:text-indigo-200" : "text-foreground"}`}>
                               طلب صرف مخصص
                             </span>
                             {activeCategory === "custom" && (
-                              <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse shrink-0" />
+                              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse shrink-0" />
                             )}
                           </div>
-                          <p className={`text-[11px] leading-relaxed ${activeCategory === "custom" ? "text-purple-750 dark:text-purple-300" : "text-muted-foreground"}`}>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "custom" ? "text-indigo-750 dark:text-indigo-300" : "text-muted-foreground"}`}>
                             سداد مورد لمرة واحدة، فواتير سداد، أو مصروفات منوعة
                           </p>
                         </div>
@@ -1249,7 +1249,7 @@ export default function NewLinkedDisbursementRequest() {
                   onClick={() => setStep(2)}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
                 >
-                  <span>التالي: المشروع والتقرير</span>
+                  <span>التالي</span>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </CardFooter>
@@ -1903,7 +1903,7 @@ export default function NewLinkedDisbursementRequest() {
                   disabled={isStep2NextDisabled()}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
                 >
-                  <span>التالي: المطابقة والبيانات المالية</span>
+                  <span>التالي</span>
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               </CardFooter>
