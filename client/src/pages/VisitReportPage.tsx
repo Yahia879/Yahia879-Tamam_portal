@@ -46,7 +46,7 @@ export default function VisitReportPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const handleSaveDraft = () => {
-    toast.success("تم حفظ المسودة التمهيدية لتقرير الزيارة");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -76,7 +76,6 @@ export default function VisitReportPage() {
           activeTab="visit"
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
