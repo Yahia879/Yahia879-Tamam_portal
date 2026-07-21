@@ -196,8 +196,8 @@ export default function EditPaymentPage() {
   const updateMutation = trpc.projects.updateUnifiedPayment.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث الدفعة بنجاح");
+      utils.projects.invalidate();
       if (formData.projectId) {
-        utils.projects.getById.invalidate({ id: formData.projectId });
         navigate(`/projects/${formData.projectId}`);
       } else {
         navigate("/disbursements");
@@ -224,22 +224,29 @@ export default function EditPaymentPage() {
 
   const contractStartDate = formatDateToYYYYMMDD(rawContractDate);
 
+  const parsePaymentId = (idStr: any): { type: string; numId: number } => {
+    if (!idStr) return { type: "", numId: 0 };
+    const s = String(idStr).trim();
+    if (s.startsWith("cp-")) return { type: "cp", numId: parseInt(s.replace("cp-", "")) || 0 };
+    if (s.startsWith("disb-")) return { type: "disb", numId: parseInt(s.replace("disb-", "")) || 0 };
+    if (s.startsWith("manual-")) return { type: "manual", numId: parseInt(s.replace("manual-", "")) || 0 };
+    return { type: "raw", numId: parseInt(s) || 0 };
+  };
+
+  const targetParsed = parsePaymentId(paymentId);
   const allPayments = projectDetails?.payments || [];
-  const currentPaymentIndex = allPayments.findIndex(
-    (p: any) => String(p.id) === String(paymentId) || String(p.id) === `cp-${paymentId}`
-  );
 
-  let prevPayments = allPayments;
-  let nextPayments: any[] = [];
+  const currentPaymentIndex = allPayments.findIndex((p: any) => {
+    const pParsed = parsePaymentId(p.id);
+    if (targetParsed.type && pParsed.type && targetParsed.type === pParsed.type) {
+      return targetParsed.numId === pParsed.numId;
+    }
+    return targetParsed.numId === pParsed.numId && targetParsed.numId > 0;
+  });
 
-  if (currentPaymentIndex !== -1) {
-    prevPayments = allPayments.slice(0, currentPaymentIndex);
-    nextPayments = allPayments.slice(currentPaymentIndex + 1);
-  } else {
-    prevPayments = allPayments.filter(
-      (p: any) => String(p.id) !== String(paymentId) && String(p.id) !== `cp-${paymentId}`
-    );
-  }
+  const prevPayments = currentPaymentIndex > 0 
+    ? allPayments.slice(0, currentPaymentIndex) 
+    : (currentPaymentIndex === -1 ? allPayments.filter((p: any) => parsePaymentId(p.id).numId !== targetParsed.numId) : []);
 
   const prevPaymentDates = prevPayments
     .map((p: any) => formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt))
@@ -251,15 +258,6 @@ export default function EditPaymentPage() {
     : null;
 
   const minAllowedDate = [contractStartDate, latestPrevPaymentDate].filter((d): d is string => !!d).sort().pop();
-
-  const nextPaymentDates = nextPayments
-    .map((p: any) => formatDateToYYYYMMDD(p.date || p.dateMiladi || p.paidAt || p.createdAt))
-    .filter((d: string | null): d is string => !!d)
-    .sort();
-
-  const earliestNextPaymentDate = nextPaymentDates.length > 0 
-    ? nextPaymentDates[0] 
-    : null;
 
   // حفظ التغييرات
   const handleSubmit = () => {
@@ -277,10 +275,6 @@ export default function EditPaymentPage() {
     }
     if (latestPrevPaymentDate && formData.dateMiladi < latestPrevPaymentDate) {
       toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
-      return;
-    }
-    if (earliestNextPaymentDate && formData.dateMiladi > earliestNextPaymentDate) {
-      toast.error(`لا يمكن وضع تاريخ الدفعة بعد تاريخ الدفعة التالية (${earliestNextPaymentDate})`);
       return;
     }
     if (!formData.title) {
@@ -438,7 +432,6 @@ export default function EditPaymentPage() {
                     type="date"
                     value={formData.dateMiladi}
                     min={minAllowedDate || undefined}
-                    max={earliestNextPaymentDate || undefined}
                     onChange={(e) => {
                       const selectedDate = e.target.value;
                       if (contractStartDate && selectedDate < contractStartDate) {
@@ -447,10 +440,6 @@ export default function EditPaymentPage() {
                       }
                       if (latestPrevPaymentDate && selectedDate < latestPrevPaymentDate) {
                         toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ الدفعة السابقة (${latestPrevPaymentDate})`);
-                        return;
-                      }
-                      if (earliestNextPaymentDate && selectedDate > earliestNextPaymentDate) {
-                        toast.error(`لا يمكن وضع تاريخ الدفعة بعد تاريخ الدفعة التالية (${earliestNextPaymentDate})`);
                         return;
                       }
                       setFormData({ ...formData, dateMiladi: selectedDate });

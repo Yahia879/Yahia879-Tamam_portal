@@ -391,11 +391,27 @@ export const projectsRouter = router({
         .where(eq(payments.projectId, input.id))
         .orderBy(desc(payments.createdAt));
 
+      const toLocalDateString = (d: any): string => {
+        if (!d) return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        if (typeof d === 'string') {
+          const match = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+        }
+        const dateObj = new Date(d);
+        if (isNaN(dateObj.getTime())) return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       // توحيد الدفعات
       const unifiedPayments: any[] = [];
 
       // 1. إضافة دفعات العقود المجدولة
       allContractPayments.forEach(cp => {
+        const linkedDisb = projectDisbursements.find(d => d.contractPaymentId === cp.id);
+        const rawDate = linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
@@ -403,8 +419,8 @@ export const projectsRouter = router({
           amount: cp.amount,
           status: cp.status === "paid" ? "paid" : "pending",
           description: cp.phaseName,
-          date: cp.dueDate || cp.createdAt,
-          paidAt: cp.paidAt,
+          date: toLocalDateString(rawDate),
+          paidAt: cp.paidAt ? toLocalDateString(cp.paidAt) : null,
           source: "contract",
           workDescription: cp.notes,
           completionPercentage: cp.completionPercentage || 0,
@@ -414,9 +430,8 @@ export const projectsRouter = router({
 
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
-        // إذا كانت الدفعة اليدوية مرتبطة بعقد، قد تكون مكررة مع طلبات الصرف
-        // لكن حالياً لا يوجد ربط صريح بين payments و disbursementRequests في الشيمّا
-        // سنضيفها فقط إذا لم تكن هناك دفعات أخرى بنفس الرقم (إن وجد)
+        const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
+        const rawDate = linkedDisb?.dateMiladi || p.createdAt;
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
@@ -424,8 +439,8 @@ export const projectsRouter = router({
           amount: p.amount,
           status: p.status,
           description: p.description,
-          date: p.createdAt,
-          paidAt: p.paidAt,
+          date: toLocalDateString(rawDate),
+          paidAt: p.paidAt ? toLocalDateString(p.paidAt) : null,
           source: "manual",
           workDescription: p.description,
           completionPercentage: p.completionPercentage || 0,
@@ -1091,27 +1106,62 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const dateVal = input.dateMiladi 
+        ? (input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`))
+        : undefined;
+
       if (input.id.startsWith("disb-")) {
         const actualId = parseInt(input.id.replace("disb-", ""));
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.title = input.title;
         if (input.description !== undefined) updateValues.description = input.description;
-        if (input.dateMiladi !== undefined) updateValues.dateMiladi = input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`);
+        if (dateVal !== undefined) updateValues.dateMiladi = dateVal;
         if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
         
         await db.update(disbursementRequests).set(updateValues).where(eq(disbursementRequests.id, actualId));
+
+        if (dateVal !== undefined) {
+          const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
+          if (disb?.contractPaymentId) {
+            await db.update(contractPayments).set({ dueDate: dateVal }).where(eq(contractPayments.id, disb.contractPaymentId));
+          }
+        }
       } else if (input.id.startsWith("manual-")) {
         const actualId = parseInt(input.id.replace("manual-", ""));
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.description = input.title;
         if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
         await db.update(payments).set(updateValues).where(eq(payments.id, actualId));
+
+        if (dateVal !== undefined) {
+          const [existingDisb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+          if (existingDisb) {
+            await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.id, existingDisb.id));
+          } else {
+            const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
+            if (p) {
+              await db.insert(disbursementRequests).values({
+                requestNumber: `DISB-${p.paymentNumber}`,
+                projectId: p.projectId,
+                contractId: p.contractId,
+                paymentId: p.id,
+                title: input.title || p.description || "طلب دفعة",
+                description: input.description || p.description,
+                amount: input.amount.toString(),
+                paymentType: p.paymentType || "progress",
+                dateMiladi: dateVal,
+                completionPercentage: input.completionPercentage || p.completionPercentage,
+                status: "pending",
+              });
+            }
+          }
+        }
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.phaseName = input.title;
-        if (input.dateMiladi !== undefined) {
-          updateValues.dueDate = input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`);
+        if (dateVal !== undefined) {
+          updateValues.dueDate = dateVal;
         }
         if (input.description !== undefined) {
           updateValues.notes = input.description;
@@ -1120,6 +1170,10 @@ export const projectsRouter = router({
           updateValues.completionPercentage = input.completionPercentage;
         }
         await db.update(contractPayments).set(updateValues).where(eq(contractPayments.id, actualId));
+
+        if (dateVal !== undefined) {
+          await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.contractPaymentId, actualId));
+        }
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
       }

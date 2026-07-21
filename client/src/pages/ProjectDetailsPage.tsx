@@ -1096,13 +1096,21 @@ export default function ProjectDetailsPage() {
                                payment.status === "due" ? "مستحق" : "مرفوض"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
-                            {payment.paidAt 
-                              ? new Date(payment.paidAt).toLocaleDateString("ar-SA")
-                              : payment.date
-                                ? new Date(payment.date).toLocaleDateString("ar-SA")
-                                : "-"
-                            }
+                          <TableCell className="text-right font-medium">
+                            {(() => {
+                              const raw = payment.paidAt || payment.date;
+                              if (!raw) return "-";
+                              if (typeof raw === 'string') {
+                                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                                if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+                              }
+                              const d = new Date(raw);
+                              if (isNaN(d.getTime())) return "-";
+                              const year = d.getFullYear();
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const day = String(d.getDate()).padStart(2, '0');
+                              return `${year}-${month}-${day}`;
+                            })()}
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center gap-2 justify-center">

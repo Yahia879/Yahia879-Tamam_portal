@@ -846,52 +846,55 @@ export default function ContractPreview() {
                   </div>
                 </div>
 
-                {/* التوقيعات مع منع التقطيع نهائياً أثناء الطباعة */}
-                <div className="mt-12 contract-signature-section break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                  <div className="text-center mb-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    {/* الطرف الأول */}
-                    <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
-                      <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                      <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                      <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
-                      <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                        <p>التوقيع: ...................................</p>
-                        <p>التاريخ: ...................................</p>
-                      </div>
-                      <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                      <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                {/* التوقيعات وتذييل الصفحة مقطع واحد يمنع الانقسام نهائياً أثناء الطباعة */}
+                <div className="contract-signature-block-wrapper break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <div className="mt-12 contract-signature-section break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                    <div className="text-center mb-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
                     </div>
 
-                    {/* الطرف الثاني */}
-                    <div className="text-center sm:pr-4 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
-                      <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
-                      <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
-                      <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
-                      <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                        <p>التوقيع: ...................................</p>
-                        <p>التاريخ: ...................................</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      {/* الطرف الأول */}
+                      <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
+                        <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
+                        <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
+                        <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                        <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                          <p>التوقيع: ...................................</p>
+                          <p>التاريخ: ...................................</p>
+                        </div>
+                        <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                        <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
                       </div>
-                      <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                      <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+
+                      {/* الطرف الثاني */}
+                      <div className="text-center sm:pr-4 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
+                        <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
+                        <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
+                        <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
+                        <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                          <p>التوقيع: ...................................</p>
+                          <p>التاريخ: ...................................</p>
+                        </div>
+                        <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
+                        <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* تذييل الصفحة بدون خط فاصل */}
-              <div 
-                className="mt-12 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8 break-inside-avoid"
-              >
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
-                  <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
-                  <span className="hidden sm:inline">{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
-                  <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+                  {/* تذييل الصفحة بدون خط فاصل */}
+                  <div 
+                    className="mt-12 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8 break-inside-avoid"
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
+                      <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
+                      <span className="hidden sm:inline">{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
+                      <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1124,6 +1127,8 @@ export default function ContractPreview() {
             }
 
             .break-inside-avoid,
+            .contract-signature-block-wrapper,
+            .contract-signature-block-wrapper *,
             .contract-signature-section,
             .contract-signature-section * {
               break-inside: avoid !important;
