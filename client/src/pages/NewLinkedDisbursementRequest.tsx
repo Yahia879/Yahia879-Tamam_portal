@@ -49,6 +49,10 @@ import {
   Eye,
   Check,
   Coins,
+  HeartHandshake,
+  FileCheck,
+  Receipt,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -255,6 +259,137 @@ export default function NewLinkedDisbursementRequest() {
         billerCode: matchedBiller.value,
         billerName: matchedBiller.valueAr
       }));
+    }
+  };
+
+  const activeCategory = isDonationLinked 
+    ? "donation_opportunity" 
+    : isTamamLinked 
+    ? "tamam_platform" 
+    : !isCustom 
+    ? "approved_report" 
+    : "custom";
+
+  const handleCategoryChange = (cat: "donation_opportunity" | "tamam_platform" | "approved_report" | "custom") => {
+    setSelectedReportId(null);
+    if (cat === "donation_opportunity") {
+      setIsDonationLinked(true);
+      setIsTamamLinked(false);
+      setIsCustom(true);
+      setRequestType("supplier_one_time");
+      setFormData(prev => ({
+        ...prev,
+        projectId: 0,
+        donationOpportunityId: 0,
+        mosqueRequestId: 0,
+        contractId: 0,
+        contractPaymentId: 0,
+        title: "",
+        description: "",
+        completionPercentage: 100,
+        customProjectName: "",
+        beneficiaryName: "",
+        bankAccountName: "",
+        bankName: "",
+        iban: "",
+        amount: 0,
+        adminFees: 0,
+        projectCity: "",
+        customCity: "",
+        billerName: "",
+        sadadNumber: "",
+        billerCode: "",
+      }));
+      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+    } else if (cat === "tamam_platform") {
+      setIsDonationLinked(false);
+      setIsTamamLinked(true);
+      setIsCustom(true);
+      setRequestType("supplier_one_time");
+      setFormData(prev => ({
+        ...prev,
+        projectId: 0,
+        donationOpportunityId: 0,
+        mosqueRequestId: 0,
+        contractId: 0,
+        contractPaymentId: 0,
+        title: "",
+        description: "",
+        completionPercentage: 100,
+        customProjectName: "",
+        beneficiaryName: "",
+        bankAccountName: "",
+        bankName: "",
+        iban: "",
+        amount: 0,
+        adminFees: 0,
+        projectCity: "",
+        customCity: "",
+        billerName: "",
+        sadadNumber: "",
+        billerCode: "",
+      }));
+      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+    } else if (cat === "approved_report") {
+      setIsDonationLinked(false);
+      setIsTamamLinked(false);
+      setIsCustom(false);
+      setRequestType("project_linked");
+      setFormData(prev => ({
+        ...prev,
+        projectId: 0,
+        donationOpportunityId: 0,
+        mosqueRequestId: 0,
+        contractId: 0,
+        contractPaymentId: 0,
+        title: "",
+        description: "",
+        completionPercentage: 0,
+        customProjectName: "",
+        beneficiaryName: "",
+        bankAccountName: "",
+        bankName: "",
+        iban: "",
+        amount: 0,
+        adminFees: 0,
+        projectCity: "",
+        customCity: "",
+        billerName: "",
+        sadadNumber: "",
+        billerCode: "",
+      }));
+      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
+    } else if (cat === "custom") {
+      setIsDonationLinked(false);
+      setIsTamamLinked(false);
+      setIsCustom(true);
+      if (requestType === "project_linked") {
+        setRequestType("supplier_one_time");
+      }
+      setFormData(prev => ({
+        ...prev,
+        projectId: 0,
+        donationOpportunityId: 0,
+        mosqueRequestId: 0,
+        contractId: 0,
+        contractPaymentId: 0,
+        title: "",
+        description: "",
+        completionPercentage: 100,
+        customProjectName: "",
+        beneficiaryName: "",
+        bankAccountName: "",
+        bankName: "",
+        iban: "",
+        amount: 0,
+        adminFees: 0,
+        projectCity: "",
+        customCity: "",
+        billerName: "",
+        sadadNumber: "",
+        billerCode: "",
+      }));
+      setSuppliers([{ id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }]);
     }
   };
 
@@ -668,9 +803,8 @@ export default function NewLinkedDisbursementRequest() {
     }
   };
   
-  // دالة التحقق من تعطيل زر الانتقال للخطوة التالية
-  const isNextDisabled = () => {
-    // الحقول العامة أولاً
+  // دالة التحقق من تعطيل زر الانتقال من الخطوة 2 إلى الخطوة 3
+  const isStep2NextDisabled = () => {
     const isFundingRequired = requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses";
     if ((isFundingRequired && !formData.fundingSupport) || !formData.mainProjectName) return true;
 
@@ -678,8 +812,8 @@ export default function NewLinkedDisbursementRequest() {
       return !selectedReportId || (selectedReport && isReportLinked(selectedReport));
     }
     
-    if (requestType === "custom_standard") {
-      return !formData.title || !formData.description || !formData.dateMiladi;
+    if (isDonationLinked && !formData.donationOpportunityId) {
+      return true;
     }
     
     if (requestType === "supplier_one_time" || requestType === "misc_expenses") {
@@ -714,8 +848,10 @@ export default function NewLinkedDisbursementRequest() {
       );
     }
     
-    return true;
+    return false;
   };
+
+  const isNextDisabled = isStep2NextDisabled;
 
   // إرسال للاعتماد
   const handleSubmit = () => {
@@ -891,15 +1027,15 @@ export default function NewLinkedDisbursementRequest() {
             </div>
           </div>
 
-          {/* Subtle Stepper Timeline */}
-          <div className="max-w-md mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
+          {/* 3-Step Timeline Header */}
+          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
               {/* Connecting Line background */}
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
               {/* Connecting Active Line progress */}
               <div 
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
-                style={{ width: step === 1 ? '0%' : '100%' }}
+                style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
               />
 
               {/* Step 1 Node */}
@@ -914,7 +1050,7 @@ export default function NewLinkedDisbursementRequest() {
                   {step > 1 ? <Check className="w-4 h-4" /> : "١"}
                 </div>
                 <span className={`text-xs font-semibold ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  المشروع والتقرير
+                  نوع مسار الصرف
                 </span>
               </div>
 
@@ -922,14 +1058,30 @@ export default function NewLinkedDisbursementRequest() {
               <div className="flex flex-col items-center gap-1.5 z-10">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
-                    step === 2 
+                    step >= 2 
                       ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
                       : 'bg-background border-border text-muted-foreground'
                   }`}
                 >
-                  ٢
+                  {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
-                <span className={`text-xs font-semibold ${step === 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span className={`text-xs font-semibold ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  المشروع والتقرير
+                </span>
+              </div>
+
+              {/* Step 3 Node */}
+              <div className="flex flex-col items-center gap-1.5 z-10">
+                <div 
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                    step === 3 
+                      ? 'bg-primary border-primary text-primary-foreground shadow-sm' 
+                      : 'bg-background border-border text-muted-foreground'
+                  }`}
+                >
+                  ٣
+                </div>
+                <span className={`text-xs font-semibold ${step === 3 ? 'text-primary' : 'text-muted-foreground'}`}>
                   المطابقة والبيانات المالية
                 </span>
               </div>
@@ -938,72 +1090,162 @@ export default function NewLinkedDisbursementRequest() {
         </div>
         
         {step === 1 ? (
-          /* الخطوة الأولى: اختيار المشروع وتقرير الإنجاز */
+          /* الخطوة الأولى: اختيار نوع ومسار طلب الصرف */
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileText className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 1: اختيار المشروع والتقرير المرتبط
+                  <Layers className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 1: اختيار نوع ومسار طلب الصرف
                 </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">اختر المشروع أولاً لعرض تقارير الإنجاز المعتمدة المرتبطة به</CardDescription>
+                <CardDescription className="text-right text-xs text-muted-foreground">حدد مسار وخيار طلب الصرف المناسب للمتابعة إلى اختيار المشروع والتقرير</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* خيار ربط فرصة تبرع معتمدة */}
-                  {canCreateDonationDisbursement ? (
-                    <label 
-                      htmlFor="link-donation-opportunity"
-                      className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-200 text-right cursor-pointer select-none ${
-                        isDonationLinked 
-                          ? "bg-pink-50/60 dark:bg-pink-950/10 border-pink-300 dark:border-pink-900/50 shadow-xs" 
-                          : "bg-background border-border hover:border-slate-300 dark:hover:border-slate-700"
+                <div className="space-y-3 pb-2 border-b border-border/40">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-primary" />
+                    مسار / نوع طلب الصرف *
+                  </Label>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 1. طلب صرف مرتبط بتقرير انجاز معتمد */}
+                    {canCreateStandard && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryChange("approved_report")}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          activeCategory === "approved_report"
+                            ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
+                            : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          activeCategory === "approved_report"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 group-hover:bg-blue-200"
+                        }`}>
+                          <FileCheck className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "approved_report" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
+                              طلب صرف مرتبط بتقرير انجاز معتمد
+                            </span>
+                            {activeCategory === "approved_report" && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "approved_report" ? "text-blue-750 dark:text-blue-300" : "text-muted-foreground"}`}>
+                            ربط طلب الصرف بتقرير إنجاز مشروع معتمد ودفعات العقد
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* 2. المشروع المرتبط (فرصة التبرع) */}
+                    {canCreateDonationDisbursement && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryChange("donation_opportunity")}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          activeCategory === "donation_opportunity"
+                            ? "bg-pink-50/80 dark:bg-pink-950/30 border-pink-500/80 dark:border-pink-500/60 shadow-xs ring-2 ring-pink-500/20"
+                            : "bg-background border-border hover:border-pink-300 dark:hover:border-pink-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          activeCategory === "donation_opportunity"
+                            ? "bg-pink-600 text-white"
+                            : "bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-400 group-hover:bg-pink-200"
+                        }`}>
+                          <HeartHandshake className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "donation_opportunity" ? "text-pink-900 dark:text-pink-200" : "text-foreground"}`}>
+                              المشروع المرتبط (فرصة التبرع)
+                            </span>
+                            {activeCategory === "donation_opportunity" && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-pink-600 animate-pulse shrink-0" />
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "donation_opportunity" ? "text-pink-750 dark:text-pink-300" : "text-muted-foreground"}`}>
+                            ربط طلب الصرف بفرصة تبرع معتمدة ومسجلة
+                          </p>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* 3. مرتبط بالمنصة السابقة */}
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryChange("tamam_platform")}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                        activeCategory === "tamam_platform"
+                          ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500/80 dark:border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/20"
+                          : "bg-background border-border hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
                       }`}
                     >
-                      <Checkbox
-                        id="link-donation-opportunity"
-                        checked={isDonationLinked}
-                        onCheckedChange={(checked) => handleDonationLinkedChange(!!checked)}
-                        className="w-4.5 h-4.5 border-pink-300 dark:border-pink-850 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
-                      />
-                      <div className="space-y-0.5 min-w-0">
-                        <span className={`text-xs sm:text-sm font-bold block ${isDonationLinked ? "text-pink-800 dark:text-pink-300" : "text-slate-700 dark:text-slate-300"}`}>
-                          المشروع المرتبط (فرصة التبرع)
-                        </span>
-                        <p className={`text-[10px] sm:text-xs leading-tight ${isDonationLinked ? "text-pink-650 dark:text-pink-400" : "text-muted-foreground"}`}>
-                          ربط طلب الصرف بفرصة تبرع
+                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                        activeCategory === "tamam_platform"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:bg-emerald-200"
+                      }`}>
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "tamam_platform" ? "text-emerald-900 dark:text-emerald-200" : "text-foreground"}`}>
+                            مرتبط بالمنصة السابقة
+                          </span>
+                          {activeCategory === "tamam_platform" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse shrink-0" />
+                          )}
+                        </div>
+                        <p className={`text-[11px] leading-relaxed ${activeCategory === "tamam_platform" ? "text-emerald-750 dark:text-emerald-300" : "text-muted-foreground"}`}>
+                          طلب صرف مرتبط بسجلات المنصة السابقة
                         </p>
                       </div>
-                    </label>
-                  ) : null}
+                    </button>
 
-                  {/* خيار مرتبط بالمنصة السابقة */}
-                  <label 
-                    htmlFor="link-tamam-platform"
-                    className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-200 text-right cursor-pointer select-none ${!canCreateDonationDisbursement ? "sm:col-span-2" : ""} ${
-                      isTamamLinked 
-                        ? "bg-emerald-50/65 dark:bg-emerald-950/10 border-emerald-300 dark:border-emerald-900/50 shadow-xs" 
-                        : "bg-background border-border hover:border-slate-300 dark:hover:border-slate-700"
-                    }`}
-                  >
-                    <Checkbox
-                      id="link-tamam-platform"
-                      checked={isTamamLinked}
-                      onCheckedChange={(checked) => handleTamamLinkedChange(!!checked)}
-                      className="w-4.5 h-4.5 border-emerald-300 dark:border-emerald-850 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                    />
-                    <div className="space-y-0.5 min-w-0">
-                      <span className={`text-xs sm:text-sm font-bold block ${isTamamLinked ? "text-emerald-850 dark:text-emerald-300" : "text-slate-700 dark:text-slate-300"}`}>
-                        مرتبط بالمنصة السابقة
-                      </span>
-                      <p className={`text-[10px] sm:text-xs leading-tight ${isTamamLinked ? "text-emerald-650 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                        إنشاء طلب صرف موجود في المنصة السابقة
-                      </p>
-                    </div>
-                  </label>
+                    {/* 4. طلب صرف مخصص */}
+                    {canCreateCustom && (
+                      <button
+                        type="button"
+                        onClick={() => handleCategoryChange("custom")}
+                        className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                          activeCategory === "custom"
+                            ? "bg-purple-50/80 dark:bg-purple-950/30 border-purple-500/80 dark:border-purple-500/60 shadow-xs ring-2 ring-purple-500/20"
+                            : "bg-background border-border hover:border-purple-300 dark:hover:border-purple-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                        }`}
+                      >
+                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                          activeCategory === "custom"
+                            ? "bg-purple-600 text-white"
+                            : "bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400 group-hover:bg-purple-200"
+                        }`}>
+                          <Receipt className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs sm:text-sm font-bold block ${activeCategory === "custom" ? "text-purple-900 dark:text-purple-200" : "text-foreground"}`}>
+                              طلب صرف مخصص
+                            </span>
+                            {activeCategory === "custom" && (
+                              <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse shrink-0" />
+                            )}
+                          </div>
+                          <p className={`text-[11px] leading-relaxed ${activeCategory === "custom" ? "text-purple-750 dark:text-purple-300" : "text-muted-foreground"}`}>
+                            سداد مورد لمرة واحدة، فواتير سداد، أو مصروفات منوعة
+                          </p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                {isDonationLinked && (
+                {/* الحقول التابعة حسب الخيار المحدد */}
+                {activeCategory === "donation_opportunity" && (
                   <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
                     <Select
@@ -1038,31 +1280,48 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                {/* خيار نوع طلب الصرف كقائمة منسدلة */}
-                <div className="space-y-2 text-right">
-                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف *</Label>
-                  <Select
-                    value={requestType}
-                    onValueChange={handleRequestTypeChange}
-                    disabled={isTamamLinked}
-                  >
-                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                      <SelectValue placeholder="اختر نوع طلب الصرف" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {canCreateStandard && !isDonationLinked && (
-                        <SelectItem value="project_linked" className="text-right">طلب صرف مرتبط بتقرير إنجاز معتمد</SelectItem>
-                      )}
-                      {canCreateCustom && (
-                        <>
-                          <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
-                          <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
-                          <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {activeCategory === "custom" && (
+                  <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف المخصص *</Label>
+                    <Select
+                      value={requestType}
+                      onValueChange={handleRequestTypeChange}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر نوع طلب الصرف المخصص" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
+                        <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
+                        <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+                <Button
+                  onClick={() => setStep(2)}
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  <span>التالي: المشروع والتقرير</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        ) : step === 2 ? (
+          /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز */
+          <div className="space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                  <FileText className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 2: اختيار المشروع والتقرير المرتبط
+                </CardTitle>
+                <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز المرتبطة</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6 text-right">
 
                 <div className="border-b border-border/40 pb-4 mb-4">
                   <div className="space-y-2 text-right">
@@ -1629,29 +1888,37 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center">
                 <Button
-                  onClick={() => setStep(2)}
-                  disabled={isNextDisabled()}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm"
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                  className="font-bold px-5 h-11 rounded-xl flex items-center gap-2"
                 >
-                  التالي
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" />
+                  <span>السابق</span>
+                </Button>
+                <Button
+                  onClick={() => setStep(3)}
+                  disabled={isStep2NextDisabled()}
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  <span>التالي: المطابقة والبيانات المالية</span>
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
               </CardFooter>
             </Card>
           </div>
         ) : (
-          /* الخطوة الثانية: البيانات المالية وتحديد مبالغ الموردين - مصفوفة عمودياً مثل التقارير */
+          /* الخطوة الثالثة: البيانات المالية وتحديد مبالغ الموردين */
           <div className="space-y-6">
             {/* البيانات المالية الأساسية */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileText className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 2: مراجعة الدفعات والمعلومات المالية
+                  <Coins className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 3: المطابقة والبيانات المالية
                 </CardTitle>
-                <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية التي سوف تصرف</CardDescription>
+                <CardDescription className="text-right text-xs">راجع تفاصيل المبالغ المحددة وحدد الدفعة الفعلية ومطابقة الموردين</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5 pt-6 text-right">
                 {selectedReport && (
@@ -2029,7 +2296,7 @@ export default function NewLinkedDisbursementRequest() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="text-slate-700 border-border hover:bg-muted font-bold px-4 sm:px-6 h-10 sm:h-11 text-xs rounded-xl w-full sm:w-auto"
               >
                 <ArrowRight className="ml-2 h-4 w-4" />
