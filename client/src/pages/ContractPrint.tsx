@@ -487,8 +487,14 @@ export default function ContractPrint() {
                     <p>التوقيع: ...................................</p>
                     <p>التاريخ: ...................................</p>
                   </div>
-                  <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                  <p className="mt-4 text-xs text-gray-600 font-semibold">الختم / الطابع الرسمي</p>
+                  <div className="h-24 mt-2 border border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                    {contract.status === "approved" && orgSettings?.stampUrl ? (
+                      <img src={orgSettings.stampUrl} alt="الختم / الطابع الرسمي" className="h-20 max-w-full object-contain drop-shadow-sm" />
+                    ) : (
+                      <span className="text-[10px] text-gray-400">مخصص للختم الرسمي</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* الطرف الثاني */}
@@ -501,8 +507,10 @@ export default function ContractPrint() {
                     <p>التوقيع: ...................................</p>
                     <p>التاريخ: ...................................</p>
                   </div>
-                  <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                  <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                  <p className="mt-4 text-xs text-gray-600 font-semibold">الختم الرسمي</p>
+                  <div className="h-24 mt-2 border border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                    <span className="text-[10px] text-gray-400">مخصص لختم الطرف الثاني</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -510,8 +518,23 @@ export default function ContractPrint() {
 
           {/* تذييل الصفحة */}
           <div 
-            className="text-center text-xs text-gray-500 mt-12 border-t pt-4 px-4 sm:px-8"
+            className="text-center text-xs text-gray-500 mt-12 border-t pt-4 px-4 sm:px-8 space-y-3"
           >
+            {contract.status === "approved" && orgSettings?.stampUrl && (
+              <div className="flex justify-between items-center py-2 px-3 bg-emerald-50/40 rounded-lg border border-emerald-100/80 mb-2">
+                <div className="flex items-center gap-2.5">
+                  <img src={orgSettings.stampUrl} alt="الختم الرسمي" className="h-11 w-auto object-contain" />
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-emerald-900 block">عقد معتمد رسمياً</span>
+                    <span className="text-[9px] text-gray-500 font-mono block">رقم العقد: {contract.contractNumber}</span>
+                  </div>
+                </div>
+                <div className="text-left text-[9px] text-gray-500 font-mono">
+                  تاريخ الاعتماد: {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : new Date().toLocaleDateString('ar-SA')}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-row justify-between items-center gap-1">
               <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
               <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
