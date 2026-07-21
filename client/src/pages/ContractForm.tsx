@@ -605,6 +605,14 @@ export default function ContractForm() {
             toast.error(`يرجى تحديد تاريخ الاستحقاق للدفعة ${i + 1}`);
             return false;
           }
+          if (contractData.startDate && p.dueDate < contractData.startDate) {
+            toast.error(`تاريخ الدفعة ${i + 1} (${p.dueDate}) لا يمكن أن يكون قبل تاريخ العقد (${contractData.startDate})`);
+            return false;
+          }
+          if (i > 0 && paymentSchedule[i - 1].dueDate && p.dueDate < paymentSchedule[i - 1].dueDate) {
+            toast.error(`تاريخ الدفعة ${i + 1} (${p.dueDate}) لا يمكن أن يكون قبل تاريخ الدفعة السابقة (${paymentSchedule[i - 1].dueDate})`);
+            return false;
+          }
           if (!p.name) {
             toast.error(`يرجى إدخال عنوان للدفعة ${i + 1}`);
             return false;
@@ -1430,12 +1438,25 @@ export default function ContractForm() {
                                   className="w-full rounded-xl"
                                   onChange={(e) => {
                                     const selectedDate = e.target.value;
-                                    // التحقق من أن التاريخ ضمن فترة العقد
+                                    const prevPaymentDate = index > 0 ? paymentSchedule[index - 1]?.dueDate : undefined;
+
+                                    // التحقق من ألا يكون التاريخ قبل تاريخ العقد
+                                    if (contractData.startDate && selectedDate < contractData.startDate) {
+                                      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractData.startDate})`);
+                                      return;
+                                    }
+
+                                    // التحقق من ألا يكون التاريخ قبل تاريخ الدفعة السابقة
+                                    if (prevPaymentDate && selectedDate < prevPaymentDate) {
+                                      toast.error(`لا يمكن وضع تاريخ الدفعة ${index + 1} قبل تاريخ الدفعة السابقة (${prevPaymentDate})`);
+                                      return;
+                                    }
+
+                                    // التحقق من ألا يتجاوز التاريخ نهاية العقد
                                     if (contractData.startDate && contractData.duration > 0) {
                                       const startDate = new Date(contractData.startDate);
                                       const endDate = new Date(contractData.startDate);
                                       
-                                      // حساب تاريخ انتهاء العقد
                                       if (contractData.durationUnit === "days") {
                                         endDate.setDate(endDate.getDate() + contractData.duration);
                                       } else if (contractData.durationUnit === "weeks") {
@@ -1447,14 +1468,17 @@ export default function ContractForm() {
                                       }
                                       
                                       const selected = new Date(selectedDate);
-                                      if (selected < startDate || selected > endDate) {
-                                        toast.error(`يجب أن يكون تاريخ الاستحقاق بين ${startDate.toLocaleDateString('ar-SA')} و ${endDate.toLocaleDateString('ar-SA')}`);
+                                      if (selected > endDate) {
+                                        toast.error(`تاريخ الدفعة يتجاوز تاريخ نهاية العقد (${endDate.toLocaleDateString('ar-SA')})`);
                                         return;
                                       }
                                     }
                                     updatePayment(payment.id, "dueDate", selectedDate);
                                   }}
-                                  min={contractData.startDate || undefined}
+                                  min={(() => {
+                                    const prevPaymentDate = index > 0 ? paymentSchedule[index - 1]?.dueDate : undefined;
+                                    return prevPaymentDate || contractData.startDate || undefined;
+                                  })()}
                                   max={(() => {
                                     if (!contractData.startDate || contractData.duration <= 0) return undefined;
                                     const endDate = new Date(contractData.startDate);
