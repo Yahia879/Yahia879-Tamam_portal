@@ -1054,7 +1054,7 @@ export default function RequestDetails() {
                           <div className="text-center py-8 bg-muted/30 rounded-lg border-2 border-dashed">
                             <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                             <p className="text-muted-foreground mb-4">لا توجد عروض أسعار حتى الآن</p>
-                            <Link href="/quotations">
+                            <Link href={`/quotations?requestId=${request?.id || requestId}`}>
                               <Button variant="outline">
                                 <Send className="w-4 h-4 ml-2" />
                                 طلب عروض أسعار
@@ -1155,7 +1155,7 @@ export default function RequestDetails() {
                               <div className="text-center py-4 text-muted-foreground">
                                 <AlertCircle className="w-8 h-8 mx-auto mb-2" />
                                 <p>لم يتم اعتماد عرض سعر بعد</p>
-                                <Link href="/quotations">
+                                <Link href={`/quotations?requestId=${request?.id || requestId}`}>
                                   <Button variant="link" className="mt-2">
                                     الذهاب لعروض الأسعار
                                   </Button>

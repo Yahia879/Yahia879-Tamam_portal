@@ -61,6 +61,7 @@ import {
   FileDown,
   Link2,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -138,6 +139,33 @@ export default function Quotations() {
   const { data: requests } = trpc.requests.search.useQuery({
     currentStage: "financial_eval_and_approval",
   });
+
+  // جلب تفاصيل الطلب المحدد برقم ID إذا تم تمريره عبر الرابط
+  const { data: singleRequestData } = trpc.requests.getById.useQuery(
+    { id: parseInt(selectedRequestId) },
+    { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
+  );
+
+  const allRequestsList = requests?.requests || [];
+
+  const displayedRequestsList = useMemo(() => {
+    if (!selectedRequestId) return allRequestsList;
+    const foundInList = allRequestsList.filter((r: any) => r.id.toString() === selectedRequestId);
+    if (foundInList.length > 0) return foundInList;
+    if (singleRequestData) {
+      const targetReq = (singleRequestData as any).request || singleRequestData;
+      if (targetReq && targetReq.id) {
+        return [{
+          id: targetReq.id,
+          requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
+          mosqueName: targetReq.mosqueName || targetReq.mosqueId || "غير محدد",
+          programType: targetReq.programType || "other",
+          createdAt: targetReq.createdAt || new Date().toISOString(),
+        }];
+      }
+    }
+    return allRequestsList;
+  }, [allRequestsList, selectedRequestId, singleRequestData]);
 
   // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)
   const { data: suppliers } = trpc.suppliers.getActiveSuppliers.useQuery({
@@ -1157,7 +1185,31 @@ export default function Quotations() {
             <CardDescription>اختر الطلب لعرض جدول الكميات وعروض الأسعار</CardDescription>
           </CardHeader>
           <CardContent>
-            {requests?.requests && requests.requests.length > 0 ? (
+            {selectedRequestId && (
+              <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-lg border border-border/50 mb-4 transition-all">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[11px] font-medium px-2 py-0.5 bg-background border border-gray-200 text-muted-foreground">
+                    تصفية محددة
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    عرض عروض أسعار الطلب رقم <strong className="font-semibold text-foreground">#{selectedRequestId}</strong>
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-xs gap-1.5 px-3 bg-background hover:bg-muted text-gray-700 border-gray-200 rounded-md font-medium shadow-2xs"
+                  onClick={() => {
+                    setSelectedRequestId("");
+                    navigate("/quotations");
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-gray-500" />
+                  إظهار كافة الطلبات
+                </Button>
+              </div>
+            )}
+            {displayedRequestsList && displayedRequestsList.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1169,7 +1221,7 @@ export default function Quotations() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {requests.requests.map((request: any) => (
+                  {displayedRequestsList.map((request: any) => (
                     <TableRow 
                       key={request.id} 
                       className={selectedRequestId === request.id.toString() ? "bg-primary/10" : "cursor-pointer hover:bg-muted/50"}
@@ -1216,7 +1268,7 @@ export default function Quotations() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>لا توجد طلبات في مرحلة التقييم المالي</p>
+                <p>لا توجد طلبات مطابقة للبحث</p>
               </div>
             )}
             {selectedRequestId && (

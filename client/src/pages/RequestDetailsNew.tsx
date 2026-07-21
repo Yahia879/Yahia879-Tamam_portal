@@ -1352,7 +1352,7 @@ export default function RequestDetailsNew() {
                         : request.currentStage === 'financial_eval_and_approval' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                           ? {
                               label: "إدارة عروض الأسعار",
-                              onClick: () => setLocation('/quotations'),
+                              onClick: () => setLocation(`/quotations?requestId=${requestId}`),
                               variant: 'outline' as const,
                             }
                           : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
