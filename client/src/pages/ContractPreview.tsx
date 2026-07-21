@@ -846,15 +846,15 @@ export default function ContractPreview() {
                   </div>
                 </div>
 
-                {/* التوقيعات مع ترك مربع الختم الرسمي فارغاً تماماً */}
-                <div className="mt-12 break-inside-avoid">
-                  <div className="text-center mb-8">
+                {/* التوقيعات مع منع التقطيع نهائياً أثناء الطباعة */}
+                <div className="mt-12 contract-signature-section break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <div className="text-center mb-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     {/* الطرف الأول */}
-                    <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0">
+                    <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                       <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
                       <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
@@ -868,7 +868,7 @@ export default function ContractPreview() {
                     </div>
 
                     {/* الطرف الثاني */}
-                    <div className="text-center sm:pr-4">
+                    <div className="text-center sm:pr-4 break-inside-avoid" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
                       <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
                       <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
@@ -1123,7 +1123,9 @@ export default function ContractPreview() {
               opacity: 0.92 !important;
             }
 
-            .break-inside-avoid {
+            .break-inside-avoid,
+            .contract-signature-section,
+            .contract-signature-section * {
               break-inside: avoid !important;
               page-break-inside: avoid !important;
             }
