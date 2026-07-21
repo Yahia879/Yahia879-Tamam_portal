@@ -1243,10 +1243,54 @@ export default function NewLinkedDisbursementRequest() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+                <Button
+                  onClick={() => setStep(2)}
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  <span>التالي: المشروع والتقرير</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        ) : step === 2 ? (
+          /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز */
+          <div className="space-y-6">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                  <FileText className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 2: اختيار المشروع والتقرير المرتبط
+                </CardTitle>
+                <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز المرتبطة</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6 text-right">
 
-                {/* الحقول التابعة حسب الخيار المحدد */}
+                {/* 1. نوع طلب الصرف المخصص (إذا كان المسار هو طلب صرف مخصص) */}
+                {activeCategory === "custom" && (
+                  <div className="space-y-2 text-right pb-4 border-b border-border/40 animate-in slide-in-from-top-2 duration-200">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف المخصص *</Label>
+                    <Select
+                      value={requestType}
+                      onValueChange={handleRequestTypeChange}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر نوع طلب الصرف المخصص" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
+                        <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
+                        <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* 2. فرصة التبرع (إذا كان المسار هو فرصة التبرع) */}
                 {activeCategory === "donation_opportunity" && (
-                  <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
+                  <div className="space-y-2 text-right pb-4 border-b border-border/40 animate-in slide-in-from-top-2 duration-200">
                     <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
                     <Select
                       value={formData.donationOpportunityId.toString()}
@@ -1279,49 +1323,6 @@ export default function NewLinkedDisbursementRequest() {
                     </Select>
                   </div>
                 )}
-
-                {activeCategory === "custom" && (
-                  <div className="space-y-2 text-right animate-in slide-in-from-top-2 duration-200">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نوع طلب الصرف المخصص *</Label>
-                    <Select
-                      value={requestType}
-                      onValueChange={handleRequestTypeChange}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                        <SelectValue placeholder="اختر نوع طلب الصرف المخصص" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
-                        <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
-                        <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
-                <Button
-                  onClick={() => setStep(2)}
-                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
-                >
-                  <span>التالي: المشروع والتقرير</span>
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        ) : step === 2 ? (
-          /* الخطوة الثانية: اختيار المشروع وتقرير الإنجاز */
-          <div className="space-y-6">
-            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileText className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 2: اختيار المشروع والتقرير المرتبط
-                </CardTitle>
-                <CardDescription className="text-right text-xs text-muted-foreground">تحديد المشروع الرئيسي والتمويل والمشروع المخصص أو تقارير الإنجاز المرتبطة</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
 
                 <div className="border-b border-border/40 pb-4 mb-4">
                   <div className="space-y-2 text-right">
