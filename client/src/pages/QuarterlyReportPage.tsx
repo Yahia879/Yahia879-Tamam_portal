@@ -14,6 +14,7 @@ import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSel
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { MOCK_PROJECTS, MOCK_MONTHLY_REPORTS, MOCK_SEMI_MONTHLY_REPORTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
+import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
@@ -23,17 +24,21 @@ export default function QuarterlyReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => ({
-        id: String(p.id),
-        name: p.name || `مشروع رقم ${p.projectNumber}`,
-        manager: p.managerName || "غير محدد",
-        department: "إدارة المشاريع",
-        currentPhase: p.requestStage || p.status || "مرحلة التنفيذ",
-        plannedProgress: 80,
-        actualProgress: p.completionPercentage || 0,
-        cumulativeBudget: Number(p.budget) || 3500000,
-        cumulativeSpent: Number(p.actualCost) || 2450000,
-      }));
+      return dbProjectsData.map((p: any) => {
+        const rawStage = p.requestStage || p.status || "execution";
+        const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
+        return {
+          id: String(p.id),
+          name: p.name || `مشروع رقم ${p.projectNumber}`,
+          manager: p.managerName || "غير محدد",
+          department: "إدارة المشاريع",
+          currentPhase: arabicPhase,
+          plannedProgress: 80,
+          actualProgress: p.completionPercentage || 0,
+          cumulativeBudget: Number(p.budget) || 3500000,
+          cumulativeSpent: Number(p.actualCost) || 2450000,
+        };
+      });
     }
     return MOCK_PROJECTS;
   }, [dbProjectsData]);
@@ -48,10 +53,8 @@ export default function QuarterlyReportPage() {
   const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
 
   const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
-  const [selectedMonthly1Id, setSelectedMonthly1Id] = useState<string>("");
-  const [selectedMonthly2Id, setSelectedMonthly2Id] = useState<string>("");
-  const [selectedMonthly3Id, setSelectedMonthly3Id] = useState<string>("");
-  const [selectedSemiIds, setSelectedSemiIds] = useState<string[]>([]);
+  const [selectedMonthlyId, setSelectedMonthlyId] = useState<string>("");
+  const [selectedSemiId, setSelectedSemiId] = useState<string>("");
   const [isAggregated, setIsAggregated] = useState<boolean>(false);
 
   const availableMonthlyReports = useMemo(() => {
@@ -61,6 +64,26 @@ export default function QuarterlyReportPage() {
   const availableSemiReports = useMemo(() => {
     return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
   }, [selectedProjectId]);
+
+  // Selected Monthly Report & Auto-matched Monthly Reports for the Quarter
+  const selectedMonthly = useMemo(() => {
+    return availableMonthlyReports.find((r) => r.id === selectedMonthlyId);
+  }, [availableMonthlyReports, selectedMonthlyId]);
+
+  const autoMatchedMonthlies = useMemo(() => {
+    if (!selectedMonthly) return [];
+    return availableMonthlyReports.filter((r) => r.projectId === selectedProjectId);
+  }, [availableMonthlyReports, selectedMonthly, selectedProjectId]);
+
+  // Selected Semi Report & Auto-matched Semi Reports for the Quarter
+  const selectedSemi = useMemo(() => {
+    return availableSemiReports.find((r) => r.id === selectedSemiId);
+  }, [availableSemiReports, selectedSemiId]);
+
+  const autoMatchedSemis = useMemo(() => {
+    if (!selectedSemi) return [];
+    return availableSemiReports.filter((r) => r.projectId === selectedProjectId);
+  }, [availableSemiReports, selectedSemi, selectedProjectId]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
@@ -81,30 +104,24 @@ export default function QuarterlyReportPage() {
   const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
 
   const handleAggregateFromMonthly = () => {
-    const selected = [
-      availableMonthlyReports.find((r) => r.id === selectedMonthly1Id),
-      availableMonthlyReports.find((r) => r.id === selectedMonthly2Id),
-      availableMonthlyReports.find((r) => r.id === selectedMonthly3Id),
-    ].filter(Boolean) as typeof availableMonthlyReports;
-
-    if (selected.length === 0) {
-      toast.error("يرجى اختيار تقرير شهري واحد على الأقل للتجميع");
+    if (!selectedMonthly || autoMatchedMonthlies.length === 0) {
+      toast.error("يرجى اختيار تقرير شهري واحد للبدء بالتجميع");
       return;
     }
 
-    const avgActual = Math.round(selected.reduce((acc, r) => acc + r.actualProgress, 0) / selected.length);
-    const avgPlanned = Math.round(selected.reduce((acc, r) => acc + r.plannedProgress, 0) / selected.length);
+    const avgActual = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedMonthlies.length);
+    const avgPlanned = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedMonthlies.length);
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
 
-    const latestBudget = selected[selected.length - 1]?.cumulativeBudget || cumulativeBudget;
-    const latestSpent = selected[selected.length - 1]?.cumulativeSpent || cumulativeSpent;
+    const latestBudget = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeBudget || cumulativeBudget;
+    const latestSpent = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeSpent || cumulativeSpent;
     setCumulativeBudget(latestBudget);
     setCumulativeSpent(latestSpent);
 
     const combinedMilestones: any[] = [];
-    selected.forEach((r) => {
+    autoMatchedMonthlies.forEach((r) => {
       if (r.milestones) combinedMilestones.push(...r.milestones);
     });
     if (combinedMilestones.length > 0) {
@@ -112,24 +129,23 @@ export default function QuarterlyReportPage() {
     }
 
     setIsAggregated(true);
-    toast.success(`تم تجميع وتوليد بيانات التقرير الربعي من ${selected.length} تقارير شهرية!`);
+    toast.success(`تم العثور آلياً على ${autoMatchedMonthlies.length} تقارير شهرية متوفرة لهذا الربع وتوليد التقرير الربعي بنجاح!`);
   };
 
   const handleAggregateFromSemi = () => {
-    const selected = availableSemiReports.filter((r) => selectedSemiIds.includes(r.id));
-    if (selected.length === 0) {
-      toast.error("يرجى تحديد تقرير نصف شهري واحد على الأقل من القائمة");
+    if (!selectedSemi || autoMatchedSemis.length === 0) {
+      toast.error("يرجى اختيار تقرير نصف شهري واحد للبدء بالتجميع");
       return;
     }
 
-    const avgActual = Math.round(selected.reduce((acc, r) => acc + r.actualProgress, 0) / selected.length);
-    const avgPlanned = Math.round(selected.reduce((acc, r) => acc + r.plannedProgress, 0) / selected.length);
+    const avgActual = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedSemis.length);
+    const avgPlanned = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedSemis.length);
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
 
     const combinedMilestones: any[] = [];
-    selected.forEach((r) => {
+    autoMatchedSemis.forEach((r) => {
       if (r.milestones) combinedMilestones.push(...r.milestones);
     });
     if (combinedMilestones.length > 0) {
@@ -137,7 +153,7 @@ export default function QuarterlyReportPage() {
     }
 
     setIsAggregated(true);
-    toast.success(`تم تجميع وتوليد بيانات التقرير الربعي من ${selected.length} تقارير نصف شهرية!`);
+    toast.success(`تم العثور آلياً على ${autoMatchedSemis.length} تقارير نصف شهرية للمشروع وتجميع التقرير الربعي بنجاح!`);
   };
 
   const financialCommitmentPct = useMemo(() => {
@@ -313,7 +329,7 @@ export default function QuarterlyReportPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">اختيار الـ 3 تقارير الشهرية للربع الحالي:</span>
+                          <span className="text-xs font-bold text-foreground">اختر تقرير شهري واحد وسيقوم النظام تلقائياً بربط باقي التقارير الشهرية المتاحة لهذا الربع والمشروع:</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -323,65 +339,64 @@ export default function QuarterlyReportPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-semibold">التقرير الشهري 1 (الشهر الأول)</Label>
-                          <Select value={selectedMonthly1Id} onValueChange={setSelectedMonthly1Id}>
-                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
-                              <SelectValue placeholder="اختر تقرير الشهر 1..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableMonthlyReports.map((r) => (
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-semibold">اختر التقرير الشهري للبدء</Label>
+                        <Select value={selectedMonthlyId} onValueChange={setSelectedMonthlyId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
+                            <SelectValue placeholder="اختر تقرير شهري..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableMonthlyReports.length === 0 ? (
+                              <SelectItem value="none" disabled className="text-xs">
+                                لا يوجد تقارير شهرية مسجلة لهذا المشروع
+                              </SelectItem>
+                            ) : (
+                              availableMonthlyReports.map((r) => (
                                 <SelectItem key={r.id} value={r.id} className="text-xs">
                                   {r.title} - إنجاز: {r.actualProgress}%
                                 </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-semibold">التقرير الشهري 2 (الشهر الثاني)</Label>
-                          <Select value={selectedMonthly2Id} onValueChange={setSelectedMonthly2Id}>
-                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
-                              <SelectValue placeholder="اختر تقرير الشهر 2..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableMonthlyReports.map((r) => (
-                                <SelectItem key={r.id} value={r.id} className="text-xs">
-                                  {r.title} - إنجاز: {r.actualProgress}%
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-[11px] font-semibold">التقرير الشهري 3 (الشهر الثالث)</Label>
-                          <Select value={selectedMonthly3Id} onValueChange={setSelectedMonthly3Id}>
-                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
-                              <SelectValue placeholder="اختر تقرير الشهر 3..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableMonthlyReports.map((r) => (
-                                <SelectItem key={r.id} value={r.id} className="text-xs">
-                                  {r.title} - إنجاز: {r.actualProgress}%
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
+
+                      {selectedMonthly && (
+                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                            <span>📌 التقرير المباشر المحدد: {selectedMonthly.title} ({selectedMonthly.actualProgress}%)</span>
+                            <Badge className="bg-teal-600 text-white text-[10px]">المشروع: {selectedProjName}</Badge>
+                          </div>
+
+                          <div className="space-y-1.5 pt-2 border-t border-border/50">
+                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير الشهرية المربوطة تلقائياً للربع ({autoMatchedMonthlies.length} من أصل 3 متوفرة):</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {autoMatchedMonthlies.map((r) => (
+                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
+                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
+                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                                </div>
+                              ))}
+                            </div>
+                            {autoMatchedMonthlies.length < 3 && (
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                                ℹ️ تذكير: متوفر {autoMatchedMonthlies.length} تقارير شهرية فقط لهذا المشروع في هذا الربع، وسيتم تجميع الإنجاز بناءً على المتاح.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex justify-end">
                         <Button
                           type="button"
                           size="sm"
                           onClick={handleAggregateFromMonthly}
+                          disabled={!selectedMonthly}
                           className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع الـ 3 تقارير وتوليد التقرير الربعي
+                          تجميع التقارير الشهرية المربوطة آلياً
                         </Button>
                       </div>
                     </div>
@@ -392,7 +407,7 @@ export default function QuarterlyReportPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">تحديد التقارير النصف شهرية المعتمدة لدمجها في التقرير الربعي (حتى 6 تقارير):</span>
+                          <span className="text-xs font-bold text-foreground">اختر تقرير نصف شهري واحد وسيقوم النظام تلقائياً بربط باقي الأنصاف الشهريّة المتاحة لهذا الربع والمشروع:</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -402,44 +417,59 @@ export default function QuarterlyReportPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                        {availableSemiReports.map((r) => {
-                          const isChecked = selectedSemiIds.includes(r.id);
-                          return (
-                            <div
-                              key={r.id}
-                              onClick={() => {
-                                if (isChecked) {
-                                  setSelectedSemiIds(selectedSemiIds.filter((id) => id !== r.id));
-                                } else {
-                                  setSelectedSemiIds([...selectedSemiIds, r.id]);
-                                }
-                              }}
-                              className={`p-2.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between gap-2 text-xs ${
-                                isChecked ? "border-teal-600 bg-teal-500/10 font-bold" : "border-border/70 hover:border-border bg-background"
-                              }`}
-                            >
-                              <div className="truncate">
-                                <p className="font-semibold text-foreground truncate">{r.title}</p>
-                                <p className="text-[10px] text-muted-foreground">{r.period}</p>
-                              </div>
-                              <Badge variant={isChecked ? "default" : "outline"} className={`text-[10px] shrink-0 ${isChecked ? "bg-teal-600" : ""}`}>
-                                {r.actualProgress}%
-                              </Badge>
-                            </div>
-                          );
-                        })}
+                      <div className="space-y-1.5">
+                        <Label className="text-[11px] font-semibold">اختر تقرير نصف شهري للبدء</Label>
+                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
+                            <SelectValue placeholder="اختر تقرير نصف شهري..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableSemiReports.length === 0 ? (
+                              <SelectItem value="none" disabled className="text-xs">
+                                لا يوجد تقارير نصف شهرية مسجلة لهذا المشروع
+                              </SelectItem>
+                            ) : (
+                              availableSemiReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
                       </div>
+
+                      {selectedSemi && (
+                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                            <span>📌 التقرير المحدد: {selectedSemi.title} ({selectedSemi.period})</span>
+                            <Badge className="bg-teal-600 text-white text-[10px]">إنجاز: {selectedSemi.actualProgress}%</Badge>
+                          </div>
+
+                          <div className="space-y-1.5 pt-2 border-t border-border/50">
+                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير النصف شهرية المربوطة تلقائياً لهذا المشروع ({autoMatchedSemis.length} متوفرة):</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {autoMatchedSemis.map((r) => (
+                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
+                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
+                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="flex justify-end">
                         <Button
                           type="button"
                           size="sm"
                           onClick={handleAggregateFromSemi}
+                          disabled={!selectedSemi}
                           className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع التقارير النصف شهرية المحددة
+                          تجميع الأنصاف الشهرية المربوطة آلياً
                         </Button>
                       </div>
                     </div>
@@ -518,19 +548,11 @@ export default function QuarterlyReportPage() {
                 </div>
 
                 <div className="space-y-1.5 md:col-span-2">
-                  <Label className="text-xs font-semibold">المرحلة الحالية من دورة الحياة</Label>
-                  <Select value={currentPhase} onValueChange={setCurrentPhase}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background">
-                      <SelectValue placeholder="اختر مرحلة المشروع الحالية" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_PHASES.map((phase) => (
-                        <SelectItem key={phase} value={phase} className="text-xs">
-                          {phase}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-primary" />
+                    <span>المرحلة الحالية من دورة الحياة (تُنعكس من الطلب تلقائياً)</span>
+                  </Label>
+                  <Input value={currentPhase} readOnly placeholder="مرحلة دورة الحياة الحالية" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
               </div>
             </CardContent>
