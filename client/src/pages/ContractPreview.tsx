@@ -854,7 +854,7 @@ export default function ContractPreview() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                     {/* الطرف الأول */}
-                    <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0 border-b sm:border-b-0 last:border-b-0">
+                    <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0">
                       <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                       <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
                       <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
@@ -895,10 +895,9 @@ export default function ContractPreview() {
                 </div>
               )}
 
-              {/* تذييل الصفحة */}
+              {/* تذييل الصفحة بدون خط فاصل */}
               <div 
                 className="mt-12 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8 break-inside-avoid"
-                style={{ borderTop: '1px solid #e0e0e0', paddingTop: '8px' }}
               >
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-1">
                   <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
@@ -1086,7 +1085,7 @@ export default function ContractPreview() {
           </DialogContent>
         </Dialog>
 
-        {/* أنماط الطباعة المحسنة مع تثبيت موضع الختم ومنع تقسيم الأقسام بشكل مشوه */}
+        {/* أنماط الطباعة المحسنة مع تكبير الختم وتوسيطه وإلغاء أي سطر فاصل */}
         <style>{`
           .contract-print-stamp-footer {
             display: none;
@@ -1100,19 +1099,25 @@ export default function ContractPreview() {
             .contract-print-stamp-footer {
               display: block !important;
               position: fixed !important;
-              bottom: 12mm !important;
-              left: 50% !important;
-              transform: translateX(-50%) !important;
+              bottom: 8mm !important;
+              left: 0 !important;
+              right: 0 !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+              text-align: center !important;
+              width: fit-content !important;
               z-index: 9999 !important;
               pointer-events: none !important;
             }
 
             .contract-print-stamp-footer img {
-              height: 32mm !important;
-              max-height: 35mm !important;
+              height: 44mm !important;
+              max-height: 48mm !important;
               width: auto !important;
+              display: block !important;
+              margin: 0 auto !important;
               object-fit: contain !important;
-              opacity: 0.9 !important;
+              opacity: 0.92 !important;
             }
 
             .break-inside-avoid {
