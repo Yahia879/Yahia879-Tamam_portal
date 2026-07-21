@@ -25,12 +25,14 @@ interface ReportHeaderTabsProps {
 
 export function ReportHeaderTabs({
   activeTab,
+  reportStatus,
   onSaveDraft,
-  onSubmitReport,
   onPrintPreview,
   isSubmitting = false,
 }: ReportHeaderTabsProps) {
   const [, setLocation] = useLocation();
+
+  const isApproved = reportStatus === "معتمد";
 
   return (
     <div className="mb-6 space-y-3">
@@ -113,28 +115,16 @@ export function ReportHeaderTabs({
             </Button>
           )}
 
-          {onSaveDraft && (
+          {onSaveDraft && !isApproved && (
             <Button
-              variant="secondary"
+              variant="default"
               size="sm"
               onClick={onSaveDraft}
               disabled={isSubmitting}
-              className="gap-1.5 h-9 text-xs font-medium"
+              className="gap-1.5 h-9 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
             >
-              <Save className="w-3.5 h-3.5 text-muted-foreground" />
-              حفظ كمسودة
-            </Button>
-          )}
-
-          {onSubmitReport && (
-            <Button
-              size="sm"
-              onClick={onSubmitReport}
-              disabled={isSubmitting}
-              className="gap-1.5 h-9 text-xs font-medium bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
-            >
-              <Send className="w-3.5 h-3.5" />
-              إرسال التقرير
+              <Save className="w-3.5 h-3.5 text-white" />
+              حفظ التقرير
             </Button>
           )}
         </div>
