@@ -75,3 +75,210 @@ export const PROJECT_PHASES = [
   "المراجعة النهائية والتسليم الابتدائي",
   "التسليم النهائي والإغلاق",
 ];
+
+export interface SemiMonthlyReportItem {
+  id: string;
+  projectId: string;
+  title: string;
+  period: string;
+  actualProgress: number;
+  plannedProgress: number;
+  timeIndicator: string;
+  costIndicator: string;
+  milestones: { title: string; dueDate: string; status: string }[];
+}
+
+export interface MonthlyReportItem {
+  id: string;
+  projectId: string;
+  title: string;
+  monthYear: string;
+  actualProgress: number;
+  plannedProgress: number;
+  timeIndicator: string;
+  costIndicator: string;
+  changeIndicator: string;
+  cumulativeSpent: number;
+  cumulativeBudget: number;
+  milestones: { title: string; dueDate: string; status: string }[];
+}
+
+export const MOCK_SEMI_MONTHLY_REPORTS: SemiMonthlyReportItem[] = [
+  {
+    id: "sm-101-1",
+    projectId: "proj-101",
+    title: "تقرير النصف الأول - يوليو 2026",
+    period: "1 - 15 يوليو 2026",
+    actualProgress: 65,
+    plannedProgress: 70,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "استلام دفعة مواد التشطيبات الإنشائية", dueDate: "2026-07-05", status: "منجز" },
+      { title: "صّب الأعمدة الرئيسية للمصلى الخارجي", dueDate: "2026-07-12", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-101-2",
+    projectId: "proj-101",
+    title: "تقرير النصف الثاني - يوليو 2026",
+    period: "16 - 31 يوليو 2026",
+    actualProgress: 72,
+    plannedProgress: 75,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "تركيب تمديدات الكهرباء للمنبر", dueDate: "2026-07-22", status: "جارٍ" },
+      { title: "تبليط الفناء الخارجي", dueDate: "2026-07-28", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-101-3",
+    projectId: "proj-101",
+    title: "تقرير النصف الأول - يونيو 2026",
+    period: "1 - 15 يونيو 2026",
+    actualProgress: 58,
+    plannedProgress: 60,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "حفر وتجهيز الأساسات السفلية", dueDate: "2026-06-10", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-101-4",
+    projectId: "proj-101",
+    title: "تقرير النصف الثاني - يونيو 2026",
+    period: "16 - 30 يونيو 2026",
+    actualProgress: 62,
+    plannedProgress: 65,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "عزل القواعد والمباني الأرضية", dueDate: "2026-06-25", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-101-5",
+    projectId: "proj-101",
+    title: "تقرير النصف الأول - مايو 2026",
+    period: "1 - 15 مايو 2026",
+    actualProgress: 48,
+    plannedProgress: 50,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "تجهيز الموقع والأسوار المؤقتة", dueDate: "2026-05-12", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-101-6",
+    projectId: "proj-101",
+    title: "تقرير النصف الثاني - مايو 2026",
+    period: "16 - 31 مايو 2026",
+    actualProgress: 53,
+    plannedProgress: 55,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "توصيل شبكات المياه المؤقتة", dueDate: "2026-05-28", status: "منجز" },
+    ],
+  },
+  {
+    id: "sm-102-1",
+    projectId: "proj-102",
+    title: "تقرير النصف الأول - يوليو 2026",
+    period: "1 - 15 يوليو 2026",
+    actualProgress: 55,
+    plannedProgress: 85,
+    timeIndicator: "أحمر",
+    costIndicator: "أصفر",
+    milestones: [
+      { title: "توريد وحدات التكييف المركزية", dueDate: "2026-07-10", status: "متأخر" },
+    ],
+  },
+  {
+    id: "sm-102-2",
+    projectId: "proj-102",
+    title: "تقرير النصف الثاني - يوليو 2026",
+    period: "16 - 31 يوليو 2026",
+    actualProgress: 60,
+    plannedProgress: 90,
+    timeIndicator: "أحمر",
+    costIndicator: "أخضر",
+    milestones: [
+      { title: "تركيب حاملات التكييف الخارجية", dueDate: "2026-07-25", status: "جارٍ" },
+    ],
+  },
+];
+
+export const MOCK_MONTHLY_REPORTS: MonthlyReportItem[] = [
+  {
+    id: "m-101-1",
+    projectId: "proj-101",
+    title: "التقرير الشهري - مايو 2026",
+    monthYear: "2026-05",
+    actualProgress: 53,
+    plannedProgress: 55,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    changeIndicator: "أخضر",
+    cumulativeBudget: 3500000,
+    cumulativeSpent: 1800000,
+    milestones: [
+      { title: "تجهيز الموقع والأسوار المؤقتة", dueDate: "2026-05-12", status: "منجز" },
+      { title: "توصيل شبكات المياه المؤقتة", dueDate: "2026-05-28", status: "منجز" },
+    ],
+  },
+  {
+    id: "m-101-2",
+    projectId: "proj-101",
+    title: "التقرير الشهري - يونيو 2026",
+    monthYear: "2026-06",
+    actualProgress: 62,
+    plannedProgress: 65,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    changeIndicator: "أخضر",
+    cumulativeBudget: 3500000,
+    cumulativeSpent: 2100000,
+    milestones: [
+      { title: "حفر وتجهيز الأساسات السفلية", dueDate: "2026-06-10", status: "منجز" },
+      { title: "عزل القواعد والمباني الأرضية", dueDate: "2026-06-25", status: "منجز" },
+    ],
+  },
+  {
+    id: "m-101-3",
+    projectId: "proj-101",
+    title: "التقرير الشهري - يوليو 2026",
+    monthYear: "2026-07",
+    actualProgress: 72,
+    plannedProgress: 75,
+    timeIndicator: "أخضر",
+    costIndicator: "أخضر",
+    changeIndicator: "أخضر",
+    cumulativeBudget: 3500000,
+    cumulativeSpent: 2450000,
+    milestones: [
+      { title: "استلام دفعة مواد التشطيبات الإنشائية", dueDate: "2026-07-05", status: "منجز" },
+      { title: "صّب الأعمدة الرئيسية للمصلى الخارجي", dueDate: "2026-07-12", status: "منجز" },
+      { title: "تبليط الفناء الخارجي", dueDate: "2026-07-28", status: "منجز" },
+    ],
+  },
+  {
+    id: "m-102-1",
+    projectId: "proj-102",
+    title: "التقرير الشهري - يونيو 2026",
+    monthYear: "2026-06",
+    actualProgress: 60,
+    plannedProgress: 90,
+    timeIndicator: "أحمر",
+    costIndicator: "أصفر",
+    changeIndicator: "أخضر",
+    cumulativeBudget: 850000,
+    cumulativeSpent: 620000,
+    milestones: [
+      { title: "توريد وحدات التكييف المركزية", dueDate: "2026-07-10", status: "متأخر" },
+    ],
+  },
+];

@@ -5,15 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FileUpload, UploadedFile } from "@/components/FileUpload";
 import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs";
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
-import { MOCK_PROJECTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
+import { MOCK_PROJECTS, MOCK_SEMI_MONTHLY_REPORTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Building2, User, Layers } from "lucide-react";
+import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function MonthlyReportPage() {
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
@@ -41,6 +42,15 @@ export default function MonthlyReportPage() {
   );
   const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
 
+  const [entryMode, setEntryMode] = useState<"manual" | "aggregate">("manual");
+  const [selectedSemi1Id, setSelectedSemi1Id] = useState<string>("");
+  const [selectedSemi2Id, setSelectedSemi2Id] = useState<string>("");
+  const [isAggregated, setIsAggregated] = useState<boolean>(false);
+
+  const availableSemiReports = useMemo(() => {
+    return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
+  }, [selectedProjectId]);
+
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
 
@@ -59,6 +69,34 @@ export default function MonthlyReportPage() {
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
+
+  const handleAggregateSemiReports = () => {
+    const rep1 = availableSemiReports.find((r) => r.id === selectedSemi1Id);
+    const rep2 = availableSemiReports.find((r) => r.id === selectedSemi2Id);
+
+    if (!rep1 && !rep2) {
+      toast.error("يرجى اختيار تقرير نصف شهري واحد على الأقل للتجميع");
+      return;
+    }
+
+    const selectedReps = [rep1, rep2].filter(Boolean) as typeof availableSemiReports;
+    const avgActual = Math.round(selectedReps.reduce((acc, r) => acc + r.actualProgress, 0) / selectedReps.length);
+    const avgPlanned = Math.round(selectedReps.reduce((acc, r) => acc + r.plannedProgress, 0) / selectedReps.length);
+
+    setActualProgress(avgActual);
+    setPlannedProgress(avgPlanned);
+
+    const combinedMilestones: any[] = [];
+    selectedReps.forEach((r) => {
+      if (r.milestones) combinedMilestones.push(...r.milestones);
+    });
+    if (combinedMilestones.length > 0) {
+      setMilestones(combinedMilestones);
+    }
+
+    setIsAggregated(true);
+    toast.success(`تم دمج وتجميع بيانات ${selectedReps.length} تقارير نصف شهرية بنجاح!`);
+  };
 
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [reportStatus, setReportStatus] = useState<string>("مسودة");
@@ -80,8 +118,7 @@ export default function MonthlyReportPage() {
 
 
   const handleSaveDraft = () => {
-    setReportStatus("مسودة");
-    toast.success("تم حفظ مسودة التقرير الشهري بنجاح");
+    toast.success("تم حفظ التقرير بنجاح");
   };
 
   const handleSubmit = () => {
@@ -122,7 +159,6 @@ export default function MonthlyReportPage() {
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
           reportStatus={reportStatus}
           onSaveDraft={handleSaveDraft}
-          onSubmitReport={handleSubmit}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
         />
@@ -141,6 +177,102 @@ export default function MonthlyReportPage() {
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="w-4 h-4 text-teal-600" />
+                        <span className="text-xs font-bold text-foreground">طريقة إعداد وتعبئة التقرير الشهري</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">اختر الإدخال المباشر أو التجميع التلقائي من التقريرين النصف شهريين لنفس المشروع</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border/80 shrink-0">
+                      <Button
+                        type="button"
+                        variant={entryMode === "manual" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("manual")}
+                        className={`h-7 text-xs gap-1 rounded-md px-3 ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <User className="w-3 h-3" />
+                        إدخال يدوي
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={entryMode === "aggregate" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("aggregate")}
+                        className={`h-7 text-xs gap-1 rounded-md px-3 ${entryMode === "aggregate" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <Layers className="w-3 h-3" />
+                        تجميع من تقارير نصف شهرية
+                      </Button>
+                    </div>
+                  </div>
+
+                  {entryMode === "aggregate" && (
+                    <div className="p-4 rounded-xl bg-card border border-teal-600/30 space-y-4 my-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-600" />
+                          <span className="text-xs font-bold text-foreground">اختيار التقريرين النصف شهريين المعتمدين لدمج البيانات:</span>
+                        </div>
+                        {isAggregated && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            تم تجميع وتحديث البيانات
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold">تقرير النصف الأول (النصف 1)</Label>
+                          <Select value={selectedSemi1Id} onValueChange={setSelectedSemi1Id}>
+                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
+                              <SelectValue placeholder="اختر تقرير النصف الأول..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSemiReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold">تقرير النصف الثاني (النصف 2)</Label>
+                          <Select value={selectedSemi2Id} onValueChange={setSelectedSemi2Id}>
+                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
+                              <SelectValue placeholder="اختر تقرير النصف الثاني..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSemiReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAggregateSemiReports}
+                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          دمج وتجميع بيانات التقريرين تلقائياً
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <Label className="text-xs font-semibold">اسم المشروع</Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">

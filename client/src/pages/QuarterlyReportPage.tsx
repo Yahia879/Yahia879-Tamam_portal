@@ -265,6 +265,186 @@ export default function QuarterlyReportPage() {
             <CardContent className="pt-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="w-4 h-4 text-teal-600" />
+                        <span className="text-xs font-bold text-foreground">طريقة إعداد وتعبئة التقرير الربعي الاستراتيجي</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">اختر الإدخال المباشر أو التجميع التلقائي من 3 تقارير شهرية أو 6 تقارير نصف شهرية لنفس المشروع</p>
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-background p-1 rounded-lg border border-border/80 shrink-0">
+                      <Button
+                        type="button"
+                        variant={entryMode === "manual" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("manual")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <User className="w-3 h-3" />
+                        إدخال يدوي
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={entryMode === "from_monthly" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("from_monthly")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_monthly" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <Calendar className="w-3 h-3" />
+                        تجميع من 3 شهرية
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={entryMode === "from_semi" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setEntryMode("from_semi")}
+                        className={`h-7 text-xs gap-1 rounded-md px-2.5 ${entryMode === "from_semi" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
+                      >
+                        <Layers className="w-3 h-3" />
+                        تجميع من 6 نصف شهرية
+                      </Button>
+                    </div>
+                  </div>
+
+                  {entryMode === "from_monthly" && (
+                    <div className="p-4 rounded-xl bg-card border border-teal-600/30 space-y-4 my-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-600" />
+                          <span className="text-xs font-bold text-foreground">اختيار الـ 3 تقارير الشهرية للربع الحالي:</span>
+                        </div>
+                        {isAggregated && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            تم تجميع وتوليد التقرير الربعي
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold">التقرير الشهري 1 (الشهر الأول)</Label>
+                          <Select value={selectedMonthly1Id} onValueChange={setSelectedMonthly1Id}>
+                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
+                              <SelectValue placeholder="اختر تقرير الشهر 1..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableMonthlyReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold">التقرير الشهري 2 (الشهر الثاني)</Label>
+                          <Select value={selectedMonthly2Id} onValueChange={setSelectedMonthly2Id}>
+                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
+                              <SelectValue placeholder="اختر تقرير الشهر 2..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableMonthlyReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-[11px] font-semibold">التقرير الشهري 3 (الشهر الثالث)</Label>
+                          <Select value={selectedMonthly3Id} onValueChange={setSelectedMonthly3Id}>
+                            <SelectTrigger className="h-9 border-border/80 text-xs bg-background">
+                              <SelectValue placeholder="اختر تقرير الشهر 3..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableMonthlyReports.map((r) => (
+                                <SelectItem key={r.id} value={r.id} className="text-xs">
+                                  {r.title} - إنجاز: {r.actualProgress}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAggregateFromMonthly}
+                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          تجميع الـ 3 تقارير وتوليد التقرير الربعي
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {entryMode === "from_semi" && (
+                    <div className="p-4 rounded-xl bg-card border border-teal-600/30 space-y-4 my-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-teal-600" />
+                          <span className="text-xs font-bold text-foreground">تحديد التقارير النصف شهرية المعتمدة لدمجها في التقرير الربعي (حتى 6 تقارير):</span>
+                        </div>
+                        {isAggregated && (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            تم تجميع وتوليد التقرير الربعي
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {availableSemiReports.map((r) => {
+                          const isChecked = selectedSemiIds.includes(r.id);
+                          return (
+                            <div
+                              key={r.id}
+                              onClick={() => {
+                                if (isChecked) {
+                                  setSelectedSemiIds(selectedSemiIds.filter((id) => id !== r.id));
+                                } else {
+                                  setSelectedSemiIds([...selectedSemiIds, r.id]);
+                                }
+                              }}
+                              className={`p-2.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between gap-2 text-xs ${
+                                isChecked ? "border-teal-600 bg-teal-500/10 font-bold" : "border-border/70 hover:border-border bg-background"
+                              }`}
+                            >
+                              <div className="truncate">
+                                <p className="font-semibold text-foreground truncate">{r.title}</p>
+                                <p className="text-[10px] text-muted-foreground">{r.period}</p>
+                              </div>
+                              <Badge variant={isChecked ? "default" : "outline"} className={`text-[10px] shrink-0 ${isChecked ? "bg-teal-600" : ""}`}>
+                                {r.actualProgress}%
+                              </Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleAggregateFromSemi}
+                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          تجميع التقارير النصف شهرية المحددة
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <Label className="text-xs font-semibold">اسم المشروع</Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
