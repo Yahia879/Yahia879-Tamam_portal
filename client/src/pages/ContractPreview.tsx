@@ -884,17 +884,6 @@ export default function ContractPreview() {
                 </div>
               </div>
 
-              {/* الختم الرسمي كـ Overlay عائم أسفل المعاينة الشاشية بدون حجز مساحة */}
-              {contract.status === "approved" && orgSettings?.stampUrl && (
-                <div className="screen-only-stamp absolute bottom-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex items-center justify-center">
-                  <img 
-                    src={orgSettings.stampUrl} 
-                    alt="الختم الرسمي" 
-                    className="h-32 sm:h-36 md:h-40 w-auto object-contain drop-shadow-sm opacity-90" 
-                  />
-                </div>
-              )}
-
               {/* تذييل الصفحة بدون خط فاصل */}
               <div 
                 className="mt-12 text-center text-[10px] sm:text-xs text-gray-500 px-4 sm:px-8 break-inside-avoid"
@@ -1085,7 +1074,7 @@ export default function ContractPreview() {
           </DialogContent>
         </Dialog>
 
-        {/* أنماط الطباعة المحسنة مع تكبير الختم وتوسيطه وإلغاء أي سطر فاصل */}
+        {/* أنماط الطباعة المحسنة مع تكبير الختم وتوسيطه وإلغاء أي سطر فاصل أو حدود مطبوعة */}
         <style>{`
           .contract-print-stamp-footer {
             display: none;
@@ -1093,6 +1082,20 @@ export default function ContractPreview() {
 
           @media print {
             .screen-only-stamp {
+              display: none !important;
+            }
+
+            /* إزالة أي خطوط فاصلة أو ظلال أو حدود سفلية/علوية ناتجة عن التقطيع ورقيًا */
+            .contract-a4-page,
+            .contract-a4-page div,
+            .contract-a4-page p,
+            .contract-a4-page section {
+              border-top: none !important;
+              border-bottom: none !important;
+              box-shadow: none !important;
+            }
+
+            hr {
               display: none !important;
             }
 
