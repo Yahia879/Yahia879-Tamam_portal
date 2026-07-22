@@ -644,16 +644,7 @@ export default function ContractPreview() {
 
         {/* معاينة العقد بصفحات A4 مقسمة بنفس الشكل الأصلي */}
         <div className="w-full overflow-x-auto pb-8 print:p-0 bg-muted/30">
-          {/* عنصر الختم الرسمي للطباعة فقط بوضعية position fixed يتردد أسفل كل صفحة مطبوعة */}
-          {/* عنصر الختم الرسمي للطباعة فقط بوضعية position fixed يثبت بأسفل كل صفحة مطبوعة بنفس الموضع */}
-          {contract.status === "approved" && orgSettings?.stampUrl && (
-            <div className="contract-print-stamp-footer">
-              <img 
-                src={orgSettings.stampUrl} 
-                alt="الختم الرسمي" 
-              />
-            </div>
-          )}
+
           <div 
             ref={printRef}
             className="mx-auto print:m-0"
@@ -933,7 +924,15 @@ export default function ContractPreview() {
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                        <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                        <div className="official-stamp-box h-28 sm:h-32 border border-dashed border-gray-300 mt-2 rounded flex items-center justify-center overflow-hidden bg-white relative p-1">
+                          {contract.status === "approved" && orgSettings?.stampUrl ? (
+                            <img 
+                              src={orgSettings.stampUrl} 
+                              alt="الختم الرسمي للطرف الأول" 
+                              className="block h-[105%] max-w-[95%] w-auto object-contain z-10 scale-105" 
+                            />
+                          ) : null}
+                        </div>
                       </div>
 
                       {/* الطرف الثاني */}
@@ -947,7 +946,7 @@ export default function ContractPreview() {
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                        <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                        <div className="official-stamp-box h-28 sm:h-32 border border-dashed border-gray-300 mt-2 rounded"></div>
                       </div>
                     </div>
                   </div>
@@ -1170,28 +1169,12 @@ export default function ContractPreview() {
               display: none !important;
             }
 
-            .contract-print-stamp-footer {
-              display: block !important;
-              position: fixed !important;
-              bottom: 8mm !important;
-              left: 0 !important;
-              right: 0 !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
-              text-align: center !important;
-              width: fit-content !important;
-              z-index: 9999 !important;
-              pointer-events: none !important;
+            .official-stamp-box {
+              border: 1px dashed #9ca3af !important;
             }
 
-            .contract-print-stamp-footer img {
-              height: 44mm !important;
-              max-height: 48mm !important;
-              width: auto !important;
-              display: block !important;
-              margin: 0 auto !important;
-              object-fit: contain !important;
-              opacity: 0.92 !important;
+            .contract-print-stamp-footer {
+              display: none !important;
             }
 
             .break-inside-avoid,
