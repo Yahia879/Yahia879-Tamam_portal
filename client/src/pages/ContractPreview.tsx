@@ -799,14 +799,6 @@ export default function ContractPreview() {
                   </div>
                 </div>
 
-                {/* التمهيد */}
-                <div className="mb-6 break-inside-avoid">
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                    حيث إن {orgSettings?.officialReportsName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها 
-                    و{contract.secondPartyName} جهة متخصصة في {CONTRACT_TYPES[contract.contractType] || "الخدمات"}،
-                    فقد تم إبرام هذا العقد لـ{contract.contractTitle} وفق أعلى المعايير الفنية والهندسية ووفقاً للبنود المذكورة أدناه :
-                  </p>
-                </div>
 
                 {/* بنود العقد الديناميكية */}
                 <div className="space-y-6">
