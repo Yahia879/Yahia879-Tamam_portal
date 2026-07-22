@@ -1234,6 +1234,19 @@ export const contractsRouter = router({
       
       // السماح بحذف جميع القوالب
 
+      // فك ارتباط البنود مع قيم العقود السابقة أولاً
+      const templateClauses = await db
+        .select({ id: contractClauses.id })
+        .from(contractClauses)
+        .where(eq(contractClauses.templateId, input.id));
+
+      for (const tc of templateClauses) {
+        await db
+          .update(contractClauseValues)
+          .set({ clauseId: null })
+          .where(eq(contractClauseValues.clauseId, tc.id));
+      }
+
       // حذف البنود المرتبطة أولاً
       await db
         .delete(contractClauses)
@@ -1365,6 +1378,11 @@ export const contractsRouter = router({
       if (!clause) throw new Error("البند غير موجود");
 
       // السماح بحذف جميع البنود
+      // فك ارتباط قيم البنود بالعقود السابقة لتجنب خطأ القيود الخارجية (Foreign Key Constraint)
+      await db
+        .update(contractClauseValues)
+        .set({ clauseId: null })
+        .where(eq(contractClauseValues.clauseId, input.id));
 
       await db.delete(contractClauses).where(eq(contractClauses.id, input.id));
       return { success: true };
