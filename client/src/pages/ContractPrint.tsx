@@ -333,6 +333,22 @@ export default function ContractPrint() {
             </div>
 
 
+
+            {/* التمهيد */}
+            {contract.introTemplate && (
+              <div className="mb-6 break-inside-avoid">
+                <h3 
+                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base text-right"
+                  style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                >
+                  تمهيد:
+                </h3>
+                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                  {replaceVariables(contract.introTemplate)}
+                </div>
+              </div>
+            )}
+
             {/* بنود العقد الديناميكية */}
             <div className="space-y-6">
               {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => (
