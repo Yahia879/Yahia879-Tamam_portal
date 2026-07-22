@@ -262,7 +262,7 @@ export default function TemplatePreview() {
                    >
                      تمهيد:
                    </h3>
-                   <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                   <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                      {replaceVariables(template.introTemplate)}
                    </div>
                  </div>
@@ -279,7 +279,7 @@ export default function TemplatePreview() {
                        >
                          {clause.titleAr || `المادة ${index + 1}`}:
                        </h3>
-                       <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                       <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                          {replaceVariables(clause.content)}
                        </div>
                      </div>
