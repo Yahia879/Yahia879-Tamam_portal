@@ -78,6 +78,7 @@ export default function VisitReportPage() {
           onSaveDraft={handleSaveDraft}
           onPrintPreview={() => setShowPreviewModal(true)}
           isSubmitting={isSubmitting}
+          onStatusChange={setReportStatus}
         />
 
         <div className="space-y-6">
@@ -227,18 +228,7 @@ export default function VisitReportPage() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5 md:col-span-3 pt-2 border-t border-border/60">
-                  <Label className="text-xs font-bold">حالة التقرير</Label>
-                  <Select value={reportStatus} onValueChange={(v: any) => setReportStatus(v)}>
-                    <SelectTrigger className="h-10 border-border/80 w-full md:w-64">
-                      <SelectValue placeholder="اختر حالة التقرير" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="تم الاطلاع" className="text-xs">تم الاطلاع (Reviewed)</SelectItem>
-                      <SelectItem value="معتمد" className="text-xs">معتمد (Approved)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
               </div>
             </CardContent>
           </Card>
