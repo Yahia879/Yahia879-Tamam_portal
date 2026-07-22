@@ -80,160 +80,93 @@ export default function ProjectReportsHubPage() {
     ? recentReports
     : recentReports.filter((r) => r.typeKey === filterType);
 
+
+
   return (
     <DashboardLayout>
-      <div className="container max-w-6xl mx-auto py-6 px-4 space-y-8">
-        {/* Banner */}
-        <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-            <div>
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="p-2.5 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
-                  <BarChart3 className="w-6 h-6" />
-                </span>
-                <h1 className="text-2xl font-black text-foreground tracking-tight">مركز تقارير المشاريع</h1>
-                <Badge variant="outline" className="bg-teal-500/10 text-teal-600 border-teal-500/30 text-xs font-bold">
-                  4 نماذج قياسية
-                </Badge>
-              </div>
-              <p className="text-xs md:text-sm text-muted-foreground mr-12 leading-relaxed">
-                إدارة وإنشاء وتقييم جميع نماذج التقارير الدورية والميدانية للمشاريع (نصف شهرية، شهرية، ربعية، وزيارات ميدانية).
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Link href="/projects">
-                <Button variant="outline" size="sm" className="gap-2 h-10 text-xs font-medium">
-                  <Layers className="w-4 h-4 text-muted-foreground" />
-                  قائمة المشاريع
-                </Button>
-              </Link>
-            </div>
+      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
+        {/* Title Block */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">إنشاء ومتابعة التقارير الدورية والزيارات الميدانية للمشاريع</p>
           </div>
-        </div>
-
-        {/* 4 Models Cards Grid */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base font-bold text-foreground">نماذج التقارير المعتمدة</h2>
-              <p className="text-xs text-muted-foreground">اختر التقرير المطلوب لتعبئة البيانات وإنشائه فوراً</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Model 1: Semi-Monthly */}
-            <Link href="/project-reports/semi-monthly">
-              <div className="group bg-card hover:bg-accent/40 border border-border/80 hover:border-teal-500/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between h-full space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform">
-                      <Clock className="w-5 h-5" />
-                    </span>
-                    <Badge variant="outline" className="text-[10px] bg-background">دورية كل أسبوعين</Badge>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-teal-600 transition-colors">
-                      تقرير نصف شهري
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                      متابعة تشغيلية مركزة على التقدم والانحرافات التشغيلية.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-teal-600 font-bold">
-                  <span>تعبئة النموذج (20 حقل)</span>
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Model 2: Monthly */}
-            <Link href="/project-reports/monthly">
-              <div className="group bg-card hover:bg-accent/40 border border-border/80 hover:border-teal-500/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between h-full space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="p-2.5 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20 group-hover:scale-105 transition-transform">
-                      <Calendar className="w-5 h-5" />
-                    </span>
-                    <Badge variant="outline" className="text-[10px] bg-background">دورية شهرية</Badge>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-teal-600 transition-colors">
-                      تقرير شهري
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                      تقرير تنفيذي بالمؤشرات الخمسة والقيمة والأثر الميداني.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-teal-600 font-bold">
-                  <span>تعبئة النموذج (23 حقل)</span>
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Model 3: Quarterly */}
-            <Link href="/project-reports/quarterly">
-              <div className="group bg-card hover:bg-accent/40 border border-border/80 hover:border-teal-500/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between h-full space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 group-hover:scale-105 transition-transform">
-                      <BarChart3 className="w-5 h-5" />
-                    </span>
-                    <Badge variant="outline" className="text-[10px] bg-background">كل 3 أشهر</Badge>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-teal-600 transition-colors">
-                      تقرير ربعي
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                      تقرير قيادي استراتيجي بالقيمة والأثر والاتجاه الاستراتيجي.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-teal-600 font-bold">
-                  <span>تعبئة النموذج (25 حقل)</span>
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Model 4: Visit */}
-            <Link href="/project-reports/visit">
-              <div className="group bg-card hover:bg-accent/40 border border-border/80 hover:border-teal-500/50 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between h-full space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 group-hover:scale-105 transition-transform">
-                      <MapPin className="w-5 h-5" />
-                    </span>
-                    <Badge variant="outline" className="text-[10px] bg-background">تقرير خفيف</Badge>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-teal-600 transition-colors">
-                      تقرير زيارة
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                      ملاحظات وتاريخ ميداني يُرفع للإدارة للاطلاع أو القرار.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-teal-600 font-bold">
-                  <span>تعبئة النموذج (8 حقول)</span>
-                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                </div>
-              </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/projects">
+              <Button variant="outline" size="sm" className="gap-2 h-9 text-xs font-semibold border-border/80 shadow-xs">
+                <Layers className="w-4 h-4 text-muted-foreground" />
+                قائمة المشاريع
+              </Button>
             </Link>
           </div>
         </div>
 
-        {/* Recent Reports List */}
+        {/* 4 Stats Cards Grid for Report Models */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Semi-Monthly */}
+          <Link href="/project-reports/semi-monthly">
+            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
+                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير نصف شهري</p>
+                  <span className="text-[10px] text-teal-600 font-semibold block">كل أسبوعين (20 حقل)</span>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Card 2: Monthly */}
+          <Link href="/project-reports/monthly">
+            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
+                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير شهري</p>
+                  <span className="text-[10px] text-teal-600 font-semibold block">دورية شهرية (23 حقل)</span>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-teal-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Card 3: Quarterly */}
+          <Link href="/project-reports/quarterly">
+            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
+                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير ربعي</p>
+                  <span className="text-[10px] text-teal-600 font-semibold block">كل 3 أشهر (25 حقل)</span>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Card 4: Visit */}
+          <Link href="/project-reports/visit">
+            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
+                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير زيارة</p>
+                  <span className="text-[10px] text-teal-600 font-semibold block">زيارة ميدانية (8 حقول)</span>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
         <Card className="border-border/80 shadow-xs">
           <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
