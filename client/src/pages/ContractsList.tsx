@@ -166,6 +166,8 @@ export default function ContractsList() {
   // حالات إدارة القوالب والبنود المأخوذة من صفحة إدارة القوالب لتكون مطابقة 100%
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showClauseDialog, setShowClauseDialog] = useState(false);
+  const [showPreambleDialog, setShowPreambleDialog] = useState(false);
+  const [preambleText, setPreambleText] = useState("");
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
   const [editingClause, setEditingClause] = useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
@@ -356,6 +358,20 @@ export default function ContractsList() {
         name: templateForm.nameAr,
       });
     }
+  };
+
+  const handleSavePreamble = () => {
+    if (!selectedTemplateId) return;
+    updateTemplateMutation.mutate({
+      id: selectedTemplateId,
+      introTemplate: preambleText,
+    }, {
+      onSuccess: () => {
+        toast.success("تم حفظ التمهيد بنجاح");
+        setShowPreambleDialog(false);
+        refetchSelectedTemplate();
+      }
+    });
   };
 
   const handleSubmitClause = () => {
@@ -773,19 +789,44 @@ export default function ContractsList() {
                               بنود العقد ({selectedTemplate?.clauses?.length || 0})
                             </h4>
                             {canClauseAdd && (
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  setEditingClause(null);
-                                  resetClauseForm();
-                                  setShowClauseDialog(true);
-                                }}
-                              >
-                                <Plus className="h-4 w-4 ml-1" />
-                                إضافة بند
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setPreambleText(selectedTemplate?.introTemplate || "");
+                                    setShowPreambleDialog(true);
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 ml-1" />
+                                  {selectedTemplate?.introTemplate ? "تعديل التمهيد" : "إضافة تمهيد"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingClause(null);
+                                    resetClauseForm();
+                                    setShowClauseDialog(true);
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4 ml-1" />
+                                  إضافة بند
+                                </Button>
+                              </div>
                             )}
                           </div>
+
+                          {selectedTemplate?.introTemplate && (
+                            <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-4 mb-4 text-right">
+                              <h5 className="font-bold text-amber-900 text-sm mb-1 flex items-center gap-1.5 justify-start">
+                                <FileText className="h-4 w-4 text-amber-700" />
+                                تمهيد العقد:
+                              </h5>
+                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {selectedTemplate.introTemplate}
+                              </p>
+                            </div>
+                          )}
 
                           {selectedTemplate?.clauses?.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
@@ -1047,6 +1088,52 @@ export default function ContractsList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* نافذة إضافة/تعديل التمهيد */}
+      <Dialog open={showPreambleDialog} onOpenChange={setShowPreambleDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle dir="rtl" className="text-right font-bold">
+              {selectedTemplate?.introTemplate ? "تعديل تمهيد العقد" : "إضافة تمهيد للعقد"}
+            </DialogTitle>
+            <DialogDescription dir="rtl" className="text-right">
+              التمهيد هو نص عام يظهر بعد معلومات الطرف الثاني وقبل البنود.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4" dir="rtl">
+            <div className="space-y-2 text-right">
+              <Label htmlFor="preambleContent">نص التمهيد *</Label>
+              <Textarea
+                id="preambleContent"
+                value={preambleText}
+                onChange={(e) => setPreambleText(e.target.value)}
+                placeholder="حيث إن الطرف الأول جمعية مرخصة..."
+                rows={8}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex gap-2 justify-end" dir="rtl">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPreambleDialog(false);
+                setPreambleText("");
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSavePreamble}
+              disabled={updateTemplateMutation.isPending}
+            >
+              حفظ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* نافذة اختيار المشروع لإنشاء عقد */}
       <Dialog open={showProjectSelectionDialog} onOpenChange={setShowProjectSelectionDialog}>
