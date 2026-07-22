@@ -271,19 +271,24 @@ export default function TemplatePreview() {
                {/* بنود العقد الديناميكية */}
                <div className="space-y-6">
                  {template.clauses && template.clauses.length > 0 ? (
-                   template.clauses.map((clause: any, index: number) => (
-                     <div key={clause.id} className="mb-6 break-inside-avoid">
-                       <h3 
-                         className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base text-right"
-                         style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
-                       >
-                         {clause.titleAr || `المادة ${index + 1}`}:
-                       </h3>
-                       <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
-                         {replaceVariables(clause.content)}
+                   template.clauses.map((clause: any, index: number) => {
+                     const clauseTitle = clause.titleAr || clause.title;
+                     return (
+                       <div key={clause.id} className="mb-6 break-inside-avoid">
+                         {clauseTitle && clauseTitle.trim() !== "" && (
+                           <h3 
+                             className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base text-right"
+                             style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
+                           >
+                             {clauseTitle.endsWith(':') ? clauseTitle : `${clauseTitle}:`}
+                           </h3>
+                         )}
+                         <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
+                           {replaceVariables(clause.content)}
+                         </div>
                        </div>
-                     </div>
-                   ))
+                     );
+                   })
                  ) : (
                    <div className="text-center py-12 text-gray-400 border border-dashed rounded-lg bg-gray-50">
                      لا توجد بنود مضافة في هذا القالب بعد. قم بإضافة البنود لعرضها بالمعاينة.
