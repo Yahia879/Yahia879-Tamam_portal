@@ -571,6 +571,7 @@ export const contractsRouter = router({
     .input(
       z.object({
         id: z.number(),
+        contractType: z.string().optional(),
         contractTitle: z.string().optional(),
         secondPartyName: z.string().optional(),
         secondPartyCommercialRegister: z.string().optional(),
@@ -682,7 +683,21 @@ export const contractsRouter = router({
         updates.clauseValuesJson = typeof clauseValues === 'string' ? JSON.parse(clauseValues) : clauseValues;
       }
       if (updateData.customClausesJson !== undefined) {
-        updates.customClausesJson = updateData.customClausesJson ? (typeof updateData.customClausesJson === 'string' ? JSON.parse(updateData.customClausesJson) : updateData.customClausesJson) : null;
+        let parsedCustom: any = null;
+        if (updateData.customClausesJson) {
+          try {
+            parsedCustom = typeof updateData.customClausesJson === 'string' 
+              ? JSON.parse(updateData.customClausesJson) 
+              : updateData.customClausesJson;
+          } catch (e) {
+            console.error("Error parsing customClausesJson in update:", e);
+          }
+        }
+        if (Array.isArray(parsedCustom) && parsedCustom.length > 0) {
+          updates.customClausesJson = parsedCustom;
+        } else {
+          updates.customClausesJson = null;
+        }
       }
       
       // التأكد من تحديث مفوض التوقيع بشكل صريح

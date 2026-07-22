@@ -145,6 +145,7 @@ export default function ContractForm() {
 
   // بنود العقد
   const [clauseValues, setClauseValues] = useState<ClauseValue[]>([]);
+  const [selectedTemplateChanged, setSelectedTemplateChanged] = useState(false);
   
   // جدول الدفعات
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
@@ -411,9 +412,9 @@ export default function ContractForm() {
     }
   }, [isEditMode, existingContract, editDataLoaded, allCategories]);
 
-  // تحديث بنود العقد عند تغيير القالب (فقط في وضع الإنشاء لتجنب مسح بنود العقد المحفوظة في وضع التعديل)
+  // تحديث بنود العقد عند تغيير القالب
   useEffect(() => {
-    if (templateClauses && !isEditMode) {
+    if (templateClauses && (!isEditMode || selectedTemplateChanged)) {
       const values: ClauseValue[] = templateClauses.map((clause: any) => ({
         clauseId: clause.id,
         title: clause.title,
@@ -427,7 +428,7 @@ export default function ContractForm() {
       }));
       setClauseValues(values.sort((a, b) => a.orderIndex - b.orderIndex));
     }
-  }, [templateClauses, isEditMode]);
+  }, [templateClauses, isEditMode, selectedTemplateChanged]);
 
   // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
@@ -738,7 +739,7 @@ export default function ContractForm() {
         paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
-        customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
+        customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
         // بيانات الدعم والتمويل
         supportingEntity: JSON.stringify(supportSources),
         supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
@@ -785,7 +786,7 @@ export default function ContractForm() {
       paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
       // بنود العقد
       clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
-      customClausesJson: customClauses.some(c => c.title || c.description) ? JSON.stringify(customClauses.filter(c => c.title || c.description)) : undefined,
+      customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
       // ملاحظات
       customTerms: contractData.notes || undefined,
       // بيانات الدعم والتمويل
@@ -966,7 +967,12 @@ export default function ContractForm() {
                               ? "border-primary bg-primary/5"
                               : "hover:border-gray-400"
                           }`}
-                          onClick={() => setContractData({ ...contractData, templateId: template.id })}
+                          onClick={() => {
+                            if (contractData.templateId !== template.id) {
+                              setContractData({ ...contractData, templateId: template.id });
+                              setSelectedTemplateChanged(true);
+                            }
+                          }}
                         >
                           <div className="flex items-start gap-3 justify-between">
                             <div className="flex items-start gap-3 flex-1 min-w-0">

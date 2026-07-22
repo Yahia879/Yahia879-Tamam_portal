@@ -226,6 +226,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("progress_reports")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
   }
+  if (has("projects") || has("projects.view") || has("projects.view_details") || has("progress_reports") || has("reports") || ["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
+    engineeringItems.push({ icon: FileText,    label: "تقارير المشاريع", path: "/project-reports" });
+  }
   if (has("reports")) {
     engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
   }

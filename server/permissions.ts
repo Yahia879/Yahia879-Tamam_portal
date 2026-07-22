@@ -478,6 +478,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "contracts.template_edit", moduleId: "settings", action: "template_edit", nameAr: "تعديل قالب العقد", nameEn: "Edit Contract Template" },
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
       { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
+      { id: "contracts.edit_approved", moduleId: "contracts", action: "edit_approved", nameAr: "تعديل العقود المعتمدة", nameEn: "Edit Approved Contracts" },
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
       { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
       { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
