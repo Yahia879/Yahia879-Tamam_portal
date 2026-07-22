@@ -199,14 +199,6 @@ export default function TemplatePrint() {
               </div>
             </div>
 
-            {/* التمهيد */}
-            <div className="mb-6">
-              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                حيث إن {orgSettings?.officialReportsName || "الطرف الأول"} جمعية مرخصة ومتخصصة في عمارة المساجد والعناية بها، 
-                وحيث إن الطرف الثاني جهة متخصصة في أعمال {CONTRACT_TYPES[template.type] || "الخدمات المحددة"}،
-                فقد تم إبرام هذا العقد لتنفيذ [موضوع العقد بالتفصيل] وفق البنود والمواد التالية:
-              </p>
-            </div>
 
             {/* بنود العقد الديناميكية */}
             <div className="space-y-6">
