@@ -172,7 +172,7 @@ export default function MonthlyReportPage() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-6xl mx-auto py-6 px-4">
+      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
         <ReportHeaderTabs
           activeTab="monthly"
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
