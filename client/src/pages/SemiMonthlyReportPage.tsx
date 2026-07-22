@@ -175,7 +175,7 @@ export default function SemiMonthlyReportPage() {
         <div className="space-y-6">
           {/* بيانات التقرير */}
           <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
+            <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
@@ -260,7 +260,7 @@ export default function SemiMonthlyReportPage() {
 
           {/* حالة التقدم */}
           <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
+            <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
@@ -330,7 +330,7 @@ export default function SemiMonthlyReportPage() {
 
           {/* المؤشرات التشغيلية */}
           <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
+            <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
@@ -358,7 +358,7 @@ export default function SemiMonthlyReportPage() {
 
           {/* التوصيات والتصعيد */}
           <Card className="border-border/80 shadow-xs">
-            <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
+            <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
