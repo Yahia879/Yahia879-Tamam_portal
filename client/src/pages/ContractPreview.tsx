@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { usePermission } from "@/hooks/usePermission";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -211,6 +212,8 @@ export default function ContractPreview() {
       window.removeEventListener("afterprint", handleAfterPrint);
     };
   }, []);
+
+  const canEditApprovedContract = usePermission("contracts.edit_approved");
 
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
@@ -625,29 +628,29 @@ export default function ContractPreview() {
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
             {contract.status === "draft" && (
-              <>
-                <Button
-                  onClick={() => approveMutation.mutate({ id: contractId! })}
-                  disabled={approveMutation.isPending}
-                  className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
-                >
-                  {approveMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4 ml-2" />
-                  )}
-                  تأكيد واعتماد العقد
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/contracts/${contract.id}/edit`)}
-                  className="flex-1 sm:flex-none border-amber-600 text-amber-600 hover:bg-amber-50"
-                >
-                  <Edit className="h-4 w-4 ml-2" />
-                  تعديل معلومات العقد
-                </Button>
-              </>
+              <Button
+                onClick={() => approveMutation.mutate({ id: contractId! })}
+                disabled={approveMutation.isPending}
+                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+              >
+                {approveMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 ml-2" />
+                )}
+                تأكيد واعتماد العقد
+              </Button>
+            )}
+
+            {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                className="flex-1 sm:flex-none border-amber-600 text-amber-600 hover:bg-amber-50"
+              >
+                <Edit className="h-4 w-4 ml-2" />
+                {contract.status === "approved" ? "تعديل العقد المعتمد" : "تعديل معلومات العقد"}
+              </Button>
             )}
 
             <Button 

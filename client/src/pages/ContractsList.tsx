@@ -145,6 +145,7 @@ export default function ContractsList() {
   const [, navigate] = useLocation();
   const canCreateContract = usePermission("contracts.create");
   const canViewContract = usePermission("contracts.view");
+  const canEditApprovedContract = usePermission("contracts.edit_approved");
   const canTemplateAdd = usePermission("contracts.template_add");
   const canTemplateEdit = usePermission("contracts.template_edit");
   const canTemplateDelete = usePermission("contracts.template_delete");
@@ -570,6 +571,17 @@ export default function ContractsList() {
                             <Eye className="h-3.5 w-3.5 ml-1" />
                             عرض
                           </Button>
+                          {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-none text-xs sm:text-sm border-amber-600 text-amber-600 hover:bg-amber-50"
+                              onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                            >
+                              <Edit className="h-3.5 w-3.5 ml-1" />
+                              {contract.status === "approved" ? "تعديل العقد المعتمد" : "تعديل"}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>

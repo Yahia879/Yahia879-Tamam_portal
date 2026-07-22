@@ -594,7 +594,13 @@ export const contractsRouter = router({
       }
       
       if (contract.status !== "draft") {
-        throw new Error("لا يمكن تعديل العقد بعد اعتماده");
+        const userPerms = (ctx.user as any)?.permissions || [];
+        const isSuper = (ctx.user as any)?.role === "super_admin" || (ctx.user as any)?.role === "system_admin";
+        const canEditApproved = userPerms.includes("contracts.edit_approved") || isSuper;
+
+        if (!canEditApproved) {
+          throw new Error("ليس لديك صلاحية تعديل العقود المعتمدة");
+        }
       }
       
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ

@@ -240,6 +240,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم العقود إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("contracts.") && permId !== "contracts.view") {
+      if (!selectedPerms.includes("contracts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض العقود وقالب العقود' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("disbursements.") && permId !== "disbursements.view") {
       if (!selectedPerms.includes("disbursements.view")) {
@@ -552,6 +560,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.edit_approved", nameAr: "تعديل العقود المعتمدة" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
             { id: "contracts.template_delete", nameAr: "حذف قالب العقد" },
@@ -700,6 +709,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.edit_approved", nameAr: "تعديل العقود المعتمدة" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
             { id: "contracts.template_delete", nameAr: "حذف قالب العقد" },
@@ -1311,6 +1321,7 @@ export default function RolePermissions() {
                             {modulePerms.map((perm: any) => {
                               const isChecked = isPermissionGranted(perm.id);
                                const isDisabled = 
+                                 (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                  (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                                  (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||

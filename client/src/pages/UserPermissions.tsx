@@ -244,6 +244,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للعقود إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("contracts.") && permId !== "contracts.view") {
+      if (!isChecked("contracts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض العقود وقالب العقود' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!isChecked("reports.view_stats")) {
@@ -569,6 +577,7 @@ export default function UserPermissions() {
       contracts: {
         view: "عرض العقود وقالب العقود",
         create: "إنشاء عقود",
+        edit_approved: "تعديل العقود المعتمدة",
         template_add: "إضافة قالب للعقود",
         template_edit: "تعديل قالب العقد",
         template_delete: "حذف قالب العقد",
@@ -699,7 +708,7 @@ export default function UserPermissions() {
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
@@ -927,6 +936,7 @@ export default function UserPermissions() {
                             const overrideState = getOverrideState(perm.id);
 
                             const isDisabled = 
+                              (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||

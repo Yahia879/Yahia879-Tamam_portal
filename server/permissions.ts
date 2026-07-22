@@ -46,7 +46,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
   financial_approval: ["financial.view", "financial.approve", "financial.reject"],
-  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.delete", "contracts.approve"],
+  contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["reports.view", "reports.create"],
@@ -152,6 +152,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "contracts.view": ["contracts.view"],
   "contracts.create": ["contracts.create"],
+  "contracts.edit_approved": ["contracts.edit_approved", "contracts.view"],
   "contracts.template_add": ["contracts.create"],
   "contracts.template_edit": ["contracts.edit"],
   "contracts.template_delete": ["contracts.delete"],

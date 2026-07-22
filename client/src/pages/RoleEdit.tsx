@@ -71,7 +71,7 @@ const superAdminGroups = [
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
     ]
@@ -167,6 +167,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     contracts: {
       view: "عرض العقود وقالب العقود",
       create: "إنشاء عقود",
+      edit_approved: "تعديل العقود المعتمدة",
       template_add: "إضافة قالب للعقود",
       template_edit: "تعديل قالب العقد",
       template_delete: "حذف قالب العقد",
@@ -446,6 +447,14 @@ export default function RoleEdit() {
     if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
       if (!selectedPerms.includes("financial_reports.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض تقرير المالية والإحصائيات' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية للعقود إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("contracts.") && permId !== "contracts.view") {
+      if (!selectedPerms.includes("contracts.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض العقود وقالب العقود' أولاً");
         return;
       }
     }
@@ -761,6 +770,7 @@ export default function RoleEdit() {
                           {modulePerms.map((perm: any) => {
                             const isChecked = isPermissionGranted(perm.id);
                             const isDisabled = 
+                              (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
