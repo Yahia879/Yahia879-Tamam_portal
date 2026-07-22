@@ -168,7 +168,7 @@ export default function ProjectReportsHubPage() {
           </Link>
         </div>
         <Card className="border-border/80 shadow-xs">
-          <CardHeader className="bg-muted/30 pb-3 border-b border-border/60">
+          <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <CardTitle className="text-base font-bold text-foreground">التقارير السابقة المرفوعة</CardTitle>
