@@ -1215,7 +1215,7 @@ export default function ContractPreview() {
             }
 
             .official-stamp-box {
-              border: 1px dashed #9ca3af !important;
+              border: none !important;
             }
 
             .contract-print-stamp-footer {
