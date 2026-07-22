@@ -6,6 +6,7 @@ import {
   organizationSettings,
   contractsEnhanced,
   contractPayments,
+  payments,
   contractNumberSequence,
   suppliers,
   projects,
@@ -24,7 +25,7 @@ import {
   contractModificationLogs,
   requestHistory,
 } from "../../drizzle/schema";
-import { eq, desc, and, sql, asc, ne } from "drizzle-orm";
+import { eq, desc, and, or, sql, asc, ne } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
@@ -253,12 +254,38 @@ export const contractsRouter = router({
       
       const { contract, signatory, projectName } = contractData;
       
-      // جلب الدفعات
-      const payments = input.lightweight ? [] : await db
+      // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
+      let paymentsList: any[] = input.lightweight ? [] : await db
         .select()
         .from(contractPayments)
         .where(eq(contractPayments.contractId, input.id))
         .orderBy(contractPayments.phaseOrder);
+
+      if (paymentsList.length === 0 && !input.lightweight) {
+        const altPayments = await db
+          .select()
+          .from(payments)
+          .where(
+            contract.projectId 
+              ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
+              : eq(payments.contractId, input.id)
+          );
+        if (altPayments.length > 0) {
+          paymentsList = altPayments.map((p: any, idx: number) => ({
+            id: p.id,
+            contractId: input.id,
+            phaseOrder: idx + 1,
+            name: p.description || `الدفعة ${idx + 1}`,
+            percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
+            amount: String(p.amount || 0),
+            dueDate: p.createdAt ? p.createdAt : null,
+            status: p.status || "pending",
+            type: p.paymentType || "progress",
+            description: p.description || "",
+            condition: p.description || "",
+          }));
+        }
+      }
       
       // جلب إعدادات الجمعية
       const [orgSettings] = input.lightweight ? [null] : await db.select().from(organizationSettings).limit(1);
@@ -287,7 +314,7 @@ export const contractsRouter = router({
           signatory,
           projectName: projectName || null,
         },
-        payments,
+        payments: paymentsList,
         organizationSettings: orgSettings,
         clauseValues,
       };

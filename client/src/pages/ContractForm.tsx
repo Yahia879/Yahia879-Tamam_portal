@@ -335,31 +335,75 @@ export default function ContractForm() {
         supportedAmount,
       });
 
-      // تحميل جدول الدفعات من العقد الحالي
+      // تحميل جدول الدفعات من العقد الحالي (من JSON أو من جدول contractPayments)
+      let parsedSchedule: PaymentScheduleItem[] = [];
       if (c.paymentScheduleJson) {
         try {
           const schedule = typeof c.paymentScheduleJson === 'string'
             ? JSON.parse(c.paymentScheduleJson)
             : c.paymentScheduleJson;
-          if (Array.isArray(schedule)) {
-            setPaymentSchedule(schedule);
+          if (Array.isArray(schedule) && schedule.length > 0) {
+            parsedSchedule = schedule;
           }
         } catch (e) {
-          console.error("خطأ في تحليل جدول الدفعات:", e);
+          console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
         }
       }
+      if (parsedSchedule.length === 0 && existingContract.payments && existingContract.payments.length > 0) {
+        parsedSchedule = existingContract.payments.map((p: any, idx: number) => ({
+          id: p.id ? String(p.id) : `payment_${idx + 1}`,
+          name: p.name || `الدفعة ${idx + 1}`,
+          type: p.type || "progress",
+          percentage: p.percentage ? parseFloat(p.percentage) : 0,
+          amount: p.amount ? parseFloat(p.amount) : 0,
+          dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
+          description: p.description || p.condition || "",
+        }));
+      }
+      setPaymentSchedule(parsedSchedule);
 
       // تحميل بنود العقد من العقد الحالي
+      let parsedClauses: ClauseValue[] = [];
       if (c.clauseValuesJson) {
         try {
           const clauses = typeof c.clauseValuesJson === 'string'
             ? JSON.parse(c.clauseValuesJson)
             : c.clauseValuesJson;
-          if (Array.isArray(clauses)) {
-            setClauseValues(clauses);
+          if (Array.isArray(clauses) && clauses.length > 0) {
+            parsedClauses = clauses;
           }
         } catch (e) {
-          console.error("خطأ في تحليل بنود العقد:", e);
+          console.error("خطأ في تحليل بنود العقد من JSON:", e);
+        }
+      }
+      if (parsedClauses.length === 0 && existingContract.clauseValues && existingContract.clauseValues.length > 0) {
+        parsedClauses = existingContract.clauseValues.map((cv: any) => ({
+          clauseId: cv.clauseId,
+          title: cv.title || cv.originalTitle || "",
+          titleAr: cv.originalTitleAr || cv.title || "",
+          content: cv.originalContent || "",
+          customContent: cv.customContent || "",
+          isIncluded: cv.isIncluded ?? true,
+          isEditable: true,
+          isRequired: false,
+          orderIndex: cv.orderIndex || 0,
+        }));
+      }
+      if (parsedClauses.length > 0) {
+        setClauseValues(parsedClauses);
+      }
+
+      // تحميل البنود المخصصة الإضافية من العقد الحالي
+      if (c.customClausesJson) {
+        try {
+          const custom = typeof c.customClausesJson === 'string'
+            ? JSON.parse(c.customClausesJson)
+            : c.customClausesJson;
+          if (Array.isArray(custom)) {
+            setCustomClauses(custom);
+          }
+        } catch (e) {
+          console.error("خطأ في تحليل البنود المخصصة:", e);
         }
       }
 
@@ -367,9 +411,9 @@ export default function ContractForm() {
     }
   }, [isEditMode, existingContract, editDataLoaded, allCategories]);
 
-  // تحديث بنود العقد عند تغيير القالب
+  // تحديث بنود العقد عند تغيير القالب (فقط في وضع الإنشاء لتجنب مسح بنود العقد المحفوظة في وضع التعديل)
   useEffect(() => {
-    if (templateClauses) {
+    if (templateClauses && !isEditMode) {
       const values: ClauseValue[] = templateClauses.map((clause: any) => ({
         clauseId: clause.id,
         title: clause.title,
@@ -383,7 +427,7 @@ export default function ContractForm() {
       }));
       setClauseValues(values.sort((a, b) => a.orderIndex - b.orderIndex));
     }
-  }, [templateClauses]);
+  }, [templateClauses, isEditMode]);
 
   // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
@@ -769,14 +813,25 @@ export default function ContractForm() {
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6 px-4 md:px-0">
         {/* العنوان */}
-        <div>
-         <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
-          <p className="text-muted-foreground">
-            {isEditMode 
-              ? "تعديل بيانات العقد الحالي" 
-              : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص"
-            }
-          </p>
+        <div className="flex items-center gap-3 sm:gap-4 text-right">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => isEditMode && editContractId ? navigate(`/contracts/${editContractId}/preview`) : navigate('/contracts')} 
+            className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
+            title="رجوع"
+          >
+            <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
+            <p className="text-muted-foreground">
+              {isEditMode 
+                ? "تعديل بيانات العقد الحالي" 
+                : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص"
+              }
+            </p>
+          </div>
         </div>
 
         {/* بطاقة معلومات الطلب عند وجود effectiveRequestId */}
