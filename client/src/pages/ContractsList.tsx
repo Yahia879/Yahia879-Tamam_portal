@@ -401,9 +401,7 @@ export default function ContractsList() {
 
   const toggleTemplateExpand = (templateId: number) => {
     setExpandedTemplates((prev) =>
-      prev.includes(templateId)
-        ? prev.filter((id) => id !== templateId)
-        : [...prev, templateId]
+      prev.includes(templateId) ? [] : [templateId]
     );
     setSelectedTemplateId(templateId);
   };
@@ -822,7 +820,7 @@ export default function ContractsList() {
                                 <FileText className="h-4 w-4 text-amber-700" />
                                 تمهيد العقد:
                               </h5>
-                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words">
                                 {selectedTemplate.introTemplate}
                               </p>
                             </div>
@@ -1110,6 +1108,7 @@ export default function ContractsList() {
                 onChange={(e) => setPreambleText(e.target.value)}
                 placeholder="حيث إن الطرف الأول جمعية مرخصة..."
                 rows={8}
+                className="min-h-[150px]"
               />
             </div>
           </div>
