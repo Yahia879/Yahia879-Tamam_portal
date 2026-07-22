@@ -242,10 +242,12 @@ export const contractsRouter = router({
           contract: contractsEnhanced,
           signatory: signatories,
           projectName: projects.name,
+          introTemplate: contractTemplates.introTemplate,
         })
         .from(contractsEnhanced)
         .leftJoin(signatories, eq(contractsEnhanced.signatoryId, signatories.id))
         .leftJoin(projects, eq(contractsEnhanced.projectId, projects.id))
+        .leftJoin(contractTemplates, eq(contractsEnhanced.templateId, contractTemplates.id))
         .where(eq(contractsEnhanced.id, input.id));
       
       if (!contractData) {
@@ -313,6 +315,7 @@ export const contractsRouter = router({
           ...contract,
           signatory,
           projectName: projectName || null,
+          introTemplate: contractData.introTemplate || null,
         },
         payments: paymentsList,
         organizationSettings: orgSettings,
