@@ -217,6 +217,28 @@ export default function ContractPreview() {
     { id: contractId! },
     { enabled: !!contractId }
   );
+
+  // دالة لتوليد اسم ملف PDF نظيف ومنسق يمنع تداخل النصوص العربية مع الإنجليزية
+  const getContractPdfTitle = (contractData: any) => {
+    if (!contractData) return "عقد";
+    let projName = (contractData.projectName || contractData.contractTitle || "").trim();
+    // إزالة أي تكرار مثل "مشروع مشروع" أو "مسجد مسجد"
+    projName = projName.replace(/^مشروع\s+مشروع/gi, "مشروع").replace(/مسجد\s+مسجد/gi, "مسجد");
+    
+    const cNum = (contractData.contractNumber || contractData.id || "").toString().trim();
+    
+    if (projName) {
+      return `عقد رقم (${cNum}) - ${projName}`;
+    }
+    return `عقد رقم (${cNum})`;
+  };
+
+  // تحديث عنوان الصفحة لدعم اسم الملف التلقائي الحاوي على اسم المشروع ورقم العقد عند حفظ PDF / الطباعة
+  useEffect(() => {
+    if (data?.contract) {
+      document.title = getContractPdfTitle(data.contract);
+    }
+  }, [data?.contract]);
   
   // جلب طلبات التعديل
   const { data: modificationRequests, refetch: refetchRequests } = trpc.contracts.getModificationRequests.useQuery(
@@ -359,6 +381,10 @@ export default function ContractPreview() {
     if (isPreparingPrint) return;
     setIsPreparingPrint(true);
 
+    if (data?.contract) {
+      document.title = getContractPdfTitle(data.contract);
+    }
+
     try {
       // 1. تجميع كل روابط الصور المراد التأكد من اكتمال تحميلها
       const imageUrls: string[] = [];
@@ -483,7 +509,9 @@ export default function ContractPreview() {
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`عقد-${contract.contractNumber || contract.id}.pdf`);
+      const pdfTitle = getContractPdfTitle(contract);
+      const safeFileName = pdfTitle.replace(/[/\\?%*:|"<>]/g, '_');
+      pdf.save(`${safeFileName}.pdf`);
       toast.success('تم تحميل العقد بصيغة PDF بنجاح');
     } catch (error: any) {
       console.error('Error generating PDF:', error);

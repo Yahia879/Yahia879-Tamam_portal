@@ -240,16 +240,18 @@ export const contractsRouter = router({
         .select({
           contract: contractsEnhanced,
           signatory: signatories,
+          projectName: projects.name,
         })
         .from(contractsEnhanced)
         .leftJoin(signatories, eq(contractsEnhanced.signatoryId, signatories.id))
+        .leftJoin(projects, eq(contractsEnhanced.projectId, projects.id))
         .where(eq(contractsEnhanced.id, input.id));
       
       if (!contractData) {
         throw new Error("العقد غير موجود");
       }
       
-      const { contract, signatory } = contractData;
+      const { contract, signatory, projectName } = contractData;
       
       // جلب الدفعات
       const payments = input.lightweight ? [] : await db
@@ -283,6 +285,7 @@ export const contractsRouter = router({
         contract: {
           ...contract,
           signatory,
+          projectName: projectName || null,
         },
         payments,
         organizationSettings: orgSettings,
