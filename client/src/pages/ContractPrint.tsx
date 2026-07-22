@@ -496,7 +496,7 @@ export default function ContractPrint() {
                     <p>التاريخ: ...................................</p>
                   </div>
                   <p className="mt-4 text-xs text-gray-600 font-semibold">الختم / الطابع الرسمي</p>
-                  <div className="h-24 mt-2 border border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                  <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
                     {contract.status === "approved" && orgSettings?.stampUrl ? (
                       <img src={orgSettings.stampUrl} alt="الختم / الطابع الرسمي" className="h-20 max-w-full object-contain drop-shadow-sm" />
                     ) : (
@@ -516,7 +516,7 @@ export default function ContractPrint() {
                     <p>التاريخ: ...................................</p>
                   </div>
                   <p className="mt-4 text-xs text-gray-600 font-semibold">الختم الرسمي</p>
-                  <div className="h-24 mt-2 border border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                  <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
                     <span className="text-[10px] text-gray-400">مخصص لختم الطرف الثاني</span>
                   </div>
                 </div>

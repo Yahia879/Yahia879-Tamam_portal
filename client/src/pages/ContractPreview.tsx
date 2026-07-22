@@ -964,7 +964,7 @@ export default function ContractPreview() {
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                        <div className="official-stamp-box h-28 sm:h-32 border border-dashed border-gray-300 mt-2 rounded flex items-center justify-center overflow-hidden bg-white relative p-1">
+                        <div className="official-stamp-box h-28 sm:h-32 mt-2 flex items-center justify-center overflow-hidden bg-white relative p-1">
                           {contract.status === "approved" && orgSettings?.stampUrl ? (
                             <img 
                               src={orgSettings.stampUrl} 
@@ -986,7 +986,7 @@ export default function ContractPreview() {
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                        <div className="official-stamp-box h-28 sm:h-32 border border-dashed border-gray-300 mt-2 rounded"></div>
+                        <div className="official-stamp-box h-28 sm:h-32 mt-2"></div>
                       </div>
                     </div>
                   </div>

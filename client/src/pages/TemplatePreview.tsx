@@ -395,7 +395,7 @@ export default function TemplatePreview() {
                        <p>التاريخ: ...................................</p>
                      </div>
                      <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                     <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                     <div className="h-20 mt-2"></div>
                    </div>
  
                    {/* الطرف الثاني */}
@@ -409,7 +409,7 @@ export default function TemplatePreview() {
                        <p>التاريخ: ...................................</p>
                      </div>
                      <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
-                     <div className="h-20 border border-dashed border-gray-300 mt-2 rounded"></div>
+                     <div className="h-20 mt-2"></div>
                    </div>
                  </div>
                </div>
