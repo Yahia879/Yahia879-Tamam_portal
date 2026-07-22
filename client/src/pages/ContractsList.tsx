@@ -815,12 +815,12 @@ export default function ContractsList() {
                           </div>
 
                           {selectedTemplate?.introTemplate && (
-                            <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-4 mb-4 text-right">
+                            <div className="bg-amber-50/50 border border-amber-200/60 rounded-lg p-4 mb-4 text-right w-full min-w-0 break-words">
                               <h5 className="font-bold text-amber-900 text-sm mb-1 flex items-center gap-1.5 justify-start">
                                 <FileText className="h-4 w-4 text-amber-700" />
                                 تمهيد العقد:
                               </h5>
-                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words">
+                              <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-wrap leading-relaxed break-words [word-break:break-word] w-full min-w-0">
                                 {selectedTemplate.introTemplate}
                               </p>
                             </div>
