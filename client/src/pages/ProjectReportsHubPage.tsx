@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   FileText, 
   Clock, 
@@ -26,59 +34,72 @@ import {
 
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
-
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
   const realProjects = useMemo(() => {
     return dbProjectsData || [];
   }, [dbProjectsData]);
 
-  const recentReports = useMemo(() => [
-    {
-      id: "REP-001",
-      title: "تقرير نصف شهري - النصف الأول من يوليو",
-      type: "تقرير نصف شهري",
-      typeKey: "semi-monthly",
-      project: realProjects[0]?.name || "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
-      date: "2026-07-15",
-      rag: "أخضر",
-      status: "تم الاطلاع",
-    },
-    {
-      id: "REP-002",
-      title: "التقرير الشهري لشهر يونيو 2026",
-      type: "تقرير شهري",
-      typeKey: "monthly",
-      project: realProjects[1]?.name || "مشروع صيانة وتأهيل أنظمة التكييف - مسجد الصفا",
-      date: "2026-06-30",
-      rag: "أحمر",
-      status: "معتمد",
-    },
-    {
-      id: "REP-003",
-      title: "التقرير الربعي - Q2 2026",
-      type: "تقرير ربعي",
-      typeKey: "quarterly",
-      project: realProjects[2]?.name || "مشروع تركيب منظومة الطاقة الشمسية الذكية",
-      date: "2026-06-30",
-      rag: "أخضر",
-      status: "معتمد",
-    },
-    {
-      id: "REP-004",
-      title: "تقرير زيارة تفقدية للموقع",
-      type: "تقرير زيارة",
-      typeKey: "visit",
-      project: "مشروع سدنة السقاية والتأهيل المعماري لجامع الفتح",
-      date: "2026-07-12",
-      rag: "أصفر",
-      status: "تم الاطلاع",
-    },
-  ], [realProjects]);
+  const [reports, setReports] = useState<any[]>([]);
 
-  const filteredReports = filterType === "all"
-    ? recentReports
-    : recentReports.filter((r) => r.typeKey === filterType);
+  // Initialize reports when realProjects changes
+  useEffect(() => {
+    setReports([
+      {
+        id: "REP-001",
+        title: "تقرير نصف شهري - النصف الأول من يوليو",
+        type: "تقرير نصف شهري",
+        typeKey: "semi-monthly",
+        project: realProjects[0]?.name || "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
+        date: "2026-07-15",
+        rag: "أخضر",
+        status: "تم الاطلاع",
+      },
+      {
+        id: "REP-002",
+        title: "التقرير الشهري لشهر يونيو 2026",
+        type: "تقرير شهري",
+        typeKey: "monthly",
+        project: realProjects[1]?.name || "مشروع صيانة وتأهيل أنظمة التكييف - مسجد الصفا",
+        date: "2026-06-30",
+        rag: "أحمر",
+        status: "معتمد",
+      },
+      {
+        id: "REP-003",
+        title: "التقرير الربعي - Q2 2026",
+        type: "تقرير ربعي",
+        typeKey: "quarterly",
+        project: realProjects[2]?.name || "مشروع تركيب منظومة الطاقة الشمسية الذكية",
+        date: "2026-06-30",
+        rag: "أخضر",
+        status: "معتمد",
+      },
+      {
+        id: "REP-004",
+        title: "تقرير زيارة تفقدية للموقع",
+        type: "تقرير زيارة",
+        typeKey: "visit",
+        project: realProjects[3]?.name || "مشروع سدنة السقاية والتأهيل المعماري لجامع الفتح",
+        date: "2026-07-12",
+        rag: "أصفر",
+        status: "تم الاطلاع",
+      },
+    ]);
+  }, [realProjects]);
+
+  const handleUpdateReportStatus = (id: string, newStatus: string) => {
+    setReports((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+    );
+    toast.success(`تم تحديث حالة التقرير ${id} بنجاح إلى: ${newStatus}`);
+  };
+
+  const filteredReports = useMemo(() => {
+    return filterType === "all"
+      ? reports
+      : reports.filter((r) => r.typeKey === filterType);
+  }, [reports, filterType]);
 
 
 
@@ -253,9 +274,19 @@ export default function ProjectReportsHubPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-[10px] font-bold">
-                        {report.status}
-                      </Badge>
+                      <Select
+                        value={report.status}
+                        onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
+                      >
+                        <SelectTrigger className="h-8 border-border/80 w-28 text-xs font-semibold bg-background mx-auto">
+                          <SelectValue placeholder="حالة التقرير" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
+                          <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
+                          <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="text-center">
                       <Link href={`/project-reports/${report.typeKey}`}>
