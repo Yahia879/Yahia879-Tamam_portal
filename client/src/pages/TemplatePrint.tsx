@@ -210,7 +210,7 @@ export default function TemplatePrint() {
                 >
                   تمهيد:
                 </h3>
-                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                   {replaceVariablesPrint(template.introTemplate)}
                 </div>
               </div>
@@ -227,7 +227,7 @@ export default function TemplatePrint() {
                     >
                       {clause.titleAr || `المادة ${index + 1}`}:
                     </h3>
-                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                       {replaceVariablesPrint(clause.content)}
                     </div>
                   </div>
