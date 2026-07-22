@@ -8,8 +8,14 @@ import {
   MapPin, 
   Printer,
   Save,
-  Send
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ReportHeaderTabsProps {
   title?: string;
@@ -21,6 +27,7 @@ interface ReportHeaderTabsProps {
   onSubmitReport?: () => void;
   onPrintPreview?: () => void;
   isSubmitting?: boolean;
+  onStatusChange?: (newStatus: string) => void;
 }
 
 export function ReportHeaderTabs({
@@ -29,6 +36,7 @@ export function ReportHeaderTabs({
   onSaveDraft,
   onPrintPreview,
   isSubmitting = false,
+  onStatusChange,
 }: ReportHeaderTabsProps) {
   const [, setLocation] = useLocation();
 
@@ -103,6 +111,22 @@ export function ReportHeaderTabs({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0 justify-end">
+          {reportStatus && onStatusChange && (
+            <div className="flex items-center gap-1.5 ml-2">
+              <span className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">حالة التقرير:</span>
+              <Select value={reportStatus} onValueChange={onStatusChange}>
+                <SelectTrigger className="h-9 border-border/80 w-32 text-xs font-semibold bg-background">
+                  <SelectValue placeholder="حالة التقرير" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
+                  <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
+                  <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {onPrintPreview && (
             <Button
               variant="outline"
