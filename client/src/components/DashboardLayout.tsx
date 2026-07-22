@@ -221,7 +221,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const engineeringItems: MenuItem[] = [];
   if (has("projects") || has("projects.view") || has("projects.view_details")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
-    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
   }
   if (has("progress_reports")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
