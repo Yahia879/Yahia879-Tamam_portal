@@ -713,8 +713,9 @@ export default function ContractPreview() {
                   style={{ backgroundColor: '#ae9b63', color: '#faf8f5' }}
                 >
                   <h1 className="text-lg sm:text-xl font-bold">
-                    عقد {CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع {contract.mosqueName || "المسجد"}
-                    {contract.mosqueNeighborhood && ` بحي ${contract.mosqueNeighborhood}`}
+                    {contract.projectName || contract.contractTitle || (
+                      `عقد ${CONTRACT_TYPES[contract.contractType] || contract.contractType} على تنفيذ مشروع ${contract.mosqueName || "المسجد"}${contract.mosqueNeighborhood ? ` بحي ${contract.mosqueNeighborhood}` : ""}`
+                    )}
                   </h1>
                 </div>
 
