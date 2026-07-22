@@ -810,7 +810,7 @@ export default function ContractPreview() {
                     >
                       تمهيد:
                     </h3>
-                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                    <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                       {replaceVariables(contract.introTemplate)}
                     </div>
                   </div>
@@ -826,7 +826,7 @@ export default function ContractPreview() {
                       >
                         {clause.originalTitleAr || clause.title || `المادة ${index + 1}`}:
                       </h3>
-                      <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right">
+                      <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
                         {replaceVariables(clause.customContent || clause.originalContent)}
                       </div>
                     </div>
