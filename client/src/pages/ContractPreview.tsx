@@ -46,6 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Accordion,
   AccordionContent,
@@ -196,6 +197,7 @@ export default function ContractPreview() {
   const [modificationJustification, setModificationJustification] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const [showStamp, setShowStamp] = useState(true);
   
   // State لنموذج الموافقة/الرفض
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -392,7 +394,7 @@ export default function ContractPreview() {
       // 1. تجميع كل روابط الصور المراد التأكد من اكتمال تحميلها
       const imageUrls: string[] = [];
       if (orgSettings?.logoUrl) imageUrls.push(orgSettings.logoUrl);
-      if (orgSettings?.stampUrl && data?.contract?.status === "approved") imageUrls.push(orgSettings.stampUrl);
+      if (orgSettings?.stampUrl && data?.contract?.status === "approved" && showStamp) imageUrls.push(orgSettings.stampUrl);
       imageUrls.push("/assets/image-removebg-preview (1).png");
 
       // 2. تحميل الصور في ذاكرة المتصفح عبر Image()
@@ -641,7 +643,19 @@ export default function ContractPreview() {
             <ArrowRight className="h-4 w-4 ml-2" />
             العودة
           </Button>
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end items-center">
+            {contract.status === "approved" && (
+              <div className="flex items-center gap-2 ml-4">
+                <Checkbox 
+                  id="show-stamp" 
+                  checked={showStamp} 
+                  onCheckedChange={(checked) => setShowStamp(!!checked)}
+                />
+                <Label htmlFor="show-stamp" className="text-xs font-semibold cursor-pointer">
+                  إظهار الختم
+                </Label>
+              </div>
+            )}
             {contract.status === "draft" && (
               <Button
                 onClick={() => approveMutation.mutate({ id: contractId! })}
@@ -988,7 +1002,7 @@ export default function ContractPreview() {
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
                         <div className="official-stamp-box h-28 sm:h-32 mt-2 flex items-center justify-center overflow-hidden bg-white relative p-1">
-                          {contract.status === "approved" && orgSettings?.stampUrl ? (
+                          {contract.status === "approved" && orgSettings?.stampUrl && showStamp ? (
                             <img 
                               src={orgSettings.stampUrl} 
                               alt="الختم الرسمي للطرف الأول" 
