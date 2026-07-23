@@ -18,8 +18,9 @@ import {
   ArrowRight,
   Eye,
   Calendar,
+  Briefcase,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
@@ -65,6 +66,7 @@ const stageSteps = [
 
 export default function MyRequests() {
   const { user, logout } = useAuth();
+  const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
@@ -304,14 +306,30 @@ export default function MyRequests() {
                             </div>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate mb-2">
                               {request.programName || PROGRAM_LABELS[request.programType] || request.programType} - {request.mosqueName || "مسجد غير محدد"}
-                            </p>                            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
+                            </p>
+                            {request.projectId && (
+                              <div className="mb-2 flex" onClick={(e) => e.stopPropagation()}>
+                                <span 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    navigate(`/projects/${request.projectId}`);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded border border-primary/10 cursor-pointer"
+                                >
+                                  <Briefcase className="w-3 h-3" />
+                                  <span>المشروع المرتبط: {request.projectName}</span>
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                 {new Date(request.createdAt).toLocaleDateString("ar-SA")}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                                {getStageLabel(request.currentStage, request.requestTrack)}
+                                {getStageLabel(request.currentStage, request.requestTrack || undefined)}
                               </span>
                             </div>
                           </div>
