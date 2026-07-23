@@ -373,17 +373,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const content = (
     <div className="max-w-4xl mx-auto px-4">
       {/* رأس الصفحة مع زر الرجوع */}
-      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
-          <Button variant="ghost" size="icon" className="flex-shrink-0">
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-        </Link>
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+      {showLayout && (
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+            <Button variant="ghost" size="icon" className="flex-shrink-0">
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* شريط التقدم */}
       <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
@@ -834,17 +836,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     const blockContent = (
       <div className="max-w-4xl mx-auto px-4">
         {/* رأس الصفحة مع زر الرجوع */}
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
-            <Button variant="ghost" size="icon" className="flex-shrink-0">
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+        {showLayout && (
+          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+              <Button variant="ghost" size="icon" className="flex-shrink-0">
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="space-y-6">
           <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
