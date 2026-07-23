@@ -479,7 +479,7 @@ export default function ContractPrint() {
             </div>
 
             {/* القيمة المالية وتفاصيل الحساب */}
-            <div className="mb-6 break-inside-avoid">
+            <div className="mb-6 pt-3 print:!pt-4 break-inside-avoid">
               <h3 
                 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                 style={{ backgroundColor: '#1a5f4a', color: 'white', minHeight: '40px' }}
@@ -501,75 +501,77 @@ export default function ContractPrint() {
               </div>
             </div>
 
-            {/* التوقيعات */}
-            <div className="mt-12 break-inside-avoid">
-              <div className="text-center mb-8">
-                <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-8">
-                {/* الطرف الأول */}
-                <div className="text-center border-l pl-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
-                  <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                  <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                  <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
-                  <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                    <p>التوقيع: ...................................</p>
-                    <p>التاريخ: ...................................</p>
-                  </div>
-                  <p className="mt-4 text-xs text-gray-600 font-semibold">الختم / الطابع الرسمي</p>
-                  <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
-                    {contract.status === "approved" && orgSettings?.stampUrl ? (
-                      <img src={orgSettings.stampUrl} alt="الختم / الطابع الرسمي" className="h-20 max-w-full object-contain drop-shadow-sm" />
-                    ) : (
-                      <span className="text-[10px] text-gray-400">مخصص للختم الرسمي</span>
-                    )}
-                  </div>
+            {/* التوقيعات وتذييل الصفحة مقطع واحد يمنع الانقسام نهائياً أثناء الطباعة */}
+            <div className="contract-signature-block-wrapper" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div className="mt-12 contract-signature-section" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                <div className="text-center mb-8">
+                  <p className="font-bold text-base sm:text-lg">هذا وبالله التوفيق،،،</p>
                 </div>
 
-                {/* الطرف الثاني */}
-                <div className="text-center pr-4">
-                  <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
-                  <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
-                  <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
-                  <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
-                  <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                    <p>التوقيع: ...................................</p>
-                    <p>التاريخ: ...................................</p>
+                <div className="grid grid-cols-2 gap-8">
+                  {/* الطرف الأول */}
+                  <div className="text-center border-l pl-4">
+                    <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
+                    <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
+                    <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                    <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                      <p>التوقيع: ...................................</p>
+                      <p>التاريخ: ...................................</p>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-600 font-semibold">الختم / الطابع الرسمي</p>
+                    <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                      {contract.status === "approved" && orgSettings?.stampUrl ? (
+                        <img src={orgSettings.stampUrl} alt="الختم / الطابع الرسمي" className="h-20 max-w-full object-contain drop-shadow-sm" />
+                      ) : (
+                        <span className="text-[10px] text-gray-400">مخصص للختم الرسمي</span>
+                      )}
+                    </div>
                   </div>
-                  <p className="mt-4 text-xs text-gray-600 font-semibold">الختم الرسمي</p>
-                  <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
-                    <span className="text-[10px] text-gray-400">مخصص لختم الطرف الثاني</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* تذييل الصفحة */}
-          <div 
-            className="text-center text-xs text-gray-500 mt-12 border-t pt-4 px-4 sm:px-8 space-y-3"
-          >
-            {contract.status === "approved" && orgSettings?.stampUrl && (
-              <div className="flex justify-between items-center py-2 px-3 bg-emerald-50/40 rounded-lg border border-emerald-100/80 mb-2">
-                <div className="flex items-center gap-2.5">
-                  <img src={orgSettings.stampUrl} alt="الختم الرسمي" className="h-11 w-auto object-contain" />
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-emerald-900 block">عقد معتمد رسمياً</span>
-                    <span className="text-[9px] text-gray-500 font-mono block">رقم العقد: {contract.contractNumber}</span>
+                  {/* الطرف الثاني */}
+                  <div className="text-center pr-4">
+                    <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الثاني</h4>
+                    <p className="font-medium text-xs sm:text-sm">{contract.secondPartyName}</p>
+                    <p className="text-xs sm:text-sm">{contract.secondPartyRepresentative || "----"}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{contract.secondPartyTitle || "----"}</p>
+                    <div className="mt-8 space-y-4 text-xs sm:text-sm">
+                      <p>التوقيع: ...................................</p>
+                      <p>التاريخ: ...................................</p>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-600 font-semibold">الختم الرسمي</p>
+                    <div className="h-24 mt-2 flex items-center justify-center overflow-hidden bg-gray-50/30 p-1">
+                      <span className="text-[10px] text-gray-400">مخصص لختم الطرف الثاني</span>
+                    </div>
                   </div>
-                </div>
-                <div className="text-left text-[9px] text-gray-500 font-mono">
-                  تاريخ الاعتماد: {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : new Date().toLocaleDateString('ar-SA')}
                 </div>
               </div>
-            )}
 
-            <div className="flex flex-row justify-between items-center gap-1">
-              <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
-              <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
-              <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+              {/* تذييل الصفحة */}
+              <div 
+                className="text-center text-xs text-gray-500 mt-12 border-t pt-4 px-4 sm:px-8 space-y-3"
+              >
+                {contract.status === "approved" && orgSettings?.stampUrl && (
+                  <div className="flex justify-between items-center py-2 px-3 bg-emerald-50/40 rounded-lg border border-emerald-100/80 mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <img src={orgSettings.stampUrl} alt="الختم الرسمي" className="h-11 w-auto object-contain" />
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-emerald-900 block">عقد معتمد رسمياً</span>
+                        <span className="text-[9px] text-gray-500 font-mono block">رقم العقد: {contract.contractNumber}</span>
+                      </div>
+                    </div>
+                    <div className="text-left text-[9px] text-gray-500 font-mono">
+                      تاريخ الاعتماد: {contract.approvedAt ? new Date(contract.approvedAt).toLocaleDateString('ar-SA') : new Date().toLocaleDateString('ar-SA')}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-row justify-between items-center gap-1">
+                  <span>E: {orgSettings?.email || "info@tamam.org.sa"}</span>
+                  <span>{orgSettings?.website || "tamamgate.manarah.org.sa"}</span>
+                  <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -601,6 +603,57 @@ export default function ContractPrint() {
             margin: 0 !important;
             min-height: 0 !important;
             height: auto !important;
+          }
+          h1, h2, h3, h4 {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+            display: block !important;
+            line-height: 1.4 !important;
+            min-height: 0 !important;
+          }
+          .break-inside-avoid {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+            margin-bottom: 0.6rem !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+          html body .contract-signature-block-wrapper,
+          html body .contract-signature-block-wrapper *,
+          html body .contract-signature-section,
+          html body .contract-signature-section * {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          p, .whitespace-pre-wrap, table, tr {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+            orphans: 2 !important;
+            widows: 2 !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+          .mb-6 {
+            margin-bottom: 0.6rem !important;
+          }
+          .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0.5rem !important;
+          }
+          .py-4 {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+          }
+          .mb-3 {
+            margin-bottom: 0.4rem !important;
+          }
+          .mt-12 {
+            margin-top: 1.5rem !important;
+          }
+          .space-y-6, .space-y-4 {
+            display: block !important;
+            overflow: visible !important;
           }
         }
       `}</style>
