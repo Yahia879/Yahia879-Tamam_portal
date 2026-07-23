@@ -1976,7 +1976,44 @@ export const requestsRouter = router({
               await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
             }
             const projectNumber = `PRJ-${currentYear}-${String(sequence).padStart(4, '0')}`;
-            const projectNameToUse = input.projectName || input.notes || `مشروع مسجد ${request[0].requestNumber}`;
+            let defaultProjectName = "";
+            const requestWithNames = await db.select({
+              programType: mosqueRequests.programType,
+              programData: mosqueRequests.programData,
+              mosqueName: mosques.name,
+              requesterName: users.name,
+            }).from(mosqueRequests)
+              .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+              .leftJoin(users, eq(mosqueRequests.userId, users.id))
+              .where(eq(mosqueRequests.id, input.requestId))
+              .limit(1);
+            
+            if (requestWithNames.length > 0) {
+              const r = requestWithNames[0];
+              if (r.programType === "bunyan") {
+                defaultProjectName = `مشروع ${r.requesterName || ""}`;
+              } else {
+                let mosqueName = r.mosqueName;
+                if (!mosqueName && r.programData) {
+                  let progData: any = null;
+                  try {
+                    if (typeof r.programData === 'string') {
+                      progData = JSON.parse(r.programData);
+                    } else if (typeof r.programData === 'object') {
+                      progData = r.programData;
+                    }
+                  } catch (e) {
+                    console.error("Error parsing programData:", e);
+                  }
+                  if (progData && typeof progData === 'object' && progData.customMosqueName) {
+                    mosqueName = progData.customMosqueName;
+                  }
+                }
+                defaultProjectName = `مشروع مسجد ${mosqueName || ""}`;
+              }
+            }
+
+            const projectNameToUse = input.projectName || defaultProjectName || `مشروع مسجد ${request[0].requestNumber}`;
             const [newProject] = await db.insert(projects).values({
               projectNumber,
               requestId: input.requestId,

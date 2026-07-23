@@ -421,9 +421,13 @@ export default function Requests({
                             <ProgramIcon program={request.programType} size="md" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-foreground text-sm md:text-sm">{request.requestNumber}</p>
+                            <p className="font-bold text-foreground text-sm md:text-sm">
+                              {request.programType === "bunyan" 
+                                ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                                : (isEn ? `Mosque Request ${request.mosqueName || ""}` : `طلب مسجد ${request.mosqueName || ""}`)}
+                            </p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
-                              {request.programName && !isEn ? request.programName : translateProgram(request.programType)}
+                              {request.programName && !isEn ? request.programName : translateProgram(request.programType)} ({request.requestNumber})
                             </p>
                           </div>
                         </div>
