@@ -539,11 +539,13 @@ export const contractsRouter = router({
           const clauses = JSON.parse(input.clauseValues);
           if (Array.isArray(clauses) && clauses.length > 0) {
             await db.insert(contractClauseValues).values(
-              clauses.map((c: any) => ({
+              clauses.map((c: any, index: number) => ({
                 contractId,
-                clauseId: c.clauseId,
+                clauseId: c.clauseId || null,
+                title: c.titleAr || c.title || null,
                 customContent: c.customContent || null,
                 isIncluded: c.isIncluded ?? true,
+                orderIndex: c.orderIndex ?? index,
               }))
             );
           }
@@ -753,11 +755,13 @@ export const contractsRouter = router({
             // إضافة قيم البنود الجديدة
             if (clauses.length > 0) {
               await db.insert(contractClauseValues).values(
-                clauses.map((c: any) => ({
+                clauses.map((c: any, index: number) => ({
                   contractId: id,
-                  clauseId: c.clauseId,
+                  clauseId: c.clauseId || null,
+                  title: c.titleAr || c.title || null,
                   customContent: c.customContent || null,
                   isIncluded: c.isIncluded ?? true,
+                  orderIndex: c.orderIndex ?? index,
                 }))
               );
             }

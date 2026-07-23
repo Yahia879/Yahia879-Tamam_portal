@@ -382,7 +382,7 @@ export default function ContractForm() {
           clauseId: cv.clauseId,
           title: cv.title || cv.originalTitle || "",
           titleAr: cv.originalTitleAr || cv.title || "",
-          content: cv.originalContent || "",
+          content: cv.originalContent || cv.content || "",
           customContent: cv.customContent || "",
           isIncluded: cv.isIncluded ?? true,
           isEditable: true,

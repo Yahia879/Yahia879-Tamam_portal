@@ -178,6 +178,21 @@ export default function ContractPrint() {
     }
   }
 
+  let parsedClauseValues: any[] = [];
+  if (contract.clauseValuesJson) {
+    try {
+      parsedClauseValues = typeof contract.clauseValuesJson === 'string'
+        ? JSON.parse(contract.clauseValuesJson)
+        : (contract.clauseValuesJson as any);
+    } catch (e) {
+      console.error("Error parsing clauseValuesJson:", e);
+    }
+  }
+
+  const effectiveClauseValues = (clauseValues && clauseValues.length > 0)
+    ? clauseValues
+    : parsedClauseValues;
+
   // دالة لاستبدال المتغيرات في نصوص البنود
   const replaceVariables = (content: string) => {
     if (!content) return "";
@@ -351,10 +366,13 @@ export default function ContractPrint() {
 
             {/* بنود العقد الديناميكية */}
             <div className="space-y-6">
-              {clauseValues?.filter((c: any) => c.isIncluded).map((clause: any, index: number) => {
-                const clauseTitle = clause.originalTitleAr || clause.title;
+              {effectiveClauseValues?.filter((c: any) => c.isIncluded ?? true).map((clause: any, index: number) => {
+                const fallbackObj = parsedClauseValues[index] || {};
+                const clauseTitle = clause.originalTitleAr || clause.titleAr || clause.title || fallbackObj.titleAr || fallbackObj.title;
+                const clauseContent = clause.customContent || clause.originalContent || clause.content || fallbackObj.customContent || fallbackObj.content;
+                if (!clauseTitle && !clauseContent) return null;
                 return (
-                  <div key={clause.id} className="mb-6 break-inside-avoid">
+                  <div key={clause.id || `clause-${index}`} className="mb-6 break-inside-avoid">
                     {clauseTitle && clauseTitle.trim() !== "" && (
                       <h3 
                         className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
@@ -364,7 +382,7 @@ export default function ContractPrint() {
                       </h3>
                     )}
                     <div className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-wrap pr-2 sm:pr-4 text-right break-words">
-                      {replaceVariables(clause.customContent || clause.originalContent)}
+                      {replaceVariables(clauseContent || "")}
                     </div>
                   </div>
                 );
