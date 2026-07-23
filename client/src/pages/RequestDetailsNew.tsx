@@ -284,12 +284,21 @@ export default function RequestDetailsNew() {
 
   useEffect(() => {
     if (selectedDecision === 'convert_to_project' && request) {
-      setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+      if (request.programType === 'bunyan') {
+        setProjectName(`مشروع ${request.requester?.name || ""}`);
+      } else {
+        setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+      }
     } else if (selectedDecision === 'convert_to_donation' && request) {
-      setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+      if (request.programType === 'bunyan') {
+        setProjectName(`مشروع ${request.requester?.name || ""}`);
+        setDonationDescription(request.requester?.name ? `فرصة تبرع لتنفيذ الأعمال المطلوبة للمستفيد ${request.requester.name}` : "");
+      } else {
+        setProjectName(request.mosque?.name ? `مشروع مسجد ${request.mosque.name}` : `مشروع طلب رقم ${request.requestNumber}`);
+        setDonationDescription(request.mosque?.name ? `فرصة تبرع لتنفيذ الأعمال المطلوبة لمسجد ${request.mosque.name}` : "");
+      }
       setDonationTitle(request.requestNumber ? `فرصة تبرع لطلب رقم ${request.requestNumber}` : "");
       setDonationTargetAmount(request.estimatedCost ? request.estimatedCost.toString() : "");
-      setDonationDescription(request.mosque?.name ? `فرصة تبرع لتنفيذ الأعمال المطلوبة لمسجد ${request.mosque.name}` : "");
     }
   }, [selectedDecision, request]);
   const utils = trpc.useUtils();
