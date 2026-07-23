@@ -20,7 +20,8 @@ import {
   Zap,
   MapPin,
   ClipboardList,
-  Languages
+  Languages,
+  Briefcase
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -388,11 +389,12 @@ export default function Requests({
           ) : requests.length > 0 ? (
             <div>
               {/* Table Header (Desktop Only) */}
-              <div className="hidden md:grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="hidden md:grid grid-cols-[auto_1.2fr_1.2fr_1.2fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="w-8"></div>
                 <div>{isEn ? "Request" : "الطلب"}</div>
                 <div>{isEn ? "Mosque" : "المسجد"}</div>
                 <div>{isEn ? "Stage" : "المرحلة"}</div>
+                <div>{isEn ? "Project" : "المشروع"}</div>
                 <div>{isEn ? "Status" : "الحالة"}</div>
                 <div className="w-20 text-center">{isEn ? "View" : "عرض"}</div>
               </div>
@@ -404,7 +406,7 @@ export default function Requests({
                   return (
                     <div
                       key={request.id}
-                      className={`grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
+                      className={`grid grid-cols-1 md:grid-cols-[auto_1.2fr_1.2fr_1.2fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
                       onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
                     >
                       {/* Desktop: Program Icon */}
@@ -450,6 +452,20 @@ export default function Requests({
                         )}
                       </div>
 
+                      {/* Project (Desktop) */}
+                      <div className="hidden md:flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
+                        {request.projectId ? (
+                          <Link href={`/projects/${request.projectId}`}>
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/10 cursor-pointer">
+                              <Briefcase className="w-3.5 h-3.5" />
+                              <span className="truncate max-w-[180px]">{request.projectName}</span>
+                            </span>
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
                       {/* Status (Desktop) */}
                       <div className="hidden md:block shrink-0">
                         <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
@@ -464,6 +480,16 @@ export default function Requests({
                           <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                           <span className="truncate">{request.mosqueName || "—"}</span>
                         </div>
+                        {request.projectId && (
+                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md" onClick={(e) => e.stopPropagation()}>
+                            <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <Link href={`/projects/${request.projectId}`}>
+                              <span className="font-semibold text-primary hover:underline truncate cursor-pointer">
+                                {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
+                              </span>
+                            </Link>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between gap-2">
                            <Badge variant="outline" className="text-[10px] py-0.5">
                             {translateStage(request.currentStage, request.requestTrack)}

@@ -584,10 +584,14 @@ export const requestsRouter = router({
         requesterName: users.name,
         programName: programs.name,
         hasQuickReport: sql<number>`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`,
+        projectId: projects.id,
+        projectNumber: projects.projectNumber,
+        projectName: projects.name,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
-        .leftJoin(programs, eq(mosqueRequests.programType, programs.id));
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+        .leftJoin(projects, eq(mosqueRequests.id, projects.requestId));
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions)) as typeof query;
@@ -676,6 +680,9 @@ export const requestsRouter = router({
             mosqueCity,
             requesterName: r.requesterName,
             programName: r.programName,
+            projectId: r.projectId,
+            projectNumber: r.projectNumber,
+            projectName: r.projectName,
           };
         }),
         total,
@@ -697,9 +704,13 @@ export const requestsRouter = router({
       mosqueName: mosques.name,
       mosqueCity: mosques.city,
       programName: programs.name,
+      projectId: projects.id,
+      projectNumber: projects.projectNumber,
+      projectName: projects.name,
     }).from(mosqueRequests)
       .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
       .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+      .leftJoin(projects, eq(mosqueRequests.id, projects.requestId))
       .where(eq(mosqueRequests.userId, ctx.user.id))
       .orderBy(desc(mosqueRequests.createdAt));
 
@@ -731,6 +742,9 @@ export const requestsRouter = router({
         mosqueName,
         mosqueCity,
         programName: r.programName,
+        projectId: r.projectId,
+        projectNumber: r.projectNumber,
+        projectName: r.projectName,
       };
     });
   }),
