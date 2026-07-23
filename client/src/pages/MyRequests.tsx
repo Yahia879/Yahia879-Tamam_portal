@@ -299,13 +299,17 @@ export default function MyRequests() {
                           <ProgramIcon program={request.programType} size="lg" className="sm:size-xl flex-shrink-0" showBackground />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <h3 className="font-bold text-foreground text-sm sm:text-base">{request.requestNumber}</h3>
+                              <h3 className="font-bold text-foreground text-sm sm:text-base">
+                                {request.programType === "bunyan" 
+                                  ? `طلب ${user?.name || ""}` 
+                                  : `طلب مسجد ${request.mosqueName || ""}`}
+                              </h3>
                               <Badge variant="outline" className={`${statusColors[request.status]} text-[10px] sm:text-xs py-0 h-5`}>
                                 {STATUS_LABELS[request.status]}
                               </Badge>
                             </div>
                             <p className="text-xs sm:text-sm text-muted-foreground truncate mb-2">
-                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType} - {request.mosqueName || "مسجد غير محدد"}
+                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType} ({request.requestNumber})
                             </p>
                             {request.projectId && (
                               <div className="mb-2 flex">

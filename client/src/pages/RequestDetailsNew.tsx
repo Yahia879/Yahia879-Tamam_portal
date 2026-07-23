@@ -1036,7 +1036,9 @@ export default function RequestDetailsNew() {
                     )}
                   </div>
                   <p className="text-base sm:text-lg font-bold text-foreground truncate">
-                    {request.mosque?.name || (isEn ? "Mosque not specified" : "مسجد غير محدد")}
+                    {request.programType === "bunyan" 
+                      ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
+                      : (isEn ? `Request for Mosque ${request.mosque?.name || ""}` : `طلب مسجد ${request.mosque?.name || ""}`)}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {translateProgram(request.programType)}
