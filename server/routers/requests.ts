@@ -518,7 +518,9 @@ export const requestsRouter = router({
           or(
             sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
             sql`${mosques.name} LIKE ${`%${input.search}%`}`,
-            sql`JSON_UNQUOTE(JSON_EXTRACT(${mosqueRequests.programData}, '$.customMosqueName')) LIKE ${`%${input.search}%`}`
+            sql`JSON_UNQUOTE(JSON_EXTRACT(${mosqueRequests.programData}, '$.customMosqueName')) LIKE ${`%${input.search}%`}`,
+            sql`${users.name} LIKE ${`%${input.search}%`}`,
+            sql`${users.nationalId} LIKE ${`%${input.search}%`}`
           )!
         );
       }
@@ -603,7 +605,8 @@ export const requestsRouter = router({
       // الحصول على العدد الإجمالي والإحصائيات
       let countQuery = db.select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id));
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.userId, users.id));
       if (conditions.length > 0) {
         countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
       }
@@ -618,7 +621,8 @@ export const requestsRouter = router({
         count: sql<number>`count(*)` 
       })
         .from(mosqueRequests)
-        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id));
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.userId, users.id));
       if (conditions.length > 0) {
         statsQuery = statsQuery.where(and(...conditions)) as typeof statsQuery;
       }
