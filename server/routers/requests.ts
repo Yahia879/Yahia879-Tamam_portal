@@ -32,7 +32,7 @@ import {
   requestExceptions,
   donationOpportunities,
 } from "../../drizzle/schema";
-import { eq, and, desc, sql, inArray, or, gte, lte, gt } from "drizzle-orm";
+import { eq, ne, and, desc, sql, inArray, or, gte, lte, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -112,6 +112,7 @@ const searchRequestsSchema = z.object({
   assignedTo: z.number().optional(),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
+  creatorType: z.enum(["all", "beneficiary", "officer"]).optional(),
   page: z.number().default(1),
   limit: z.number().default(20),
 });
@@ -575,6 +576,13 @@ export const requestsRouter = router({
       }
       if (input.toDate) {
         conditions.push(lte(mosqueRequests.createdAt, new Date(input.toDate)));
+      }
+      if (input.creatorType && input.creatorType !== "all") {
+        if (input.creatorType === "beneficiary") {
+          conditions.push(eq(users.role, "service_requester"));
+        } else if (input.creatorType === "officer") {
+          conditions.push(ne(users.role, "service_requester"));
+        }
       }
 
       const offset = (input.page - 1) * input.limit;

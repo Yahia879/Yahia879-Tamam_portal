@@ -164,6 +164,7 @@ export default function Requests({
   
   const [search, setSearch] = useState("");
   const [programFilter, setProgramFilter] = useState<string>("all");
+  const [creatorTypeFilter, setCreatorTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [stageFilter, setStageFilter] = useState<string>(initialStage || "all");
   const [page, setPage] = useState(1);
@@ -208,6 +209,7 @@ export default function Requests({
     status: statusFilter !== "all" ? statusFilter as any : undefined,
     currentStage: stageFilter !== "all" ? stageFilter as any : undefined,
     assignedTo: initialAssignedToMe ? user?.id : undefined,
+    creatorType: creatorTypeFilter !== "all" ? creatorTypeFilter as any : undefined,
     page,
     limit,
   });
@@ -337,7 +339,7 @@ export default function Requests({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+              <div className="grid grid-cols-3 gap-2 sm:col-span-2">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Program" : "البرنامج"}</label>
                   <Select value={programFilter} onValueChange={(v) => {
@@ -352,6 +354,22 @@ export default function Requests({
                       {Object.entries(PROGRAM_LABELS).map(([key]) => (
                         <SelectItem key={key} value={key}>{translateProgram(key)}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{isEn ? "Created By" : "منشئ الطلب"}</label>
+                  <Select value={creatorTypeFilter} onValueChange={(v) => {
+                    setCreatorTypeFilter(v);
+                    setPage(1);
+                  }}>
+                    <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                      <SelectValue placeholder={isEn ? "Created By" : "منشئ الطلب"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{isEn ? "All" : "الكل"}</SelectItem>
+                      <SelectItem value="beneficiary">{isEn ? "Beneficiaries" : "طلبات المستفيدين"}</SelectItem>
+                      <SelectItem value="officer">{isEn ? "Officers" : "طلبات المسؤولين"}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
