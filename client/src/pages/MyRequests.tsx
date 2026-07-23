@@ -308,15 +308,8 @@ export default function MyRequests() {
                               {request.programName || PROGRAM_LABELS[request.programType] || request.programType} - {request.mosqueName || "مسجد غير محدد"}
                             </p>
                             {request.projectId && (
-                              <div className="mb-2 flex" onClick={(e) => e.stopPropagation()}>
-                                <span 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    navigate(`/projects/${request.projectId}`);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 px-2 py-0.5 rounded border border-primary/10 cursor-pointer"
-                                >
+                              <div className="mb-2 flex">
+                                <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10">
                                   <Briefcase className="w-3 h-3" />
                                   <span>المشروع المرتبط: {request.projectName}</span>
                                 </span>

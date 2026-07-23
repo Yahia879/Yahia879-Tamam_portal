@@ -453,14 +453,12 @@ export default function Requests({
                       </div>
 
                       {/* Project (Desktop) */}
-                      <div className="hidden md:flex items-center gap-1.5 min-w-0" onClick={(e) => e.stopPropagation()}>
+                      <div className="hidden md:flex items-center gap-1.5 min-w-0">
                         {request.projectId ? (
-                          <Link href={`/projects/${request.projectId}`}>
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-md transition-colors border border-primary/10 cursor-pointer">
-                              <Briefcase className="w-3.5 h-3.5" />
-                              <span className="truncate max-w-[180px]">{request.projectName}</span>
-                            </span>
-                          </Link>
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2 py-1 rounded-md border border-primary/10">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            <span className="truncate max-w-[180px]">{request.projectName}</span>
+                          </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
@@ -481,13 +479,11 @@ export default function Requests({
                           <span className="truncate">{request.mosqueName || "—"}</span>
                         </div>
                         {request.projectId && (
-                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md">
                             <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <Link href={`/projects/${request.projectId}`}>
-                              <span className="font-semibold text-primary hover:underline truncate cursor-pointer">
-                                {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
-                              </span>
-                            </Link>
+                            <span className="font-semibold text-primary truncate">
+                              {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
+                            </span>
                           </div>
                         )}
                         <div className="flex items-center justify-between gap-2">
