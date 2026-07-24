@@ -356,6 +356,34 @@ export const progressReportsRouter = router({
       return { success: true };
     }),
 
+  // تحديث حالة التقرير
+  updateStatus: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        status: z.enum(["draft", "submitted", "reviewed", "approved"]),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
+
+      if (!isAdmin && !hasApprove && !hasGeneric) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديث حالة التقرير" });
+      }
+
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      await db
+        .update(progressReports)
+        .set({ status: input.status })
+        .where(eq(progressReports.id, input.id));
+
+      return { success: true };
+    }),
+
   // إحصائيات التقارير
   getStats: protectedProcedure
     .input(z.object({ projectId: z.number().optional() }).optional())
