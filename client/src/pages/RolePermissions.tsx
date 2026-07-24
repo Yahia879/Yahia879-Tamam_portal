@@ -178,7 +178,7 @@ export default function RolePermissions() {
     }
 
     // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requests.") && permId !== "requests.view") {
+    if (permId.startsWith("requests.") && permId !== "requests.view" && permId !== "requests.sign_final_report") {
       if (!selectedPerms.includes("requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
         return;
@@ -291,9 +291,9 @@ export default function RolePermissions() {
         if (permId === "services.view") {
           next = next.filter(id => !id.startsWith("services."));
         }
-        // عند إلغاء تفعيل صلاحية 'عرض كافة الطلبات'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات الطلبات الأخرى
+        // عند إلغاء عرض الطلبات: cascade لكل صلاحياتها ما عدا توقيع التقرير الختامي (انتقلت لقسم التوقيع)
         if (permId === "requests.view") {
-          next = next.filter(id => !id.startsWith("requests."));
+          next = next.filter(id => !id.startsWith("requests.") || id === "requests.sign_final_report");
         }
         // عند إلغاء تفعيل صلاحية 'عرض سجل المشاريع'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المشاريع الأخرى
         if (permId === "projects.view") {
@@ -773,7 +773,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "sign_final_report"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
@@ -825,7 +825,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
@@ -931,7 +931,6 @@ export default function RolePermissions() {
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
-        sign_final_report: "توقيع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
@@ -1346,7 +1345,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
                                  (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                                  (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
-                                 (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
+                                 (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                                  (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
                                  (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                                  (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||

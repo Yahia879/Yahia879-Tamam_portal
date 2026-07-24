@@ -52,7 +52,7 @@ const superAdminGroups = [
     modules: [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-      { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"] },
+      { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
       { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
     ]
@@ -146,8 +146,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       create: "إضافة طلب",
       view_details: "عرض تفاصيل الطلب وإدارته",
       manage_as_field_team: "ادارة الطلبات كفريق ميداني",
-      sign_final_report: "توقيع التقرير الختامي"
+      manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
+      upload_final_report: "رفع التقرير الختامي"
     },
+
     projects: {
       view: "عرض المشاريع",
       view_details: "عرض تفاصيل المشروع وادارته",
@@ -446,7 +448,7 @@ export default function RoleEdit() {
     }
 
     // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requests.") && permId !== "requests.view") {
+    if (permId.startsWith("requests.") && permId !== "requests.view" && permId !== "requests.sign_final_report") {
       if (!selectedPerms.includes("requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
         return;
@@ -553,7 +555,8 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("services."));
         }
         if (permId === "requests.view") {
-          next = next.filter(id => !id.startsWith("requests."));
+          // cascade لكل صلاحيات الطلبات ما عدا توقيع التقرير الختامي (انتقلت لقسم التوقيع)
+          next = next.filter(id => !id.startsWith("requests.") || id === "requests.sign_final_report");
         }
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
@@ -792,7 +795,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
                               (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
-                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
+                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||

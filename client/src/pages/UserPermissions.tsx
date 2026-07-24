@@ -222,7 +222,7 @@ export default function UserPermissions() {
     }
 
     // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requests.") && permId !== "requests.view") {
+    if (permId.startsWith("requests.") && permId !== "requests.view" && permId !== "requests.sign_final_report") {
       if (!isChecked("requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
         return;
@@ -357,7 +357,14 @@ export default function UserPermissions() {
         if (permId === "staff_roles.view") cascadeRevoke("staff_roles.");
         if (permId === "staff_custom_roles.view") cascadeRevoke("staff_custom_roles.");
         if (permId === "services.view") cascadeRevoke("services.");
-        if (permId === "requests.view") cascadeRevoke("requests.");
+        if (permId === "requests.view") {
+          // cascade لكل صلاحيات الطلبات ما عدا توقيع التقرير الختامي (انتقلت لقسم التوقيع)
+          const allRequestPerms = structure?.flatMap(g => g.permissions).filter(p => p.id.startsWith("requests.") && p.id !== "requests.view" && p.id !== "requests.sign_final_report") || [];
+          allRequestPerms.forEach(p => {
+            const defVal = rolePermissions?.includes(p.id) || false;
+            if (defVal) { updated[p.id] = false; } else { delete updated[p.id]; }
+          });
+        }
         if (permId === "projects.view") cascadeRevoke("projects.");
         if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
@@ -534,7 +541,6 @@ export default function UserPermissions() {
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
-        sign_final_report: "توقيع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
@@ -674,7 +680,7 @@ export default function UserPermissions() {
           id: "requests", 
           nameAr: "الطلبات", 
           icon: Zap, 
-          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"]
+          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"]
         },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -951,7 +957,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !isChecked("staff_roles.view")) ||
                               (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !isChecked("staff_custom_roles.view")) ||
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
-                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !isChecked("requests.view")) ||
+                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));
