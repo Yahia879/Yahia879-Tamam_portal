@@ -248,27 +248,24 @@ export default function ContractForm() {
 
   // Mutation لإنشاء العقد
   const createMutation = trpc.contracts.create.useMutation({
-    onSuccess: (data) => {
-      toast.success("تم إنشاء العقد بنجاح");
-      navigate(`/contracts/${data.id}/preview`);
-    },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء العقد");
       setIsSubmitting(false);
+      setIsSavingDraft(false);
     },
   });
 
   // Mutation لتحديث العقد (وضع التعديل)
   const updateMutation = trpc.contracts.update.useMutation({
     onSuccess: () => {
-      // إبطال التخزين المؤقت لضمان تحديث البيانات في المعاينة
-      utils.contracts.getById.invalidate({ id: editContractId! });
-      toast.success("تم تحديث العقد بنجاح");
-      navigate(`/contracts/${editContractId}/preview`);
+      if (editContractId) {
+        utils.contracts.getById.invalidate({ id: editContractId });
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث العقد");
       setIsSubmitting(false);
+      setIsSavingDraft(false);
     },
   });
 
