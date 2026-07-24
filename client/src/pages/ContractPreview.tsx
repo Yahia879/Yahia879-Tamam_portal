@@ -1018,20 +1018,16 @@ export default function ContractPreview() {
                         <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
                         <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
                         <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                          {executiveDirectorSignatureUrl ? (
-                            <div className="flex flex-col items-center justify-center space-y-1">
-                              <span className="text-xs font-bold text-gray-700 mb-1">التوقيع:</span>
-                              <div className="h-14 flex items-center justify-center mx-auto w-40 overflow-hidden my-1">
-                                <img
-                                  src={executiveDirectorSignatureUrl}
-                                  alt="توقيع الطرف الأول"
-                                  className="max-h-14 max-w-full object-contain"
-                                />
-                              </div>
-                            </div>
-                          ) : (
+                          <div className="relative inline-flex items-center justify-center">
                             <p>التوقيع: ...................................</p>
-                          )}
+                            {executiveDirectorSignatureUrl && (
+                              <img
+                                src={executiveDirectorSignatureUrl}
+                                alt="توقيع الطرف الأول"
+                                className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none"
+                              />
+                            )}
+                          </div>
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
