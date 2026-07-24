@@ -937,7 +937,9 @@ export default function ProjectDetailsPage() {
                                   <Edit className="h-4 w-4 text-blue-600" />
                                 </Button>
                               )}
-                              <Button
+                              {/* زر المعاينة - يظهر فقط إذا تجاوز العقد مرحلة المسودة (أي تم الضغط على إنشاء واعتماد العقد) */}
+                              {contract.status !== "draft" && (
+                                <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => navigate(`/contracts/${contract.id}/preview`)}
@@ -945,6 +947,7 @@ export default function ProjectDetailsPage() {
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
+                              )}
                               </div>
                             </TableCell>
                           </TableRow>

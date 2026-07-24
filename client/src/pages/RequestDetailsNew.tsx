@@ -844,18 +844,35 @@ export default function RequestDetailsNew() {
           redirectUrl: `/contracts/view/${contract.id}`,
         },
       };
-    } else {
-      // الانتقال للمرحلة التالية مباشرة باستخدام مسودة العقد الحالية لجميع الطلبات
+    } else if (contract.status === 'pending_approval') {
+      // العقد قيد الاعتماد - بانتظار اعتماده
       activeAction = {
         ...activeAction,
-        title: 'جاهز للانتقال للمرحلة التالية',
-        description: 'يمكنك الآن الانتقال للمرحلة التالية مباشرة باستخدام مسودة العقد الحالية.',
-        icon: 'ArrowRight',
-        iconColor: 'text-emerald-600',
+        title: 'بانتظار اعتماد العقد',
+        description: 'تم إنشاء العقد وينتظر الاعتماد. يجب اعتماد العقد أولاً قبل الانتقال للمرحلة التالية.',
+        icon: 'Clock',
+        iconColor: 'text-amber-500',
         actionButton: {
-          label: 'الانتقال للمرحلة التالية',
+          label: 'بانتظار اعتماد العقد',
           redirectUrl: undefined,
+          onClick: () => {},
+          disabled: true,
+        } as any,
+        canPerformAction: false,
+      };
+    } else {
+      // العقد لا يزال مسودة - لم يتم الضغط على "إنشاء واعتماد العقد" بعد
+      activeAction = {
+        ...activeAction,
+        title: 'يجب إتمام واعتماد العقد',
+        description: 'لا يمكن الانتقال للمرحلة التالية حتى يتم إكمال العقد واعتماده. يرجى فتح العقد والوصول لمرحلة "المراجعة" والضغط على "إنشاء واعتماد العقد".',
+        icon: 'AlertCircle',
+        iconColor: 'text-red-500',
+        actionButton: {
+          label: 'فتح العقد لإكماله',
+          redirectUrl: `/contracts/${contract.id}/edit`,
         },
+        canPerformAction: false,
       };
     }
   }
