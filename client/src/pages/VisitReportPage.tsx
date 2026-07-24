@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,10 @@ import { toast } from "sonner";
 import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target } from "lucide-react";
 
 export default function VisitReportPage() {
+  const [, setLocation] = useLocation();
+  const createMutation = trpc.progressReports.create.useMutation();
+  const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
   const { user } = useAuth();
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
@@ -40,16 +45,16 @@ export default function VisitReportPage() {
 
   const [purpose, setPurpose] = useState<"للاطلاع" | "لاتخاذ قرار">("للاطلاع");
   const [submittedTo, setSubmittedTo] = useState<string>(MOCK_DEPARTMENTS[0]);
-  const [reportStatus, setReportStatus] = useState<"تم الاطلاع" | "معتمد">("تم الاطلاع");
+  const [reportStatus, setReportStatus] = useState<string>("تم الاطلاع");
 
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleSaveDraft = () => {
-    toast.success("تم حفظ التقرير بنجاح");
-  };
-
-  const handleSubmit = () => {
+  const handleSaveDraft = async () => {
+    if (!selectedProjectId) {
+      toast.error("يرجى اختيار مشروع أولاً");
+      return;
+    }
     if (!notes.trim()) {
       toast.error("يرجى إدخال الملاحظات المرصودة أثناء الزيارة");
       return;
@@ -60,11 +65,40 @@ export default function VisitReportPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `تقرير زيارة - ${selectedProjName}`,
+        reportDate: visitDate || new Date().toISOString().split("T")[0],
+        plannedProgress: 0,
+        actualProgress: 0,
+        overallProgress: 0,
+        challenges: `الملاحظات: ${notes}`,
+        recommendations: `الغرض: ${purpose}\nالمرسل إليه: ${submittedTo}\nاسم الزائر: ${visitorName}`,
+        workSummary: `الزيارة الميدانية التفقدية`,
+      });
+
+      if (reportStatus !== "مسودة") {
+        let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+        if (reportStatus === "تم الاطلاع") {
+          statusEnum = "submitted";
+        } else if (reportStatus === "معتمد") {
+          statusEnum = "approved";
+        }
+        await updateStatusMutation.mutateAsync({
+          id: res.id,
+          status: statusEnum,
+        });
+      }
+
+      toast.success(`تم حفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
+      setLocation("/project-reports");
+    } catch (error: any) {
+      toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
+    } finally {
       setIsSubmitting(false);
-      toast.success(`تم رفع تقرير الزيارة بنجاح إلى (${submittedTo}) لـ (${purpose})!`);
-    }, 800);
+    }
   };
 
   const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
