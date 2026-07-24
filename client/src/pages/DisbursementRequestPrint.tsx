@@ -4,8 +4,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
-
 
 function toHijriDate(date: Date): string {
   let formatted = "";
@@ -36,6 +36,25 @@ export default function DisbursementRequestPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("disbursements.approve");
+  const hasSignPermission = usePermission("disbursements.sign");
+  const { user: currentUser } = useAuth();
+
+  // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
+  const isExecutiveDirectorRole = 
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    currentUser?.name === "المدير التنفيذي" ||
+    currentUser?.email === "ceo@manarah.org.sa";
+
+  const isExecutiveDirectorSigner = 
+    hasUserSignPerm &&
+    isExecutiveDirectorRole &&
+    !!(currentUser as any)?.signatureUrl;
+
+  const executiveDirectorSignatureUrl = isExecutiveDirectorSigner 
+    ? (currentUser as any)?.signatureUrl 
+    : null;
 
   const { data: request, isLoading } = trpc.disbursements.getRequestById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -501,8 +520,18 @@ export default function DisbursementRequestPrint() {
                   <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
                     المدير التنفيذي
                   </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                  <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                    {executiveDirectorSignatureUrl ? (
+                      <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                        <img
+                          src={executiveDirectorSignatureUrl}
+                          alt="توقيع المدير التنفيذي"
+                          className="max-h-12 max-w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                    )}
                     <div className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "—"}</div>
                   </div>
                 </div>
