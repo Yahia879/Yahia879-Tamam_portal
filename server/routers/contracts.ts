@@ -609,6 +609,8 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional(),
+        status: z.enum(contractStatuses).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -698,11 +700,20 @@ export const contractsRouter = router({
             console.error("Error parsing customClausesJson in update:", e);
           }
         }
-        if (Array.isArray(parsedCustom) && parsedCustom.length > 0) {
+        // الحفاظ على customClausesJson كـ object إذا كان يحتوي على draftStep
+        if (parsedCustom !== null && typeof parsedCustom === 'object') {
           updates.customClausesJson = parsedCustom;
         } else {
           updates.customClausesJson = null;
         }
+      }
+
+      // حفظ الخطوة الحالية وحالة العقد صراحةً
+      if (input.currentStep !== undefined) {
+        updates.currentStep = input.currentStep;
+      }
+      if (input.status !== undefined) {
+        updates.status = input.status;
       }
       
       // التأكد من تحديث مفوض التوقيع بشكل صريح

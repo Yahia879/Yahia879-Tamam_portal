@@ -430,10 +430,18 @@ export default function ContractForm() {
         }
       }
 
-      // تحديد خطوة المسودة من عمود currentStep بقواعد البيانات
-      const savedStep = c.currentStep || null;
-      if (savedStep && typeof savedStep === 'number' && c.status === "draft") {
-        setCurrentStep(Math.min(Math.max(savedStep, 1), 8));
+      // تحديد خطوة المسودة من عمود currentStep بقواعد البيانات حصراً
+      if (typeof c.currentStep === 'number' && c.currentStep >= 1) {
+        setCurrentStep(Math.min(Math.max(c.currentStep, 1), 8));
+      } else if (c.customClausesJson) {
+        try {
+          const parsed = typeof c.customClausesJson === 'string' ? JSON.parse(c.customClausesJson) : c.customClausesJson;
+          if (parsed && typeof parsed === 'object' && typeof parsed.draftStep === 'number') {
+            setCurrentStep(Math.min(Math.max(parsed.draftStep, 1), 8));
+          }
+        } catch (e) {
+          console.error("خطأ في قراءة draftStep:", e);
+        }
       }
 
       setEditDataLoaded(true);
