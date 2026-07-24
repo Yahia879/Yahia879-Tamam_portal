@@ -216,6 +216,7 @@ export default function ContractPreview() {
   }, []);
 
   const canEditApprovedContract = usePermission("contracts.edit_approved");
+  const canApproveContract = usePermission("contracts.approve");
 
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
@@ -656,7 +657,7 @@ export default function ContractPreview() {
                 </Label>
               </div>
             )}
-            {(contract.status === "draft" || contract.status === "pending_approval") && (
+            {(contract.status === "draft" || contract.status === "pending_approval") && canApproveContract && (
               <Button
                 onClick={() => approveMutation.mutate({ id: contractId! })}
                 disabled={approveMutation.isPending}
@@ -671,7 +672,7 @@ export default function ContractPreview() {
               </Button>
             )}
 
-            {(contract.status === "draft" || contract.status === "pending_approval" || (contract.status === "approved" && canEditApprovedContract)) && (
+            {(contract.status === "draft" || contract.status === "pending_approval" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
               <Button
                 variant="outline"
                 onClick={() => navigate(`/contracts/${contract.id}/edit`)}

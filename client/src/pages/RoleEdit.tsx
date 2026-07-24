@@ -71,7 +71,7 @@ const superAdminGroups = [
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
     ]
@@ -167,6 +167,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     contracts: {
       view: "عرض العقود وقالب العقود",
       create: "إنشاء عقود",
+      approve: "اعتماد العقود",
       edit_approved: "تعديل العقود المعتمدة",
       template_add: "إضافة قالب للعقود",
       template_edit: "تعديل قالب العقد",

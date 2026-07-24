@@ -560,6 +560,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.approve", nameAr: "اعتماد العقود" },
             { id: "contracts.edit_approved", nameAr: "تعديل العقود المعتمدة" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
@@ -709,6 +710,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "contracts.view", nameAr: "عرض العقود وقالب العقود" },
             { id: "contracts.create", nameAr: "إنشاء عقود" },
+            { id: "contracts.approve", nameAr: "اعتماد العقود" },
             { id: "contracts.edit_approved", nameAr: "تعديل العقود المعتمدة" },
             { id: "contracts.template_add", nameAr: "إضافة قالب للعقود" },
             { id: "contracts.template_edit", nameAr: "تعديل قالب العقد" },
@@ -797,7 +799,7 @@ export default function RolePermissions() {
         { id: "suppliers", nameAr: "الموردون", icon: Users, perms: ["view", "view_details", "add", "approve"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
@@ -856,7 +858,7 @@ export default function RolePermissions() {
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "template_add", "template_edit", "template_delete", "clause_add"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
@@ -964,6 +966,8 @@ export default function RolePermissions() {
       contracts: {
         view: "عرض العقود وقالب العقود",
         create: "إنشاء عقود",
+        approve: "اعتماد العقود",
+        edit_approved: "تعديل العقود المعتمدة",
         template_add: "إضافة قالب للعقود",
         template_edit: "تعديل قالب العقد",
         template_delete: "حذف قالب العقد",

@@ -145,6 +145,7 @@ export default function ContractsList() {
   const [, navigate] = useLocation();
   const canCreateContract = usePermission("contracts.create");
   const canViewContract = usePermission("contracts.view");
+  const canApproveContract = usePermission("contracts.approve");
   const canEditApprovedContract = usePermission("contracts.edit_approved");
   const canTemplateAdd = usePermission("contracts.template_add");
   const canTemplateEdit = usePermission("contracts.template_edit");
@@ -587,7 +588,7 @@ export default function ContractsList() {
                               عرض
                             </Button>
                           )}
-                          {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && (
+                          {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
                             <Button
                               variant="outline"
                               size="sm"
