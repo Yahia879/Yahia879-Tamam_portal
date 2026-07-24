@@ -611,6 +611,7 @@ export const authRouter = router({
       city: z.string().optional(),
       signatureName: z.string().optional(),
       signatureDepartment: z.string().optional(),
+      signatureUrl: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -622,6 +623,7 @@ export const authRouter = router({
       if (input.city !== undefined) updateData.city = input.city;
       if (input.signatureName !== undefined) updateData.signatureName = input.signatureName;
       if (input.signatureDepartment !== undefined) updateData.signatureDepartment = input.signatureDepartment;
+      if (input.signatureUrl !== undefined) updateData.signatureUrl = input.signatureUrl;
 
       if (Object.keys(updateData).length > 0) {
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));
@@ -629,6 +631,70 @@ export const authRouter = router({
 
       return { success: true, message: "تم تحديث الملف الشخصي بنجاح" };
     }),
+
+  // رفع التوقيع الرقمي (يتم رفعه لـ OneDrive عند ضبطه أو التخزين المحلي)
+  uploadSignature: protectedProcedure
+    .input(z.object({
+      fileData: z.string(), // Base64 encoded file
+      fileName: z.string(),
+      mimeType: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml"];
+      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg"];
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "png";
+
+      if (!allowedMimes.includes(input.mimeType) || !allowedExts.includes(extension)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG)."
+        });
+      }
+
+      const { storagePut } = await import("../storage");
+
+      const base64Data = input.fileData.replace(/^data:[^;]+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const fileKey = `signatures/user-${ctx.user.id}-${timestamp}-${randomSuffix}.${extension}`;
+
+      let url: string;
+      try {
+        const result = await storagePut(fileKey, buffer, input.mimeType);
+        url = result.url;
+      } catch (error: any) {
+        console.error('[uploadSignature] Storage error:', error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `فشل رفع التوقيع: ${error?.message || 'خطأ في التخزين'}` });
+      }
+
+      // محاولة إضافة العمود لو لم يكن موجهاً مسبقاً
+      try {
+        await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
+      } catch (e) {
+        // Ignored if column already exists
+      }
+
+      await db.update(users).set({ signatureUrl: url }).where(eq(users.id, ctx.user.id));
+
+      return { success: true, url, message: "تم رفع التوقيع الرقمي بنجاح" };
+    }),
+
+  // حذف التوقيع الرقمي
+  removeSignature: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.update(users).set({ signatureUrl: null }).where(eq(users.id, ctx.user.id));
+
+      return { success: true, message: "تم حذف التوقيع الرقمي بنجاح" };
+    }),
+
 
   // تغيير كلمة المرور
   changePassword: protectedProcedure

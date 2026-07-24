@@ -144,6 +144,7 @@ export const users = mysqlTable("users", {
   receiveFinancialSms: boolean("receiveFinancialSms").default(false),
   signatureName: text("signatureName"),
   signatureDepartment: text("signatureDepartment"),
+  signatureUrl: text("signatureUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
