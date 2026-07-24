@@ -46,6 +46,7 @@ import {
   ChevronUp,
   FileSpreadsheet,
   LifeBuoy,
+  PenLine,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -533,6 +534,12 @@ export default function UserPermissions() {
         view: "عرض التقارير",
         intervene: "تدخل لرفع التقرير"
       },
+      signing: {
+        disbursements_sign: "توقيع طلبات الصرف",
+        disbursement_orders_sign: "توقيع أوامر الصرف",
+        contracts_sign: "توقيع العقود",
+        final_reports_sign: "توقيع التقارير الختامية",
+      },
       mosques: {
         view: "عرض قائمة المساجد",
         create: "إضافة مسجد جديد",
@@ -744,6 +751,17 @@ export default function UserPermissions() {
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
+    },
+    {
+      title: "التوقيع",
+      modules: [
+        {
+          id: "signing",
+          nameAr: "صلاحيات التوقيع",
+          icon: PenLine,
+          perms: ["disbursements_sign", "disbursement_orders_sign", "contracts_sign", "final_reports_sign"]
+        }
+      ]
     }
   ];
 
@@ -888,6 +906,15 @@ export default function UserPermissions() {
                     let id = `${module.id}.${p}`;
                     if (module.id === "technical_support") {
                       id = p === "view" ? "View_Tickets" : "Create_Ticket";
+                    }
+                    if (module.id === "signing") {
+                      const signingIds: Record<string, string> = {
+                        disbursements_sign: "disbursements.sign",
+                        disbursement_orders_sign: "disbursement_orders.sign",
+                        contracts_sign: "contracts.sign",
+                        final_reports_sign: "final_reports.sign",
+                      };
+                      id = signingIds[p] || id;
                     }
                     return {
                       id,

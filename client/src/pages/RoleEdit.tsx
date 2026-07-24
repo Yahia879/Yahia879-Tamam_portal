@@ -39,7 +39,8 @@ import {
   Save,
   Bell,
   FileSpreadsheet,
-  LifeBuoy
+  LifeBuoy,
+  PenLine
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -74,6 +75,17 @@ const superAdminGroups = [
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
+    ]
+  },
+  {
+    title: "التوقيع",
+    modules: [
+      {
+        id: "signing",
+        nameAr: "صلاحيات التوقيع",
+        icon: PenLine,
+        perms: ["disbursements_sign", "disbursement_orders_sign", "contracts_sign", "final_reports_sign"]
+      }
     ]
   },
   {
@@ -113,6 +125,12 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     pending_reports: {
       view: "عرض التقارير",
       intervene: "تدخل لرفع التقرير"
+    },
+    signing: {
+      disbursements_sign: "توقيع طلبات الصرف",
+      disbursement_orders_sign: "توقيع أوامر الصرف",
+      contracts_sign: "توقيع العقود",
+      final_reports_sign: "توقيع التقارير الختامية",
     },
     mosques: {
       view: "عرض المساجد",
@@ -630,6 +648,16 @@ export default function RoleEdit() {
           let id = `${m.id}.${p}`;
           if (m.id === "technical_support") {
             id = p === "view" ? "View_Tickets" : "Create_Ticket";
+          }
+          // Signing module: use explicit full permission IDs
+          if (m.id === "signing") {
+            const signingIds: Record<string, string> = {
+              disbursements_sign: "disbursements.sign",
+              disbursement_orders_sign: "disbursement_orders.sign",
+              contracts_sign: "contracts.sign",
+              final_reports_sign: "final_reports.sign",
+            };
+            id = signingIds[p] || id;
           }
           return {
             id,

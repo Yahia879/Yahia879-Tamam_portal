@@ -36,7 +36,8 @@ import {
   Tag,
   Bell,
   FileSpreadsheet,
-  LifeBuoy
+  LifeBuoy,
+  PenLine
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -871,6 +872,17 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "التوقيع",
+      modules: [
+        {
+          id: "signing",
+          nameAr: "صلاحيات التوقيع",
+          icon: PenLine,
+          perms: ["disbursements_sign", "disbursement_orders_sign", "contracts_sign", "final_reports_sign"]
+        }
+      ]
+    },
+    {
       title: "إدارة المستخدمين",
       modules: [
         { id: "staff_users", nameAr: "إدارة المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
@@ -910,6 +922,12 @@ export default function RolePermissions() {
       pending_reports: {
         view: "عرض التقارير",
         intervene: "تدخل لرفع التقرير"
+      },
+      signing: {
+        disbursements_sign: "توقيع طلبات الصرف",
+        disbursement_orders_sign: "توقيع أوامر الصرف",
+        contracts_sign: "توقيع العقود",
+        final_reports_sign: "توقيع التقارير الختامية",
       },
       mosques: {
         view: "عرض المساجد",
@@ -1141,6 +1159,16 @@ export default function RolePermissions() {
           let id = `${m.id}.${p}`;
           if (m.id === "technical_support") {
             id = p === "view" ? "View_Tickets" : "Create_Ticket";
+          }
+          // Signing module: use explicit full permission IDs
+          if (m.id === "signing") {
+            const signingIds: Record<string, string> = {
+              disbursements_sign: "disbursements.sign",
+              disbursement_orders_sign: "disbursement_orders.sign",
+              contracts_sign: "contracts.sign",
+              final_reports_sign: "final_reports.sign",
+            };
+            id = signingIds[p] || id;
           }
           return {
             id,
