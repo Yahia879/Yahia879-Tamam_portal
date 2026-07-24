@@ -206,6 +206,7 @@ export const disbursementsRouter = router({
           requestedBySignatureName: users.signatureName,
           requestedBySignatureDepartment: users.signatureDepartment,
           requestedBySignatureUrl: users.signatureUrl,
+          requestedByShowSignature: users.showSignatureInDocuments,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -309,14 +310,14 @@ export const disbursementsRouter = router({
 
       let resolvedSignatureName = request.creatorSignatureName;
       let resolvedSignatureDepartment = request.creatorSignatureDepartment;
-      let resolvedSignatureUrl = request.requestedBySignatureUrl;
+      let resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
 
       if (!resolvedSignatureName && !resolvedSignatureDepartment && request.requestedBy) {
         const creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
         if (creatorHasSignPermission) {
           resolvedSignatureName = request.requestedBySignatureName;
           resolvedSignatureDepartment = request.requestedBySignatureDepartment;
-          resolvedSignatureUrl = request.requestedBySignatureUrl;
+          resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
         }
       }
 

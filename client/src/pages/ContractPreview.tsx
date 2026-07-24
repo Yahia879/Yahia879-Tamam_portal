@@ -232,7 +232,8 @@ export default function ContractPreview() {
   const isExecutiveDirectorContractSigner = 
     hasUserSignPerm &&
     isExecutiveDirectorRole &&
-    !!(currentUser as any)?.signatureUrl;
+    !!(currentUser as any)?.signatureUrl &&
+    (currentUser as any)?.showSignatureInDocuments !== false;
 
   const executiveDirectorSignatureUrl = isExecutiveDirectorContractSigner 
     ? (currentUser as any)?.signatureUrl 

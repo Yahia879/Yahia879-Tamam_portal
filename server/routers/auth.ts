@@ -612,6 +612,7 @@ export const authRouter = router({
       signatureName: z.string().optional(),
       signatureDepartment: z.string().optional(),
       signatureUrl: z.string().optional(),
+      showSignatureInDocuments: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -624,6 +625,7 @@ export const authRouter = router({
       if (input.signatureName !== undefined) updateData.signatureName = input.signatureName;
       if (input.signatureDepartment !== undefined) updateData.signatureDepartment = input.signatureDepartment;
       if (input.signatureUrl !== undefined) updateData.signatureUrl = input.signatureUrl;
+      if (input.showSignatureInDocuments !== undefined) updateData.showSignatureInDocuments = input.showSignatureInDocuments;
 
       if (Object.keys(updateData).length > 0) {
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));

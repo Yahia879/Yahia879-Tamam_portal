@@ -50,7 +50,8 @@ export default function DisbursementRequestPrint() {
   const isExecutiveDirectorSigner = 
     hasUserSignPerm &&
     isExecutiveDirectorRole &&
-    !!(currentUser as any)?.signatureUrl;
+    !!(currentUser as any)?.signatureUrl &&
+    (currentUser as any)?.showSignatureInDocuments !== false;
 
   const executiveDirectorSignatureUrl = isExecutiveDirectorSigner 
     ? (currentUser as any)?.signatureUrl 

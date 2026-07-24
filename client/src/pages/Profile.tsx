@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User, Mail, Phone, Shield, Calendar, ArrowRight, Lock, Eye, EyeOff, Upload, Trash2, Image as ImageIcon, Loader2, PenTool, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -29,6 +30,7 @@ export default function Profile() {
   const [signatureName, setSignatureName] = useState("");
   const [signatureDepartment, setSignatureDepartment] = useState("");
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
+  const [showSignatureInDocuments, setShowSignatureInDocuments] = useState<boolean>(true);
   const [uploadingSignature, setUploadingSignature] = useState(false);
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -141,6 +143,7 @@ export default function Profile() {
       setSignatureName((user as any).signatureName || "");
       setSignatureDepartment((user as any).signatureDepartment || "");
       setSignatureUrl((user as any).signatureUrl || null);
+      setShowSignatureInDocuments((user as any).showSignatureInDocuments ?? true);
     }
   }, [user]);
 
@@ -155,12 +158,13 @@ export default function Profile() {
   });
 
   const hasSignaturePermission = 
+    user?.role !== "service_requester" ||
     (user as any)?.permissions?.includes("disbursements.sign") || 
     (user as any)?.permissions?.includes("disbursement_orders.sign") || 
     (user as any)?.permissions?.includes("contracts.sign") || 
     (user as any)?.permissions?.includes("final_reports.sign") || 
     (user as any)?.permissions?.includes("requests.sign_final_report") || 
-    ["super_admin", "system_admin", "general_manager", "projects_office", "financial"].includes(user?.role || "");
+    ["super_admin", "system_admin", "general_manager", "projects_office", "financial", "financial_manager", "project_manager", "field_team", "corporate_comm", "quick_response"].includes(user?.role || "");
 
   const handleSave = () => {
     updateProfileMutation.mutate({
@@ -168,6 +172,7 @@ export default function Profile() {
       phone,
       signatureName: hasSignaturePermission ? signatureName : undefined,
       signatureDepartment: hasSignaturePermission ? signatureDepartment : undefined,
+      showSignatureInDocuments: hasSignaturePermission ? showSignatureInDocuments : undefined,
     });
   };
 
@@ -412,6 +417,26 @@ export default function Profile() {
                       </div>
                     </div>
                   )}
+
+                  {/* خيار إظهار التوقيع الرسمي في المستندات الموكلة */}
+                  <div className="flex items-center gap-2 pt-3 border-t mt-3">
+                    <Checkbox 
+                      id="showSignatureInDocuments" 
+                      checked={showSignatureInDocuments} 
+                      onCheckedChange={(checked) => {
+                        const val = !!checked;
+                        setShowSignatureInDocuments(val);
+                        updateProfileMutation.mutate({
+                          signatureName: hasSignaturePermission ? signatureName : undefined,
+                          signatureDepartment: hasSignaturePermission ? signatureDepartment : undefined,
+                          showSignatureInDocuments: val,
+                        });
+                      }} 
+                    />
+                    <Label htmlFor="showSignatureInDocuments" className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                      اظهار التوقيع الرسمي في المستندات الموكلة لك
+                    </Label>
+                  </div>
                 </div>
               </div>
             )}
