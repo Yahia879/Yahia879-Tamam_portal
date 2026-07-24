@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,10 @@ import { trpc } from "@/lib/trpc";
 import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function QuarterlyReportPage() {
+  const [, setLocation] = useLocation();
+  const createMutation = trpc.progressReports.create.useMutation();
+  const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
   const projectOptions = useMemo(() => {
@@ -214,11 +219,11 @@ export default function QuarterlyReportPage() {
     }
   }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
 
-  const handleSaveDraft = () => {
-    toast.success("تم حفظ التقرير بنجاح");
-  };
-
-  const handleSubmit = () => {
+  const handleSaveDraft = async () => {
+    if (!selectedProjectId) {
+      toast.error("يرجى اختيار مشروع أولاً");
+      return;
+    }
     if (!strategicAlignment.trim()) {
       toast.error("يرجى توضيح مدى المواءمة مع الأهداف الاستراتيجية");
       return;
@@ -232,12 +237,40 @@ export default function QuarterlyReportPage() {
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setReportStatus("تم الاطلاع");
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `التقرير الربعي - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        plannedProgress: plannedProgress,
+        actualProgress: actualProgress,
+        overallProgress: actualProgress,
+        challenges: `الربع: ${quarter}\nالسنة: ${year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+        recommendations: continuationDecisions,
+        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+      });
+
+      if (reportStatus !== "مسودة") {
+        let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+        if (reportStatus === "تم الاطلاع") {
+          statusEnum = "submitted";
+        } else if (reportStatus === "معتمد") {
+          statusEnum = "approved";
+        }
+        await updateStatusMutation.mutateAsync({
+          id: res.id,
+          status: statusEnum,
+        });
+      }
+
+      toast.success(`تم حفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
+      setLocation("/project-reports");
+    } catch (error: any) {
+      toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
+    } finally {
       setIsSubmitting(false);
-      toast.success("تم رفع التقرير الربعي الاستراتيجي بنجاح إلى مجلس الإدارة!");
-    }, 800);
+    }
   };
 
   const milestoneCols: ColumnDef[] = [
