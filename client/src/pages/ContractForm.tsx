@@ -780,13 +780,15 @@ export default function ContractForm() {
         // بنود العقد المخصصة
         clauseValues: JSON.stringify(clauseValues.filter(c => c.isIncluded)),
         customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
-        // بيانات الدعم والتمويل
+        // بيانات الدعم والتمويل والاعتماد
         supportingEntity: JSON.stringify(supportSources),
         supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
         supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
+        status: "pending_approval",
+        currentStep: 8,
       }, {
         onSuccess: () => {
-          toast.success("تم تحديث العقد بنجاح");
+          toast.success("تم اعتماد العقد بنجاح");
           navigate(`/contracts/${editContractId}/preview`);
         }
       });
@@ -834,13 +836,15 @@ export default function ContractForm() {
       customClausesJson: JSON.stringify(customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim()))),
       // ملاحظات
       customTerms: contractData.notes || undefined,
-      // بيانات الدعم والتمويل
+      // بيانات الدعم والتمويل والاعتماد
       supportingEntity: JSON.stringify(supportSources),
       supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
       supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
+      status: "pending_approval",
+      currentStep: 8,
     }, {
       onSuccess: (data) => {
-        toast.success("تم إنشاء العقد بنجاح");
+        toast.success("تم إنشاء واعتماد العقد بنجاح");
         navigate(`/contracts/${data.id}/preview`);
       }
     });
@@ -900,6 +904,7 @@ export default function ContractForm() {
       supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
       supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
       currentStep: currentStep,
+      status: "draft",
     };
 
     const targetId = editContractId || createdDraftId;
