@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -85,9 +85,10 @@ export default function ContractForm() {
   const requestIdFromQuery = searchParams.get('requestId');
   const projectIdFromQuery = searchParams.get('projectId');
   
-  // كشف وضع التعديل من المسار
-  const isEditMode = window.location.pathname.includes('/edit');
-  const editContractId = isEditMode && params.id ? parseInt(params.id) : undefined;
+  // كشف وضع التعديل من المسار أو المسودة المنشأة حديثاً
+  const [createdDraftId, setCreatedDraftId] = useState<number | null>(null);
+  const isEditMode = window.location.pathname.includes('/edit') || !!createdDraftId;
+  const editContractId = (window.location.pathname.includes('/edit') && params.id) ? parseInt(params.id) : (createdDraftId || undefined);
   
   const requestId = requestIdFromQuery ? parseInt(requestIdFromQuery) : 
                    (params.requestId ? parseInt(params.requestId) : undefined);
@@ -101,6 +102,10 @@ export default function ContractForm() {
   const utils = trpc.useContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
+  const loadedDraftStateRef = useRef<string | null>(null);
+
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [editDataLoaded, setEditDataLoaded] = useState(false);
 
@@ -243,10 +248,6 @@ export default function ContractForm() {
 
   // Mutation لإنشاء العقد
   const createMutation = trpc.contracts.create.useMutation({
-    onSuccess: (data) => {
-      toast.success("تم إنشاء العقد بنجاح");
-      navigate(`/contracts/${data.id}/preview`);
-    },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء العقد");
       setIsSubmitting(false);
@@ -256,10 +257,9 @@ export default function ContractForm() {
   // Mutation لتحديث العقد (وضع التعديل)
   const updateMutation = trpc.contracts.update.useMutation({
     onSuccess: () => {
-      // إبطال التخزين المؤقت لضمان تحديث البيانات في المعاينة
-      utils.contracts.getById.invalidate({ id: editContractId! });
-      toast.success("تم تحديث العقد بنجاح");
-      navigate(`/contracts/${editContractId}/preview`);
+      if (editContractId) {
+        utils.contracts.getById.invalidate({ id: editContractId });
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث العقد");
@@ -394,7 +394,7 @@ export default function ContractForm() {
         setClauseValues(parsedClauses);
       }
 
-      // تحميل البنود المخصصة الإضافية من العقد الحالي
+      // تحميل البنود المخصصة الإضافية وخطوة المسودة من العقد الحالي
       if (c.customClausesJson) {
         try {
           const custom = typeof c.customClausesJson === 'string'
@@ -402,15 +402,53 @@ export default function ContractForm() {
             : c.customClausesJson;
           if (Array.isArray(custom)) {
             setCustomClauses(custom);
+          } else if (custom && typeof custom === 'object') {
+            if (Array.isArray(custom.clauses)) {
+              setCustomClauses(custom.clauses);
+            }
           }
         } catch (e) {
           console.error("خطأ في تحليل البنود المخصصة:", e);
         }
       }
 
+      // تحديد خطوة المسودة من عمود currentStep بقواعد البيانات
+      const savedStep = c.currentStep || null;
+      if (savedStep && typeof savedStep === 'number' && c.status === "draft") {
+        setCurrentStep(Math.min(Math.max(savedStep, 1), 8));
+      }
+
       setEditDataLoaded(true);
     }
   }, [isEditMode, existingContract, editDataLoaded, allCategories]);
+
+  // متابعة أي تغيير في بيانات العقد مقارنة بلقطة المسودة المحفوظة
+  useEffect(() => {
+    if (editDataLoaded) {
+      const currentState = JSON.stringify({
+        contractData,
+        paymentSchedule,
+        clauseValues,
+        customClauses,
+        supportSources,
+        currentStep
+      });
+
+      if (!loadedDraftStateRef.current) {
+        loadedDraftStateRef.current = currentState;
+        if (existingContract?.contract?.status === "draft") {
+          setIsDraftSaved(true);
+        }
+        return;
+      }
+
+      if (currentState !== loadedDraftStateRef.current) {
+        setIsDraftSaved(false);
+      } else if (existingContract?.contract?.status === "draft") {
+        setIsDraftSaved(true);
+      }
+    }
+  }, [contractData, paymentSchedule, clauseValues, customClauses, supportSources, currentStep, editDataLoaded, existingContract]);
 
   // تحديث بنود العقد عند تغيير القالب
   useEffect(() => {
@@ -691,12 +729,14 @@ export default function ContractForm() {
   // الانتقال للخطوة التالية
   const nextStep = () => {
     if (validateStep(currentStep)) {
+      setIsDraftSaved(false);
       setCurrentStep(prev => Math.min(prev + 1, 8));
     }
   };
 
   // الانتقال للخطوة السابقة
   const prevStep = () => {
+    setIsDraftSaved(false);
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
@@ -744,6 +784,11 @@ export default function ContractForm() {
         supportingEntity: JSON.stringify(supportSources),
         supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
         supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
+      }, {
+        onSuccess: () => {
+          toast.success("تم تحديث العقد بنجاح");
+          navigate(`/contracts/${editContractId}/preview`);
+        }
       });
       return;
     }
@@ -793,7 +838,113 @@ export default function ContractForm() {
       supportingEntity: JSON.stringify(supportSources),
       supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
       supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
+    }, {
+      onSuccess: (data) => {
+        toast.success("تم إنشاء العقد بنجاح");
+        navigate(`/contracts/${data.id}/preview`);
+      }
     });
+  };
+
+  // حفظ العقد كمسودة في أي مرحلة
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    
+    const selectedTemplate = templatesData?.find((t: any) => t.id === contractData.templateId);
+    const supplier = selectedSupplier;
+
+    // عنوان افتراضي في حال لم يتم إدخاله بعد
+    const defaultTitle = contractData.subject?.trim() 
+      || (requestDetails?.mosqueName ? `عقد ${requestDetails.mosqueName}` : `مسودة عقد جديد`);
+
+    const payload: any = {
+      contractType: selectedTemplate?.type || "supply",
+      contractTitle: defaultTitle,
+      projectId: contractData.projectId || undefined,
+      requestId: contractData.requestId || undefined,
+      supplierId: contractData.supplierId || undefined,
+      templateId: contractData.templateId || undefined,
+      signatoryId: contractData.signatoryId || undefined,
+      
+      // بيانات الطرف الثاني
+      secondPartyName: supplier?.name || "غير محدد (مسودة)",
+      secondPartyCommercialRegister: supplier?.commercialRegister || undefined,
+      secondPartyRepresentative: supplier?.contactPerson || undefined,
+      secondPartyTitle: supplier?.contactPersonTitle || undefined,
+      secondPartyAddress: supplier?.address || undefined,
+      secondPartyPhone: supplier?.phone || undefined,
+      secondPartyEmail: supplier?.email || undefined,
+      secondPartyBankName: supplier?.bankName || undefined,
+      secondPartyIban: supplier?.iban || undefined,
+      secondPartyAccountName: supplier?.bankAccountName || undefined,
+      
+      // قيمة ومدة العقد
+      contractAmount: contractData.totalValue || 0,
+      managementPercentage: contractData.managementPercentage || 0,
+      duration: contractData.duration || 1,
+      durationUnit: (contractData.durationUnit || "months") as any,
+      contractDate: contractData.startDate || undefined,
+      startDate: contractData.startDate || undefined,
+      customTerms: contractData.notes || undefined,
+      
+      // جدول الدفعات والبنود
+      paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
+      clauseValues: clauseValues.length > 0 ? JSON.stringify(clauseValues.filter(c => c.isIncluded)) : undefined,
+      customClausesJson: JSON.stringify({
+        clauses: customClauses.filter(c => (c.title && c.title.trim()) || (c.description && c.description.trim())),
+        draftStep: currentStep,
+      }),
+      
+      // بيانات الدعم والتمويل والخطوة الحالية
+      supportingEntity: JSON.stringify(supportSources),
+      supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
+      supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
+      currentStep: currentStep,
+    };
+
+    const targetId = editContractId || createdDraftId;
+
+    const updateSavedSnapshot = () => {
+      loadedDraftStateRef.current = JSON.stringify({
+        contractData,
+        paymentSchedule,
+        clauseValues,
+        customClauses,
+        supportSources,
+        currentStep
+      });
+      setIsDraftSaved(true);
+    };
+
+    if (targetId) {
+      updateMutation.mutate({ id: targetId, ...payload }, {
+        onSuccess: () => {
+          toast.success("تم حفظ المسودة بنجاح");
+          setIsSavingDraft(false);
+          updateSavedSnapshot();
+        },
+        onError: (err: any) => {
+          toast.error(err.message || "حدث خطأ أثناء حفظ المسودة");
+          setIsSavingDraft(false);
+        }
+      });
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: (data: any) => {
+          toast.success("تم حفظ المسودة بنجاح");
+          setIsSavingDraft(false);
+          updateSavedSnapshot();
+          if (data?.id) {
+            setCreatedDraftId(data.id);
+            window.history.replaceState(null, "", `/contracts/${data.id}/edit`);
+          }
+        },
+        onError: (err: any) => {
+          toast.error(err.message || "حدث خطأ أثناء حفظ المسودة");
+          setIsSavingDraft(false);
+        }
+      });
+    }
   };
 
   const templates = templatesData || [];
@@ -818,18 +969,18 @@ export default function ContractForm() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => isEditMode && editContractId ? navigate(`/contracts/${editContractId}/preview`) : navigate('/contracts')} 
+            onClick={() => navigate('/contracts')} 
             className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-            title="رجوع"
+            title="الرجوع إلى العقود"
           >
             <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {isEditMode 
                 ? "تعديل بيانات العقد الحالي" 
-                : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص"
+                : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص والحفظ كمسودة"
               }
             </p>
           </div>
@@ -2019,41 +2170,67 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* أزرار التنقل */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t">
+            {/* أزرار التنقل وحفظ المسودة */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t">
               <Button
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || isSubmitting || isSavingDraft}
               >
                 <ArrowRight className="h-4 w-4 ml-2" />
                 السابق
               </Button>
 
-              {currentStep < 8 ? (
-                <Button onClick={nextStep}>
-                  التالي
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                </Button>
-              ) : (
+              <div className="flex items-center gap-2">
                 <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="bg-green-600 hover:bg-green-700"
+                  variant="outline"
+                  onClick={handleSaveDraft}
+                  disabled={isSubmitting || isSavingDraft || isDraftSaved}
+                  className="border-amber-500/60 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold text-xs sm:text-sm disabled:opacity-60"
                 >
-                  {isSubmitting ? (
+                  {isSavingDraft ? (
                     <>
                       <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                      جاري الإنشاء...
+                      جاري حفظ المسودة...
+                    </>
+                  ) : isDraftSaved ? (
+                    <>
+                      <Check className="h-4 w-4 ml-2 text-green-600" />
+                      تم حفظ المسودة
                     </>
                   ) : (
                     <>
                       <Save className="h-4 w-4 ml-2" />
-                      إنشاء العقد
+                      حفظ كمسودة
                     </>
                   )}
                 </Button>
-              )}
+
+                {currentStep < 8 ? (
+                  <Button onClick={nextStep} disabled={isSubmitting || isSavingDraft}>
+                    التالي
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || isSavingDraft}
+                    className="bg-green-600 hover:bg-green-700 font-bold"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                        جاري الإنشاء...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 ml-2" />
+                        إنشاء واعتماد العقد
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

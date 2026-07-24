@@ -381,6 +381,7 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional().default(1),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -475,6 +476,7 @@ export const contractsRouter = router({
         supportingEntity: input.supportingEntity ?? null,
         supportType: input.supportType ?? null,
         supportedAmount: input.supportedAmount ? String(input.supportedAmount) : null,
+        currentStep: input.currentStep ?? 1,
       };
       
       console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
@@ -609,6 +611,7 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -698,7 +701,7 @@ export const contractsRouter = router({
             console.error("Error parsing customClausesJson in update:", e);
           }
         }
-        if (Array.isArray(parsedCustom) && parsedCustom.length > 0) {
+        if (parsedCustom) {
           updates.customClausesJson = parsedCustom;
         } else {
           updates.customClausesJson = null;

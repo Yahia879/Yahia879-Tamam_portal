@@ -576,15 +576,17 @@ export default function ContractsList() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 sm:flex-none text-xs sm:text-sm"
-                            onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                          >
-                            <Eye className="h-3.5 w-3.5 ml-1" />
-                            عرض
-                          </Button>
+                          {contract.status !== "draft" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-none text-xs sm:text-sm"
+                              onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                            >
+                              <Eye className="h-3.5 w-3.5 ml-1" />
+                              عرض
+                            </Button>
+                          )}
                           {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && (
                             <Button
                               variant="outline"
@@ -593,7 +595,7 @@ export default function ContractsList() {
                               onClick={() => navigate(`/contracts/${contract.id}/edit`)}
                             >
                               <Edit className="h-3.5 w-3.5 ml-1" />
-                              {contract.status === "approved" ? "تعديل العقد المعتمد" : "تعديل"}
+                              {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}
                             </Button>
                           )}
                         </div>

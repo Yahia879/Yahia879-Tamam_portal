@@ -244,8 +244,12 @@ export default function ContractPreview() {
   useEffect(() => {
     if (data?.contract) {
       document.title = getContractPdfTitle(data.contract);
+      if (data.contract.status === "draft") {
+        toast.info("العقد في حالة مسودة. تم توجيهك لإكمال بيانات العقد.");
+        navigate(`/contracts/${data.contract.id}/edit`, { replace: true });
+      }
     }
-  }, [data?.contract]);
+  }, [data?.contract, navigate]);
   
   // جلب طلبات التعديل
   const { data: modificationRequests, refetch: refetchRequests } = trpc.contracts.getModificationRequests.useQuery(

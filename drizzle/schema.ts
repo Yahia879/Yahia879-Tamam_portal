@@ -977,8 +977,9 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   startDate: datetime("startDate"),
   endDate: datetime("endDate"),
   
-  // الحالة
+  // الحالة والخطوة الحالية للمسودة
   status: mysqlEnum("status", contractStatuses).default("draft"),
+  currentStep: int("currentStep").default(1),
   
   // بيانات الدعم والتمويل
   supportingEntity: varchar("supportingEntity", { length: 1000 }), // الجهة الداعمة
