@@ -34,65 +34,78 @@ import {
 
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
-  const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
-  const realProjects = useMemo(() => {
-    return dbProjectsData || [];
-  }, [dbProjectsData]);
+  const { data: dbReports, refetch: refetchReports } = trpc.progressReports.list.useQuery();
+  const updateStatusMutation = trpc.progressReports.updateStatus.useMutation({
+    onSuccess: () => {
+      refetchReports();
+      toast.success("تم تحديث حالة التقرير بنجاح");
+    },
+    onError: (err) => {
+      toast.error(`حدث خطأ أثناء تحديث الحالة: ${err.message}`);
+    }
+  });
 
-  const [reports, setReports] = useState<any[]>([]);
+  const reports = useMemo(() => {
+    if (!dbReports) return [];
+    return dbReports.map((r) => {
+      let typeKey = "semi-monthly";
+      let typeLabel = "تقرير نصف شهري";
+      
+      const titleLower = r.title.toLowerCase();
+      if (titleLower.includes("ربع") || titleLower.includes("quarterly") || titleLower.includes("q1") || titleLower.includes("q2") || titleLower.includes("q3") || titleLower.includes("q4")) {
+        typeKey = "quarterly";
+        typeLabel = "تقرير ربعي";
+      } else if (titleLower.includes("شهري") || titleLower.includes("monthly")) {
+        if (titleLower.includes("نصف") || titleLower.includes("semi")) {
+          typeKey = "semi-monthly";
+          typeLabel = "تقرير نصف شهري";
+        } else {
+          typeKey = "monthly";
+          typeLabel = "تقرير شهري";
+        }
+      } else if (titleLower.includes("زيارة") || titleLower.includes("visit")) {
+        typeKey = "visit";
+        typeLabel = "تقرير زيارة";
+      }
 
-  // Initialize reports when realProjects changes
-  useEffect(() => {
-    setReports([
-      {
-        id: "REP-001",
-        title: "تقرير نصف شهري - النصف الأول من يوليو",
-        type: "تقرير نصف شهري",
-        typeKey: "semi-monthly",
-        project: realProjects[0]?.name || "مشروع إنشاء وتجهيز جامع الإيمان الذهبي",
-        date: "2026-07-15",
-        rag: "أخضر",
-        status: "تم الاطلاع",
-      },
-      {
-        id: "REP-002",
-        title: "التقرير الشهري لشهر يونيو 2026",
-        type: "تقرير شهري",
-        typeKey: "monthly",
-        project: realProjects[1]?.name || "مشروع صيانة وتأهيل أنظمة التكييف - مسجد الصفا",
-        date: "2026-06-30",
-        rag: "أحمر",
-        status: "معتمد",
-      },
-      {
-        id: "REP-003",
-        title: "التقرير الربعي - Q2 2026",
-        type: "تقرير ربعي",
-        typeKey: "quarterly",
-        project: realProjects[2]?.name || "مشروع تركيب منظومة الطاقة الشمسية الذكية",
-        date: "2026-06-30",
-        rag: "أخضر",
-        status: "معتمد",
-      },
-      {
-        id: "REP-004",
-        title: "تقرير زيارة تفقدية للموقع",
-        type: "تقرير زيارة",
-        typeKey: "visit",
-        project: realProjects[3]?.name || "مشروع سدنة السقاية والتأهيل المعماري لجامع الفتح",
-        date: "2026-07-12",
-        rag: "أصفر",
-        status: "تم الاطلاع",
-      },
-    ]);
-  }, [realProjects]);
+      let ragLabel = "أخضر";
+      const variance = r.variance || 0;
+      if (variance < -10) {
+        ragLabel = "أحمر";
+      } else if (variance < 0) {
+        ragLabel = "أصفر";
+      }
 
-  const handleUpdateReportStatus = (id: string, newStatus: string) => {
-    setReports((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
-    toast.success(`تم تحديث حالة التقرير ${id} بنجاح إلى: ${newStatus}`);
+      let statusLabel = "مسودة";
+      if (r.status === "submitted" || r.status === "reviewed") {
+        statusLabel = "تم الاطلاع";
+      } else if (r.status === "approved") {
+        statusLabel = "معتمد";
+      }
+
+      return {
+        id: r.id,
+        reportNumber: r.reportNumber,
+        title: r.title,
+        type: typeLabel,
+        typeKey: typeKey,
+        project: r.projectName || "مشروع غير محدد",
+        date: r.reportDate ? String(r.reportDate).split("T")[0] : "",
+        rag: ragLabel,
+        status: statusLabel,
+      };
+    });
+  }, [dbReports]);
+
+  const handleUpdateReportStatus = (id: number, newStatus: string) => {
+    let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+    if (newStatus === "تم الاطلاع") {
+      statusEnum = "submitted";
+    } else if (newStatus === "معتمد") {
+      statusEnum = "approved";
+    }
+    updateStatusMutation.mutate({ id, status: statusEnum });
   };
 
   const filteredReports = useMemo(() => {
