@@ -205,6 +205,7 @@ export const disbursementsRouter = router({
           requestedByName: users.name,
           requestedBySignatureName: users.signatureName,
           requestedBySignatureDepartment: users.signatureDepartment,
+          requestedBySignatureUrl: users.signatureUrl,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -306,15 +307,16 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
 
-      // تحديد معلومات التوقيع: الأولوية للـ Snapshot المخزن بالطلب، وإلا الرجوع للملف الشخصي وصلاحية المستخدم الحالية (متوافق مع الطلبات القديمة)
       let resolvedSignatureName = request.creatorSignatureName;
       let resolvedSignatureDepartment = request.creatorSignatureDepartment;
+      let resolvedSignatureUrl = request.requestedBySignatureUrl;
 
       if (!resolvedSignatureName && !resolvedSignatureDepartment && request.requestedBy) {
         const creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
         if (creatorHasSignPermission) {
           resolvedSignatureName = request.requestedBySignatureName;
           resolvedSignatureDepartment = request.requestedBySignatureDepartment;
+          resolvedSignatureUrl = request.requestedBySignatureUrl;
         }
       }
 
@@ -324,6 +326,7 @@ export const disbursementsRouter = router({
         ...request,
         requestedBySignatureName: resolvedSignatureName,
         requestedBySignatureDepartment: resolvedSignatureDepartment,
+        requestedBySignatureUrl: resolvedSignatureUrl,
         creatorHasSignPermission: hasSignInfo,
         project,
         contract,

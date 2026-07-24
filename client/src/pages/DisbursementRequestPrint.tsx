@@ -479,8 +479,18 @@ export default function DisbursementRequestPrint() {
                     <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
                       {request.requestedBySignatureDepartment}
                     </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                    <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                      {request.requestedBySignatureUrl ? (
+                        <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                          <img 
+                            src={request.requestedBySignatureUrl} 
+                            alt="التوقيع الرقمي" 
+                            className="max-h-12 max-w-full object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                      )}
                       <div className="text-gray-900 font-bold">{request.requestedBySignatureName}</div>
                     </div>
                   </div>
