@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,10 @@ import { trpc } from "@/lib/trpc";
 import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function MonthlyReportPage() {
+  const [, setLocation] = useLocation();
+  const createMutation = trpc.progressReports.create.useMutation();
+  const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
   const projectOptions = useMemo(() => {
@@ -136,18 +141,46 @@ export default function MonthlyReportPage() {
 
 
 
-  const handleSaveDraft = () => {
-    toast.success("تم حفظ التقرير بنجاح");
-  };
+  const handleSaveDraft = async () => {
+    if (!selectedProjectId) {
+      toast.error("يرجى اختيار مشروع أولاً");
+      return;
+    }
 
-  const handleSubmit = () => {
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `التقرير الشهري - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        plannedProgress: plannedProgress,
+        actualProgress: actualProgress,
+        overallProgress: actualProgress,
+        challenges: `شهر/سنة: ${monthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+        recommendations: `المرحلة الحالية: ${currentPhase}`,
+        workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
+      });
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setReportStatus("تم الاطلاع");
+      if (reportStatus !== "مسودة") {
+        let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+        if (reportStatus === "تم الاطلاع") {
+          statusEnum = "submitted";
+        } else if (reportStatus === "معتمد") {
+          statusEnum = "approved";
+        }
+        await updateStatusMutation.mutateAsync({
+          id: res.id,
+          status: statusEnum,
+        });
+      }
+
+      toast.success(`تم حفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
+      setLocation("/project-reports");
+    } catch (error: any) {
+      toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
+    } finally {
       setIsSubmitting(false);
-      toast.success("تم إرسال التقرير الشهري بنجاح إلى المكتب التنفيذي!");
-    }, 800);
+    }
   };
 
   const milestoneCols: ColumnDef[] = [
