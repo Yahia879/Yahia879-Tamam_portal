@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,10 @@ import { toast } from "sonner";
 import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2 } from "lucide-react";
 
 export default function SemiMonthlyReportPage() {
+  const [, setLocation] = useLocation();
+  const createMutation = trpc.progressReports.create.useMutation();
+  const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
   const projectOptions = useMemo(() => {
@@ -109,26 +114,56 @@ export default function SemiMonthlyReportPage() {
     }
   }, [ragStatus, timeIndicator, costIndicator]);
 
-  const handleSaveDraft = () => {
-    toast.success("تم حفظ التقرير بنجاح");
-  };
-
-  const handleSubmit = () => {
+  const handleSaveDraft = async () => {
+    if (!selectedProjectId) {
+      toast.error("يرجى اختيار مشروع أولاً");
+      return;
+    }
     if (ragStatus === "أحمر" && !recommendations.trim()) {
       toast.error("يرجى كتابة التوصيات نظراً لوجود مؤشر أحمر");
       return;
     }
-    if (new Date(periodTo) < new Date(periodFrom)) {
+    if (periodFrom && periodTo && new Date(periodTo) < new Date(periodFrom)) {
       toast.error("تاريخ (إلى) يجب أن يكون بعد أو ينسجم مع تاريخ (من)");
       return;
     }
 
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setReportStatus("تم الاطلاع");
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `تقرير نصف شهري - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        reportPeriodStart: periodFrom || undefined,
+        reportPeriodEnd: periodTo || undefined,
+        plannedProgress: plannedProgress,
+        actualProgress: actualProgress,
+        overallProgress: actualProgress,
+        challenges: challenges,
+        recommendations: recommendations,
+        workSummary: `الدعم المطلوب: ${requiredSupport}\nمؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
+      });
+
+      if (reportStatus !== "مسودة") {
+        let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+        if (reportStatus === "تم الاطلاع") {
+          statusEnum = "submitted";
+        } else if (reportStatus === "معتمد") {
+          statusEnum = "approved";
+        }
+        await updateStatusMutation.mutateAsync({
+          id: res.id,
+          status: statusEnum,
+        });
+      }
+
+      toast.success(`تم حفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
+      setLocation("/project-reports");
+    } catch (error: any) {
+      toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
+    } finally {
       setIsSubmitting(false);
-      toast.success("تم إرسال التقرير نصف الشهري بنجاح إلى الإدارة المعنية!");
-    }, 800);
+    }
   };
 
   const deviationCols: ColumnDef[] = [
