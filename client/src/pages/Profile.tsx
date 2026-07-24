@@ -303,7 +303,7 @@ export default function Profile() {
                         <div>
                           <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            تم رفع التوقيع الرقمي وحفظه على OneDrive
+                            تم رفع التوقيع الرقمي وحفظه
                           </p>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
                             سيتم استخدام صورة هذا التوقيع في التوقيع الإلكتروني على المستندات.
@@ -332,7 +332,7 @@ export default function Profile() {
                               {uploadingSignature ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
-                                <Upload className="w-3.5 h-3.5 text-blue-600" />
+                                <Upload className="w-3.5 h-3.5 text-primary" />
                               )}
                               تغيير التوقيع
                             </span>
@@ -371,7 +371,7 @@ export default function Profile() {
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-                          {uploadingSignature ? "جاري رفع التوقيع الرقمي إلى OneDrive..." : "قم برفع صورة التوقيع الرقمي الخاصة بك"}
+                          {uploadingSignature ? "جاري رفع التوقيع الرقمي..." : "قم برفع صورة التوقيع الرقمي الخاصة بك"}
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-1">
                           يُفضل صورة بصيغة PNG شفافة بحجم أقل من 5MB لتظهر بوضوح عند الاعتماد في المستندات.
