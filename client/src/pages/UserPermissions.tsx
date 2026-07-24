@@ -285,16 +285,9 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
-    if (permId === "disbursements.sign") {
-      if (!isChecked("disbursements.add") && !isChecked("disbursements.create_custom")) {
-        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("disbursements.") && permId !== "disbursements.view") {
+    if (permId.startsWith("disbursements.") && permId !== "disbursements.view" && permId !== "disbursements.sign") {
       if (!isChecked("disbursements.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
         return;
@@ -384,20 +377,7 @@ export default function UserPermissions() {
           cascadeRevoke("disbursement_orders.");
         }
 
-        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أو 'انشاء طلب صرف لفرصة تبرع'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما
-        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
-          // تحقق من الحالة الفعلية بعد الإلغاء
-          const addActive = permId === "disbursements.add" ? false : (updated["disbursements.add"] !== undefined ? updated["disbursements.add"] : (rolePermissions?.includes("disbursements.add") || false));
-          const customActive = permId === "disbursements.create_custom" ? false : (updated["disbursements.create_custom"] !== undefined ? updated["disbursements.create_custom"] : (rolePermissions?.includes("disbursements.create_custom") || false));
-          if (!addActive && !customActive) {
-            const defSign = rolePermissions?.includes("disbursements.sign") || false;
-            if (defSign) {
-              updated["disbursements.sign"] = false;
-            } else {
-              delete updated["disbursements.sign"];
-            }
-          }
-        }
+
       }
 
       return updated;
@@ -598,7 +578,6 @@ export default function UserPermissions() {
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
-        sign: "توقيع طلبات الصرف"
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
@@ -717,7 +696,7 @@ export default function UserPermissions() {
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
