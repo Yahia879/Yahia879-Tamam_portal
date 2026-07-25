@@ -323,11 +323,44 @@ export const disbursementsRouter = router({
 
       const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
+      // جلب صورة توقيع المدير التنفيذي / التوقيع المعتمد
+      let executiveDirectorSignatureUrl: string | null = null;
+      const potentialSigners = await db
+        .select({
+          id: users.id,
+          signatureUrl: users.signatureUrl,
+          showSignatureInDocuments: users.showSignatureInDocuments,
+          role: users.role,
+        })
+        .from(users)
+        .where(
+          and(
+            isNull(users.deletedAt),
+            sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
+            sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+          )
+        );
+
+      // إعطاء الأولوية دائماً للمدير التنفيذي / المدير العام أولاً
+      const execDirector = potentialSigners.find(u => (u.role as string) === "general_manager");
+      if (execDirector) {
+        executiveDirectorSignatureUrl = execDirector.signatureUrl;
+      } else {
+        for (const u of potentialSigners) {
+          const hasSignPerm = await checkPermission(u.id, "disbursements.sign");
+          if (hasSignPerm || ["super_admin", "system_admin"].includes(u.role)) {
+            executiveDirectorSignatureUrl = u.signatureUrl;
+            break;
+          }
+        }
+      }
+
       return {
         ...request,
         requestedBySignatureName: resolvedSignatureName,
         requestedBySignatureDepartment: resolvedSignatureDepartment,
         requestedBySignatureUrl: resolvedSignatureUrl,
+        executiveDirectorSignatureUrl,
         creatorHasSignPermission: hasSignInfo,
         project,
         contract,

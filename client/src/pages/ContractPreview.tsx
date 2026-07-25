@@ -235,10 +235,6 @@ export default function ContractPreview() {
     !!(currentUser as any)?.signatureUrl &&
     (currentUser as any)?.showSignatureInDocuments !== false;
 
-  const executiveDirectorSignatureUrl = isExecutiveDirectorContractSigner 
-    ? (currentUser as any)?.signatureUrl 
-    : null;
-
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
     { id: contractId! },
@@ -588,6 +584,12 @@ export default function ContractPreview() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+
+  const executiveDirectorSignatureUrl = 
+    (contract as any)?.firstPartySignatureUrl ||
+    (contract as any)?.signatory?.signatureUrl ||
+    (isExecutiveDirectorContractSigner ? (currentUser as any)?.signatureUrl : null);
+
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
   let parsedCustomClauses: { title: string, description: string }[] = [];

@@ -164,7 +164,20 @@ export default function UserPermissions() {
 
   // معالجة النقر وتغيير الخيارات
   const handleTogglePermission = (permId: string) => {
-    
+    // حظر منح صلاحية توقيع العقود لغير المدير التنفيذي
+    if (permId === "contracts.sign") {
+      const isExecutiveDirector = 
+        (userData?.role as string) === "general_manager" || 
+        roleNameAr.includes("المدير التنفيذي");
+      
+      if (!isExecutiveDirector && !isChecked("contracts.sign")) {
+        toast.error("صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا المستخدم", {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!isChecked("mosques.view")) {

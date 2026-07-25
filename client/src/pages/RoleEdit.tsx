@@ -367,7 +367,14 @@ export default function RoleEdit() {
       toast.error("يرجى إدخال اسم الدور المخصص");
       return;
     }
-    if (selectedPerms.length === 0) {
+
+    const isExecutiveDirector = roleId === "general_manager" || nameAr.trim().includes("المدير التنفيذي");
+    let finalPerms = selectedPerms;
+    if (!isExecutiveDirector && finalPerms.includes("contracts.sign")) {
+      finalPerms = finalPerms.filter(p => p !== "contracts.sign");
+    }
+
+    if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
       return;
     }
@@ -378,19 +385,33 @@ export default function RoleEdit() {
         id,
         nameAr: nameAr.trim(),
         nameEn: nameAr.trim(),
-        description: JSON.stringify(selectedPerms),
-        permissions: selectedPerms,
+        description: JSON.stringify(finalPerms),
+        permissions: finalPerms,
       });
     } else if (roleId) {
       updateRoleMutation.mutate({
         roleId,
         nameAr: nameAr.trim(),
-        permissions: selectedPerms,
+        permissions: finalPerms,
       });
     }
   };
 
   const handleTogglePermission = (permId: string) => {
+    // حظر منح صلاحية توقيع العقود لغير المدير التنفيذي
+    if (permId === "contracts.sign") {
+      const isExecutiveDirector = 
+        roleId === "general_manager" || 
+        nameAr.trim().includes("المدير التنفيذي");
+      
+      if (!isExecutiveDirector && !selectedPerms.includes("contracts.sign")) {
+        toast.error("صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور", {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!selectedPerms.includes("mosques.view")) {

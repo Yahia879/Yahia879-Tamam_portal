@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import {
   organizationSettings,
@@ -24,8 +24,9 @@ import {
   contractModificationRequests,
   contractModificationLogs,
   requestHistory,
+  users,
 } from "../../drizzle/schema";
-import { eq, desc, and, or, sql, asc, ne } from "drizzle-orm";
+import { eq, desc, and, or, sql, asc, ne, isNull } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
@@ -255,6 +256,42 @@ export const contractsRouter = router({
       }
       
       const { contract, signatory, projectName } = contractData;
+
+      // جلب صورة توقيع الطرف الأول (سواء من الموقّع المختار signatoryId أو من مستخدم لديه صلاحية توقيع العقود ومفّعل إظهار التوقيع)
+      let firstPartySignatureUrl: string | null = null;
+      if (signatory && signatory.signatureUrl) {
+        firstPartySignatureUrl = signatory.signatureUrl;
+      } else {
+        const potentialSigners = await db
+          .select({
+            id: users.id,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            role: users.role,
+          })
+          .from(users)
+          .where(
+            and(
+              isNull(users.deletedAt),
+              sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
+              sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+            )
+          );
+
+        // إعطاء الأولوية دائماً للمدير التنفيذي / المدير العام أولاً
+        const execDirector = potentialSigners.find(u => (u.role as string) === "general_manager");
+        if (execDirector) {
+          firstPartySignatureUrl = execDirector.signatureUrl;
+        } else {
+          for (const u of potentialSigners) {
+            const hasSignPerm = await checkPermission(u.id, "contracts.sign");
+            if (hasSignPerm || ["super_admin", "system_admin"].includes(u.role)) {
+              firstPartySignatureUrl = u.signatureUrl;
+              break;
+            }
+          }
+        }
+      }
       
       // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
       let paymentsList: any[] = input.lightweight ? [] : await db
@@ -314,6 +351,7 @@ export const contractsRouter = router({
         contract: {
           ...contract,
           signatory,
+          firstPartySignatureUrl,
           projectName: projectName || null,
           introTemplate: contractData.introTemplate || null,
         },

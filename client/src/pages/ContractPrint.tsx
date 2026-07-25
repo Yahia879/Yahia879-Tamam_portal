@@ -142,10 +142,6 @@ export default function ContractPrint() {
     !!(currentUser as any)?.signatureUrl &&
     (currentUser as any)?.showSignatureInDocuments !== false;
 
-  const executiveDirectorSignatureUrl = isExecutiveDirectorContractSigner 
-    ? (currentUser as any)?.signatureUrl 
-    : null;
-
   const { data, isLoading, error } = trpc.contracts.getById.useQuery(
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
@@ -186,6 +182,12 @@ export default function ContractPrint() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+
+  const executiveDirectorSignatureUrl = 
+    (contract as any)?.firstPartySignatureUrl ||
+    (contract as any)?.signatory?.signatureUrl ||
+    (isExecutiveDirectorContractSigner ? (currentUser as any)?.signatureUrl : null);
+
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
   let parsedCustomClauses: { title: string, description: string }[] = [];

@@ -1203,6 +1203,14 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+      const isExecDirectorRole = input.id === "general_manager" || input.nameAr.includes("المدير التنفيذي");
+      if (!isExecDirectorRole && input.permissions.includes("contracts.sign")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور"
+        });
+      }
+
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
       await db.insert(roles).values({
         id: input.id,
@@ -1292,6 +1300,14 @@ export const permissionsRouter = router({
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
       if (!existingRole) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+
+      const isExecDirectorRole = input.roleId === "general_manager" || (existingRole.nameAr || "").includes("المدير التنفيذي") || (input.nameAr || "").includes("المدير التنفيذي");
+      if (!isExecDirectorRole && input.permissions && input.permissions.includes("contracts.sign")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور"
+        });
       }
 
       // تحديث بيانات الدور (الاسم والوصف)
@@ -1768,6 +1784,17 @@ export const permissionsRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+      const isExecDirectorUser = targetUser && ((targetUser.role as string) === "general_manager");
+      
+      const hasContractsSign = input.permissions.some(p => p.permissionId === "contracts.sign" && p.granted);
+      if (hasContractsSign && !isExecDirectorUser) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا المستخدم"
+        });
+      }
 
       await ensureRequestsPermissionsExist(db);
 

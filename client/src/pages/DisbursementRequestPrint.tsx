@@ -53,14 +53,14 @@ export default function DisbursementRequestPrint() {
     !!(currentUser as any)?.signatureUrl &&
     (currentUser as any)?.showSignatureInDocuments !== false;
 
-  const executiveDirectorSignatureUrl = isExecutiveDirectorSigner 
-    ? (currentUser as any)?.signatureUrl 
-    : null;
-
   const { data: request, isLoading } = trpc.disbursements.getRequestById.useQuery(
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
+
+  const executiveDirectorSignatureUrl = 
+    (request as any)?.executiveDirectorSignatureUrl ||
+    (isExecutiveDirectorSigner ? (currentUser as any)?.signatureUrl : null);
 
   // تغيير عنوان المستند ليطابق رقم طلب الصرف عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
   useEffect(() => {
