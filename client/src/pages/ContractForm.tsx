@@ -412,7 +412,7 @@ export default function ContractForm() {
         setClauseValues(parsedClauses);
       }
 
-      // تحميل البنود المخصصة الإضافية من العقد الحالي
+      // تحميل البنود المخصصة الإضافية وخطوة المسودة من العقد الحالي
       if (c.customClausesJson) {
         try {
           const custom = typeof c.customClausesJson === 'string'
@@ -430,18 +430,9 @@ export default function ContractForm() {
         }
       }
 
-      // تحديد خطوة المسودة من عمود currentStep بقواعد البيانات حصراً
+// step check
       if (typeof c.currentStep === 'number' && c.currentStep >= 1) {
         setCurrentStep(Math.min(Math.max(c.currentStep, 1), 8));
-      } else if (c.customClausesJson) {
-        try {
-          const parsed = typeof c.customClausesJson === 'string' ? JSON.parse(c.customClausesJson) : c.customClausesJson;
-          if (parsed && typeof parsed === 'object' && typeof parsed.draftStep === 'number') {
-            setCurrentStep(Math.min(Math.max(parsed.draftStep, 1), 8));
-          }
-        } catch (e) {
-          console.error("خطأ في قراءة draftStep:", e);
-        }
       }
 
       setEditDataLoaded(true);
@@ -1000,18 +991,18 @@ export default function ContractForm() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => isEditMode && editContractId ? navigate(`/contracts/${editContractId}/preview`) : navigate('/contracts')} 
+            onClick={() => navigate('/contracts')} 
             className="rounded-full hover:bg-slate-100 transition-colors shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-            title="رجوع"
+            title="الرجوع إلى العقود"
           >
             <ArrowRight className="h-5.5 w-5.5 sm:h-6 sm:w-6" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold">{isEditMode ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-xs sm:text-sm">
               {isEditMode 
                 ? "تعديل بيانات العقد الحالي" 
-                : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص"
+                : "إنشاء عقد باستخدام قالب مع إمكانية التخصيص والحفظ كمسودة"
               }
             </p>
           </div>

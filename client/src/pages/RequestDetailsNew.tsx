@@ -1064,7 +1064,9 @@ export default function RequestDetailsNew() {
                   <p className="text-base sm:text-lg font-bold text-foreground truncate">
                     {request.programType === "bunyan" 
                       ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
-                      : (isEn ? `Request for Mosque ${request.mosque?.name || ""}` : `طلب مسجد ${request.mosque?.name || ""}`)}
+                      : (isEn 
+                          ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
+                          : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
                   </p>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {translateProgram(request.programType)}

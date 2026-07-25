@@ -452,6 +452,8 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional().default(1),
+        status: z.enum(contractStatuses).optional(),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -541,11 +543,12 @@ export const contractsRouter = router({
         signedDocumentUrl: null,
         approvedBy: null,
         approvedAt: null,
-        status: "draft",
+        status: input.status || "draft",
         createdBy: ctx.user.id,
         supportingEntity: input.supportingEntity ?? null,
         supportType: input.supportType ?? null,
         supportedAmount: input.supportedAmount ? String(input.supportedAmount) : null,
+        currentStep: input.currentStep ?? 1,
       };
       
       console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
@@ -711,6 +714,9 @@ export const contractsRouter = router({
       
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ
       const updates: Record<string, unknown> = { ...updateData };
+      if (input.status) {
+        updates.status = input.status;
+      }
       if (updateData.contractAmount) {
         updates.contractAmount = String(updateData.contractAmount);
         updates.contractAmountText = numberToArabicText(updateData.contractAmount);

@@ -27,7 +27,9 @@ import {
   History,
   MessageSquare,
   Banknote,
+  Stamp,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -669,16 +671,19 @@ export default function ContractPreview() {
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end items-center">
             {contract.status === "approved" && (
-              <div className="flex items-center gap-2 ml-4">
-                <Checkbox 
-                  id="show-stamp" 
-                  checked={showStamp} 
+              <label
+                htmlFor="show-stamp"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-background hover:bg-muted/50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                <Stamp className={`w-3.5 h-3.5 ${showStamp ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`} />
+                <span>إظهار الختم</span>
+                <Switch
+                  id="show-stamp"
+                  checked={showStamp}
                   onCheckedChange={(checked) => setShowStamp(!!checked)}
+                  className="scale-75 origin-left"
                 />
-                <Label htmlFor="show-stamp" className="text-xs font-semibold cursor-pointer">
-                  إظهار الختم
-                </Label>
-              </div>
+              </label>
             )}
             {(contract.status === "draft" || contract.status === "pending_approval") && canApproveContract && (
               <Button

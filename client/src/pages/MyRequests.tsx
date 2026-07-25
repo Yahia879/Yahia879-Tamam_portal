@@ -302,7 +302,9 @@ export default function MyRequests() {
                               <h3 className="font-bold text-foreground text-sm sm:text-base">
                                 {request.programType === "bunyan" 
                                   ? `طلب ${user?.name || ""}` 
-                                  : `طلب مسجد ${request.mosqueName || ""}`}
+                                  : (request.mosqueName?.trim().startsWith("مسجد") 
+                                      ? `طلب ${request.mosqueName}` 
+                                      : `طلب مسجد ${request.mosqueName || ""}`)}
                               </h3>
                               <Badge variant="outline" className={`${statusColors[request.status]} text-[10px] sm:text-xs py-0 h-5`}>
                                 {STATUS_LABELS[request.status]}

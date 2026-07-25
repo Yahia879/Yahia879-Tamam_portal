@@ -596,7 +596,7 @@ export default function ContractsList() {
                               onClick={() => navigate(`/contracts/${contract.id}/edit`)}
                             >
                               <Edit className="h-3.5 w-3.5 ml-1" />
-                              {contract.status === "approved" ? "تعديل العقد المعتمد" : "إكمال العقد"}
+                              {contract.status === "approved" ? "تعديل العقد المعتمد" : (contract.status === "draft" ? "إكمال العقد" : "تعديل")}
                             </Button>
                           )}
                         </div>
