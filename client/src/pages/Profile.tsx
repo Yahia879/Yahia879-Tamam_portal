@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ROLE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useAnyPermission } from "@/hooks/usePermission";
 import {
   Dialog,
   DialogContent,
@@ -157,14 +158,19 @@ export default function Profile() {
     }
   });
 
+  const hasAnySigningPermission = useAnyPermission([
+    "disbursements.sign",
+    "contracts.sign",
+    "final_reports.sign",
+    "disbursement_orders.sign",
+    "requests.sign_final_report",
+  ]);
+
   const hasSignaturePermission = 
-    user?.role !== "service_requester" ||
-    (user as any)?.permissions?.includes("disbursements.sign") || 
-    (user as any)?.permissions?.includes("disbursement_orders.sign") || 
-    (user as any)?.permissions?.includes("contracts.sign") || 
-    (user as any)?.permissions?.includes("final_reports.sign") || 
-    (user as any)?.permissions?.includes("requests.sign_final_report") || 
-    ["super_admin", "system_admin", "general_manager", "projects_office", "financial", "financial_manager", "project_manager", "field_team", "corporate_comm", "quick_response"].includes(user?.role || "");
+    user?.role === "super_admin" || 
+    user?.role === "system_admin" || 
+    (user?.role as string) === "general_manager" || 
+    hasAnySigningPermission;
 
   const handleSave = () => {
     updateProfileMutation.mutate({
