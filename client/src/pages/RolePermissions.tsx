@@ -878,7 +878,7 @@ export default function RolePermissions() {
           id: "signing",
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
-          perms: ["disbursements_sign", "disbursement_orders_sign", "contracts_sign", "final_reports_sign"]
+          perms: ["disbursements_sign", "contracts_sign", "final_reports_sign"]
         }
       ]
     },
@@ -925,7 +925,6 @@ export default function RolePermissions() {
       },
       signing: {
         disbursements_sign: "توقيع طلبات الصرف",
-        disbursement_orders_sign: "توقيع أوامر الصرف",
         contracts_sign: "توقيع العقود",
         final_reports_sign: "توقيع التقارير الختامية",
       },
@@ -1162,7 +1161,6 @@ export default function RolePermissions() {
           if (m.id === "signing") {
             const signingIds: Record<string, string> = {
               disbursements_sign: "disbursements.sign",
-              disbursement_orders_sign: "disbursement_orders.sign",
               contracts_sign: "contracts.sign",
               final_reports_sign: "final_reports.sign",
             };
