@@ -34,7 +34,7 @@ const PERMISSIONS_TO_SEED: PermissionConfig[] = [
     action: "sign",
     nameAr: "توقيع طلبات الصرف",
     nameEn: "Sign Disbursement Requests",
-    targetRoles: ["super_admin", "system_admin", "financial"],
+    targetRoles: ["super_admin", "system_admin", "financial", "projects_office"],
   },
   {
     id: "final_reports.sign",
