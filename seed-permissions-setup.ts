@@ -1,12 +1,12 @@
 import "dotenv/config";
 import { getDb } from "./server/db";
-import { permissions, roles, rolePermissions, users, userPermissions } from "./drizzle/schema";
+import { modules, permissions, roles, rolePermissions, users, userPermissions } from "./drizzle/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 /**
  * ملف Seed لتأسيس وتوزيع الصلاحيات المطلوبة للأدوار والمستخدمين:
  * 1. صلاحية "اعتماد العقود" (contracts.approve) لـ: super_admin, system_admin, financial, projects_office
- * 2. صلاحية "توقيع طلبات الصرف" (disbursements.sign) لـ: super_admin, system_admin, financial
+ * 2. صلاحية "توقيع طلبات الصرف" (disbursements.sign) لـ: super_admin, system_admin, financial, projects_office
  * 3. صلاحية "توقيع التقرير الختامي" (final_reports.sign) لـ: super_admin, system_admin, corporate_comm
  */
 
@@ -38,7 +38,7 @@ const PERMISSIONS_TO_SEED: PermissionConfig[] = [
   },
   {
     id: "final_reports.sign",
-    moduleId: "signing",
+    moduleId: "requests",
     action: "final_reports_sign",
     nameAr: "توقيع التقارير الختامية",
     nameEn: "Sign Final Reports",
@@ -58,6 +58,24 @@ async function seed() {
   for (const perm of PERMISSIONS_TO_SEED) {
     console.log(`\n----------------------------------------`);
     console.log(`📌 معالجة صلاحية: [${perm.id}] - ${perm.nameAr}`);
+
+    // 0. التأكد من وجود الموديول في جدول modules
+    const [existingModule] = await db
+      .select({ id: modules.id })
+      .from(modules)
+      .where(eq(modules.id, perm.moduleId))
+      .limit(1);
+
+    if (!existingModule) {
+      await db.insert(modules).values({
+        id: perm.moduleId,
+        nameAr: perm.moduleId === "requests" ? "الطلبات والتقارير" : (perm.moduleId === "contracts" ? "العقود" : "طلبات الصرف"),
+        nameEn: perm.moduleId,
+        displayOrder: 1,
+        isActive: true,
+      });
+      console.log(`  ✓ تم إنشاء الموديول [${perm.moduleId}] في جدول modules.`);
+    }
 
     // 1. التأكد من وجود الصلاحية في جدول permissions
     const existingPerm = await db
