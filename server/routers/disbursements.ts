@@ -17,6 +17,8 @@ import {
   donationOpportunities,
   mosqueRequests,
   mosques,
+  userRoleAssignments,
+  roles,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -328,6 +330,10 @@ export const disbursementsRouter = router({
       const potentialSigners = await db
         .select({
           id: users.id,
+          name: users.name,
+          email: users.email,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
           signatureUrl: users.signatureUrl,
           showSignatureInDocuments: users.showSignatureInDocuments,
           role: users.role,
@@ -341,18 +347,37 @@ export const disbursementsRouter = router({
           )
         );
 
-      // إعطاء الأولوية دائماً للمدير التنفيذي / المدير العام أولاً
-      const execDirector = potentialSigners.find(u => (u.role as string) === "general_manager");
-      if (execDirector) {
-        executiveDirectorSignatureUrl = execDirector.signatureUrl;
-      } else {
+      // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
+      let execDirector = potentialSigners.find(u => 
+        (u.role as string) === "general_manager" ||
+        u.email === "ceo@manarah.org.sa" ||
+        (u.signatureDepartment || "").includes("المدير التنفيذي") ||
+        (u.signatureName || "").includes("المدير التنفيذي") ||
+        (u.name || "").includes("المدير التنفيذي")
+      );
+
+      if (!execDirector) {
         for (const u of potentialSigners) {
-          const hasSignPerm = await checkPermission(u.id, "disbursements.sign");
-          if (hasSignPerm || ["super_admin", "system_admin"].includes(u.role)) {
-            executiveDirectorSignatureUrl = u.signatureUrl;
+          const [customRole] = await db
+            .select({ nameAr: roles.nameAr })
+            .from(userRoleAssignments)
+            .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+            .where(eq(userRoleAssignments.userId, u.id))
+            .limit(1);
+
+          if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
+            execDirector = u;
             break;
           }
         }
+      }
+
+      if (!execDirector && potentialSigners.length > 0) {
+        execDirector = potentialSigners[0];
+      }
+
+      if (execDirector) {
+        executiveDirectorSignatureUrl = execDirector.signatureUrl;
       }
 
       return {

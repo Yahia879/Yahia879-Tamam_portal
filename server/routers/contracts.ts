@@ -25,6 +25,8 @@ import {
   contractModificationLogs,
   requestHistory,
   users,
+  userRoleAssignments,
+  roles,
 } from "../../drizzle/schema";
 import { eq, desc, and, or, sql, asc, ne, isNull } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
@@ -257,14 +259,20 @@ export const contractsRouter = router({
       
       const { contract, signatory, projectName } = contractData;
 
-      // جلب صورة توقيع الطرف الأول (سواء من الموقّع المختار signatoryId أو من مستخدم لديه صلاحية توقيع العقود ومفّعل إظهار التوقيع)
-      let firstPartySignatureUrl: string | null = null;
-      if (signatory && signatory.signatureUrl) {
-        firstPartySignatureUrl = signatory.signatureUrl;
-      } else {
+      // جلب صورة وتفاصيل توقيع الطرف الأول (المدير التنفيذي حصرياً)
+      let firstPartySignatureUrl: string | null = signatory?.signatureUrl || null;
+      let firstPartySignatoryName: string | null = signatory?.name || null;
+      let firstPartySignatoryTitle: string | null = signatory?.title || null;
+
+      // إذا لم يكن هناك صورة توقيع رقمية في جدول المخولين (signatories)، نسحب التوقيع الرقمي من جدول المستخدمين (users) للمدير التنفيذي
+      if (!firstPartySignatureUrl) {
         const potentialSigners = await db
           .select({
             id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
             signatureUrl: users.signatureUrl,
             showSignatureInDocuments: users.showSignatureInDocuments,
             role: users.role,
@@ -278,21 +286,44 @@ export const contractsRouter = router({
             )
           );
 
-        // إعطاء الأولوية دائماً للمدير التنفيذي / المدير العام أولاً
-        const execDirector = potentialSigners.find(u => (u.role as string) === "general_manager");
-        if (execDirector) {
-          firstPartySignatureUrl = execDirector.signatureUrl;
-        } else {
+        // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
+        let execDirector = potentialSigners.find(u => 
+          (u.role as string) === "general_manager" ||
+          u.email === "ceo@manarah.org.sa" ||
+          (u.signatureDepartment || "").includes("المدير التنفيذي") ||
+          (u.signatureName || "").includes("المدير التنفيذي") ||
+          (u.name || "").includes("المدير التنفيذي")
+        );
+
+        // إذا لم يُعثر بالاسم أو الإيميل، نفحص الدور المخصص للمستخدم في جدول userRoleAssignments
+        if (!execDirector) {
           for (const u of potentialSigners) {
-            const hasSignPerm = await checkPermission(u.id, "contracts.sign");
-            if (hasSignPerm || ["super_admin", "system_admin"].includes(u.role)) {
-              firstPartySignatureUrl = u.signatureUrl;
+            const [customRole] = await db
+              .select({ nameAr: roles.nameAr })
+              .from(userRoleAssignments)
+              .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+              .where(eq(userRoleAssignments.userId, u.id))
+              .limit(1);
+
+            if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
+              execDirector = u;
               break;
             }
           }
         }
+
+        // إذا لم يُعثر على مدير تنفيذي مخصص، نختار أول مستخدم يملك توقيع رقمي مفعل
+        if (!execDirector && potentialSigners.length > 0) {
+          execDirector = potentialSigners[0];
+        }
+
+        if (execDirector) {
+          if (!firstPartySignatoryName) firstPartySignatoryName = execDirector.signatureName || execDirector.name || "المدير التنفيذي";
+          if (!firstPartySignatoryTitle) firstPartySignatoryTitle = execDirector.signatureDepartment || "المدير التنفيذي";
+          firstPartySignatureUrl = execDirector.signatureUrl;
+        }
       }
-      
+
       // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
       let paymentsList: any[] = input.lightweight ? [] : await db
         .select()
@@ -351,6 +382,8 @@ export const contractsRouter = router({
         contract: {
           ...contract,
           signatory,
+          firstPartySignatoryName,
+          firstPartySignatoryTitle,
           firstPartySignatureUrl,
           projectName: projectName || null,
           introTemplate: contractData.introTemplate || null,

@@ -186,7 +186,7 @@ export default function ContractPrint() {
   const executiveDirectorSignatureUrl = 
     (contract as any)?.firstPartySignatureUrl ||
     (contract as any)?.signatory?.signatureUrl ||
-    (isExecutiveDirectorContractSigner ? (currentUser as any)?.signatureUrl : null);
+    null;
 
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
@@ -536,8 +536,8 @@ export default function ContractPrint() {
                   <div className="text-center border-l pl-4">
                     <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                     <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                    <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                    <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                    <p className="text-xs sm:text-sm">{(contract.firstPartySignatoryName || contract.signatory?.name || orgSettings?.authorizedSignatory || "المدير التنفيذي")}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{(contract.firstPartySignatoryTitle || contract.signatory?.title || orgSettings?.signatoryTitle || "المدير التنفيذي")}</p>
                     <div className="mt-8 space-y-4 text-xs sm:text-sm">
                       <div className="relative inline-flex items-center justify-center">
                         <p>التوقيع: ...................................</p>
@@ -545,7 +545,7 @@ export default function ContractPrint() {
                           <img
                             src={executiveDirectorSignatureUrl}
                             alt="توقيع الطرف الأول"
-                            className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none"
+                            className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none print:!block print:!visible print:!h-14"
                           />
                         )}
                       </div>
