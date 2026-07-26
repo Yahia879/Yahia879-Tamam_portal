@@ -72,12 +72,18 @@ export default function ProjectReportsHubPage() {
         typeLabel = "تقرير زيارة";
       }
 
+      // حساب RAG بناءً على الفارق بين الإنجاز المخطط والإنجاز الفعلي
+      const planned = r.plannedProgress ?? 0;
+      const actual = r.actualProgress ?? 0;
+      const gap = planned - actual;
+
       let ragLabel = "أخضر";
-      const variance = r.variance || 0;
-      if (variance < -10) {
+      if (gap >= 25) {
         ragLabel = "أحمر";
-      } else if (variance < 0) {
+      } else if (gap >= 5) {
         ragLabel = "أصفر";
+      } else {
+        ragLabel = "أخضر";
       }
 
       let statusLabel = "مسودة";
