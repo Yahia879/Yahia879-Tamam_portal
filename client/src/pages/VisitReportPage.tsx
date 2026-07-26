@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUpload, UploadedFile } from "@/components/FileUpload";
 import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
-import { MOCK_PROJECTS, MOCK_DEPARTMENTS } from "@/components/project-reports/MockProjectData";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -25,19 +24,12 @@ export default function VisitReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      const filtered = dbProjectsData.filter((p: any) => {
-        const start = p.startDate ? new Date(p.startDate) : null;
-        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
-        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
-        return p.programType === "bunyan" || isMoreThanYear;
-      });
-
-      return filtered.map((p: any) => ({
+      return dbProjectsData.map((p: any) => ({
         id: String(p.id),
         name: p.name || `مشروع رقم ${p.projectNumber}`,
       }));
     }
-    return MOCK_PROJECTS;
+    return [];
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -54,13 +46,13 @@ export default function VisitReportPage() {
     new Date().toISOString().split("T")[0]
   );
   const [visitorName, setVisitorName] = useState<string>(
-    user?.name || "م. يحيى القحطاني (مفتش ميداني)"
+    user?.name || "مفتش ميداني"
   );
   const [notes, setNotes] = useState<string>("");
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
 
   const [purpose, setPurpose] = useState<"للاطلاع" | "لاتخاذ قرار">("للاطلاع");
-  const [submittedTo, setSubmittedTo] = useState<string>(MOCK_DEPARTMENTS[0]);
+  const [submittedTo, setSubmittedTo] = useState<string>("إدارة المشاريع الإنشائية والهندسية");
   const [reportStatus, setReportStatus] = useState<string>("تم الاطلاع");
 
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
@@ -269,7 +261,7 @@ export default function VisitReportPage() {
                       <SelectValue placeholder="اختر الجهة أو الإدارة المستقبِلة للتقرير" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MOCK_DEPARTMENTS.map((dept) => (
+                      {["إدارة المشاريع الإنشائية والهندسية", "إدارة التشغيل والصيانة الفنية", "إدارة الاستدامة والطاقة النظيفة", "إدارة الخدمات المساندة والعناية بالمساجد", "الإدارة العامة للتخطيط والتطوير", "إدارة الشؤون المالية والاستثمار", "إدارة الجودة والسلامة المهنية"].map((dept: string) => (
                         <SelectItem key={dept} value={dept} className="text-xs">
                           {dept}
                         </SelectItem>
