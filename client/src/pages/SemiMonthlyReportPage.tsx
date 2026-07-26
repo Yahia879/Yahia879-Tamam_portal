@@ -40,24 +40,15 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-
-  useEffect(() => {
-    if (projectOptions.length > 0) {
-      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
-      if (!exists) {
-        setSelectedProjectId(projectOptions[0].id);
-      }
-    }
-  }, [projectOptions, selectedProjectId]);
-  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || "غير محدد");
+  const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
 
-  const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
-  const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
+  const [plannedProgress, setPlannedProgress] = useState<number>(0);
+  const [actualProgress, setActualProgress] = useState<number>(0);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
 
@@ -108,15 +99,6 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
   };
 
   useEffect(() => {
-    const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
-    if (proj) {
-      if (proj.manager) setProjectManager(proj.manager);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
-    }
-  }, [projectOptions, selectedProjectId]);
-
-  useEffect(() => {
     const hasRedIndicator =
       ragStatus === "أحمر" ||
       timeIndicator === "أحمر" ||
@@ -128,9 +110,18 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   const handleSaveDraft = async () => {
     if (!selectedProjectId) {
-      toast.error("يرجى اختيار مشروع أولاً");
+      toast.error("يرجى اختيار المشروع أولاً من القائمة قبل حفظ التقرير");
       return;
     }
+
+    // التحقق من صحة عناوين الروابط الخارجية
+    for (const link of externalLinks) {
+      if (link.url.trim() && !/^(https?:\/\/)/i.test(link.url.trim())) {
+        toast.error(`الرابط "${link.title || link.url}" غير صحيح. يجب أن يبدأ بـ http:// أو https://`);
+        return;
+      }
+    }
+
     if (ragStatus === "أحمر" && !recommendations.trim()) {
       toast.error("يرجى كتابة التوصيات نظراً لوجود مؤشر أحمر");
       return;
@@ -209,15 +200,17 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        <ReportHeaderTabs
-          activeTab="semi-monthly"
-          ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
-          reportStatus={reportStatus}
-          onSaveDraft={handleSaveDraft}
-          onPrintPreview={() => setShowPreviewModal(true)}
-          isSubmitting={isSubmitting}
-          onStatusChange={setReportStatus}
-        />
+        {showLayout && (
+          <ReportHeaderTabs
+            activeTab="semi-monthly"
+            ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
+            reportStatus={reportStatus}
+            onSaveDraft={handleSaveDraft}
+            onPrintPreview={() => setShowPreviewModal(true)}
+            isSubmitting={isSubmitting}
+            onStatusChange={setReportStatus}
+          />
+        )}
 
         <div className="space-y-6">
           {/* بيانات التقرير */}
