@@ -55,6 +55,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { getStageOrder, getNextStage } from "@shared/constants";
 import BoqTab, { BoqTabHandle } from "@/components/BoqTab";
+import ProjectProgressMilestonesTab from "@/components/ProjectProgressMilestonesTab";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -608,8 +609,9 @@ export default function ProjectDetailsPage() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className="flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-5 h-auto p-1 bg-muted">
+          <TabsList className="flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-6 h-auto p-1 bg-muted">
             <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>
             <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>
             <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>
             <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>
@@ -732,6 +734,17 @@ export default function ProjectDetailsPage() {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* الإنجاز والمعالم */}
+          <TabsContent value="progress_milestones" className="space-y-4">
+            <ProjectProgressMilestonesTab
+              projectId={project.id}
+              initialPlannedProgress={project.plannedProgress}
+              actualProgress={project.completionPercentage}
+              initialMilestones={project.milestones}
+              onSaveSuccess={refetch}
+            />
           </TabsContent>
 
           {/* المراحل */}
