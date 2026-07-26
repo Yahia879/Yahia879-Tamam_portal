@@ -28,7 +28,14 @@ export default function SemiMonthlyReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => ({
+      const filtered = dbProjectsData.filter((p: any) => {
+        const start = p.startDate ? new Date(p.startDate) : null;
+        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
+        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
+        return p.programType === "bunyan" || isMoreThanYear;
+      });
+
+      return filtered.map((p: any) => ({
         id: String(p.id),
         name: p.name || `مشروع رقم ${p.projectNumber}`,
         manager: p.managerName || "غير محدد",
@@ -40,7 +47,16 @@ export default function SemiMonthlyReportPage() {
     return MOCK_PROJECTS;
   }, [dbProjectsData]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (projectOptions.length > 0) {
+      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
+      if (!exists) {
+        setSelectedProjectId(projectOptions[0].id);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
   const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
