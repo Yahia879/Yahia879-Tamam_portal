@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw } from "lucide-react";
 
-export default function MonthlyReportPage() {
+export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
@@ -252,9 +252,8 @@ export default function MonthlyReportPage() {
 
   const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
+  const content = (
+    <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
         <ReportHeaderTabs
           activeTab="monthly"
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
@@ -596,6 +595,7 @@ export default function MonthlyReportPage() {
           }}
         />
       </div>
-    </DashboardLayout>
-  );
+    );
+
+  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
 }
