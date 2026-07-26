@@ -101,6 +101,16 @@ export default function ProjectReportsHubPage() {
     });
   }, [dbReports]);
 
+  const stats = useMemo(() => {
+    return {
+      total: reports.length,
+      semiMonthly: reports.filter((r) => r.typeKey === "semi-monthly").length,
+      monthly: reports.filter((r) => r.typeKey === "monthly").length,
+      quarterly: reports.filter((r) => r.typeKey === "quarterly").length,
+      visit: reports.filter((r) => r.typeKey === "visit").length,
+    };
+  }, [reports]);
+
   const handleUpdateReportStatus = (id: number, newStatus: string) => {
     let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
     if (newStatus === "تم الاطلاع") {
@@ -117,8 +127,6 @@ export default function ProjectReportsHubPage() {
       : reports.filter((r) => r.typeKey === filterType);
   }, [reports, filterType]);
 
-
-
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
@@ -129,73 +137,73 @@ export default function ProjectReportsHubPage() {
             <p className="text-muted-foreground text-xs sm:text-sm">إنشاء ومتابعة التقارير الدورية والزيارات الميدانية للمشاريع</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/projects">
-              <Button variant="outline" size="sm" className="gap-2 h-9 text-xs font-semibold border-border/80 shadow-xs">
-                <Layers className="w-4 h-4 text-muted-foreground" />
-                قائمة المشاريع
+            <Link href="/project-reports/new">
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white gap-2 h-10 px-4 font-bold shadow-sm">
+                <Plus className="w-4 h-4" />
+                تقرير جديد
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* 4 Stats Cards Grid for Report Models */}
+        {/* 4 Pure Statistics Cards Grid (Non-clickable) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Semi-Monthly */}
-          <Link href="/project-reports/semi-monthly">
-            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
-                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير نصف شهري</p>
-                  <span className="text-[10px] text-teal-600 font-semibold block">كل أسبوعين (20 حقل)</span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border border-border/80 shadow-2xs bg-card">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">تقارير نصف شهرية</p>
+                <p className="text-2xl font-extrabold text-foreground">{stats.semiMonthly}</p>
+                <span className="text-[11px] text-amber-600 font-semibold block">إجمالي المسجلة</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                <Clock className="w-6 h-6 text-amber-600" />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Card 2: Monthly */}
-          <Link href="/project-reports/monthly">
-            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
-                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير شهري</p>
-                  <span className="text-[10px] text-teal-600 font-semibold block">دورية شهرية (23 حقل)</span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
-                  <Calendar className="w-5 h-5 text-teal-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border border-border/80 shadow-2xs bg-card">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">تقارير شهرية</p>
+                <p className="text-2xl font-extrabold text-foreground">{stats.monthly}</p>
+                <span className="text-[11px] text-teal-600 font-semibold block">إجمالي المسجلة</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                <Calendar className="w-6 h-6 text-teal-600" />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Card 3: Quarterly */}
-          <Link href="/project-reports/quarterly">
-            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
-                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير ربعي</p>
-                  <span className="text-[10px] text-teal-600 font-semibold block">كل 3 أشهر (25 حقل)</span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <Card className="border border-border/80 shadow-2xs bg-card">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">تقارير ربعية</p>
+                <p className="text-2xl font-extrabold text-foreground">{stats.quarterly}</p>
+                <span className="text-[11px] text-blue-600 font-semibold block">إجمالي المسجلة</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Card 4: Visit */}
-          <Link href="/project-reports/visit">
-            <Card className="border-0 shadow-xs hover:shadow-md hover:bg-accent/40 cursor-pointer transition-all duration-200 group">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">نموذج تقرير</p>
-                  <p className="text-base font-bold text-foreground group-hover:text-teal-600 transition-colors">تقرير زيارة</p>
-                  <span className="text-[10px] text-teal-600 font-semibold block">زيارة ميدانية (8 حقول)</span>
+          <Card className="border border-border/80 shadow-2xs bg-card">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground">تقارير زيارات ميدانية</p>
+                <p className="text-2xl font-extrabold text-foreground">{stats.visit}</p>
+                <span className="text-[11px] text-purple-600 font-semibold block">إجمالي المسجلة</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                <MapPin className="w-6 h-6 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>k">زيارة ميدانية (8 حقول)</span>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <MapPin className="w-5 h-5 text-purple-600" />
