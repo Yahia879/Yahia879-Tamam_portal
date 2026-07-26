@@ -454,6 +454,8 @@ export const projects = mysqlTable("projects", {
   expectedEndDate: datetime("expectedEndDate"),
   actualEndDate: datetime("actualEndDate"),
   completionPercentage: int("completionPercentage").default(0),
+  plannedProgress: int("plannedProgress").default(0),
+  milestones: longtext("milestones"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
