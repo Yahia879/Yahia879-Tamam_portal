@@ -369,7 +369,7 @@ export default function ProjectReportsHubPage() {
                           </DropdownMenuItem>
                           {report.status === "مسودة" && (
                             <DropdownMenuItem asChild>
-                              <Link href={`/project-reports/${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
+                              <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
                                 <CheckCircle2 className="w-4 h-4 text-amber-600" />
                                 <span>إكمال التقرير</span>
                               </Link>
