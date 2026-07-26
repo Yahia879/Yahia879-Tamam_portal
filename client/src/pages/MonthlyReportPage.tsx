@@ -20,7 +20,17 @@ import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, Ch
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
+  const updateMutation = trpc.progressReports.update.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const editIdParam = searchParams.get("editId");
+  const editId = editIdParam ? parseInt(editIdParam, 10) : undefined;
+
+  const { data: existingReport } = trpc.progressReports.getById.useQuery(
+    { id: editId || 0 },
+    { enabled: !!editId }
+  );
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
   const { data: dbReports } = trpc.progressReports.list.useQuery();
@@ -58,6 +68,19 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     new Date().toISOString().split("T")[0]
   );
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
+
+  useEffect(() => {
+    if (existingReport) {
+      if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
+      if (existingReport.plannedProgress !== null && existingReport.plannedProgress !== undefined) {
+        setPlannedProgress(existingReport.plannedProgress);
+      }
+      if (existingReport.actualProgress !== null && existingReport.actualProgress !== undefined) {
+        setActualProgress(existingReport.actualProgress);
+      }
+      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+    }
+  }, [existingReport]);
 
   const [entryMode, setEntryMode] = useState<"manual" | "aggregate">("manual");
   const [selectedSemiId, setSelectedSemiId] = useState<string>("");
