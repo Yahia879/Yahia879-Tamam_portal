@@ -25,6 +25,7 @@ import VisitReportPage from "./VisitReportPage";
 type ReportTypeKey = "semi-monthly" | "monthly" | "quarterly" | "visit";
 
 export default function NewProjectReportPage() {
+  const [, setLocation] = useLocation();
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [selectedType, setSelectedType] = useState<ReportTypeKey | null>("semi-monthly");
 
@@ -216,7 +217,7 @@ export default function NewProjectReportPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    window.open('/project-reports/1/print', '_blank');
+                    setLocation('/project-reports/1/print');
                   }}
                   className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
                 >
