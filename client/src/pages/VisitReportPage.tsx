@@ -33,15 +33,6 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-
-  useEffect(() => {
-    if (projectOptions.length > 0) {
-      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
-      if (!exists) {
-        setSelectedProjectId(projectOptions[0].id);
-      }
-    }
-  }, [projectOptions, selectedProjectId]);
   const [visitDate, setVisitDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -60,7 +51,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
 
   const handleSaveDraft = async () => {
     if (!selectedProjectId) {
-      toast.error("يرجى اختيار مشروع أولاً");
+      toast.error("يرجى اختيار المشروع أولاً من القائمة قبل حفظ التقرير");
       return;
     }
     if (!notes.trim()) {
@@ -113,14 +104,16 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        <ReportHeaderTabs
-          activeTab="visit"
-          reportStatus={reportStatus}
-          onSaveDraft={handleSaveDraft}
-          onPrintPreview={() => setShowPreviewModal(true)}
-          isSubmitting={isSubmitting}
-          onStatusChange={setReportStatus}
-        />
+        {showLayout && (
+          <ReportHeaderTabs
+            activeTab="visit"
+            reportStatus={reportStatus}
+            onSaveDraft={handleSaveDraft}
+            onPrintPreview={() => setShowPreviewModal(true)}
+            isSubmitting={isSubmitting}
+            onStatusChange={setReportStatus}
+          />
+        )}
 
         <div className="space-y-6">
           {/* بيانات الزيارة الميدانية */}
