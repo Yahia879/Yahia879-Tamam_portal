@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,10 +24,18 @@ export default function MonthlyReportPage() {
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+  const { data: dbReports } = trpc.progressReports.list.useQuery();
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => {
+      const filtered = dbProjectsData.filter((p: any) => {
+        const start = p.startDate ? new Date(p.startDate) : null;
+        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
+        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
+        return p.programType === "bunyan" || isMoreThanYear;
+      });
+
+      return filtered.map((p: any) => {
         const rawStage = p.requestStage || p.status || "execution";
         const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
         return {
@@ -44,7 +52,16 @@ export default function MonthlyReportPage() {
     return MOCK_PROJECTS;
   }, [dbProjectsData]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (projectOptions.length > 0) {
+      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
+      if (!exists) {
+        setSelectedProjectId(projectOptions[0].id);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
   const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(
@@ -57,8 +74,28 @@ export default function MonthlyReportPage() {
   const [isAggregated, setIsAggregated] = useState<boolean>(false);
 
   const availableSemiReports = useMemo(() => {
-    return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
-  }, [selectedProjectId]);
+    if (!dbReports) return [];
+    return dbReports
+      .filter((r) => {
+        if (Number(r.projectId) !== Number(selectedProjectId)) return false;
+        const titleLower = r.title.toLowerCase();
+        return (titleLower.includes("نصف") || titleLower.includes("semi")) && (titleLower.includes("شهري") || titleLower.includes("monthly"));
+      })
+      .map((r) => {
+        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
+        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
+        return {
+          id: String(r.id),
+          title: r.title,
+          projectId: String(r.projectId),
+          actualProgress: r.actualProgress || 0,
+          plannedProgress: r.plannedProgress || 0,
+          monthYear: r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : ""),
+          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
+          milestones: [],
+        };
+      });
+  }, [dbReports, selectedProjectId]);
 
   const selectedSemi = useMemo(() => {
     return availableSemiReports.find((r) => r.id === selectedSemiId);
