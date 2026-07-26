@@ -215,7 +215,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   size="sm"
                   onClick={() => {
                     const targetId = selectedProjectId || "1";
-                    window.open(`/project-reports/${targetId}/print`, '_blank');
+                    setLocation(`/project-reports/${targetId}/print`);
                   }}
                   className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
                 >
