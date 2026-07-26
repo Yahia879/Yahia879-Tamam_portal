@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw } from "lucide-react";
 
-export default function QuarterlyReportPage() {
+export default function QuarterlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
@@ -401,9 +401,8 @@ export default function QuarterlyReportPage() {
     },
   ];
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
+  const content = (
+    <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
         <ReportHeaderTabs
           activeTab="quarterly"
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
@@ -985,6 +984,7 @@ export default function QuarterlyReportPage() {
           }}
         />
       </div>
-    </DashboardLayout>
-  );
+    );
+
+  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
 }
