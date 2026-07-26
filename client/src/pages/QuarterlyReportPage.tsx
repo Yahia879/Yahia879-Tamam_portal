@@ -56,22 +56,13 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-
-  useEffect(() => {
-    if (projectOptions.length > 0) {
-      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
-      if (!exists) {
-        setSelectedProjectId(projectOptions[0].id);
-      }
-    }
-  }, [projectOptions, selectedProjectId]);
-  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || "غير محدد");
+  const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || "التنفيذ");
+  const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
 
   const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
   const [selectedMonthlyId, setSelectedMonthlyId] = useState<string>("");
@@ -403,15 +394,17 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        <ReportHeaderTabs
-          activeTab="quarterly"
-          ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
-          reportStatus={reportStatus}
-          onSaveDraft={handleSaveDraft}
-          onPrintPreview={() => setShowPreviewModal(true)}
-          isSubmitting={isSubmitting}
-          onStatusChange={setReportStatus}
-        />
+        {showLayout && (
+          <ReportHeaderTabs
+            activeTab="quarterly"
+            ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
+            reportStatus={reportStatus}
+            onSaveDraft={handleSaveDraft}
+            onPrintPreview={() => setShowPreviewModal(true)}
+            isSubmitting={isSubmitting}
+            onStatusChange={setReportStatus}
+          />
+        )}
 
         <div className="space-y-6">
           {/* بيانات التقرير */}
