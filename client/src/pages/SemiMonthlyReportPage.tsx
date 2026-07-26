@@ -337,7 +337,68 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     },
   ];
 
-  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
+  const selectedProjectObj = useMemo(() => {
+    return dbProjectsData?.find((p: any) => String(p.id) === String(selectedProjectId));
+  }, [dbProjectsData, selectedProjectId]);
+
+  const projectSemiMonthlyPeriods = useMemo(() => {
+    if (!selectedProjectObj) return [];
+
+    let start = selectedProjectObj.startDate ? new Date(selectedProjectObj.startDate) : new Date(new Date().getFullYear(), 0, 1);
+    let end = (selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) ? new Date(selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) : new Date(new Date().getFullYear(), 11, 31);
+
+    if (isNaN(start.getTime())) start = new Date(new Date().getFullYear(), 0, 1);
+    if (isNaN(end.getTime())) end = new Date(new Date().getFullYear(), 11, 31);
+    if (end < start) end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    const periods: { label: string; from: string; to: string }[] = [];
+    const monthNames = [
+      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+
+    let curr = new Date(start.getFullYear(), start.getMonth(), 1);
+    const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    while (curr <= lastMonth) {
+      const year = curr.getFullYear();
+      const monthIdx = curr.getMonth();
+      const monthName = monthNames[monthIdx];
+      const monthStr = String(monthIdx + 1).padStart(2, "0");
+
+      const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+
+      const from1 = `${year}-${monthStr}-01`;
+      const to1 = `${year}-${monthStr}-15`;
+      periods.push({
+        label: `النصف الأول من ${monthName} ${year} (01 - 15 ${monthName})`,
+        from: from1,
+        to: to1,
+      });
+
+      const from2 = `${year}-${monthStr}-16`;
+      const to2 = `${year}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+      periods.push({
+        label: `النصف الثاني من ${monthName} ${year} (16 - ${daysInMonth} ${monthName})`,
+        from: from2,
+        to: to2,
+      });
+
+      curr = new Date(year, monthIdx + 1, 1);
+    }
+
+    return periods;
+  }, [selectedProjectObj]);
+
+  useEffect(() => {
+    if (selectedProjectId && projectSemiMonthlyPeriods.length > 0 && !existingReport) {
+      const first = projectSemiMonthlyPeriods[0];
+      setPeriodFrom(first.from);
+      setPeriodTo(first.to);
+    }
+  }, [selectedProjectId, projectSemiMonthlyPeriods, existingReport]);
+
+  const selectedProjName = selectedProjectObj?.name || "";
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
@@ -446,6 +507,39 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   />
                 </div>
 
+                <div className="space-y-1.5 md:col-span-3 bg-teal-500/5 dark:bg-teal-950/20 p-3.5 rounded-xl border border-teal-500/20 my-1">
+                  <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-teal-600" />
+                    <span>اختر فترة التقرير النصف شهري (مقسمة إجبارياً على فترات 15 يوماً طبقاً لزمن المشروع)</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
+                  <Select
+                    disabled={!selectedProjectId || projectSemiMonthlyPeriods.length === 0}
+                    value={periodFrom && periodTo ? `${periodFrom}_${periodTo}` : ""}
+                    onValueChange={(val) => {
+                      const [from, to] = val.split("_");
+                      setPeriodFrom(from);
+                      setPeriodTo(to);
+                    }}
+                  >
+                    <SelectTrigger className="h-10 border-border/80 bg-background font-semibold text-xs">
+                      <SelectValue placeholder={selectedProjectId ? "اختر إحدى الفترات النصف شهرية (15 يوماً) المحددة لزمن المشروع..." : "يرجى اختيار المشروع أولاً لتقسيم وعرض الفترات..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectSemiMonthlyPeriods.map((p) => (
+                        <SelectItem key={`${p.from}_${p.to}`} value={`${p.from}_${p.to}`} className="text-xs py-2 font-semibold">
+                          📅 {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedProjectObj && (
+                    <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+                      المده المعتمدة للمشروع: من <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate(selectedProjectObj.startDate) || "بداية المشروع"}</strong> إلى <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate(selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) || "نهاية المشروع"}</strong> (تُقسم آلياً على شرائح 15 يوماً).
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center">
                     <span>فترة التقرير (من)</span>
@@ -453,11 +547,9 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   </Label>
                   <Input
                     type="date"
-                    disabled={!selectedProjectId}
+                    disabled
                     value={periodFrom}
-                    onChange={(e) => setPeriodFrom(e.target.value)}
-                    placeholder="بداية النصف شهري"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 bg-muted/40 font-semibold text-foreground"
                   />
                 </div>
 
@@ -468,12 +560,9 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   </Label>
                   <Input
                     type="date"
-                    disabled={!selectedProjectId}
+                    disabled
                     value={periodTo}
-                    min={periodFrom}
-                    onChange={(e) => setPeriodTo(e.target.value)}
-                    placeholder="نهاية النصف شهري (تاريخ أكبر من أو يساوي تاريخ من)"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 bg-muted/40 font-semibold text-foreground"
                   />
                 </div>
               </div>
