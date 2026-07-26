@@ -236,15 +236,11 @@ export default function ProjectReportPrintPage() {
                     <tbody>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold w-36 text-muted-foreground">اسم المشروع:</td>
-                        <td className="py-2.5 px-3 font-bold text-foreground">{data.projectName || project?.name || "—"}</td>
-                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold w-36 text-muted-foreground">قيمة العقد:</td>
-                        <td className="py-2.5 px-3 font-semibold text-foreground">{contractAmount > 0 ? `${contractAmount.toLocaleString()} ريال` : "—"}</td>
+                        <td className="py-2.5 px-3 font-bold text-foreground" colSpan={3}>{data.projectName || project?.name || "—"}</td>
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الموقع/المدينة:</td>
-                        <td className="py-2.5 px-3 text-foreground">{orgLocation}</td>
-                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الطرف الثاني (المقاول):</td>
-                        <td className="py-2.5 px-3 text-foreground">{contract?.supplierName || "مؤسسة المقاولات المعتمدة"}</td>
+                        <td className="py-2.5 px-3 text-foreground" colSpan={3}>{orgLocation}</td>
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">مُعدّ التقرير:</td>
@@ -275,12 +271,12 @@ export default function ProjectReportPrintPage() {
                         <td className="p-3 text-center font-bold text-emerald-700 font-mono">{actual}%</td>
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
-                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">الانحراف المعياري للنسبة (Gap)</td>
+                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">الانحراف المعياري للنسبة</td>
                         <td className="p-3 text-center text-muted-foreground font-medium">—</td>
                         <td className={`p-3 text-center font-bold font-mono ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>{gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}</td>
                       </tr>
                       <tr>
-                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام (RAG Status)</td>
+                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام</td>
                         <td className="p-3 text-center text-muted-foreground font-medium">—</td>
                         <td className="p-3 text-center">
                           <Badge className={ragStatus === "أخضر" ? "bg-emerald-600 text-white font-bold" : ragStatus === "أصفر" ? "bg-amber-500 text-white font-bold" : "bg-rose-600 text-white font-bold"}>

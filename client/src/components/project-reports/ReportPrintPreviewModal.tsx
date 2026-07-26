@@ -246,14 +246,14 @@ export function ReportPrintPreviewModal({
                           <td className="p-3 text-center font-bold text-emerald-700 font-mono">{actual}%</td>
                         </tr>
                         <tr className="border-b border-gray-200 dark:border-slate-800">
-                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">فارق الانحراف المعياري للنسبة (Gap)</td>
+                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">الانحراف المعياري للنسبة</td>
                           <td className="p-3 text-center text-muted-foreground font-medium">—</td>
                           <td className={`p-3 text-center font-bold font-mono ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>
                             {gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}
                           </td>
                         </tr>
                         <tr>
-                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام (RAG Status)</td>
+                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام</td>
                           <td className="p-3 text-center text-muted-foreground font-medium">—</td>
                           <td className="p-3 text-center">
                             <Badge className={
