@@ -26,10 +26,18 @@ export default function QuarterlyReportPage() {
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+  const { data: dbReports } = trpc.progressReports.list.useQuery();
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => {
+      const filtered = dbProjectsData.filter((p: any) => {
+        const start = p.startDate ? new Date(p.startDate) : null;
+        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
+        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
+        return p.programType === "bunyan" || isMoreThanYear;
+      });
+
+      return filtered.map((p: any) => {
         const rawStage = p.requestStage || p.status || "execution";
         const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
         return {
@@ -48,7 +56,16 @@ export default function QuarterlyReportPage() {
     return MOCK_PROJECTS;
   }, [dbProjectsData]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (projectOptions.length > 0) {
+      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
+      if (!exists) {
+        setSelectedProjectId(projectOptions[0].id);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
   const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
@@ -63,12 +80,84 @@ export default function QuarterlyReportPage() {
   const [isAggregated, setIsAggregated] = useState<boolean>(false);
 
   const availableMonthlyReports = useMemo(() => {
-    return MOCK_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
-  }, [selectedProjectId]);
+    if (!dbReports) return [];
+    return dbReports
+      .filter((r) => {
+        if (Number(r.projectId) !== Number(selectedProjectId)) return false;
+        const titleLower = r.title.toLowerCase();
+        const isMonthly = (titleLower.includes("شهري") || titleLower.includes("monthly"));
+        const isSemi = (titleLower.includes("نصف") || titleLower.includes("semi"));
+        return isMonthly && !isSemi;
+      })
+      .map((r) => {
+        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
+        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
+        const monthYear = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : "");
+        
+        let qVal = "";
+        let yVal = "";
+        if (monthYear && monthYear.includes("-")) {
+          const parts = monthYear.split("-");
+          yVal = parts[0];
+          const m = parseInt(parts[1], 10);
+          if (m >= 1 && m <= 3) qVal = "Q1";
+          else if (m >= 4 && m <= 6) qVal = "Q2";
+          else if (m >= 7 && m <= 9) qVal = "Q3";
+          else if (m >= 10 && m <= 12) qVal = "Q4";
+        }
+
+        return {
+          id: String(r.id),
+          title: r.title,
+          projectId: String(r.projectId),
+          actualProgress: r.actualProgress || 0,
+          plannedProgress: r.plannedProgress || 0,
+          monthYear,
+          quarter: qVal,
+          year: yVal,
+          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
+        };
+      });
+  }, [dbReports, selectedProjectId]);
 
   const availableSemiReports = useMemo(() => {
-    return MOCK_SEMI_MONTHLY_REPORTS.filter((r) => r.projectId === selectedProjectId);
-  }, [selectedProjectId]);
+    if (!dbReports) return [];
+    return dbReports
+      .filter((r) => {
+        if (Number(r.projectId) !== Number(selectedProjectId)) return false;
+        const titleLower = r.title.toLowerCase();
+        return (titleLower.includes("نصف") || titleLower.includes("semi")) && (titleLower.includes("شهري") || titleLower.includes("monthly"));
+      })
+      .map((r) => {
+        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
+        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
+        const monthYear = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : "");
+        
+        let qVal = "";
+        let yVal = "";
+        if (monthYear && monthYear.includes("-")) {
+          const parts = monthYear.split("-");
+          yVal = parts[0];
+          const m = parseInt(parts[1], 10);
+          if (m >= 1 && m <= 3) qVal = "Q1";
+          else if (m >= 4 && m <= 6) qVal = "Q2";
+          else if (m >= 7 && m <= 9) qVal = "Q3";
+          else if (m >= 10 && m <= 12) qVal = "Q4";
+        }
+
+        return {
+          id: String(r.id),
+          title: r.title,
+          projectId: String(r.projectId),
+          actualProgress: r.actualProgress || 0,
+          plannedProgress: r.plannedProgress || 0,
+          monthYear,
+          quarter: qVal,
+          year: yVal,
+          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
+        };
+      });
+  }, [dbReports, selectedProjectId]);
 
   // Selected Monthly Report & Auto-matched Monthly Reports for the Quarter
   const selectedMonthly = useMemo(() => {
@@ -77,8 +166,10 @@ export default function QuarterlyReportPage() {
 
   const autoMatchedMonthlies = useMemo(() => {
     if (!selectedMonthly) return [];
-    return availableMonthlyReports.filter((r) => r.projectId === selectedProjectId);
-  }, [availableMonthlyReports, selectedMonthly, selectedProjectId]);
+    return availableMonthlyReports.filter(
+      (r) => r.quarter === selectedMonthly.quarter && r.year === selectedMonthly.year
+    );
+  }, [availableMonthlyReports, selectedMonthly]);
 
   // Selected Semi Report & Auto-matched Semi Reports for the Quarter
   const selectedSemi = useMemo(() => {
@@ -87,8 +178,10 @@ export default function QuarterlyReportPage() {
 
   const autoMatchedSemis = useMemo(() => {
     if (!selectedSemi) return [];
-    return availableSemiReports.filter((r) => r.projectId === selectedProjectId);
-  }, [availableSemiReports, selectedSemi, selectedProjectId]);
+    return availableSemiReports.filter(
+      (r) => r.quarter === selectedSemi.quarter && r.year === selectedSemi.year
+    );
+  }, [availableSemiReports, selectedSemi]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(75);
   const [actualProgress, setActualProgress] = useState<number>(70);
