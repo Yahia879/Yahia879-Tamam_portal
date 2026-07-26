@@ -22,7 +22,17 @@ import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Awa
 export default function QuarterlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
+  const updateMutation = trpc.progressReports.update.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const editIdParam = searchParams.get("editId");
+  const editId = editIdParam ? parseInt(editIdParam, 10) : undefined;
+
+  const { data: existingReport } = trpc.progressReports.getById.useQuery(
+    { id: editId || 0 },
+    { enabled: !!editId }
+  );
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
   const { data: dbReports } = trpc.progressReports.list.useQuery();
@@ -63,6 +73,20 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     new Date().toISOString().split("T")[0]
   );
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
+
+  useEffect(() => {
+    if (existingReport) {
+      if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
+      if (existingReport.plannedProgress !== null && existingReport.plannedProgress !== undefined) {
+        setPlannedProgress(existingReport.plannedProgress);
+      }
+      if (existingReport.actualProgress !== null && existingReport.actualProgress !== undefined) {
+        setActualProgress(existingReport.actualProgress);
+      }
+      if (existingReport.recommendations) setContinuationDecisions(existingReport.recommendations);
+      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+    }
+  }, [existingReport]);
 
   const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
   const [selectedMonthlyId, setSelectedMonthlyId] = useState<string>("");
@@ -344,6 +368,35 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
     try {
       setIsSubmitting(true);
+      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+      if (finalStatus === "تم الاطلاع") {
+        statusEnum = "submitted";
+      } else if (finalStatus === "معتمد") {
+        statusEnum = "approved";
+      }
+
+      if (editId) {
+        await updateMutation.mutateAsync({
+          id: editId,
+          title: `التقرير الربعي - ${selectedProjName}`,
+          plannedProgress: plannedProgress,
+          actualProgress: actualProgress,
+          overallProgress: actualProgress,
+          challenges: `الربع: ${quarter}\nالسنة: ${year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+          recommendations: continuationDecisions,
+          workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+        });
+
+        await updateStatusMutation.mutateAsync({
+          id: editId,
+          status: statusEnum,
+        });
+
+        toast.success(finalStatus === "مسودة" ? "تم تحديث مسودة التقرير بنجاح" : "تم إكمال واعتماد التقرير بنجاح");
+        setLocation("/project-reports");
+        return;
+      }
+
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `التقرير الربعي - ${selectedProjName}`,
@@ -356,12 +409,6 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
         workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
       });
 
-      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-      if (finalStatus === "تم الاطلاع") {
-        statusEnum = "submitted";
-      } else if (finalStatus === "معتمد") {
-        statusEnum = "approved";
-      }
       await updateStatusMutation.mutateAsync({
         id: res.id,
         status: statusEnum,
