@@ -65,14 +65,17 @@ export function ReportPrintPreviewModal({
       <DialogContent className="max-w-[95vw] lg:max-w-[1100px] w-full max-h-[94vh] overflow-y-auto p-0 rounded-2xl border-border">
         {/* CSS for print mode */}
         <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
           @media print {
             @page {
               size: A4 portrait;
               margin: 0 !important;
             }
-            body {
+            body, html, * {
               background-color: white !important;
               color: black !important;
+              font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
             }
             .print\\:hidden {
               display: none !important;

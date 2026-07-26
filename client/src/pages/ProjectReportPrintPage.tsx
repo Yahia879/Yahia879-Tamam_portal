@@ -123,6 +123,12 @@ export default function ProjectReportPrintPage() {
     <>
       {/* Print Styles Matching /progress-reports/12/print */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+        * {
+          font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+        }
+
         @media print {
           @page {
             size: A4 portrait;
@@ -132,6 +138,7 @@ export default function ProjectReportPrintPage() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box !important;
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           html, body {
             width: 210mm !important;
@@ -139,6 +146,7 @@ export default function ProjectReportPrintPage() {
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           .max-w-\\[210mm\\] {
             width: 210mm !important;
@@ -171,7 +179,7 @@ export default function ProjectReportPrintPage() {
       </div>
 
       {/* Dedicated Print Full Page Canvas */}
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 font-sans print:bg-white print:p-0" dir="rtl">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 print:bg-white print:p-0" style={{ fontFamily: "'Cairo', system-ui, sans-serif" }} dir="rtl">
         <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
           
           {/* Double Luxury Frame matching /progress-reports/12/print */}
