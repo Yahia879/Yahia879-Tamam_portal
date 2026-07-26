@@ -92,6 +92,8 @@ export const projectsRouter = router({
           startDate: projects.startDate,
           expectedEndDate: projects.expectedEndDate,
           completionPercentage: projects.completionPercentage,
+          plannedProgress: projects.plannedProgress,
+          milestones: projects.milestones,
           createdAt: projects.createdAt,
           requestId: projects.requestId,
           managerId: projects.managerId,
@@ -306,6 +308,8 @@ export const projectsRouter = router({
           startDate: projects.startDate,
           expectedEndDate: projects.expectedEndDate,
           completionPercentage: projects.completionPercentage,
+          plannedProgress: projects.plannedProgress,
+          milestones: projects.milestones,
           createdAt: projects.createdAt,
           updatedAt: projects.updatedAt,
           requestId: projects.requestId,
@@ -1696,5 +1700,40 @@ export const projectsRouter = router({
         contracts: projectContracts,
         payments: unifiedPayments,
       };
+    }),
+
+  // تحديث نسبة الإنجاز المخطط والمعالم الرئيسية للمشروع
+  updateProgressAndMilestones: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        plannedProgress: z.number().min(0).max(100).optional(),
+        completionPercentage: z.number().min(0).max(100).optional(),
+        milestones: z.array(
+          z.object({
+            title: z.string(),
+            dueDate: z.string().optional(),
+            status: z.string().optional(),
+          })
+        ).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const updateData: any = {};
+      if (input.plannedProgress !== undefined) {
+        updateData.plannedProgress = input.plannedProgress;
+      }
+      if (input.completionPercentage !== undefined) {
+        updateData.completionPercentage = input.completionPercentage;
+      }
+      if (input.milestones !== undefined) {
+        updateData.milestones = JSON.stringify(input.milestones);
+      }
+
+      await db.update(projects).set(updateData).where(eq(projects.id, input.id));
+      return { success: true };
     }),
 });
