@@ -32,8 +32,8 @@ export default function SemiMonthlyReportPage() {
         name: p.name || `مشروع رقم ${p.projectNumber}`,
         manager: p.managerName || "غير محدد",
         department: "إدارة المشاريع",
-        plannedProgress: 80,
-        actualProgress: p.completionPercentage || 0,
+        plannedProgress: p.plannedProgress ?? 0,
+        actualProgress: p.completionPercentage ?? 0,
       }));
     }
     return [];
@@ -56,8 +56,8 @@ export default function SemiMonthlyReportPage() {
     new Date().toISOString().split("T")[0]
   );
 
-  const [plannedProgress, setPlannedProgress] = useState<number>(75);
-  const [actualProgress, setActualProgress] = useState<number>(70);
+  const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
+  const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
 
@@ -102,13 +102,17 @@ export default function SemiMonthlyReportPage() {
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
+      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
+      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
     }
   };
 
   useEffect(() => {
     const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
-    if (proj && proj.manager) {
-      setProjectManager(proj.manager);
+    if (proj) {
+      if (proj.manager) setProjectManager(proj.manager);
+      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
+      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
     }
   }, [projectOptions, selectedProjectId]);
 
