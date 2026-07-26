@@ -21,7 +21,17 @@ import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2, Save, Chec
 export default function SemiMonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
+  const updateMutation = trpc.progressReports.update.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const editIdParam = searchParams.get("editId");
+  const editId = editIdParam ? parseInt(editIdParam, 10) : undefined;
+
+  const { data: existingReport } = trpc.progressReports.getById.useQuery(
+    { id: editId || 0 },
+    { enabled: !!editId }
+  );
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
 
@@ -49,6 +59,23 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   const [plannedProgress, setPlannedProgress] = useState<number>(0);
   const [actualProgress, setActualProgress] = useState<number>(0);
+
+  useEffect(() => {
+    if (existingReport) {
+      if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
+      if (existingReport.plannedProgress !== null && existingReport.plannedProgress !== undefined) {
+        setPlannedProgress(existingReport.plannedProgress);
+      }
+      if (existingReport.actualProgress !== null && existingReport.actualProgress !== undefined) {
+        setActualProgress(existingReport.actualProgress);
+      }
+      if (existingReport.challenges) setChallenges(existingReport.challenges);
+      if (existingReport.recommendations) setRecommendations(existingReport.recommendations);
+      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+      if (existingReport.reportPeriodStart) setPeriodFrom(String(existingReport.reportPeriodStart).split("T")[0]);
+      if (existingReport.reportPeriodEnd) setPeriodTo(String(existingReport.reportPeriodEnd).split("T")[0]);
+    }
+  }, [existingReport]);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
 
@@ -134,6 +161,35 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
     try {
       setIsSubmitting(true);
+      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+      if (finalStatus === "تم الاطلاع") {
+        statusEnum = "submitted";
+      } else if (finalStatus === "معتمد") {
+        statusEnum = "approved";
+      }
+
+      if (editId) {
+        await updateMutation.mutateAsync({
+          id: editId,
+          title: `تقرير نصف شهري - ${selectedProjName}`,
+          plannedProgress: plannedProgress,
+          actualProgress: actualProgress,
+          overallProgress: actualProgress,
+          challenges: challenges,
+          recommendations: recommendations,
+          workSummary: `الدعم المطلوب: ${requiredSupport}\nمؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
+        });
+
+        await updateStatusMutation.mutateAsync({
+          id: editId,
+          status: statusEnum,
+        });
+
+        toast.success(finalStatus === "مسودة" ? "تم تحديث مسودة التقرير بنجاح" : "تم إكمال واعتماد التقرير بنجاح");
+        setLocation("/project-reports");
+        return;
+      }
+
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `تقرير نصف شهري - ${selectedProjName}`,
@@ -148,12 +204,6 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
         workSummary: `الدعم المطلوب: ${requiredSupport}\nمؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
       });
 
-      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-      if (finalStatus === "تم الاطلاع") {
-        statusEnum = "submitted";
-      } else if (finalStatus === "معتمد") {
-        statusEnum = "approved";
-      }
       await updateStatusMutation.mutateAsync({
         id: res.id,
         status: statusEnum,
