@@ -52,21 +52,12 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-
-  useEffect(() => {
-    if (projectOptions.length > 0) {
-      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
-      if (!exists) {
-        setSelectedProjectId(projectOptions[0].id);
-      }
-    }
-  }, [projectOptions, selectedProjectId]);
-  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || "غير محدد");
+  const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || "التنفيذ");
+  const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
 
   const [entryMode, setEntryMode] = useState<"manual" | "aggregate">("manual");
   const [selectedSemiId, setSelectedSemiId] = useState<string>("");
@@ -107,7 +98,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     ) || null;
   }, [availableSemiReports, selectedSemi]);
 
-  const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
+  const [plannedProgress, setPlannedProgress] = useState<number>(0);
   const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
@@ -192,7 +183,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
   const handleSaveDraft = async () => {
     if (!selectedProjectId) {
-      toast.error("يرجى اختيار مشروع أولاً");
+      toast.error("يرجى اختيار المشروع أولاً من القائمة قبل حفظ التقرير");
       return;
     }
 
@@ -254,15 +245,17 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        <ReportHeaderTabs
-          activeTab="monthly"
-          ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
-          reportStatus={reportStatus}
-          onSaveDraft={handleSaveDraft}
-          onPrintPreview={() => setShowPreviewModal(true)}
-          isSubmitting={isSubmitting}
-          onStatusChange={setReportStatus}
-        />
+        {showLayout && (
+          <ReportHeaderTabs
+            activeTab="monthly"
+            ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
+            reportStatus={reportStatus}
+            onSaveDraft={handleSaveDraft}
+            onPrintPreview={() => setShowPreviewModal(true)}
+            isSubmitting={isSubmitting}
+            onStatusChange={setReportStatus}
+          />
+        )}
 
         <div className="space-y-6">
           {/* بيانات التقرير */}
