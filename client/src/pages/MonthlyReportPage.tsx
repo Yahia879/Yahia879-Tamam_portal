@@ -15,7 +15,7 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle } from "lucide-react";
+import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle, ArrowRight } from "lucide-react";
 
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -92,6 +92,21 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         setActualProgress(existingReport.actualProgress);
       }
       if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+      if (existingReport.reportPeriodStart) setMonthYear(String(existingReport.reportPeriodStart).substring(0, 7));
+      if (existingReport.status) {
+        setReportStatus(
+          existingReport.status === "approved" ? "معتمد" : existingReport.status === "submitted" ? "تم الاطلاع" : "مسودة"
+        );
+      }
+      if (existingReport.challenges) setChallenges(existingReport.challenges);
+      if (existingReport.recommendations) setRecommendations(existingReport.recommendations);
+      if (existingReport.nextSteps) setNextSteps(existingReport.nextSteps);
+      if (existingReport.attachments) {
+        try {
+          const parsed = typeof existingReport.attachments === "string" ? JSON.parse(existingReport.attachments) : existingReport.attachments;
+          if (Array.isArray(parsed)) setAttachments(parsed);
+        } catch {}
+      }
     }
   }, [existingReport]);
 
@@ -239,6 +254,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         await updateMutation.mutateAsync({
           id: editId,
           title: `التقرير الشهري - ${selectedProjName}`,
+          reportDate: reportDate || undefined,
+          reportPeriodStart: monthYear ? `${monthYear}-01` : undefined,
           plannedProgress: plannedProgress,
           actualProgress: actualProgress,
           overallProgress: actualProgress,
@@ -310,10 +327,28 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           {/* بيانات التقرير */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3 border-b border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.history.length > 1) {
+                        window.history.back();
+                      } else {
+                        setLocation("/project-reports");
+                      }
+                    }}
+                    className="gap-1.5 h-8 text-xs font-bold border-border/80 hover:bg-muted text-foreground rounded-lg"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    <span>عودة</span>
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
+                    <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
+                  </div>
                 </div>
                 <Button
                   type="button"
@@ -331,7 +366,38 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
+              {!selectedProjectId && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+                  <span>تنبيه: يرجى تحديد المشروع أولاً لتفعيل وإكمال تعبئة كافة بيانات وملاحظات التقرير.</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. اختيار المشروع أولاً */}
+                <div className="space-y-1.5 md:col-span-3">
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
+                  <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
+                      <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectOptions.map((p) => (
+                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            <span className="font-semibold">{p.name}</span>
+                            <span className="text-muted-foreground text-[11px]">({p.department})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 2. طريقة إعداد وتعبئة التقرير الشهري ثانياً (أسفل اختيار المشروع) */}
                 <div className="space-y-1.5 md:col-span-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
                     <div className="space-y-0.5">
@@ -348,6 +414,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                         variant={entryMode === "manual" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => setEntryMode("manual")}
+                        disabled={!selectedProjectId}
                         className={`h-7 text-xs gap-1 rounded-md px-3 ${entryMode === "manual" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
                       >
                         <User className="w-3 h-3" />
@@ -358,6 +425,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                         variant={entryMode === "aggregate" ? "default" : "ghost"}
                         size="sm"
                         onClick={() => setEntryMode("aggregate")}
+                        disabled={!selectedProjectId}
                         className={`h-7 text-xs gap-1 rounded-md px-3 ${entryMode === "aggregate" ? "bg-teal-600 text-white font-bold" : "text-muted-foreground"}`}
                       >
                         <Layers className="w-3 h-3" />
@@ -383,7 +451,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
                       <div className="space-y-1.5">
                         <Label className="text-[11px] font-semibold">اختر التقرير النصف شهري</Label>
-                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId}>
+                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId} disabled={!selectedProjectId}>
                           <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
                             <SelectValue placeholder="اختر تقرير نصف شهري من التقارير المتاحة لهذا المشروع..." />
                           </SelectTrigger>
@@ -433,7 +501,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                           type="button"
                           size="sm"
                           onClick={handleAggregateSemiReports}
-                          disabled={!selectedSemi}
+                          disabled={!selectedSemi || !selectedProjectId}
                           className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
@@ -442,26 +510,6 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                       </div>
                     </div>
                   )}
-
-                  <Label className="text-xs font-semibold flex items-center">
-                    <span>اسم المشروع</span>
-                    <span className="text-red-500 font-bold mr-1">*</span>
-                  </Label>
-                  <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectOptions.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            <span className="font-semibold">{p.name}</span>
-                            <span className="text-muted-foreground text-[11px]">({p.department})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-1.5">

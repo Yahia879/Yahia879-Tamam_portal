@@ -156,6 +156,7 @@ export const progressReportsRouter = router({
         recommendations: z.string().optional(),
         budgetSpent: z.string().optional(),
         budgetRemaining: z.string().optional(),
+        attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
       })
     )
@@ -200,6 +201,7 @@ export const progressReportsRouter = router({
           recommendations: input.recommendations,
           budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
           budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
+          attachments: input.attachments || null,
           photos: input.photos ? JSON.stringify(input.photos) : null,
           status: "draft",
           createdBy: ctx.user.id,
@@ -223,6 +225,9 @@ export const progressReportsRouter = router({
       z.object({
         id: z.number(),
         title: z.string().optional(),
+        reportDate: z.string().optional(),
+        reportPeriodStart: z.string().optional(),
+        reportPeriodEnd: z.string().optional(),
         overallProgress: z.number().min(0).max(100).optional(),
         plannedProgress: z.number().min(0).max(100).optional(),
         actualProgress: z.number().min(0).max(100).optional(),
@@ -232,6 +237,7 @@ export const progressReportsRouter = router({
         recommendations: z.string().optional(),
         budgetSpent: z.string().optional(),
         budgetRemaining: z.string().optional(),
+        attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
       })
     )
@@ -251,6 +257,15 @@ export const progressReportsRouter = router({
         const updateData: any = {};
         
         if (input.title !== undefined) updateData.title = input.title;
+        if (input.reportDate !== undefined && input.reportDate.trim() !== "") {
+          updateData.reportDate = new Date(input.reportDate);
+        }
+        if (input.reportPeriodStart !== undefined) {
+          updateData.reportPeriodStart = (input.reportPeriodStart && input.reportPeriodStart.trim() !== "") ? new Date(input.reportPeriodStart) : null;
+        }
+        if (input.reportPeriodEnd !== undefined) {
+          updateData.reportPeriodEnd = (input.reportPeriodEnd && input.reportPeriodEnd.trim() !== "") ? new Date(input.reportPeriodEnd) : null;
+        }
         if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
         if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
         if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
@@ -260,6 +275,7 @@ export const progressReportsRouter = router({
         if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
         if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
         if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
+        if (input.attachments !== undefined) updateData.attachments = input.attachments;
         if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
 
         // حساب الانحراف إذا تم تحديث النسب

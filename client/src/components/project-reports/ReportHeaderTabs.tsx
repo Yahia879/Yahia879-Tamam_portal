@@ -8,6 +8,7 @@ import {
   MapPin, 
   Printer,
   Save,
+  ArrowRight,
 } from "lucide-react";
 import {
   Select,
@@ -47,7 +48,23 @@ export function ReportHeaderTabs({
       {/* Top Bar with Navigation Tabs and Action Buttons */}
       <div className="bg-card p-2 rounded-2xl border border-border/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Report Tabs Navigation */}
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                setLocation("/project-reports");
+              }
+            }}
+            className="h-9 text-xs font-bold gap-1.5 shrink-0 rounded-xl border-border/80 hover:bg-muted text-foreground"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>عودة</span>
+          </Button>
+
           <Button
             variant={activeTab === "hub" ? "default" : "ghost"}
             size="sm"

@@ -132,7 +132,7 @@ export default function ProjectReportPrintPage() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 0 !important;
+            margin: 6mm 5mm !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -141,24 +141,34 @@ export default function ProjectReportPrintPage() {
             font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           html, body {
-            width: 210mm !important;
+            width: 100% !important;
+            height: auto !important;
             background-color: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: visible !important;
             font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           .max-w-\\[210mm\\] {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            padding: 8mm !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 2mm !important;
             margin: 0 auto !important;
           }
           .border-\\[3px\\] {
             border-width: 2px !important;
-            padding: 12px !important;
+            padding: 10px !important;
             margin: 0 !important;
             box-shadow: none !important;
+          }
+          .mb-6, table, tr, h3, .space-y-4, .space-y-6, .break-inside-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          h3 {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
           .print\\:hidden {
             display: none !important;
@@ -359,24 +369,6 @@ export default function ProjectReportPrintPage() {
                   </div>
                 </div>
               )}
-
-              <div className="pt-8 mt-8 border-t border-gray-200 dark:border-slate-800 grid grid-cols-3 gap-6 text-center text-xs">
-                <div>
-                  <div className="font-bold text-foreground mb-8">مُعدّ التقرير</div>
-                  <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">{data.createdByName || "مهندس المشروع"}</div>
-                </div>
-                <div>
-                  <div className="font-bold text-foreground mb-8">الجهة المعنية</div>
-                  <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">إدارة المشاريع والهندسة</div>
-                </div>
-                <div>
-                  <div className="font-bold text-foreground mb-8">اعتماد مكتب إدارة المشاريع (PMO)</div>
-                  <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">مدير إدارة المشاريع</div>
-                </div>
-              </div>
 
             </div>
           </div>

@@ -70,12 +70,32 @@ export function ReportPrintPreviewModal({
           @media print {
             @page {
               size: A4 portrait;
-              margin: 0 !important;
+              margin: 6mm 5mm !important;
             }
             body, html, * {
               background-color: white !important;
               color: black !important;
               font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+            }
+            .max-w-\\[210mm\\] {
+              width: 100% !important;
+              max-width: 100% !important;
+              padding: 2mm !important;
+              margin: 0 auto !important;
+            }
+            .border-\\[3px\\] {
+              border-width: 2px !important;
+              padding: 10px !important;
+              margin: 0 !important;
+              box-shadow: none !important;
+            }
+            .mb-6, table, tr, h3, .space-y-4, .space-y-6, .break-inside-avoid {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            h3 {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
             }
             .print\\:hidden {
               display: none !important;
@@ -88,12 +108,6 @@ export function ReportPrintPreviewModal({
             }
             .print\\:border-\\[2px\\] {
               border-width: 2px !important;
-            }
-            .max-w-\\[210mm\\] {
-              width: 210mm !important;
-              max-width: 210mm !important;
-              padding: 8mm !important;
-              margin: 0 auto !important;
             }
           }
         `}</style>
@@ -376,25 +390,6 @@ export function ReportPrintPreviewModal({
                     </div>
                   </div>
                 )}
-
-                {/* Section 6: Official Signatures Block matching /progress-reports/12/print */}
-                <div className="pt-8 mt-8 border-t border-gray-200 dark:border-slate-800 grid grid-cols-3 gap-6 text-center text-xs">
-                  <div>
-                    <div className="font-bold text-foreground mb-8">مُعدّ التقرير</div>
-                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                    <div className="text-muted-foreground font-semibold">{data.projectManager || "مهندس المشروع"}</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-foreground mb-8">الجهة المعنية</div>
-                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                    <div className="text-muted-foreground font-semibold">{data.ownerDepartment || "إدارة المشاريع"}</div>
-                  </div>
-                  <div>
-                    <div className="font-bold text-foreground mb-8">اعتماد مكتب إدارة المشاريع (PMO)</div>
-                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
-                    <div className="text-muted-foreground font-semibold">مدير إدارة المشاريع</div>
-                  </div>
-                </div>
 
               </div>
             </div>

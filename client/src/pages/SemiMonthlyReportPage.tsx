@@ -16,15 +16,32 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2, Save, CheckCircle2, Eye, Printer, AlertCircle } from "lucide-react";
+import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2, Save, CheckCircle2, Eye, Printer, AlertCircle, ArrowRight } from "lucide-react";
+
+const formatToInputDate = (val: any): string => {
+  if (!val) return "";
+  try {
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return "";
+  }
+};
 
 export default function SemiMonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
   const updateMutation = trpc.progressReports.update.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
 
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const searchParams = useMemo(() => new URLSearchParams(typeof window !== "undefined" ? window.location.search : ""), [location]);
   const editIdParam = searchParams.get("editId");
   const editId = editIdParam ? parseInt(editIdParam, 10) : undefined;
 
@@ -75,7 +92,9 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   useEffect(() => {
     if (existingReport) {
-      if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
+      if (existingReport.projectId) {
+        setSelectedProjectId(String(existingReport.projectId));
+      }
       if (existingReport.plannedProgress !== null && existingReport.plannedProgress !== undefined) {
         setPlannedProgress(existingReport.plannedProgress);
       }
@@ -84,11 +103,57 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
       }
       if (existingReport.challenges) setChallenges(existingReport.challenges);
       if (existingReport.recommendations) setRecommendations(existingReport.recommendations);
-      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
-      if (existingReport.reportPeriodStart) setPeriodFrom(String(existingReport.reportPeriodStart).split("T")[0]);
-      if (existingReport.reportPeriodEnd) setPeriodTo(String(existingReport.reportPeriodEnd).split("T")[0]);
+      
+      if (existingReport.reportDate) setReportDate(formatToInputDate(existingReport.reportDate));
+      if (existingReport.reportPeriodStart) setPeriodFrom(formatToInputDate(existingReport.reportPeriodStart));
+      if (existingReport.reportPeriodEnd) setPeriodTo(formatToInputDate(existingReport.reportPeriodEnd));
+      
+      if (existingReport.status) {
+        setReportStatus(
+          existingReport.status === "approved" ? "معتمد" : existingReport.status === "submitted" ? "تم الاطلاع" : "مسودة"
+        );
+      }
+
+      if (existingReport.workSummary) {
+        const text = existingReport.workSummary;
+        const supportMatch = text.match(/الدعم المطلوب:\s*(.*?)(?:\n|$)/);
+        if (supportMatch && supportMatch[1]) setRequiredSupport(supportMatch[1].trim());
+
+        const timeMatch = text.match(/مؤشر الوقت:\s*(.*?)(?:\n|$)/);
+        if (timeMatch && timeMatch[1]) setTimeIndicator(timeMatch[1].trim());
+
+        const costMatch = text.match(/مؤشر التكلفة:\s*(.*?)(?:\n|$)/);
+        if (costMatch && costMatch[1]) setCostIndicator(costMatch[1].trim());
+
+        const escMatch = text.match(/تصعيد إداري:\s*(.*?)(?:\n|$)/);
+        if (escMatch && escMatch[1]) setNeedEscalation(escMatch[1].trim() === "نعم");
+
+        const linksMatch = text.match(/الروابط الخارجية:\s*(.*?)(?:\n|$)/);
+        if (linksMatch && linksMatch[1]) {
+          try {
+            const parsed = JSON.parse(linksMatch[1].trim());
+            if (Array.isArray(parsed)) setExternalLinks(parsed);
+          } catch {}
+        }
+      }
+
+      if (existingReport.attachments) {
+        try {
+          const parsed = typeof existingReport.attachments === "string" ? JSON.parse(existingReport.attachments) : existingReport.attachments;
+          if (Array.isArray(parsed)) {
+            setAttachments(parsed);
+          }
+        } catch {}
+      }
     }
   }, [existingReport]);
+
+  useEffect(() => {
+    if (selectedProjectId && projectOptions.length > 0) {
+      const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+      if (proj) setProjectManager(proj.manager);
+    }
+  }, [selectedProjectId, projectOptions]);
 
   const gap = useMemo(() => actualProgress - plannedProgress, [actualProgress, plannedProgress]);
   const delay = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
@@ -180,16 +245,30 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
         statusEnum = "approved";
       }
 
+      const summaryText = [
+        requiredSupport ? `الدعم المطلوب: ${requiredSupport}` : null,
+        `مؤشر الوقت: ${timeIndicator}`,
+        `مؤشر التكلفة: ${costIndicator}`,
+        `تصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
+        externalLinks.length > 0 ? `الروابط الخارجية: ${JSON.stringify(externalLinks)}` : null,
+      ].filter(Boolean).join("\n");
+
+      const attachmentsJson = attachments && attachments.length > 0 ? JSON.stringify(attachments) : undefined;
+
       if (editId) {
         await updateMutation.mutateAsync({
           id: editId,
           title: `تقرير نصف شهري - ${selectedProjName}`,
+          reportDate: reportDate || undefined,
+          reportPeriodStart: periodFrom || undefined,
+          reportPeriodEnd: periodTo || undefined,
           plannedProgress: plannedProgress,
           actualProgress: actualProgress,
           overallProgress: actualProgress,
           challenges: challenges,
           recommendations: recommendations,
-          workSummary: `الدعم المطلوب: ${requiredSupport}\nمؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
+          workSummary: summaryText,
+          attachments: attachmentsJson,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -213,7 +292,8 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
         overallProgress: actualProgress,
         challenges: challenges,
         recommendations: recommendations,
-        workSummary: `الدعم المطلوب: ${requiredSupport}\nمؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}`,
+        workSummary: summaryText,
+        attachments: attachmentsJson,
       });
 
       await updateStatusMutation.mutateAsync({
@@ -266,10 +346,30 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
           {/* بيانات التقرير */}
           <Card className="border-border/80 shadow-xs">
             <CardHeader className="pb-3 border-b border-border/60">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.history.length > 1) {
+                        window.history.back();
+                      } else {
+                        setLocation("/project-reports");
+                      }
+                    }}
+                    className="gap-1.5 h-8 text-xs font-bold border-border/80 hover:bg-muted text-foreground rounded-lg"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    <span>عودة</span>
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
+                    <CardTitle className="text-base font-bold text-foreground">
+                      {editId ? `تعديل تقرير نصف شهري (#${editId})` : "بيانات التقرير والمشروع"}
+                    </CardTitle>
+                  </div>
                 </div>
                 <Button
                   type="button"
