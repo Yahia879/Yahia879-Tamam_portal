@@ -360,12 +360,11 @@ export default function ProjectReportsHubPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="text-right text-xs">
-                          <DropdownMenuItem 
-                            onClick={() => handleOpenPreviewModal(report)} 
-                            className="gap-2 cursor-pointer font-bold text-teal-700"
-                          >
-                            <Printer className="w-4 h-4 text-teal-600" />
-                            معاينة وطباعة التقرير (PDF)
+                          <DropdownMenuItem asChild>
+                            <Link href={`/project-reports/${report.id}/print`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
+                              <Printer className="w-4 h-4 text-teal-600" />
+                              <span>معاينة وطباعة التقرير (PDF)</span>
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/project-reports/${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full">
