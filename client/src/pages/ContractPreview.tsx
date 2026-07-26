@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -26,7 +27,9 @@ import {
   History,
   MessageSquare,
   Banknote,
+  Stamp,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -216,6 +219,23 @@ export default function ContractPreview() {
   }, []);
 
   const canEditApprovedContract = usePermission("contracts.edit_approved");
+  const canApproveContract = usePermission("contracts.approve");
+  const hasContractSignPermission = usePermission("contracts.sign");
+  const { user: currentUser } = useAuth();
+
+  // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه صلاحية توقيع العقود وتوقيع رقمي
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const hasUserSignPerm = hasContractSignPermission || userPermissionsList.includes("contracts.sign");
+  const isExecutiveDirectorRole = 
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    currentUser?.name === "المدير التنفيذي" ||
+    currentUser?.email === "ceo@manarah.org.sa";
+
+  const isExecutiveDirectorContractSigner = 
+    hasUserSignPerm &&
+    isExecutiveDirectorRole &&
+    !!(currentUser as any)?.signatureUrl &&
+    (currentUser as any)?.showSignatureInDocuments !== false;
 
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
@@ -566,6 +586,12 @@ export default function ContractPreview() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+
+  const executiveDirectorSignatureUrl = 
+    (contract as any)?.firstPartySignatureUrl ||
+    (contract as any)?.signatory?.signatureUrl ||
+    null;
+
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
   let parsedCustomClauses: { title: string, description: string }[] = [];
@@ -645,18 +671,21 @@ export default function ContractPreview() {
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end items-center">
             {contract.status === "approved" && (
-              <div className="flex items-center gap-2 ml-4">
-                <Checkbox 
-                  id="show-stamp" 
-                  checked={showStamp} 
+              <label
+                htmlFor="show-stamp"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-background hover:bg-muted/50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                <Stamp className={`w-3.5 h-3.5 ${showStamp ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`} />
+                <span>إظهار الختم</span>
+                <Switch
+                  id="show-stamp"
+                  checked={showStamp}
                   onCheckedChange={(checked) => setShowStamp(!!checked)}
+                  className="scale-75 origin-left"
                 />
-                <Label htmlFor="show-stamp" className="text-xs font-semibold cursor-pointer">
-                  إظهار الختم
-                </Label>
-              </div>
+              </label>
             )}
-            {contract.status === "draft" && (
+            {(contract.status === "draft" || contract.status === "pending_approval") && canApproveContract && (
               <Button
                 onClick={() => approveMutation.mutate({ id: contractId! })}
                 disabled={approveMutation.isPending}
@@ -667,18 +696,18 @@ export default function ContractPreview() {
                 ) : (
                   <Check className="h-4 w-4 ml-2" />
                 )}
-                تأكيد واعتماد العقد
+                اعتماد العقد
               </Button>
             )}
 
-            {(contract.status === "draft" || (contract.status === "approved" && canEditApprovedContract)) && (
+            {(contract.status === "draft" || contract.status === "pending_approval" || (contract.status === "approved" && canEditApprovedContract)) && canApproveContract && (
               <Button
                 variant="outline"
                 onClick={() => navigate(`/contracts/${contract.id}/edit`)}
                 className="flex-1 sm:flex-none border-amber-600 text-amber-600 hover:bg-amber-50"
               >
                 <Edit className="h-4 w-4 ml-2" />
-                {contract.status === "approved" ? "تعديل العقد المعتمد" : "تعديل معلومات العقد"}
+                {contract.status === "approved" ? "تعديل العقد المعتمد" : "التعديل على الخطوات السابقة"}
               </Button>
             )}
 
@@ -994,10 +1023,19 @@ export default function ContractPreview() {
                       <div className="text-center sm:border-l sm:pl-4 pb-8 sm:pb-0">
                         <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                         <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                        <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                        <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                        <p className="text-xs sm:text-sm">{(contract.firstPartySignatoryName || contract.signatory?.name || orgSettings?.authorizedSignatory || "المدير التنفيذي")}</p>
+                        <p className="text-xs sm:text-xs text-gray-600">{(contract.firstPartySignatoryTitle || contract.signatory?.title || orgSettings?.signatoryTitle || "المدير التنفيذي")}</p>
                         <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                          <p>التوقيع: ...................................</p>
+                          <div className="relative inline-flex items-center justify-center">
+                            <p>التوقيع: ...................................</p>
+                            {executiveDirectorSignatureUrl && (
+                              <img
+                                src={executiveDirectorSignatureUrl}
+                                alt="توقيع الطرف الأول"
+                                className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none print:!block print:!visible print:!h-14"
+                              />
+                            )}
+                          </div>
                           <p>التاريخ: ...................................</p>
                         </div>
                         <p className="mt-4 text-xs text-gray-600">الختم الرسمي</p>
@@ -1322,7 +1360,6 @@ export default function ContractPreview() {
             aside,
             button,
             .print\\:hidden,
-            .h-14,
             .sticky {
               /* إقصاء السايدبار فقط وتجنب إخفاء الـ SidebarInset */
               display: none !important;

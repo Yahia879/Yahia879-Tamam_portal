@@ -442,7 +442,9 @@ export default function Requests({
                             <p className="font-bold text-foreground text-sm md:text-sm">
                               {request.programType === "bunyan" 
                                 ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                : (isEn ? `Mosque Request ${request.mosqueName || ""}` : `طلب مسجد ${request.mosqueName || ""}`)}
+                                : (isEn 
+                                    ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                                    : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
                               {request.programName && !isEn ? request.programName : translateProgram(request.programType)} ({request.requestNumber})

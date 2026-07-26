@@ -144,6 +144,8 @@ export const users = mysqlTable("users", {
   receiveFinancialSms: boolean("receiveFinancialSms").default(false),
   signatureName: text("signatureName"),
   signatureDepartment: text("signatureDepartment"),
+  signatureUrl: text("signatureUrl"),
+  showSignatureInDocuments: boolean("showSignatureInDocuments").default(true),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -979,8 +981,9 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   startDate: datetime("startDate"),
   endDate: datetime("endDate"),
   
-  // الحالة
+  // الحالة والخطوة الحالية للمسودة
   status: mysqlEnum("status", contractStatuses).default("draft"),
+  currentStep: int("currentStep").default(1),
   
   // بيانات الدعم والتمويل
   supportingEntity: varchar("supportingEntity", { length: 1000 }), // الجهة الداعمة

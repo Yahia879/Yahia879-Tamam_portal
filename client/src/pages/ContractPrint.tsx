@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, Loader2, FileText } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
 
 
@@ -124,6 +125,22 @@ export default function ContractPrint() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const hasViewPermission = usePermission("contracts.view");
+  const hasContractSignPermission = usePermission("contracts.sign");
+  const { user: currentUser } = useAuth();
+
+  // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه صلاحية توقيع العقود وتوقيع رقمي
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const hasUserSignPerm = hasContractSignPermission || userPermissionsList.includes("contracts.sign");
+  const isExecutiveDirectorRole = 
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    currentUser?.name === "المدير التنفيذي" ||
+    currentUser?.email === "ceo@manarah.org.sa";
+
+  const isExecutiveDirectorContractSigner = 
+    hasUserSignPerm &&
+    isExecutiveDirectorRole &&
+    !!(currentUser as any)?.signatureUrl &&
+    (currentUser as any)?.showSignatureInDocuments !== false;
 
   const { data, isLoading, error } = trpc.contracts.getById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -165,6 +182,12 @@ export default function ContractPrint() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+
+  const executiveDirectorSignatureUrl = 
+    (contract as any)?.firstPartySignatureUrl ||
+    (contract as any)?.signatory?.signatureUrl ||
+    null;
+
   const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
 
   let parsedCustomClauses: { title: string, description: string }[] = [];
@@ -513,10 +536,19 @@ export default function ContractPrint() {
                   <div className="text-center border-l pl-4">
                     <h4 className="font-bold mb-2 text-sm sm:text-base">الطرف الأول</h4>
                     <p className="font-medium text-xs sm:text-sm">{orgSettings?.officialReportsName || ""}</p>
-                    <p className="text-xs sm:text-sm">{(contract.signatory?.name || orgSettings?.authorizedSignatory || "----")}</p>
-                    <p className="text-xs sm:text-xs text-gray-600">{(contract.signatory?.title || orgSettings?.signatoryTitle || "----")}</p>
+                    <p className="text-xs sm:text-sm">{(contract.firstPartySignatoryName || contract.signatory?.name || orgSettings?.authorizedSignatory || "المدير التنفيذي")}</p>
+                    <p className="text-xs sm:text-xs text-gray-600">{(contract.firstPartySignatoryTitle || contract.signatory?.title || orgSettings?.signatoryTitle || "المدير التنفيذي")}</p>
                     <div className="mt-8 space-y-4 text-xs sm:text-sm">
-                      <p>التوقيع: ...................................</p>
+                      <div className="relative inline-flex items-center justify-center">
+                        <p>التوقيع: ...................................</p>
+                        {executiveDirectorSignatureUrl && (
+                          <img
+                            src={executiveDirectorSignatureUrl}
+                            alt="توقيع الطرف الأول"
+                            className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none print:!block print:!visible print:!h-14"
+                          />
+                        )}
+                      </div>
                       <p>التاريخ: ...................................</p>
                     </div>
                     <p className="mt-4 text-xs text-gray-600 font-semibold">الختم / الطابع الرسمي</p>

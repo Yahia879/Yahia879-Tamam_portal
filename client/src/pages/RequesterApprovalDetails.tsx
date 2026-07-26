@@ -22,6 +22,7 @@ import {
   Maximize2,
   Minimize2,
   Edit,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -129,17 +130,23 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     }
   }, [user]);
 
+  const utils = trpc.useUtils();
+
   const toggleStatus = trpc.users.toggleStatus.useMutation({
-    onSuccess: (_, variables) => {
+    onSuccess: async (_, variables) => {
       toast.success(
         variables.status === "active"
           ? "تم اعتماد الحساب بنجاح"
           : "تم رفض/إيقاف الحساب بنجاح"
       );
-      refetch();
+      await Promise.all([
+        utils.users.getById.invalidate({ id: userId }),
+        utils.users.getAll.invalidate(),
+        refetch(),
+      ]);
     },
-    onError: () => {
-      toast.error("حدث خطأ أثناء تحديث الحساب");
+    onError: (err: any) => {
+      toast.error(err.message || "حدث خطأ أثناء تحديث الحساب");
     },
   });
 
@@ -530,14 +537,24 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           disabled={toggleStatus.isPending}
                           className="bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
-                          <CheckCircle2 className="w-4.5 h-4.5" />
-                          اعتماد الحساب
+                          {toggleStatus.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>جاري الاعتماد...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4.5 h-4.5" />
+                              <span>اعتماد الحساب</span>
+                            </>
+                          )}
                         </Button>
                       )}
 
                       {/* رفض الحساب (للحساب قيد المراجعة) */}
                       {user.status === "pending" && (
                         <Button
+                          disabled={toggleStatus.isPending}
                           onClick={() => {
                             setShowRejectForm(true);
                             setNotes(user.adminNotes || "");
@@ -556,8 +573,17 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                           disabled={toggleStatus.isPending}
                           className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-rose-600 dark:text-rose-455 border border-red-200/60 dark:border-red-900/30 font-bold gap-2 px-6 rounded-xl transition-all shadow-sm"
                         >
-                          <XCircle className="w-4.5 h-4.5" />
-                          إيقاف الحساب
+                          {toggleStatus.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>جاري الإيقاف...</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="w-4.5 h-4.5" />
+                              <span>إيقاف الحساب</span>
+                            </>
+                          )}
                         </Button>
                       )}
 
@@ -725,11 +751,16 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                             );
                           }}
                           disabled={toggleStatus.isPending}
-                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 rounded-xl transition-colors"
+                          className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-5 rounded-xl transition-colors gap-2"
                         >
-                          {toggleStatus.isPending 
-                            ? (user.status === "active" ? "جاري الإيقاف..." : "جاري الرفض...") 
-                            : (user.status === "active" ? "تأكيد إيقاف الحساب" : "تأكيد رفض الحساب")}
+                          {toggleStatus.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>{user.status === "active" ? "جاري الإيقاف..." : "جاري الرفض..."}</span>
+                            </>
+                          ) : (
+                            <span>{user.status === "active" ? "تأكيد إيقاف الحساب" : "تأكيد رفض الحساب"}</span>
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

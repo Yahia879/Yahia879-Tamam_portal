@@ -46,6 +46,7 @@ import {
   ChevronUp,
   FileSpreadsheet,
   LifeBuoy,
+  PenLine,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -163,7 +164,20 @@ export default function UserPermissions() {
 
   // معالجة النقر وتغيير الخيارات
   const handleTogglePermission = (permId: string) => {
-    
+    // حظر منح صلاحية توقيع العقود لغير المدير التنفيذي
+    if (permId === "contracts.sign") {
+      const isExecutiveDirector = 
+        (userData?.role as string) === "general_manager" || 
+        roleNameAr.includes("المدير التنفيذي");
+      
+      if (!isExecutiveDirector && !isChecked("contracts.sign")) {
+        toast.error("صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا المستخدم", {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!isChecked("mosques.view")) {
@@ -221,7 +235,7 @@ export default function UserPermissions() {
     }
 
     // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requests.") && permId !== "requests.view") {
+    if (permId.startsWith("requests.") && permId !== "requests.view" && permId !== "requests.sign_final_report") {
       if (!isChecked("requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
         return;
@@ -284,16 +298,9 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
-    if (permId === "disbursements.sign") {
-      if (!isChecked("disbursements.add") && !isChecked("disbursements.create_custom")) {
-        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("disbursements.") && permId !== "disbursements.view") {
+    if (permId.startsWith("disbursements.") && permId !== "disbursements.view" && permId !== "disbursements.sign") {
       if (!isChecked("disbursements.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
         return;
@@ -363,7 +370,14 @@ export default function UserPermissions() {
         if (permId === "staff_roles.view") cascadeRevoke("staff_roles.");
         if (permId === "staff_custom_roles.view") cascadeRevoke("staff_custom_roles.");
         if (permId === "services.view") cascadeRevoke("services.");
-        if (permId === "requests.view") cascadeRevoke("requests.");
+        if (permId === "requests.view") {
+          // cascade لكل صلاحيات الطلبات ما عدا توقيع التقرير الختامي (انتقلت لقسم التوقيع)
+          const allRequestPerms = structure?.flatMap(g => g.permissions).filter(p => p.id.startsWith("requests.") && p.id !== "requests.view" && p.id !== "requests.sign_final_report") || [];
+          allRequestPerms.forEach(p => {
+            const defVal = rolePermissions?.includes(p.id) || false;
+            if (defVal) { updated[p.id] = false; } else { delete updated[p.id]; }
+          });
+        }
         if (permId === "projects.view") cascadeRevoke("projects.");
         if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
@@ -383,20 +397,7 @@ export default function UserPermissions() {
           cascadeRevoke("disbursement_orders.");
         }
 
-        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أو 'انشاء طلب صرف لفرصة تبرع'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما
-        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
-          // تحقق من الحالة الفعلية بعد الإلغاء
-          const addActive = permId === "disbursements.add" ? false : (updated["disbursements.add"] !== undefined ? updated["disbursements.add"] : (rolePermissions?.includes("disbursements.add") || false));
-          const customActive = permId === "disbursements.create_custom" ? false : (updated["disbursements.create_custom"] !== undefined ? updated["disbursements.create_custom"] : (rolePermissions?.includes("disbursements.create_custom") || false));
-          if (!addActive && !customActive) {
-            const defSign = rolePermissions?.includes("disbursements.sign") || false;
-            if (defSign) {
-              updated["disbursements.sign"] = false;
-            } else {
-              delete updated["disbursements.sign"];
-            }
-          }
-        }
+
       }
 
       return updated;
@@ -533,6 +534,11 @@ export default function UserPermissions() {
         view: "عرض التقارير",
         intervene: "تدخل لرفع التقرير"
       },
+      signing: {
+        disbursements_sign: "توقيع طلبات الصرف",
+        contracts_sign: "توقيع العقود",
+        final_reports_sign: "توقيع التقارير الختامية",
+      },
       mosques: {
         view: "عرض قائمة المساجد",
         create: "إضافة مسجد جديد",
@@ -547,7 +553,6 @@ export default function UserPermissions() {
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
-        sign_final_report: "توقيع التقرير الختامي"
       },
       projects: {
         view: "عرض المشاريع",
@@ -577,6 +582,7 @@ export default function UserPermissions() {
       contracts: {
         view: "عرض العقود وقالب العقود",
         create: "إنشاء عقود",
+        approve: "اعتماد العقود",
         edit_approved: "تعديل العقود المعتمدة",
         template_add: "إضافة قالب للعقود",
         template_edit: "تعديل قالب العقد",
@@ -590,7 +596,6 @@ export default function UserPermissions() {
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
-        sign: "توقيع طلبات الصرف"
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
@@ -687,7 +692,7 @@ export default function UserPermissions() {
           id: "requests", 
           nameAr: "الطلبات", 
           icon: Zap, 
-          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"]
+          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"]
         },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
@@ -708,8 +713,8 @@ export default function UserPermissions() {
         { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
+        { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
+        { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
@@ -742,6 +747,17 @@ export default function UserPermissions() {
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
+      ]
+    },
+    {
+      title: "التوقيع",
+      modules: [
+        {
+          id: "signing",
+          nameAr: "صلاحيات التوقيع",
+          icon: PenLine,
+          perms: ["disbursements_sign", "contracts_sign", "final_reports_sign"]
+        }
       ]
     }
   ];
@@ -888,6 +904,14 @@ export default function UserPermissions() {
                     if (module.id === "technical_support") {
                       id = p === "view" ? "View_Tickets" : "Create_Ticket";
                     }
+                    if (module.id === "signing") {
+                      const signingIds: Record<string, string> = {
+                        disbursements_sign: "disbursements.sign",
+                        contracts_sign: "contracts.sign",
+                        final_reports_sign: "final_reports.sign",
+                      };
+                      id = signingIds[p] || id;
+                    }
                     return {
                       id,
                       nameAr: getDescriptiveLabel(module.id, p)
@@ -944,7 +968,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !isChecked("staff_roles.view")) ||
                               (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !isChecked("staff_custom_roles.view")) ||
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
-                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !isChecked("requests.view")) ||
+                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));

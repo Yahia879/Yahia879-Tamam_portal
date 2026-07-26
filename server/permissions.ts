@@ -153,6 +153,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "contracts.view": ["contracts.view"],
   "contracts.create": ["contracts.create"],
   "contracts.edit_approved": ["contracts.edit_approved", "contracts.view"],
+  "contracts.approve": ["contracts.approve", "contracts.view"],
   "contracts.template_add": ["contracts.create"],
   "contracts.template_edit": ["contracts.edit"],
   "contracts.template_delete": ["contracts.delete"],
@@ -479,6 +480,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "contracts.template_delete", moduleId: "settings", action: "template_delete", nameAr: "حذف قالب العقد", nameEn: "Delete Contract Template" },
       { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
       { id: "contracts.edit_approved", moduleId: "contracts", action: "edit_approved", nameAr: "تعديل العقود المعتمدة", nameEn: "Edit Approved Contracts" },
+      { id: "contracts.approve", moduleId: "contracts", action: "approve", nameAr: "اعتماد العقود", nameEn: "Approve Contracts" },
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
       { id: "disbursements.create", moduleId: "disbursements", action: "create", nameAr: "إنشاء طلبات الصرف", nameEn: "Create Disbursement Requests" },
       { id: "disbursements.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل طلبات الصرف", nameEn: "Edit Disbursement Requests" },
@@ -533,6 +535,9 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
       { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
+      { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
+      { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
+      { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
     ];
@@ -1198,6 +1203,14 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+      const isExecDirectorRole = input.id === "general_manager" || input.nameAr.includes("المدير التنفيذي");
+      if (!isExecDirectorRole && input.permissions.includes("contracts.sign")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور"
+        });
+      }
+
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
       await db.insert(roles).values({
         id: input.id,
@@ -1287,6 +1300,14 @@ export const permissionsRouter = router({
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
       if (!existingRole) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الدور غير موجود" });
+      }
+
+      const isExecDirectorRole = input.roleId === "general_manager" || (existingRole.nameAr || "").includes("المدير التنفيذي") || (input.nameAr || "").includes("المدير التنفيذي");
+      if (!isExecDirectorRole && input.permissions && input.permissions.includes("contracts.sign")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور"
+        });
       }
 
       // تحديث بيانات الدور (الاسم والوصف)
@@ -1763,6 +1784,17 @@ export const permissionsRouter = router({
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [targetUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, input.userId)).limit(1);
+      const isExecDirectorUser = targetUser && ((targetUser.role as string) === "general_manager");
+      
+      const hasContractsSign = input.permissions.some(p => p.permissionId === "contracts.sign" && p.granted);
+      if (hasContractsSign && !isExecDirectorUser) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا المستخدم"
+        });
+      }
 
       await ensureRequestsPermissionsExist(db);
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
-import { permissionProcedure } from "../permissions";
+import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import {
   organizationSettings,
@@ -24,8 +24,11 @@ import {
   contractModificationRequests,
   contractModificationLogs,
   requestHistory,
+  users,
+  userRoleAssignments,
+  roles,
 } from "../../drizzle/schema";
-import { eq, desc, and, or, sql, asc, ne } from "drizzle-orm";
+import { eq, desc, and, or, sql, asc, ne, isNull } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود
@@ -255,7 +258,72 @@ export const contractsRouter = router({
       }
       
       const { contract, signatory, projectName } = contractData;
-      
+
+      // جلب صورة وتفاصيل توقيع الطرف الأول (المدير التنفيذي حصرياً)
+      let firstPartySignatureUrl: string | null = signatory?.signatureUrl || null;
+      let firstPartySignatoryName: string | null = signatory?.name || null;
+      let firstPartySignatoryTitle: string | null = signatory?.title || null;
+
+      // إذا لم يكن هناك صورة توقيع رقمية في جدول المخولين (signatories)، نسحب التوقيع الرقمي من جدول المستخدمين (users) للمدير التنفيذي
+      if (!firstPartySignatureUrl) {
+        const potentialSigners = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            role: users.role,
+          })
+          .from(users)
+          .where(
+            and(
+              isNull(users.deletedAt),
+              sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
+              sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+            )
+          );
+
+        // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
+        let execDirector = potentialSigners.find(u => 
+          (u.role as string) === "general_manager" ||
+          u.email === "ceo@manarah.org.sa" ||
+          (u.signatureDepartment || "").includes("المدير التنفيذي") ||
+          (u.signatureName || "").includes("المدير التنفيذي") ||
+          (u.name || "").includes("المدير التنفيذي")
+        );
+
+        // إذا لم يُعثر بالاسم أو الإيميل، نفحص الدور المخصص للمستخدم في جدول userRoleAssignments
+        if (!execDirector) {
+          for (const u of potentialSigners) {
+            const [customRole] = await db
+              .select({ nameAr: roles.nameAr })
+              .from(userRoleAssignments)
+              .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+              .where(eq(userRoleAssignments.userId, u.id))
+              .limit(1);
+
+            if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
+              execDirector = u;
+              break;
+            }
+          }
+        }
+
+        // إذا لم يُعثر على مدير تنفيذي مخصص، نختار أول مستخدم يملك توقيع رقمي مفعل
+        if (!execDirector && potentialSigners.length > 0) {
+          execDirector = potentialSigners[0];
+        }
+
+        if (execDirector) {
+          if (!firstPartySignatoryName) firstPartySignatoryName = execDirector.signatureName || execDirector.name || "المدير التنفيذي";
+          if (!firstPartySignatoryTitle) firstPartySignatoryTitle = execDirector.signatureDepartment || "المدير التنفيذي";
+          firstPartySignatureUrl = execDirector.signatureUrl;
+        }
+      }
+
       // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
       let paymentsList: any[] = input.lightweight ? [] : await db
         .select()
@@ -314,6 +382,9 @@ export const contractsRouter = router({
         contract: {
           ...contract,
           signatory,
+          firstPartySignatoryName,
+          firstPartySignatoryTitle,
+          firstPartySignatureUrl,
           projectName: projectName || null,
           introTemplate: contractData.introTemplate || null,
         },
@@ -381,6 +452,8 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional().default(1),
+        status: z.enum(contractStatuses).optional(),
         
         // الدفعات (للتوافق مع الكود القديم)
         payments: z.array(
@@ -470,11 +543,12 @@ export const contractsRouter = router({
         signedDocumentUrl: null,
         approvedBy: null,
         approvedAt: null,
-        status: "draft",
+        status: input.status || "draft",
         createdBy: ctx.user.id,
         supportingEntity: input.supportingEntity ?? null,
         supportType: input.supportType ?? null,
         supportedAmount: input.supportedAmount ? String(input.supportedAmount) : null,
+        currentStep: input.currentStep ?? 1,
       };
       
       console.log('Contract data to insert:', JSON.stringify(contractData, null, 2));
@@ -609,6 +683,8 @@ export const contractsRouter = router({
         supportingEntity: z.string().optional(),
         supportType: z.string().optional(),
         supportedAmount: z.number().optional().nullable(),
+        currentStep: z.number().optional(),
+        status: z.enum(contractStatuses).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -638,6 +714,9 @@ export const contractsRouter = router({
       
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ
       const updates: Record<string, unknown> = { ...updateData };
+      if (input.status) {
+        updates.status = input.status;
+      }
       if (updateData.contractAmount) {
         updates.contractAmount = String(updateData.contractAmount);
         updates.contractAmountText = numberToArabicText(updateData.contractAmount);
@@ -698,11 +777,20 @@ export const contractsRouter = router({
             console.error("Error parsing customClausesJson in update:", e);
           }
         }
-        if (Array.isArray(parsedCustom) && parsedCustom.length > 0) {
+        // الحفاظ على customClausesJson كـ object إذا كان يحتوي على draftStep
+        if (parsedCustom !== null && typeof parsedCustom === 'object') {
           updates.customClausesJson = parsedCustom;
         } else {
           updates.customClausesJson = null;
         }
+      }
+
+      // حفظ الخطوة الحالية وحالة العقد صراحةً
+      if (input.currentStep !== undefined) {
+        updates.currentStep = input.currentStep;
+      }
+      if (input.status !== undefined) {
+        updates.status = input.status;
       }
       
       // التأكد من تحديث مفوض التوقيع بشكل صريح

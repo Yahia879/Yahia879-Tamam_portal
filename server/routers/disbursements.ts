@@ -17,6 +17,8 @@ import {
   donationOpportunities,
   mosqueRequests,
   mosques,
+  userRoleAssignments,
+  roles,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -205,6 +207,8 @@ export const disbursementsRouter = router({
           requestedByName: users.name,
           requestedBySignatureName: users.signatureName,
           requestedBySignatureDepartment: users.signatureDepartment,
+          requestedBySignatureUrl: users.signatureUrl,
+          requestedByShowSignature: users.showSignatureInDocuments,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -306,24 +310,82 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
 
-      // تحديد معلومات التوقيع: الأولوية للـ Snapshot المخزن بالطلب، وإلا الرجوع للملف الشخصي وصلاحية المستخدم الحالية (متوافق مع الطلبات القديمة)
       let resolvedSignatureName = request.creatorSignatureName;
       let resolvedSignatureDepartment = request.creatorSignatureDepartment;
+      let resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
 
       if (!resolvedSignatureName && !resolvedSignatureDepartment && request.requestedBy) {
         const creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
         if (creatorHasSignPermission) {
           resolvedSignatureName = request.requestedBySignatureName;
           resolvedSignatureDepartment = request.requestedBySignatureDepartment;
+          resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
         }
       }
 
       const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
+      // جلب صورة توقيع المدير التنفيذي / التوقيع المعتمد
+      let executiveDirectorSignatureUrl: string | null = null;
+      const potentialSigners = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+          showSignatureInDocuments: users.showSignatureInDocuments,
+          role: users.role,
+        })
+        .from(users)
+        .where(
+          and(
+            isNull(users.deletedAt),
+            sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
+            sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+          )
+        );
+
+      // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
+      let execDirector = potentialSigners.find(u => 
+        (u.role as string) === "general_manager" ||
+        u.email === "ceo@manarah.org.sa" ||
+        (u.signatureDepartment || "").includes("المدير التنفيذي") ||
+        (u.signatureName || "").includes("المدير التنفيذي") ||
+        (u.name || "").includes("المدير التنفيذي")
+      );
+
+      if (!execDirector) {
+        for (const u of potentialSigners) {
+          const [customRole] = await db
+            .select({ nameAr: roles.nameAr })
+            .from(userRoleAssignments)
+            .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+            .where(eq(userRoleAssignments.userId, u.id))
+            .limit(1);
+
+          if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
+            execDirector = u;
+            break;
+          }
+        }
+      }
+
+      if (!execDirector && potentialSigners.length > 0) {
+        execDirector = potentialSigners[0];
+      }
+
+      if (execDirector) {
+        executiveDirectorSignatureUrl = execDirector.signatureUrl;
+      }
+
       return {
         ...request,
         requestedBySignatureName: resolvedSignatureName,
         requestedBySignatureDepartment: resolvedSignatureDepartment,
+        requestedBySignatureUrl: resolvedSignatureUrl,
+        executiveDirectorSignatureUrl,
         creatorHasSignPermission: hasSignInfo,
         project,
         contract,

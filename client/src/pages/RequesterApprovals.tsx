@@ -58,6 +58,7 @@ import {
   X,
   Download,
   Info,
+  Loader2,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -116,22 +117,29 @@ export default function RequesterApprovals() {
 
   const pendingExceptionsCount = exceptionRequests.filter(e => e.exception.status === "pending").length;
 
+  const utils = trpc.useUtils();
+
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
     role: "service_requester",
     limit: 100, // جلب كمية كافية للمراجعة
   });
+
   const toggleStatus = trpc.users.toggleStatus.useMutation({
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       toast.success(
-        confirmAction?.action === "active"
+        variables.status === "active"
           ? "تم اعتماد الحساب بنجاح"
           : "تم إيقاف الحساب بنجاح"
       );
-      refetch();
+      await Promise.all([
+        utils.users.getAll.invalidate(),
+        utils.users.getById.invalidate({ id: variables.userId }),
+        refetch(),
+      ]);
       setConfirmAction(null);
     },
-    onError: () => {
-      toast.error("حدث خطأ أثناء تحديث الحساب");
+    onError: (err: any) => {
+      toast.error(err.message || "حدث خطأ أثناء تحديث الحساب");
     },
   });
 
@@ -600,7 +608,7 @@ export default function RequesterApprovals() {
 
 
       {/* نافذة تأكيد الإجراء */}
-      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !toggleStatus.isPending && setConfirmAction(open ? confirmAction : null)}>
         <AlertDialogContent className="w-[90vw] max-w-md rounded-2xl p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-right text-lg">
@@ -613,13 +621,21 @@ export default function RequesterApprovals() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6">
-            <AlertDialogAction
+            <Button
+              disabled={toggleStatus.isPending}
               onClick={confirmToggle}
-              className={`w-full sm:w-auto font-bold ${confirmAction?.action === "active" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
+              className={`w-full sm:w-auto font-bold gap-2 ${confirmAction?.action === "active" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
             >
-              {confirmAction?.action === "active" ? "نعم، اعتماد" : "نعم، إيقاف"}
-            </AlertDialogAction>
-            <AlertDialogCancel className="w-full sm:w-auto mt-0 font-medium">إلغاء</AlertDialogCancel>
+              {toggleStatus.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{confirmAction?.action === "active" ? "جاري الاعتماد..." : "جاري الإيقاف..."}</span>
+                </>
+              ) : (
+                confirmAction?.action === "active" ? "نعم، اعتماد" : "نعم، إيقاف"
+              )}
+            </Button>
+            <AlertDialogCancel disabled={toggleStatus.isPending} className="w-full sm:w-auto mt-0 font-medium">إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

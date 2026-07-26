@@ -39,7 +39,8 @@ import {
   Save,
   Bell,
   FileSpreadsheet,
-  LifeBuoy
+  LifeBuoy,
+  PenLine
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -51,7 +52,7 @@ const superAdminGroups = [
     modules: [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-      { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "sign_final_report"] },
+      { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
       { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
     ]
@@ -71,9 +72,20 @@ const superAdminGroups = [
       { id: "boq", nameAr: "إعداد جداول الكميات", icon: FileSpreadsheet, perms: ["add", "edit", "delete"] },
       { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
       { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
-      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "sign"] },
+      { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
+      { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom"] },
       { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "approve", "reject", "create_direct"] },
+    ]
+  },
+  {
+    title: "التوقيع",
+    modules: [
+      {
+        id: "signing",
+        nameAr: "صلاحيات التوقيع",
+        icon: PenLine,
+        perms: ["disbursements_sign", "contracts_sign", "final_reports_sign"]
+      }
     ]
   },
   {
@@ -114,6 +126,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض التقارير",
       intervene: "تدخل لرفع التقرير"
     },
+    signing: {
+      disbursements_sign: "توقيع طلبات الصرف",
+      contracts_sign: "توقيع العقود",
+      final_reports_sign: "توقيع التقارير الختامية",
+    },
     mosques: {
       view: "عرض المساجد",
       create: "إضافة مسجد",
@@ -128,8 +145,10 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       create: "إضافة طلب",
       view_details: "عرض تفاصيل الطلب وإدارته",
       manage_as_field_team: "ادارة الطلبات كفريق ميداني",
-      sign_final_report: "توقيع التقرير الختامي"
+      manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
+      upload_final_report: "رفع التقرير الختامي"
     },
+
     projects: {
       view: "عرض المشاريع",
       view_details: "عرض تفاصيل المشروع وادارته",
@@ -167,6 +186,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     contracts: {
       view: "عرض العقود وقالب العقود",
       create: "إنشاء عقود",
+      approve: "اعتماد العقود",
       edit_approved: "تعديل العقود المعتمدة",
       template_add: "إضافة قالب للعقود",
       template_edit: "تعديل قالب العقد",
@@ -180,7 +200,6 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       delete: "حذف طلب صرف",
       approve: "اعتماد طلبات الصرف",
       create_custom: "انشاء طلبات صرف مخصصة",
-      sign: "توقيع طلبات الصرف"
     },
     disbursement_orders: {
       view: "عرض أوامر الصرف",
@@ -347,7 +366,14 @@ export default function RoleEdit() {
       toast.error("يرجى إدخال اسم الدور المخصص");
       return;
     }
-    if (selectedPerms.length === 0) {
+
+    const isExecutiveDirector = roleId === "general_manager" || nameAr.trim().includes("المدير التنفيذي");
+    let finalPerms = selectedPerms;
+    if (!isExecutiveDirector && finalPerms.includes("contracts.sign")) {
+      finalPerms = finalPerms.filter(p => p !== "contracts.sign");
+    }
+
+    if (finalPerms.length === 0) {
       toast.error("يرجى تحديد صلاحية واحدة على الأقل");
       return;
     }
@@ -358,19 +384,33 @@ export default function RoleEdit() {
         id,
         nameAr: nameAr.trim(),
         nameEn: nameAr.trim(),
-        description: JSON.stringify(selectedPerms),
-        permissions: selectedPerms,
+        description: JSON.stringify(finalPerms),
+        permissions: finalPerms,
       });
     } else if (roleId) {
       updateRoleMutation.mutate({
         roleId,
         nameAr: nameAr.trim(),
-        permissions: selectedPerms,
+        permissions: finalPerms,
       });
     }
   };
 
   const handleTogglePermission = (permId: string) => {
+    // حظر منح صلاحية توقيع العقود لغير المدير التنفيذي
+    if (permId === "contracts.sign") {
+      const isExecutiveDirector = 
+        roleId === "general_manager" || 
+        nameAr.trim().includes("المدير التنفيذي");
+      
+      if (!isExecutiveDirector && !selectedPerms.includes("contracts.sign")) {
+        toast.error("صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور", {
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!selectedPerms.includes("mosques.view")) {
@@ -428,7 +468,7 @@ export default function RoleEdit() {
     }
 
     // منع تفعيل أي صلاحية فرعية للطلبات إذا كانت صلاحية العرض معطلة
-    if (permId.startsWith("requests.") && permId !== "requests.view") {
+    if (permId.startsWith("requests.") && permId !== "requests.view" && permId !== "requests.sign_final_report") {
       if (!selectedPerms.includes("requests.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض كافة الطلبات' أولاً");
         return;
@@ -491,16 +531,9 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل صلاحية توقيع طلبات الصرف إلا إذا كانت صلاحية إنشاء طلب صرف أو انشاء طلبات صرف مخصصة مفعلة
-    if (permId === "disbursements.sign") {
-      if (!selectedPerms.includes("disbursements.add") && !selectedPerms.includes("disbursements.create_custom")) {
-        toast.warning("يجب تفعيل صلاحية 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة' أولاً");
-        return;
-      }
-    }
 
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("disbursements.") && permId !== "disbursements.view") {
+    if (permId.startsWith("disbursements.") && permId !== "disbursements.view" && permId !== "disbursements.sign") {
       if (!selectedPerms.includes("disbursements.view")) {
         toast.warning("يجب تفعيل صلاحية 'عرض طلبات الصرف' أولاً");
         return;
@@ -542,7 +575,8 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("services."));
         }
         if (permId === "requests.view") {
-          next = next.filter(id => !id.startsWith("requests."));
+          // cascade لكل صلاحيات الطلبات ما عدا توقيع التقرير الختامي (انتقلت لقسم التوقيع)
+          next = next.filter(id => !id.startsWith("requests.") || id === "requests.sign_final_report");
         }
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
@@ -570,14 +604,7 @@ export default function RoleEdit() {
           next = next.filter(id => !id.startsWith("disbursement_orders."));
         }
 
-        // عند إلغاء تفعيل 'إنشاء طلب صرف' أو 'انشاء طلبات صرف مخصصة'، نقوم بإلغاء 'توقيع طلبات الصرف' إذا لم تبقَ أي منهما مفعلة
-        if (permId === "disbursements.add" || permId === "disbursements.create_custom") {
-          const remainingAdd = permId === "disbursements.add" ? false : next.includes("disbursements.add");
-          const remainingCustom = permId === "disbursements.create_custom" ? false : next.includes("disbursements.create_custom");
-          if (!remainingAdd && !remainingCustom) {
-            next = next.filter(id => id !== "disbursements.sign");
-          }
-        }
+
         return next;
       } else {
         let next = [...prev, permId];
@@ -629,6 +656,15 @@ export default function RoleEdit() {
           let id = `${m.id}.${p}`;
           if (m.id === "technical_support") {
             id = p === "view" ? "View_Tickets" : "Create_Ticket";
+          }
+          // Signing module: use explicit full permission IDs
+          if (m.id === "signing") {
+            const signingIds: Record<string, string> = {
+              disbursements_sign: "disbursements.sign",
+              contracts_sign: "contracts.sign",
+              final_reports_sign: "final_reports.sign",
+            };
+            id = signingIds[p] || id;
           }
           return {
             id,
@@ -778,7 +814,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("staff_roles.") && perm.id !== "staff_roles.view" && !selectedPerms.includes("staff_roles.view")) ||
                               (perm.id.startsWith("staff_custom_roles.") && perm.id !== "staff_custom_roles.view" && !selectedPerms.includes("staff_custom_roles.view")) ||
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
-                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && !selectedPerms.includes("requests.view")) ||
+                              (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
