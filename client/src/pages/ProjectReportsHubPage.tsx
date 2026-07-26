@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { 
   FileText, 
   Clock, 
@@ -21,20 +27,18 @@ import {
   BarChart3, 
   MapPin, 
   Plus, 
-  ArrowLeft,
-  Search,
   Printer,
   Eye,
-  CheckCircle2,
-  AlertTriangle,
-  Layers,
-  Sparkles,
-  FileCheck,
-  RefreshCw
+  MoreVertical,
+  Edit,
+  Sparkles
 } from "lucide-react";
+import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedReportForPreview, setSelectedReportForPreview] = useState<any>(null);
 
   const { data: dbReports, refetch: refetchReports } = trpc.progressReports.list.useQuery();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation({
@@ -47,12 +51,10 @@ export default function ProjectReportsHubPage() {
     }
   });
 
-
-
   const reports = useMemo(() => {
     if (!dbReports) return [];
     return dbReports.map((r) => {
-      let typeKey = "semi-monthly";
+      let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" = "semi-monthly";
       let typeLabel = "تقرير نصف شهري";
       
       const titleLower = r.title.toLowerCase();
@@ -103,6 +105,7 @@ export default function ProjectReportsHubPage() {
         date: r.reportDate ? String(r.reportDate).split("T")[0] : "",
         rag: ragLabel,
         status: statusLabel,
+        raw: r,
       };
     });
   }, [dbReports]);
@@ -118,120 +121,159 @@ export default function ProjectReportsHubPage() {
   }, [reports]);
 
   const handleUpdateReportStatus = (id: number, newStatus: string) => {
-    let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-    if (newStatus === "تم الاطلاع") {
-      statusEnum = "submitted";
-    } else if (newStatus === "معتمد") {
-      statusEnum = "approved";
-    }
-    updateStatusMutation.mutate({ id, status: statusEnum });
+    let dbStatus: "draft" | "submitted" | "approved" | "reviewed" = "draft";
+    if (newStatus === "تم الاطلاع") dbStatus = "submitted";
+    if (newStatus === "معتمد") dbStatus = "approved";
+
+    updateStatusMutation.mutate({
+      id,
+      status: dbStatus,
+    });
+  };
+
+  const handleOpenPreviewModal = (reportItem: any) => {
+    const raw = reportItem.raw || {};
+    setSelectedReportForPreview({
+      reportType: reportItem.typeKey,
+      reportTitle: reportItem.title,
+      data: {
+        id: reportItem.id,
+        reportNumber: reportItem.reportNumber || `REP-${reportItem.id}`,
+        reportDate: reportItem.date,
+        status: reportItem.status,
+        projectName: reportItem.project,
+        projectManager: raw.createdByName || "مدير المشروع",
+        ownerDepartment: "إدارة المشاريع",
+        plannedProgress: raw.plannedProgress ?? 0,
+        actualProgress: raw.actualProgress ?? 0,
+        ragStatus: reportItem.rag,
+        milestones: raw.milestones ? (typeof raw.milestones === "string" ? JSON.parse(raw.milestones) : raw.milestones) : [],
+        challenges: raw.challenges || raw.risks || "",
+        recommendations: raw.recommendations || "",
+        notes: raw.workSummary || raw.notes || "",
+        periodFrom: raw.startDate ? String(raw.startDate).split("T")[0] : "",
+        periodTo: raw.endDate ? String(raw.endDate).split("T")[0] : "",
+      }
+    });
+    setPreviewModalOpen(true);
   };
 
   const filteredReports = useMemo(() => {
-    return filterType === "all"
-      ? reports
-      : reports.filter((r) => r.typeKey === filterType);
+    if (filterType === "all") return reports;
+    return reports.filter((r) => r.typeKey === filterType);
   }, [reports, filterType]);
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        {/* Title Block */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm">إنشاء ومتابعة التقارير الدورية والزيارات الميدانية للمشاريع</p>
+      <div className="w-full space-y-6 animate-in fade-in duration-300" dir="rtl">
+        {/* Header Block with New Report Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-600/10 border border-teal-600/20 text-teal-600 flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">مركز تقارير المشاريع</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">استعراض ومتابعة وتعبئة التقارير النصف شهرية والشهرية والربعية والزيارات الميدانية</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="flex items-center gap-2">
             <Link href="/project-reports/new">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white gap-2 h-10 px-4 font-bold shadow-sm">
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-sm flex items-center gap-2">
                 <Plus className="w-4 h-4" />
-                تقرير جديد
+                <span>تقرير جديد</span>
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* 4 Pure Statistics Cards Grid (Non-clickable) */}
+        {/* 4 Pure Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Semi-Monthly */}
-          <Card className="border border-border/80 shadow-2xs bg-card">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground">تقارير نصف شهرية</p>
-                <p className="text-2xl font-extrabold text-foreground">{stats.semiMonthly}</p>
-                <span className="text-[11px] text-amber-600 font-semibold block">إجمالي المسجلة</span>
+          {/* Card 1: Semi-monthly */}
+          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground">التقارير النصف شهرية</span>
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400 flex items-center justify-center">
+                <Clock className="w-4 h-4" />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-2xl font-black text-foreground">{stats.semiMonthly}</span>
+              <span className="text-[11px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-950 px-2 py-0.5 rounded-full">كل أسبوعين</span>
+            </div>
+          </div>
 
           {/* Card 2: Monthly */}
-          <Card className="border border-border/80 shadow-2xs bg-card">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground">تقارير شهرية</p>
-                <p className="text-2xl font-extrabold text-foreground">{stats.monthly}</p>
-                <span className="text-[11px] text-teal-600 font-semibold block">إجمالي المسجلة</span>
+          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground">التقارير الشهرية</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400 flex items-center justify-center">
+                <Calendar className="w-4 h-4" />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
-                <Calendar className="w-6 h-6 text-teal-600" />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-2xl font-black text-foreground">{stats.monthly}</span>
+              <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 dark:bg-blue-950 px-2 py-0.5 rounded-full">شهرياً</span>
+            </div>
+          </div>
 
           {/* Card 3: Quarterly */}
-          <Card className="border border-border/80 shadow-2xs bg-card">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground">تقارير ربعية</p>
-                <p className="text-2xl font-extrabold text-foreground">{stats.quarterly}</p>
-                <span className="text-[11px] text-blue-600 font-semibold block">إجمالي المسجلة</span>
+          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground">التقارير الربعية</span>
+              <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4" />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-2xl font-black text-foreground">{stats.quarterly}</span>
+              <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 rounded-full">كل 3 أشهر</span>
+            </div>
+          </div>
 
-          {/* Card 4: Visit */}
-          <Card className="border border-border/80 shadow-2xs bg-card">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground">تقارير زيارات ميدانية</p>
-                <p className="text-2xl font-extrabold text-foreground">{stats.visit}</p>
-                <span className="text-[11px] text-purple-600 font-semibold block">إجمالي المسجلة</span>
+          {/* Card 4: Visits */}
+          <div className="p-4 rounded-xl border border-border/80 bg-white dark:bg-slate-900 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-muted-foreground">تقارير الزيارات الميدانية</span>
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400 flex items-center justify-center">
+                <MapPin className="w-4 h-4" />
               </div>
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                <MapPin className="w-6 h-6 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-baseline justify-between pt-1">
+              <span className="text-2xl font-black text-foreground">{stats.visit}</span>
+              <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950 px-2 py-0.5 rounded-full">توثيق ميداني</span>
+            </div>
+          </div>
         </div>
-        <Card className="border-border/80 shadow-xs">
-          <CardHeader className="pb-3 border-b border-border/60">
+
+        {/* Main Table Card */}
+        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b border-border/60 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-base font-bold text-foreground">التقارير السابقة المرفوعة</CardTitle>
-                <CardDescription className="text-xs mt-0.5">سجل تقارير المشاريع وحالاتها</CardDescription>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-teal-600" />
+                  قائمة تقارير المشاريع
+                </CardTitle>
+                <CardDescription className="text-xs">سجل كافة تقارير المتابعة والزيارات الميدانية مع الحالة ومؤشر RAG</CardDescription>
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60 self-start sm:self-auto overflow-x-auto">
                 <Button
                   variant={filterType === "all" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("all")}
-                  className="h-8 text-xs rounded-lg"
+                  className="h-8 text-xs rounded-lg font-bold"
                 >
-                  الكل
+                  الكل ({stats.total})
                 </Button>
                 <Button
                   variant={filterType === "semi-monthly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("semi-monthly")}
-                  className="h-8 text-xs rounded-lg"
+                  className="h-8 text-xs rounded-lg font-semibold"
                 >
                   نصف شهري
                 </Button>
@@ -239,7 +281,7 @@ export default function ProjectReportsHubPage() {
                   variant={filterType === "monthly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("monthly")}
-                  className="h-8 text-xs rounded-lg"
+                  className="h-8 text-xs rounded-lg font-semibold"
                 >
                   شهري
                 </Button>
@@ -247,7 +289,7 @@ export default function ProjectReportsHubPage() {
                   variant={filterType === "quarterly" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("quarterly")}
-                  className="h-8 text-xs rounded-lg"
+                  className="h-8 text-xs rounded-lg font-semibold"
                 >
                   ربعي
                 </Button>
@@ -255,7 +297,7 @@ export default function ProjectReportsHubPage() {
                   variant={filterType === "visit" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setFilterType("visit")}
-                  className="h-8 text-xs rounded-lg"
+                  className="h-8 text-xs rounded-lg font-semibold"
                 >
                   زيارة
                 </Button>
@@ -311,12 +353,28 @@ export default function ProjectReportsHubPage() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Link href={`/project-reports/${report.typeKey}`}>
-                        <Button variant="ghost" size="sm" className="h-8 text-xs text-teal-600 gap-1">
-                          <Eye className="w-3.5 h-3.5" />
-                          عرض/تعديل
-                        </Button>
-                      </Link>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-700 hover:text-teal-700 hover:bg-teal-50 dark:hover:bg-teal-950/50 mx-auto">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="text-right text-xs">
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenPreviewModal(report)} 
+                            className="gap-2 cursor-pointer font-bold text-teal-700"
+                          >
+                            <Printer className="w-4 h-4 text-teal-600" />
+                            معاينة وطباعة التقرير (PDF)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/project-reports/${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full">
+                              <Edit className="w-4 h-4 text-muted-foreground" />
+                              <span>تعديل التقرير</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -324,6 +382,17 @@ export default function ProjectReportsHubPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Print & PDF Preview Modal */}
+        {selectedReportForPreview && (
+          <ReportPrintPreviewModal
+            isOpen={previewModalOpen}
+            onClose={() => setPreviewModalOpen(false)}
+            reportType={selectedReportForPreview.reportType}
+            reportTitle={selectedReportForPreview.reportTitle}
+            data={selectedReportForPreview.data}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
