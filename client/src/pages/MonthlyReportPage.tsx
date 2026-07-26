@@ -30,14 +30,21 @@ export default function MonthlyReportPage() {
       return dbProjectsData.map((p: any) => {
         const rawStage = p.requestStage || p.status || "execution";
         const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
+        let parsedMilestones: any[] = [];
+        if (p.milestones) {
+          try {
+            parsedMilestones = typeof p.milestones === "string" ? JSON.parse(p.milestones) : p.milestones;
+          } catch {}
+        }
         return {
           id: String(p.id),
           name: p.name || `مشروع رقم ${p.projectNumber}`,
           manager: p.managerName || "غير محدد",
           department: "إدارة المشاريع",
           currentPhase: arabicPhase,
-          plannedProgress: 80,
-          actualProgress: p.completionPercentage || 0,
+          plannedProgress: p.plannedProgress ?? 0,
+          actualProgress: p.completionPercentage ?? 0,
+          milestones: parsedMilestones,
         };
       });
     }
@@ -100,8 +107,8 @@ export default function MonthlyReportPage() {
     ) || null;
   }, [availableSemiReports, selectedSemi]);
 
-  const [plannedProgress, setPlannedProgress] = useState<number>(75);
-  const [actualProgress, setActualProgress] = useState<number>(70);
+  const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
+  const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
   const ragStatus = useMemo(() => {
@@ -110,10 +117,7 @@ export default function MonthlyReportPage() {
     return "أحمر";
   }, [gap]);
 
-  const [milestones, setMilestones] = useState<Record<string, any>[]>([
-    { title: "إنهاء أعمال الهيكل الخرساني", dueDate: "2026-06-15", status: "منجز" },
-    { title: "تركيب تمديدات التكييف المركزي", dueDate: "2026-07-20", status: "جارٍ" },
-  ]);
+  const [milestones, setMilestones] = useState<Record<string, any>[]>(projectOptions[0]?.milestones || []);
 
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
@@ -165,8 +169,24 @@ export default function MonthlyReportPage() {
       setCurrentPhase(proj.currentPhase);
       if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
+      if (proj.milestones && Array.isArray(proj.milestones)) {
+        setMilestones(proj.milestones);
+      }
     }
   };
+
+  useEffect(() => {
+    const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+    if (proj) {
+      if (proj.manager) setProjectManager(proj.manager);
+      if (proj.currentPhase) setCurrentPhase(proj.currentPhase);
+      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
+      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
+      if (proj.milestones && Array.isArray(proj.milestones)) {
+        setMilestones(proj.milestones);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
 
 
 
