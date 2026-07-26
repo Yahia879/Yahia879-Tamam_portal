@@ -203,14 +203,6 @@ export default function ProjectReportsHubPage() {
               </div>
             </CardContent>
           </Card>
-        </div>k">زيارة ميدانية (8 حقول)</span>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                  <MapPin className="w-5 h-5 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
         <Card className="border-border/80 shadow-xs">
           <CardHeader className="pb-3 border-b border-border/60">
