@@ -93,31 +93,31 @@ export default function ProjectProgressMilestonesTab({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* قسم الإنجاز المخطط - سطر واحد مضغوط */}
-      <Card className="border-border/80 shadow-2xs">
-        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-600 flex items-center justify-center shrink-0">
-              <Target className="w-5 h-5" />
-            </div>
+      {/* قسم الإنجاز المخطط */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="pb-3 border-b border-border/60">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-teal-600" />
             <div>
-              <h3 className="text-sm font-bold text-foreground">خطة نسبة الإنجاز المخطط للمشروع</h3>
-              <p className="text-[11px] text-muted-foreground">تحديد النسبة المخططة من الجدول الزمني الإجمالي لتنعكس تلقائياً في التقارير</p>
+              <CardTitle className="text-base font-bold">خطة نسبة الإنجاز المخطط</CardTitle>
+              <CardDescription className="text-xs">تحديد نسبة الإنجاز المخططة للمشروع لتنعكس تلقائياً في التقارير الدوريّة</CardDescription>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/60">
-            <Label className="text-xs font-bold text-foreground whitespace-nowrap">نسبة الإنجاز المخطط:</Label>
-            <div className="flex items-center gap-1">
+        </CardHeader>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center gap-3">
+            <Label className="text-xs font-bold text-foreground whitespace-nowrap">نسبة الإنجاز المخطط (%):</Label>
+            <div className="flex items-center gap-1.5">
               <Input
                 type="number"
                 min={0}
                 max={100}
                 value={plannedProgress}
                 onChange={(e) => setPlannedProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
-                className="h-8 w-16 text-center text-xs font-extrabold text-teal-700 bg-background border-border/80 p-1"
+                placeholder="0"
+                className="h-9 w-24 text-center text-sm font-bold border-border/80 text-teal-700 bg-background"
               />
-              <span className="text-xs font-extrabold text-teal-700">%</span>
+              <span className="text-sm font-extrabold text-teal-700">%</span>
             </div>
           </div>
         </CardContent>
