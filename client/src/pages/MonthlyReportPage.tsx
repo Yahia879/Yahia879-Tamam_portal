@@ -15,7 +15,7 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw } from "lucide-react";
+import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye } from "lucide-react";
 
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -181,7 +181,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
 
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (overrideStatus?: string) => {
+    const finalStatus = overrideStatus || reportStatus || "مسودة";
     if (!selectedProjectId) {
       toast.error("يرجى اختيار المشروع أولاً من القائمة قبل حفظ التقرير");
       return;
@@ -201,20 +202,18 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
       });
 
-      if (reportStatus !== "مسودة") {
-        let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-        if (reportStatus === "تم الاطلاع") {
-          statusEnum = "submitted";
-        } else if (reportStatus === "معتمد") {
-          statusEnum = "approved";
-        }
-        await updateStatusMutation.mutateAsync({
-          id: res.id,
-          status: statusEnum,
-        });
+      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+      if (finalStatus === "تم الاطلاع") {
+        statusEnum = "submitted";
+      } else if (finalStatus === "معتمد") {
+        statusEnum = "approved";
       }
+      await updateStatusMutation.mutateAsync({
+        id: res.id,
+        status: statusEnum,
+      });
 
-      toast.success(`تم حفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
+      toast.success(finalStatus === "مسودة" ? `تم حفظ التقرير كمسودة - رقم التقرير ${res.reportNumber}` : `تم اعتماد وحفظ التقرير بنجاح - رقم التقرير ${res.reportNumber}`);
       setLocation("/project-reports");
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ أثناء حفظ التقرير");
@@ -568,6 +567,42 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
             </CardContent>
           </Card>
+
+          {/* Footer Action Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPreviewModal(true)}
+                className="gap-2 text-xs font-semibold w-full sm:w-auto"
+              >
+                <Eye className="w-4 h-4 text-teal-600" />
+                معاينة وطباعة التقرير (PDF)
+              </Button>
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={() => handleSaveDraft("مسودة")}
+                className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex-1 sm:flex-initial"
+              >
+                <Save className="w-4 h-4" />
+                حفظ كمسودة
+              </Button>
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleSaveDraft("معتمد")}
+                className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white flex-1 sm:flex-initial"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                حفظ واعتتماد التقرير
+              </Button>
+            </div>
+          </div>
         </div>
 
         <ReportPrintPreviewModal
