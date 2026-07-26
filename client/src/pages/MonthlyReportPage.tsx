@@ -213,6 +213,35 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
     try {
       setIsSubmitting(true);
+      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+      if (finalStatus === "تم الاطلاع") {
+        statusEnum = "submitted";
+      } else if (finalStatus === "معتمد") {
+        statusEnum = "approved";
+      }
+
+      if (editId) {
+        await updateMutation.mutateAsync({
+          id: editId,
+          title: `التقرير الشهري - ${selectedProjName}`,
+          plannedProgress: plannedProgress,
+          actualProgress: actualProgress,
+          overallProgress: actualProgress,
+          challenges: `شهر/سنة: ${monthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+          recommendations: `المرحلة الحالية: ${currentPhase}`,
+          workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
+        });
+
+        await updateStatusMutation.mutateAsync({
+          id: editId,
+          status: statusEnum,
+        });
+
+        toast.success(finalStatus === "مسودة" ? "تم تحديث مسودة التقرير بنجاح" : "تم إكمال واعتماد التقرير بنجاح");
+        setLocation("/project-reports");
+        return;
+      }
+
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `التقرير الشهري - ${selectedProjName}`,
@@ -225,12 +254,6 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
       });
 
-      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-      if (finalStatus === "تم الاطلاع") {
-        statusEnum = "submitted";
-      } else if (finalStatus === "معتمد") {
-        statusEnum = "approved";
-      }
       await updateStatusMutation.mutateAsync({
         id: res.id,
         status: statusEnum,
