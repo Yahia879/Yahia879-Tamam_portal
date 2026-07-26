@@ -137,8 +137,8 @@ function SignatoriesSection() {
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.title || !formData.email || !formData.address || !formData.phone) {
-      toast.error("يرجى إدخال الحقول المطلوبة (الاسم، المنصب، الجوال، البريد، العنوان)");
+    if (!formData.name || !formData.title) {
+      toast.error("يرجى إدخال الحقول المطلوبة (اسم المفوض والمنصب)");
       return;
     }
 
@@ -188,6 +188,7 @@ function SignatoriesSection() {
                     <TableHead className="text-right">المنصب</TableHead>
                     <TableHead className="text-right whitespace-nowrap">رقم الهوية</TableHead>
                     <TableHead className="text-right">الجوال</TableHead>
+                    <TableHead className="text-right">البريد الإلكتروني</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
@@ -199,6 +200,7 @@ function SignatoriesSection() {
                       <TableCell className="text-right">{signatory.title}</TableCell>
                       <TableCell className="text-right">{signatory.nationalId || "-"}</TableCell>
                       <TableCell className="text-right">{signatory.phone || "-"}</TableCell>
+                      <TableCell className="text-right">{signatory.email || "-"}</TableCell>
                       <TableCell className="text-right">
                         {signatory.isDefault ? (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-bold border-0">

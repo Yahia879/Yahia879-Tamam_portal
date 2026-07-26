@@ -742,6 +742,7 @@ export default function ProjectDetailsPage() {
               projectId={project.id}
               initialPlannedProgress={project.plannedProgress}
               actualProgress={project.completionPercentage}
+              initialStartDate={project.startDate}
               initialMilestones={project.milestones}
               onSaveSuccess={refetch}
             />

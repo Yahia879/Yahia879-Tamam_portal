@@ -1709,10 +1709,12 @@ export const projectsRouter = router({
         id: z.number(),
         plannedProgress: z.number().min(0).max(100).optional(),
         completionPercentage: z.number().min(0).max(100).optional(),
+        actualStartDate: z.string().optional(),
         milestones: z.array(
           z.object({
             title: z.string(),
             dueDate: z.string().optional(),
+            actualStartDate: z.string().optional(),
             status: z.string().optional(),
           })
         ).optional(),
@@ -1728,6 +1730,9 @@ export const projectsRouter = router({
       }
       if (input.completionPercentage !== undefined) {
         updateData.completionPercentage = input.completionPercentage;
+      }
+      if (input.actualStartDate !== undefined && input.actualStartDate.trim() !== "") {
+        updateData.startDate = new Date(input.actualStartDate);
       }
       if (input.milestones !== undefined) {
         updateData.milestones = JSON.stringify(input.milestones);
