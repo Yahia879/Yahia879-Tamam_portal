@@ -18,7 +18,17 @@ import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target, Save, P
 export default function VisitReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
+  const updateMutation = trpc.progressReports.update.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const editIdParam = searchParams.get("editId");
+  const editId = editIdParam ? parseInt(editIdParam, 10) : undefined;
+
+  const { data: existingReport } = trpc.progressReports.getById.useQuery(
+    { id: editId || 0 },
+    { enabled: !!editId }
+  );
 
   const { user } = useAuth();
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
@@ -42,6 +52,14 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
   );
   const [notes, setNotes] = useState<string>("");
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+
+  useEffect(() => {
+    if (existingReport) {
+      if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
+      if (existingReport.challenges) setNotes(existingReport.challenges.replace(/^الملاحظات:\s*/, ""));
+      if (existingReport.reportDate) setVisitDate(String(existingReport.reportDate).split("T")[0]);
+    }
+  }, [existingReport]);
 
   const [purpose, setPurpose] = useState<"للاطلاع" | "لاتخاذ قرار">("للاطلاع");
   const [submittedTo, setSubmittedTo] = useState<string>("إدارة المشاريع الإنشائية والهندسية");
@@ -68,6 +86,32 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
 
     try {
       setIsSubmitting(true);
+      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
+      if (finalStatus === "تم الاطلاع") {
+        statusEnum = "submitted";
+      } else if (finalStatus === "معتمد") {
+        statusEnum = "approved";
+      }
+
+      if (editId) {
+        await updateMutation.mutateAsync({
+          id: editId,
+          title: `تقرير زيارة - ${selectedProjName}`,
+          challenges: `الملاحظات: ${notes}`,
+          recommendations: `الغرض: ${purpose}\nالمرسل إليه: ${submittedTo}\nاسم الزائر: ${visitorName}`,
+          workSummary: `الزيارة الميدانية التفقدية`,
+        });
+
+        await updateStatusMutation.mutateAsync({
+          id: editId,
+          status: statusEnum,
+        });
+
+        toast.success(finalStatus === "مسودة" ? "تم تحديث مسودة التقرير بنجاح" : "تم إكمال واعتماد التقرير بنجاح");
+        setLocation("/project-reports");
+        return;
+      }
+
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `تقرير زيارة - ${selectedProjName}`,
@@ -80,12 +124,6 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
         workSummary: `الزيارة الميدانية التفقدية`,
       });
 
-      let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
-      if (finalStatus === "تم الاطلاع") {
-        statusEnum = "submitted";
-      } else if (finalStatus === "معتمد") {
-        statusEnum = "approved";
-      }
       await updateStatusMutation.mutateAsync({
         id: res.id,
         status: statusEnum,
