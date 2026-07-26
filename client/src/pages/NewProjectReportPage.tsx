@@ -123,77 +123,79 @@ export default function NewProjectReportPage() {
 
         {/* Exact Card Design matching /disbursements/new-linked */}
         {currentStep === 1 ? (
-          <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-              <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                <Layers className="h-4.5 w-4.5 text-teal-600" />
-                الخطوة 1: اختيار نوع التقرير
-              </CardTitle>
-              <CardDescription className="text-right text-xs text-muted-foreground">
-                حدد نوع التقرير المناسب للمتابعة إلى تعبئة البيانات والملاحظات
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 pt-6 text-right">
-              <div className="space-y-3 pb-2 border-b border-border/40">
-                <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-teal-600" />
-                  نوع التقرير *
-                </Label>
+          <div className="max-w-4xl mx-auto w-full">
+            <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                  <Layers className="h-4.5 w-4.5 text-teal-600" />
+                  الخطوة 1: اختيار نوع التقرير
+                </CardTitle>
+                <CardDescription className="text-right text-xs text-muted-foreground">
+                  حدد نوع التقرير المناسب للمتابعة إلى تعبئة البيانات والملاحظات
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6 text-right">
+                <div className="space-y-3 pb-2 border-b border-border/40">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-teal-600" />
+                    نوع التقرير *
+                  </Label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {reportTypes.map((item) => {
-                    const Icon = item.icon;
-                    const isSelected = selectedType === item.key;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setSelectedType(item.key)}
-                        className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                          isSelected
-                            ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
-                            : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                        }`}
-                      >
-                        <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                          isSelected
-                            ? "bg-teal-600 text-white"
-                            : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-400 group-hover:bg-teal-200"
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className={`text-xs sm:text-sm font-bold block ${isSelected ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
-                              {item.title}
-                            </span>
-                            {isSelected && (
-                              <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
-                            )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {reportTypes.map((item) => {
+                      const Icon = item.icon;
+                      const isSelected = selectedType === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setSelectedType(item.key)}
+                          className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                            isSelected
+                              ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
+                              : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                          }`}
+                        >
+                          <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                            isSelected
+                              ? "bg-teal-600 text-white"
+                              : "bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-400 group-hover:bg-teal-200"
+                          }`}>
+                            <Icon className="w-5 h-5" />
                           </div>
-                          <p className={`text-[11px] leading-relaxed ${isSelected ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
-                            {item.description}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className={`text-xs sm:text-sm font-bold block ${isSelected ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
+                                {item.title}
+                              </span>
+                              {isSelected && (
+                                <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
+                              )}
+                            </div>
+                            <p className={`text-[11px] leading-relaxed ${isSelected ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
+                              {item.description}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
-              <Button
-                disabled={!selectedType}
-                onClick={() => {
-                  if (selectedType) setCurrentStep(2);
-                }}
-                className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 disabled:opacity-50"
-              >
-                <span>التالي</span>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
+              </CardContent>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+                <Button
+                  disabled={!selectedType}
+                  onClick={() => {
+                    if (selectedType) setCurrentStep(2);
+                  }}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 disabled:opacity-50"
+                >
+                  <span>التالي</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
         ) : (
           /* Step 2 Form Card */
           <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
