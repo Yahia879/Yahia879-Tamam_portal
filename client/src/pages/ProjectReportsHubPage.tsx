@@ -31,7 +31,8 @@ import {
   Eye,
   MoreVertical,
   Edit,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from "lucide-react";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 
@@ -366,12 +367,14 @@ export default function ProjectReportsHubPage() {
                               <span>معاينة وطباعة التقرير (PDF)</span>
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/project-reports/${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full">
-                              <Edit className="w-4 h-4 text-muted-foreground" />
-                              <span>تعديل التقرير</span>
-                            </Link>
-                          </DropdownMenuItem>
+                          {report.status === "مسودة" && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/project-reports/${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
+                                <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                                <span>إكمال التقرير</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
