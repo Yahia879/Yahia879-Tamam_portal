@@ -112,8 +112,9 @@ export default function ProjectProgressMilestonesTab({
                 type="number"
                 min={0}
                 max={100}
-                value={plannedProgress}
-                onChange={(e) => setPlannedProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
+                value={plannedProgress === 0 ? "" : plannedProgress}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Math.min(100, Math.max(0, Number(e.target.value))))}
                 placeholder="0"
                 className="h-9 w-24 text-center text-sm font-bold border-border/80 text-teal-700 bg-background"
               />

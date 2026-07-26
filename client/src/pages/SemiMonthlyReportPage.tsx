@@ -16,7 +16,7 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2, Save, CheckCircle2, Eye, Printer } from "lucide-react";
+import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2, Save, CheckCircle2, Eye, Printer, AlertCircle } from "lucide-react";
 
 export default function SemiMonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -104,9 +104,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
   const [recommendations, setRecommendations] = useState<string>("");
   const [challenges, setChallenges] = useState<string>("");
   const [requiredSupport, setRequiredSupport] = useState<string>("");
-  const [externalLinks, setExternalLinks] = useState<{ title: string; url: string }[]>([
-    { title: "", url: "" }
-  ]);
+  const [externalLinks, setExternalLinks] = useState<{ title: string; url: string }[]>([]);
 
   const handleAddLink = () => {
     setExternalLinks([...externalLinks, { title: "", url: "" }]);
@@ -288,9 +286,18 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
+              {!selectedProjectId && (
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>يرجى اختيار المشروع أولاً لتفعيل تعبئة كافة حقول وخيارات التقرير.</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
-                  <Label className="text-xs font-semibold">اسم المشروع</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
                       <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
@@ -325,9 +332,11 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>تاريخ التقرير</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={reportDate}
                     max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setReportDate(e.target.value)}
@@ -337,9 +346,13 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">فترة التقرير (من)</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>فترة التقرير (من)</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={periodFrom}
                     onChange={(e) => setPeriodFrom(e.target.value)}
                     placeholder="بداية النصف شهري"
@@ -348,9 +361,13 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">فترة التقرير (إلى)</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>فترة التقرير (إلى)</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={periodTo}
                     min={periodFrom}
                     onChange={(e) => setPeriodTo(e.target.value)}
@@ -376,32 +393,42 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>نسبة الإنجاز المخطط %</span>
+                    <span className="flex items-center">
+                      <span>نسبة الإنجاز المخطط %</span>
+                      <span className="text-red-500 font-bold mr-1">*</span>
+                    </span>
                     <span className="text-primary font-bold">{plannedProgress}%</span>
                   </Label>
                   <Input
                     type="number"
+                    disabled={!selectedProjectId}
                     min={0}
                     max={100}
-                    value={plannedProgress}
-                    onChange={(e) => setPlannedProgress(Number(e.target.value))}
-                    placeholder="أدخل نسبة الإنجاز المخطط (0-100)"
+                    value={plannedProgress === 0 ? "" : plannedProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>نسبة الإنجاز الفعلي %</span>
+                    <span className="flex items-center">
+                      <span>نسبة الإنجاز الفعلي %</span>
+                      <span className="text-red-500 font-bold mr-1">*</span>
+                    </span>
                     <span className="text-teal-600 font-bold">{actualProgress}%</span>
                   </Label>
                   <Input
                     type="number"
+                    disabled={!selectedProjectId}
                     min={0}
                     max={100}
-                    value={actualProgress}
-                    onChange={(e) => setActualProgress(Number(e.target.value))}
-                    placeholder="أدخل نسبة الإنجاز الفعلي (0-100)"
+                    value={actualProgress === 0 ? "" : actualProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setActualProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
@@ -446,11 +473,13 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <RagIndicatorSelect
                   label="مؤشر الوقت"
+                  disabled={!selectedProjectId}
                   value={timeIndicator}
                   onChange={setTimeIndicator}
                 />
                 <RagIndicatorSelect
                   label="مؤشر التكلفة"
+                  disabled={!selectedProjectId}
                   value={costIndicator}
                   onChange={setCostIndicator}
                 />
@@ -474,6 +503,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">التحديات والعقبات</Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   placeholder="أدخل التحديات والعقبات الميدانية التي تواجه تنفيذ المشروع..."
                   rows={3}
                   value={challenges}
@@ -485,6 +515,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">الدعم المطلوب</Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   placeholder="حدد طبيعة الدعم الإداري أو الفني أو المالي المطلوب من الإدارة..."
                   rows={3}
                   value={requiredSupport}
@@ -496,6 +527,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">التوصيات الإدارية والتشغيلية</Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   placeholder="أدخل التوصيات والخطوات القادمة المطلوبة لحل التحديات والنهوض بالمشروع..."
                   rows={4}
                   value={recommendations}
@@ -515,6 +547,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold">{needEscalation ? "نعم" : "لا"}</span>
                   <Switch
+                    disabled={!selectedProjectId}
                     checked={needEscalation}
                     onCheckedChange={setNeedEscalation}
                   />
@@ -524,6 +557,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">المرفقات والوثائق</Label>
                 <FileUpload
+                  disabled={!selectedProjectId}
                   onFilesSelected={setAttachments}
                   existingFiles={attachments}
                   onRemoveFile={(idx) => setAttachments(attachments.filter((_, i) => i !== idx))}
@@ -543,6 +577,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={!selectedProjectId}
                     onClick={handleAddLink}
                     className="h-8 text-xs gap-1 text-teal-600 border-teal-500/30 hover:bg-teal-500/10"
                   >
@@ -552,40 +587,46 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                 </div>
 
                 <div className="space-y-2.5">
-                  {externalLinks.map((linkItem, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-muted/20 p-2.5 rounded-xl border border-border/60">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
-                        <Input
-                          placeholder="اسم الرابط (مثال: مجلد الصور، تقرير الاستشاري)"
-                          value={linkItem.title}
-                          onChange={(e) => handleLinkChange(idx, "title", e.target.value)}
-                          className="h-9 text-xs bg-background"
-                        />
-                        <Input
-                          type="url"
-                          placeholder="الرابط (https://...)"
-                          value={linkItem.url}
-                          onChange={(e) => handleLinkChange(idx, "url", e.target.value)}
-                          className="h-9 text-xs bg-background dir-ltr text-right"
-                        />
-                      </div>
-                      {externalLinks.length > 1 && (
+                  {externalLinks.length === 0 ? (
+                    <div className="p-3 text-center rounded-xl bg-muted/20 border border-dashed border-border/60">
+                      <p className="text-xs text-muted-foreground">لا توجد روابط خارجية مضافة (قسم اختياري)</p>
+                    </div>
+                  ) : (
+                    externalLinks.map((linkItem, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-muted/20 p-2.5 rounded-xl border border-border/60">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
+                          <Input
+                            placeholder="اسم الرابط (مثال: مجلد الصور، تقرير الاستشاري)"
+                            value={linkItem.title}
+                            disabled={!selectedProjectId}
+                            onChange={(e) => handleLinkChange(idx, "title", e.target.value)}
+                            className="h-9 text-xs bg-background"
+                          />
+                          <Input
+                            type="url"
+                            placeholder="الرابط (https://...)"
+                            disabled={!selectedProjectId}
+                            value={linkItem.url}
+                            onChange={(e) => handleLinkChange(idx, "url", e.target.value)}
+                            className="h-9 text-xs bg-background dir-ltr text-right"
+                          />
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
+                          disabled={!selectedProjectId}
                           onClick={() => handleRemoveLink(idx)}
                           className="h-9 w-9 p-0 text-destructive hover:bg-destructive/10"
+                          title="حذف الرابط"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-
-
             </CardContent>
           </Card>
 
@@ -594,21 +635,21 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white"
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتتماد التقرير
+              حفظ واعتماد التقرير
             </Button>
           </div>
         </div>

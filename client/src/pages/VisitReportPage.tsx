@@ -13,7 +13,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target, Save, Printer } from "lucide-react";
+import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target, Save, Printer, AlertCircle } from "lucide-react";
 
 export default function VisitReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -181,11 +181,18 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
+              {!selectedProjectId && (
+                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>يرجى اختيار المشروع أولاً لتفعيل تعبئة كافة حقول وخيارات التقرير.</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-3">
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Building2 className="w-3.5 h-3.5 text-primary" />
                     <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
                   <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
@@ -205,9 +212,11 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>تاريخ الزيارة</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={visitDate}
                     max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setVisitDate(e.target.value)}
@@ -222,6 +231,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                     <span>القائم بالزيارة</span>
                   </Label>
                   <Input
+                    disabled={!selectedProjectId}
                     value={visitorName}
                     onChange={(e) => setVisitorName(e.target.value)}
                     placeholder="اسم المفتش أو الزائر (المستخدم الحالي)"
@@ -238,6 +248,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                   </Label>
                 </div>
                 <Textarea
+                  disabled={!selectedProjectId}
                   rows={5}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -326,21 +337,21 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white"
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتتماد التقرير
+              حفظ واعتماد التقرير
             </Button>
           </div>
         </div>

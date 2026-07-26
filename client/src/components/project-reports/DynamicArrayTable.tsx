@@ -21,6 +21,7 @@ interface DynamicArrayTableProps {
   isRequired?: boolean;
   emptyLabel?: string;
   badgeText?: string;
+  disabled?: boolean;
 }
 
 export function DynamicArrayTable({
@@ -29,8 +30,10 @@ export function DynamicArrayTable({
   rows,
   onChange,
   emptyLabel = "اضغط إضافة صف جديد لتسجيل البيانات",
+  disabled = false,
 }: DynamicArrayTableProps) {
   const handleAddRow = () => {
+    if (disabled) return;
     const newRow: Record<string, any> = {};
     columns.forEach((col) => {
       newRow[col.key] = col.options ? col.options[0]?.value || "" : "";
@@ -58,8 +61,9 @@ export function DynamicArrayTable({
           type="button"
           variant="outline"
           size="sm"
+          disabled={disabled}
           onClick={handleAddRow}
-          className="h-8 text-xs gap-1.5 border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+          className="h-8 text-xs gap-1.5 border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 disabled:opacity-50"
         >
           <Plus className="w-3.5 h-3.5" />
           إضافة صف جديد
@@ -99,6 +103,7 @@ export function DynamicArrayTable({
                     <TableCell key={col.key} className="p-2">
                       {col.type === "select" && col.options ? (
                         <Select
+                          disabled={disabled}
                           value={row[col.key] || col.options[0]?.value}
                           onValueChange={(val) => handleCellChange(idx, col.key, val)}
                         >
@@ -116,6 +121,7 @@ export function DynamicArrayTable({
                       ) : col.type === "date" ? (
                         <Input
                           type="date"
+                          disabled={disabled}
                           value={row[col.key] || ""}
                           onChange={(e) => handleCellChange(idx, col.key, e.target.value)}
                           className="h-9 text-xs border-border/80"
@@ -123,6 +129,7 @@ export function DynamicArrayTable({
                       ) : (
                         <Input
                           type="text"
+                          disabled={disabled}
                           placeholder={col.placeholder || col.label}
                           value={row[col.key] || ""}
                           onChange={(e) => handleCellChange(idx, col.key, e.target.value)}
@@ -136,6 +143,7 @@ export function DynamicArrayTable({
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={disabled}
                       onClick={() => handleRemoveRow(idx)}
                       className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >

@@ -15,7 +15,7 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye, Printer } from "lucide-react";
+import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle } from "lucide-react";
 
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -441,7 +441,10 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                     </div>
                   )}
 
-                  <Label className="text-xs font-semibold">اسم المشروع</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
                       <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
@@ -471,9 +474,11 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>الشهر / السنة</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
                   <Input
                     type="month"
+                    disabled={!selectedProjectId}
                     value={monthYear}
                     onChange={(e) => setMonthYear(e.target.value)}
                     placeholder="اختر الشهر والشهر المشمول"
@@ -482,9 +487,13 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">تاريخ التقرير</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>تاريخ التقرير</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={reportDate}
                     max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setReportDate(e.target.value)}
@@ -518,32 +527,42 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>نسبة الإنجاز المخطط %</span>
+                    <span className="flex items-center">
+                      <span>نسبة الإنجاز المخطط %</span>
+                      <span className="text-red-500 font-bold mr-1">*</span>
+                    </span>
                     <span className="text-primary font-bold">{plannedProgress}%</span>
                   </Label>
                   <Input
                     type="number"
+                    disabled={!selectedProjectId}
                     min={0}
                     max={100}
-                    value={plannedProgress}
-                    onChange={(e) => setPlannedProgress(Number(e.target.value))}
-                    placeholder="أدخل نسبة الإنجاز المخطط (0-100)"
+                    value={plannedProgress === 0 ? "" : plannedProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>نسبة الإنجاز الفعلي %</span>
+                    <span className="flex items-center">
+                      <span>نسبة الإنجاز الفعلي %</span>
+                      <span className="text-red-500 font-bold mr-1">*</span>
+                    </span>
                     <span className="text-teal-600 font-bold">{actualProgress}%</span>
                   </Label>
                   <Input
                     type="number"
+                    disabled={!selectedProjectId}
                     min={0}
                     max={100}
-                    value={actualProgress}
-                    onChange={(e) => setActualProgress(Number(e.target.value))}
-                    placeholder="أدخل نسبة الإنجاز الفعلي (0-100)"
+                    value={actualProgress === 0 ? "" : actualProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setActualProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
@@ -578,6 +597,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                 columns={milestoneCols}
                 rows={milestones}
                 onChange={setMilestones}
+                disabled={!selectedProjectId}
                 emptyLabel="اضغط إضافة صف جديد لإدراج معالم التقرير الشهري"
               />
             </CardContent>
@@ -595,9 +615,9 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
             </CardHeader>
             <CardContent className="pt-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <RagIndicatorSelect label="مؤشر الوقت" value={timeIndicator} onChange={setTimeIndicator} />
-                <RagIndicatorSelect label="مؤشر التكلفة" value={costIndicator} onChange={setCostIndicator} />
-                <RagIndicatorSelect label="مؤشر التغيير" value={changeIndicator} onChange={setChangeIndicator} />
+                <RagIndicatorSelect label="مؤشر الوقت" disabled={!selectedProjectId} value={timeIndicator} onChange={setTimeIndicator} />
+                <RagIndicatorSelect label="مؤشر التكلفة" disabled={!selectedProjectId} value={costIndicator} onChange={setCostIndicator} />
+                <RagIndicatorSelect label="مؤشر التغيير" disabled={!selectedProjectId} value={changeIndicator} onChange={setChangeIndicator} />
               </div>
             </CardContent>
           </Card>
@@ -618,6 +638,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">المرفقات والوثائق</Label>
                 <FileUpload
+                  disabled={!selectedProjectId}
                   onFilesSelected={setAttachments}
                   existingFiles={attachments}
                   onRemoveFile={(idx) => setAttachments(attachments.filter((_, i) => i !== idx))}
@@ -634,21 +655,21 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white"
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتتماد التقرير
+              حفظ واعتماد التقرير
             </Button>
           </div>
         </div>

@@ -17,7 +17,7 @@ import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrin
 import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw, Save, Eye, Printer } from "lucide-react";
+import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle } from "lucide-react";
 
 export default function QuarterlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
@@ -675,7 +675,10 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                     </div>
                   )}
 
-                  <Label className="text-xs font-semibold">اسم المشروع</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
                     <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
                       <SelectValue placeholder="اختر المشروع ليتم تعبئة البيانات تلقائياً" />
@@ -705,8 +708,9 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>الربع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Select value={quarter} onValueChange={setQuarter}>
+                  <Select disabled={!selectedProjectId} value={quarter} onValueChange={setQuarter}>
                     <SelectTrigger className="h-10 border-border/80 bg-background w-full">
                       <SelectValue placeholder="اختر الربع" />
                     </SelectTrigger>
@@ -723,8 +727,9 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
                     <span>السنة</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Select value={year} onValueChange={setYear}>
+                  <Select disabled={!selectedProjectId} value={year} onValueChange={setYear}>
                     <SelectTrigger className="h-10 border-border/80 bg-background w-full">
                       <SelectValue placeholder="اختر السنة" />
                     </SelectTrigger>
@@ -737,10 +742,15 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">تاريخ التقرير</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>تاريخ التقرير</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Input
                     type="date"
+                    disabled={!selectedProjectId}
                     value={reportDate}
+                    max={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setReportDate(e.target.value)}
                     placeholder="تاريخ التقرير اليوم"
                     className="h-10 border-border/80"
@@ -771,12 +781,17 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
             <CardContent className="pt-5 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">نسبة الإنجاز المخطط التراكمية %</Label>
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>نسبة الإنجاز المخطط التراكمية %</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
                   <Input
                     type="number"
-                    value={plannedProgress}
-                    onChange={(e) => setPlannedProgress(Number(e.target.value))}
-                    placeholder="نسبة التخطيط التراكمي"
+                    disabled={!selectedProjectId}
+                    value={plannedProgress === 0 ? "" : plannedProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
@@ -785,9 +800,10 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <Label className="text-xs font-semibold">نسبة الإنجاز الفعلي التراكمية %</Label>
                   <Input
                     type="number"
-                    value={actualProgress}
-                    onChange={(e) => setActualProgress(Number(e.target.value))}
-                    placeholder="نسبة الإنجاز التراكمي الفعلي"
+                    value={actualProgress === 0 ? "" : actualProgress}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => setActualProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
                 </div>
@@ -818,6 +834,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
+                      disabled={!selectedProjectId}
                       placeholder="المصروف الفعلي"
                       value={cumulativeSpent}
                       onChange={(e) => setCumulativeSpent(Number(e.target.value))}
@@ -826,6 +843,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                     <span className="text-xs text-muted-foreground">من</span>
                     <Input
                       type="number"
+                      disabled={!selectedProjectId}
                       placeholder="المعتمد"
                       value={cumulativeBudget}
                       onChange={(e) => setCumulativeBudget(Number(e.target.value))}
@@ -841,6 +859,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                 columns={milestoneCols}
                 rows={quarterMilestones}
                 onChange={setQuarterMilestones}
+                disabled={!selectedProjectId}
                 emptyLabel="اضغط إضافة صف جديد لإدراج معالم الربع المنجزة"
               />
             </CardContent>
@@ -858,9 +877,9 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <RagIndicatorSelect label="مؤشر الوقت" value={timeIndicator} onChange={setTimeIndicator} />
-                <RagIndicatorSelect label="مؤشر التكلفة" value={costIndicator} onChange={setCostIndicator} />
-                <RagIndicatorSelect label="مؤشر التغيير" value={changeIndicator} onChange={setChangeIndicator} />
+                <RagIndicatorSelect label="مؤشر الوقت" disabled={!selectedProjectId} value={timeIndicator} onChange={setTimeIndicator} />
+                <RagIndicatorSelect label="مؤشر التكلفة" disabled={!selectedProjectId} value={costIndicator} onChange={setCostIndicator} />
+                <RagIndicatorSelect label="مؤشر التغيير" disabled={!selectedProjectId} value={changeIndicator} onChange={setChangeIndicator} />
               </div>
 
               <div className="p-4 rounded-xl bg-card border border-border/80 flex items-center justify-between">
@@ -871,6 +890,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
+                    disabled={!selectedProjectId}
                     variant={overallTrend === "متحسّن" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setOverallTrend("متحسّن")}
@@ -882,6 +902,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
                   <Button
                     type="button"
+                    disabled={!selectedProjectId}
                     variant={overallTrend === "ثابت" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setOverallTrend("ثابت")}
@@ -893,6 +914,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
                   <Button
                     type="button"
+                    disabled={!selectedProjectId}
                     variant={overallTrend === "متراجع" ? "default" : "outline"}
                     size="sm"
                     onClick={() => setOverallTrend("متراجع")}
@@ -923,6 +945,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <span>مدى المواءمة مع الأهداف الاستراتيجية</span>
                 </Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   rows={3}
                   value={strategicAlignment}
                   onChange={(e) => setStrategicAlignment(e.target.value)}
@@ -937,6 +960,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <span>القيمة والأثر المتحقق على المستفيد</span>
                 </Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   rows={3}
                   value={realizedImpact}
                   onChange={(e) => setRealizedImpact(e.target.value)}
@@ -966,6 +990,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <span>الدروس المستفادة خلال الربع</span>
                 </Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   rows={3}
                   value={lessonsLearned}
                   onChange={(e) => setLessonsLearned(e.target.value)}
@@ -979,6 +1004,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                   <span>التوصيات وقرارات الاستمرار / التعديل / إعادة التوجيه</span>
                 </Label>
                 <Textarea
+                  disabled={!selectedProjectId}
                   rows={3}
                   value={continuationDecisions}
                   onChange={(e) => setContinuationDecisions(e.target.value)}
@@ -997,13 +1023,14 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold">{needEscalation ? "نعم" : "لا"}</span>
-                  <Switch checked={needEscalation} onCheckedChange={setNeedEscalation} />
+                  <Switch disabled={!selectedProjectId} checked={needEscalation} onCheckedChange={setNeedEscalation} />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">المرفقات والوثائق</Label>
                 <FileUpload
+                  disabled={!selectedProjectId}
                   onFilesSelected={setAttachments}
                   existingFiles={attachments}
                   onRemoveFile={(idx) => setAttachments(attachments.filter((_, i) => i !== idx))}
@@ -1020,21 +1047,21 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
             <Button
               type="button"
               variant="outline"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("مسودة")}
-              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               حفظ كمسودة
             </Button>
             <Button
               type="button"
-              disabled={isSubmitting}
+              disabled={!selectedProjectId || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white"
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتتماد التقرير
+              حفظ واعتماد التقرير
             </Button>
           </div>
         </div>
