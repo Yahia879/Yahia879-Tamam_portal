@@ -104,16 +104,6 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
-        {showLayout && (
-          <ReportHeaderTabs
-            activeTab="visit"
-            reportStatus={reportStatus}
-            onSaveDraft={handleSaveDraft}
-            onPrintPreview={() => setShowPreviewModal(true)}
-            isSubmitting={isSubmitting}
-            onStatusChange={setReportStatus}
-          />
-        )}
 
         <div className="space-y-6">
           {/* بيانات الزيارة الميدانية */}
@@ -281,39 +271,26 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
           </Card>
 
           {/* Footer Action Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowPreviewModal(true)}
-                className="gap-2 text-xs font-semibold w-full sm:w-auto"
-              >
-                <Eye className="w-4 h-4 text-teal-600" />
-                معاينة وطباعة التقرير (PDF)
-              </Button>
-            </div>
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={() => handleSaveDraft("مسودة")}
-                className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 flex-1 sm:flex-initial"
-              >
-                <Save className="w-4 h-4" />
-                حفظ كمسودة
-              </Button>
-              <Button
-                type="button"
-                disabled={isSubmitting}
-                onClick={() => handleSaveDraft("معتمد")}
-                className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white flex-1 sm:flex-initial"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                حفظ واعتتماد التقرير
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-3 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSubmitting}
+              onClick={() => handleSaveDraft("مسودة")}
+              className="gap-2 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+            >
+              <Save className="w-4 h-4" />
+              حفظ كمسودة
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSaveDraft("معتمد")}
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              حفظ واعتتماد التقرير
+            </Button>
           </div>
         </div>
 
