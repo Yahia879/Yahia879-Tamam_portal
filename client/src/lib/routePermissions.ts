@@ -133,6 +133,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": "progress_reports",
   "/project-reports": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/project-reports/new": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
   "/project-reports/semi-monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
   "/project-reports/monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
   "/project-reports/quarterly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
