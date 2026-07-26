@@ -49,6 +49,7 @@ import ProjectManagement from "./pages/ProjectManagement";
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
 import ProjectReportsHubPage from "./pages/ProjectReportsHubPage";
 import NewProjectReportPage from "./pages/NewProjectReportPage";
+import ProjectReportPrintPage from "./pages/ProjectReportPrintPage";
 import SemiMonthlyReportPage from "./pages/SemiMonthlyReportPage";
 import MonthlyReportPage from "./pages/MonthlyReportPage";
 import QuarterlyReportPage from "./pages/QuarterlyReportPage";
@@ -269,6 +270,7 @@ function Router() {
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
       <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
       <Route path="/project-reports/new">{() => <AdminRoute component={NewProjectReportPage} />}</Route>
+      <Route path="/project-reports/:id/print">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
       <Route path="/project-reports/semi-monthly">{() => <AdminRoute component={SemiMonthlyReportPage} />}</Route>
       <Route path="/project-reports/monthly">{() => <AdminRoute component={MonthlyReportPage} />}</Route>
       <Route path="/project-reports/quarterly">{() => <AdminRoute component={QuarterlyReportPage} />}</Route>
