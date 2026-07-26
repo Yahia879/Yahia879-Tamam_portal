@@ -35,10 +35,23 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => ({
-        id: String(p.id),
-        name: p.name || `مشروع رقم ${p.projectNumber}`,
-      }));
+      return dbProjectsData
+        .filter((p: any) => {
+          if (p.programType === "bunyan") return true;
+          if (p.startDate && (p.expectedEndDate || p.endDate)) {
+            const start = new Date(p.startDate).getTime();
+            const end = new Date(p.expectedEndDate || p.endDate).getTime();
+            if (!isNaN(start) && !isNaN(end)) {
+              const days = (end - start) / (1000 * 60 * 60 * 24);
+              if (days >= 365) return true;
+            }
+          }
+          return false;
+        })
+        .map((p: any) => ({
+          id: String(p.id),
+          name: p.name || `مشروع رقم ${p.projectNumber}`,
+        }));
     }
     return [];
   }, [dbProjectsData]);
