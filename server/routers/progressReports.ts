@@ -429,7 +429,7 @@ export const progressReportsRouter = router({
       };
     }),
 
-  cleanAndSeed: publicProcedure
+  cleanAndSeed: protectedProcedure
     .mutation(async () => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");

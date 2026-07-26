@@ -29,7 +29,8 @@ import {
   AlertTriangle,
   Layers,
   Sparkles,
-  FileCheck
+  FileCheck,
+  RefreshCw
 } from "lucide-react";
 
 export default function ProjectReportsHubPage() {
