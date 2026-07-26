@@ -15,7 +15,6 @@ import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/Dynam
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { MOCK_PROJECTS } from "@/components/project-reports/MockProjectData";
 import { toast } from "sonner";
 import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2 } from "lucide-react";
 
@@ -28,14 +27,7 @@ export default function SemiMonthlyReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      const filtered = dbProjectsData.filter((p: any) => {
-        const start = p.startDate ? new Date(p.startDate) : null;
-        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
-        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
-        return p.programType === "bunyan" || isMoreThanYear;
-      });
-
-      return filtered.map((p: any) => ({
+      return dbProjectsData.map((p: any) => ({
         id: String(p.id),
         name: p.name || `مشروع رقم ${p.projectNumber}`,
         manager: p.managerName || "غير محدد",
@@ -44,7 +36,7 @@ export default function SemiMonthlyReportPage() {
         actualProgress: p.completionPercentage || 0,
       }));
     }
-    return MOCK_PROJECTS;
+    return [];
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -57,7 +49,7 @@ export default function SemiMonthlyReportPage() {
       }
     }
   }, [projectOptions, selectedProjectId]);
-  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || "غير محدد");
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
   const [reportDate, setReportDate] = useState<string>(
