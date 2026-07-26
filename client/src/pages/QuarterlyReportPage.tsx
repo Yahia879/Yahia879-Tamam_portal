@@ -32,16 +32,23 @@ export default function QuarterlyReportPage() {
       return dbProjectsData.map((p: any) => {
         const rawStage = p.requestStage || p.status || "execution";
         const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
+        let parsedMilestones: any[] = [];
+        if (p.milestones) {
+          try {
+            parsedMilestones = typeof p.milestones === "string" ? JSON.parse(p.milestones) : p.milestones;
+          } catch {}
+        }
         return {
           id: String(p.id),
           name: p.name || `مشروع رقم ${p.projectNumber}`,
           manager: p.managerName || "غير محدد",
           department: "إدارة المشاريع",
           currentPhase: arabicPhase,
-          plannedProgress: 80,
-          actualProgress: p.completionPercentage || 0,
+          plannedProgress: p.plannedProgress ?? 0,
+          actualProgress: p.completionPercentage ?? 0,
           cumulativeBudget: Number(p.budget) || 3500000,
           cumulativeSpent: Number(p.actualCost) || 2450000,
+          milestones: parsedMilestones,
         };
       });
     }
@@ -181,8 +188,8 @@ export default function QuarterlyReportPage() {
     );
   }, [availableSemiReports, selectedSemi]);
 
-  const [plannedProgress, setPlannedProgress] = useState<number>(75);
-  const [actualProgress, setActualProgress] = useState<number>(70);
+  const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
+  const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
 
   const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
   const ragStatus = useMemo(() => {
@@ -191,10 +198,7 @@ export default function QuarterlyReportPage() {
     return "أحمر";
   }, [gap]);
 
-  const [quarterMilestones, setQuarterMilestones] = useState<Record<string, any>[]>([
-    { title: "اعتماد دراسات الجدوى الإنشائية", date: "2026-04-10", status: "منجز" },
-    { title: "تركيب المنظومة الرئيسية", date: "2026-06-30", status: "منجز" },
-  ]);
+  const [quarterMilestones, setQuarterMilestones] = useState<Record<string, any>[]>(projectOptions[0]?.milestones || []);
 
   const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
   const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
@@ -294,8 +298,26 @@ export default function QuarterlyReportPage() {
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
       if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
       if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
+      if (proj.milestones && Array.isArray(proj.milestones)) {
+        setQuarterMilestones(proj.milestones);
+      }
     }
   };
+
+  useEffect(() => {
+    const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+    if (proj) {
+      if (proj.manager) setProjectManager(proj.manager);
+      if (proj.currentPhase) setCurrentPhase(proj.currentPhase);
+      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
+      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
+      if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
+      if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
+      if (proj.milestones && Array.isArray(proj.milestones)) {
+        setQuarterMilestones(proj.milestones);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
 
   const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
