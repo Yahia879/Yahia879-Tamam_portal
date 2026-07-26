@@ -13,7 +13,8 @@ import {
   MapPin, 
   FileText,
   Layers,
-  FileCheck
+  FileCheck,
+  Printer
 } from "lucide-react";
 
 import SemiMonthlyReportPage from "./SemiMonthlyReportPage";
@@ -209,15 +210,29 @@ export default function NewProjectReportPage() {
                   قم بإدخال وتأكيد كافة بيانات وملاحظات التقرير
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentStep(1)}
-                className="gap-2 text-xs font-semibold h-8 rounded-lg border-border/80"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-                تغيير نوع التقرير
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.open('/project-reports/1/print', '_blank');
+                  }}
+                  className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
+                >
+                  <Printer className="w-4 h-4 text-teal-600" />
+                  <span>معاينة وطباعة التقرير (PDF)</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentStep(1)}
+                  className="gap-2 text-xs font-semibold h-9 rounded-lg border-border/80"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  تغيير نوع التقرير
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 text-right">
               {selectedType === "semi-monthly" && <SemiMonthlyReportPage showLayout={false} />}
