@@ -18,7 +18,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { User, Building2, Calendar, ShieldAlert, Plus, Trash2, Link2 } from "lucide-react";
 
-export default function SemiMonthlyReportPage() {
+export default function SemiMonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
@@ -207,9 +207,8 @@ export default function SemiMonthlyReportPage() {
 
   const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
+  const content = (
+    <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
         <ReportHeaderTabs
           activeTab="semi-monthly"
           ragStatus={ragStatus === "أخضر" ? "green" : ragStatus === "أصفر" ? "yellow" : "red"}
@@ -558,6 +557,7 @@ export default function SemiMonthlyReportPage() {
           }}
         />
       </div>
-    </DashboardLayout>
-  );
+    );
+
+  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
 }
