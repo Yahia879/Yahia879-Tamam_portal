@@ -13,7 +13,6 @@ import {
   Target, 
   Award, 
   ArrowRight,
-  PieChart,
   TrendingUp,
   Activity,
   ShieldCheck,
@@ -42,9 +41,9 @@ export function ReportPrintPreviewModal({
 
   const getReportTypeLabel = (type: string) => {
     switch (type) {
-      case "semi-monthly": return "تقرير نصف شهري لمتابعة إنجاز المشروع";
-      case "monthly": return "التقرير الشهري الشامل لتقييم الأداء والمخاطر";
-      case "quarterly": return "التقرير الربعي الاستراتيجي لقياس الأثر والمواءمة";
+      case "semi-monthly": return "تقرير متابعة إنجاز نصف شهري";
+      case "monthly": return "التقرير الشهري الشامل للمشروع";
+      case "quarterly": return "التقرير الربعي الاستراتيجي للمشروع";
       case "visit": return "تقرير زيارة ميدانية وتوثيق مهندسي الموقع";
       default: return reportTitle || "تقرير متابعة وتوثيق مشروع";
     }
@@ -61,22 +60,10 @@ export function ReportPrintPreviewModal({
     else ragStatus = "أخضر";
   }
 
-  const getRagColorBg = (status: string) => {
-    if (status === "أخضر") return "bg-emerald-600 text-white";
-    if (status === "أصفر") return "bg-amber-500 text-white";
-    return "bg-rose-600 text-white";
-  };
-
-  const getRagBorderColor = (status: string) => {
-    if (status === "أخضر") return "border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20";
-    if (status === "أصفر") return "border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20";
-    return "border-rose-500/40 bg-rose-50/50 dark:bg-rose-950/20";
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] lg:max-w-[1240px] w-full max-h-[94vh] overflow-y-auto p-0 rounded-2xl border-border">
-        {/* Print Styles CSS */}
+      <DialogContent className="max-w-[95vw] lg:max-w-[1100px] w-full max-h-[94vh] overflow-y-auto p-0 rounded-2xl border-border">
+        {/* CSS for print mode */}
         <style>{`
           @media print {
             @page {
@@ -90,8 +77,8 @@ export function ReportPrintPreviewModal({
             .print\\:hidden {
               display: none !important;
             }
-            .print\\:p-4 {
-              padding: 1rem !important;
+            .print\\:p-0 {
+              padding: 0 !important;
             }
             .print\\:shadow-none {
               box-shadow: none !important;
@@ -99,14 +86,16 @@ export function ReportPrintPreviewModal({
             .print\\:border-\\[2px\\] {
               border-width: 2px !important;
             }
-            .print\\:max-w-none {
-              max-width: none !important;
-              width: 100% !important;
+            .max-w-\\[210mm\\] {
+              width: 210mm !important;
+              max-width: 210mm !important;
+              padding: 8mm !important;
+              margin: 0 auto !important;
             }
           }
         `}</style>
 
-        {/* Modal Top Header Bar */}
+        {/* Modal Top Controls Header */}
         <DialogHeader className="p-4 sm:px-6 border-b border-border flex flex-row items-center justify-between bg-muted/30 print:hidden">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-teal-600/10 text-teal-600 font-bold">
@@ -116,7 +105,7 @@ export function ReportPrintPreviewModal({
               <DialogTitle className="text-base font-bold text-foreground">
                 معاينة وطباعة {reportTitle}
               </DialogTitle>
-              <p className="text-xs text-muted-foreground">معاينة التقرير الرسمي عالي الدقة قبل التصدير والطباعة</p>
+              <p className="text-xs text-muted-foreground">معاينة المستند الرسمي A4 بنفس تصميم ونموذج الطباعة</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -127,272 +116,283 @@ export function ReportPrintPreviewModal({
           </div>
         </DialogHeader>
 
-        {/* Printable Area - Full Width Page Preview */}
-        <div className="p-4 sm:p-8 bg-slate-100 dark:bg-slate-950 font-sans dir-rtl min-h-[75vh]">
-          {/* Outer Document Frame matching /progress-reports/12/print */}
-          <div className="w-full max-w-[210mm] lg:max-w-[1080px] mx-auto border-[3px] border-[#1a5f4a] p-5 sm:p-8 rounded-xl relative overflow-hidden bg-white dark:bg-slate-900 shadow-xl print:shadow-none print:border-[2px] print:p-5 print:max-w-none">
-            {/* Inner Gold Accent Frame Line */}
-            <div className="absolute inset-2 border border-[#d4a574] rounded-lg pointer-events-none" />
+        {/* Outer Canvas Background matching /progress-reports/12/print */}
+        <div className="bg-slate-100 dark:bg-slate-950 p-4 sm:p-8 font-sans dir-rtl min-h-[80vh] print:p-0 print:bg-white">
+          {/* Centered Exact A4 Sheet Container (max-w-[210mm]) matching /progress-reports/12/print */}
+          <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
+            
+            {/* Double Luxury Border Frame matching /progress-reports/12/print */}
+            <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white dark:bg-slate-900 shadow-lg print:shadow-none print:border-[2px] print:p-5">
+              {/* Inner Gold Line Frame Accent */}
+              <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none" />
 
-            <div className="relative z-10 space-y-6 text-right">
-              {/* Header Block: Logo & Title + Metadata */}
-              <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 pb-4 border-b border-gray-200 dark:border-slate-800">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-[#1a5f4a]/10 rounded-2xl border border-[#1a5f4a]/20 flex items-center justify-center font-black text-2xl text-[#1a5f4a] shrink-0 shadow-2xs">
-                    تمام
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-extrabold text-[#1a5f4a]">جمعية عمارة المساجد (تمام)</h2>
-                    <p className="text-xs text-muted-foreground font-semibold mt-0.5">منظومة متابعة وتطوير المشروعات — إدارة الهندسة والمتابعة</p>
-                  </div>
-                </div>
-
-                <div className="text-xs space-y-1.5 text-center sm:text-left dir-rtl bg-gray-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-gray-200/80 dark:border-slate-700/60 min-w-[200px]">
-                  <div className="flex justify-between items-center gap-3">
-                    <span className="font-bold text-muted-foreground">تاريخ التقرير:</span>
-                    <span className="font-semibold text-foreground">{data.reportDate || new Date().toISOString().split("T")[0]}</span>
-                  </div>
-                  <div className="flex justify-between items-center gap-3">
-                    <span className="font-bold text-muted-foreground">رقم التقرير:</span>
-                    <span className="font-mono font-extrabold text-[#1a5f4a]">#{data.reportNumber || data.id || "REP-101"}</span>
-                  </div>
-                  <div className="flex justify-between items-center gap-3">
-                    <span className="font-bold text-muted-foreground">حالة الاعتماد:</span>
-                    <span className="font-bold text-teal-700">{data.status || "معتمد"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Centered Luxury Banner */}
-              <div className="text-center py-3 px-6 bg-[#1a5f4a]/5 border-y-2 border-[#1a5f4a] rounded-sm my-3">
-                <h1 className="text-xl sm:text-2xl font-black text-[#1a5f4a]">
-                  {getReportTypeLabel(reportType)}
-                </h1>
-              </div>
-
-              {/* Metadata Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs">
-                <div className="space-y-1">
-                  <div className="text-muted-foreground font-bold flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-[#1a5f4a]" />
-                    <span>اسم المشروع:</span>
-                  </div>
-                  <div className="font-extrabold text-sm text-foreground">{data.projectName || data.project || "غير محدد"}</div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-muted-foreground font-bold flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-[#1a5f4a]" />
-                    <span>مدير المشروع:</span>
-                  </div>
-                  <div className="font-bold text-sm text-foreground">{data.projectManager || data.manager || "غير محدد"}</div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-muted-foreground font-bold flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#1a5f4a]" />
-                    <span>الإدارة المعنية:</span>
-                  </div>
-                  <div className="font-bold text-sm text-foreground">{data.ownerDepartment || "إدارة المشاريع والصيانة"}</div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-muted-foreground font-bold flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#1a5f4a]" />
-                    <span>{reportType === "semi-monthly" ? "فترة التقرير:" : reportType === "monthly" ? "الشهر/السنة:" : reportType === "quarterly" ? "الربع/السنة:" : "تاريخ الزيارة:"}</span>
-                  </div>
-                  <div className="font-bold text-sm text-foreground">
-                    {reportType === "semi-monthly"
-                      ? `${data.periodFrom || "—"} إلى ${data.periodTo || "—"}`
-                      : reportType === "monthly"
-                      ? data.monthYear || "2026-07"
-                      : reportType === "quarterly"
-                      ? `${data.quarter || "Q3"} / ${data.year || "2026"}`
-                      : data.visitDate || data.reportDate || "—"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Rich Graphical KPI Indicators Section */}
-              {data.plannedProgress !== undefined && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 space-y-5 shadow-xs">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-teal-600/10 text-teal-600 font-bold">
-                        <Activity className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-base text-[#1a5f4a]">مؤشرات الأداء وتتبع نسبة الإنجاز (RAG Status)</h3>
-                        <p className="text-xs text-muted-foreground">قياس الفجوة بين نسبة الإنجاز المخططة والفعلية وتقييم حالة المشروع</p>
-                      </div>
+              <div className="relative z-10 text-right space-y-6">
+                
+                {/* Official Top Header: Logo + Organization Info + Date Metadata */}
+                <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 bg-[#1a5f4a]/10 rounded-lg flex items-center justify-center print:w-14 print:h-14">
+                      <span className="text-[#1a5f4a] font-bold text-2xl">تمام</span>
                     </div>
-
-                    <div className={`flex items-center gap-2 px-4 py-1.5 rounded-xl border font-black text-sm ${getRagBorderColor(ragStatus)}`}>
-                      <span className="text-xs text-muted-foreground font-bold">تقييم RAG:</span>
-                      <Badge className={`${getRagColorBg(ragStatus)} text-xs px-3 py-1 font-bold shadow-xs`}>
-                        {ragStatus}
-                      </Badge>
+                    <div>
+                      <div className="text-base font-bold text-[#1a5f4a] print:text-sm">
+                        جمعية عمارة المساجد (تمام)
+                      </div>
+                      <div className="text-xs text-muted-foreground font-semibold">إدارة المشاريع والهندسة والصيانة</div>
                     </div>
                   </div>
 
-                  {/* Visual KPI Cards with Gauges */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Card 1: Planned Progress */}
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                          <Target className="w-4 h-4 text-[#1a5f4a]" />
-                          الإنجاز المخطط
-                        </span>
-                        <span className="text-lg font-black text-[#1a5f4a]">{planned}%</span>
-                      </div>
-                      {/* Visual Bar */}
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-[#1a5f4a] h-full rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min(100, Math.max(0, planned))}%` }} 
-                        />
-                      </div>
-                      <p className="text-[11px] text-muted-foreground font-medium">النسبة المخططة في الجدول الزمني المعرف</p>
+                  <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5">
+                    <div className="flex gap-2 justify-center sm:justify-end">
+                      <span className="font-bold text-muted-foreground">التاريخ:</span>
+                      <span className="border-b border-dotted border-gray-400 px-3 font-semibold text-foreground">{data.reportDate || new Date().toISOString().split("T")[0]}</span>
                     </div>
-
-                    {/* Card 2: Actual Progress */}
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                          <TrendingUp className="w-4 h-4 text-teal-600" />
-                          الإنجاز الفعلي
-                        </span>
-                        <span className="text-lg font-black text-teal-700">{actual}%</span>
-                      </div>
-                      {/* Visual Bar */}
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-teal-600 h-full rounded-full transition-all duration-500" 
-                          style={{ width: `${Math.min(100, Math.max(0, actual))}%` }} 
-                        />
-                      </div>
-                      <p className="text-[11px] text-muted-foreground font-medium">النسبة المحققة فعلياً في أرض الموقع</p>
+                    <div className="flex gap-2 justify-center sm:justify-end">
+                      <span className="font-bold text-muted-foreground">رقم التقرير:</span>
+                      <span className="border-b border-dotted border-gray-400 px-3 font-mono font-bold text-[#1a5f4a]">#{data.reportNumber || data.id || "REP-101"}</span>
                     </div>
-
-                    {/* Card 3: Gap / Variance Callout */}
-                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
-                          <Zap className="w-4 h-4 text-amber-600" />
-                          فارق الانحراف (Gap)
-                        </span>
-                        <span className={`text-lg font-black ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>
-                          {gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}
-                        </span>
-                      </div>
-                      {/* Visual Multi-Segment Status */}
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden flex">
-                        <div 
-                          className={`h-full transition-all duration-500 ${
-                            gap < 5 ? "bg-emerald-500" : gap < 25 ? "bg-amber-500" : "bg-rose-600"
-                          }`}
-                          style={{ width: `${Math.min(100, Math.max(10, Math.abs(gap) * 3))}%` }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-muted-foreground font-medium">
-                        {gap < 5 ? "ضمن الحدود المقبولة (أخضر)" : gap < 25 ? "تأخير متوسط يتطلب متابعة (أصفر)" : "تأخير كبير يتطلب تصعيد (أحمر)"}
-                      </p>
+                    <div className="flex gap-2 justify-center sm:justify-end">
+                      <span className="font-bold text-muted-foreground">حالة الاعتماد:</span>
+                      <span className="border-b border-dotted border-gray-400 px-3 font-bold text-teal-700">{data.status || "معتمد"}</span>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Main Milestones Progress Table */}
-              {Array.isArray(data.milestones) && data.milestones.length > 0 && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
-                  <div className="bg-[#1a5f4a] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ListOrdered className="w-4 h-4 text-teal-300" />
-                      <span>جدول التقدم مقابل المعالم الرئيسية للمشروع</span>
-                    </div>
-                    <span className="text-[11px] bg-white/10 px-2.5 py-0.5 rounded-full">إجمالي المعالم: {data.milestones.length}</span>
-                  </div>
-                  <table className="w-full text-xs text-right border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold">
-                        <th className="p-3 border-l border-slate-200 dark:border-slate-800 text-center w-12">#</th>
-                        <th className="p-3 border-l border-slate-200 dark:border-slate-800">اسم المعلم الرئيسي</th>
-                        <th className="p-3 border-l border-slate-200 dark:border-slate-800 text-center">التاريخ المستهدف</th>
-                        <th className="p-3 text-center">حالة الإنجاز</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.milestones.map((m: any, idx: number) => (
-                        <tr key={idx} className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50">
-                          <td className="p-3 font-bold text-muted-foreground border-l border-slate-200 dark:border-slate-800 text-center">{idx + 1}</td>
-                          <td className="p-3 font-bold text-foreground border-l border-slate-200 dark:border-slate-800">{m.title || "—"}</td>
-                          <td className="p-3 text-foreground border-l border-slate-200 dark:border-slate-800 text-center font-mono">{m.dueDate || m.date || "—"}</td>
-                          <td className="p-3 text-center font-bold">
-                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold ${
-                              m.status === "منجز" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : m.status === "جارٍ" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                            }`}>
-                              {m.status === "منجز" && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                              {m.status === "جارٍ" && <Clock className="w-3 h-3 text-amber-600" />}
-                              <span>{m.status || "لم يبدأ"}</span>
+                {/* Main Banner Header matching /progress-reports/12/print */}
+                <div 
+                  className="text-center py-4 px-6 mb-6 rounded-lg"
+                  style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                >
+                  <h1 className="text-xl sm:text-2xl font-bold">
+                    {getReportTypeLabel(reportType)}
+                  </h1>
+                  <p className="text-xs sm:text-sm opacity-90 mt-1 font-medium">
+                    {data.projectName || data.project || reportTitle}
+                  </p>
+                </div>
+
+                {/* Section 1: General Project Metadata matching /progress-reports/12/print */}
+                <div className="mb-6">
+                  <h3 
+                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                    style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
+                  >
+                    1. بيانات المشروع العامة:
+                  </h3>
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full border-collapse text-xs sm:text-sm">
+                      <tbody>
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold w-36 text-muted-foreground">اسم المشروع:</td>
+                          <td className="py-2.5 px-3 font-bold text-foreground">{data.projectName || data.project || "—"}</td>
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold w-36 text-muted-foreground">مدير المشروع:</td>
+                          <td className="py-2.5 px-3 font-semibold text-foreground">{data.projectManager || data.manager || "—"}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الإدارة المالكة:</td>
+                          <td className="py-2.5 px-3 text-foreground">{data.ownerDepartment || "إدارة المشاريع والصيانة"}</td>
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">
+                            {reportType === "semi-monthly" ? "فترة التقرير:" : reportType === "monthly" ? "الشهر/السنة:" : reportType === "quarterly" ? "الربع/السنة:" : "تاريخ الزيارة:"}
+                          </td>
+                          <td className="py-2.5 px-3 text-foreground font-semibold">
+                            {reportType === "semi-monthly"
+                              ? `${data.periodFrom || "—"} إلى ${data.periodTo || "—"}`
+                              : reportType === "monthly"
+                              ? data.monthYear || "2026-07"
+                              : reportType === "quarterly"
+                              ? `${data.quarter || "Q3"} / ${data.year || "2026"}`
+                              : data.visitDate || data.reportDate || "—"}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">مُعدّ التقرير:</td>
+                          <td className="py-2.5 px-3 text-foreground">{data.projectManager || "مهندس الموقع"}</td>
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">حالة التقرير:</td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-bold text-teal-700">
+                              {data.status === "approved" || data.status === "معتمد" ? "معتمد ومصادق عليه" : "قيد المراجعة والاعتماد"}
                             </span>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              )}
 
-              {/* Visit Observations & Photos */}
-              {reportType === "visit" && data.notes && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 space-y-2">
-                  <h3 className="font-bold text-sm text-[#1a5f4a] border-b border-slate-100 dark:border-slate-800 pb-2">الملاحظات المرصودة أثناء الزيارة الميدانية</h3>
-                  <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed pt-1">{data.notes}</p>
-                </div>
-              )}
+                {/* Section 2: Financial Values & Progress Indicators (RAG) matching /progress-reports/12/print */}
+                <div className="mb-6">
+                  <h3 
+                    className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                    style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
+                  >
+                    2. قيم مؤشرات الأداء ونسب الإنجاز المحققة (RAG):
+                  </h3>
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm mb-4">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800">
+                          <th className="p-3 text-right font-bold w-1/3">المؤشر القياسي</th>
+                          <th className="p-3 text-center font-bold w-1/3">المخطط / المتفق عليه</th>
+                          <th className="p-3 text-center font-bold w-1/3">الفعلي المحقق</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">نسبة الإنجاز المحققة (%)</td>
+                          <td className="p-3 text-center font-mono text-blue-700 font-bold">{planned}%</td>
+                          <td className="p-3 text-center font-bold text-emerald-700 font-mono">{actual}%</td>
+                        </tr>
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">فارق الانحراف المعياري للنسبة (Gap)</td>
+                          <td className="p-3 text-center text-muted-foreground font-medium">—</td>
+                          <td className={`p-3 text-center font-bold font-mono ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>
+                            {gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام (RAG Status)</td>
+                          <td className="p-3 text-center text-muted-foreground font-medium">—</td>
+                          <td className="p-3 text-center">
+                            <Badge className={
+                              ragStatus === "أخضر" ? "bg-emerald-600 text-white font-bold" : ragStatus === "أصفر" ? "bg-amber-500 text-white font-bold" : "bg-rose-600 text-white font-bold"
+                            }>
+                              {ragStatus} ({ragStatus === "أخضر" ? "مطابق" : ragStatus === "أصفر" ? "تأخير متوسط" : "تأخير حرج"})
+                            </Badge>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* Challenges & Obstacles */}
-              {data.challenges && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 space-y-2">
-                  <h3 className="font-bold text-sm text-[#1a5f4a] border-b border-slate-100 dark:border-slate-800 pb-2">التحديات والمعوقات الفنية</h3>
-                  <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed pt-1">{data.challenges}</p>
+                  {/* Visual Progress Bars */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>مشرّط نسبة الإنجاز المخطط:</span>
+                        <span>{planned}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                        <div className="bg-[#1a5f4a] h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, planned))}%` }} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>شريط نسبة الإنجاز الفعلية:</span>
+                        <span>{actual}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                        <div className="bg-teal-600 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, actual))}%` }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
 
-              {/* Corrective Recommendations */}
-              {data.recommendations && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 space-y-2">
-                  <h3 className="font-bold text-sm text-[#1a5f4a] border-b border-slate-100 dark:border-slate-800 pb-2">التوصيات والخطوات التصحيحية</h3>
-                  <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed pt-1">{data.recommendations}</p>
-                </div>
-              )}
+                {/* Section 3: Milestones Table if available matching /progress-reports/12/print */}
+                {Array.isArray(data.milestones) && data.milestones.length > 0 && (
+                  <div className="mb-6 break-inside-avoid">
+                    <h3 
+                      className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                      style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                    >
+                      3. جدول التقدم مقابل المعالم الرئيسية للمشروع:
+                    </h3>
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 font-bold">
+                            <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800 w-12">#</th>
+                            <th className="p-2.5 text-right border-l border-gray-200 dark:border-slate-800">اسم المعلم الرئيسية</th>
+                            <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800">التاريخ المستهدف</th>
+                            <th className="p-2.5 text-center">حالة المعلم</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.milestones.map((m: any, idx: number) => (
+                            <tr key={idx} className="border-b border-gray-200 dark:border-slate-800">
+                              <td className="p-2.5 text-center font-bold text-muted-foreground border-l border-gray-200 dark:border-slate-800">{idx + 1}</td>
+                              <td className="p-2.5 font-bold text-foreground border-l border-gray-200 dark:border-slate-800">{m.title || "—"}</td>
+                              <td className="p-2.5 text-center font-mono border-l border-gray-200 dark:border-slate-800">{m.dueDate || m.date || "—"}</td>
+                              <td className="p-2.5 text-center font-bold">
+                                <span className={`inline-block px-2.5 py-0.5 rounded text-xs ${
+                                  m.status === "منجز" ? "bg-emerald-100 text-emerald-800" : m.status === "جارٍ" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"
+                                }`}>
+                                  {m.status || "لم يبدأ"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
 
-              {/* Required Support */}
-              {data.requiredSupport && (
-                <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 space-y-2">
-                  <h3 className="font-bold text-sm text-[#1a5f4a] border-b border-slate-100 dark:border-slate-800 pb-2">الدعم المطلوب من الإدارة العليا</h3>
-                  <p className="whitespace-pre-wrap text-xs text-foreground leading-relaxed pt-1">{data.requiredSupport}</p>
-                </div>
-              )}
+                {/* Section 4: Work Summary / Visit Notes matching /progress-reports/12/print */}
+                {(data.notes || data.workSummary) && (
+                  <div className="mb-6 break-inside-avoid">
+                    <h3 
+                      className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                      style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                    >
+                      4. ملخص الأعمال المنجزة والملاحظات الميدانية:
+                    </h3>
+                    <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                      {data.notes || data.workSummary}
+                    </div>
+                  </div>
+                )}
 
-              {/* Official Signatures Block */}
-              <div className="pt-8 mt-8 border-t border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-6 text-center text-xs">
-                <div>
-                  <div className="font-bold text-foreground mb-8">مُعدّ التقرير</div>
-                  <div className="border-b border-dashed border-slate-300 dark:border-slate-700 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">{data.projectManager || "مهندس المشروع"}</div>
+                {/* Section 5: Challenges & Recommendations matching /progress-reports/12/print */}
+                {(data.challenges || data.recommendations || data.requiredSupport) && (
+                  <div className="mb-6 break-inside-avoid">
+                    <h3 
+                      className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                      style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                    >
+                      5. التحديات، التوصيات ودعم الإدارة:
+                    </h3>
+                    <div className="space-y-3 text-xs sm:text-sm">
+                      {data.challenges && (
+                        <div>
+                          <h4 className="font-bold text-foreground mb-1">■ التحديات والمعوقات:</h4>
+                          <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 whitespace-pre-wrap">{data.challenges}</p>
+                        </div>
+                      )}
+                      {data.recommendations && (
+                        <div>
+                          <h4 className="font-bold text-foreground mb-1">■ التوصيات والخطوات التصحيحية:</h4>
+                          <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 whitespace-pre-wrap">{data.recommendations}</p>
+                        </div>
+                      )}
+                      {data.requiredSupport && (
+                        <div>
+                          <h4 className="font-bold text-foreground mb-1">■ الدعم المطلوب من الإدارة:</h4>
+                          <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 whitespace-pre-wrap">{data.requiredSupport}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 6: Official Signatures Block matching /progress-reports/12/print */}
+                <div className="pt-8 mt-8 border-t border-gray-200 dark:border-slate-800 grid grid-cols-3 gap-6 text-center text-xs">
+                  <div>
+                    <div className="font-bold text-foreground mb-8">مُعدّ التقرير</div>
+                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
+                    <div className="text-muted-foreground font-semibold">{data.projectManager || "مهندس المشروع"}</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground mb-8">الجهة المعنية</div>
+                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
+                    <div className="text-muted-foreground font-semibold">{data.ownerDepartment || "إدارة المشاريع"}</div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-foreground mb-8">اعتماد مكتب إدارة المشاريع (PMO)</div>
+                    <div className="border-b border-dotted border-gray-400 w-3/4 mx-auto mb-1.5" />
+                    <div className="text-muted-foreground font-semibold">مدير إدارة المشاريع</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-bold text-foreground mb-8">الجهة المعنية</div>
-                  <div className="border-b border-dashed border-slate-300 dark:border-slate-700 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">{data.ownerDepartment || "إدارة المشاريع"}</div>
-                </div>
-                <div>
-                  <div className="font-bold text-foreground mb-8">اعتماد مكتب إدارة المشاريع (PMO)</div>
-                  <div className="border-b border-dashed border-slate-300 dark:border-slate-700 w-3/4 mx-auto mb-1.5" />
-                  <div className="text-muted-foreground font-semibold">مدير إدارة المشاريع</div>
-                </div>
+
               </div>
             </div>
           </div>
