@@ -47,15 +47,7 @@ export default function ProjectReportsHubPage() {
     }
   });
 
-  const seedMutation = trpc.progressReports.cleanAndSeed.useMutation({
-    onSuccess: (data) => {
-      refetchReports();
-      toast.success(data.message + ` للمشروع: ${data.projectName || "غير محدد"}`);
-    },
-    onError: (err) => {
-      toast.error(`حدث خطأ أثناء التهيئة: ${err.message}`);
-    }
-  });
+
 
   const reports = useMemo(() => {
     if (!dbReports) return [];
@@ -137,16 +129,6 @@ export default function ProjectReportsHubPage() {
             <p className="text-muted-foreground text-xs sm:text-sm">إنشاء ومتابعة التقارير الدورية والزيارات الميدانية للمشاريع</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => seedMutation.mutate()}
-              disabled={seedMutation.isPending}
-              className="gap-2 h-9 text-xs font-semibold border-amber-600/30 text-amber-700 bg-amber-50 hover:bg-amber-100 shadow-xs"
-            >
-              <RefreshCw className={`w-4 h-4 ${seedMutation.isPending ? "animate-spin" : ""}`} />
-              تهيئة وتجربة البيانات
-            </Button>
             <Link href="/projects">
               <Button variant="outline" size="sm" className="gap-2 h-9 text-xs font-semibold border-border/80 shadow-xs">
                 <Layers className="w-4 h-4 text-muted-foreground" />
