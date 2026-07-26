@@ -83,14 +83,6 @@ export default function ProjectProgressMilestonesTab({
     setMilestones(updated);
   };
 
-  const gap = (plannedProgress || 0) - (actualProgress || 0);
-  let ragBadge = { text: "أخضر (مطابق)", color: "bg-emerald-500 text-white" };
-  if (gap > 25) {
-    ragBadge = { text: "أحمر (تأخير كبير)", color: "bg-rose-500 text-white" };
-  } else if (gap > 5) {
-    ragBadge = { text: "أصفر (تأخير بسيط)", color: "bg-amber-500 text-white" };
-  }
-
   const handleSave = () => {
     updateMutation.mutate({
       id: projectId,
@@ -101,58 +93,31 @@ export default function ProjectProgressMilestonesTab({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* قسم الإنجاز المخطط vs الفعلي */}
-      <Card className="border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b border-border/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-teal-600" />
-              <div>
-                <CardTitle className="text-base font-bold">خطة نسبة الإنجاز المخطط</CardTitle>
-                <CardDescription className="text-xs">تحديد نسبة الإنجاز المخططة للمشروع ومقارنتها بالإنجاز الفعلي</CardDescription>
-              </div>
+      {/* قسم الإنجاز المخطط - سطر واحد مضغوط */}
+      <Card className="border-border/80 shadow-2xs">
+        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-600 flex items-center justify-center shrink-0">
+              <Target className="w-5 h-5" />
             </div>
-            <Badge className={`${ragBadge.color} text-xs px-3 py-1 font-semibold`}>
-              {ragBadge.text}
-            </Badge>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">خطة نسبة الإنجاز المخطط للمشروع</h3>
+              <p className="text-[11px] text-muted-foreground">تحديد النسبة المخططة من الجدول الزمني الإجمالي لتنعكس تلقائياً في التقارير</p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="pt-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">نسبة الإنجاز المخطط (%)</Label>
+
+          <div className="flex items-center gap-2 shrink-0 bg-muted/30 px-3 py-1.5 rounded-lg border border-border/60">
+            <Label className="text-xs font-bold text-foreground whitespace-nowrap">نسبة الإنجاز المخطط:</Label>
+            <div className="flex items-center gap-1">
               <Input
                 type="number"
                 min={0}
                 max={100}
                 value={plannedProgress}
                 onChange={(e) => setPlannedProgress(Math.min(100, Math.max(0, Number(e.target.value))))}
-                placeholder="أدخل نسبة الإنجاز المخطط"
-                className="h-10 text-sm font-semibold border-border/80"
+                className="h-8 w-16 text-center text-xs font-extrabold text-teal-700 bg-background border-border/80 p-1"
               />
-              <p className="text-[11px] text-muted-foreground">النسبة المخططة من الجدول الزمني الإجمالي للمشروع</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">نسبة الإنجاز الفعلية الحالية (%)</Label>
-              <Input
-                type="number"
-                disabled
-                value={actualProgress || 0}
-                className="h-10 text-sm font-semibold bg-muted/50 border-border/60 text-muted-foreground"
-              />
-              <p className="text-[11px] text-muted-foreground">تُحسب تلقائياً من نسبة تقدم المشروع</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-foreground">الفارق / الانحراف</Label>
-              <div className="h-10 px-3 rounded-md border border-border/60 bg-muted/20 flex items-center justify-between font-bold text-sm">
-                <span>فارق التقدّم:</span>
-                <span className={gap > 5 ? "text-rose-600 font-extrabold" : "text-emerald-600 font-extrabold"}>
-                  {gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground">الانحراف الموجب يعني تأخراً عن الجدول الزمني</p>
+              <span className="text-xs font-extrabold text-teal-700">%</span>
             </div>
           </div>
         </CardContent>
