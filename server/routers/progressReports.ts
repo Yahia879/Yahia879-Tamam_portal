@@ -58,6 +58,8 @@ export const progressReportsRouter = router({
           projectId: progressReports.projectId,
           title: progressReports.title,
           reportDate: progressReports.reportDate,
+          reportPeriodStart: progressReports.reportPeriodStart,
+          reportPeriodEnd: progressReports.reportPeriodEnd,
           overallProgress: progressReports.overallProgress,
           plannedProgress: progressReports.plannedProgress,
           actualProgress: progressReports.actualProgress,
@@ -425,5 +427,61 @@ export const progressReportsRouter = router({
         approved: stats?.approved || 0,
         avgProgress: Math.round(stats?.avgProgress || 0),
       };
+    }),
+
+  cleanAndSeed: publicProcedure
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      // 1. Delete all progress reports
+      await db.delete(progressReports);
+
+      // 2. Get active projects
+      const activeProjects = await db.select().from(projects).limit(10);
+      if (activeProjects.length === 0) {
+        return { message: "No projects in database to seed reports for." };
+      }
+
+      // Seed 2 semi-monthly reports for the first project (or erdt)
+      const targetProj = activeProjects.find(p => p.name.toLowerCase().includes("erdt")) || activeProjects[0];
+
+      // Semi 1: July 1 to July 15
+      await db.insert(progressReports).values({
+        reportNumber: "RPT-2026-0001",
+        projectId: targetProj.id,
+        title: `تقرير نصف شهري - ${targetProj.name}`,
+        reportDate: new Date("2026-07-15"),
+        reportPeriodStart: new Date("2026-07-01"),
+        reportPeriodEnd: new Date("2026-07-15"),
+        overallProgress: 40,
+        plannedProgress: 40,
+        actualProgress: 38,
+        variance: -2,
+        workSummary: "إكمال الأعمال التأسيسية للموقع وصب القواعد الأولى للجدار",
+        challenges: "بعض التأخير في توريد الاسمنت الجاهز",
+        recommendations: "التنسيق المبكر مع مورد الخرسانة",
+        status: "submitted",
+      });
+
+      // Semi 2: July 16 to July 31
+      await db.insert(progressReports).values({
+        reportNumber: "RPT-2026-0002",
+        projectId: targetProj.id,
+        title: `تقرير نصف شهري - ${targetProj.name}`,
+        reportDate: new Date("2026-07-31"),
+        reportPeriodStart: new Date("2026-07-16"),
+        reportPeriodEnd: new Date("2026-07-31"),
+        overallProgress: 60,
+        plannedProgress: 60,
+        actualProgress: 58,
+        variance: -2,
+        workSummary: "الانتهاء من أعمال العزل المائي وصب أعمدة الملحق الإضافي",
+        challenges: "ارتفاع درجات الحرارة خلال ساعات الظهيرة",
+        recommendations: "جدولة ساعات العمل في الفترات الصباحية والمسائية",
+        status: "submitted",
+      });
+
+      return { message: "Database cleaned and seeded successfully", projectId: targetProj.id, projectName: targetProj.name };
     }),
 });
