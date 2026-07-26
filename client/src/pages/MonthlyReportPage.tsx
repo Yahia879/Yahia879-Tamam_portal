@@ -12,7 +12,6 @@ import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs"
 import { RagIndicatorSelect } from "@/components/project-reports/RagIndicatorSelect";
 import { DynamicArrayTable, ColumnDef } from "@/components/project-reports/DynamicArrayTable";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
-import { MOCK_PROJECTS, MOCK_SEMI_MONTHLY_REPORTS, PROJECT_PHASES } from "@/components/project-reports/MockProjectData";
 import { STAGE_LABELS } from "@shared/constants";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -28,14 +27,7 @@ export default function MonthlyReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      const filtered = dbProjectsData.filter((p: any) => {
-        const start = p.startDate ? new Date(p.startDate) : null;
-        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
-        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
-        return p.programType === "bunyan" || isMoreThanYear;
-      });
-
-      return filtered.map((p: any) => {
+      return dbProjectsData.map((p: any) => {
         const rawStage = p.requestStage || p.status || "execution";
         const arabicPhase = STAGE_LABELS[rawStage] || rawStage;
         return {
@@ -49,7 +41,7 @@ export default function MonthlyReportPage() {
         };
       });
     }
-    return MOCK_PROJECTS;
+    return [];
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -62,12 +54,12 @@ export default function MonthlyReportPage() {
       }
     }
   }, [projectOptions, selectedProjectId]);
-  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || MOCK_PROJECTS[0].manager);
+  const [projectManager, setProjectManager] = useState<string>(projectOptions[0]?.manager || "غير محدد");
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || MOCK_PROJECTS[0].currentPhase);
+  const [currentPhase, setCurrentPhase] = useState<string>(projectOptions[0]?.currentPhase || "التنفيذ");
 
   const [entryMode, setEntryMode] = useState<"manual" | "aggregate">("manual");
   const [selectedSemiId, setSelectedSemiId] = useState<string>("");
