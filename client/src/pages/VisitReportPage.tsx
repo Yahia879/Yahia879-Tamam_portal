@@ -14,7 +14,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target } from "lucide-react";
 
-export default function VisitReportPage() {
+export default function VisitReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
   const updateStatusMutation = trpc.progressReports.updateStatus.useMutation();
@@ -111,9 +111,8 @@ export default function VisitReportPage() {
 
   const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
+  const content = (
+    <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">
         <ReportHeaderTabs
           activeTab="visit"
           reportStatus={reportStatus}
@@ -293,6 +292,7 @@ export default function VisitReportPage() {
           }}
         />
       </div>
-    </DashboardLayout>
-  );
+    );
+
+  return showLayout ? <DashboardLayout>{content}</DashboardLayout> : content;
 }
