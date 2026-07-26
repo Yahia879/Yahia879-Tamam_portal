@@ -137,12 +137,14 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   const [plannedProgress, setPlannedProgress] = useState<number>(0);
   const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
 
-  const gap = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
+  const gap = useMemo(() => actualProgress - plannedProgress, [actualProgress, plannedProgress]);
+  const delay = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
+
   const ragStatus = useMemo(() => {
-    if (gap <= 5) return "أخضر";
-    if (gap <= 25) return "أصفر";
+    if (delay < 5) return "أخضر";
+    if (delay < 25) return "أصفر";
     return "أحمر";
-  }, [gap]);
+  }, [delay]);
 
   const [milestones, setMilestones] = useState<Record<string, any>[]>(projectOptions[0]?.milestones || []);
 
@@ -569,9 +571,9 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>الفجوة (المخطط − الفعلي)</span>
-                    <span className={`font-bold ${gap > 5 ? "text-destructive" : "text-emerald-600"}`}>
-                      {gap}%
+                    <span>فجوة الإنجاز المحسوبة (الفعلي − المخطط)</span>
+                    <span className={`font-bold ${delay >= 25 ? "text-rose-600 dark:text-rose-400" : delay >= 5 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                      {gap > 0 ? `+${gap}%` : `${gap}%`}
                     </span>
                   </Label>
                   <div className="h-10 rounded-lg border border-border/80 bg-muted/30 px-3 flex items-center justify-between font-bold">
