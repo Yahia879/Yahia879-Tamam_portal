@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,14 @@ export default function VisitReportPage() {
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => ({
+      const filtered = dbProjectsData.filter((p: any) => {
+        const start = p.startDate ? new Date(p.startDate) : null;
+        const end = p.expectedEndDate ? new Date(p.expectedEndDate) : null;
+        const isMoreThanYear = start && end && (end.getTime() - start.getTime()) > (365 * 24 * 60 * 60 * 1000);
+        return p.programType === "bunyan" || isMoreThanYear;
+      });
+
+      return filtered.map((p: any) => ({
         id: String(p.id),
         name: p.name || `مشروع رقم ${p.projectNumber}`,
       }));
@@ -33,7 +40,16 @@ export default function VisitReportPage() {
     return MOCK_PROJECTS;
   }, [dbProjectsData]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(projectOptions[0]?.id || "proj-101");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (projectOptions.length > 0) {
+      const exists = projectOptions.some((p) => String(p.id) === String(selectedProjectId));
+      if (!exists) {
+        setSelectedProjectId(projectOptions[0].id);
+      }
+    }
+  }, [projectOptions, selectedProjectId]);
   const [visitDate, setVisitDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
