@@ -170,7 +170,9 @@ export default function Profile() {
     user?.role === "super_admin" || 
     user?.role === "system_admin" || 
     (user?.role as string) === "general_manager" || 
-    hasAnySigningPermission;
+    hasAnySigningPermission ||
+    !!(user as any)?.signatureUrl ||
+    !!(user as any)?.isLinkedSignatory;
 
   const handleSave = () => {
     updateProfileMutation.mutate({

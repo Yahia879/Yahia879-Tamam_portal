@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
-import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions, passwordResetTokens } from "../../drizzle/schema";
+import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions, passwordResetTokens, signatories } from "../../drizzle/schema";
 import { calculateUserPermissions, checkPermission } from "../permissions";
 import { eq, and, isNull, inArray, sql, or, ne, gt } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
@@ -296,7 +296,7 @@ export const authRouter = router({
     if (!ctx.user) return null;
 
     const db = await getDb();
-    if (!db) return ctx.user;
+    if (!db) return { ...ctx.user, permissions: [] };
 
     // التحقق من حالة الدور (Kill Switch - إبطال الجلسات النشطة للأدوار الموقوفة)
     const userRoles = await db
@@ -350,8 +350,46 @@ export const authRouter = router({
     // حساب الصلاحيات الموسعة باستخدام الدالة المركزية
     const permissions = await calculateUserPermissions(ctx.user.id);
 
+    // التحقق مما إذا كان المستخدم مفوض توقيع رقمي مرخص
+    let linkedSignatorySignatureUrl: string | null = null;
+    let isLinkedSignatory = false;
+
+    if (ctx.user?.id || ctx.user?.email) {
+      const signatoryConds = [];
+      if (ctx.user.id) {
+        signatoryConds.push(eq(signatories.userId, ctx.user.id));
+      }
+      if (ctx.user.email) {
+        signatoryConds.push(
+          and(
+            sql`length(${signatories.email}) > 0`,
+            eq(signatories.email, ctx.user.email)
+          )
+        );
+      }
+      const [signatoryRec] = await db
+        .select({
+          id: signatories.id,
+          signatureUrl: signatories.signatureUrl,
+        })
+        .from(signatories)
+        .where(or(...signatoryConds))
+        .limit(1);
+
+      if (signatoryRec) {
+        isLinkedSignatory = true;
+        if (signatoryRec.signatureUrl) {
+          linkedSignatorySignatureUrl = signatoryRec.signatureUrl;
+        }
+      }
+    }
+
+    const finalSignatureUrl = (ctx.user as any).signatureUrl || linkedSignatorySignatureUrl || null;
+
     return {
       ...ctx.user,
+      signatureUrl: finalSignatureUrl,
+      isLinkedSignatory,
       customRole: customRoleAssignment ? {
         id: customRoleAssignment.roleId,
         nameAr: customRoleAssignment.roleNameAr,

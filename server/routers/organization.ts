@@ -615,16 +615,25 @@ export const organizationRouter = router({
 
       await db.insert(signatories).values(insertValues);
 
-      // التعامل مع منح/سحب صلاحية توقيع العقود للمستخدم المرتبط
-      if (input.userId && input.grantContractSignPermission !== undefined) {
-        await db.delete(userPermissions).where(
-          and(
-            eq(userPermissions.userId, input.userId),
-            eq(userPermissions.permissionId, "contracts.sign")
-          )
-        );
+      // مزامنة التوقيع والصلاحيات مع حساب المستخدم المرتبط إن وُجد
+      let targetUserId = input.userId || null;
+      if (!targetUserId && input.email) {
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+        if (matchedUser) {
+          targetUserId = matchedUser.id;
+        }
+      }
 
-        if (input.grantContractSignPermission) {
+      if (targetUserId) {
+        if (input.signatureUrl) {
+          try {
+            await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
+          } catch (e) {}
+          await db.update(users).set({ signatureUrl: input.signatureUrl }).where(eq(users.id, targetUserId));
+        }
+
+        const grantPerm = input.grantContractSignPermission ?? true;
+        if (grantPerm) {
           const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
           if (!existingPerm) {
             await db.insert(permissions).values({
@@ -636,12 +645,21 @@ export const organizationRouter = router({
             });
           }
 
-          await db.insert(userPermissions).values({
-            userId: input.userId,
-            permissionId: "contracts.sign",
-            granted: true,
-            grantedBy: ctx.user.id,
-          });
+          const [existingUserPerm] = await db.select().from(userPermissions).where(
+            and(
+              eq(userPermissions.userId, targetUserId),
+              eq(userPermissions.permissionId, "contracts.sign")
+            )
+          ).limit(1);
+
+          if (!existingUserPerm) {
+            await db.insert(userPermissions).values({
+              userId: targetUserId,
+              permissionId: "contracts.sign",
+              granted: true,
+              grantedBy: ctx.user.id,
+            });
+          }
         }
       }
 
@@ -705,33 +723,50 @@ export const organizationRouter = router({
         .set(updateValues)
         .where(eq(signatories.id, input.id));
 
-      // التعامل مع منح/سحب صلاحية توقيع العقود للمستخدم المرتبط
-      if (input.userId && input.grantContractSignPermission !== undefined) {
-        await db.delete(userPermissions).where(
-          and(
-            eq(userPermissions.userId, input.userId),
-            eq(userPermissions.permissionId, "contracts.sign")
-          )
-        );
+      // مزامنة التوقيع والصلاحيات مع حساب المستخدم المرتبط إن وُجد
+      let targetUserId = input.userId || null;
+      if (!targetUserId && input.email) {
+        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
+        if (matchedUser) {
+          targetUserId = matchedUser.id;
+        }
+      }
 
-        if (input.grantContractSignPermission) {
-          const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
-          if (!existingPerm) {
-            await db.insert(permissions).values({
-              id: "contracts.sign",
-              moduleId: "contracts",
-              action: "sign",
-              nameAr: "توقيع العقود",
-              nameEn: "Sign Contracts",
+      if (targetUserId) {
+        if (input.signatureUrl) {
+          try {
+            await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
+          } catch (e) {}
+          await db.update(users).set({ signatureUrl: input.signatureUrl }).where(eq(users.id, targetUserId));
+        }
+
+        if (input.grantContractSignPermission !== undefined) {
+          await db.delete(userPermissions).where(
+            and(
+              eq(userPermissions.userId, targetUserId),
+              eq(userPermissions.permissionId, "contracts.sign")
+            )
+          );
+
+          if (input.grantContractSignPermission) {
+            const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
+            if (!existingPerm) {
+              await db.insert(permissions).values({
+                id: "contracts.sign",
+                moduleId: "contracts",
+                action: "sign",
+                nameAr: "توقيع العقود",
+                nameEn: "Sign Contracts",
+              });
+            }
+
+            await db.insert(userPermissions).values({
+              userId: targetUserId,
+              permissionId: "contracts.sign",
+              granted: true,
+              grantedBy: ctx.user.id,
             });
           }
-
-          await db.insert(userPermissions).values({
-            userId: input.userId,
-            permissionId: "contracts.sign",
-            granted: true,
-            grantedBy: ctx.user.id,
-          });
         }
       }
 
