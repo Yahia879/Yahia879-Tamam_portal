@@ -683,8 +683,8 @@ export const authRouter = router({
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));
       }
 
-      // مزامنة الاسم والمنصب الوظيفي في جدول المفوضين signatories عند تعديلها في Profile
-      if (input.signatureName !== undefined || input.signatureDepartment !== undefined) {
+      // مزامنة الاسم والمنصب الوظيفي وحالة إظهار التوقيع في جدول المفوضين signatories عند تعديلها في Profile
+      if (input.signatureName !== undefined || input.signatureDepartment !== undefined || input.showSignatureInDocuments !== undefined) {
         try {
           const signatoryConds = [eq(signatories.userId, ctx.user.id)];
           if (ctx.user.email) {
@@ -699,12 +699,17 @@ export const authRouter = router({
           const sigUpdate: any = {};
           if (input.signatureName !== undefined) sigUpdate.name = input.signatureName;
           if (input.signatureDepartment !== undefined) sigUpdate.title = input.signatureDepartment;
+          if (input.showSignatureInDocuments === false) {
+            sigUpdate.signatureUrl = null;
+          } else if (input.showSignatureInDocuments === true && ctx.user.signatureUrl) {
+            sigUpdate.signatureUrl = ctx.user.signatureUrl;
+          }
 
           if (Object.keys(sigUpdate).length > 0) {
             await db.update(signatories).set(sigUpdate).where(whereClause);
           }
         } catch (e) {
-          console.error('[updateProfile] Failed to sync signatory name/title:', e);
+          console.error('[updateProfile] Failed to sync signatory name/title/showSignature:', e);
         }
       }
 

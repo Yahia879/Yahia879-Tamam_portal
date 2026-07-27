@@ -259,99 +259,78 @@ export const contractsRouter = router({
       
       const { contract, signatory, projectName } = contractData;
 
-      // التحقق مما إذا كان المفوض المرتبط قد ألغى إظهار التوقيع الرسمي في المستندات
-      let showSigInDocs = true;
-      let targetUserId = signatory?.userId || null;
-      if (!targetUserId && signatory?.email) {
-        const [matched] = await db
-          .select({ id: users.id, showSignatureInDocuments: users.showSignatureInDocuments })
+      // البحث عن المستخدم المرتبط بالمفوض أو المدير التنفيذي للتحقق من حالة إظهار التوقيع في المستندات
+      let targetUser: { id: number; signatureUrl: string | null; showSignatureInDocuments: boolean | null; name: string; signatureName: string | null; signatureDepartment: string | null } | null = null;
+
+      if (signatory?.userId) {
+        const [u] = await db
+          .select({
+            id: users.id,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+          })
+          .from(users)
+          .where(eq(users.id, signatory.userId))
+          .limit(1);
+        targetUser = u || null;
+      }
+
+      if (!targetUser && signatory?.email) {
+        const [u] = await db
+          .select({
+            id: users.id,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+          })
           .from(users)
           .where(eq(users.email, signatory.email))
           .limit(1);
-        if (matched) {
-          targetUserId = matched.id;
-          if (matched.showSignatureInDocuments === false || (matched.showSignatureInDocuments as any) === 0) {
-            showSigInDocs = false;
-          }
-        }
-      } else if (targetUserId) {
-        const [matched] = await db
-          .select({ showSignatureInDocuments: users.showSignatureInDocuments })
-          .from(users)
-          .where(eq(users.id, targetUserId))
-          .limit(1);
-        if (matched && (matched.showSignatureInDocuments === false || (matched.showSignatureInDocuments as any) === 0)) {
-          showSigInDocs = false;
-        }
+        targetUser = u || null;
       }
 
-      // جلب صورة وتفاصيل توقيع الطرف الأول (المدير التنفيذي حصرياً)
-      let firstPartySignatureUrl: string | null = showSigInDocs ? (signatory?.signatureUrl || null) : null;
-      let firstPartySignatoryName: string | null = signatory?.name || null;
-      let firstPartySignatoryTitle: string | null = signatory?.title || null;
-
-      if (signatory && !showSigInDocs) {
-        signatory.signatureUrl = null;
-      }
-
-      // إذا لم يكن هناك صورة توقيع رقمية في جدول المخولين (signatories)، نسحب التوقيع الرقمي من جدول المستخدمين (users) للمدير التنفيذي
-      if (!firstPartySignatureUrl) {
-        const potentialSigners = await db
+      if (!targetUser) {
+        const [gmUser] = await db
           .select({
             id: users.id,
-            name: users.name,
-            email: users.email,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
             signatureUrl: users.signatureUrl,
             showSignatureInDocuments: users.showSignatureInDocuments,
-            role: users.role,
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
           })
           .from(users)
           .where(
             and(
               isNull(users.deletedAt),
-              sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
-              sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+              eq(users.status, "active" as any),
+              inArray(users.role, ["general_manager" as any, "executive_director" as any])
             )
-          );
+          )
+          .limit(1);
+        targetUser = gmUser || null;
+      }
 
-        // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
-        let execDirector = potentialSigners.find(u => 
-          (u.role as string) === "general_manager" ||
-          u.email === "ceo@manarah.org.sa" ||
-          (u.signatureDepartment || "").includes("المدير التنفيذي") ||
-          (u.signatureName || "").includes("المدير التنفيذي") ||
-          (u.name || "").includes("المدير التنفيذي")
-        );
+      // التحقق مما إذا كان المستخدم/المفوض قد ألغى إظهار التوقيع الرسمي في المستندات
+      const showSigInDocs = targetUser
+        ? (targetUser.showSignatureInDocuments !== false && (targetUser.showSignatureInDocuments as any) !== 0)
+        : true;
 
-        // إذا لم يُعثر بالاسم أو الإيميل، نفحص الدور المخصص للمستخدم في جدول userRoleAssignments
-        if (!execDirector) {
-          for (const u of potentialSigners) {
-            const [customRole] = await db
-              .select({ nameAr: roles.nameAr })
-              .from(userRoleAssignments)
-              .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-              .where(eq(userRoleAssignments.userId, u.id))
-              .limit(1);
+      let firstPartySignatureUrl: string | null = null;
+      let firstPartySignatoryName: string | null = signatory?.name || targetUser?.signatureName || targetUser?.name || null;
+      let firstPartySignatoryTitle: string | null = signatory?.title || targetUser?.signatureDepartment || "المدير التنفيذي";
 
-            if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
-              execDirector = u;
-              break;
-            }
-          }
-        }
+      if (showSigInDocs) {
+        firstPartySignatureUrl = targetUser?.signatureUrl || signatory?.signatureUrl || null;
+      }
 
-        // إذا لم يُعثر على مدير تنفيذي مخصص، نختار أول مستخدم يملك توقيع رقمي مفعل
-        if (!execDirector && potentialSigners.length > 0) {
-          execDirector = potentialSigners[0];
-        }
-
-        if (execDirector) {
-          if (!firstPartySignatoryName) firstPartySignatoryName = execDirector.signatureName || execDirector.name || "المدير التنفيذي";
-          if (!firstPartySignatoryTitle) firstPartySignatoryTitle = execDirector.signatureDepartment || "المدير التنفيذي";
-          firstPartySignatureUrl = execDirector.signatureUrl;
-        }
+      if (signatory && !showSigInDocs) {
+        signatory.signatureUrl = null;
       }
 
       // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
