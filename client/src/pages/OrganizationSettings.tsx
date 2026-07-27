@@ -46,6 +46,7 @@ import {
   X,
   UserCheck,
   ChevronDown,
+  Lock,
 } from "lucide-react";
 import {
   Dialog,
@@ -303,10 +304,10 @@ function SignatoriesSection() {
       setFormData((prev) => ({
         ...prev,
         userId: targetUser.id,
-        name: prev.name || targetUser.name || "",
-        phone: prev.phone || targetUser.phone || "",
-        email: prev.email || targetUser.email || "",
-        signatureUrl: prev.signatureUrl || targetUser.signatureUrl || "",
+        name: targetUser.name || "",
+        email: targetUser.email || "",
+        phone: targetUser.phone || prev.phone || "",
+        signatureUrl: targetUser.signatureUrl || prev.signatureUrl || "",
         grantContractSignPermission: targetUser.hasContractSignPermission,
       }));
     }
@@ -696,6 +697,7 @@ function SignatoriesSection() {
               </div>
             )}
 
+            {/* الحقول الأساسية للمفوض مرتبة في شبكة واسعة */}
             {/* الحقول الأساسية للمفوض مرتبة في شبكة واسعة */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
