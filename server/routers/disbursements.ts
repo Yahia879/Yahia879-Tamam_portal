@@ -404,6 +404,10 @@ export const disbursementsRouter = router({
         }
       }
 
+      if (!execDirector && potentialGMs.length > 0) {
+        execDirector = potentialGMs[0];
+      }
+
       if (execDirector) {
         executiveDirectorName = execDirector.signatureName || execDirector.name;
         executiveDirectorSignatureDepartment = execDirector.signatureDepartment || "المدير التنفيذي";

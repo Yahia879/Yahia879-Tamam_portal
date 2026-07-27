@@ -43,6 +43,8 @@ export default function DisbursementRequestPrint() {
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
   const isExecutiveDirectorRole = 
+    currentUser?.role === "general_manager" ||
+    currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     currentUser?.name === "المدير التنفيذي" ||
     currentUser?.email === "ceo@manarah.org.sa";
@@ -58,9 +60,14 @@ export default function DisbursementRequestPrint() {
     { enabled: !!params.id }
   );
 
+  const executiveDirectorDepartment = 
+    (request as any)?.executiveDirectorSignatureDepartment || 
+    (isExecutiveDirectorRole ? (currentUser as any)?.signatureDepartment : null) || 
+    "المدير التنفيذي";
+
   const executiveDirectorName = 
     (request as any)?.executiveDirectorName || 
-    ((currentUser as any)?.signatureName || currentUser?.name) || 
+    (isExecutiveDirectorRole ? ((currentUser as any)?.signatureName || currentUser?.name) : null) || 
     orgSettings?.executiveDirectorName || 
     "—";
 
@@ -525,7 +532,7 @@ export default function DisbursementRequestPrint() {
                 {/* المدير التنفيذي */}
                 <div className="p-2">
                   <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
-                    المدير التنفيذي
+                    {executiveDirectorDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                     {executiveDirectorSignatureUrl ? (
