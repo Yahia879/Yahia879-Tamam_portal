@@ -708,6 +708,24 @@ export const authRouter = router({
           if (Object.keys(sigUpdate).length > 0) {
             await db.update(signatories).set(sigUpdate).where(whereClause);
           }
+
+          // مزامنة الاسم والمنصب مع إعدادات الجمعية organizationSettings إذا كان المستخدم هو المدير التنفيذي / المفوض
+          if (["executive_director", "general_manager"].includes(ctx.user.role as string)) {
+            const existingSettings = await db.select().from(organizationSettings).limit(1);
+            if (existingSettings && existingSettings.length > 0) {
+              const orgUpdate: any = {};
+              if (input.signatureName !== undefined) {
+                orgUpdate.authorizedSignatory = input.signatureName;
+                orgUpdate.executiveDirectorName = input.signatureName;
+              }
+              if (input.signatureDepartment !== undefined) {
+                orgUpdate.signatoryTitle = input.signatureDepartment;
+              }
+              if (Object.keys(orgUpdate).length > 0) {
+                await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
+              }
+            }
+          }
         } catch (e) {
           console.error('[updateProfile] Failed to sync signatory name/title/showSignature:', e);
         }

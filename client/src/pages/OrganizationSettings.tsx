@@ -159,6 +159,8 @@ function SignatoriesSection() {
       setShowAddDialog(false);
       resetForm();
       refetchSignatories();
+      utils.auth.me.invalidate();
+      utils.organization.getSettings.invalidate();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء إضافة المفوض");
@@ -172,6 +174,8 @@ function SignatoriesSection() {
       setEditingSignatory(null);
       resetForm();
       refetchSignatories();
+      utils.auth.me.invalidate();
+      utils.organization.getSettings.invalidate();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث المفوض");
@@ -979,11 +983,13 @@ export default function OrganizationSettings() {
   // جلب إعدادات الجمعية
   const { data: settings, isLoading, refetch } = trpc.organization.getSettings.useQuery();
 
-  // تحديث الإعدادات
+  const utils = trpc.useUtils();
   const updateMutation = trpc.organization.updateSettings.useMutation({
     onSuccess: () => {
       toast.success("تم حفظ الإعدادات بنجاح");
       refetch();
+      utils.auth.me.invalidate();
+      utils.organization.getSignatories.invalidate();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء حفظ الإعدادات");

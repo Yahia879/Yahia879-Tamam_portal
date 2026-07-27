@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { organizationSettings, signatories, users, userPermissions, permissions, userRoleAssignments, roles } from "../../drizzle/schema";
-import { eq, and, ne, sql } from "drizzle-orm";
+import { eq, and, ne, sql, inArray, isNull, or } from "drizzle-orm";
 import { calculateUserPermissions } from "../permissions";
 
 async function ensureSignatoriesUserIdColumn(db: any) {
@@ -196,7 +196,58 @@ export const organizationRouter = router({
         // تحديث الإعدادات الموجودة
         await db.update(organizationSettings)
           .set(settingsData)
-          .where(eq(organizationSettings.id, existingSettings[0].id));
+      }
+
+      // مزامنة اسم المنصب واسم المفوض مع حساب المدير التنفيذي/المفوض وجدول المفوضين signatories
+      if (input.authorizedSignatory !== undefined || input.signatoryTitle !== undefined || input.executiveDirectorName !== undefined) {
+        try {
+          const authSigName = input.authorizedSignatory || input.executiveDirectorName;
+          const authSigTitle = input.signatoryTitle;
+
+          // البحث عن حساب المدير التنفيذي
+          const [execUser] = await db
+            .select()
+            .from(users)
+            .where(
+              and(
+                isNull(users.deletedAt),
+                eq(users.status, "active" as any),
+                inArray(users.role, ["executive_director" as any, "general_manager" as any])
+              )
+            )
+            .limit(1);
+
+          if (execUser) {
+            const userUpdate: any = {};
+            if (authSigName) {
+              userUpdate.signatureName = authSigName;
+            }
+            if (authSigTitle) {
+              userUpdate.signatureDepartment = authSigTitle;
+            }
+            if (Object.keys(userUpdate).length > 0) {
+              await db.update(users).set(userUpdate).where(eq(users.id, execUser.id));
+            }
+
+            // تحديث جدول المفوضين signatories المربوط
+            const sigUpdate: any = {};
+            if (authSigName) sigUpdate.name = authSigName;
+            if (authSigTitle) sigUpdate.title = authSigTitle;
+            if (Object.keys(sigUpdate).length > 0) {
+              await db.update(signatories).set(sigUpdate).where(
+                or(
+                  eq(signatories.userId, execUser.id),
+                  and(
+                    sql`length(${signatories.email}) > 0`,
+                    eq(signatories.email, execUser.email)
+                  )!
+                )!
+              );
+            }
+          }
+        } catch (e) {
+          console.error('[updateSettings] Failed to sync executive director user profile:', e);
+        }
       }
 
       return { success: true, message: "تم حفظ إعدادات الجمعية بنجاح" };
@@ -640,11 +691,36 @@ export const organizationRouter = router({
       }
 
       if (targetUserId) {
+        const userUpdate: any = {};
+        if (input.name) userUpdate.signatureName = input.name;
+        if (input.title) userUpdate.signatureDepartment = input.title;
         if (input.signatureUrl) {
           try {
             await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
           } catch (e) {}
-          await db.update(users).set({ signatureUrl: input.signatureUrl }).where(eq(users.id, targetUserId));
+          userUpdate.signatureUrl = input.signatureUrl;
+        }
+
+        if (Object.keys(userUpdate).length > 0) {
+          await db.update(users).set(userUpdate).where(eq(users.id, targetUserId));
+        }
+
+        const [targetUserObj] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, targetUserId)).limit(1);
+        if (input.isDefault || (targetUserObj && ["executive_director", "general_manager"].includes(targetUserObj.role as string))) {
+          const existingSettings = await db.select().from(organizationSettings).limit(1);
+          if (existingSettings && existingSettings.length > 0) {
+            const orgUpdate: any = {};
+            if (input.name) {
+              orgUpdate.authorizedSignatory = input.name;
+              orgUpdate.executiveDirectorName = input.name;
+            }
+            if (input.title) {
+              orgUpdate.signatoryTitle = input.title;
+            }
+            if (Object.keys(orgUpdate).length > 0) {
+              await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
+            }
+          }
         }
 
         const grantPerm = input.grantContractSignPermission ?? true;
@@ -748,11 +824,36 @@ export const organizationRouter = router({
       }
 
       if (targetUserId) {
-        if (input.signatureUrl) {
+        const userUpdate: any = {};
+        if (input.name) userUpdate.signatureName = input.name;
+        if (input.title) userUpdate.signatureDepartment = input.title;
+        if (input.signatureUrl !== undefined) {
           try {
             await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
           } catch (e) {}
-          await db.update(users).set({ signatureUrl: input.signatureUrl }).where(eq(users.id, targetUserId));
+          userUpdate.signatureUrl = input.signatureUrl || null;
+        }
+
+        if (Object.keys(userUpdate).length > 0) {
+          await db.update(users).set(userUpdate).where(eq(users.id, targetUserId));
+        }
+
+        const [targetUserObj] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, targetUserId)).limit(1);
+        if (input.isDefault || (targetUserObj && ["executive_director", "general_manager"].includes(targetUserObj.role as string))) {
+          const existingSettings = await db.select().from(organizationSettings).limit(1);
+          if (existingSettings && existingSettings.length > 0) {
+            const orgUpdate: any = {};
+            if (input.name) {
+              orgUpdate.authorizedSignatory = input.name;
+              orgUpdate.executiveDirectorName = input.name;
+            }
+            if (input.title) {
+              orgUpdate.signatoryTitle = input.title;
+            }
+            if (Object.keys(orgUpdate).length > 0) {
+              await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
+            }
+          }
         }
 
         if (input.grantContractSignPermission !== undefined) {

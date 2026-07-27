@@ -1457,6 +1457,14 @@ export default function ContractPreview() {
                 font-size: 10px;
                 color: #374151;
                 font-weight: 600;
+                border-top: 1px solid #cbd5e1;
+                padding-top: 3px;
+                vertical-align: top;
+              }
+              @bottom-center {
+                content: "";
+                border-top: 1px solid #cbd5e1;
+                vertical-align: top;
               }
               @bottom-right {
                 content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
@@ -1464,6 +1472,9 @@ export default function ContractPreview() {
                 font-size: 10px;
                 color: #374151;
                 font-weight: 700;
+                border-top: 1px solid #cbd5e1;
+                padding-top: 3px;
+                vertical-align: top;
               }
             }
           }

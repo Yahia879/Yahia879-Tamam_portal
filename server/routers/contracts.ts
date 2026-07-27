@@ -28,7 +28,7 @@ import {
   userRoleAssignments,
   roles,
 } from "../../drizzle/schema";
-import { eq, desc, and, or, sql, asc, ne, isNull } from "drizzle-orm";
+import { eq, desc, and, or, sql, asc, ne, isNull, inArray } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
 
 // دالة لتحديث التكلفة الفعلية للمشروع بناءً على مجموع العقود

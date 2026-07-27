@@ -155,6 +155,7 @@ export default function Profile() {
       toast.success("تم حفظ التغييرات بنجاح");
       utils.auth.me.invalidate();
       utils.organization.getSignatories.invalidate();
+      utils.organization.getSettings.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ التغييرات");
