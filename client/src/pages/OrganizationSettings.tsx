@@ -207,6 +207,10 @@ function SignatoriesSection() {
     setUserSearchQuery("");
     setShowUserDropdown(false);
     setEditingSignatory(signatory);
+
+    const linkedUser = signatory.userId ? systemUsers?.find((u: any) => u.id === signatory.userId) : null;
+    const currentSignatureUrl = signatory.signatureUrl || linkedUser?.signatureUrl || "";
+
     setFormData({
       name: signatory.name,
       title: signatory.title,
@@ -214,12 +218,22 @@ function SignatoriesSection() {
       phone: signatory.phone || "",
       email: signatory.email || "",
       address: signatory.address || "",
-      signatureUrl: signatory.signatureUrl || "",
+      signatureUrl: currentSignatureUrl,
       isDefault: signatory.isDefault || false,
       userId: signatory.userId || null,
       grantContractSignPermission: !!signatory.hasContractSignPermission,
     });
   };
+
+  const uploadSignatureMutation = trpc.organization.uploadSignatorySignature.useMutation({
+    onSuccess: (data) => {
+      setFormData((prev) => ({ ...prev, signatureUrl: data.url }));
+      toast.success("تم رفع صورة التوقيع الرقمي بنجاح");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء رفع التوقيع الرقمي");
+    },
+  });
 
   const handleSignatureFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -247,10 +261,13 @@ function SignatoriesSection() {
         reader.readAsDataURL(file);
       });
 
-      setFormData((prev) => ({ ...prev, signatureUrl: base64 }));
-      toast.success("تم تحديد صورة التوقيع بنجاح");
+      await uploadSignatureMutation.mutateAsync({
+        fileData: base64,
+        fileName: file.name,
+        mimeType: file.type,
+      });
     } catch (error: any) {
-      toast.error("حدث خطأ أثناء قراءة صورة التوقيع");
+      console.error("[uploadSignature] Error:", error);
     } finally {
       setUploadingSignature(false);
       e.target.value = "";
@@ -336,6 +353,7 @@ function SignatoriesSection() {
                     <TableHead className="text-right">الجوال</TableHead>
                     <TableHead className="text-right">البريد الإلكتروني</TableHead>
                     <TableHead className="text-center">التوقيع الرقمي</TableHead>
+                    <TableHead className="text-center">مربوط بحساب</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
@@ -350,18 +368,20 @@ function SignatoriesSection() {
                       <TableCell className="text-right">{signatory.email || "-"}</TableCell>
                       <TableCell className="text-center">
                         {signatory.signatureUrl ? (
-                          <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-950 p-1 px-2 rounded-lg border shadow-xs">
-                            <img
-                              src={signatory.signatureUrl}
-                              alt="توقيع"
-                              className="max-h-[32px] max-w-[90px] w-auto object-contain"
-                            />
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <div className="flex items-center justify-center">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                           </div>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground text-[11px] font-normal">
-                            بدون توقيع رقمي
-                          </Badge>
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {signatory.userId ? (
+                          <div className="flex items-center justify-center">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -443,12 +463,28 @@ function SignatoriesSection() {
                     </div>
                   </div>
 
-                  {signatory.signatureUrl && (
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg border flex items-center justify-between">
-                      <span className="text-xs font-semibold text-muted-foreground">التوقيع الرقمي:</span>
-                      <img src={signatory.signatureUrl} alt="توقيع" className="max-h-[30px] w-auto object-contain bg-white p-1 rounded border" />
+                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">التوقيع الرقمي:</span>
+                      {signatory.signatureUrl ? (
+                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" /> مرفوع
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </div>
-                  )}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">مربوط بحساب:</span>
+                      {signatory.userId ? (
+                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-4 h-4" /> نعم
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="flex gap-2 pt-1">
                     <Button

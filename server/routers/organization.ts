@@ -338,10 +338,10 @@ export const organizationRouter = router({
           );
 
         for (const item of userRolesData) {
-          if (!customRolesMap[item.userId]) {
-            customRolesMap[item.userId] = [];
-          }
-          if (item.roleName) {
+          if (item.userId && item.roleName) {
+            if (!customRolesMap[item.userId]) {
+              customRolesMap[item.userId] = [];
+            }
             customRolesMap[item.userId].push(item.roleName);
           }
         }
@@ -473,11 +473,28 @@ export const organizationRouter = router({
       signatoryList.map(async (sig: any) => {
         let hasContractSignPermission = false;
         let targetUserId = sig.userId || null;
+        let effectiveSignatureUrl = sig.signatureUrl;
 
         if (!targetUserId && sig.email) {
-          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, sig.email)).limit(1);
+          const [matchedUser] = await db
+            .select({ id: users.id, signatureUrl: users.signatureUrl })
+            .from(users)
+            .where(eq(users.email, sig.email))
+            .limit(1);
           if (matchedUser) {
             targetUserId = matchedUser.id;
+            if (!effectiveSignatureUrl && matchedUser.signatureUrl) {
+              effectiveSignatureUrl = matchedUser.signatureUrl;
+            }
+          }
+        } else if (targetUserId && !effectiveSignatureUrl) {
+          const [matchedUser] = await db
+            .select({ signatureUrl: users.signatureUrl })
+            .from(users)
+            .where(eq(users.id, targetUserId))
+            .limit(1);
+          if (matchedUser?.signatureUrl) {
+            effectiveSignatureUrl = matchedUser.signatureUrl;
           }
         }
 
@@ -488,6 +505,7 @@ export const organizationRouter = router({
 
         return {
           ...sig,
+          signatureUrl: effectiveSignatureUrl,
           userId: targetUserId,
           hasContractSignPermission,
         };
@@ -496,6 +514,46 @@ export const organizationRouter = router({
 
     return result;
   }),
+
+  // رفع صورة التوقيع الرقمي للمفوض إلى تخزين OneDrive
+  uploadSignatorySignature: protectedProcedure
+    .input(z.object({
+      fileData: z.string(),
+      fileName: z.string(),
+      mimeType: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml"];
+      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg"];
+      const extension = input.fileName.split(".").pop()?.toLowerCase() || "png";
+
+      if (!allowedMimes.includes(input.mimeType) || !allowedExts.includes(extension)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG)."
+        });
+      }
+
+      const { storagePut } = await import("../storage");
+
+      const base64Data = input.fileData.replace(/^data:[^;]+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const fileKey = `signatures/signatory-${ctx.user.id}-${timestamp}-${randomSuffix}.${extension}`;
+
+      let url: string;
+      try {
+        const result = await storagePut(fileKey, buffer, input.mimeType);
+        url = result.url;
+      } catch (error: any) {
+        console.error('[uploadSignatorySignature] Storage error:', error);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `فشل رفع التوقيع: ${error?.message || 'خطأ في التخزين'}` });
+      }
+
+      return { url };
+    }),
 
   // إضافة مفوض جديد
   addSignatory: protectedProcedure
