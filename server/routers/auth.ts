@@ -758,7 +758,7 @@ export const authRouter = router({
         // Ignored if column already exists
       }
 
-      await db.update(users).set({ signatureUrl: url }).where(eq(users.id, ctx.user.id));
+      await db.update(users).set({ signatureUrl: url, showSignatureInDocuments: true }).where(eq(users.id, ctx.user.id));
 
       // تحديث التوقيع الرقمي في جدول المفوضين signatories لو كان المستخدم مفوضاً
       try {

@@ -310,18 +310,9 @@ export const disbursementsRouter = router({
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
 
-      let resolvedSignatureName = request.creatorSignatureName;
-      let resolvedSignatureDepartment = request.creatorSignatureDepartment;
+      let resolvedSignatureName = request.requestedBySignatureName || request.creatorSignatureName || request.requestedByName;
+      let resolvedSignatureDepartment = request.requestedBySignatureDepartment || request.creatorSignatureDepartment;
       let resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
-
-      if (!resolvedSignatureName && !resolvedSignatureDepartment && request.requestedBy) {
-        const creatorHasSignPermission = await checkPermission(request.requestedBy, "disbursements.sign");
-        if (creatorHasSignPermission) {
-          resolvedSignatureName = request.requestedBySignatureName;
-          resolvedSignatureDepartment = request.requestedBySignatureDepartment;
-          resolvedSignatureUrl = request.requestedByShowSignature === false ? null : request.requestedBySignatureUrl;
-        }
-      }
 
       const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
@@ -404,14 +395,18 @@ export const disbursementsRouter = router({
         }
       }
 
-      if (!execDirector && potentialGMs.length > 0) {
-        execDirector = potentialGMs[0];
-      }
-
       if (execDirector) {
         executiveDirectorName = execDirector.signatureName || execDirector.name;
         executiveDirectorSignatureDepartment = execDirector.signatureDepartment || "المدير التنفيذي";
-        if (execDirector.signatureUrl && (execDirector.showSignatureInDocuments !== false)) {
+        const isShowSig = 
+          execDirector.showSignatureInDocuments === true || 
+          (execDirector.showSignatureInDocuments as any) === 1 || 
+          execDirector.showSignatureInDocuments === null || 
+          execDirector.showSignatureInDocuments === undefined || 
+          String(execDirector.showSignatureInDocuments) === "true" ||
+          String(execDirector.showSignatureInDocuments) === "1";
+
+        if (execDirector.signatureUrl && execDirector.signatureUrl.trim() !== "" && isShowSig) {
           executiveDirectorSignatureUrl = execDirector.signatureUrl;
         }
       }

@@ -38,6 +38,7 @@ export default function DisbursementRequestPrint() {
   const hasApprovePermission = usePermission("disbursements.approve");
   const hasSignPermission = usePermission("disbursements.sign");
   const { user: currentUser } = useAuth();
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
   const userPermissionsList = (currentUser as any)?.permissions || [];
@@ -49,11 +50,19 @@ export default function DisbursementRequestPrint() {
     currentUser?.name === "المدير التنفيذي" ||
     currentUser?.email === "ceo@manarah.org.sa";
 
+  const currentUserShowSig = 
+    (currentUser as any)?.showSignatureInDocuments === true || 
+    (currentUser as any)?.showSignatureInDocuments === 1 || 
+    (currentUser as any)?.showSignatureInDocuments === null || 
+    (currentUser as any)?.showSignatureInDocuments === undefined || 
+    String((currentUser as any)?.showSignatureInDocuments) === "true" ||
+    String((currentUser as any)?.showSignatureInDocuments) === "1";
+
   const isExecutiveDirectorSigner = 
     hasUserSignPerm &&
     isExecutiveDirectorRole &&
     !!(currentUser as any)?.signatureUrl &&
-    (currentUser as any)?.showSignatureInDocuments !== false;
+    currentUserShowSig;
 
   const { data: request, isLoading } = trpc.disbursements.getRequestById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -62,14 +71,14 @@ export default function DisbursementRequestPrint() {
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
-    (isExecutiveDirectorRole ? (currentUser as any)?.signatureDepartment : null) || 
+    (hasUserSignPerm && isExecutiveDirectorRole ? (currentUser as any)?.signatureDepartment : null) || 
     "المدير التنفيذي";
 
   const executiveDirectorName = 
     (request as any)?.executiveDirectorName || 
-    (isExecutiveDirectorRole ? ((currentUser as any)?.signatureName || currentUser?.name) : null) || 
+    (hasUserSignPerm && isExecutiveDirectorRole ? ((currentUser as any)?.signatureName || currentUser?.name) : null) || 
     orgSettings?.executiveDirectorName || 
-    "—";
+    "م. عبدالهادي آل فائق";
 
   const executiveDirectorSignatureUrl = 
     (request as any)?.executiveDirectorSignatureUrl ||
@@ -85,8 +94,6 @@ export default function DisbursementRequestPrint() {
       };
     }
   }, [request]);
-
-  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // جلب تقارير الإنجاز للمشروع المحدد
   const { data: progressReports } = trpc.progressReports.list.useQuery(
