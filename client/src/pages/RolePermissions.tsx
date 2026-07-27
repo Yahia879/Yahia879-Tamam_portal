@@ -120,20 +120,6 @@ export default function RolePermissions() {
 
   const handleTogglePermission = (permId: string) => {
     if (isSuperAdmin) return;
-
-    // حظر منح صلاحية توقيع العقود لغير المدير التنفيذي
-    if (permId === "contracts.sign") {
-      const isExecutiveDirector = 
-        roleId === "general_manager" || 
-        role?.nameAr?.includes("المدير التنفيذي");
-      
-      if (!isExecutiveDirector && !selectedPerms.includes("contracts.sign")) {
-        toast.error("صلاحية توقيع العقود مخصصة حصرياً للمدير التنفيذي ولا يمكن منحها لهذا الدور", {
-          duration: 4000,
-        });
-        return;
-      }
-    }
     
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
@@ -878,7 +864,7 @@ export default function RolePermissions() {
           id: "signing",
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
-          perms: ["disbursements_sign", "contracts_sign", "final_reports_sign"]
+          perms: ["disbursements_sign", "final_reports_sign"]
         }
       ]
     },

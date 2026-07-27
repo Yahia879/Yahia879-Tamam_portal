@@ -2,8 +2,17 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { organizationSettings, signatories } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { organizationSettings, signatories, users, userPermissions, permissions } from "../../drizzle/schema";
+import { eq, and, ne, sql } from "drizzle-orm";
+import { calculateUserPermissions } from "../permissions";
+
+async function ensureSignatoriesUserIdColumn(db: any) {
+  try {
+    await db.execute(sql`ALTER TABLE signatories ADD COLUMN userId INT NULL;`);
+  } catch (e) {
+    // Ignore error if column already exists
+  }
+}
 
 export const organizationRouter = router({
   // جلب إعدادات الجمعية
@@ -288,29 +297,168 @@ export const organizationRouter = router({
 
   // ==================== مفوضو التوقيع ====================
 
-  // جلب جميع المفوضين
+  // ==================== مفوضو التوقيع ====================
+
+  // جلب مستخدمي النظام مع حالة صلاحية توقيع العقود
+  getSystemUsers: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    const systemUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        role: users.role,
+        signatureUrl: users.signatureUrl,
+      })
+      .from(users)
+      .where(ne(users.status, "suspended"));
+
+    const result = await Promise.all(
+      systemUsers.map(async (u) => {
+        const userPerms = await calculateUserPermissions(u.id);
+        const hasContractSignPermission = userPerms.includes("contracts.sign");
+        return {
+          ...u,
+          hasContractSignPermission,
+        };
+      })
+    );
+
+    return result;
+  }),
+
+  // تبديل/منح/سحب صلاحية توقيع العقود لمستخدم معين
+  toggleUserContractSignPermission: protectedProcedure
+    .input(z.object({
+      userId: z.number(),
+      granted: z.boolean(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        const userPermissions = await calculateUserPermissions(ctx.user.id);
+        const hasSignersPerm = 
+          userPermissions.includes("settings.edit") ||
+          userPermissions.includes("settings_org.edit_signers");
+        if (!hasSignersPerm) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية تعديل صلاحيات التوقيع" });
+        }
+      }
+
+      // حذف أي سجل مباشر سابق لهذه الصلاحية لهذا المستخدم
+      await db.delete(userPermissions).where(
+        and(
+          eq(userPermissions.userId, input.userId),
+          eq(userPermissions.permissionId, "contracts.sign")
+        )
+      );
+
+      if (input.granted) {
+        // التأكد من وجود الصلاحية في جدول permissions
+        const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
+        if (!existingPerm) {
+          await db.insert(permissions).values({
+            id: "contracts.sign",
+            moduleId: "contracts",
+            action: "sign",
+            nameAr: "توقيع العقود",
+            nameEn: "Sign Contracts",
+          });
+        }
+
+        await db.insert(userPermissions).values({
+          userId: input.userId,
+          permissionId: "contracts.sign",
+          granted: true,
+          grantedBy: ctx.user.id,
+        });
+      }
+
+      return {
+        success: true,
+        message: input.granted
+          ? "تم منح صلاحية توقيع العقود للمستخدم بنجاح"
+          : "تم سحب صلاحية توقيع العقود من المستخدم بنجاح",
+      };
+    }),
+
+  // جلب جميع المفوضين مع التحقق من صلاحية توقيع العقود
   getSignatories: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-    const signatoryList = await db
-      .select({
-        id: signatories.id,
-        name: signatories.name,
-        title: signatories.title,
-        nationalId: signatories.nationalId,
-        phone: signatories.phone,
-        email: signatories.email,
-        address: signatories.address,
-        signatureUrl: signatories.signatureUrl,
-        isDefault: signatories.isDefault,
-        isActive: signatories.isActive,
-      })
-      .from(signatories)
-      .where(eq(signatories.isActive, true))
-      .orderBy(signatories.sortOrder);
+    await ensureSignatoriesUserIdColumn(db);
 
-    return signatoryList;
+    let signatoryList: any[] = [];
+    try {
+      signatoryList = await db
+        .select({
+          id: signatories.id,
+          name: signatories.name,
+          title: signatories.title,
+          nationalId: signatories.nationalId,
+          phone: signatories.phone,
+          email: signatories.email,
+          address: signatories.address,
+          signatureUrl: signatories.signatureUrl,
+          isDefault: signatories.isDefault,
+          isActive: signatories.isActive,
+          userId: signatories.userId,
+        })
+        .from(signatories)
+        .where(eq(signatories.isActive, true))
+        .orderBy(signatories.sortOrder);
+    } catch (err) {
+      signatoryList = await db
+        .select({
+          id: signatories.id,
+          name: signatories.name,
+          title: signatories.title,
+          nationalId: signatories.nationalId,
+          phone: signatories.phone,
+          email: signatories.email,
+          address: signatories.address,
+          signatureUrl: signatories.signatureUrl,
+          isDefault: signatories.isDefault,
+          isActive: signatories.isActive,
+        })
+        .from(signatories)
+        .where(eq(signatories.isActive, true))
+        .orderBy(signatories.sortOrder);
+    }
+
+    const result = await Promise.all(
+      signatoryList.map(async (sig: any) => {
+        let hasContractSignPermission = false;
+        let targetUserId = sig.userId || null;
+
+        if (!targetUserId && sig.email) {
+          const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, sig.email)).limit(1);
+          if (matchedUser) {
+            targetUserId = matchedUser.id;
+          }
+        }
+
+        if (targetUserId) {
+          const userPerms = await calculateUserPermissions(targetUserId);
+          hasContractSignPermission = userPerms.includes("contracts.sign");
+        }
+
+        return {
+          ...sig,
+          userId: targetUserId,
+          hasContractSignPermission,
+        };
+      })
+    );
+
+    return result;
   }),
 
   // إضافة مفوض جديد
@@ -324,15 +472,18 @@ export const organizationRouter = router({
       address: z.string().optional().nullable(),
       signatureUrl: z.string().optional().nullable(),
       isDefault: z.boolean().optional(),
+      userId: z.number().optional().nullable(),
+      grantContractSignPermission: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await ensureSignatoriesUserIdColumn(db);
+
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
         const hasSignersPerm = 
           userPermissions.includes("settings.edit") ||
@@ -351,7 +502,7 @@ export const organizationRouter = router({
       const existingSignatories = await db.select().from(signatories);
       const nextOrder = existingSignatories.length;
 
-      await db.insert(signatories).values({
+      const insertValues: any = {
         name: input.name,
         title: input.title,
         nationalId: input.nationalId || null,
@@ -362,7 +513,43 @@ export const organizationRouter = router({
         isDefault: input.isDefault || false,
         sortOrder: nextOrder,
         createdBy: ctx.user.id,
-      });
+      };
+
+      if (input.userId !== undefined) {
+        insertValues.userId = input.userId || null;
+      }
+
+      await db.insert(signatories).values(insertValues);
+
+      // التعامل مع منح/سحب صلاحية توقيع العقود للمستخدم المرتبط
+      if (input.userId && input.grantContractSignPermission !== undefined) {
+        await db.delete(userPermissions).where(
+          and(
+            eq(userPermissions.userId, input.userId),
+            eq(userPermissions.permissionId, "contracts.sign")
+          )
+        );
+
+        if (input.grantContractSignPermission) {
+          const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
+          if (!existingPerm) {
+            await db.insert(permissions).values({
+              id: "contracts.sign",
+              moduleId: "contracts",
+              action: "sign",
+              nameAr: "توقيع العقود",
+              nameEn: "Sign Contracts",
+            });
+          }
+
+          await db.insert(userPermissions).values({
+            userId: input.userId,
+            permissionId: "contracts.sign",
+            granted: true,
+            grantedBy: ctx.user.id,
+          });
+        }
+      }
 
       return { success: true, message: "تم إضافة المفوض بنجاح" };
     }),
@@ -379,15 +566,18 @@ export const organizationRouter = router({
       address: z.string().optional().nullable(),
       signatureUrl: z.string().optional().nullable(),
       isDefault: z.boolean().optional(),
+      userId: z.number().optional().nullable(),
+      grantContractSignPermission: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await ensureSignatoriesUserIdColumn(db);
+
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
         const hasSignersPerm = 
           userPermissions.includes("settings.edit") ||
@@ -402,18 +592,54 @@ export const organizationRouter = router({
         await db.update(signatories).set({ isDefault: false }).where(eq(signatories.isDefault, true));
       }
 
+      const updateValues: any = {
+        name: input.name,
+        title: input.title,
+        nationalId: input.nationalId || null,
+        phone: input.phone || null,
+        email: input.email || null,
+        address: input.address || null,
+        signatureUrl: input.signatureUrl || null,
+        isDefault: input.isDefault || false,
+      };
+
+      if (input.userId !== undefined) {
+        updateValues.userId = input.userId || null;
+      }
+
       await db.update(signatories)
-        .set({
-          name: input.name,
-          title: input.title,
-          nationalId: input.nationalId || null,
-          phone: input.phone || null,
-          email: input.email || null,
-          address: input.address || null,
-          signatureUrl: input.signatureUrl || null,
-          isDefault: input.isDefault || false,
-        })
+        .set(updateValues)
         .where(eq(signatories.id, input.id));
+
+      // التعامل مع منح/سحب صلاحية توقيع العقود للمستخدم المرتبط
+      if (input.userId && input.grantContractSignPermission !== undefined) {
+        await db.delete(userPermissions).where(
+          and(
+            eq(userPermissions.userId, input.userId),
+            eq(userPermissions.permissionId, "contracts.sign")
+          )
+        );
+
+        if (input.grantContractSignPermission) {
+          const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
+          if (!existingPerm) {
+            await db.insert(permissions).values({
+              id: "contracts.sign",
+              moduleId: "contracts",
+              action: "sign",
+              nameAr: "توقيع العقود",
+              nameEn: "Sign Contracts",
+            });
+          }
+
+          await db.insert(userPermissions).values({
+            userId: input.userId,
+            permissionId: "contracts.sign",
+            granted: true,
+            grantedBy: ctx.user.id,
+          });
+        }
+      }
 
       return { success: true, message: "تم تحديث بيانات المفوض بنجاح" };
     }),
@@ -428,7 +654,6 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
         const hasSignersPerm = 
           userPermissions.includes("settings.edit") ||
@@ -456,7 +681,6 @@ export const organizationRouter = router({
       // التحقق من الصلاحية
       const allowedRoles = ["admin", "super_admin", "system_admin", "general_manager", "projects_office", "corporate_comm"];
       if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
         const hasSignersPerm = 
           userPermissions.includes("settings.edit") ||

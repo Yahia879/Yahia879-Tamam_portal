@@ -10,6 +10,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Building2,
   User,
@@ -27,6 +35,11 @@ import {
   Edit2,
   Users,
   ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+  PenTool,
+  FileCheck,
+  Shield,
 } from "lucide-react";
 import {
   Dialog,
@@ -58,10 +71,27 @@ function SignatoriesSection() {
     email: "",
     address: "",
     isDefault: false,
+    userId: null as number | null,
+    grantContractSignPermission: false,
   });
 
   // جلب المفوضين
-  const { data: signatories, isLoading, refetch } = trpc.organization.getSignatories.useQuery();
+  const { data: signatories, isLoading, refetch: refetchSignatories } = trpc.organization.getSignatories.useQuery();
+
+  // جلب مستخدمي النظام
+  const { data: systemUsers, isLoading: isLoadingUsers, refetch: refetchUsers } = trpc.organization.getSystemUsers.useQuery();
+
+  // تبديل صلاحية توقيع العقود لمستخدم
+  const togglePermissionMutation = trpc.organization.toggleUserContractSignPermission.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message);
+      refetchSignatories();
+      refetchUsers();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء تعديل الصلاحية");
+    },
+  });
 
   // إضافة مفوض
   const addMutation = trpc.organization.addSignatory.useMutation({
@@ -69,7 +99,8 @@ function SignatoriesSection() {
       toast.success("تم إضافة المفوض بنجاح");
       setShowAddDialog(false);
       resetForm();
-      refetch();
+      refetchSignatories();
+      refetchUsers();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء إضافة المفوض");
@@ -82,7 +113,8 @@ function SignatoriesSection() {
       toast.success("تم تحديث بيانات المفوض بنجاح");
       setEditingSignatory(null);
       resetForm();
-      refetch();
+      refetchSignatories();
+      refetchUsers();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث المفوض");
@@ -93,7 +125,8 @@ function SignatoriesSection() {
   const deleteMutation = trpc.organization.deleteSignatory.useMutation({
     onSuccess: () => {
       toast.success("تم حذف المفوض بنجاح");
-      refetch();
+      refetchSignatories();
+      refetchUsers();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء حذف المفوض");
@@ -104,7 +137,7 @@ function SignatoriesSection() {
   const setDefaultMutation = trpc.organization.setDefaultSignatory.useMutation({
     onSuccess: () => {
       toast.success("تم تعيين المفوض الافتراضي بنجاح");
-      refetch();
+      refetchSignatories();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ");
@@ -120,6 +153,8 @@ function SignatoriesSection() {
       email: "",
       address: "",
       isDefault: false,
+      userId: null,
+      grantContractSignPermission: false,
     });
   };
 
@@ -133,7 +168,33 @@ function SignatoriesSection() {
       email: signatory.email || "",
       address: signatory.address || "",
       isDefault: signatory.isDefault || false,
+      userId: signatory.userId || null,
+      grantContractSignPermission: !!signatory.hasContractSignPermission,
     });
+  };
+
+  const handleUserSelect = (val: string) => {
+    if (!val || val === "none") {
+      setFormData((prev) => ({
+        ...prev,
+        userId: null,
+        grantContractSignPermission: false,
+      }));
+      return;
+    }
+
+    const uId = parseInt(val, 10);
+    const selectedUser = systemUsers?.find((u: any) => u.id === uId);
+    if (selectedUser) {
+      setFormData((prev) => ({
+        ...prev,
+        userId: selectedUser.id,
+        name: prev.name || selectedUser.name || "",
+        phone: prev.phone || selectedUser.phone || "",
+        email: prev.email || selectedUser.email || "",
+        grantContractSignPermission: selectedUser.hasContractSignPermission,
+      }));
+    }
   };
 
   const handleSubmit = () => {
@@ -153,182 +214,315 @@ function SignatoriesSection() {
   };
 
   return (
-    <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
-      <CardHeader className="p-4 sm:p-6 pb-2">
-        <div className="flex flex-row items-center justify-between gap-4">
-          <div className="text-right">
-            <CardTitle className="flex items-center gap-2 text-lg justify-start">
-              <Users className="h-5 w-5 text-primary" />
-              مفوضو التوقيع
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm mt-1">
-              إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية
-            </CardDescription>
+    <div className="space-y-6" dir="rtl">
+      {/* بطاقة مفوضي التوقيع */}
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 pb-2">
+          <div className="flex flex-row items-center justify-between gap-4">
+            <div className="text-right">
+              <CardTitle className="flex items-center gap-2 text-lg justify-start">
+                <Users className="h-5 w-5 text-primary" />
+                مفوضو التوقيع الرسميون
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm mt-1">
+                إدارة الأشخاص المفوضين بالتوقيع على العقود نيابة عن الجمعية وتخصيص صلاحيات التوقيع
+              </CardDescription>
+            </div>
+            <Button onClick={() => setShowAddDialog(true)} className="gradient-primary text-white shrink-0">
+              <Plus className="h-4 w-4 sm:mr-0 ml-1 sm:ml-2" />
+              <span className="hidden sm:inline">إضافة مفوض</span>
+              <span className="sm:hidden">إضافة</span>
+            </Button>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="gradient-primary text-white shrink-0">
-            <Plus className="h-4 w-4 sm:mr-0 ml-1 sm:ml-2" />
-            <span className="hidden sm:inline">إضافة مفوض</span>
-            <span className="sm:hidden">إضافة</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0 sm:p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : signatories && signatories.length > 0 ? (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="text-right">الاسم</TableHead>
-                    <TableHead className="text-right">المنصب</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">رقم الهوية</TableHead>
-                    <TableHead className="text-right">الجوال</TableHead>
-                    <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {signatories.map((signatory: any) => (
-                    <TableRow key={signatory.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="font-bold text-right">{signatory.name}</TableCell>
-                      <TableCell className="text-right">{signatory.title}</TableCell>
-                      <TableCell className="text-right">{signatory.nationalId || "-"}</TableCell>
-                      <TableCell className="text-right">{signatory.phone || "-"}</TableCell>
-                      <TableCell className="text-right">{signatory.email || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        {signatory.isDefault ? (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 font-bold border-0">
-                            <Star className="h-3 w-3 ml-1 fill-current" />
-                            افتراضي
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="font-medium">نشط</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-left">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary"
-                            onClick={() => openEditDialog(signatory)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          {!signatory.isDefault && (
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : signatories && signatories.length > 0 ? (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow>
+                      <TableHead className="text-right">الاسم</TableHead>
+                      <TableHead className="text-right">المنصب</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">رقم الهوية</TableHead>
+                      <TableHead className="text-right">الجوال</TableHead>
+                      <TableHead className="text-right">البريد الإلكتروني</TableHead>
+                      <TableHead className="text-right">صلاحية توقيع العقود</TableHead>
+                      <TableHead className="text-right">الحالة</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {signatories.map((signatory: any) => (
+                      <TableRow key={signatory.id} className="hover:bg-muted/20 transition-colors">
+                        <TableCell className="font-bold text-right">{signatory.name}</TableCell>
+                        <TableCell className="text-right">{signatory.title}</TableCell>
+                        <TableCell className="text-right">{signatory.nationalId || "-"}</TableCell>
+                        <TableCell className="text-right">{signatory.phone || "-"}</TableCell>
+                        <TableCell className="text-right">{signatory.email || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          {signatory.hasContractSignPermission ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold border-0 gap-1">
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                              توقيع العقود
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground font-normal">
+                              بدون صلاحية
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {signatory.isDefault ? (
+                            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-bold border-0">
+                              <Star className="h-3 w-3 ml-1 fill-current" />
+                              افتراضي
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="font-medium">نشط</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <div className="flex items-center justify-end gap-1">
+                            {signatory.userId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`h-8 px-2 text-xs font-bold ${
+                                  signatory.hasContractSignPermission 
+                                    ? "text-red-600 hover:text-red-700 hover:bg-red-50" 
+                                    : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                }`}
+                                title={signatory.hasContractSignPermission ? "سحب صلاحية توقيع العقود" : "منح صلاحية توقيع العقود"}
+                                onClick={() =>
+                                  togglePermissionMutation.mutate({
+                                    userId: signatory.userId,
+                                    granted: !signatory.hasContractSignPermission,
+                                  })
+                                }
+                                disabled={togglePermissionMutation.isPending}
+                              >
+                                {signatory.hasContractSignPermission ? "سحب الصلاحية" : "منح الصلاحية"}
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-amber-500 hover:text-amber-600"
-                              onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
-                              title="تعيين كافتراضي"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => openEditDialog(signatory)}
                             >
-                              <Star className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => deleteMutation.mutate({ id: signatory.id })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                            {!signatory.isDefault && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                                onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                                title="تعيين كافتراضي"
+                              >
+                                <Star className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                              onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-            {/* Mobile Cards View */}
-            <div className="md:hidden divide-y divide-sidebar-border/10">
-              {signatories.map((signatory: any) => (
-                <div key={signatory.id} className="p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-bold text-foreground">{signatory.name}</h4>
-                      <p className="text-xs text-muted-foreground">{signatory.title}</p>
+              {/* Mobile Cards View */}
+              <div className="md:hidden divide-y divide-sidebar-border/10">
+                {signatories.map((signatory: any) => (
+                  <div key={signatory.id} className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-foreground">{signatory.name}</h4>
+                        <p className="text-xs text-muted-foreground">{signatory.title}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {signatory.hasContractSignPermission && (
+                          <Badge className="bg-emerald-100 text-emerald-800 text-[10px] h-5 px-1.5 border-0 font-bold">
+                            توقيع العقود
+                          </Badge>
+                        )}
+                        {signatory.isDefault ? (
+                          <Badge className="bg-amber-100 text-amber-800 font-bold border-0 text-[10px] h-5 px-1.5">
+                            <Star className="h-2.5 w-2.5 ml-1 fill-current" />
+                            افتراضي
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">نشط</Badge>
+                        )}
+                      </div>
                     </div>
-                    {signatory.isDefault ? (
-                      <Badge className="bg-green-100 text-green-800 font-bold border-0 text-[10px] h-5 px-1.5">
-                        <Star className="h-2.5 w-2.5 ml-1 fill-current" />
-                        افتراضي
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">نشط</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-[11px] py-2 border-y border-dashed">
-                    <div className="space-y-0.5">
-                      <p className="text-muted-foreground text-[9px] font-bold tracking-wider">رقم الهوية</p>
-                      <p>{signatory.nationalId || "—"}</p>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-[11px] py-2 border-y border-dashed">
+                      <div className="space-y-0.5">
+                        <p className="text-muted-foreground text-[9px] font-bold tracking-wider">رقم الهوية</p>
+                        <p>{signatory.nationalId || "—"}</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-muted-foreground text-[9px] font-bold tracking-wider">الجوال</p>
+                        <p>{signatory.phone || "—"}</p>
+                      </div>
                     </div>
-                    <div className="space-y-0.5">
-                      <p className="text-muted-foreground text-[9px] font-bold tracking-wider">الجوال</p>
-                      <p>{signatory.phone || "—"}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-8 text-xs font-bold"
-                      onClick={() => openEditDialog(signatory)}
-                    >
-                      <Edit2 className="h-3.5 w-3.5 ml-1.5" />
-                      تعديل
-                    </Button>
-                    {!signatory.isDefault && (
+                    <div className="flex gap-2 pt-1">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 h-8 text-xs font-bold text-amber-600 border-amber-200 bg-amber-50/50"
-                        onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                        className="flex-1 h-8 text-xs font-bold"
+                        onClick={() => openEditDialog(signatory)}
                       >
-                        <Star className="h-3.5 w-3.5 ml-1.5 fill-current" />
-                        افتراضي
+                        <Edit2 className="h-3.5 w-3.5 ml-1.5" />
+                        تعديل
                       </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-10 text-red-500 border-red-200"
-                      onClick={() => deleteMutation.mutate({ id: signatory.id })}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                      {signatory.userId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`flex-1 h-8 text-xs font-bold ${
+                            signatory.hasContractSignPermission
+                              ? "text-red-600 border-red-200 bg-red-50/50"
+                              : "text-emerald-600 border-emerald-200 bg-emerald-50/50"
+                          }`}
+                          onClick={() =>
+                            togglePermissionMutation.mutate({
+                              userId: signatory.userId,
+                              granted: !signatory.hasContractSignPermission,
+                            })
+                          }
+                          disabled={togglePermissionMutation.isPending}
+                        >
+                          {signatory.hasContractSignPermission ? "سحب الصلاحية" : "منح التوقيع"}
+                        </Button>
+                      )}
+                      {!signatory.isDefault && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 w-10 text-amber-600 border-amber-200 bg-amber-50/50 p-0 flex items-center justify-center"
+                          onClick={() => setDefaultMutation.mutate({ id: signatory.id })}
+                          title="افتراضي"
+                        >
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-10 text-red-500 border-red-200 p-0 flex items-center justify-center"
+                        onClick={() => deleteMutation.mutate({ id: signatory.id })}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12 px-6 text-muted-foreground">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 opacity-30" />
+              </div>
+              <p className="font-semibold text-foreground">لا يوجد مفوضون مسجلون</p>
+              <p className="text-xs sm:text-sm mt-1">اضغط على "إضافة مفوض" لإضافة مفوض جديد</p>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-12 px-6 text-muted-foreground">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Users className="h-8 w-8 opacity-30" />
-            </div>
-            <p className="font-semibold text-foreground">لا يوجد مفوضون مسجلون</p>
-            <p className="text-xs sm:text-sm mt-1">اضغط على "إضافة مفوض" لإضافة مفوض جديد</p>
-          </div>
-        )}
+          )}
 
-        <div className="m-4 sm:m-0 sm:mt-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/50 rounded-xl p-4 flex gap-3">
-          <Settings className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
-            <strong>ملاحظة:</strong> المفوض الافتراضي سيظهر تلقائياً في العقود الجديدة. يمكنك اختيار مفوض مختلف عند إنشاء كل عقد.
-          </p>
-        </div>
-      </CardContent>
+          <div className="m-4 sm:m-0 sm:mt-6 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200/50 dark:border-blue-800/50 rounded-xl p-4 flex gap-3">
+            <Settings className="h-5 w-5 text-blue-600 flex-shrink-0" />
+            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
+              <strong>ملاحظة:</strong> يتم منح وتعديل صلاحية "توقيع العقود" مباشرة من هذه الصفحة. المفوض الافتراضي يظهر تلقائياً في العقود الجديدة.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* بطاقة تخصيص صلاحية توقيع العقود لمستخدمي النظام */}
+      <Card className="border-0 shadow-sm overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg justify-start">
+            <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            صلاحيات توقيع العقود لمستخدمي النظام
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm mt-1">
+            تم تخصيص منح وسحب صلاحية "توقيع العقود" حصرياً في هذه الصفحة بدلاً من صفحات تخصيص الصلاحيات العامة.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          {isLoadingUsers ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : systemUsers && systemUsers.length > 0 ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {systemUsers.map((u: any) => (
+                  <div
+                    key={u.id}
+                    className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                      u.hasContractSignPermission
+                        ? "bg-emerald-50/40 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/50"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-sm text-foreground truncate">{u.name}</p>
+                        {u.hasContractSignPermission && (
+                          <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate dir-ltr text-right">{u.email}</p>
+                      <Badge variant="secondary" className="text-[10px] mt-1.5 font-medium">
+                        {u.role === "general_manager"
+                          ? "المدير التنفيذي"
+                          : u.role === "super_admin" || u.role === "admin"
+                          ? "مدير النظام"
+                          : u.role}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <Switch
+                        checked={u.hasContractSignPermission}
+                        onCheckedChange={(checked) =>
+                          togglePermissionMutation.mutate({
+                            userId: u.id,
+                            granted: checked,
+                          })
+                        }
+                        disabled={togglePermissionMutation.isPending}
+                      />
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        {u.hasContractSignPermission ? "مفوض بالتوقيع" : "بدون توقيع"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-4">لا يوجد مستخدمون في النظام</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* نافذة إضافة/تعديل مفوض */}
       <Dialog open={showAddDialog || !!editingSignatory} onOpenChange={(open) => {
@@ -344,10 +538,54 @@ function SignatoriesSection() {
               {editingSignatory ? "تعديل بيانات المفوض" : "إضافة مفوض جديد"}
             </DialogTitle>
             <DialogDescription className="text-right text-xs sm:text-sm">
-              أدخل بيانات الشخص المفوض بالتوقيع على العقود
+              أدخل بيانات الشخص المفوض بالتوقيع على العقود وربطه بالمستخدم في النظام
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-3">
+            {/* ربط بمستخدم النظام */}
+            <div className="space-y-2 bg-muted/40 p-3 rounded-xl border border-muted">
+              <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                <User className="h-4 w-4 text-primary" />
+                ربط بمستخدم في النظام (اختياري)
+              </Label>
+              <Select
+                value={formData.userId ? String(formData.userId) : "none"}
+                onValueChange={handleUserSelect}
+              >
+                <SelectTrigger className="h-10 text-sm bg-background">
+                  <SelectValue placeholder="اختر مستخدم النظام المرتبط" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="none">بدون ربط (مفوض خارجي/مستقل)</SelectItem>
+                  {systemUsers?.map((u: any) => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* منح صلاحية توقيع العقود للمستخدم المرتبط */}
+            {formData.userId && (
+              <div className="flex items-center justify-between p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/70 rounded-xl">
+                <div className="space-y-0.5 text-right">
+                  <Label className="text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-300">
+                    منح صلاحية "توقيع العقود" للمستخدم
+                  </Label>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+                    تمكين هذا المستخدم من توقيع العقود الكترونياً
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.grantContractSignPermission}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, grantContractSignPermission: checked })
+                  }
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="text-xs sm:text-sm">اسم المفوض *</Label>
               <Input
@@ -427,7 +665,7 @@ function SignatoriesSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
 

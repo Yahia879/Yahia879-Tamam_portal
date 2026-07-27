@@ -896,6 +896,7 @@ export const signatories = mysqlTable("signatories", {
   isDefault: boolean("isDefault").default(false), // هل هو المفوض الافتراضي
   isActive: boolean("isActive").default(true),
   sortOrder: int("sortOrder").default(0),
+  userId: int("userId").references(() => users.id, { onDelete: "set null" }), // المستخدم المرتبط في النظام
   createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
