@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, Loader2, FileText } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, Printer, Loader2, FileText, PenTool } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -127,6 +129,8 @@ export default function ContractPrint() {
   const hasViewPermission = usePermission("contracts.view");
   const hasContractSignPermission = usePermission("contracts.sign");
   const { user: currentUser } = useAuth();
+  
+  const [showFirstPartySignature, setShowFirstPartySignature] = useState(true);
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه صلاحية توقيع العقود وتوقيع رقمي
   const userPermissionsList = (currentUser as any)?.permissions || [];
@@ -255,11 +259,28 @@ export default function ContractPrint() {
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
         <Button variant="outline" onClick={() => navigate(`/contracts/${params.id}/preview`)} className="bg-white border shadow-sm sm:bg-white/90">
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع للمعاينة
         </Button>
+
+        {executiveDirectorSignatureUrl && (
+          <label
+            htmlFor="show-first-party-sig-print"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+          >
+            <PenTool className={`w-3.5 h-3.5 ${showFirstPartySignature ? "text-emerald-600" : "text-slate-400"}`} />
+            <span>توقيع الطرف الأول</span>
+            <Checkbox
+              id="show-first-party-sig-print"
+              checked={showFirstPartySignature}
+              onCheckedChange={(checked) => setShowFirstPartySignature(!!checked)}
+              className="scale-90"
+            />
+          </label>
+        )}
+
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
           تنزيل PDF / طباعة
@@ -541,11 +562,11 @@ export default function ContractPrint() {
                     <div className="mt-8 space-y-4 text-xs sm:text-sm">
                       <div className="relative inline-flex items-center justify-center">
                         <p>التوقيع: ...................................</p>
-                        {executiveDirectorSignatureUrl && (
+                        {showFirstPartySignature && executiveDirectorSignatureUrl && (
                           <img
                             src={executiveDirectorSignatureUrl}
                             alt="توقيع الطرف الأول"
-                            className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none print:!block print:!visible print:!h-14"
+                            className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none"
                           />
                         )}
                       </div>

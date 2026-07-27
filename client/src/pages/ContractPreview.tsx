@@ -28,6 +28,7 @@ import {
   MessageSquare,
   Banknote,
   Stamp,
+  PenTool,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -201,6 +202,7 @@ export default function ContractPreview() {
   const [isExporting, setIsExporting] = useState(false);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
   const [showStamp, setShowStamp] = useState(true);
+  const [showFirstPartySignature, setShowFirstPartySignature] = useState(true);
   
   // State لنموذج الموافقة/الرفض
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -670,6 +672,21 @@ export default function ContractPreview() {
             العودة
           </Button>
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end items-center">
+            {executiveDirectorSignatureUrl && (
+              <label
+                htmlFor="show-first-party-sig"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-background hover:bg-muted/50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                <PenTool className={`w-3.5 h-3.5 ${showFirstPartySignature ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`} />
+                <span>توقيع الطرف الأول</span>
+                <Switch
+                  id="show-first-party-sig"
+                  checked={showFirstPartySignature}
+                  onCheckedChange={(checked) => setShowFirstPartySignature(!!checked)}
+                  className="scale-75 origin-left"
+                />
+              </label>
+            )}
             {contract.status === "approved" && (
               <label
                 htmlFor="show-stamp"
@@ -1028,11 +1045,11 @@ export default function ContractPreview() {
                         <div className="mt-8 space-y-4 text-xs sm:text-sm">
                           <div className="relative inline-flex items-center justify-center">
                             <p>التوقيع: ...................................</p>
-                            {executiveDirectorSignatureUrl && (
+                            {showFirstPartySignature && executiveDirectorSignatureUrl && (
                               <img
                                 src={executiveDirectorSignatureUrl}
                                 alt="توقيع الطرف الأول"
-                                className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none print:!block print:!visible print:!h-14"
+                                className="absolute -top-4 right-10 h-14 max-w-[140px] object-contain pointer-events-none"
                               />
                             )}
                           </div>
