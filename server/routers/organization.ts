@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { organizationSettings, signatories, users, userPermissions, permissions } from "../../drizzle/schema";
+import { organizationSettings, signatories, users, userPermissions, permissions, userRoleAssignments, roles } from "../../drizzle/schema";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { calculateUserPermissions } from "../permissions";
 
@@ -299,7 +299,7 @@ export const organizationRouter = router({
 
   // ==================== مفوضو التوقيع ====================
 
-  // جلب مستخدمي النظام مع حالة صلاحية توقيع العقود
+  // جلب مستخدمي النظام مع حالة صلاحية توقيع العقود واستثناء طالبي الخدمة
   getSystemUsers: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
@@ -314,14 +314,50 @@ export const organizationRouter = router({
         signatureUrl: users.signatureUrl,
       })
       .from(users)
-      .where(ne(users.status, "suspended"));
+      .where(
+        and(
+          ne(users.status, "suspended"),
+          ne(users.role, "service_requester")
+        )
+      );
+
+    const userIds = systemUsers.map((u) => u.id);
+    let customRolesMap: Record<number, string[]> = {};
+
+    if (userIds.length > 0) {
+      try {
+        const userRolesData = await db
+          .select({
+            userId: userRoleAssignments.userId,
+            roleName: roles.nameAr,
+          })
+          .from(userRoleAssignments)
+          .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+          .where(
+            sql`${userRoleAssignments.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`
+          );
+
+        for (const item of userRolesData) {
+          if (!customRolesMap[item.userId]) {
+            customRolesMap[item.userId] = [];
+          }
+          if (item.roleName) {
+            customRolesMap[item.userId].push(item.roleName);
+          }
+        }
+      } catch (e) {
+        // إذا كان هناك خطأ في جدول الأدوار المخصصة لا يتوقف جلب المستخدمين
+      }
+    }
 
     const result = await Promise.all(
       systemUsers.map(async (u) => {
         const userPerms = await calculateUserPermissions(u.id);
         const hasContractSignPermission = userPerms.includes("contracts.sign");
+        const customRoles = customRolesMap[u.id] || [];
         return {
           ...u,
+          customRoles,
           hasContractSignPermission,
         };
       })

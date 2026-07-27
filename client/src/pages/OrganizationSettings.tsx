@@ -42,6 +42,10 @@ import {
   Shield,
   Upload,
   ImageIcon,
+  Search,
+  X,
+  UserCheck,
+  ChevronDown,
 } from "lucide-react";
 import {
   Dialog,
@@ -66,6 +70,8 @@ function SignatoriesSection() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingSignatory, setEditingSignatory] = useState<any>(null);
   const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -85,6 +91,52 @@ function SignatoriesSection() {
 
   // جلب مستخدمي النظام (لخيارات الربط الاختياري)
   const { data: systemUsers } = trpc.organization.getSystemUsers.useQuery();
+
+  const getRoleArabicName = (u: any) => {
+    if (!u) return "";
+    if (u.customRoles && u.customRoles.length > 0) {
+      return u.customRoles.join("، ");
+    }
+
+    const roleMap: Record<string, string> = {
+      super_admin: "المدير العام",
+      system_admin: "مدير النظام",
+      admin: "مدير النظام",
+      general_manager: "المدير التنفيذي",
+      projects_office: "مكتب المشاريع",
+      field_team: "الفريق الميداني",
+      quick_response: "فريق الاستجابة السريعة",
+      financial: "الإدارة المالية",
+      project_manager: "مدير المشروع",
+      corporate_comm: "الاتصال المؤسسي",
+      service_requester: "طالب الخدمة",
+    };
+
+    if (u.role && roleMap[u.role]) {
+      return roleMap[u.role];
+    }
+
+    if (u.role && u.role.startsWith("custom_role_")) {
+      return "دور مخصص";
+    }
+
+    return u.role || "مستخدم للنظام";
+  };
+
+  const filteredSystemUsers = systemUsers?.filter((u: any) => {
+    if (u.role === "service_requester") return false;
+    if (!userSearchQuery.trim()) return true;
+    const q = userSearchQuery.toLowerCase();
+    const roleTitle = getRoleArabicName(u).toLowerCase();
+    return (
+      u.name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      roleTitle.includes(q) ||
+      (u.phone && u.phone.includes(q))
+    );
+  });
+
+  const selectedUser = systemUsers?.find((u: any) => u.id === formData.userId);
 
   // إضافة مفوض
   const addMutation = trpc.organization.addSignatory.useMutation({
@@ -135,6 +187,8 @@ function SignatoriesSection() {
   });
 
   const resetForm = () => {
+    setUserSearchQuery("");
+    setShowUserDropdown(false);
     setFormData({
       name: "",
       title: "",
@@ -150,6 +204,8 @@ function SignatoriesSection() {
   };
 
   const openEditDialog = (signatory: any) => {
+    setUserSearchQuery("");
+    setShowUserDropdown(false);
     setEditingSignatory(signatory);
     setFormData({
       name: signatory.name,
@@ -212,16 +268,16 @@ function SignatoriesSection() {
     }
 
     const uId = parseInt(val, 10);
-    const selectedUser = systemUsers?.find((u: any) => u.id === uId);
-    if (selectedUser) {
+    const targetUser = systemUsers?.find((u: any) => u.id === uId);
+    if (targetUser) {
       setFormData((prev) => ({
         ...prev,
-        userId: selectedUser.id,
-        name: prev.name || selectedUser.name || "",
-        phone: prev.phone || selectedUser.phone || "",
-        email: prev.email || selectedUser.email || "",
-        signatureUrl: prev.signatureUrl || selectedUser.signatureUrl || "",
-        grantContractSignPermission: selectedUser.hasContractSignPermission,
+        userId: targetUser.id,
+        name: prev.name || targetUser.name || "",
+        phone: prev.phone || targetUser.phone || "",
+        email: prev.email || targetUser.email || "",
+        signatureUrl: prev.signatureUrl || targetUser.signatureUrl || "",
+        grantContractSignPermission: targetUser.hasContractSignPermission,
       }));
     }
   };
@@ -446,7 +502,7 @@ function SignatoriesSection() {
         </div>
       </CardContent>
 
-      {/* نافذة إضافة/تعديل مفوض */}
+      {/* نافذة إضافة/تعديل مفوض - تكبير الحجم ومظهر مخصص للبحث والربط */}
       <Dialog open={showAddDialog || !!editingSignatory} onOpenChange={(open) => {
         if (!open) {
           setShowAddDialog(false);
@@ -454,130 +510,221 @@ function SignatoriesSection() {
           resetForm();
         }
       }}>
-        <DialogContent className="w-[95vw] max-w-lg rounded-2xl p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="text-right flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              {editingSignatory ? "تعديل بيانات المفوض والتوقيع" : "إضافة مفوض جديد"}
+        <DialogContent className="w-[95vw] max-w-2xl sm:max-w-3xl rounded-2xl p-6 sm:p-8 overflow-y-auto max-h-[92vh]" dir="rtl">
+          <DialogHeader className="pb-2 border-b">
+            <DialogTitle className="text-right text-lg sm:text-xl font-bold flex items-center gap-2">
+              <Users className="w-6 h-6 text-primary" />
+              {editingSignatory ? "تعديل بيانات المفوض والتوقيع الرقمي" : "إضافة مفوض جديد وتخصيص التوقيع"}
             </DialogTitle>
-            <DialogDescription className="text-right text-xs sm:text-sm">
-              أدخل بيانات المفوض بالتوقيع على العقود وإرفاق صورة التوقيع الرقمي الخاصة به
+            <DialogDescription className="text-right text-xs sm:text-sm text-muted-foreground mt-1">
+              قم بأدخال بيانات الشخص المفوض بالتوقيع على العقود، ربطه بمستخدم في النظام عند الحاجة، وإرفاق التوقيع الرقمي الرسمي.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-3">
-            {/* ربط بمستخدم النظام (اختياري) */}
+
+          <div className="space-y-6 py-4">
+            {/* قسم البحث والربط بالمستخدمين في النظام */}
             {systemUsers && systemUsers.length > 0 && (
-              <div className="space-y-2 bg-muted/40 p-3 rounded-xl border border-muted">
-                <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                  <User className="h-4 w-4 text-primary" />
-                  ربط بمستخدم في النظام (اختياري)
+              <div className="space-y-3 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                <Label className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  ربط بمستخدم في النظام
                 </Label>
-                <Select
-                  value={formData.userId ? String(formData.userId) : "none"}
-                  onValueChange={handleUserSelect}
-                >
-                  <SelectTrigger className="h-10 text-sm bg-background">
-                    <SelectValue placeholder="اختر مستخدم النظام المرتبط" />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="none">بدون ربط (مفوض خارجي/مستقل)</SelectItem>
-                    {systemUsers?.map((u: any) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.name} ({u.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+                {selectedUser ? (
+                  <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 rounded-xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm shrink-0">
+                        {selectedUser.name?.charAt(0) || "U"}
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-foreground truncate">{selectedUser.name}</p>
+                          <Badge className="bg-emerald-600 text-white text-[10px] h-5 px-2 font-bold">
+                            {getRoleArabicName(selectedUser)}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate dir-ltr text-right">{selectedUser.email}</p>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1.5 shrink-0"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, userId: null }));
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                      إلغاء الربط
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        value={userSearchQuery}
+                        onChange={(e) => {
+                          setUserSearchQuery(e.target.value);
+                          setShowUserDropdown(true);
+                        }}
+                        onFocus={() => setShowUserDropdown(true)}
+                        placeholder="ابحث باسم الموظف أو البريد الإلكتروني أو المسمى الوظيفي..."
+                        className="pr-9 pl-9 text-sm h-11 bg-background rounded-xl border-slate-300 dark:border-slate-700"
+                      />
+                      {userSearchQuery ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute left-2 top-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => setUserSearchQuery("")}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : (
+                        <ChevronDown className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      )}
+                    </div>
+
+                    {showUserDropdown && (
+                      <div className="absolute z-50 w-full mt-1.5 bg-popover text-popover-foreground border rounded-xl shadow-xl max-h-64 overflow-y-auto p-1 divide-y divide-border/50">
+                        <div
+                          className="p-3 hover:bg-accent rounded-lg cursor-pointer text-xs font-semibold text-muted-foreground flex items-center gap-2"
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, userId: null }));
+                            setShowUserDropdown(false);
+                          }}
+                        >
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          مفوض خارجي (بدون ربط بمستخدم في النظام)
+                        </div>
+
+                        {filteredSystemUsers && filteredSystemUsers.length > 0 ? (
+                          filteredSystemUsers.map((u: any) => (
+                            <div
+                              key={u.id}
+                              className="p-3 hover:bg-accent/80 rounded-lg cursor-pointer flex items-center justify-between gap-3 transition-colors"
+                              onClick={() => {
+                                handleUserSelect(String(u.id));
+                                setShowUserDropdown(false);
+                              }}
+                            >
+                              <div className="flex items-center gap-3 min-w-0 text-right">
+                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                  {u.name?.charAt(0) || "U"}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-xs text-foreground truncate">{u.name}</p>
+                                  <p className="text-[11px] text-muted-foreground truncate dir-ltr text-right">{u.email}</p>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="text-[10px] shrink-0 font-medium">
+                                {getRoleArabicName(u)}
+                              </Badge>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-muted-foreground text-center py-4">لا يوجد مستخدم يطابق البحث</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
+            {/* الحقول الأساسية للمفوض مرتبة في شبكة واسعة */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">اسم المفوض *</Label>
+                <Label className="text-xs sm:text-sm font-semibold">اسم المفوض *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="الاسم الكامل"
-                  className="h-10 sm:h-11 text-sm"
+                  placeholder="الاسم الكامل للمفوض"
+                  className="h-11 text-sm rounded-xl"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">المنصب *</Label>
+                <Label className="text-xs sm:text-sm font-semibold">المنصب الوظيفي *</Label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="مثال: رئيس مجلس الإدارة، المدير التنفيذي"
-                  className="h-10 sm:h-11 text-sm"
+                  className="h-11 text-sm rounded-xl"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">رقم الهوية</Label>
+                <Label className="text-xs sm:text-sm font-semibold">رقم الهوية الوطنية</Label>
                 <Input
                   value={formData.nationalId}
                   onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
                   placeholder="رقم الهوية الوطنية"
-                  className="h-10 sm:h-11 text-sm text-right"
+                  className="h-11 text-sm rounded-xl text-right"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm">رقم الجوال</Label>
+                <Label className="text-xs sm:text-sm font-semibold">رقم الجوال</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="05XXXXXXXX"
-                  className="h-10 sm:h-11 text-sm text-right"
+                  className="h-11 text-sm rounded-xl text-right"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs sm:text-sm">البريد الإلكتروني</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="email@example.com"
-                className="h-10 sm:h-11 text-sm text-right"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs sm:text-sm">العنوان</Label>
-              <Input
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="العنوان التفصيلي للمفوض"
-                className="h-10 sm:h-11 text-sm"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold">البريد الإلكتروني</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="email@example.com"
+                  className="h-11 text-sm rounded-xl text-right"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-semibold">العنوان التفصيلي</Label>
+                <Input
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="العنوان التفصيلي للمفوض"
+                  className="h-11 text-sm rounded-xl"
+                />
+              </div>
             </div>
 
             {/* قسم رفع وتغيير التوقيع الرقمي للمفوض (مطابق لصفحة Profile) */}
-            <div className="space-y-2 border-t pt-4 mt-2">
-              <Label className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-foreground">
+            <div className="space-y-3 border-t pt-5">
+              <Label className="text-sm font-bold flex items-center gap-2 text-foreground">
                 <Upload className="w-4 h-4 text-primary" />
-                التوقيع الرقمي (صورة التوقيع للمفوض)
+                التوقيع الرقمي (صورة التوقيع الرسمية للمفوض)
               </Label>
               
               {formData.signatureUrl ? (
                 <div className="p-4 border border-dashed rounded-xl bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-white dark:bg-slate-950 p-2 rounded-lg border shadow-sm max-w-[180px] max-h-[90px] flex items-center justify-center overflow-hidden">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="bg-white dark:bg-slate-950 p-2 rounded-lg border shadow-sm max-w-[200px] max-h-[100px] flex items-center justify-center overflow-hidden">
                       <img 
                         src={formData.signatureUrl} 
                         alt="التوقيع الرقمي" 
-                        className="max-h-[70px] w-auto object-contain" 
+                        className="max-h-[75px] w-auto object-contain" 
                       />
                     </div>
-                    <div>
+                    <div className="text-right">
                       <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        تم إرفاق التوقيع الرقمي
+                        <CheckCircle2 className="w-4 h-4" />
+                        تم إرفاق صورة التوقيع الرقمي بنجاح
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        سيتم اعتماد هذا التوقيع عند اختيار هذا المفوض في العقود والمستندات.
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        سيتم استخدام صورة التوقيع هذه تلقائياً في العقود التي يوقعها هذا المفوض.
                       </p>
                     </div>
                   </div>
@@ -597,7 +744,7 @@ function SignatoriesSection() {
                         type="button"
                         asChild
                         disabled={uploadingSignature}
-                        className="h-8 text-xs gap-1.5"
+                        className="h-9 text-xs font-semibold gap-1.5 rounded-xl"
                       >
                         <span>
                           {uploadingSignature ? (
@@ -618,7 +765,7 @@ function SignatoriesSection() {
                         setFormData((prev) => ({ ...prev, signatureUrl: "" }));
                       }}
                       disabled={uploadingSignature}
-                      className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1.5"
+                      className="h-9 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 gap-1.5 rounded-xl"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       حذف
@@ -657,7 +804,7 @@ function SignatoriesSection() {
                         type="button"
                         asChild
                         disabled={uploadingSignature}
-                        className="h-9 text-xs font-bold gap-2 shadow-sm"
+                        className="h-9 text-xs font-bold gap-2 shadow-sm rounded-xl"
                       >
                         <span>
                           {uploadingSignature ? (
@@ -679,8 +826,9 @@ function SignatoriesSection() {
               )}
             </div>
           </div>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 mt-4">
-            <Button variant="outline" className="w-full sm:w-auto" onClick={() => {
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 pt-4 border-t mt-2">
+            <Button variant="outline" className="w-full sm:w-auto rounded-xl" onClick={() => {
               setShowAddDialog(false);
               setEditingSignatory(null);
               resetForm();
@@ -688,7 +836,7 @@ function SignatoriesSection() {
               إلغاء
             </Button>
             <Button
-              className="w-full sm:w-auto gradient-primary text-white"
+              className="w-full sm:w-auto gradient-primary text-white font-bold rounded-xl"
               onClick={handleSubmit}
               disabled={addMutation.isPending || updateMutation.isPending || uploadingSignature}
             >
