@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,19 @@ function SignatoriesSection() {
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userSelectRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSelectRef.current && !userSelectRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -597,7 +610,7 @@ function SignatoriesSection() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="relative">
+                  <div ref={userSelectRef} className="relative">
                     <div className="relative">
                       <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input
@@ -606,7 +619,7 @@ function SignatoriesSection() {
                           setUserSearchQuery(e.target.value);
                           setShowUserDropdown(true);
                         }}
-                        onFocus={() => setShowUserDropdown(true)}
+                        onClick={() => setShowUserDropdown((prev) => !prev)}
                         placeholder="ابحث باسم الموظف أو البريد الإلكتروني أو المسمى الوظيفي..."
                         className="pr-9 pl-9 text-sm h-11 bg-background rounded-xl border-slate-300 dark:border-slate-700"
                       />
@@ -616,12 +629,23 @@ function SignatoriesSection() {
                           variant="ghost"
                           size="icon"
                           className="absolute left-2 top-2 h-7 w-7 text-muted-foreground hover:text-foreground"
-                          onClick={() => setUserSearchQuery("")}
+                          onClick={() => {
+                            setUserSearchQuery("");
+                            setShowUserDropdown(false);
+                          }}
                         >
                           <X className="h-3.5 w-3.5" />
                         </Button>
                       ) : (
-                        <ChevronDown className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute left-2 top-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowUserDropdown((prev) => !prev)}
+                        >
+                          <ChevronDown className={`h-4 w-4 transition-transform ${showUserDropdown ? "rotate-180" : ""}`} />
+                        </Button>
                       )}
                     </div>
 
