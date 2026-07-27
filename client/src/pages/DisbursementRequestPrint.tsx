@@ -58,6 +58,12 @@ export default function DisbursementRequestPrint() {
     { enabled: !!params.id }
   );
 
+  const executiveDirectorName = 
+    (request as any)?.executiveDirectorName || 
+    ((currentUser as any)?.signatureName || currentUser?.name) || 
+    orgSettings?.executiveDirectorName || 
+    "—";
+
   const executiveDirectorSignatureUrl = 
     (request as any)?.executiveDirectorSignatureUrl ||
     (isExecutiveDirectorSigner ? (currentUser as any)?.signatureUrl : null);
@@ -533,7 +539,7 @@ export default function DisbursementRequestPrint() {
                     ) : (
                       <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
                     )}
-                    <div className="text-gray-900 font-bold">{orgSettings?.executiveDirectorName || "—"}</div>
+                    <div className="text-gray-900 font-bold">{executiveDirectorName}</div>
                   </div>
                 </div>
               </div>

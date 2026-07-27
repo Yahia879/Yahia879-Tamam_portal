@@ -325,9 +325,14 @@ export const disbursementsRouter = router({
 
       const hasSignInfo = !!(resolvedSignatureName && resolvedSignatureDepartment);
 
-      // جلب صورة توقيع المدير التنفيذي / التوقيع المعتمد
+      // جلب بيانات وصورة توقيع المدير التنفيذي المعتمد بتوقيع وصلاحية توقيع طلبات الصرف
       let executiveDirectorSignatureUrl: string | null = null;
-      const potentialSigners = await db
+      let executiveDirectorName: string | null = null;
+      let executiveDirectorSignatureDepartment: string | null = null;
+
+      const { calculateUserPermissions } = await import("../permissions");
+
+      const potentialGMs = await db
         .select({
           id: users.id,
           name: users.name,
@@ -342,42 +347,69 @@ export const disbursementsRouter = router({
         .where(
           and(
             isNull(users.deletedAt),
-            sql`${users.signatureUrl} IS NOT NULL AND ${users.signatureUrl} != ''`,
-            sql`(${users.showSignatureInDocuments} IS NULL OR ${users.showSignatureInDocuments} = TRUE OR ${users.showSignatureInDocuments} = 1)`
+            eq(users.status, "active" as any),
+            inArray(users.role, ["general_manager" as any, "executive_director" as any])
           )
         );
 
-      // البحث الدقيق عن حساب المدير التنفيذي بين المستخدمين الذين لديهم صورة توقيع رقمي ومفعلين الخيار
-      let execDirector = potentialSigners.find(u => 
-        (u.role as string) === "general_manager" ||
-        u.email === "ceo@manarah.org.sa" ||
-        (u.signatureDepartment || "").includes("المدير التنفيذي") ||
-        (u.signatureName || "").includes("المدير التنفيذي") ||
-        (u.name || "").includes("المدير التنفيذي")
-      );
+      let execDirector: typeof potentialGMs[0] | null = null;
+
+      for (const u of potentialGMs) {
+        const userPerms = await calculateUserPermissions(u.id);
+        if (userPerms.includes("disbursements.sign")) {
+          execDirector = u;
+          break;
+        }
+      }
 
       if (!execDirector) {
-        for (const u of potentialSigners) {
-          const [customRole] = await db
-            .select({ nameAr: roles.nameAr })
-            .from(userRoleAssignments)
-            .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
-            .where(eq(userRoleAssignments.userId, u.id))
-            .limit(1);
+        const allStaffSigners = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            role: users.role,
+          })
+          .from(users)
+          .where(
+            and(
+              isNull(users.deletedAt),
+              eq(users.status, "active" as any),
+              ne(users.role, "service_requester" as any)
+            )
+          );
 
-          if (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) {
-            execDirector = u;
-            break;
+        for (const u of allStaffSigners) {
+          const userPerms = await calculateUserPermissions(u.id);
+          if (userPerms.includes("disbursements.sign")) {
+            const [customRole] = await db
+              .select({ nameAr: roles.nameAr })
+              .from(userRoleAssignments)
+              .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+              .where(eq(userRoleAssignments.userId, u.id))
+              .limit(1);
+
+            if (
+              (customRole && (customRole.nameAr || "").includes("المدير التنفيذي")) ||
+              (u.signatureDepartment || "").includes("المدير التنفيذي")
+            ) {
+              execDirector = u;
+              break;
+            }
           }
         }
       }
 
-      if (!execDirector && potentialSigners.length > 0) {
-        execDirector = potentialSigners[0];
-      }
-
       if (execDirector) {
-        executiveDirectorSignatureUrl = execDirector.signatureUrl;
+        executiveDirectorName = execDirector.signatureName || execDirector.name;
+        executiveDirectorSignatureDepartment = execDirector.signatureDepartment || "المدير التنفيذي";
+        if (execDirector.signatureUrl && (execDirector.showSignatureInDocuments !== false)) {
+          executiveDirectorSignatureUrl = execDirector.signatureUrl;
+        }
       }
 
       return {
@@ -385,6 +417,8 @@ export const disbursementsRouter = router({
         requestedBySignatureName: resolvedSignatureName,
         requestedBySignatureDepartment: resolvedSignatureDepartment,
         requestedBySignatureUrl: resolvedSignatureUrl,
+        executiveDirectorName,
+        executiveDirectorSignatureDepartment,
         executiveDirectorSignatureUrl,
         creatorHasSignPermission: hasSignInfo,
         project,
