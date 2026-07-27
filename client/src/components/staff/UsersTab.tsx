@@ -65,6 +65,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
+  { value: "general_manager", label: "المدير التنفيذي" },
   { value: "system_admin", label: "مدير نظام" },
   { value: "projects_office", label: "مكتب المشاريع" },
   { value: "project_manager", label: "مدير المشاريع" },
@@ -238,6 +239,8 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
 
     // الأدوار الأساسية الثابتة - تستخدم التنسيق الزمردي الناعم (Soft Emerald)
     const roleMap: Record<string, string> = {
+      general_manager: "المدير التنفيذي",
+      executive_director: "المدير التنفيذي",
       system_admin: "مدير نظام",
       super_admin: "المدير العام",
       projects_office: "مكتب المشاريع",

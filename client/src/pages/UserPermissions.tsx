@@ -55,6 +55,8 @@ const getRoleLabelAr = (role: string) => {
   const rolesAr: Record<string, string> = {
     "super_admin": "مدير عام النظام",
     "system_admin": "مدير نظام",
+    "general_manager": "المدير التنفيذي",
+    "executive_director": "المدير التنفيذي",
     "project_manager": "مدير مشاريع",
     "financial_manager": "المدير المالي",
     "financial": "موظف مالي",

@@ -64,6 +64,7 @@ export default function Profile() {
       toast.success("تم رفع التوقيع الرقمي بنجاح");
       setSignatureUrl(data.url);
       utils.auth.me.invalidate();
+      utils.organization.getSignatories.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء رفع التوقيع الرقمي");
@@ -75,6 +76,7 @@ export default function Profile() {
       toast.success("تم حذف التوقيع الرقمي بنجاح");
       setSignatureUrl(null);
       utils.auth.me.invalidate();
+      utils.organization.getSignatories.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حذف التوقيع الرقمي");
@@ -152,6 +154,7 @@ export default function Profile() {
     onSuccess: () => {
       toast.success("تم حفظ التغييرات بنجاح");
       utils.auth.me.invalidate();
+      utils.organization.getSignatories.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ التغييرات");

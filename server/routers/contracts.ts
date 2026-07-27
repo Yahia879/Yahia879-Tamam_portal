@@ -259,10 +259,40 @@ export const contractsRouter = router({
       
       const { contract, signatory, projectName } = contractData;
 
+      // التحقق مما إذا كان المفوض المرتبط قد ألغى إظهار التوقيع الرسمي في المستندات
+      let showSigInDocs = true;
+      let targetUserId = signatory?.userId || null;
+      if (!targetUserId && signatory?.email) {
+        const [matched] = await db
+          .select({ id: users.id, showSignatureInDocuments: users.showSignatureInDocuments })
+          .from(users)
+          .where(eq(users.email, signatory.email))
+          .limit(1);
+        if (matched) {
+          targetUserId = matched.id;
+          if (matched.showSignatureInDocuments === false || (matched.showSignatureInDocuments as any) === 0) {
+            showSigInDocs = false;
+          }
+        }
+      } else if (targetUserId) {
+        const [matched] = await db
+          .select({ showSignatureInDocuments: users.showSignatureInDocuments })
+          .from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
+        if (matched && (matched.showSignatureInDocuments === false || (matched.showSignatureInDocuments as any) === 0)) {
+          showSigInDocs = false;
+        }
+      }
+
       // جلب صورة وتفاصيل توقيع الطرف الأول (المدير التنفيذي حصرياً)
-      let firstPartySignatureUrl: string | null = signatory?.signatureUrl || null;
+      let firstPartySignatureUrl: string | null = showSigInDocs ? (signatory?.signatureUrl || null) : null;
       let firstPartySignatoryName: string | null = signatory?.name || null;
       let firstPartySignatoryTitle: string | null = signatory?.title || null;
+
+      if (signatory && !showSigInDocs) {
+        signatory.signatureUrl = null;
+      }
 
       // إذا لم يكن هناك صورة توقيع رقمية في جدول المخولين (signatories)، نسحب التوقيع الرقمي من جدول المستخدمين (users) للمدير التنفيذي
       if (!firstPartySignatureUrl) {

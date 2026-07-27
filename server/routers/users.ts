@@ -14,6 +14,8 @@ function hashPassword(password: string, salt: string): string {
 const STAFF_ROLES = [
   "super_admin",
   "system_admin",
+  "general_manager",
+  "executive_director",
   "projects_office",
   "field_team",
   "quick_response",

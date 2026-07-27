@@ -396,7 +396,7 @@ export function getUserHomeRoute(user: any): string {
   if (user.role === "super_admin" || user.role === "system_admin") return "/dashboard";
 
   const userPerms: string[] = user.permissions ?? [];
-  const isBaseRole = ["super_admin", "system_admin", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
+  const isBaseRole = ["super_admin", "system_admin", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
   const hasCustom = !!user.customRole || !isBaseRole;
 
   // 1. التحقق من المسار الافتراضي المخصص للدور أولاً

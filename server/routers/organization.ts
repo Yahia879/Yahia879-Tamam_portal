@@ -475,27 +475,41 @@ export const organizationRouter = router({
         let targetUserId = sig.userId || null;
         let effectiveSignatureUrl = sig.signatureUrl;
 
+        let showSignatureInDocuments = true;
+
         if (!targetUserId && sig.email) {
           const [matchedUser] = await db
-            .select({ id: users.id, signatureUrl: users.signatureUrl })
+            .select({ id: users.id, signatureUrl: users.signatureUrl, showSignatureInDocuments: users.showSignatureInDocuments })
             .from(users)
             .where(eq(users.email, sig.email))
             .limit(1);
           if (matchedUser) {
             targetUserId = matchedUser.id;
+            if (matchedUser.showSignatureInDocuments === false || (matchedUser.showSignatureInDocuments as any) === 0) {
+              showSignatureInDocuments = false;
+            }
             if (!effectiveSignatureUrl && matchedUser.signatureUrl) {
               effectiveSignatureUrl = matchedUser.signatureUrl;
             }
           }
-        } else if (targetUserId && !effectiveSignatureUrl) {
+        } else if (targetUserId) {
           const [matchedUser] = await db
-            .select({ signatureUrl: users.signatureUrl })
+            .select({ signatureUrl: users.signatureUrl, showSignatureInDocuments: users.showSignatureInDocuments })
             .from(users)
             .where(eq(users.id, targetUserId))
             .limit(1);
-          if (matchedUser?.signatureUrl) {
-            effectiveSignatureUrl = matchedUser.signatureUrl;
+          if (matchedUser) {
+            if (matchedUser.showSignatureInDocuments === false || (matchedUser.showSignatureInDocuments as any) === 0) {
+              showSignatureInDocuments = false;
+            }
+            if (!effectiveSignatureUrl && matchedUser.signatureUrl) {
+              effectiveSignatureUrl = matchedUser.signatureUrl;
+            }
           }
+        }
+
+        if (!showSignatureInDocuments) {
+          effectiveSignatureUrl = null;
         }
 
         if (targetUserId) {
@@ -508,6 +522,7 @@ export const organizationRouter = router({
           signatureUrl: effectiveSignatureUrl,
           userId: targetUserId,
           hasContractSignPermission,
+          showSignatureInDocuments,
         };
       })
     );

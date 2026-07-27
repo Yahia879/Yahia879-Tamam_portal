@@ -3,10 +3,12 @@ import { relations } from "drizzle-orm";
 
 // ==================== الأدوار والحالات ====================
 
-// الأدوار التسعة للنظام
+// الأدوار الأساسية للنظام
 export const userRoles = [
   "super_admin",      // المدير العام
   "system_admin",     // مدير النظام
+  "general_manager",   // المدير التنفيذي
+  "executive_director", // المدير التنفيذي
   "projects_office",  // مكتب المشاريع
   "field_team",       // الفريق الميداني
   "quick_response",   // فريق الاستجابة السريعة

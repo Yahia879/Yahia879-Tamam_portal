@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 
 const ROLE_OPTIONS = [
+  { value: "general_manager", label: "المدير التنفيذي" },
   { value: "system_admin", label: "مدير نظام" },
   { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },

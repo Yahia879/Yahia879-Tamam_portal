@@ -352,6 +352,8 @@ export const authRouter = router({
 
     // التحقق مما إذا كان المستخدم مفوض توقيع رقمي مرخص
     let linkedSignatorySignatureUrl: string | null = null;
+    let linkedSignatoryName: string | null = null;
+    let linkedSignatoryTitle: string | null = null;
     let isLinkedSignatory = false;
 
     if (ctx.user?.id || ctx.user?.email) {
@@ -370,6 +372,8 @@ export const authRouter = router({
       const [signatoryRec] = await db
         .select({
           id: signatories.id,
+          name: signatories.name,
+          title: signatories.title,
           signatureUrl: signatories.signatureUrl,
         })
         .from(signatories)
@@ -381,14 +385,24 @@ export const authRouter = router({
         if (signatoryRec.signatureUrl) {
           linkedSignatorySignatureUrl = signatoryRec.signatureUrl;
         }
+        if (signatoryRec.name) {
+          linkedSignatoryName = signatoryRec.name;
+        }
+        if (signatoryRec.title) {
+          linkedSignatoryTitle = signatoryRec.title;
+        }
       }
     }
 
     const finalSignatureUrl = (ctx.user as any).signatureUrl || linkedSignatorySignatureUrl || null;
+    const finalSignatureName = (ctx.user as any).signatureName || linkedSignatoryName || ctx.user.name || "";
+    const finalSignatureDepartment = (ctx.user as any).signatureDepartment || linkedSignatoryTitle || "";
 
     return {
       ...ctx.user,
       signatureUrl: finalSignatureUrl,
+      signatureName: finalSignatureName,
+      signatureDepartment: finalSignatureDepartment,
       isLinkedSignatory,
       customRole: customRoleAssignment ? {
         id: customRoleAssignment.roleId,
@@ -669,6 +683,31 @@ export const authRouter = router({
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));
       }
 
+      // مزامنة الاسم والمنصب الوظيفي في جدول المفوضين signatories عند تعديلها في Profile
+      if (input.signatureName !== undefined || input.signatureDepartment !== undefined) {
+        try {
+          const signatoryConds = [eq(signatories.userId, ctx.user.id)];
+          if (ctx.user.email) {
+            signatoryConds.push(
+              and(
+                sql`length(${signatories.email}) > 0`,
+                eq(signatories.email, ctx.user.email)
+              )!
+            );
+          }
+          const whereClause = signatoryConds.length === 1 ? signatoryConds[0] : or(...signatoryConds)!;
+          const sigUpdate: any = {};
+          if (input.signatureName !== undefined) sigUpdate.name = input.signatureName;
+          if (input.signatureDepartment !== undefined) sigUpdate.title = input.signatureDepartment;
+
+          if (Object.keys(sigUpdate).length > 0) {
+            await db.update(signatories).set(sigUpdate).where(whereClause);
+          }
+        } catch (e) {
+          console.error('[updateProfile] Failed to sync signatory name/title:', e);
+        }
+      }
+
       return { success: true, message: "تم تحديث الملف الشخصي بنجاح" };
     }),
 
@@ -721,6 +760,25 @@ export const authRouter = router({
 
       await db.update(users).set({ signatureUrl: url }).where(eq(users.id, ctx.user.id));
 
+      // تحديث التوقيع الرقمي في جدول المفوضين signatories لو كان المستخدم مفوضاً
+      try {
+        const signatoryConds = [eq(signatories.userId, ctx.user.id)];
+        if (ctx.user.email) {
+          signatoryConds.push(
+            and(
+              sql`length(${signatories.email}) > 0`,
+              eq(signatories.email, ctx.user.email)
+            )!
+          );
+        }
+        const whereClause = signatoryConds.length === 1 ? signatoryConds[0] : or(...signatoryConds)!;
+        await db.update(signatories)
+          .set({ signatureUrl: url })
+          .where(whereClause);
+      } catch (e) {
+        console.error('[uploadSignature] Failed to sync signatory table:', e);
+      }
+
       return { success: true, url, message: "تم رفع التوقيع الرقمي بنجاح" };
     }),
 
@@ -731,6 +789,25 @@ export const authRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       await db.update(users).set({ signatureUrl: null }).where(eq(users.id, ctx.user.id));
+
+      // حذف التوقيع الرقمي في جدول المفوضين signatories لو كان المستخدم مفوضاً
+      try {
+        const signatoryConds = [eq(signatories.userId, ctx.user.id)];
+        if (ctx.user.email) {
+          signatoryConds.push(
+            and(
+              sql`length(${signatories.email}) > 0`,
+              eq(signatories.email, ctx.user.email)
+            )!
+          );
+        }
+        const whereClause = signatoryConds.length === 1 ? signatoryConds[0] : or(...signatoryConds)!;
+        await db.update(signatories)
+          .set({ signatureUrl: null })
+          .where(whereClause);
+      } catch (e) {
+        console.error('[removeSignature] Failed to sync signatory table:', e);
+      }
 
       return { success: true, message: "تم حذف التوقيع الرقمي بنجاح" };
     }),

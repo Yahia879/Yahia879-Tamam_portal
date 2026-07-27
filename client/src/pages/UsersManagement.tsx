@@ -55,6 +55,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
+  { value: "general_manager", label: "المدير التنفيذي" },
   { value: "super_admin", label: "مدير النظام" },
   { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
@@ -214,6 +215,8 @@ export default function UsersManagement() {
 
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+      general_manager: { label: "المدير التنفيذي", variant: "default" },
+      executive_director: { label: "المدير التنفيذي", variant: "default" },
       super_admin: { label: "مدير النظام", variant: "default" },
       financial_manager: { label: "المدير المالي", variant: "default" },
       projects_office: { label: "مكتب المشاريع", variant: "secondary" },
