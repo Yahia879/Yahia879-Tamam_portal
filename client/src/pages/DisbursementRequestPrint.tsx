@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, Printer, PenTool } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -40,6 +41,9 @@ export default function DisbursementRequestPrint() {
   const { user: currentUser } = useAuth();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
+  const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
+  const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
+
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
@@ -68,6 +72,18 @@ export default function DisbursementRequestPrint() {
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
+
+  const resolvedSignatureName = 
+    (request as any)?.requestedBySignatureName || 
+    (request as any)?.creatorSignatureName || 
+    (request as any)?.requestedByName;
+
+  const resolvedSignatureDepartment = 
+    (request as any)?.requestedBySignatureDepartment || 
+    (request as any)?.creatorSignatureDepartment;
+
+  const resolvedSignatureUrl = 
+    (request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl;
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
@@ -297,12 +313,47 @@ export default function DisbursementRequestPrint() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
-      {/* أزرار التحكم */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
+      {/* أزرار التحكم والخيارات */}
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
         <Button variant="outline" onClick={() => navigate("/disbursements")} className="bg-white border shadow-sm sm:bg-white/90">
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
+
+        {/* خيار إظهار/إخفاء توقيع مُعدّ الطلب */}
+        {resolvedSignatureUrl && (
+          <label
+            htmlFor="show-creator-sig"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+          >
+            <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+            <span>توقيع مُعدّ الطلب</span>
+            <Checkbox
+              id="show-creator-sig"
+              checked={showCreatorSignature}
+              onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
+              className="scale-90"
+            />
+          </label>
+        )}
+
+        {/* خيار إظهار/إخفاء توقيع المدير التنفيذي */}
+        {executiveDirectorSignatureUrl && (
+          <label
+            htmlFor="show-exec-sig"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+          >
+            <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+            <span>توقيع المدير التنفيذي</span>
+            <Checkbox
+              id="show-exec-sig"
+              checked={showExecutiveDirectorSignature}
+              onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
+              className="scale-90"
+            />
+          </label>
+        )}
+
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
           تنزيل PDF / طباعة
@@ -512,18 +563,18 @@ export default function DisbursementRequestPrint() {
 
             {/* 7. التوقيعات والاعتماد */}
             <div className="break-inside-avoid pt-4">
-              <div className={`grid ${request?.creatorHasSignPermission && request?.requestedBySignatureName && request?.requestedBySignatureDepartment ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
-                {/* معد الطلب - يظهر فقط إذا كان لديه صلاحية التوقيع وعبّأ معلومات التوقيع */}
-                {request?.creatorHasSignPermission && request?.requestedBySignatureName && request?.requestedBySignatureDepartment && (
+              <div className={`grid ${(resolvedSignatureName && resolvedSignatureDepartment) ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
+                {/* معد الطلب */}
+                {(resolvedSignatureName && resolvedSignatureDepartment) && (
                   <div className="p-2">
                     <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
-                      {request.requestedBySignatureDepartment}
+                      {resolvedSignatureDepartment}
                     </div>
                     <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                      {request.requestedBySignatureUrl ? (
+                      {(showCreatorSignature && resolvedSignatureUrl) ? (
                         <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
                           <img 
-                            src={request.requestedBySignatureUrl} 
+                            src={resolvedSignatureUrl} 
                             alt="التوقيع الرقمي" 
                             className="max-h-12 max-w-full object-contain" 
                           />
@@ -531,7 +582,7 @@ export default function DisbursementRequestPrint() {
                       ) : (
                         <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
                       )}
-                      <div className="text-gray-900 font-bold">{request.requestedBySignatureName}</div>
+                      <div className="text-gray-900 font-bold">{resolvedSignatureName}</div>
                     </div>
                   </div>
                 )}
@@ -542,7 +593,7 @@ export default function DisbursementRequestPrint() {
                     {executiveDirectorDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                    {executiveDirectorSignatureUrl ? (
+                    {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl) ? (
                       <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
                         <img
                           src={executiveDirectorSignatureUrl}
