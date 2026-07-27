@@ -186,6 +186,7 @@ export default function ContractPrint() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+  const resolvedProjectName = (data as any)?.projectName || (contract as any)?.projectName || (contract as any)?.contractTitle || "";
 
   const executiveDirectorSignatureUrl = 
     (contract as any)?.firstPartySignatureUrl ||
@@ -289,6 +290,7 @@ export default function ContractPrint() {
 
       {/* صفحة الطباعة */}
       <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-12 print:p-0 min-h-[297mm] relative flex flex-col justify-between">
+
         <div className="p-4 sm:p-8 print:p-4 relative min-h-[285mm] flex flex-col justify-between">
           <div>
             <div className="flex flex-row items-center justify-between mb-6">
@@ -633,8 +635,22 @@ export default function ContractPrint() {
       <style>{`
         @media print {
           @page {
-            size: A4;
-            margin: 0 !important;
+            size: A4 portrait;
+            margin: 12mm 15mm 20mm 15mm;
+            @bottom-left {
+              content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
+              font-family: 'Cairo', Arial, sans-serif;
+              font-size: 10px;
+              color: #374151;
+              font-weight: 700;
+            }
+            @bottom-right {
+              content: 'صفحة ' counter(page) ' من ' counter(pages);
+              font-family: 'Cairo', Arial, sans-serif;
+              font-size: 10px;
+              color: #374151;
+              font-weight: 600;
+            }
           }
           body {
             background-color: white !important;

@@ -588,6 +588,7 @@ export default function ContractPreview() {
   }
 
   const { contract, payments, organizationSettings: orgSettings, clauseValues } = data;
+  const resolvedProjectName = (data as any)?.projectName || (contract as any)?.projectName || (contract as any)?.contractTitle || "";
 
   const executiveDirectorSignatureUrl = 
     (contract as any)?.firstPartySignatureUrl ||
@@ -760,6 +761,8 @@ export default function ContractPreview() {
               fontFamily: 'Arial, sans-serif',
             }}
           >
+
+
             <div 
               className="contract-a4-page bg-white shadow-sm sm:shadow-lg border print:border-none print:shadow-none rounded-lg p-4 sm:p-8 md:p-12 lg:p-16 print:p-6 flex flex-col justify-between relative overflow-hidden"
               style={{ 
@@ -1447,7 +1450,21 @@ export default function ContractPreview() {
             
             @page {
               size: A4 portrait;
-              margin: 12mm 15mm 22mm 15mm !important;
+              margin: 12mm 15mm 20mm 15mm;
+              @bottom-left {
+                content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
+                font-family: 'Cairo', Arial, sans-serif;
+                font-size: 10px;
+                color: #374151;
+                font-weight: 700;
+              }
+              @bottom-right {
+                content: 'صفحة ' counter(page) ' من ' counter(pages);
+                font-family: 'Cairo', Arial, sans-serif;
+                font-size: 10px;
+                color: #374151;
+                font-weight: 600;
+              }
             }
           }
           @media screen {
