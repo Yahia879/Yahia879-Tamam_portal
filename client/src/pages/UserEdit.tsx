@@ -34,7 +34,9 @@ export default function UserEdit() {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = trpc.users.getById.useQuery({ id: userId });
-
+  const { data: existingGMData } = trpc.users.getAll.useQuery({ role: "general_manager", includeAll: true });
+  const existingGMUser = existingGMData?.items?.find((u: any) => u.role === "general_manager" || u.role === "executive_director");
+  const isGMExistingAndNotSelf = Boolean(existingGMUser && existingGMUser.id !== userId);
 
   const utils = trpc.useUtils();
 
@@ -205,11 +207,15 @@ export default function UserEdit() {
                     <SelectValue placeholder="اختر الدور" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ROLE_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    {ROLE_OPTIONS.map(option => {
+                      const isGMOption = option.value === "general_manager" || option.value === "executive_director";
+                      const isGMDisabled = isGMOption && isGMExistingAndNotSelf;
+                      return (
+                        <SelectItem key={option.value} value={option.value} disabled={isGMDisabled}>
+                          {option.label}{isGMDisabled ? " (يوجد مدير تنفيذي بالفعل)" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

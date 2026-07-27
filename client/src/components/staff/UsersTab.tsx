@@ -109,6 +109,9 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   const totalCount = usersData?.totalCount || 0;
   const totalPages = usersData?.totalPages || 1;
 
+  const { data: existingGMData } = trpc.users.getAll.useQuery({ role: "general_manager", includeAll: true });
+  const hasExistingGM = Boolean(existingGMData?.items?.some((u: any) => u.role === "general_manager" || u.role === "executive_director"));
+
   const { data: customRoles } = trpc.permissions.getRoles.useQuery();
 
   useEffect(() => {
@@ -673,11 +676,15 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
                       <SelectValue placeholder="اختر الدور الوظيفي" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
+                      {ROLE_OPTIONS.map((opt) => {
+                        const isGMOption = opt.value === "general_manager" || opt.value === "executive_director";
+                        const isGMDisabled = isGMOption && hasExistingGM;
+                        return (
+                          <SelectItem key={opt.value} value={opt.value} disabled={isGMDisabled}>
+                            {opt.label}{isGMDisabled ? " (مُسند لمدير تنفيذي بالفعل)" : ""}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   {formData.roleIds.length > 0 && (

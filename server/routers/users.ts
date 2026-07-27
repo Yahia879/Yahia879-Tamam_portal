@@ -272,6 +272,21 @@ export const usersRouter = router({
       const hashedPwd = hashPassword(input.password, salt);
       const passwordHash = `${salt}:${hashedPwd}`;
 
+      // التحقق لمنع إنشاء أكثر من مدير تنفيذي واحد في النظام
+      if (input.role === "general_manager" || input.role === "executive_director") {
+        const [existingGM] = await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.role, ["general_manager" as any, "executive_director" as any]))
+          .limit(1);
+        if (existingGM) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `لا يمكن إضافة أكثر من مدير تنفيذي واحد في المنظومة (يوجد مدير تنفيذي بالفعل: ${existingGM.name})`,
+          });
+        }
+      }
+
       // عند اختيار دور مخصص فقط (بدون دور أساسي)، نستخدم "projects_office" كقيمة محايدة
       // للحقل role في جدول users (المطلوب من DB)، ويُعدّ الدور الفعلي هو roleIds
       const effectiveRole = input.role ?? "projects_office";
@@ -532,13 +547,30 @@ export const usersRouter = router({
       if (input.phone && input.phone.trim() !== "") {
         const [existingUserByPhone] = await db
           .select({ id: users.id })
-          .from(users)
-          .where(and(eq(users.phone, input.phone), ne(users.id, input.id)))
-          .limit(1);
         if (existingUserByPhone) {
           throw new TRPCError({
             code: "CONFLICT",
             message: "رقم الجوال هذا مستخدم سابقاً"
+          });
+        }
+      }
+
+      // التحقق لمنع تعديل حساب ليكون مديراً تنفيذياً إذا كان يوجد مدير تنفيذي آخر بالفعل
+      if (input.role === "general_manager" || input.role === "executive_director") {
+        const [existingGM] = await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(
+            and(
+              inArray(users.role, ["general_manager" as any, "executive_director" as any]),
+              ne(users.id, input.id)
+            )
+          )
+          .limit(1);
+        if (existingGM) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `يوجد مدير تنفيذي بالفعل في المنظومة (${existingGM.name})، لا يمكن تعديل دور هذا المستخدم لمدير تنفيذي`,
           });
         }
       }
@@ -589,6 +621,26 @@ export const usersRouter = router({
           code: "FORBIDDEN",
           message: "لا يمكن تغيير دور المدير العام"
         });
+      }
+
+      // التحقق لمنع تعيين دور مدير تنفيذي إذا كان يوجد مدير تنفيذي آخر بالفعل
+      if (input.role === "general_manager" || input.role === "executive_director") {
+        const [existingGM] = await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(
+            and(
+              inArray(users.role, ["general_manager" as any, "executive_director" as any]),
+              ne(users.id, input.userId)
+            )
+          )
+          .limit(1);
+        if (existingGM) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `يوجد مدير تنفيذي بالفعل في المنظومة (${existingGM.name})، لا يمكن تعيين أكثر من مدير تنفيذي واحد`,
+          });
+        }
       }
 
       await db.update(users).set({ role: input.role as any }).where(eq(users.id, input.userId));

@@ -98,6 +98,7 @@ export default function UsersManagement() {
   const { user: currentUser } = useAuth();
   
   const users = usersResponse?.items || [];
+  const hasExistingGM = Boolean(users.some((u: any) => u.role === "general_manager" || u.role === "executive_director"));
 
   const createUser = trpc.users.create.useMutation({
     onSuccess: () => {
@@ -492,11 +493,15 @@ export default function UsersManagement() {
                         <SelectValue placeholder="اختر الدور" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ROLE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
+                        {ROLE_OPTIONS.map((opt) => {
+                          const isGMOption = opt.value === "general_manager" || opt.value === "executive_director";
+                          const isGMDisabled = isGMOption && hasExistingGM;
+                          return (
+                            <SelectItem key={opt.value} value={opt.value} disabled={isGMDisabled}>
+                              {opt.label}{isGMDisabled ? " (مُسند لمدير تنفيذي بالفعل)" : ""}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
