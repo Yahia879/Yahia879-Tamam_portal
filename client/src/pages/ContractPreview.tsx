@@ -771,7 +771,7 @@ export default function ContractPreview() {
             >
               <div>
                 {contract.status === "approved" && (
-                  <div className="absolute top-3 left-4 sm:top-6 sm:left-8 print:top-3 print:left-4 text-[9px] sm:text-xs font-mono text-gray-400 border border-gray-100 bg-gray-50/50 px-2 py-0.5 rounded">
+                  <div className="absolute top-3 left-4 sm:top-6 sm:left-8 print:top-3 print:left-4 text-[10px] sm:text-xs font-mono font-semibold text-slate-700 border border-slate-300 bg-slate-100 px-2.5 py-1 rounded shadow-2xs">
                     الرقم: {contract.contractNumber}
                   </div>
                 )}
@@ -1452,18 +1452,18 @@ export default function ContractPreview() {
               size: A4 portrait;
               margin: 12mm 15mm 20mm 15mm;
               @bottom-left {
-                content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
-                font-family: 'Cairo', Arial, sans-serif;
-                font-size: 10px;
-                color: #374151;
-                font-weight: 700;
-              }
-              @bottom-right {
                 content: 'صفحة ' counter(page) ' من ' counter(pages);
                 font-family: 'Cairo', Arial, sans-serif;
                 font-size: 10px;
                 color: #374151;
                 font-weight: 600;
+              }
+              @bottom-right {
+                content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
+                font-family: 'Cairo', Arial, sans-serif;
+                font-size: 10px;
+                color: #374151;
+                font-weight: 700;
               }
             }
           }

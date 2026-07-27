@@ -638,18 +638,18 @@ export default function ContractPrint() {
             size: A4 portrait;
             margin: 12mm 15mm 20mm 15mm;
             @bottom-left {
-              content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
-              font-family: 'Cairo', Arial, sans-serif;
-              font-size: 10px;
-              color: #374151;
-              font-weight: 700;
-            }
-            @bottom-right {
               content: 'صفحة ' counter(page) ' من ' counter(pages);
               font-family: 'Cairo', Arial, sans-serif;
               font-size: 10px;
               color: #374151;
               font-weight: 600;
+            }
+            @bottom-right {
+              content: "${(resolvedProjectName || contract.contractTitle || contract.contractNumber || '').replace(/"/g, "'")}";
+              font-family: 'Cairo', Arial, sans-serif;
+              font-size: 10px;
+              color: #374151;
+              font-weight: 700;
             }
           }
           body {
