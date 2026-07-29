@@ -51,6 +51,36 @@ const formatDateArabic = (dateVal: any): string => {
     return String(dateVal);
   }
 };
+const formatDateArabicShort = (dateVal: any): string => {
+  if (!dateVal) return "";
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return String(dateVal);
+  }
+};
+
+const formatPeriodArabic = (startVal: any, endVal: any, reportDateVal: any): string => {
+  if (startVal && endVal) {
+    const sStr = formatDateArabicShort(startVal);
+    const eStr = formatDateArabicShort(endVal);
+    if (sStr && eStr) {
+      return `من ${sStr} إلى ${eStr}`;
+    }
+  }
+  if (startVal) {
+    return `من ${formatDateArabicShort(startVal)}`;
+  }
+  if (reportDateVal) {
+    return `بتاريخ ${formatDateArabicShort(reportDateVal)}`;
+  }
+  return "—";
+};
 
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
@@ -139,6 +169,7 @@ export default function ProjectReportsHubPage() {
         type: typeLabel,
         typeKey: typeKey,
         project: r.projectName || "مشروع غير محدد",
+        period: formatPeriodArabic(r.reportPeriodStart, r.reportPeriodEnd, r.reportDate),
         date: formatDateArabic(r.reportDate),
         rag: ragLabel,
         status: statusLabel,
@@ -362,6 +393,7 @@ export default function ProjectReportsHubPage() {
                   <TableHead className="text-xs font-bold">معرف التقرير</TableHead>
                   <TableHead className="text-xs font-bold">نوع التقرير</TableHead>
                   <TableHead className="text-xs font-bold">المشروع</TableHead>
+                  <TableHead className="text-xs font-bold">فترة التقرير</TableHead>
                   <TableHead className="text-xs font-bold">تاريخ التقرير</TableHead>
                   <TableHead className="text-xs font-bold text-center">مؤشر RAG</TableHead>
                   <TableHead className="text-xs font-bold text-center">الحالة</TableHead>
@@ -374,7 +406,10 @@ export default function ProjectReportsHubPage() {
                     <TableCell className="font-mono text-xs font-bold text-primary">{report.id}</TableCell>
                     <TableCell className="text-xs font-semibold">{report.type}</TableCell>
                     <TableCell className="text-xs font-medium max-w-xs truncate">{report.project}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{report.date}</TableCell>
+                    <TableCell className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg inline-block my-1 border border-emerald-500/20 whitespace-nowrap">
+                      {report.period}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{report.date}</TableCell>
                     <TableCell className="text-center">
                       <Badge
                         className={
