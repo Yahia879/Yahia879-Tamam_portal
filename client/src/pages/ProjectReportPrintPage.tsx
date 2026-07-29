@@ -167,7 +167,7 @@ export default function ProjectReportPrintPage() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 6mm 5mm !important;
+            margin: 8mm 6mm !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -178,35 +178,38 @@ export default function ProjectReportPrintPage() {
           html, body {
             width: 100% !important;
             height: auto !important;
+            min-height: 100% !important;
             background-color: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: visible !important;
-            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           .max-w-\\[210mm\\] {
             width: 100% !important;
             max-width: 100% !important;
-            padding: 2mm !important;
+            padding: 0 !important;
             margin: 0 auto !important;
           }
           .border-\\[3px\\] {
             border-width: 2px !important;
-            padding: 10px !important;
+            padding: 12px !important;
             margin: 0 !important;
             box-shadow: none !important;
           }
-          .mb-6, table, tr, h3, .space-y-4, .space-y-6, .break-inside-avoid {
+          .section-block, tr, .break-inside-avoid {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
-          h3 {
+          h1, h2, h3, h4 {
             page-break-after: avoid !important;
             break-after: avoid !important;
           }
           .print\\:hidden {
             display: none !important;
+          }
+          .print\\:overflow-visible {
+            overflow: visible !important;
           }
         }
       `}</style>
@@ -225,15 +228,15 @@ export default function ProjectReportPrintPage() {
 
       {/* Dedicated Print Full Page Canvas */}
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 print:bg-white print:p-0" style={{ fontFamily: "'Cairo', system-ui, sans-serif" }} dir="rtl">
-        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
+        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-0 print:max-w-none">
           
           {/* Double Luxury Frame matching /progress-reports/12/print */}
-          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white dark:bg-slate-900 shadow-lg print:shadow-none print:border-[2px] print:p-5">
+          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white dark:bg-slate-900 shadow-lg print:shadow-none print:border-[2px] print:p-4 print:overflow-visible">
             {/* Inner Gold Line Frame Accent */}
-            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none" />
+            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none print:hidden" />
             
             {/* Document Body Content */}
-            <div className="relative z-10 space-y-6">
+            <div className="relative z-10 space-y-6 print:space-y-4 print:overflow-visible">
               
               {/* Header: Logo & Title + Hijri & Gregorian Dates */}
               <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 mb-6">
@@ -274,7 +277,7 @@ export default function ProjectReportPrintPage() {
                 <p className="text-xs sm:text-sm opacity-90 mt-1 font-medium">{data.title || data.projectName}</p>
               </div>
 
-              <div className="mb-6">
+              <div className="mb-6 section-block">
                 <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>1. بيانات المشروع العامة:</h3>
                 <div className="overflow-x-auto w-full">
                   <table className="w-full border-collapse text-xs sm:text-sm">
@@ -300,7 +303,7 @@ export default function ProjectReportPrintPage() {
                 </div>
               </div>
 
-              <div className="mb-6">
+              <div className="mb-6 section-block">
                 <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>2. قيم مؤشرات الأداء ونسب الإنجاز المحققة (RAG):</h3>
                 <div className="overflow-x-auto w-full">
                   <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm mb-4">
@@ -347,7 +350,7 @@ export default function ProjectReportPrintPage() {
               </div>
 
               {parsedMilestones.length > 0 && (
-                <div className="mb-6 break-inside-avoid">
+                <div className="mb-6 section-block break-inside-avoid">
                   <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>3. جدول التقدم مقابل المعالم الرئيسية للمشروع:</h3>
                   <div className="overflow-x-auto w-full">
                     <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm">
@@ -375,14 +378,14 @@ export default function ProjectReportPrintPage() {
               )}
 
               {(data.workSummary || data.notes) && (
-                <div className="mb-6 break-inside-avoid">
+                <div className="mb-6 section-block break-inside-avoid">
                   <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>4. ملخص الأعمال المنجزة والخطوات:</h3>
                   <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap">{data.workSummary || data.notes}</div>
                 </div>
               )}
 
               {(data.challenges || data.recommendations || data.nextSteps) && (
-                <div className="mb-6 break-inside-avoid">
+                <div className="mb-6 section-block break-inside-avoid">
                   <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>5. التحديات، الخطوات القادمة والتوصيات:</h3>
                   <div className="space-y-3 text-xs sm:text-sm">
                     {data.challenges && (

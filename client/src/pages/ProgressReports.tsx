@@ -381,18 +381,35 @@ export default function ProgressReports() {
     limit: 1000,
   });
   
-  // إحصائيات التقارير المحسوبة ديناميكياً من البيانات العامة
+  const isPeriodicProjectReport = (r: any) => {
+    const titleLower = (r.title || "").toLowerCase();
+    const reportNumUpper = (r.reportNumber || "").toUpperCase();
+    return (
+      titleLower.includes("نصف") ||
+      titleLower.includes("شهري") ||
+      titleLower.includes("ربعي") ||
+      titleLower.includes("semi") ||
+      titleLower.includes("monthly") ||
+      titleLower.includes("quarterly") ||
+      reportNumUpper.includes("SEMI") ||
+      reportNumUpper.includes("MONTH") ||
+      reportNumUpper.includes("Q")
+    );
+  };
+
+  // إحصائيات تقارير الإنجاز (باستثناء تقارير المشاريع الدورية التي تتبع لمركز تقارير المشاريع)
   const statsData = (() => {
-    if (!allReportsData || allReportsData.length === 0) {
+    const validReports = (allReportsData || []).filter((r: any) => !isPeriodicProjectReport(r));
+    if (validReports.length === 0) {
       return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
     }
-    const total = allReportsData.length;
-    const draft = allReportsData.filter((r: any) => r.status === "draft").length;
-    const submitted = allReportsData.filter((r: any) => r.status === "submitted").length;
-    const reviewed = allReportsData.filter((r: any) => r.status === "reviewed").length;
-    const approved = allReportsData.filter((r: any) => r.status === "approved").length;
+    const total = validReports.length;
+    const draft = validReports.filter((r: any) => r.status === "draft").length;
+    const submitted = validReports.filter((r: any) => r.status === "submitted").length;
+    const reviewed = validReports.filter((r: any) => r.status === "reviewed").length;
+    const approved = validReports.filter((r: any) => r.status === "approved").length;
     
-    const sumProgress = allReportsData.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
+    const sumProgress = validReports.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
     const avgProgress = Math.round(sumProgress / total);
 
     return { total, draft, submitted, reviewed, approved, avgProgress };
@@ -826,8 +843,8 @@ export default function ProgressReports() {
     return "text-gray-500";
   };
 
-  // تصفية التقارير (تتم بالكامل من الـ backend)
-  const filteredReports = reportsData || [];
+  // تصفية التقارير (إبراز تقارير الإنجاز الخاصة بالصرف والزيارات وفصل تقارير المشاريع الدورية)
+  const filteredReports = (reportsData || []).filter((r: any) => !isPeriodicProjectReport(r));
   const total = filteredReports.length;
   const totalPages = Math.ceil(total / limit);
   const paginatedReports = filteredReports.slice((page - 1) * limit, page * limit);

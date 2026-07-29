@@ -189,59 +189,59 @@ export default function ProgressReportPrint() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+        * {
+          font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+        }
+
         @media print {
           @page {
             size: A4 portrait;
-            margin: 0 !important; /* Removes default browser margins, headers, and footers */
+            margin: 8mm 6mm !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             box-sizing: border-box !important;
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
           html, body {
-            width: 210mm !important; /* Force body to A4 physical width */
+            width: 100% !important;
+            height: auto !important;
+            min-height: 100% !important;
             background-color: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: visible !important;
           }
-          /* Custom layout that uses padding as page margin, guaranteeing perfect fit on Default browser settings */
           .max-w-\\[210mm\\] {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            padding: 8mm !important; /* Safe margin from A4 physical page edges */
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
             margin: 0 auto !important;
           }
-          /* Keep frame border inside our custom page margin */
           .border-\\[3px\\] {
             border-width: 2px !important;
             padding: 12px !important;
             margin: 0 !important;
             box-shadow: none !important;
-            height: 280mm !important; /* Force exact single page height for A4 */
+            height: auto !important;
           }
-          .mb-6 {
-            margin-bottom: 8px !important;
+          .section-block, tr, .break-inside-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
-          .mb-4 {
-            margin-bottom: 6px !important;
+          h1, h2, h3, h4 {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
-          .mb-3 {
-            margin-bottom: 4px !important;
+          .print\\:hidden {
+            display: none !important;
           }
-          .py-4 {
-            padding-top: 6px !important;
-            padding-bottom: 6px !important;
-          }
-          .p-4 {
-            padding: 6px !important;
-          }
-          .p-6 {
-            padding: 10px !important;
-          }
-          .min-h-screen {
-            min-height: 0 !important;
+          .print\\:overflow-visible {
+            overflow: visible !important;
           }
         }
       `}</style>
@@ -253,21 +253,21 @@ export default function ProgressReportPrint() {
         </Button>
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white">
           <Printer className="ml-2 h-4 w-4" />
-          طباعة التقرير
+          طباعة التقرير / PDF
         </Button>
       </div>
 
       {/* تصميم الصفحة المطبوعة A4 */}
       <div className="min-h-screen bg-white print:p-0 font-sans" dir="rtl">
-        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-4 print:max-w-none">
+        <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-0 print:max-w-none">
           
           {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-5">
+          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white shadow-lg print:shadow-none print:border-[2px] print:p-4 print:overflow-visible">
             {/* خط ذهبي داخلي رفيع للإطار */}
-            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none print:hidden"></div>
             
             {/* محتوى المستند */}
-            <div className="relative z-10">
+            <div className="relative z-10 print:overflow-visible">
               
               {/* الترويسة - الشعار والتاريخ مثل قالب العقد */}
               <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 mb-6">

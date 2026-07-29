@@ -573,7 +573,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                     size="sm"
                     onClick={() => {
                       const targetId = selectedProjectId || "1";
-                      setLocation(`/project-reports/${targetId}/print`);
+                      setLocation(`/project-reports/${targetId}/pdf`);
                     }}
                     className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
                   >
