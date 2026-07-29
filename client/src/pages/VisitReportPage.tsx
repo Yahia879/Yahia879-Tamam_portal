@@ -165,7 +165,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
                   <CardTitle className="text-base font-bold text-foreground">بيانات الزيارة الميدانية</CardTitle>
                 </div>
-                {reportStatus === "معتمد" && (
+                {reportStatus === "معتمد" && showLayout && (
                   <Button
                     type="button"
                     variant="outline"

@@ -478,7 +478,7 @@ const formatReportsMonthPeriod = (reports: any[]) => {
                     <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
                   </div>
                 </div>
-                {reportStatus === "معتمد" && (
+                {reportStatus === "معتمد" && showLayout && (
                   <Button
                     type="button"
                     variant="outline"

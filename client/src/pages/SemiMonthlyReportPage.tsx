@@ -51,22 +51,54 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
   );
 
   const { data: dbProjectsData } = trpc.projects.getAll.useQuery();
+  const { data: dbReports } = trpc.progressReports.list.useQuery();
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData.map((p: any) => ({
-        id: String(p.id),
-        name: p.name || `مشروع رقم ${p.projectNumber}`,
-        manager: p.managerName || "غير محدد",
-        department: "إدارة المشاريع",
-        plannedProgress: p.plannedProgress ?? 0,
-        actualProgress: p.completionPercentage ?? 0,
-      }));
+      return dbProjectsData
+        .filter((p: any) => {
+          if (p.programType === "bunyan") return true;
+          if (p.startDate && (p.expectedEndDate || p.endDate)) {
+            const start = new Date(p.startDate).getTime();
+            const end = new Date(p.expectedEndDate || p.endDate).getTime();
+            if (!isNaN(start) && !isNaN(end)) {
+              const days = (end - start) / (1000 * 60 * 60 * 24);
+              if (days >= 365) return true;
+            }
+          }
+          return false;
+        })
+        .map((p: any) => ({
+          id: String(p.id),
+          name: p.name || `مشروع رقم ${p.projectNumber}`,
+          manager: p.managerName || "غير محدد",
+          department: "إدارة المشاريع",
+          plannedProgress: p.plannedProgress ?? 0,
+          actualProgress: p.completionPercentage ?? 0,
+        }));
     }
     return [];
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  const existingProjectReportPeriods = useMemo(() => {
+    if (!dbReports || !selectedProjectId) return new Set<string>();
+    const pid = parseInt(selectedProjectId, 10);
+    const set = new Set<string>();
+    dbReports.forEach((r: any) => {
+      if (r.projectId === pid && r.reportPeriodStart && r.reportPeriodEnd) {
+        const fromStr = formatToInputDate(r.reportPeriodStart);
+        const toStr = formatToInputDate(r.reportPeriodEnd);
+        if (fromStr && toStr) {
+          if (!editId || r.id !== editId) {
+            set.add(`${fromStr}_${toStr}`);
+          }
+        }
+      }
+    });
+    return set;
+  }, [dbReports, selectedProjectId, editId]);
   const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [periodFrom, setPeriodFrom] = useState<string>("2026-07-01");
   const [periodTo, setPeriodTo] = useState<string>("2026-07-15");
@@ -220,6 +252,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     }
     if (periodFrom && periodTo && new Date(periodTo) < new Date(periodFrom)) {
       toast.error("تاريخ (إلى) يجب أن يكون بعد أو ينسجم مع تاريخ (من)");
+      return;
+    }
+    if (!editId && existingProjectReportPeriods.has(`${periodFrom}_${periodTo}`)) {
+      toast.error("عذراً، تم إنشاء تقرير نصف شهري مسبقاً لهذا المشروع في هذه الفترة المحددة!");
       return;
     }
 
@@ -405,11 +441,19 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   useEffect(() => {
     if (selectedProjectId && projectSemiMonthlyPeriods.length > 0 && !existingReport) {
-      const first = projectSemiMonthlyPeriods[0];
-      setPeriodFrom(first.from);
-      setPeriodTo(first.to);
+      const availablePeriod = projectSemiMonthlyPeriods.find(
+        (p) => !existingProjectReportPeriods.has(`${p.from}_${p.to}`)
+      );
+      if (availablePeriod) {
+        setPeriodFrom(availablePeriod.from);
+        setPeriodTo(availablePeriod.to);
+      } else {
+        const first = projectSemiMonthlyPeriods[0];
+        setPeriodFrom(first.from);
+        setPeriodTo(first.to);
+      }
     }
-  }, [selectedProjectId, projectSemiMonthlyPeriods, existingReport]);
+  }, [selectedProjectId, projectSemiMonthlyPeriods, existingReport, existingProjectReportPeriods]);
 
   const selectedProjName = selectedProjectObj?.name || "";
 
@@ -445,7 +489,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                     </CardTitle>
                   </div>
                 </div>
-                {reportStatus === "معتمد" && (
+                {reportStatus === "معتمد" && showLayout && (
                   <Button
                     type="button"
                     variant="outline"
@@ -541,11 +585,19 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                       <SelectValue placeholder={selectedProjectId ? "اختر إحدى الفترات النصف شهرية (15 يوماً) المحددة لزمن المشروع..." : "يرجى اختيار المشروع أولاً لتقسيم وعرض الفترات..."} />
                     </SelectTrigger>
                     <SelectContent>
-                      {projectSemiMonthlyPeriods.map((p) => (
-                        <SelectItem key={`${p.from}_${p.to}`} value={`${p.from}_${p.to}`} className="text-xs py-2 font-semibold">
-                          📅 {p.label}
-                        </SelectItem>
-                      ))}
+                      {projectSemiMonthlyPeriods.map((p) => {
+                        const isTaken = existingProjectReportPeriods.has(`${p.from}_${p.to}`);
+                        return (
+                          <SelectItem
+                            key={`${p.from}_${p.to}`}
+                            value={`${p.from}_${p.to}`}
+                            disabled={isTaken}
+                            className="text-xs py-2 font-semibold flex items-center justify-between"
+                          >
+                            <span>📅 {p.label} {isTaken ? " (مُسجّل مسبقاً ❌)" : ""}</span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   {selectedProjectObj && (
