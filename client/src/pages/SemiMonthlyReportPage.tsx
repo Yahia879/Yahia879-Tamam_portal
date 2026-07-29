@@ -230,10 +230,43 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     }
   }, [ragStatus, timeIndicator, costIndicator]);
 
+  const isFormValid = useMemo(() => {
+    return (
+      Boolean(selectedProjectId) &&
+      Boolean(periodFrom) &&
+      Boolean(periodTo) &&
+      Boolean(reportDate) &&
+      plannedProgress > 0 &&
+      actualProgress >= 0 &&
+      challenges.trim().length > 0 &&
+      requiredSupport.trim().length > 0 &&
+      recommendations.trim().length > 0 &&
+      Boolean(timeIndicator) &&
+      Boolean(costIndicator)
+    );
+  }, [
+    selectedProjectId,
+    periodFrom,
+    periodTo,
+    reportDate,
+    plannedProgress,
+    actualProgress,
+    challenges,
+    requiredSupport,
+    recommendations,
+    timeIndicator,
+    costIndicator,
+  ]);
+
   const handleSaveDraft = async (overrideStatus?: string) => {
     const finalStatus = overrideStatus || reportStatus || "مسودة";
     if (!selectedProjectId) {
       toast.error("يرجى اختيار المشروع أولاً من القائمة قبل حفظ التقرير");
+      return;
+    }
+
+    if (finalStatus === "معتمد" && !isFormValid) {
+      toast.error("يرجى تعبئة كافة حقول التقرير الأساسية (التحديات، الدعم المطلوب، التوصيات، والنسب) قبل الاعتماد.");
       return;
     }
 
@@ -758,7 +791,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
             </CardHeader>
             <CardContent className="pt-5 space-y-5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">التحديات والعقبات</Label>
+                <Label className="text-xs font-semibold flex items-center">
+                  <span>التحديات والعقبات</span>
+                  <span className="text-red-500 font-bold mr-1">*</span>
+                </Label>
                 <Textarea
                   disabled={!selectedProjectId}
                   placeholder="أدخل التحديات والعقبات الميدانية التي تواجه تنفيذ المشروع..."
@@ -770,7 +806,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">الدعم المطلوب</Label>
+                <Label className="text-xs font-semibold flex items-center">
+                  <span>الدعم المطلوب</span>
+                  <span className="text-red-500 font-bold mr-1">*</span>
+                </Label>
                 <Textarea
                   disabled={!selectedProjectId}
                   placeholder="حدد طبيعة الدعم الإداري أو الفني أو المالي المطلوب من الإدارة..."
@@ -782,7 +821,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">التوصيات الإدارية والتشغيلية</Label>
+                <Label className="text-xs font-semibold flex items-center">
+                  <span>التوصيات الإدارية والتشغيلية</span>
+                  <span className="text-red-500 font-bold mr-1">*</span>
+                </Label>
                 <Textarea
                   disabled={!selectedProjectId}
                   placeholder="أدخل التوصيات والخطوات القادمة المطلوبة لحل التحديات والنهوض بالمشروع..."
@@ -812,7 +854,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">المرفقات والوثائق</Label>
+                <Label className="text-xs font-semibold flex items-center justify-between">
+                  <span>المرفقات والوثائق</span>
+                  <span className="text-muted-foreground text-[11px] font-normal">(اختياري)</span>
+                </Label>
                 <FileUpload
                   disabled={!selectedProjectId}
                   onFilesSelected={setAttachments}
@@ -829,6 +874,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   <Label className="text-xs font-bold flex items-center gap-1.5">
                     <Link2 className="w-3.5 h-3.5 text-primary" />
                     <span>الروابط الخارجية والمراجع</span>
+                    <span className="text-muted-foreground text-[11px] font-normal">(اختياري)</span>
                   </Label>
                   <Button
                     type="button"
@@ -887,6 +933,8 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
             </CardContent>
           </Card>
 
+
+
           {/* Footer Action Bar */}
           <div className="flex items-center justify-end gap-3 p-4 bg-card border border-border/80 rounded-xl shadow-xs">
             <Button
@@ -901,9 +949,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
             </Button>
             <Button
               type="button"
-              disabled={!selectedProjectId || isSubmitting}
+              disabled={!isFormValid || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
-              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
+              className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-40"
+              title={!isFormValid ? "يرجى تعبئة جميع الحقول المطلوبة لتشغيل هذا الزر" : "حفظ واعتماد التقرير"}
             >
               <CheckCircle2 className="w-4 h-4" />
               حفظ واعتماد التقرير

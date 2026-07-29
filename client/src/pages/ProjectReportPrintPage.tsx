@@ -2,8 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, Clock, Target, Activity } from "lucide-react";
+import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, Clock, Target, Activity, Eye, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function toHijriDate(date: Date): string {
   const gregorianYear = date.getFullYear();
@@ -21,9 +27,104 @@ function formatGregorianDate(date: Date): string {
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 }
 
+const getFileSrc = (fileItem: any): string => {
+  if (!fileItem) return "";
+  
+  if (typeof fileItem === "string") {
+    const trimmed = fileItem.trim();
+    if (trimmed.startsWith("data:") || trimmed.startsWith("http") || trimmed.startsWith("/")) {
+      return trimmed;
+    }
+    if (trimmed.startsWith("UklGR") || trimmed.startsWith("iVBORw0KGgo") || trimmed.startsWith("/9j/")) {
+      let mime = "image/png";
+      if (trimmed.startsWith("UklGR")) mime = "image/webp";
+      else if (trimmed.startsWith("/9j/")) mime = "image/jpeg";
+      return `data:${mime};base64,${trimmed}`;
+    }
+    return `/uploads/${trimmed}`;
+  }
+
+  if (typeof fileItem === "object") {
+    const b64 = fileItem.base64 || fileItem.fileData || fileItem.data;
+    if (b64 && typeof b64 === "string" && b64.trim().length > 0) {
+      const trimmedB64 = b64.trim();
+      if (trimmedB64.startsWith("data:")) return trimmedB64;
+      
+      const name = (fileItem.fileName || fileItem.name || "").toLowerCase();
+      let mime = "image/png";
+      if (name.endsWith(".webp") || trimmedB64.startsWith("UklGR")) {
+        mime = "image/webp";
+      } else if (name.endsWith(".jpg") || name.endsWith(".jpeg") || trimmedB64.startsWith("/9j/")) {
+        mime = "image/jpeg";
+      } else if (name.endsWith(".pdf") || trimmedB64.startsWith("JVBERi0")) {
+        mime = "application/pdf";
+      } else if (name.endsWith(".gif")) {
+        mime = "image/gif";
+      } else if (name.endsWith(".svg")) {
+        mime = "image/svg+xml";
+      }
+      return `data:${mime};base64,${trimmedB64}`;
+    }
+
+    if (fileItem.url && typeof fileItem.url === "string" && fileItem.url.trim().length > 0) {
+      const u = fileItem.url.trim();
+      return u.startsWith("http") || u.startsWith("/") || u.startsWith("data:") ? u : `/uploads/${u}`;
+    }
+    if (fileItem.path && typeof fileItem.path === "string" && fileItem.path.trim().length > 0) {
+      const p = fileItem.path.trim();
+      return p.startsWith("http") || p.startsWith("/") || p.startsWith("data:") ? p : `/uploads/${p}`;
+    }
+
+    const name = fileItem.fileName || fileItem.name;
+    if (name && typeof name === "string" && name.trim().length > 0) {
+      return `/uploads/${name.trim()}`;
+    }
+  }
+  return "";
+};
+
+const checkIsImage = (fileItem: any): boolean => {
+  if (!fileItem) return false;
+  if (typeof fileItem === "object" && fileItem.type && typeof fileItem.type === "string" && fileItem.type.startsWith("image/")) {
+    return true;
+  }
+  const src = getFileSrc(fileItem);
+  const fileName = typeof fileItem === "object" ? (fileItem.name || fileItem.fileName || "") : (typeof fileItem === "string" ? fileItem : "");
+  const combined = (src + " " + fileName).toLowerCase();
+
+  return (
+    combined.includes("data:image/") ||
+    combined.includes("blob:") ||
+    combined.includes(".png") ||
+    combined.includes(".jpg") ||
+    combined.includes(".jpeg") ||
+    combined.includes(".webp") ||
+    combined.includes(".gif") ||
+    combined.includes(".svg") ||
+    combined.includes(".bmp") ||
+    combined.includes(".avif") ||
+    combined.includes("site_photo") ||
+    combined.includes("proof-documents") ||
+    combined.includes("image") ||
+    combined.includes("screenshot")
+  );
+};
+
+const checkIsPdf = (fileItem: any): boolean => {
+  if (!fileItem) return false;
+  if (typeof fileItem === "object" && fileItem.type && typeof fileItem.type === "string" && fileItem.type.includes("pdf")) {
+    return true;
+  }
+  const src = getFileSrc(fileItem);
+  const fileName = typeof fileItem === "object" ? (fileItem.name || fileItem.fileName || "") : (typeof fileItem === "string" ? fileItem : "");
+  const combined = (src + " " + fileName).toLowerCase();
+  return combined.includes("data:application/pdf") || combined.includes(".pdf");
+};
+
 export default function ProjectReportPrintPage() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -154,6 +255,29 @@ export default function ProjectReportPrintPage() {
     return "فترة سارية التغطية";
   })();
 
+  const parsedAttachments = (() => {
+    if (!data.attachments) return [];
+    if (Array.isArray(data.attachments)) return data.attachments;
+    try {
+      const p = JSON.parse(data.attachments);
+      return Array.isArray(p) ? p : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const parsedExternalLinks = (() => {
+    if (!data.workSummary) return [];
+    const match = data.workSummary.match(/الروابط الخارجية:\s*(.*?)(?:\n|$)/);
+    if (match && match[1]) {
+      try {
+        const p = JSON.parse(match[1].trim());
+        return Array.isArray(p) ? p : [];
+      } catch {}
+    }
+    return [];
+  })();
+
   return (
     <>
       {/* Print Styles Matching /progress-reports/12/print */}
@@ -167,7 +291,7 @@ export default function ProjectReportPrintPage() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 8mm 6mm !important;
+            margin: 10mm 8mm !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -191,13 +315,21 @@ export default function ProjectReportPrintPage() {
             padding: 0 !important;
             margin: 0 auto !important;
           }
-          .border-\\[3px\\] {
-            border-width: 2px !important;
-            padding: 12px !important;
+          .print-outer-card {
+            border: none !important;
+            padding: 0 !important;
             margin: 0 !important;
             box-shadow: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            background: transparent !important;
           }
-          .section-block, tr, .break-inside-avoid {
+          .section-block {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 18px !important;
+          }
+          tr, table {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
@@ -230,11 +362,8 @@ export default function ProjectReportPrintPage() {
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 print:bg-white print:p-0" style={{ fontFamily: "'Cairo', system-ui, sans-serif" }} dir="rtl">
         <div className="w-full max-w-[210mm] mx-auto p-4 sm:p-8 print:p-0 print:max-w-none">
           
-          {/* Double Luxury Frame matching /progress-reports/12/print */}
-          <div className="w-full border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white dark:bg-slate-900 shadow-lg print:shadow-none print:border-[2px] print:p-4 print:overflow-visible">
-            {/* Inner Gold Line Frame Accent */}
-            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none print:hidden" />
-            
+          {/* Main Container without outer frame */}
+          <div className="w-full p-4 sm:p-8 bg-white dark:bg-slate-900 rounded-xl shadow-sm print:shadow-none print:p-0 print:bg-white print:overflow-visible">
             {/* Document Body Content */}
             <div className="relative z-10 space-y-6 print:space-y-4 print:overflow-visible">
               
@@ -410,10 +539,148 @@ export default function ProjectReportPrintPage() {
                 </div>
               )}
 
+              {(() => {
+                try {
+                  const getFilesArray = (fieldVal: any) => {
+                    if (!fieldVal) return [];
+                    let arr = fieldVal;
+                    while (typeof arr === 'string') {
+                      try {
+                        arr = JSON.parse(arr);
+                      } catch {
+                        break;
+                      }
+                    }
+                    return Array.isArray(arr) ? arr : [];
+                  };
+
+                  const attachmentsArr = getFilesArray(data.attachments);
+                  const photosArr = getFilesArray(data.photos);
+                  const allFiles = [...attachmentsArr, ...photosArr].filter(Boolean);
+
+                  if (allFiles.length > 0 || parsedExternalLinks.length > 0) {
+                    return (
+                      <div className="mb-6 section-block break-inside-avoid">
+                        <h3 
+                          className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                          style={{ backgroundColor: '#1a5f4a', color: 'white' }}
+                        >
+                          6. مرفقات التقرير وصور الموقع والروابط المرجعية:
+                        </h3>
+
+                        {allFiles.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="font-bold text-foreground mb-2 text-xs sm:text-sm">■ المستندات والصور الميدانية ({allFiles.length}):</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50 dark:bg-slate-800/40 border-gray-200 dark:border-slate-800">
+                              {allFiles.map((fileItem: any, index: number) => {
+                                const fileSrc = getFileSrc(fileItem);
+                                const fileName = typeof fileItem === "object" ? (fileItem.name || fileItem.fileName || `مرفق ${index + 1}`) : (typeof fileItem === "string" ? fileItem : `مرفق ${index + 1}`);
+                                const isImage = checkIsImage(fileItem);
+                                const isPdf = checkIsPdf(fileItem);
+
+                                if (isImage) {
+                                  return (
+                                    <div 
+                                      key={index} 
+                                      className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-[#1a5f4a] hover:shadow-md transition-all duration-200 group relative overflow-hidden"
+                                      onClick={() => setPreviewFile(fileSrc)}
+                                    >
+                                      <img src={fileSrc} alt={fileName} className="w-full max-h-64 object-contain rounded-md" />
+                                      <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 font-semibold">{fileName}</span>
+                                      
+                                      <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
+                                        <div className="bg-white/95 dark:bg-slate-800 text-[#1a5f4a] px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                                          <Eye className="w-3.5 h-3.5" />
+                                          <span>تكبير وعرض الصورة</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                const downloadUrl = fileSrc.startsWith("data:") ? fileSrc : (fileSrc.startsWith("http") ? fileSrc : `${window.location.origin}${fileSrc}`);
+                                return (
+                                  <a 
+                                    key={index}
+                                    href={downloadUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-[#1a5f4a] hover:shadow-md transition-all duration-200 group relative overflow-hidden text-center decoration-transparent"
+                                  >
+                                    <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-[#1a5f4a] font-bold text-xs gap-1.5 p-3">
+                                      <FileText className="w-8 h-8 text-[#1a5f4a]" />
+                                      <span className="text-gray-700 dark:text-gray-200 font-bold">{fileName || (isPdf ? "مستند PDF" : "مستند مرفق")}</span>
+                                      <span className="text-[10px] text-[#1a5f4a] underline print:hidden">انقر لعرض الملف في علامة تبويب جديدة</span>
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 font-semibold">{fileName}</span>
+                                  </a>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {parsedExternalLinks.length > 0 && (
+                          <div>
+                            <h4 className="font-bold text-foreground mb-2 text-xs sm:text-sm">■ الروابط الخارجية والمراجع:</h4>
+                            <div className="space-y-2">
+                              {parsedExternalLinks.map((link: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-gray-200 dark:border-slate-800 text-xs">
+                                  <span className="font-bold text-foreground">{link.title || `رابط مرجعي ${idx + 1}`}</span>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-600 hover:underline font-mono dir-ltr text-left font-semibold truncate max-w-[300px]"
+                                  >
+                                    {link.url}
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                } catch (e) {
+                  console.error("Error parsing attachments for print view", e);
+                }
+                return null;
+              })()}
+
             </div>
           </div>
         </div>
       </div>
+
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent 
+          className="w-[95vw] !max-w-[95vw] h-[95vh] !max-h-[95vh] !flex !flex-col p-2 sm:p-5 rounded-xl border bg-background/98 backdrop-blur-md z-50 shadow-2xl" 
+          dir="rtl"
+        >
+          <DialogHeader className="text-right flex items-center justify-between flex-row pe-10 pb-2 border-b">
+            <DialogTitle className="text-right text-base font-bold">معاينة المرفق - كامل الشاشة</DialogTitle>
+          </DialogHeader>
+          {previewFile && (
+            <div className="flex-1 flex items-center justify-center p-1 sm:p-3 min-h-0 overflow-hidden w-full">
+              {checkIsImage(previewFile) ? (
+                <img 
+                  src={previewFile} 
+                  alt="معاينة الصورة" 
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                />
+              ) : (
+                <iframe 
+                  src={previewFile} 
+                  title="معاينة المستند" 
+                  className="w-full h-full rounded-lg border-0 bg-white"
+                />
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

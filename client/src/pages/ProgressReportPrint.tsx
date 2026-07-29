@@ -28,21 +28,98 @@ function formatGregorianDate(date: Date): string {
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 }
 
-const checkIsImage = (url: string) => {
-  return url.startsWith("data:image/") || 
-    ((url.startsWith("http") || url.startsWith("/uploads")) && 
-     (url.toLowerCase().endsWith(".png") || 
-      url.toLowerCase().endsWith(".jpg") || 
-      url.toLowerCase().endsWith(".jpeg") || 
-      url.toLowerCase().endsWith(".webp") || 
-      url.toLowerCase().includes("site_photo") || 
-      url.toLowerCase().includes("proof-documents")));
+const getFileSrc = (fileItem: any): string => {
+  if (!fileItem) return "";
+  
+  if (typeof fileItem === "string") {
+    const trimmed = fileItem.trim();
+    if (trimmed.startsWith("data:") || trimmed.startsWith("http") || trimmed.startsWith("/")) {
+      return trimmed;
+    }
+    if (trimmed.startsWith("UklGR") || trimmed.startsWith("iVBORw0KGgo") || trimmed.startsWith("/9j/")) {
+      let mime = "image/png";
+      if (trimmed.startsWith("UklGR")) mime = "image/webp";
+      else if (trimmed.startsWith("/9j/")) mime = "image/jpeg";
+      return `data:${mime};base64,${trimmed}`;
+    }
+    return `/uploads/${trimmed}`;
+  }
+
+  if (typeof fileItem === "object") {
+    const b64 = fileItem.base64 || fileItem.fileData || fileItem.data;
+    if (b64 && typeof b64 === "string" && b64.trim().length > 0) {
+      const trimmedB64 = b64.trim();
+      if (trimmedB64.startsWith("data:")) return trimmedB64;
+      
+      const name = (fileItem.fileName || fileItem.name || "").toLowerCase();
+      let mime = "image/png";
+      if (name.endsWith(".webp") || trimmedB64.startsWith("UklGR")) {
+        mime = "image/webp";
+      } else if (name.endsWith(".jpg") || name.endsWith(".jpeg") || trimmedB64.startsWith("/9j/")) {
+        mime = "image/jpeg";
+      } else if (name.endsWith(".pdf") || trimmedB64.startsWith("JVBERi0")) {
+        mime = "application/pdf";
+      } else if (name.endsWith(".gif")) {
+        mime = "image/gif";
+      } else if (name.endsWith(".svg")) {
+        mime = "image/svg+xml";
+      }
+      return `data:${mime};base64,${trimmedB64}`;
+    }
+
+    if (fileItem.url && typeof fileItem.url === "string" && fileItem.url.trim().length > 0) {
+      const u = fileItem.url.trim();
+      return u.startsWith("http") || u.startsWith("/") || u.startsWith("data:") ? u : `/uploads/${u}`;
+    }
+    if (fileItem.path && typeof fileItem.path === "string" && fileItem.path.trim().length > 0) {
+      const p = fileItem.path.trim();
+      return p.startsWith("http") || p.startsWith("/") || p.startsWith("data:") ? p : `/uploads/${p}`;
+    }
+
+    const name = fileItem.fileName || fileItem.name;
+    if (name && typeof name === "string" && name.trim().length > 0) {
+      return `/uploads/${name.trim()}`;
+    }
+  }
+  return "";
 };
 
-const checkIsPdf = (url: string) => {
-  return url.startsWith("data:application/pdf") || 
-    ((url.startsWith("http") || url.startsWith("/uploads")) && 
-     url.toLowerCase().endsWith(".pdf"));
+const checkIsImage = (fileItem: any): boolean => {
+  if (!fileItem) return false;
+  if (typeof fileItem === "object" && fileItem.type && typeof fileItem.type === "string" && fileItem.type.startsWith("image/")) {
+    return true;
+  }
+  const src = getFileSrc(fileItem);
+  const fileName = typeof fileItem === "object" ? (fileItem.name || fileItem.fileName || "") : (typeof fileItem === "string" ? fileItem : "");
+  const combined = (src + " " + fileName).toLowerCase();
+
+  return (
+    combined.includes("data:image/") ||
+    combined.includes("blob:") ||
+    combined.includes(".png") ||
+    combined.includes(".jpg") ||
+    combined.includes(".jpeg") ||
+    combined.includes(".webp") ||
+    combined.includes(".gif") ||
+    combined.includes(".svg") ||
+    combined.includes(".bmp") ||
+    combined.includes(".avif") ||
+    combined.includes("site_photo") ||
+    combined.includes("proof-documents") ||
+    combined.includes("image") ||
+    combined.includes("screenshot")
+  );
+};
+
+const checkIsPdf = (fileItem: any): boolean => {
+  if (!fileItem) return false;
+  if (typeof fileItem === "object" && fileItem.type && typeof fileItem.type === "string" && fileItem.type.includes("pdf")) {
+    return true;
+  }
+  const src = getFileSrc(fileItem);
+  const fileName = typeof fileItem === "object" ? (fileItem.name || fileItem.fileName || "") : (typeof fileItem === "string" ? fileItem : "");
+  const combined = (src + " " + fileName).toLowerCase();
+  return combined.includes("data:application/pdf") || combined.includes(".pdf");
 };
 
 const openAttachment = (url: string) => {
@@ -467,19 +544,21 @@ export default function ProgressReportPrint() {
                           4. مرفقات التقرير وصور الموقع المنجز:
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border rounded-lg p-4 bg-gray-50/50">
-                          {allFiles.map((photo: string, index: number) => {
-                            const isImage = checkIsImage(photo);
-                            const isPdf = checkIsPdf(photo);
+                          {allFiles.map((photoItem: any, index: number) => {
+                            const fileSrc = getFileSrc(photoItem);
+                            const fileName = typeof photoItem === "object" ? (photoItem.name || photoItem.fileName || `مرفق رقم ${index + 1}`) : (typeof photoItem === "string" ? photoItem : `مرفق رقم ${index + 1}`);
+                            const isImage = checkIsImage(photoItem);
+                            const isPdf = checkIsPdf(photoItem);
                             
                             if (isImage) {
                               return (
                                 <div 
                                   key={index} 
                                   className="flex flex-col items-center justify-center bg-white border p-2.5 rounded-lg shadow-xs w-full cursor-pointer hover:border-primary/40 hover:shadow-md transition-all duration-200 group relative overflow-hidden"
-                                  onClick={() => setPreviewFile(photo)}
+                                  onClick={() => setPreviewFile(fileSrc)}
                                 >
-                                  <img src={photo} alt={`مرفق ${index + 1}`} className="w-full max-h-64 object-contain rounded-md" />
-                                  <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                                  <img src={fileSrc} alt={fileName} className="w-full max-h-64 object-contain rounded-md" />
+                                  <span className="text-[10px] text-gray-500 mt-2 font-semibold">{fileName}</span>
                                   
                                   {/* Premium Hover Overlay Indicator */}
                                   <div className="absolute inset-0 bg-black/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none print:hidden">
@@ -492,7 +571,7 @@ export default function ProgressReportPrint() {
                               );
                             }
 
-                            const downloadUrl = photo.startsWith("data:") ? photo : `${window.location.origin}${photo}`;
+                            const downloadUrl = fileSrc.startsWith("data:") ? fileSrc : (fileSrc.startsWith("http") ? fileSrc : `${window.location.origin}${fileSrc}`);
                             return (
                               <a 
                                 key={index}
@@ -503,10 +582,10 @@ export default function ProgressReportPrint() {
                               >
                                 <div className="w-full h-32 flex flex-col items-center justify-center rounded-md bg-muted/20 border border-dashed text-primary font-bold text-xs gap-1.5 p-3">
                                   <FileText className="w-8 h-8 text-primary" />
-                                  <span className="text-gray-700 font-bold">{isPdf ? "مستند PDF" : "مستند مرفق"}</span>
+                                  <span className="text-gray-700 font-bold">{fileName || (isPdf ? "مستند PDF" : "مستند مرفق")}</span>
                                   <span className="text-[10px] text-primary underline print:hidden">انقر لعرض الملف في علامة تبويب جديدة</span>
                                 </div>
-                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">مرفق رقم {index + 1}</span>
+                                <span className="text-[10px] text-gray-500 mt-2 font-semibold">{fileName}</span>
                               </a>
                             );
                           })}
