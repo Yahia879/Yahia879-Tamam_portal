@@ -216,7 +216,6 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
     }
   };

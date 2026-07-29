@@ -348,7 +348,7 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
     return "أحمر";
   }, [delay]);
 
-  const [quarterMilestones, setQuarterMilestones] = useState<Record<string, any>[]>(projectOptions[0]?.milestones || []);
+  const [quarterMilestones, setQuarterMilestones] = useState<Record<string, any>[]>([]);
 
   const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
   const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
@@ -528,13 +528,9 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
       if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
       if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
-      if (proj.milestones && Array.isArray(proj.milestones)) {
-        setQuarterMilestones(proj.milestones);
-      }
     }
   };
 
@@ -543,13 +539,9 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
     if (proj) {
       if (proj.manager) setProjectManager(proj.manager);
       if (proj.currentPhase) setCurrentPhase(proj.currentPhase);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
       if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
       if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
       if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
-      if (proj.milestones && Array.isArray(proj.milestones)) {
-        setQuarterMilestones(proj.milestones);
-      }
     }
   }, [projectOptions, selectedProjectId]);
 

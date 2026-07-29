@@ -356,7 +356,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   }, [semiMonthlyBlocks, selectedBlockKey]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(0);
-  const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
+  const [actualProgress, setActualProgress] = useState<number>(0);
 
   const gap = useMemo(() => actualProgress - plannedProgress, [actualProgress, plannedProgress]);
   const delay = useMemo(() => plannedProgress - actualProgress, [plannedProgress, actualProgress]);
@@ -367,7 +367,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     return "أحمر";
   }, [delay]);
 
-  const [milestones, setMilestones] = useState<Record<string, any>[]>(projectOptions[0]?.milestones || []);
+  const [milestones, setMilestones] = useState<Record<string, any>[]>([]);
 
   const [timeIndicator, setTimeIndicator] = useState<string>("أخضر");
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
@@ -414,35 +414,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }
 
     setIsAggregated(true);
-
-    try {
-      setIsSubmitting(true);
-      const res = await createMutation.mutateAsync({
-        projectId: Number(selectedProjectId),
-        title: `التقرير الشهري - ${selectedProjName}`,
-        reportDate: selectedBlock.to || reportDate || new Date().toISOString().split("T")[0],
-        reportPeriodStart: selectedBlock.from || undefined,
-        reportPeriodEnd: selectedBlock.to || undefined,
-        plannedProgress: avgPlanned,
-        actualProgress: avgActual,
-        overallProgress: avgActual,
-        challenges: `فترة التقرير الشهري: من ${selectedBlock.from} إلى ${selectedBlock.to}\nالمشكلات والعقبات: (تم تجميعها آلياً)`,
-        recommendations: `المرحلة الحالية: ${currentPhase}`,
-        workSummary: `تم تجميع التقرير الشهري آلياً من التقريرين النصف شهريين للفترة (${selectedBlock.monthTitle})`,
-      });
-
-      await updateStatusMutation.mutateAsync({
-        id: res.id,
-        status: "submitted",
-      });
-
-      toast.success(`تم إنشاء وتجميع التقرير الشهري بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
-      setLocation("/project-reports");
-    } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الشهري");
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast.success(`تم ربط وتجميع بيانات التقريرين النصف شهريين بنجاح للفترة (${selectedBlock.monthTitle})!`);
   };
 
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -453,15 +425,12 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
+    setActualProgress(0);
+    setPlannedProgress(0);
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
-      if (proj.milestones && Array.isArray(proj.milestones)) {
-        setMilestones(proj.milestones);
-      }
     }
   };
 
@@ -470,11 +439,6 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     if (proj) {
       if (proj.manager) setProjectManager(proj.manager);
       if (proj.currentPhase) setCurrentPhase(proj.currentPhase);
-      if (proj.plannedProgress !== undefined) setPlannedProgress(proj.plannedProgress);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
-      if (proj.milestones && Array.isArray(proj.milestones)) {
-        setMilestones(proj.milestones);
-      }
     }
   }, [projectOptions, selectedProjectId]);
 
@@ -705,7 +669,28 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
                       <div className="space-y-1.5">
                         <Label className="text-[11px] font-semibold">اختر فترة الشهر التجميعية لهذا المشروع (محددة برقم الشهر والمرحلة)</Label>
-                        <Select value={selectedBlockKey} onValueChange={setSelectedBlockKey} disabled={!selectedProjectId}>
+                        <Select
+                          value={selectedBlockKey}
+                          onValueChange={(key) => {
+                            setSelectedBlockKey(key);
+                            const block = semiMonthlyBlocks.find((b) => b.key === key);
+                            if (block && block.isComplete && !block.isDisabled) {
+                              if (block.from) setPeriodFrom(block.from);
+                              if (block.to) {
+                                setPeriodTo(block.to);
+                                setReportDate(block.to);
+                              }
+                              const matchedList = block.reports;
+                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
+                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
+                              setActualProgress(avgActual);
+                              setPlannedProgress(avgPlanned);
+                              setIsAggregated(true);
+                              toast.success(`تم ربط وتجميع بيانات التقريرين النصف شهريين بنجاح!`);
+                            }
+                          }}
+                          disabled={!selectedProjectId}
+                        >
                           <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
                             <SelectValue placeholder={selectedProjectId ? "اختر فترة الشهر التجميعية لهذا المشروع (محددة برقم الشهر)..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
@@ -751,19 +736,6 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                           </div>
                         </div>
                       )}
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAggregateSemiReports}
-                          disabled={!selectedBlock || selectedBlock.isDisabled || !selectedProjectId || isSubmitting}
-                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع وإرسال التقرير الشهري (بقيد الاعتماد)
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </div>
