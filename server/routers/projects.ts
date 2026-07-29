@@ -209,6 +209,7 @@ export const projectsRouter = router({
           actualCost: projects.actualCost,
           startDate: projects.startDate,
           expectedEndDate: projects.expectedEndDate,
+          actualEndDate: projects.actualEndDate,
           completionPercentage: projects.completionPercentage,
           createdAt: projects.createdAt,
           requestId: projects.requestId,
