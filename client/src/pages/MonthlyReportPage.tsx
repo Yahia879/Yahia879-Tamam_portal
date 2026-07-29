@@ -477,7 +477,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           overallProgress: actualProgress,
           challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
           recommendations: `المرحلة الحالية: ${currentPhase}`,
-          workSummary: `تقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
+          workSummary: `مؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}\nتقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -501,7 +501,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         overallProgress: actualProgress,
         challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
         recommendations: `المرحلة الحالية: ${currentPhase}`,
-        workSummary: `تقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
+        workSummary: `مؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}\nتقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
       });
 
       await updateStatusMutation.mutateAsync({
@@ -545,22 +545,6 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
             <CardHeader className="pb-3 border-b border-border/60">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (window.history.length > 1) {
-                        window.history.back();
-                      } else {
-                        setLocation("/project-reports");
-                      }
-                    }}
-                    className="gap-1.5 h-8 text-xs font-bold border-border/80 hover:bg-muted text-foreground rounded-lg"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    <span>عودة</span>
-                  </Button>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
                     <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
@@ -573,7 +557,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                     size="sm"
                     onClick={() => {
                       const targetId = selectedProjectId || "1";
-                      setLocation(`/project-reports/${targetId}/pdf`);
+                      setLocation(`/project-reports/${targetId}/pdf?type=monthly`);
                     }}
                     className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
                   >

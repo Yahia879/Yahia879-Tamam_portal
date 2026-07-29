@@ -626,7 +626,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                     size="sm"
                     onClick={() => {
                       const targetId = selectedProjectId || "1";
-                      setLocation(`/project-reports/${targetId}/pdf`);
+                      setLocation(`/project-reports/${targetId}/pdf?type=quarterly`);
                     }}
                     className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
                   >
@@ -866,43 +866,10 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                               const sumPlanned = Math.min(100, matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0));
                               setActualProgress(sumActual);
                               setPlannedProgress(sumPlanned);
-
-                              const combinedMilestones: any[] = [];
-                              matchedList.forEach((r: any) => {
-                                let list = r.milestones;
-                                if (typeof list === "string") {
-                                  try { list = JSON.parse(list); } catch {}
-                                }
-                                if (Array.isArray(list) && list.length > 0) {
-                                  list.forEach((m: any) => {
-                                    combinedMilestones.push({
-                                      title: m.title || m.name || "",
-                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
-                                      status: m.status || "جارٍ",
-                                    });
-                                  });
-                                }
-                              });
-
-                              if (combinedMilestones.length === 0) {
-                                const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
-                                if (proj && proj.milestones && Array.isArray(proj.milestones)) {
-                                  proj.milestones.forEach((m: any) => {
-                                    combinedMilestones.push({
-                                      title: m.title || m.name || "",
-                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
-                                      status: m.status || "جارٍ",
-                                    });
-                                  });
-                                }
-                              }
-
-                              if (combinedMilestones.length > 0) {
-                                setQuarterMilestones(combinedMilestones);
-                              }
+                              setQuarterMilestones([]);
 
                               setIsAggregated(true);
-                              toast.success(`تم ربط وتجميع بيانات التقارير النصف شهرية والمعالم بنجاح للفترة (${block.quarterTitle})!`);
+                              toast.success(`تم ربط وتجميع بيانات التقارير النصف شهرية بنجاح للفترة (${block.quarterTitle})!`);
                             }
                           }}
                           disabled={!selectedProjectId}

@@ -457,7 +457,7 @@ export default function ProjectReportsHubPage() {
                         <DropdownMenuContent align="end" className="text-right text-xs">
                           {report.status === "معتمد" && (
                             <DropdownMenuItem asChild>
-                              <Link href={`/project-reports/${report.id}/pdf`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
+                              <Link href={`/project-reports/${report.id}/pdf?type=${report.typeKey}`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
                                 <Printer className="w-4 h-4 text-teal-600" />
                                 <span>معاينة وطباعة التقرير (PDF)</span>
                               </Link>

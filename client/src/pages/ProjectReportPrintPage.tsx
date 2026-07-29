@@ -233,26 +233,14 @@ export default function ProjectReportPrintPage() {
   else ragStatus = "أخضر";
 
   const parsedMilestones = (() => {
-    let list: any[] = [];
-    if (data.milestones) {
-      if (Array.isArray(data.milestones)) list = data.milestones;
-      else {
-        try {
-          const p = JSON.parse(data.milestones);
-          if (Array.isArray(p)) list = p;
-        } catch {}
-      }
+    if (!data.milestones) return [];
+    if (Array.isArray(data.milestones)) return data.milestones;
+    try {
+      const p = JSON.parse(data.milestones);
+      return Array.isArray(p) ? p : [];
+    } catch {
+      return [];
     }
-    if (list.length === 0 && project?.milestones) {
-      if (Array.isArray(project.milestones)) list = project.milestones;
-      else {
-        try {
-          const p = JSON.parse(project.milestones as any);
-          if (Array.isArray(p)) list = p;
-        } catch {}
-      }
-    }
-    return list;
   })();
 
   const cleanWorkSummary = (() => {
@@ -261,14 +249,36 @@ export default function ProjectReportPrintPage() {
     let cleaned = raw
       .replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "")
       .replace(/الروابط الخارجية:\s*\[.*?\]/g, "")
+      .replace(/مؤشر الوقت:\s*[^\n\r]+/g, "")
+      .replace(/مؤشر التكلفة:\s*[^\n\r]+/g, "")
+      .replace(/(?:تصعيد إداري|يحتاج تصعيد إداري):\s*[^\n\r]+/g, "")
+      .replace(/تقرير (?:شهري|نصف شهري|ربعي|زيارة)[^\n\r]*/g, "")
       .trim();
-    if (cleaned.startsWith("تقرير شهري لفترة التنفيذ من")) {
-      const lineBreakIdx = cleaned.indexOf("\n");
-      if (lineBreakIdx !== -1) {
-        cleaned = cleaned.slice(lineBreakIdx + 1).trim();
-      }
-    }
     return cleaned;
+  })();
+
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const typeQuery = searchParams.get("type") || searchParams.get("reportType") || "";
+  const titleLower = (data.title || "").toLowerCase();
+  const isSemiMonthly = typeQuery === "semi-monthly" || titleLower.includes("نصف") || titleLower.includes("semi");
+
+  const extractedIndicators = (() => {
+    const text = `${data.workSummary || ""} ${data.challenges || ""} ${data.notes || ""}`;
+
+    const timeMatch = text.match(/مؤشر الوقت:\s*([^\n\r]+)/);
+    const timeInd = timeMatch ? timeMatch[1].trim() : (data.timeIndicator || (gap > 25 ? "أحمر" : gap > 5 ? "أصفر" : "أخضر"));
+
+    const costMatch = text.match(/مؤشر التكلفة:\s*([^\n\r]+)/);
+    const costInd = costMatch ? costMatch[1].trim() : (data.costIndicator || "أخضر");
+
+    const escMatch = text.match(/(?:تصعيد إداري|يحتاج تصعيد إداري):\s*([^\n\r]+)/);
+    const escInd = escMatch ? escMatch[1].trim() : (data.needEscalation ? "نعم" : (gap >= 25 ? "نعم" : "لا"));
+
+    return {
+      time: timeInd,
+      cost: costInd,
+      escalation: escInd,
+    };
   })();
 
   const contract = project?.contracts?.[0];
@@ -507,7 +517,7 @@ export default function ProjectReportPrintPage() {
                 </div>
               </div>
 
-              {parsedMilestones.length > 0 && (
+              {!isSemiMonthly && parsedMilestones.length > 0 && (
                 <div className="mb-6 section-block break-inside-avoid">
                   <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>3. جدول التقدم مقابل المعالم الرئيسية للمشروع:</h3>
                   <div className="overflow-x-auto w-full">
@@ -536,15 +546,28 @@ export default function ProjectReportPrintPage() {
               )}
 
               <div className="mb-6 section-block break-inside-avoid">
-                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>4. ملخص الأعمال المنجزة والخطوات:</h3>
-                <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
-                  {cleanWorkSummary || "لا يوجد تفاصيل أعمال مسجلة."}
+                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
+                  {isSemiMonthly ? "3. ملخص الأعمال المنجزة والخطوات:" : (parsedMilestones.length > 0 ? "4. ملخص الأعمال المنجزة والخطوات:" : "3. ملخص الأعمال المنجزة والخطوات:")}
+                </h3>
+                <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] space-y-3">
+                  <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md font-semibold text-xs space-y-1">
+                    <div>مؤشر الوقت: <span className={extractedIndicators.time === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.time === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.time}</span></div>
+                    <div>مؤشر التكلفة: <span className={extractedIndicators.cost === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.cost === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.cost}</span></div>
+                    <div>تصعيد إداري: <span className={extractedIndicators.escalation === "نعم" ? "text-rose-600 font-bold" : "text-emerald-600 font-bold"}>{extractedIndicators.escalation}</span></div>
+                  </div>
+                  {cleanWorkSummary && cleanWorkSummary.trim() !== "" && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                      {cleanWorkSummary}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {(data.challenges || data.recommendations || data.nextSteps) && (
                 <div className="mb-6 section-block break-inside-avoid">
-                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>5. التحديات، الخطوات القادمة والتوصيات:</h3>
+                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
+                    {isSemiMonthly ? "4. التحديات، الخطوات القادمة والتوصيات:" : (parsedMilestones.length > 0 ? "5. التحديات، الخطوات القادمة والتوصيات:" : "4. التحديات، الخطوات القادمة والتوصيات:")}
+                  </h3>
                   <div className="space-y-3 text-xs sm:text-sm">
                     {data.challenges && (
                       <div>
