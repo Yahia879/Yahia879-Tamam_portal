@@ -192,29 +192,134 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
       });
   }, [dbReports, selectedProjectId]);
 
-  // Selected Monthly Report & Auto-matched Monthly Reports for the Quarter
-  const selectedMonthly = useMemo(() => {
-    return availableMonthlyReports.find((r) => r.id === selectedMonthlyId);
-  }, [availableMonthlyReports, selectedMonthlyId]);
+  const [selectedMonthlyBlockKey, setSelectedMonthlyBlockKey] = useState<string>("");
+  const [selectedSemiBlockKey, setSelectedSemiBlockKey] = useState<string>("");
 
-  const autoMatchedMonthlies = useMemo(() => {
-    if (!selectedMonthly) return [];
-    return availableMonthlyReports.filter(
-      (r) => r.quarter === selectedMonthly.quarter && r.year === selectedMonthly.year
-    );
-  }, [availableMonthlyReports, selectedMonthly]);
+  // التقارير الربعية المسجلة سابقاً لهذا المشروع
+  const existingQuarterlyReportKeys = useMemo(() => {
+    if (!dbReports || !selectedProjectId) return new Set<string>();
+    const keys = new Set<string>();
+    dbReports.forEach((r) => {
+      if (Number(r.projectId) === Number(selectedProjectId)) {
+        const titleLower = r.title.toLowerCase();
+        const isQuarterly = titleLower.includes("ربعي") || titleLower.includes("quarterly");
+        if (isQuarterly) {
+          if (r.challenges && r.challenges.includes("الربع: ")) {
+            const qMatch = r.challenges.match(/الربع:\s*(Q\d)/);
+            const yMatch = r.challenges.match(/السنة:\s*(\d{4})/);
+            if (qMatch && yMatch) {
+              keys.add(`${qMatch[1]}_${yMatch[1]}`);
+            }
+          }
+        }
+      }
+    });
+    return keys;
+  }, [dbReports, selectedProjectId]);
 
-  // Selected Semi Report & Auto-matched Semi Reports for the Quarter
-  const selectedSemi = useMemo(() => {
-    return availableSemiReports.find((r) => r.id === selectedSemiId);
-  }, [availableSemiReports, selectedSemiId]);
+const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
+  const cleanQ = qStr.replace(/[^0-9]/g, "");
+  const qMap: Record<string, string> = {
+    "1": "الربع الأول (يناير - مارس)",
+    "2": "الربع الثاني (أبريل - يونيو)",
+    "3": "الربع الثالث (يوليو - سبتمبر)",
+    "4": "الربع الرابع (أكتوبر - ديسمبر)",
+  };
+  const text = qMap[cleanQ] || `الربع ${qStr}`;
+  return `${text} ${yearStr}`;
+};
 
-  const autoMatchedSemis = useMemo(() => {
-    if (!selectedSemi) return [];
-    return availableSemiReports.filter(
-      (r) => r.quarter === selectedSemi.quarter && r.year === selectedSemi.year
-    );
-  }, [availableSemiReports, selectedSemi]);
+  // تقسيم التقارير الشهرية إلى فترات ربعية (كل فترة تتضمن 3 تقارير شهرية متتابعة للربع)
+  const quarterMonthlyBlocks = useMemo(() => {
+    if (!availableMonthlyReports || availableMonthlyReports.length === 0) return [];
+
+    const groups: Record<string, typeof availableMonthlyReports> = {};
+    availableMonthlyReports.forEach((r) => {
+      const key = `${r.quarter}_${r.year}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    });
+
+    return Object.entries(groups).map(([key, reports]) => {
+      const [q, y] = key.split("_");
+      const isComplete = reports.length >= 3;
+      const alreadyUsed = existingQuarterlyReportKeys.has(key);
+      const isDisabled = !isComplete || alreadyUsed;
+      const titleDisplay = getQuarterMonthDisplay(q, y);
+
+      let statusBadge = "";
+      if (alreadyUsed) {
+        statusBadge = `تم إنشاء تقرير ربعي سابقاً لهذا الربع`;
+      } else if (!isComplete) {
+        statusBadge = `غير مكتمل (${reports.length} من أصل 3 تقارير شهرية)`;
+      } else {
+        statusBadge = `جاهز للتجميع (3 تقارير شهرية مكتملة)`;
+      }
+
+      return {
+        key,
+        quarter: q,
+        year: y,
+        titleDisplay,
+        reports,
+        isComplete,
+        alreadyUsed,
+        isDisabled,
+        statusBadge,
+        label: `${titleDisplay} - ${statusBadge}`,
+      };
+    });
+  }, [availableMonthlyReports, existingQuarterlyReportKeys]);
+
+  // تقسيم التقارير النصف شهرية إلى فترات ربعية (كل فترة تتضمن 6 تقارير نصف شهرية للربع)
+  const quarterSemiBlocks = useMemo(() => {
+    if (!availableSemiReports || availableSemiReports.length === 0) return [];
+
+    const groups: Record<string, typeof availableSemiReports> = {};
+    availableSemiReports.forEach((r) => {
+      const key = `${r.quarter}_${r.year}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    });
+
+    return Object.entries(groups).map(([key, reports]) => {
+      const [q, y] = key.split("_");
+      const isComplete = reports.length >= 6;
+      const alreadyUsed = existingQuarterlyReportKeys.has(key);
+      const isDisabled = !isComplete || alreadyUsed;
+      const titleDisplay = getQuarterMonthDisplay(q, y);
+
+      let statusBadge = "";
+      if (alreadyUsed) {
+        statusBadge = `تم إنشاء تقرير ربعي سابقاً لهذا الربع`;
+      } else if (!isComplete) {
+        statusBadge = `غير مكتمل (${reports.length} من أصل 6 تقارير نصف شهرية)`;
+      } else {
+        statusBadge = `جاهز للتجميع (6 تقارير نصف شهرية مكتملة)`;
+      }
+
+      return {
+        key,
+        quarter: q,
+        year: y,
+        titleDisplay,
+        reports,
+        isComplete,
+        alreadyUsed,
+        isDisabled,
+        statusBadge,
+        label: `${titleDisplay} - ${statusBadge}`,
+      };
+    });
+  }, [availableSemiReports, existingQuarterlyReportKeys]);
+
+  const selectedMonthlyBlock = useMemo(() => {
+    return quarterMonthlyBlocks.find((b) => b.key === selectedMonthlyBlockKey);
+  }, [quarterMonthlyBlocks, selectedMonthlyBlockKey]);
+
+  const selectedSemiBlock = useMemo(() => {
+    return quarterSemiBlocks.find((b) => b.key === selectedSemiBlockKey);
+  }, [quarterSemiBlocks, selectedSemiBlockKey]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(projectOptions[0]?.plannedProgress || 0);
   const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
@@ -233,24 +338,32 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
   const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
   const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
 
-  const handleAggregateFromMonthly = () => {
-    if (!selectedMonthly || autoMatchedMonthlies.length === 0) {
-      toast.error("يرجى اختيار تقرير شهري واحد للبدء بالتجميع");
+  const handleAggregateFromMonthly = async () => {
+    if (!selectedMonthlyBlock) {
+      toast.error("يرجى اختيار بلوك التقارير الشهرية للربع للبدء بالتجميع");
       return;
     }
 
-    if (autoMatchedMonthlies.length < 3) {
+    if (selectedMonthlyBlock.alreadyUsed) {
+      toast.error(`لقد تم إنشاء تقرير ربعي سابقاً للربع ${selectedMonthlyBlock.quarter} لعام ${selectedMonthlyBlock.year}. لا يمكن تكرار التجميع لنفس الربع.`);
+      return;
+    }
+
+    if (!selectedMonthlyBlock.isComplete) {
       toast.error(
-        `لا يمكن تجميع التقرير الربعي: يتطلب التقرير الربعي توفر 3 تقارير شهرية مكتملة لهذا الربع والمشروع. المتوفر حالياً: ${autoMatchedMonthlies.length} من أصل 3. يرجى إضافة التقارير الشهرية المتبقية أولاً.`
+        `لا يمكن تجميع التقرير الربعي: يلزم توفر 3 تقارير شهرية مكتملة لهذا الربع (متوفر ${selectedMonthlyBlock.reports.length} فقط).`
       );
       return;
     }
 
+    const autoMatchedMonthlies = selectedMonthlyBlock.reports;
     const avgActual = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedMonthlies.length);
     const avgPlanned = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedMonthlies.length);
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
+    setQuarter(selectedMonthlyBlock.quarter);
+    setYear(selectedMonthlyBlock.year);
 
     const latestBudget = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeBudget || cumulativeBudget;
     const latestSpent = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeSpent || cumulativeSpent;
@@ -266,27 +379,62 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     }
 
     setIsAggregated(true);
-    toast.success(`تم العثور على 3 تقارير شهرية وتوليد التقرير الربعي بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
+
+    // إنشاء التقرير الربعي آلياً بقيد الاعتماد والتوجه للخارج
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `التقرير الربعي - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        plannedProgress: avgPlanned,
+        actualProgress: avgActual,
+        overallProgress: avgActual,
+        challenges: `الربع: ${selectedMonthlyBlock.quarter}\nالسنة: ${selectedMonthlyBlock.year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+        recommendations: continuationDecisions,
+        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+      });
+
+      await updateStatusMutation.mutateAsync({
+        id: res.id,
+        status: "submitted",
+      });
+
+      toast.success(`تم إنشاء وتجميع التقرير الربعي بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
+      setLocation("/project-reports");
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الربعي");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleAggregateFromSemi = () => {
-    if (!selectedSemi || autoMatchedSemis.length === 0) {
-      toast.error("يرجى اختيار تقرير نصف شهري واحد للبدء بالتجميع");
+  const handleAggregateFromSemi = async () => {
+    if (!selectedSemiBlock) {
+      toast.error("يرجى اختيار بلوك التقارير النصف شهرية للربع للبدء بالتجميع");
       return;
     }
 
-    if (autoMatchedSemis.length < 6) {
+    if (selectedSemiBlock.alreadyUsed) {
+      toast.error(`لقد تم إنشاء تقرير ربعي سابقاً للربع ${selectedSemiBlock.quarter} لعام ${selectedSemiBlock.year}. لا يمكن تكرار التجميع لنفس الربع.`);
+      return;
+    }
+
+    if (!selectedSemiBlock.isComplete) {
       toast.error(
-        `لا يمكن تجميع التقرير الربعي: يتطلب التقرير الربعي توفر 6 تقارير نصف شهرية مكتملة لهذا الربع والمشروع. المتوفر حالياً: ${autoMatchedSemis.length} من أصل 6. يرجى إضافة التقارير النصف شهرية المتبقية أولاً.`
+        `لا يمكن تجميع التقرير الربعي: يلزم توفر 6 تقارير نصف شهرية مكتملة لهذا الربع (متوفر ${selectedSemiBlock.reports.length} فقط).`
       );
       return;
     }
 
+    const autoMatchedSemis = selectedSemiBlock.reports;
     const avgActual = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedSemis.length);
     const avgPlanned = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedSemis.length);
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
+    setQuarter(selectedSemiBlock.quarter);
+    setYear(selectedSemiBlock.year);
 
     const combinedMilestones: any[] = [];
     autoMatchedSemis.forEach((r) => {
@@ -297,7 +445,34 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     }
 
     setIsAggregated(true);
-    toast.success(`تم العثور على 6 تقارير نصف شهرية وتجميع التقرير الربعي بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
+
+    // إنشاء التقرير الربعي آلياً بقيد الاعتماد والتوجه للخارج
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `التقرير الربعي - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        plannedProgress: avgPlanned,
+        actualProgress: avgActual,
+        overallProgress: avgActual,
+        challenges: `الربع: ${selectedSemiBlock.quarter}\nالسنة: ${selectedSemiBlock.year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+        recommendations: continuationDecisions,
+        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+      });
+
+      await updateStatusMutation.mutateAsync({
+        id: res.id,
+        status: "submitted",
+      });
+
+      toast.success(`تم إنشاء وتجميع التقرير الربعي بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
+      setLocation("/project-reports");
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الربعي");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const financialCommitmentPct = useMemo(() => {
@@ -578,7 +753,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">اختر تقرير شهري واحد وسيقوم النظام تلقائياً بربط باقي التقارير الشهرية المتاحة لهذا الربع والمشروع:</span>
+                          <span className="text-xs font-bold text-foreground">اختر بلوك التقارير الشهرية المكتملة للربع لتوليد وتجميع التقرير الربعي:</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -589,20 +764,20 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر التقرير الشهري للبدء</Label>
-                        <Select value={selectedMonthlyId} onValueChange={setSelectedMonthlyId}>
-                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
-                            <SelectValue placeholder="اختر تقرير شهري..." />
+                        <Label className="text-[11px] font-semibold">اختر الفترات الشهرية المتتابعة للربع</Label>
+                        <Select value={selectedMonthlyBlockKey} onValueChange={setSelectedMonthlyBlockKey} disabled={!selectedProjectId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الربع الشهرية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableMonthlyReports.length === 0 ? (
+                            {quarterMonthlyBlocks.length === 0 ? (
                               <SelectItem value="none" disabled className="text-xs">
                                 لا يوجد تقارير شهرية مسجلة لهذا المشروع
                               </SelectItem>
                             ) : (
-                              availableMonthlyReports.map((r) => (
-                                <SelectItem key={r.id} value={r.id} className="text-xs">
-                                  {r.title} - إنجاز: {r.actualProgress}%
+                              quarterMonthlyBlocks.map((b) => (
+                                <SelectItem key={b.key} value={b.key} disabled={b.isDisabled} className="text-xs py-2 font-semibold">
+                                  {b.label}
                                 </SelectItem>
                               ))
                             )}
@@ -610,28 +785,27 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                         </Select>
                       </div>
 
-                      {selectedMonthly && (
-                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                            <span>📌 التقرير المباشر المحدد: {selectedMonthly.title} ({selectedMonthly.actualProgress}%)</span>
-                            <Badge className="bg-teal-600 text-white text-[10px]">المشروع: {selectedProjName}</Badge>
+                      {selectedMonthlyBlock && (
+                        <div className="p-3.5 rounded-xl bg-card border border-teal-600/30 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground border-b border-border/40 pb-2">
+                            <span>{selectedMonthlyBlock.titleDisplay}</span>
+                            <Badge className={selectedMonthlyBlock.alreadyUsed ? "bg-red-500/15 text-red-700" : selectedMonthlyBlock.isComplete ? "bg-emerald-600 text-white" : "bg-amber-500/15 text-amber-700"}>
+                              {selectedMonthlyBlock.statusBadge}
+                            </Badge>
                           </div>
 
-                          <div className="space-y-1.5 pt-2 border-t border-border/50">
-                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير الشهرية المربوطة تلقائياً للربع ({autoMatchedMonthlies.length} من أصل 3 متوفرة):</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                              {autoMatchedMonthlies.map((r) => (
-                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
-                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
-                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                          <div className="flex flex-col gap-2">
+                            {selectedMonthlyBlock.reports.map((r, idx) => (
+                              <div key={r.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/60 text-xs flex items-center justify-between">
+                                <div className="flex flex-col gap-0.5 min-w-0 pr-1">
+                                  <span className="font-bold text-foreground truncate">التقرير {idx + 1}: {r.title}</span>
+                                  <span className="text-[11px] text-muted-foreground font-medium">الفترة: {r.period}</span>
                                 </div>
-                              ))}
-                            </div>
-                            {autoMatchedMonthlies.length < 3 && (
-                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-semibold flex items-center gap-1">
-                                ⚠️ متوفر {autoMatchedMonthlies.length} تقارير شهرية فقط (يلزم توفر 3 تقارير شهرية مكتملة لتجميع التقرير الربعي).
-                              </p>
-                            )}
+                                <Badge variant="outline" className="text-[11px] text-teal-600 border-teal-600/40 font-bold shrink-0">
+                                  إنجاز: {r.actualProgress}%
+                                </Badge>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -641,11 +815,11 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                           type="button"
                           size="sm"
                           onClick={handleAggregateFromMonthly}
-                          disabled={!selectedMonthly}
-                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                          disabled={!selectedMonthlyBlock || selectedMonthlyBlock.isDisabled || !selectedProjectId || isSubmitting}
+                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع التقارير الشهرية المربوطة آلياً
+                          تجميع وإرسال التقرير الربعي (بقيد الاعتماد)
                         </Button>
                       </div>
                     </div>
@@ -656,7 +830,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">اختر تقرير نصف شهري واحد وسيقوم النظام تلقائياً بربط باقي الأنصاف الشهريّة المتاحة لهذا الربع والمشروع:</span>
+                          <span className="text-xs font-bold text-foreground">اختر الفترات النصف شهرية المكتملة (6 تقارير) لتوليد التقرير الربعي:</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -667,20 +841,20 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر تقرير نصف شهري للبدء</Label>
-                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId}>
-                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
-                            <SelectValue placeholder="اختر تقرير نصف شهري..." />
+                        <Label className="text-[11px] font-semibold">اختر الفترات النصف شهرية للربع</Label>
+                        <Select value={selectedSemiBlockKey} onValueChange={setSelectedSemiBlockKey} disabled={!selectedProjectId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الأنصاف الشهرية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableSemiReports.length === 0 ? (
+                            {quarterSemiBlocks.length === 0 ? (
                               <SelectItem value="none" disabled className="text-xs">
                                 لا يوجد تقارير نصف شهرية مسجلة لهذا المشروع
                               </SelectItem>
                             ) : (
-                              availableSemiReports.map((r) => (
-                                <SelectItem key={r.id} value={r.id} className="text-xs">
-                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                              quarterSemiBlocks.map((b) => (
+                                <SelectItem key={b.key} value={b.key} disabled={b.isDisabled} className="text-xs py-2 font-semibold">
+                                  {b.label}
                                 </SelectItem>
                               ))
                             )}
@@ -688,28 +862,27 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                         </Select>
                       </div>
 
-                      {selectedSemi && (
-                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2.5">
-                          <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                            <span>📌 التقرير المحدد: {selectedSemi.title} ({selectedSemi.period})</span>
-                            <Badge className="bg-teal-600 text-white text-[10px]">إنجاز: {selectedSemi.actualProgress}%</Badge>
+                      {selectedSemiBlock && (
+                        <div className="p-3.5 rounded-xl bg-card border border-teal-600/30 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground border-b border-border/40 pb-2">
+                            <span>{selectedSemiBlock.titleDisplay}</span>
+                            <Badge className={selectedSemiBlock.alreadyUsed ? "bg-red-500/15 text-red-700" : selectedSemiBlock.isComplete ? "bg-emerald-600 text-white" : "bg-amber-500/15 text-amber-700"}>
+                              {selectedSemiBlock.statusBadge}
+                            </Badge>
                           </div>
 
-                          <div className="space-y-1.5 pt-2 border-t border-border/50">
-                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير النصف شهرية المربوطة تلقائياً لهذا المشروع ({autoMatchedSemis.length} من أصل 6 متوفرة):</Label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {autoMatchedSemis.map((r) => (
-                                <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
-                                  <span className="font-semibold text-foreground truncate">{r.title}</span>
-                                  <Badge variant="outline" className="text-[10px] text-teal-600 border-teal-600/40">{r.actualProgress}%</Badge>
+                          <div className="flex flex-col gap-2">
+                            {selectedSemiBlock.reports.map((r, idx) => (
+                              <div key={r.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/60 text-xs flex items-center justify-between">
+                                <div className="flex flex-col gap-0.5 min-w-0 pr-1">
+                                  <span className="font-bold text-foreground truncate">التقرير {idx + 1}: {r.title}</span>
+                                  <span className="text-[11px] text-muted-foreground font-medium">الفترة: {r.period}</span>
                                 </div>
-                              ))}
-                            </div>
-                            {autoMatchedSemis.length < 6 && (
-                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-semibold flex items-center gap-1">
-                                ⚠️ متوفر {autoMatchedSemis.length} تقارير نصف شهرية فقط (يلزم توفر 6 تقارير نصف شهرية مكتملة لتجميع التقرير الربعي).
-                              </p>
-                            )}
+                                <Badge variant="outline" className="text-[11px] text-teal-600 border-teal-600/40 font-bold shrink-0">
+                                  إنجاز: {r.actualProgress}%
+                                </Badge>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -719,11 +892,11 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                           type="button"
                           size="sm"
                           onClick={handleAggregateFromSemi}
-                          disabled={!selectedSemi}
-                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                          disabled={!selectedSemiBlock || selectedSemiBlock.isDisabled || !selectedProjectId || isSubmitting}
+                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع الأنصاف الشهرية المربوطة آلياً
+                          تجميع وإرسال التقرير الربعي (بقيد الاعتماد)
                         </Button>
                       </div>
                     </div>
