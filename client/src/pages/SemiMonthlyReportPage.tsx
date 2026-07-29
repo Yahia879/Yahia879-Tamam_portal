@@ -363,9 +363,15 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     let currStart = new Date(start);
     let periodNum = 1;
 
-    // تقسيم زمن المشروع إجبارياً إلى فترات متتالية 15 يوماً من تاريخ البدأ الفعلي
-    while (currStart <= end && periodNum <= 48) {
+    // تقسيم زمن المشروع إجبارياً إلى فترات 15 يوماً كاملة فقط بدون احتساب الأيام المتبقية الناقصة
+    while (periodNum <= 48) {
       const currEnd = new Date(currStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+      // عدم إضافة فترة جديدة إذا كانت لا تستوفي 15 يوماً كاملة ضمن زمن المشروع
+      if (currEnd > end) {
+        break;
+      }
+
       const fromStr = formatToInputDate(currStart);
       const toStr = formatToInputDate(currEnd);
 
@@ -379,6 +385,19 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
       // تبدأ الفترة التالية مباشرة بعد انتهاء الأولى (اليوم الـ 16)
       currStart = new Date(currStart.getTime() + 15 * 24 * 60 * 60 * 1000);
       periodNum++;
+    }
+
+    // احتياطياً للمشاريع القصيرة جداً (أقل من 15 يوماً)، يتم إظهار فترة أولى واحدة على الأقل
+    if (periods.length === 0) {
+      const currEnd = new Date(currStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const fromStr = formatToInputDate(currStart);
+      const toStr = formatToInputDate(currEnd);
+      periods.push({
+        label: `الفترة 1 (من ${fromStr} إلى ${toStr} - 15 يوماً)`,
+        from: fromStr,
+        to: toStr,
+        periodNum: 1,
+      });
     }
 
     return periods;
