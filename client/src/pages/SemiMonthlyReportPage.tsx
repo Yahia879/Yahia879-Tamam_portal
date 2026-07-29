@@ -364,6 +364,8 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
     return dbProjectsData?.find((p: any) => String(p.id) === String(selectedProjectId));
   }, [dbProjectsData, selectedProjectId]);
 
+  const selectedProjName = selectedProjectObj?.name || "المشروع";
+
   const projectSemiMonthlyPeriods = useMemo(() => {
     if (!selectedProjectObj) return [];
 
@@ -454,8 +456,6 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
       }
     }
   }, [selectedProjectId, projectSemiMonthlyPeriods, existingReport, existingProjectReportPeriods]);
-
-  const selectedProjName = selectedProjectObj?.name || "";
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">

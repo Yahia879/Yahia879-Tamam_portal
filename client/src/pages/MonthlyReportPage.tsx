@@ -275,12 +275,17 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     return dbReports
       .filter((r) => {
         if (Number(r.projectId) !== Number(selectedProjectId)) return false;
-        const titleLower = r.title.toLowerCase();
-        return (titleLower.includes("نصف") || titleLower.includes("semi")) && (titleLower.includes("شهري") || titleLower.includes("monthly"));
+        const titleLower = (r.title || "").toLowerCase();
+        return titleLower.includes("نصف") || titleLower.includes("semi");
       })
       .map((r) => {
-        const startStr = r.reportPeriodStart ? formatDateToReadableArabic(r.reportPeriodStart) : "";
-        const endStr = r.reportPeriodEnd ? formatDateToReadableArabic(r.reportPeriodEnd) : "";
+        const rawStart = r.reportPeriodStart || r.reportDate;
+        const rawEnd = r.reportPeriodEnd || r.reportDate;
+        const startIso = rawStart ? formatToInputDate(rawStart) : "";
+        const endIso = rawEnd ? formatToInputDate(rawEnd) : "";
+        const startStr = startIso ? formatDateToReadableArabic(startIso) : "";
+        const endStr = endIso ? formatDateToReadableArabic(endIso) : "";
+
         return {
           id: String(r.id),
           title: r.title,
@@ -290,7 +295,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           reportPeriodStart: r.reportPeriodStart,
           reportPeriodEnd: r.reportPeriodEnd,
           reportDate: r.reportDate,
-          monthYear: r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : ""),
+          startIso,
+          endIso,
           period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
           startStr,
           endStr,
@@ -301,105 +307,49 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
   const [selectedBlockKey, setSelectedBlockKey] = useState<string>("");
 
-  // عدد التقارير الشهرية المسجلة سابقاً لهذا المشروع
-  const existingMonthlyReportCount = useMemo(() => {
-    if (!dbReports || !selectedProjectId) return 0;
-    return dbReports.filter((r) => {
-      if (Number(r.projectId) !== Number(selectedProjectId)) return false;
-      const titleLower = r.title.toLowerCase();
-      return (titleLower.includes("شهري") || titleLower.includes("monthly")) && !titleLower.includes("نصف") && !titleLower.includes("semi") && !titleLower.includes("ربعي") && !titleLower.includes("quarterly");
-    }).length;
-  }, [dbReports, selectedProjectId]);
-
-
-
-const getMonthDetails = (reports: any[], pairIndex: number) => {
-  if (!reports || reports.length === 0) return { monthNum: String(pairIndex), monthName: "", year: "" };
-  let monthNum = "";
-  let year = "";
-  let monthName = "";
-
-  for (const r of reports) {
-    const my = r.monthYear || "";
-    if (my.includes("-")) {
-      const [y, m] = my.split("-");
-      if (y) year = y;
-      if (m) {
-        monthNum = String(parseInt(m, 10));
-        monthName = getArabicMonthName(m);
-        break;
-      }
-    }
-  }
-  if (!monthNum) monthNum = String(pairIndex);
-  return { monthNum, monthName, year };
-};
-
-  // تقسيم التقارير النصف شهرية إلى فترات شهرية تجميعية (كل 2 تقارير نصف شهرية متتابعة كفترة)
+  // تقسيم التقارير النصف شهرية إلى فترات شهرية تجميعية (كل 2 تقارير نصف شهرية تقع ضمن فترة الشهر للمشروع)
   const semiMonthlyBlocks = useMemo(() => {
-    if (!availableSemiReports || availableSemiReports.length === 0) return [];
+    if (!projectMonthlyPeriods || projectMonthlyPeriods.length === 0) return [];
 
-    const sorted = [...availableSemiReports].sort((a, b) => {
-      const t1 = new Date(a.reportPeriodStart || a.reportDate || 0).getTime();
-      const t2 = new Date(b.reportPeriodStart || b.reportDate || 0).getTime();
-      return t1 - t2;
-    });
+    return projectMonthlyPeriods.map((periodItem, idx) => {
+      const pFromStr = periodItem.from;
+      const pToStr = periodItem.to;
 
-    const blocks: {
-      key: string;
-      pairIndex: number;
-      monthTitle: string;
-      reports: typeof availableSemiReports;
-      isComplete: boolean;
-      alreadyUsed: boolean;
-      isDisabled: boolean;
-      statusBadge: string;
-      label: string;
-    }[] = [];
+      const matchedReports = (availableSemiReports || []).filter((r) => {
+        const rStartStr = r.startIso;
+        const rEndStr = r.endIso || rStartStr;
+        if (!rStartStr) return false;
+        return (rStartStr >= pFromStr && rStartStr <= pToStr) || (rEndStr >= pFromStr && rEndStr <= pToStr);
+      });
 
-    for (let i = 0; i < sorted.length; i += 2) {
-      const pairReports = sorted.slice(i, i + 2);
-      const pairIndex = Math.floor(i / 2) + 1;
-      const isComplete = pairReports.length === 2;
-      const alreadyUsed = pairIndex <= existingMonthlyReportCount;
+      const isComplete = matchedReports.length >= 2;
+      const alreadyUsed = existingProjectReportPeriods.has(`${periodItem.from}_${periodItem.to}`);
       const isDisabled = !isComplete || alreadyUsed;
 
       let statusBadge = "";
       if (alreadyUsed) {
         statusBadge = "تم إنشاء تقرير شهري مسبقاً ❌";
       } else if (!isComplete) {
-        statusBadge = `غير مكتمل (${pairReports.length}/2 تقارير نصف شهرية)`;
+        statusBadge = `غير مكتمل (${matchedReports.length}/2 تقارير نصف شهرية)`;
       } else {
-        statusBadge = "جاهز للتجميع ✓";
+        statusBadge = "جاهز للتجميع (2/2) ✓";
       }
 
-      const mDetails = getMonthDetails(pairReports, pairIndex);
-      let monthTitle = "";
-      if (mDetails.monthName) {
-        monthTitle = `الشهر رقم (${mDetails.monthNum}) - شهر ${mDetails.monthName} ${mDetails.year}`;
-      } else {
-        monthTitle = `الشهر رقم (${pairIndex})`;
-      }
-
-      const firstStart = pairReports[0]?.startStr || "";
-      const lastEnd = pairReports[pairReports.length - 1]?.endStr || "";
-      const fullMonthPeriodText = firstStart && lastEnd ? `من ${firstStart} إلى ${lastEnd}` : pairReports.map(r => r.period).join(" | ");
-
-      blocks.push({
-        key: `pair_${pairIndex}`,
-        pairIndex,
-        monthTitle,
-        reports: pairReports,
+      return {
+        key: `period_${idx}_${periodItem.from}_${periodItem.to}`,
+        pairIndex: idx + 1,
+        monthTitle: periodItem.readableLabel,
+        from: periodItem.from,
+        to: periodItem.to,
+        reports: matchedReports,
         isComplete,
         alreadyUsed,
         isDisabled,
         statusBadge,
-        label: `📅 ${monthTitle} (${fullMonthPeriodText}) — ${statusBadge}`,
-      });
-    }
-
-    return blocks;
-  }, [availableSemiReports, existingMonthlyReportCount]);
+        label: `📅 ${periodItem.readableLabel} — ${statusBadge}`,
+      };
+    });
+  }, [projectMonthlyPeriods, availableSemiReports, existingProjectReportPeriods]);
 
   const selectedBlock = useMemo(() => {
     return semiMonthlyBlocks.find((b) => b.key === selectedBlockKey);
@@ -446,6 +396,12 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
     const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
     const targetMonthYear = matchedList[0]?.monthYear || monthYear;
 
+    if (selectedBlock.from) setPeriodFrom(selectedBlock.from);
+    if (selectedBlock.to) {
+      setPeriodTo(selectedBlock.to);
+      setReportDate(selectedBlock.to);
+    }
+
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
 
@@ -459,19 +415,20 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
 
     setIsAggregated(true);
 
-    // إنشاء التقرير آلياً بقيد الاعتماد والتوجه للخارج
     try {
       setIsSubmitting(true);
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `التقرير الشهري - ${selectedProjName}`,
-        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        reportDate: selectedBlock.to || reportDate || new Date().toISOString().split("T")[0],
+        reportPeriodStart: selectedBlock.from || undefined,
+        reportPeriodEnd: selectedBlock.to || undefined,
         plannedProgress: avgPlanned,
         actualProgress: avgActual,
         overallProgress: avgActual,
-        challenges: `شهر/سنة: ${targetMonthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+        challenges: `فترة التقرير الشهري: من ${selectedBlock.from} إلى ${selectedBlock.to}\nالمشكلات والعقبات: (تم تجميعها آلياً)`,
         recommendations: `المرحلة الحالية: ${currentPhase}`,
-        workSummary: `تم تجميع البيانات آلياً من التقريرين النصف شهريين للفترة ${selectedBlock.pairIndex}`,
+        workSummary: `تم تجميع التقرير الشهري آلياً من التقريرين النصف شهريين للفترة (${selectedBlock.monthTitle})`,
       });
 
       await updateStatusMutation.mutateAsync({
