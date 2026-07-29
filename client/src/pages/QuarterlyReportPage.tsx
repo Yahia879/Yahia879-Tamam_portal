@@ -36,6 +36,34 @@ const formatToInputDate = (val: any): string => {
   }
 };
 
+const getArabicMonthName = (monthStr: string) => {
+  const m = parseInt(monthStr, 10);
+  const months = [
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ];
+  return months[m - 1] || "";
+};
+
+const formatDateToReadableArabic = (dateVal: any): string => {
+  if (!dateVal) return "";
+  try {
+    if (typeof dateVal === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+      const [y, m, d] = dateVal.trim().split("-");
+      const monthName = getArabicMonthName(m);
+      return `${parseInt(d, 10)} ${monthName} ${y}`;
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const day = d.getDate();
+    const monthName = getArabicMonthName(String(d.getMonth() + 1));
+    const year = d.getFullYear();
+    return `${day} ${monthName} ${year}`;
+  } catch {
+    return String(dateVal);
+  }
+};
+
 export default function QuarterlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
@@ -97,10 +125,95 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [projectManager, setProjectManager] = useState<string>("غير محدد");
+  const [periodFrom, setPeriodFrom] = useState<string>("");
+  const [periodTo, setPeriodTo] = useState<string>("");
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
   const [reportDate, setReportDate] = useState<string>(formatToInputDate(new Date()));
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
+
+  const selectedProjectObj = useMemo(() => {
+    return dbProjectsData?.find((p: any) => String(p.id) === String(selectedProjectId));
+  }, [dbProjectsData, selectedProjectId]);
+
+  const existingProjectReportPeriods = useMemo(() => {
+    if (!dbReports || !selectedProjectId) return new Set<string>();
+    const set = new Set<string>();
+    dbReports.forEach((r) => {
+      if (Number(r.projectId) === Number(selectedProjectId) && r.reportPeriodStart && r.reportPeriodEnd) {
+        const startIso = formatToInputDate(r.reportPeriodStart);
+        const endIso = formatToInputDate(r.reportPeriodEnd);
+        set.add(`${startIso}_${endIso}`);
+      }
+    });
+    return set;
+  }, [dbReports, selectedProjectId]);
+
+  const projectQuarterlyPeriods = useMemo(() => {
+    if (!selectedProjectObj) return [];
+
+    const proj: any = selectedProjectObj;
+    const startVal = proj.startDate;
+    const endVal = proj.expectedEndDate || proj.actualEndDate || proj.endDate;
+
+    let start: Date;
+    if (startVal) {
+      const parsedStart = new Date(startVal);
+      if (!isNaN(parsedStart.getTime())) {
+        start = new Date(parsedStart.getFullYear(), parsedStart.getMonth(), parsedStart.getDate());
+      } else {
+        start = new Date(new Date().getFullYear(), 0, 1);
+      }
+    } else {
+      start = new Date(new Date().getFullYear(), 0, 1);
+    }
+
+    let end: Date;
+    if (endVal) {
+      const parsedEnd = new Date(endVal);
+      if (!isNaN(parsedEnd.getTime())) {
+        end = new Date(parsedEnd.getFullYear(), parsedEnd.getMonth(), parsedEnd.getDate());
+      } else {
+        end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
+
+    const periods = [];
+    let currentStart = new Date(start);
+    let index = 1;
+
+    while (currentStart < end) {
+      let currEnd = new Date(currentStart);
+      currEnd.setDate(currEnd.getDate() + 89);
+
+      if (currEnd > end) {
+        break;
+      }
+
+      const fromIso = formatToInputDate(currentStart);
+      const toIso = formatToInputDate(currEnd);
+
+      const fromStr = formatDateToReadableArabic(fromIso);
+      const toStr = formatDateToReadableArabic(toIso);
+
+      periods.push({
+        index,
+        from: fromIso,
+        to: toIso,
+        fromStr,
+        toStr,
+        label: `الربع ${index} (من ${fromStr} إلى ${toStr})`,
+      });
+
+      currentStart = new Date(currEnd);
+      currentStart.setDate(currentStart.getDate() + 1);
+      index++;
+    }
+
+    return periods;
+  }, [selectedProjectObj]);
 
   useEffect(() => {
     if (existingReport) {
@@ -113,8 +226,28 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
       }
       if (existingReport.recommendations) setContinuationDecisions(existingReport.recommendations);
       if (existingReport.reportDate) setReportDate(formatToInputDate(existingReport.reportDate));
+      if (existingReport.reportPeriodStart) setPeriodFrom(formatToInputDate(existingReport.reportPeriodStart));
+      if (existingReport.reportPeriodEnd) setPeriodTo(formatToInputDate(existingReport.reportPeriodEnd));
     }
   }, [existingReport]);
+
+  useEffect(() => {
+    if (selectedProjectId && projectQuarterlyPeriods.length > 0 && !existingReport) {
+      const availablePeriod = projectQuarterlyPeriods.find(
+        (p) => !existingProjectReportPeriods.has(`${p.from}_${p.to}`)
+      );
+      if (availablePeriod) {
+        setPeriodFrom(availablePeriod.from);
+        setPeriodTo(availablePeriod.to);
+        setReportDate(availablePeriod.to);
+      } else {
+        const first = projectQuarterlyPeriods[0];
+        setPeriodFrom(first.from);
+        setPeriodTo(first.to);
+        setReportDate(first.to);
+      }
+    }
+  }, [selectedProjectId, projectQuarterlyPeriods, existingReport, existingProjectReportPeriods]);
 
   const [entryMode, setEntryMode] = useState<"manual" | "from_monthly" | "from_semi">("manual");
   const [selectedMonthlyId, setSelectedMonthlyId] = useState<string>("");
@@ -918,39 +1051,45 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                   <Input value={projectManager} readOnly placeholder="مدير المشروع المرتبط" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>الربع</span>
+                    <span>اختر فترة التقرير الربعي</span>
                     <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Select disabled={!selectedProjectId} value={quarter} onValueChange={setQuarter}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
-                      <SelectValue placeholder="اختر الربع" />
+                  <Select
+                    value={periodFrom && periodTo ? `${periodFrom}_${periodTo}` : ""}
+                    onValueChange={(val) => {
+                      const [from, to] = val.split("_");
+                      setPeriodFrom(from);
+                      setPeriodTo(to);
+                      setReportDate(to);
+                    }}
+                    disabled={!selectedProjectId}
+                  >
+                    <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold text-right">
+                      <SelectValue placeholder={selectedProjectId ? "اختر فترة التقرير الربعي لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Q1" className="text-xs">الربع الأول (Q1)</SelectItem>
-                      <SelectItem value="Q2" className="text-xs">الربع الثاني (Q2)</SelectItem>
-                      <SelectItem value="Q3" className="text-xs">الربع الثالث (Q3)</SelectItem>
-                      <SelectItem value="Q4" className="text-xs">الربع الرابع (Q4)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>السنة</span>
-                    <span className="text-red-500 font-bold mr-1">*</span>
-                  </Label>
-                  <Select disabled={!selectedProjectId} value={year} onValueChange={setYear}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background w-full">
-                      <SelectValue placeholder="اختر السنة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2025" className="text-xs">2025</SelectItem>
-                      <SelectItem value="2026" className="text-xs">2026</SelectItem>
-                      <SelectItem value="2027" className="text-xs">2027</SelectItem>
+                    <SelectContent dir="rtl">
+                      {projectQuarterlyPeriods.length === 0 ? (
+                        <SelectItem value="none" disabled className="text-xs">
+                          لا توجد فترات ربعية كاملة متاحة للمشروع
+                        </SelectItem>
+                      ) : (
+                        projectQuarterlyPeriods.map((p) => {
+                          const isAlreadyRecorded = existingProjectReportPeriods.has(`${p.from}_${p.to}`);
+                          return (
+                            <SelectItem
+                              key={`${p.from}_${p.to}`}
+                              value={`${p.from}_${p.to}`}
+                              disabled={isAlreadyRecorded}
+                              className="text-xs py-2 font-semibold"
+                            >
+                              📅 {p.label} {isAlreadyRecorded ? "(مُسجّل مسبقاً ❌)" : ""}
+                            </SelectItem>
+                          );
+                        })
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
