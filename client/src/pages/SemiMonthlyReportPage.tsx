@@ -558,11 +558,9 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   <Input
                     type="date"
                     disabled={!selectedProjectId}
-                    value={reportDate}
-                    max={new Date().toISOString().split("T")[0]}
+                    value={formatToInputDate(reportDate)}
                     onChange={(e) => setReportDate(e.target.value)}
-                    placeholder="تاريخ التقرير اليوم أو سابق"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 font-medium"
                   />
                 </div>
 
@@ -579,6 +577,9 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                       const [from, to] = val.split("_");
                       setPeriodFrom(from);
                       setPeriodTo(to);
+                      if (!editId) {
+                        setReportDate(to);
+                      }
                     }}
                   >
                     <SelectTrigger className="h-10 border-border/80 bg-background font-semibold text-xs">

@@ -19,6 +19,23 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Building2, User, TrendingUp, TrendingDown, Minus, Calendar, Target, Award, ShieldAlert, BookOpen, Wand2, Layers, Sparkles, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle } from "lucide-react";
 
+const formatToInputDate = (val: any): string => {
+  if (!val) return "";
+  try {
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return "";
+  }
+};
+
 export default function QuarterlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
@@ -82,9 +99,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
   const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [quarter, setQuarter] = useState<string>("Q3");
   const [year, setYear] = useState<string>("2026");
-  const [reportDate, setReportDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [reportDate, setReportDate] = useState<string>(formatToInputDate(new Date()));
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
 
   useEffect(() => {
@@ -97,7 +112,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
         setActualProgress(existingReport.actualProgress);
       }
       if (existingReport.recommendations) setContinuationDecisions(existingReport.recommendations);
-      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+      if (existingReport.reportDate) setReportDate(formatToInputDate(existingReport.reportDate));
     }
   }, [existingReport]);
 
@@ -956,11 +971,9 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                   <Input
                     type="date"
                     disabled={!selectedProjectId}
-                    value={reportDate}
-                    max={new Date().toISOString().split("T")[0]}
+                    value={formatToInputDate(reportDate)}
                     onChange={(e) => setReportDate(e.target.value)}
-                    placeholder="تاريخ التقرير اليوم"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 font-medium"
                   />
                 </div>
 

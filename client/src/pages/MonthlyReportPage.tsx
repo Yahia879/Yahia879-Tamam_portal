@@ -17,6 +17,23 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Calendar, Building2, User, Layers, Sparkles, Wand2, FileSpreadsheet, CheckCircle2, RefreshCw, Save, Eye, Printer, AlertCircle, ArrowRight } from "lucide-react";
 
+const formatToInputDate = (val: any): string => {
+  if (!val) return "";
+  try {
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return "";
+  }
+};
+
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
@@ -77,9 +94,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [projectManager, setProjectManager] = useState<string>("غير محدد");
   const [monthYear, setMonthYear] = useState<string>("2026-07");
-  const [reportDate, setReportDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [reportDate, setReportDate] = useState<string>(formatToInputDate(new Date()));
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
 
   useEffect(() => {
@@ -91,7 +106,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
       if (existingReport.actualProgress !== null && existingReport.actualProgress !== undefined) {
         setActualProgress(existingReport.actualProgress);
       }
-      if (existingReport.reportDate) setReportDate(String(existingReport.reportDate).split("T")[0]);
+      if (existingReport.reportDate) setReportDate(formatToInputDate(existingReport.reportDate));
       if (existingReport.reportPeriodStart) setMonthYear(String(existingReport.reportPeriodStart).substring(0, 7));
       if (existingReport.status) {
         setReportStatus(
@@ -676,11 +691,9 @@ const formatReportsMonthPeriod = (reports: any[]) => {
                   <Input
                     type="date"
                     disabled={!selectedProjectId}
-                    value={reportDate}
-                    max={new Date().toISOString().split("T")[0]}
+                    value={formatToInputDate(reportDate)}
                     onChange={(e) => setReportDate(e.target.value)}
-                    placeholder="تاريخ التقرير اليوم"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 font-medium"
                   />
                 </div>
 

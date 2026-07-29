@@ -15,6 +15,23 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Building2, User, Calendar, FileText, CheckCircle2, Eye, Target, Save, Printer, AlertCircle } from "lucide-react";
 
+const formatToInputDate = (val: any): string => {
+  if (!val) return "";
+  try {
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+      return val.trim();
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return "";
+  }
+};
+
 export default function VisitReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
@@ -57,9 +74,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
   }, [dbProjectsData]);
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [visitDate, setVisitDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
-  );
+  const [visitDate, setVisitDate] = useState<string>(formatToInputDate(new Date()));
   const [visitorName, setVisitorName] = useState<string>(
     user?.name || "مفتش ميداني"
   );
@@ -70,7 +85,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
     if (existingReport) {
       if (existingReport.projectId) setSelectedProjectId(String(existingReport.projectId));
       if (existingReport.challenges) setNotes(existingReport.challenges.replace(/^الملاحظات:\s*/, ""));
-      if (existingReport.reportDate) setVisitDate(String(existingReport.reportDate).split("T")[0]);
+      if (existingReport.reportDate) setVisitDate(formatToInputDate(existingReport.reportDate));
     }
   }, [existingReport]);
 
@@ -219,11 +234,9 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                   <Input
                     type="date"
                     disabled={!selectedProjectId}
-                    value={visitDate}
-                    max={new Date().toISOString().split("T")[0]}
+                    value={formatToInputDate(visitDate)}
                     onChange={(e) => setVisitDate(e.target.value)}
-                    placeholder="تاريخ الزيارة اليوم أو سابق"
-                    className="h-10 border-border/80"
+                    className="h-10 border-border/80 font-medium"
                   />
                 </div>
 

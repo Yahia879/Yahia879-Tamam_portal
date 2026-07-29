@@ -36,6 +36,21 @@ import {
 } from "lucide-react";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 
+const formatDateArabic = (dateVal: any): string => {
+  if (!dateVal) return "—";
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    return d.toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return String(dateVal);
+  }
+};
+
 export default function ProjectReportsHubPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -103,7 +118,7 @@ export default function ProjectReportsHubPage() {
         type: typeLabel,
         typeKey: typeKey,
         project: r.projectName || "مشروع غير محدد",
-        date: r.reportDate ? String(r.reportDate).split("T")[0] : "",
+        date: formatDateArabic(r.reportDate),
         rag: ragLabel,
         status: statusLabel,
         raw: r,
