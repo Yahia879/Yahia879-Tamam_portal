@@ -1172,7 +1172,8 @@ export const progressReports = mysqlTable("progress_reports", {
   budgetSpent: decimal("budgetSpent", { precision: 15, scale: 2 }).default("0"), // المبلغ المصروف
   budgetRemaining: decimal("budgetRemaining", { precision: 15, scale: 2 }).default("0"), // المبلغ المتبقي
   
-  // المرفقات
+  // المرفقات والمعالم
+  milestones: longtext("milestones"), // قائمة المعالم المنجزة
   attachments: longtext("attachments"), // قائمة المرفقات
   photos: longtext("photos"), // صور الموقع
   

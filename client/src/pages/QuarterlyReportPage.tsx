@@ -475,18 +475,11 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     setSelectedProjectId(projId);
     setCumulativeBudget(0);
     setCumulativeSpent(0);
+    setQuarterMilestones([]);
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
-      if (proj.milestones && Array.isArray(proj.milestones) && proj.milestones.length > 0) {
-        const formatted = proj.milestones.map((m: any) => ({
-          title: m.title || m.name || "",
-          date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
-          status: m.status || "جارٍ",
-        }));
-        setQuarterMilestones(formatted);
-      }
     }
   };
 
@@ -764,22 +757,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                                 }
                               });
 
-                              if (combinedMilestones.length === 0) {
-                                const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
-                                if (proj && proj.milestones && Array.isArray(proj.milestones)) {
-                                  proj.milestones.forEach((m: any) => {
-                                    combinedMilestones.push({
-                                      title: m.title || m.name || "",
-                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
-                                      status: m.status || "جارٍ",
-                                    });
-                                  });
-                                }
-                              }
-
-                              if (combinedMilestones.length > 0) {
-                                setQuarterMilestones(combinedMilestones);
-                              }
+                              setQuarterMilestones(combinedMilestones);
 
                               setIsAggregated(true);
                               toast.success(`تم ربط وتجميع بيانات التقارير الشهرية والمعالم بنجاح للفترة (${block.quarterTitle})!`);

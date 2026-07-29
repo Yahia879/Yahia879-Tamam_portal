@@ -373,6 +373,15 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
 
+  const needEscalation = useMemo(() => {
+    return (
+      ragStatus === "أحمر" ||
+      timeIndicator === "أحمر" ||
+      costIndicator === "أحمر" ||
+      changeIndicator === "أحمر"
+    );
+  }, [ragStatus, timeIndicator, costIndicator, changeIndicator]);
+
   const handleAggregateSemiReports = async () => {
     if (!selectedBlock) {
       toast.error("يرجى اختيار بلوك التقريرين النصف شهريين المتتابعين للبدء بالتجميع");
@@ -478,6 +487,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
           recommendations: `المرحلة الحالية: ${currentPhase}`,
           workSummary: `مؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}\nتقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
+          milestones: milestones.length > 0 ? JSON.stringify(milestones) : undefined,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -502,6 +512,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
         recommendations: `المرحلة الحالية: ${currentPhase}`,
         workSummary: `مؤشر الوقت: ${timeIndicator}\nمؤشر التكلفة: ${costIndicator}\nتصعيد إداري: ${needEscalation ? "نعم" : "لا"}\nتقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
+        milestones: milestones.length > 0 ? JSON.stringify(milestones) : undefined,
       });
 
       await updateStatusMutation.mutateAsync({

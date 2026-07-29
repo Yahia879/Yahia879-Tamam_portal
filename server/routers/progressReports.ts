@@ -139,6 +139,7 @@ export const progressReportsRouter = router({
           recommendations: progressReports.recommendations,
           budgetSpent: progressReports.budgetSpent,
           budgetRemaining: progressReports.budgetRemaining,
+          milestones: progressReports.milestones,
           attachments: progressReports.attachments,
           photos: progressReports.photos,
           status: progressReports.status,
@@ -173,6 +174,7 @@ export const progressReportsRouter = router({
         recommendations: z.string().optional(),
         budgetSpent: z.string().optional(),
         budgetRemaining: z.string().optional(),
+        milestones: z.string().optional(),
         attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
       })
@@ -218,6 +220,7 @@ export const progressReportsRouter = router({
           recommendations: input.recommendations,
           budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
           budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
+          milestones: input.milestones || null,
           attachments: input.attachments || null,
           photos: input.photos ? JSON.stringify(input.photos) : null,
           status: "draft",
@@ -254,6 +257,7 @@ export const progressReportsRouter = router({
         recommendations: z.string().optional(),
         budgetSpent: z.string().optional(),
         budgetRemaining: z.string().optional(),
+        milestones: z.string().optional(),
         attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
       })
@@ -293,6 +297,7 @@ export const progressReportsRouter = router({
         if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
         if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
         if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
+        if (input.milestones !== undefined) updateData.milestones = input.milestones;
         if (input.attachments !== undefined) updateData.attachments = input.attachments;
         if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
 
