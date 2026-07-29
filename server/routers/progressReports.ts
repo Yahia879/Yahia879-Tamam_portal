@@ -88,6 +88,7 @@ export const progressReportsRouter = router({
           challenges: progressReports.challenges,
           nextSteps: progressReports.nextSteps,
           recommendations: progressReports.recommendations,
+          milestones: progressReports.milestones,
           attachments: sql<any>`(CASE WHEN ${progressReports.attachments} IS NOT NULL THEN JSON_EXTRACT(${progressReports.attachments}, '$') ELSE NULL END)`,
           photos: sql<any>`(CASE WHEN ${progressReports.photos} IS NOT NULL THEN JSON_EXTRACT(${progressReports.photos}, '$') ELSE NULL END)`,
           projectName: projects.name,
