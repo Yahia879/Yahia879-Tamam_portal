@@ -392,8 +392,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }
 
     const matchedList = selectedBlock.reports;
-    const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
-    const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
+    const sumActual = matchedList.reduce((acc, r) => acc + (r.actualProgress || 0), 0);
+    const sumPlanned = matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0);
     const targetMonthYear = matchedList[0]?.monthYear || monthYear;
 
     if (selectedBlock.from) setPeriodFrom(selectedBlock.from);
@@ -402,8 +402,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
       setReportDate(selectedBlock.to);
     }
 
-    setActualProgress(avgActual);
-    setPlannedProgress(avgPlanned);
+    setActualProgress(sumActual);
+    setPlannedProgress(sumPlanned);
 
     const combinedMilestones: any[] = [];
     matchedList.forEach((r) => {
@@ -681,10 +681,10 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                                 setReportDate(block.to);
                               }
                               const matchedList = block.reports;
-                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
-                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
-                              setActualProgress(avgActual);
-                              setPlannedProgress(avgPlanned);
+                              const sumActual = matchedList.reduce((acc, r) => acc + (r.actualProgress || 0), 0);
+                              const sumPlanned = matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0);
+                              setActualProgress(sumActual);
+                              setPlannedProgress(sumPlanned);
                               setIsAggregated(true);
                               toast.success(`تم ربط وتجميع بيانات التقريرين النصف شهريين بنجاح!`);
                             }
