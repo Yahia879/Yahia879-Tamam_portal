@@ -54,27 +54,14 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
 
   const projectOptions = useMemo(() => {
     if (dbProjectsData && dbProjectsData.length > 0) {
-      return dbProjectsData
-        .filter((p: any) => {
-          if (p.programType === "bunyan") return true;
-          if (p.startDate && (p.expectedEndDate || p.endDate)) {
-            const start = new Date(p.startDate).getTime();
-            const end = new Date(p.expectedEndDate || p.endDate).getTime();
-            if (!isNaN(start) && !isNaN(end)) {
-              const days = (end - start) / (1000 * 60 * 60 * 24);
-              if (days >= 365) return true;
-            }
-          }
-          return false;
-        })
-        .map((p: any) => ({
-          id: String(p.id),
-          name: p.name || `مشروع رقم ${p.projectNumber}`,
-          manager: p.managerName || "غير محدد",
-          department: "إدارة المشاريع",
-          plannedProgress: p.plannedProgress ?? 0,
-          actualProgress: p.completionPercentage ?? 0,
-        }));
+      return dbProjectsData.map((p: any) => ({
+        id: String(p.id),
+        name: p.name || `مشروع رقم ${p.projectNumber}`,
+        manager: p.managerName || "غير محدد",
+        department: "إدارة المشاريع",
+        plannedProgress: p.plannedProgress ?? 0,
+        actualProgress: p.completionPercentage ?? 0,
+      }));
     }
     return [];
   }, [dbProjectsData]);
@@ -344,47 +331,54 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
   const projectSemiMonthlyPeriods = useMemo(() => {
     if (!selectedProjectObj) return [];
 
-    let start = selectedProjectObj.startDate ? new Date(selectedProjectObj.startDate) : new Date(new Date().getFullYear(), 0, 1);
-    let end = (selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) ? new Date(selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) : new Date(new Date().getFullYear(), 11, 31);
+    const proj: any = selectedProjectObj;
+    const startVal = proj.startDate;
+    const endVal = proj.expectedEndDate || proj.actualEndDate || proj.endDate;
 
-    if (isNaN(start.getTime())) start = new Date(new Date().getFullYear(), 0, 1);
-    if (isNaN(end.getTime())) end = new Date(new Date().getFullYear(), 11, 31);
-    if (end < start) end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+    let start: Date;
+    if (startVal) {
+      const parsedStart = new Date(startVal);
+      if (!isNaN(parsedStart.getTime())) {
+        start = new Date(parsedStart.getFullYear(), parsedStart.getMonth(), parsedStart.getDate());
+      } else {
+        start = new Date(new Date().getFullYear(), 0, 1);
+      }
+    } else {
+      start = new Date(new Date().getFullYear(), 0, 1);
+    }
 
-    const periods: { label: string; from: string; to: string }[] = [];
-    const monthNames = [
-      "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-      "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-    ];
+    let end: Date;
+    if (endVal) {
+      const parsedEnd = new Date(endVal);
+      if (!isNaN(parsedEnd.getTime()) && parsedEnd >= start) {
+        end = new Date(parsedEnd.getFullYear(), parsedEnd.getMonth(), parsedEnd.getDate());
+      } else {
+        end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
 
-    let curr = new Date(start.getFullYear(), start.getMonth(), 1);
-    const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    const periods: { label: string; from: string; to: string; periodNum: number }[] = [];
+    let currStart = new Date(start);
+    let periodNum = 1;
 
-    while (curr <= lastMonth) {
-      const year = curr.getFullYear();
-      const monthIdx = curr.getMonth();
-      const monthName = monthNames[monthIdx];
-      const monthStr = String(monthIdx + 1).padStart(2, "0");
+    // تقسيم زمن المشروع إجبارياً إلى فترات متتالية 15 يوماً من تاريخ البدأ الفعلي
+    while (currStart <= end && periodNum <= 48) {
+      const currEnd = new Date(currStart.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const fromStr = formatToInputDate(currStart);
+      const toStr = formatToInputDate(currEnd);
 
-      const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
-
-      const from1 = `${year}-${monthStr}-01`;
-      const to1 = `${year}-${monthStr}-15`;
       periods.push({
-        label: `النصف الأول من ${monthName} ${year} (01 - 15 ${monthName})`,
-        from: from1,
-        to: to1,
+        label: `الفترة ${periodNum} (من ${fromStr} إلى ${toStr} - 15 يوماً)`,
+        from: fromStr,
+        to: toStr,
+        periodNum,
       });
 
-      const from2 = `${year}-${monthStr}-16`;
-      const to2 = `${year}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
-      periods.push({
-        label: `النصف الثاني من ${monthName} ${year} (16 - ${daysInMonth} ${monthName})`,
-        from: from2,
-        to: to2,
-      });
-
-      curr = new Date(year, monthIdx + 1, 1);
+      // تبدأ الفترة التالية مباشرة بعد انتهاء الأولى (اليوم الـ 16)
+      currStart = new Date(currStart.getTime() + 15 * 24 * 60 * 60 * 1000);
+      periodNum++;
     }
 
     return periods;
@@ -537,7 +531,7 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
                   </Select>
                   {selectedProjectObj && (
                     <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-                      المده المعتمدة للمشروع: من <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate(selectedProjectObj.startDate) || "بداية المشروع"}</strong> إلى <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate(selectedProjectObj.expectedEndDate || selectedProjectObj.endDate) || "نهاية المشروع"}</strong> (تُقسم آلياً على شرائح 15 يوماً).
+                      المده المعتمدة للمشروع: من <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate((selectedProjectObj as any).startDate) || "بداية المشروع"}</strong> إلى <strong className="text-teal-700 dark:text-teal-400">{formatToInputDate((selectedProjectObj as any).expectedEndDate || (selectedProjectObj as any).actualEndDate || (selectedProjectObj as any).endDate) || "نهاية المشروع"}</strong> (تُقسم آلياً على شرائح 15 يوماً).
                     </p>
                   )}
                 </div>
