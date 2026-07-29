@@ -127,16 +127,25 @@ export default function ProjectReportsHubPage() {
       const titleLower = (r.title || "").toLowerCase();
       const reportNumUpper = (r.reportNumber || "").toUpperCase();
 
+      let diffDays = 0;
+      if (r.reportPeriodStart && r.reportPeriodEnd) {
+        const start = new Date(r.reportPeriodStart);
+        const end = new Date(r.reportPeriodEnd);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        }
+      }
+
       if (titleLower.includes("زيارة") || titleLower.includes("visit") || reportNumUpper.includes("VISIT")) {
         typeKey = "visit";
         typeLabel = "تقرير زيارة";
-      } else if (titleLower.includes("ربع") || titleLower.includes("quarterly") || reportNumUpper.includes("Q")) {
+      } else if (titleLower.includes("ربع") || titleLower.includes("quarterly") || reportNumUpper.includes("Q") || (diffDays >= 70 && diffDays <= 110)) {
         typeKey = "quarterly";
         typeLabel = "تقرير ربعي";
-      } else if (titleLower.includes("نصف") || titleLower.includes("semi") || reportNumUpper.includes("SEMI")) {
+      } else if (titleLower.includes("نصف") || titleLower.includes("semi") || reportNumUpper.includes("SEMI") || (diffDays >= 10 && diffDays <= 20)) {
         typeKey = "semi-monthly";
         typeLabel = "تقرير نصف شهري";
-      } else if (titleLower.includes("شهري") || titleLower.includes("monthly") || reportNumUpper.includes("MONTH")) {
+      } else if (titleLower.includes("شهري") || titleLower.includes("monthly") || reportNumUpper.includes("MONTH") || (diffDays >= 25 && diffDays <= 35)) {
         typeKey = "monthly";
         typeLabel = "تقرير شهري";
       }

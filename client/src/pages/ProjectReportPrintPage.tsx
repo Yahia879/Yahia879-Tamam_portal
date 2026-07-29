@@ -145,6 +145,15 @@ export default function ProjectReportPrintPage() {
   const contractAmount = parseFloat(contract?.amount || "0");
   const orgLocation = [orgSettings?.city, orgSettings?.address].filter(Boolean).join(" - ") || "المملكة العربية السعودية";
 
+  const periodText = (() => {
+    if (data.reportPeriodStart && data.reportPeriodEnd) {
+      const s = formatGregorianDate(new Date(data.reportPeriodStart));
+      const e = formatGregorianDate(new Date(data.reportPeriodEnd));
+      return `من ${s} إلى ${e}`;
+    }
+    return "فترة سارية التغطية";
+  })();
+
   return (
     <>
       {/* Print Styles Matching /progress-reports/12/print */}
@@ -276,7 +285,9 @@ export default function ProjectReportPrintPage() {
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الموقع/المدينة:</td>
-                        <td className="py-2.5 px-3 text-foreground" colSpan={3}>{orgLocation}</td>
+                        <td className="py-2.5 px-3 text-foreground">{orgLocation}</td>
+                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">فترة التقرير:</td>
+                        <td className="py-2.5 px-3 font-bold text-[#1a5f4a]">{periodText}</td>
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">مُعدّ التقرير:</td>

@@ -114,8 +114,8 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
             currentPhase: arabicPhase,
             plannedProgress: p.plannedProgress ?? 0,
             actualProgress: p.completionPercentage ?? 0,
-            cumulativeBudget: Number(p.budget) || 3500000,
-            cumulativeSpent: Number(p.actualCost) || 2450000,
+            cumulativeBudget: Number(p.budget) || 0,
+            cumulativeSpent: Number(p.actualCost) || 0,
             milestones: parsedMilestones,
           };
         });
@@ -135,6 +135,8 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
   const selectedProjectObj = useMemo(() => {
     return dbProjectsData?.find((p: any) => String(p.id) === String(selectedProjectId));
   }, [dbProjectsData, selectedProjectId]);
+
+  const selectedProjName = selectedProjectObj?.name || "المشروع";
 
   const existingProjectReportPeriods = useMemo(() => {
     if (!dbReports || !selectedProjectId) return new Set<string>();
@@ -259,41 +261,30 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     return dbReports
       .filter((r) => {
         if (Number(r.projectId) !== Number(selectedProjectId)) return false;
-        const titleLower = r.title.toLowerCase();
+        const titleLower = (r.title || "").toLowerCase();
         const isMonthly = (titleLower.includes("شهري") || titleLower.includes("monthly"));
         const isSemi = (titleLower.includes("نصف") || titleLower.includes("semi"));
         return isMonthly && !isSemi;
       })
       .map((r) => {
-        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
-        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
-        const monthYear = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : "");
-        
-        let qVal = "";
-        let yVal = "";
-        if (monthYear && monthYear.includes("-")) {
-          const parts = monthYear.split("-");
-          yVal = parts[0];
-          const m = parseInt(parts[1], 10);
-          if (m >= 1 && m <= 3) qVal = "Q1";
-          else if (m >= 4 && m <= 6) qVal = "Q2";
-          else if (m >= 7 && m <= 9) qVal = "Q3";
-          else if (m >= 10 && m <= 12) qVal = "Q4";
-        }
+        const rawStart = r.reportPeriodStart || r.reportDate;
+        const rawEnd = r.reportPeriodEnd || r.reportDate;
+        const startIso = rawStart ? formatToInputDate(rawStart) : "";
+        const endIso = rawEnd ? formatToInputDate(rawEnd) : "";
+        const startStr = startIso ? formatDateToReadableArabic(startIso) : "";
+        const endStr = endIso ? formatDateToReadableArabic(endIso) : "";
 
         return {
           id: String(r.id),
-          title: r.title,
+          title: r.title || `تقرير شهري - ${startStr}`,
           projectId: String(r.projectId),
           actualProgress: r.actualProgress || 0,
           plannedProgress: r.plannedProgress || 0,
-          cumulativeBudget: Number(r.budgetSpent) || 0,
-          cumulativeSpent: Number(r.budgetSpent) || 0,
+          reportDate: r.reportDate,
+          reportPeriodStart: r.reportPeriodStart,
+          reportPeriodEnd: r.reportPeriodEnd,
+          period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
           milestones: [],
-          monthYear,
-          quarter: qVal,
-          year: yVal,
-          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
         };
       });
   }, [dbReports, selectedProjectId]);
@@ -303,39 +294,28 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     return dbReports
       .filter((r) => {
         if (Number(r.projectId) !== Number(selectedProjectId)) return false;
-        const titleLower = r.title.toLowerCase();
-        return (titleLower.includes("نصف") || titleLower.includes("semi")) && (titleLower.includes("شهري") || titleLower.includes("monthly"));
+        const titleLower = (r.title || "").toLowerCase();
+        return (titleLower.includes("نصف") || titleLower.includes("semi"));
       })
       .map((r) => {
-        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
-        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
-        const monthYear = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : "");
-        
-        let qVal = "";
-        let yVal = "";
-        if (monthYear && monthYear.includes("-")) {
-          const parts = monthYear.split("-");
-          yVal = parts[0];
-          const m = parseInt(parts[1], 10);
-          if (m >= 1 && m <= 3) qVal = "Q1";
-          else if (m >= 4 && m <= 6) qVal = "Q2";
-          else if (m >= 7 && m <= 9) qVal = "Q3";
-          else if (m >= 10 && m <= 12) qVal = "Q4";
-        }
+        const rawStart = r.reportPeriodStart || r.reportDate;
+        const rawEnd = r.reportPeriodEnd || r.reportDate;
+        const startIso = rawStart ? formatToInputDate(rawStart) : "";
+        const endIso = rawEnd ? formatToInputDate(rawEnd) : "";
+        const startStr = startIso ? formatDateToReadableArabic(startIso) : "";
+        const endStr = endIso ? formatDateToReadableArabic(endIso) : "";
 
         return {
           id: String(r.id),
-          title: r.title,
+          title: r.title || `تقرير نصف شهري - ${startStr}`,
           projectId: String(r.projectId),
           actualProgress: r.actualProgress || 0,
           plannedProgress: r.plannedProgress || 0,
-          cumulativeBudget: Number(r.budgetSpent) || 0,
-          cumulativeSpent: Number(r.budgetSpent) || 0,
+          reportDate: r.reportDate,
+          reportPeriodStart: r.reportPeriodStart,
+          reportPeriodEnd: r.reportPeriodEnd,
+          period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
           milestones: [],
-          monthYear,
-          quarter: qVal,
-          year: yVal,
-          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
         };
       });
   }, [dbReports, selectedProjectId]);
@@ -343,123 +323,89 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
   const [selectedMonthlyBlockKey, setSelectedMonthlyBlockKey] = useState<string>("");
   const [selectedSemiBlockKey, setSelectedSemiBlockKey] = useState<string>("");
 
-  // التقارير الربعية المسجلة سابقاً لهذا المشروع
-  const existingQuarterlyReportKeys = useMemo(() => {
-    if (!dbReports || !selectedProjectId) return new Set<string>();
-    const keys = new Set<string>();
-    dbReports.forEach((r) => {
-      if (Number(r.projectId) === Number(selectedProjectId)) {
-        const titleLower = r.title.toLowerCase();
-        const isQuarterly = titleLower.includes("ربعي") || titleLower.includes("quarterly");
-        if (isQuarterly) {
-          if (r.challenges && r.challenges.includes("الربع: ")) {
-            const qMatch = r.challenges.match(/الربع:\s*(Q\d)/);
-            const yMatch = r.challenges.match(/السنة:\s*(\d{4})/);
-            if (qMatch && yMatch) {
-              keys.add(`${qMatch[1]}_${yMatch[1]}`);
-            }
-          }
-        }
-      }
-    });
-    return keys;
-  }, [dbReports, selectedProjectId]);
-
-const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
-  const cleanQ = qStr.replace(/[^0-9]/g, "");
-  const qMap: Record<string, string> = {
-    "1": "الربع الأول (يناير - مارس)",
-    "2": "الربع الثاني (أبريل - يونيو)",
-    "3": "الربع الثالث (يوليو - سبتمبر)",
-    "4": "الربع الرابع (أكتوبر - ديسمبر)",
-  };
-  const text = qMap[cleanQ] || `الربع ${qStr}`;
-  return `${text} ${yearStr}`;
-};
-
-  // تقسيم التقارير الشهرية إلى فترات ربعية (كل فترة تتضمن 3 تقارير شهرية متتابعة للربع)
+  // تقسيم التقارير الشهرية إلى فترات ربعية (كل فترة تتضمن 3 تقارير شهرية للربع)
   const quarterMonthlyBlocks = useMemo(() => {
-    if (!availableMonthlyReports || availableMonthlyReports.length === 0) return [];
+    if (!projectQuarterlyPeriods || projectQuarterlyPeriods.length === 0) return [];
 
-    const groups: Record<string, typeof availableMonthlyReports> = {};
-    availableMonthlyReports.forEach((r) => {
-      const key = `${r.quarter}_${r.year}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(r);
-    });
+    return projectQuarterlyPeriods.map((periodItem, idx) => {
+      const key = `${periodItem.from}_${periodItem.to}`;
+      const matchedReports = (availableMonthlyReports || []).filter((r) => {
+        const rawStart = r.reportPeriodStart || r.reportDate;
+        if (!rawStart) return false;
+        const startIso = formatToInputDate(rawStart);
+        return startIso >= periodItem.from && startIso <= periodItem.to;
+      });
 
-    return Object.entries(groups).map(([key, reports]) => {
-      const [q, y] = key.split("_");
-      const isComplete = reports.length >= 3;
-      const alreadyUsed = existingQuarterlyReportKeys.has(key);
+      const isComplete = matchedReports.length >= 3;
+      const alreadyUsed = existingProjectReportPeriods.has(key);
       const isDisabled = !isComplete || alreadyUsed;
-      const titleDisplay = getQuarterMonthDisplay(q, y);
 
       let statusBadge = "";
       if (alreadyUsed) {
-        statusBadge = `تم إنشاء تقرير ربعي سابقاً لهذا الربع`;
+        statusBadge = `تم تجميع التقرير لهذا الربع سابقاً ❌`;
       } else if (!isComplete) {
-        statusBadge = `غير مكتمل (${reports.length} من أصل 3 تقارير شهرية)`;
+        statusBadge = `غير مكتمل (${matchedReports.length}/3 تقارير شهرية)`;
       } else {
-        statusBadge = `جاهز للتجميع (3 تقارير شهرية مكتملة)`;
+        statusBadge = `جاهز للتجميع (3/3 تقارير شهرية مكتملة) ✓`;
       }
 
       return {
         key,
-        quarter: q,
-        year: y,
-        titleDisplay,
-        reports,
+        index: idx + 1,
+        quarterTitle: periodItem.label,
+        from: periodItem.from,
+        to: periodItem.to,
+        reports: matchedReports,
         isComplete,
         alreadyUsed,
         isDisabled,
         statusBadge,
-        label: `${titleDisplay} - ${statusBadge}`,
+        label: `📅 ${periodItem.label} — ${statusBadge}`,
       };
     });
-  }, [availableMonthlyReports, existingQuarterlyReportKeys]);
+  }, [projectQuarterlyPeriods, availableMonthlyReports, existingProjectReportPeriods]);
 
   // تقسيم التقارير النصف شهرية إلى فترات ربعية (كل فترة تتضمن 6 تقارير نصف شهرية للربع)
   const quarterSemiBlocks = useMemo(() => {
-    if (!availableSemiReports || availableSemiReports.length === 0) return [];
+    if (!projectQuarterlyPeriods || projectQuarterlyPeriods.length === 0) return [];
 
-    const groups: Record<string, typeof availableSemiReports> = {};
-    availableSemiReports.forEach((r) => {
-      const key = `${r.quarter}_${r.year}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(r);
-    });
+    return projectQuarterlyPeriods.map((periodItem, idx) => {
+      const key = `${periodItem.from}_${periodItem.to}`;
+      const matchedReports = (availableSemiReports || []).filter((r) => {
+        const rawStart = r.reportPeriodStart || r.reportDate;
+        if (!rawStart) return false;
+        const startIso = formatToInputDate(rawStart);
+        return startIso >= periodItem.from && startIso <= periodItem.to;
+      });
 
-    return Object.entries(groups).map(([key, reports]) => {
-      const [q, y] = key.split("_");
-      const isComplete = reports.length >= 6;
-      const alreadyUsed = existingQuarterlyReportKeys.has(key);
+      const isComplete = matchedReports.length >= 6;
+      const alreadyUsed = existingProjectReportPeriods.has(key);
       const isDisabled = !isComplete || alreadyUsed;
-      const titleDisplay = getQuarterMonthDisplay(q, y);
 
       let statusBadge = "";
       if (alreadyUsed) {
-        statusBadge = `تم إنشاء تقرير ربعي سابقاً لهذا الربع`;
+        statusBadge = `تم تجميع التقرير لهذا الربع سابقاً ❌`;
       } else if (!isComplete) {
-        statusBadge = `غير مكتمل (${reports.length} من أصل 6 تقارير نصف شهرية)`;
+        statusBadge = `غير مكتمل (${matchedReports.length}/6 تقارير نصف شهرية)`;
       } else {
-        statusBadge = `جاهز للتجميع (6 تقارير نصف شهرية مكتملة)`;
+        statusBadge = `جاهز للتجميع (6/6 تقارير نصف شهرية مكتملة) ✓`;
       }
 
       return {
         key,
-        quarter: q,
-        year: y,
-        titleDisplay,
-        reports,
+        index: idx + 1,
+        quarterTitle: periodItem.label,
+        from: periodItem.from,
+        to: periodItem.to,
+        reports: matchedReports,
         isComplete,
         alreadyUsed,
         isDisabled,
         statusBadge,
-        label: `${titleDisplay} - ${statusBadge}`,
+        label: `📅 ${periodItem.label} — ${statusBadge}`,
       };
     });
-  }, [availableSemiReports, existingQuarterlyReportKeys]);
+  }, [projectQuarterlyPeriods, availableSemiReports, existingProjectReportPeriods]);
 
   const selectedMonthlyBlock = useMemo(() => {
     return quarterMonthlyBlocks.find((b) => b.key === selectedMonthlyBlockKey);
@@ -483,145 +429,10 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
 
   const [quarterMilestones, setQuarterMilestones] = useState<Record<string, any>[]>([]);
 
-  const [cumulativeSpent, setCumulativeSpent] = useState<number>(projectOptions[0]?.cumulativeSpent || 2450000);
-  const [cumulativeBudget, setCumulativeBudget] = useState<number>(projectOptions[0]?.cumulativeBudget || 3500000);
+  const [cumulativeSpent, setCumulativeSpent] = useState<number>(0);
+  const [cumulativeBudget, setCumulativeBudget] = useState<number>(0);
 
-  const handleAggregateFromMonthly = async () => {
-    if (!selectedMonthlyBlock) {
-      toast.error("يرجى اختيار بلوك التقارير الشهرية للربع للبدء بالتجميع");
-      return;
-    }
 
-    if (selectedMonthlyBlock.alreadyUsed) {
-      toast.error(`لقد تم إنشاء تقرير ربعي سابقاً للربع ${selectedMonthlyBlock.quarter} لعام ${selectedMonthlyBlock.year}. لا يمكن تكرار التجميع لنفس الربع.`);
-      return;
-    }
-
-    if (!selectedMonthlyBlock.isComplete) {
-      toast.error(
-        `لا يمكن تجميع التقرير الربعي: يلزم توفر 3 تقارير شهرية مكتملة لهذا الربع (متوفر ${selectedMonthlyBlock.reports.length} فقط).`
-      );
-      return;
-    }
-
-    const autoMatchedMonthlies = selectedMonthlyBlock.reports;
-    const avgActual = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedMonthlies.length);
-    const avgPlanned = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedMonthlies.length);
-
-    setActualProgress(avgActual);
-    setPlannedProgress(avgPlanned);
-    setQuarter(selectedMonthlyBlock.quarter);
-    setYear(selectedMonthlyBlock.year);
-
-    const latestBudget = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeBudget || cumulativeBudget;
-    const latestSpent = autoMatchedMonthlies[autoMatchedMonthlies.length - 1]?.cumulativeSpent || cumulativeSpent;
-    setCumulativeBudget(latestBudget);
-    setCumulativeSpent(latestSpent);
-
-    const combinedMilestones: any[] = [];
-    autoMatchedMonthlies.forEach((r) => {
-      if (r.milestones) combinedMilestones.push(...r.milestones);
-    });
-    if (combinedMilestones.length > 0) {
-      setQuarterMilestones(combinedMilestones);
-    }
-
-    setIsAggregated(true);
-
-    // إنشاء التقرير الربعي آلياً بقيد الاعتماد والتوجه للخارج
-    try {
-      setIsSubmitting(true);
-      const res = await createMutation.mutateAsync({
-        projectId: Number(selectedProjectId),
-        title: `التقرير الربعي - ${selectedProjName}`,
-        reportDate: reportDate || new Date().toISOString().split("T")[0],
-        plannedProgress: avgPlanned,
-        actualProgress: avgActual,
-        overallProgress: avgActual,
-        challenges: `الربع: ${selectedMonthlyBlock.quarter}\nالسنة: ${selectedMonthlyBlock.year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
-        recommendations: continuationDecisions,
-        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
-      });
-
-      await updateStatusMutation.mutateAsync({
-        id: res.id,
-        status: "submitted",
-      });
-
-      toast.success(`تم إنشاء وتجميع التقرير الربعي بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
-      setLocation("/project-reports");
-    } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الربعي");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAggregateFromSemi = async () => {
-    if (!selectedSemiBlock) {
-      toast.error("يرجى اختيار بلوك التقارير النصف شهرية للربع للبدء بالتجميع");
-      return;
-    }
-
-    if (selectedSemiBlock.alreadyUsed) {
-      toast.error(`لقد تم إنشاء تقرير ربعي سابقاً للربع ${selectedSemiBlock.quarter} لعام ${selectedSemiBlock.year}. لا يمكن تكرار التجميع لنفس الربع.`);
-      return;
-    }
-
-    if (!selectedSemiBlock.isComplete) {
-      toast.error(
-        `لا يمكن تجميع التقرير الربعي: يلزم توفر 6 تقارير نصف شهرية مكتملة لهذا الربع (متوفر ${selectedSemiBlock.reports.length} فقط).`
-      );
-      return;
-    }
-
-    const autoMatchedSemis = selectedSemiBlock.reports;
-    const avgActual = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedSemis.length);
-    const avgPlanned = Math.round(autoMatchedSemis.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedSemis.length);
-
-    setActualProgress(avgActual);
-    setPlannedProgress(avgPlanned);
-    setQuarter(selectedSemiBlock.quarter);
-    setYear(selectedSemiBlock.year);
-
-    const combinedMilestones: any[] = [];
-    autoMatchedSemis.forEach((r) => {
-      if (r.milestones) combinedMilestones.push(...r.milestones);
-    });
-    if (combinedMilestones.length > 0) {
-      setQuarterMilestones(combinedMilestones);
-    }
-
-    setIsAggregated(true);
-
-    // إنشاء التقرير الربعي آلياً بقيد الاعتماد والتوجه للخارج
-    try {
-      setIsSubmitting(true);
-      const res = await createMutation.mutateAsync({
-        projectId: Number(selectedProjectId),
-        title: `التقرير الربعي - ${selectedProjName}`,
-        reportDate: reportDate || new Date().toISOString().split("T")[0],
-        plannedProgress: avgPlanned,
-        actualProgress: avgActual,
-        overallProgress: avgActual,
-        challenges: `الربع: ${selectedSemiBlock.quarter}\nالسنة: ${selectedSemiBlock.year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
-        recommendations: continuationDecisions,
-        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
-      });
-
-      await updateStatusMutation.mutateAsync({
-        id: res.id,
-        status: "submitted",
-      });
-
-      toast.success(`تم إنشاء وتجميع التقرير الربعي بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
-      setLocation("/project-reports");
-    } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الربعي");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const financialCommitmentPct = useMemo(() => {
     if (!cumulativeBudget || cumulativeBudget === 0) return 0;
@@ -634,19 +445,10 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
 
   const [overallTrend, setOverallTrend] = useState<"متحسّن" | "ثابت" | "متراجع">("متحسّن");
 
-  const [strategicAlignment, setStrategicAlignment] = useState<string>(
-    "يتوافق المشروع بشكل مباشر مع المبادرة الاستراتيجية لعناية ورعاية مساجد المنطقة وحوكمة الصيانة."
-  );
-
-  const [realizedImpact, setRealizedImpact] = useState<string>(
-    "تحسين تجربة المصلين ورفع كفاءة استهلاك الطاقة والمياه بنسبة 35% خلال الربع."
-  );
-
+  const [strategicAlignment, setStrategicAlignment] = useState<string>("");
+  const [realizedImpact, setRealizedImpact] = useState<string>("");
   const [lessonsLearned, setLessonsLearned] = useState<string>("");
-
-  const [continuationDecisions, setContinuationDecisions] = useState<string>(
-    "التوصية بالاستمرار في تنفيذ المرحلة التالية مع ضخ الدفعة المالية المستحقة وتعديل جدول الضمان."
-  );
+  const [continuationDecisions, setContinuationDecisions] = useState<string>("");
 
   const [needEscalation, setNeedEscalation] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -657,13 +459,12 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
 
   const handleProjectSelect = (projId: string) => {
     setSelectedProjectId(projId);
+    setCumulativeBudget(0);
+    setCumulativeSpent(0);
     const proj = projectOptions.find((p) => String(p.id) === String(projId));
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
-      if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
-      if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
     }
   };
 
@@ -672,13 +473,8 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
     if (proj) {
       if (proj.manager) setProjectManager(proj.manager);
       if (proj.currentPhase) setCurrentPhase(proj.currentPhase);
-      if (proj.actualProgress !== undefined) setActualProgress(proj.actualProgress);
-      if (proj.cumulativeBudget !== undefined) setCumulativeBudget(proj.cumulativeBudget);
-      if (proj.cumulativeSpent !== undefined) setCumulativeSpent(proj.cumulativeSpent);
     }
   }, [projectOptions, selectedProjectId]);
-
-  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   useEffect(() => {
     const hasRed =
@@ -719,16 +515,19 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
         statusEnum = "approved";
       }
 
+      const safeActual = Math.min(100, Math.max(0, Number(actualProgress) || 0));
+      const safePlanned = Math.min(100, Math.max(0, Number(plannedProgress) || 0));
+
       if (editId) {
         await updateMutation.mutateAsync({
           id: editId,
           title: `التقرير الربعي - ${selectedProjName}`,
-          plannedProgress: plannedProgress,
-          actualProgress: actualProgress,
-          overallProgress: actualProgress,
-          challenges: `الربع: ${quarter}\nالسنة: ${year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+          plannedProgress: safePlanned,
+          actualProgress: safeActual,
+          overallProgress: safeActual,
+          challenges: `فترة التقرير الربعي: من ${periodFrom} إلى ${periodTo}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
           recommendations: continuationDecisions,
-          workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+          workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -745,12 +544,14 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
         projectId: Number(selectedProjectId),
         title: `التقرير الربعي - ${selectedProjName}`,
         reportDate: reportDate || new Date().toISOString().split("T")[0],
-        plannedProgress: plannedProgress,
-        actualProgress: actualProgress,
-        overallProgress: actualProgress,
-        challenges: `الربع: ${quarter}\nالسنة: ${year}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
+        reportPeriodStart: periodFrom || undefined,
+        reportPeriodEnd: periodTo || undefined,
+        plannedProgress: safePlanned,
+        actualProgress: safeActual,
+        overallProgress: safeActual,
+        challenges: `فترة التقرير الربعي: من ${periodFrom} إلى ${periodTo}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
         recommendations: continuationDecisions,
-        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nالاتجاه العام: ${overallTrend}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+        workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
       });
 
       await updateStatusMutation.mutateAsync({
@@ -893,7 +694,7 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">اختر بلوك التقارير الشهرية المكتملة للربع لتوليد وتجميع التقرير الربعي:</span>
+                          <span className="text-xs font-bold text-foreground">اختر ربع المشروع التجميعي (سيقوم النظام تلقائياً بالربط مع الـ 3 تقارير الشهرية لنفس المشروع):</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -904,15 +705,36 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر الفترات الشهرية المتتابعة للربع</Label>
-                        <Select value={selectedMonthlyBlockKey} onValueChange={setSelectedMonthlyBlockKey} disabled={!selectedProjectId}>
+                        <Label className="text-[11px] font-semibold">اختر فترة الربع التجميعية لهذا المشروع (محددة برقم الربع والمرحلة)</Label>
+                        <Select
+                          value={selectedMonthlyBlockKey}
+                          onValueChange={(key) => {
+                            setSelectedMonthlyBlockKey(key);
+                            const block = quarterMonthlyBlocks.find((b) => b.key === key);
+                            if (block && block.isComplete && !block.isDisabled) {
+                              if (block.from) setPeriodFrom(block.from);
+                              if (block.to) {
+                                setPeriodTo(block.to);
+                                setReportDate(block.to);
+                              }
+                              const matchedList = block.reports;
+                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
+                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
+                              setActualProgress(avgActual);
+                              setPlannedProgress(avgPlanned);
+                              setIsAggregated(true);
+                              toast.success(`تم ربط وتجميع بيانات التقارير الشهرية بنجاح للفترة (${block.quarterTitle})!`);
+                            }
+                          }}
+                          disabled={!selectedProjectId}
+                        >
                           <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
-                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الربع الشهرية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الربع التجميعية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
                             {quarterMonthlyBlocks.length === 0 ? (
                               <SelectItem value="none" disabled className="text-xs">
-                                لا يوجد تقارير شهرية مسجلة لهذا المشروع
+                                لا يوجد فترات ربعية مكتملة أو تقارير شهرية لهذا المشروع
                               </SelectItem>
                             ) : (
                               quarterMonthlyBlocks.map((b) => (
@@ -928,7 +750,7 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       {selectedMonthlyBlock && (
                         <div className="p-3.5 rounded-xl bg-card border border-teal-600/30 space-y-2.5">
                           <div className="flex items-center justify-between text-xs font-bold text-foreground border-b border-border/40 pb-2">
-                            <span>{selectedMonthlyBlock.titleDisplay}</span>
+                            <span>{selectedMonthlyBlock.quarterTitle}</span>
                             <Badge className={selectedMonthlyBlock.alreadyUsed ? "bg-red-500/15 text-red-700" : selectedMonthlyBlock.isComplete ? "bg-emerald-600 text-white" : "bg-amber-500/15 text-amber-700"}>
                               {selectedMonthlyBlock.statusBadge}
                             </Badge>
@@ -949,19 +771,6 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                           </div>
                         </div>
                       )}
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAggregateFromMonthly}
-                          disabled={!selectedMonthlyBlock || selectedMonthlyBlock.isDisabled || !selectedProjectId || isSubmitting}
-                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع وإرسال التقرير الربعي (بقيد الاعتماد)
-                        </Button>
-                      </div>
                     </div>
                   )}
 
@@ -970,7 +779,7 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-4 h-4 text-teal-600" />
-                          <span className="text-xs font-bold text-foreground">اختر الفترات النصف شهرية المكتملة (6 تقارير) لتوليد التقرير الربعي:</span>
+                          <span className="text-xs font-bold text-foreground">اختر ربع المشروع التجميعي (سيقوم النظام تلقائياً بالربط مع الـ 6 تقارير النصف شهرية لنفس المشروع):</span>
                         </div>
                         {isAggregated && (
                           <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] gap-1">
@@ -981,15 +790,36 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر الفترات النصف شهرية للربع</Label>
-                        <Select value={selectedSemiBlockKey} onValueChange={setSelectedSemiBlockKey} disabled={!selectedProjectId}>
+                        <Label className="text-[11px] font-semibold">اختر فترة الربع التجميعية لهذا المشروع (محددة برقم الربع والمرحلة)</Label>
+                        <Select
+                          value={selectedSemiBlockKey}
+                          onValueChange={(key) => {
+                            setSelectedSemiBlockKey(key);
+                            const block = quarterSemiBlocks.find((b) => b.key === key);
+                            if (block && block.isComplete && !block.isDisabled) {
+                              if (block.from) setPeriodFrom(block.from);
+                              if (block.to) {
+                                setPeriodTo(block.to);
+                                setReportDate(block.to);
+                              }
+                              const matchedList = block.reports;
+                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
+                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
+                              setActualProgress(avgActual);
+                              setPlannedProgress(avgPlanned);
+                              setIsAggregated(true);
+                              toast.success(`تم ربط وتجميع بيانات التقارير النصف شهرية بنجاح للفترة (${block.quarterTitle})!`);
+                            }
+                          }}
+                          disabled={!selectedProjectId}
+                        >
                           <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
-                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الأنصاف الشهرية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الربع التجميعية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
                             {quarterSemiBlocks.length === 0 ? (
                               <SelectItem value="none" disabled className="text-xs">
-                                لا يوجد تقارير نصف شهرية مسجلة لهذا المشروع
+                                لا يوجد فترات ربعية مكتملة أو تقارير نصف شهرية لهذا المشروع
                               </SelectItem>
                             ) : (
                               quarterSemiBlocks.map((b) => (
@@ -1005,7 +835,7 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                       {selectedSemiBlock && (
                         <div className="p-3.5 rounded-xl bg-card border border-teal-600/30 space-y-2.5">
                           <div className="flex items-center justify-between text-xs font-bold text-foreground border-b border-border/40 pb-2">
-                            <span>{selectedSemiBlock.titleDisplay}</span>
+                            <span>{selectedSemiBlock.quarterTitle}</span>
                             <Badge className={selectedSemiBlock.alreadyUsed ? "bg-red-500/15 text-red-700" : selectedSemiBlock.isComplete ? "bg-emerald-600 text-white" : "bg-amber-500/15 text-amber-700"}>
                               {selectedSemiBlock.statusBadge}
                             </Badge>
@@ -1026,19 +856,6 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                           </div>
                         </div>
                       )}
-
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAggregateFromSemi}
-                          disabled={!selectedSemiBlock || selectedSemiBlock.isDisabled || !selectedProjectId || isSubmitting}
-                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                          تجميع وإرسال التقرير الربعي (بقيد الاعتماد)
-                        </Button>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1139,9 +956,11 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                   <Input
                     type="number"
                     disabled={!selectedProjectId}
+                    min={0}
+                    max={100}
                     value={plannedProgress === 0 ? "" : plannedProgress}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    onChange={(e) => setPlannedProgress(e.target.value === "" ? 0 : Math.min(100, Math.max(0, Number(e.target.value))))}
                     placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
@@ -1151,9 +970,11 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
                   <Label className="text-xs font-semibold">نسبة الإنجاز الفعلي التراكمية %</Label>
                   <Input
                     type="number"
+                    min={0}
+                    max={100}
                     value={actualProgress === 0 ? "" : actualProgress}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => setActualProgress(e.target.value === "" ? 0 : Number(e.target.value))}
+                    onChange={(e) => setActualProgress(e.target.value === "" ? 0 : Math.min(100, Math.max(0, Number(e.target.value))))}
                     placeholder="0"
                     className="h-10 border-border/80 font-bold"
                   />
@@ -1222,59 +1043,15 @@ const getQuarterMonthDisplay = (qStr: string, yearStr: string) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-teal-600" />
-                  <CardTitle className="text-base font-bold text-foreground">المؤشرات والاتجاه العام</CardTitle>
+                  <CardTitle className="text-base font-bold text-foreground">المؤشرات الأساسية</CardTitle>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-5 space-y-5">
+            <CardContent className="pt-5">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <RagIndicatorSelect label="مؤشر الوقت" disabled={!selectedProjectId} value={timeIndicator} onChange={setTimeIndicator} />
                 <RagIndicatorSelect label="مؤشر التكلفة" disabled={!selectedProjectId} value={costIndicator} onChange={setCostIndicator} />
                 <RagIndicatorSelect label="مؤشر التغيير" disabled={!selectedProjectId} value={changeIndicator} onChange={setChangeIndicator} />
-              </div>
-
-              <div className="p-4 rounded-xl bg-card border border-border/80 flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-xs font-bold text-foreground block">الاتجاه العام للربع (مقارنة بالربع السابق)</Label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    disabled={!selectedProjectId}
-                    variant={overallTrend === "متحسّن" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setOverallTrend("متحسّن")}
-                    className={overallTrend === "متحسّن" ? "bg-emerald-600 text-white font-bold gap-1 text-xs" : "text-xs gap-1"}
-                  >
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    متحسّن (صاعد)
-                  </Button>
-
-                  <Button
-                    type="button"
-                    disabled={!selectedProjectId}
-                    variant={overallTrend === "ثابت" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setOverallTrend("ثابت")}
-                    className={overallTrend === "ثابت" ? "bg-amber-600 text-white font-bold gap-1 text-xs" : "text-xs gap-1"}
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                    ثابت
-                  </Button>
-
-                  <Button
-                    type="button"
-                    disabled={!selectedProjectId}
-                    variant={overallTrend === "متراجع" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setOverallTrend("متراجع")}
-                    className={overallTrend === "متراجع" ? "bg-rose-600 text-white font-bold gap-1 text-xs" : "text-xs gap-1"}
-                  >
-                    <TrendingDown className="w-3.5 h-3.5" />
-                    متراجع (هابط)
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
