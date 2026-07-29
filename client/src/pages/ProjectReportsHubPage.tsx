@@ -91,24 +91,24 @@ export default function ProjectReportsHubPage() {
   const reports = useMemo(() => {
     if (!dbReports) return [];
     return dbReports.map((r) => {
-      let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" = "semi-monthly";
-      let typeLabel = "تقرير نصف شهري";
-      
-      const titleLower = r.title.toLowerCase();
-      if (titleLower.includes("ربع") || titleLower.includes("quarterly") || titleLower.includes("q1") || titleLower.includes("q2") || titleLower.includes("q3") || titleLower.includes("q4")) {
-        typeKey = "quarterly";
-        typeLabel = "تقرير ربعي";
-      } else if (titleLower.includes("شهري") || titleLower.includes("monthly")) {
-        if (titleLower.includes("نصف") || titleLower.includes("semi")) {
-          typeKey = "semi-monthly";
-          typeLabel = "تقرير نصف شهري";
-        } else {
-          typeKey = "monthly";
-          typeLabel = "تقرير شهري";
-        }
-      } else if (titleLower.includes("زيارة") || titleLower.includes("visit")) {
+      let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" = "monthly";
+      let typeLabel = "تقرير شهري";
+
+      const titleLower = (r.title || "").toLowerCase();
+      const reportNumUpper = (r.reportNumber || "").toUpperCase();
+
+      if (titleLower.includes("زيارة") || titleLower.includes("visit") || reportNumUpper.includes("VISIT")) {
         typeKey = "visit";
         typeLabel = "تقرير زيارة";
+      } else if (titleLower.includes("ربع") || titleLower.includes("quarterly") || reportNumUpper.includes("Q")) {
+        typeKey = "quarterly";
+        typeLabel = "تقرير ربعي";
+      } else if (titleLower.includes("نصف") || titleLower.includes("semi") || reportNumUpper.includes("SEMI")) {
+        typeKey = "semi-monthly";
+        typeLabel = "تقرير نصف شهري";
+      } else if (titleLower.includes("شهري") || titleLower.includes("monthly") || reportNumUpper.includes("MONTH")) {
+        typeKey = "monthly";
+        typeLabel = "تقرير شهري";
       }
 
       // حساب RAG بناءً على الفارق بين الإنجاز المخطط والإنجاز الفعلي

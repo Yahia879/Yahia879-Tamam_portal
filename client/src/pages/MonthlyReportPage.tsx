@@ -137,6 +137,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     return projectOptions.find((p) => String(p.id) === String(selectedProjectId));
   }, [projectOptions, selectedProjectId]);
 
+  const selectedProjName = selectedProj?.name || "المشروع";
+
   const existingProjectReportPeriods = useMemo(() => {
     if (!dbReports || !selectedProjectId) return new Set<string>();
     const pid = parseInt(selectedProjectId, 10);
@@ -547,8 +549,8 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
           id: editId,
           title: `التقرير الشهري - ${selectedProjName}`,
           reportDate: reportDate || undefined,
-          reportPeriodStart: periodFrom ? new Date(periodFrom) : undefined,
-          reportPeriodEnd: periodTo ? new Date(periodTo) : undefined,
+          reportPeriodStart: periodFrom || undefined,
+          reportPeriodEnd: periodTo || undefined,
           plannedProgress: plannedProgress,
           actualProgress: actualProgress,
           overallProgress: actualProgress,
@@ -571,8 +573,8 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
         projectId: Number(selectedProjectId),
         title: `التقرير الشهري - ${selectedProjName}`,
         reportDate: reportDate || (periodTo ? periodTo : new Date().toISOString().split("T")[0]),
-        reportPeriodStart: periodFrom ? new Date(periodFrom) : undefined,
-        reportPeriodEnd: periodTo ? new Date(periodTo) : undefined,
+        reportPeriodStart: periodFrom || undefined,
+        reportPeriodEnd: periodTo || undefined,
         plannedProgress: plannedProgress,
         actualProgress: actualProgress,
         overallProgress: actualProgress,
@@ -612,8 +614,6 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
   ];
 
 
-
-  const selectedProjName = projectOptions.find((p) => String(p.id) === String(selectedProjectId))?.name || "";
 
   const content = (
     <div className="space-y-6 animate-in fade-in duration-300" dir="rtl">

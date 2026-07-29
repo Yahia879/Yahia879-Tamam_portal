@@ -7,6 +7,23 @@ import { getDb } from "../db";
 import { progressReports, projects, users } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval } from "./notifications";
 
+const parseDateInput = (val: any): Date | null => {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (trimmed === "") return null;
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  try {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+};
+
 export const progressReportsRouter = router({
   // قائمة تقارير الإنجاز
   list: protectedProcedure
@@ -143,10 +160,9 @@ export const progressReportsRouter = router({
     .input(
       z.object({
         projectId: z.number(),
-        title: z.string(),
-        reportDate: z.string(),
-        reportPeriodStart: z.string().optional(),
-        reportPeriodEnd: z.string().optional(),
+        reportDate: z.union([z.string(), z.date()]),
+        reportPeriodStart: z.union([z.string(), z.date(), z.null()]).optional(),
+        reportPeriodEnd: z.union([z.string(), z.date(), z.null()]).optional(),
         overallProgress: z.number().min(0).max(100).default(0),
         plannedProgress: z.number().min(0).max(100).default(0),
         actualProgress: z.number().min(0).max(100).default(0),
@@ -188,9 +204,9 @@ export const progressReportsRouter = router({
           reportNumber,
           projectId: input.projectId,
           title: input.title,
-          reportDate: new Date(input.reportDate),
-          reportPeriodStart: (input.reportPeriodStart && input.reportPeriodStart.trim() !== "") ? new Date(input.reportPeriodStart) : null,
-          reportPeriodEnd: (input.reportPeriodEnd && input.reportPeriodEnd.trim() !== "") ? new Date(input.reportPeriodEnd) : null,
+          reportDate: parseDateInput(input.reportDate) || new Date(),
+          reportPeriodStart: parseDateInput(input.reportPeriodStart),
+          reportPeriodEnd: parseDateInput(input.reportPeriodEnd),
           overallProgress: input.overallProgress,
           plannedProgress: input.plannedProgress,
           actualProgress: input.actualProgress,
@@ -225,9 +241,9 @@ export const progressReportsRouter = router({
       z.object({
         id: z.number(),
         title: z.string().optional(),
-        reportDate: z.string().optional(),
-        reportPeriodStart: z.string().optional(),
-        reportPeriodEnd: z.string().optional(),
+        reportDate: z.union([z.string(), z.date()]).optional(),
+        reportPeriodStart: z.union([z.string(), z.date(), z.null()]).optional(),
+        reportPeriodEnd: z.union([z.string(), z.date(), z.null()]).optional(),
         overallProgress: z.number().min(0).max(100).optional(),
         plannedProgress: z.number().min(0).max(100).optional(),
         actualProgress: z.number().min(0).max(100).optional(),
@@ -257,14 +273,15 @@ export const progressReportsRouter = router({
         const updateData: any = {};
         
         if (input.title !== undefined) updateData.title = input.title;
-        if (input.reportDate !== undefined && input.reportDate.trim() !== "") {
-          updateData.reportDate = new Date(input.reportDate);
+        if (input.reportDate !== undefined) {
+          const d = parseDateInput(input.reportDate);
+          if (d) updateData.reportDate = d;
         }
         if (input.reportPeriodStart !== undefined) {
-          updateData.reportPeriodStart = (input.reportPeriodStart && input.reportPeriodStart.trim() !== "") ? new Date(input.reportPeriodStart) : null;
+          updateData.reportPeriodStart = parseDateInput(input.reportPeriodStart);
         }
         if (input.reportPeriodEnd !== undefined) {
-          updateData.reportPeriodEnd = (input.reportPeriodEnd && input.reportPeriodEnd.trim() !== "") ? new Date(input.reportPeriodEnd) : null;
+          updateData.reportPeriodEnd = parseDateInput(input.reportPeriodEnd);
         }
         if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
         if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
