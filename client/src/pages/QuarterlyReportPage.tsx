@@ -239,6 +239,13 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
       return;
     }
 
+    if (autoMatchedMonthlies.length < 3) {
+      toast.error(
+        `لا يمكن تجميع التقرير الربعي: يتطلب التقرير الربعي توفر 3 تقارير شهرية مكتملة لهذا الربع والمشروع. المتوفر حالياً: ${autoMatchedMonthlies.length} من أصل 3. يرجى إضافة التقارير الشهرية المتبقية أولاً.`
+      );
+      return;
+    }
+
     const avgActual = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.actualProgress, 0) / autoMatchedMonthlies.length);
     const avgPlanned = Math.round(autoMatchedMonthlies.reduce((acc, r) => acc + r.plannedProgress, 0) / autoMatchedMonthlies.length);
 
@@ -259,12 +266,19 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     }
 
     setIsAggregated(true);
-    toast.success(`تم العثور آلياً على ${autoMatchedMonthlies.length} تقارير شهرية متوفرة لهذا الربع وتوليد التقرير الربعي بنجاح!`);
+    toast.success(`تم العثور على 3 تقارير شهرية وتوليد التقرير الربعي بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
   };
 
   const handleAggregateFromSemi = () => {
     if (!selectedSemi || autoMatchedSemis.length === 0) {
       toast.error("يرجى اختيار تقرير نصف شهري واحد للبدء بالتجميع");
+      return;
+    }
+
+    if (autoMatchedSemis.length < 6) {
+      toast.error(
+        `لا يمكن تجميع التقرير الربعي: يتطلب التقرير الربعي توفر 6 تقارير نصف شهرية مكتملة لهذا الربع والمشروع. المتوفر حالياً: ${autoMatchedSemis.length} من أصل 6. يرجى إضافة التقارير النصف شهرية المتبقية أولاً.`
+      );
       return;
     }
 
@@ -283,7 +297,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     }
 
     setIsAggregated(true);
-    toast.success(`تم العثور آلياً على ${autoMatchedSemis.length} تقارير نصف شهرية للمشروع وتجميع التقرير الربعي بنجاح!`);
+    toast.success(`تم العثور على 6 تقارير نصف شهرية وتجميع التقرير الربعي بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
   };
 
   const financialCommitmentPct = useMemo(() => {
@@ -614,8 +628,8 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                               ))}
                             </div>
                             {autoMatchedMonthlies.length < 3 && (
-                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                                ℹ️ تذكير: متوفر {autoMatchedMonthlies.length} تقارير شهرية فقط لهذا المشروع في هذا الربع، وسيتم تجميع الإنجاز بناءً على المتاح.
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-semibold flex items-center gap-1">
+                                ⚠️ متوفر {autoMatchedMonthlies.length} تقارير شهرية فقط (يلزم توفر 3 تقارير شهرية مكتملة لتجميع التقرير الربعي).
                               </p>
                             )}
                           </div>
@@ -682,7 +696,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                           </div>
 
                           <div className="space-y-1.5 pt-2 border-t border-border/50">
-                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير النصف شهرية المربوطة تلقائياً لهذا المشروع ({autoMatchedSemis.length} متوفرة):</Label>
+                            <Label className="text-[11px] font-semibold text-muted-foreground">التقارير النصف شهرية المربوطة تلقائياً لهذا المشروع ({autoMatchedSemis.length} من أصل 6 متوفرة):</Label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                               {autoMatchedSemis.map((r) => (
                                 <div key={r.id} className="p-2 rounded-md bg-background border border-teal-600/30 text-xs flex items-center justify-between">
@@ -691,6 +705,11 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                                 </div>
                               ))}
                             </div>
+                            {autoMatchedSemis.length < 6 && (
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-semibold flex items-center gap-1">
+                                ⚠️ متوفر {autoMatchedSemis.length} تقارير نصف شهرية فقط (يلزم توفر 6 تقارير نصف شهرية مكتملة لتجميع التقرير الربعي).
+                              </p>
+                            )}
                           </div>
                         </div>
                       )}
