@@ -174,6 +174,13 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }
 
     const matchedList = [selectedSemi, autoMatchedSemi].filter(Boolean) as typeof availableSemiReports;
+    if (matchedList.length < 2) {
+      toast.error(
+        `لا يمكن تجميع التقرير الشهري: يتطلب التقرير الشهري توفر 2 تقارير نصف شهرية مكتملة لهذا الشهر. المتوفر حالياً: 1 تقرير نصف شهري فقط. يرجى إضافة التقرير النصف شهري الآخر أولاً.`
+      );
+      return;
+    }
+
     const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
     const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
 
@@ -192,11 +199,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }
 
     setIsAggregated(true);
-    if (autoMatchedSemi) {
-      toast.success(`تم العثور على التقرير المكمل ودمج بيانات نصفي الشهر بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
-    } else {
-      toast.info(`تم التجميع بناءً على التقرير الوحيد المتاح للمشروع بنجاح (الإنجاز: ${avgActual}%)`);
-    }
+    toast.success(`تم العثور على التقريرين النصف شهريين ودمج البيانات بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
   };
 
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -492,7 +495,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                             </div>
                           ) : (
                             <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                              <span>⚠️ تنبيه: يتوفر تقرير نصف شهري واحد فقط متاح لهذا المشروع من النصف المطلوب. سيتم الاعتماد عليه وتأطير البيانات بناءً عليه.</span>
+                              <span>⚠️ يتوفر تقرير نصف شهري واحد فقط من أصل 2 مطلوبين لتوليد وتجميع التقرير الشهري لهذا الشهر.</span>
                             </div>
                           )}
                         </div>
@@ -507,7 +510,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                           className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          {autoMatchedSemi ? "دمج وتجميع بيانات النصفين تلقائياً" : "تجميع البيانات من التقرير المتاح"}
+                          دمج وتجميع بيانات النصفين تلقائياً
                         </Button>
                       </div>
                     </div>
