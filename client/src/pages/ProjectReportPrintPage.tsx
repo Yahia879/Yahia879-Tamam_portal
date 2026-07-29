@@ -72,6 +72,32 @@ export default function ProjectReportPrintPage() {
     );
   }
 
+  // منع معاينة وطباعة التقرير إذا كان غير معتمد أو توجد بيانات ناقصة
+  if (report && (report.status as string) !== "approved" && (report.status as string) !== "معتمد") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6 text-center" dir="rtl">
+        <div className="bg-white p-8 rounded-2xl border border-border shadow-sm max-w-md w-full space-y-4">
+          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto font-bold text-xl">
+            ⚠️
+          </div>
+          <h2 className="text-lg font-bold text-slate-800">المعاينة والطباعة غير متاحة</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            عذراً، المعاينة وطباعة التقرير متاحة فقط للتقارير المعتمدة التي اكتملت بياناتها. التقرير الحالي بحالة (
+            <span className="font-semibold text-amber-700">{(report.status as string) === "draft" || (report.status as string) === "مسودة" ? "مسودة" : report.status}</span>
+            ).
+          </p>
+          <Button
+            onClick={handleBack}
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl h-10 gap-2 text-xs"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>العودة لتقارير المشاريع</span>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // البيانات المسحوبة أو الاحتياطية
   const reportData = report || {
     id: reportId || 101,

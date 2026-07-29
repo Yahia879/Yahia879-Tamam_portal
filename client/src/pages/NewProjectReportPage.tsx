@@ -213,18 +213,6 @@ export default function NewProjectReportPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setLocation('/project-reports/1/print');
-                  }}
-                  className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
-                >
-                  <Printer className="w-4 h-4 text-teal-600" />
-                  <span>معاينة وطباعة التقرير (PDF)</span>
-                </Button>
-                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep(1)}

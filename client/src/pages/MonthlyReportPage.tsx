@@ -350,19 +350,21 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                     <CardTitle className="text-base font-bold text-foreground">بيانات التقرير والمشروع</CardTitle>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const targetId = selectedProjectId || "1";
-                    setLocation(`/project-reports/${targetId}/print`);
-                  }}
-                  className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
-                >
-                  <Printer className="w-4 h-4 text-teal-600" />
-                  <span>معاينة وطباعة التقرير (PDF)</span>
-                </Button>
+                {reportStatus === "معتمد" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const targetId = selectedProjectId || "1";
+                      setLocation(`/project-reports/${targetId}/print`);
+                    }}
+                    className="gap-2 text-xs font-bold border-teal-600/40 text-teal-700 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/30 h-9 rounded-lg"
+                  >
+                    <Printer className="w-4 h-4 text-teal-600" />
+                    <span>معاينة وطباعة التقرير (PDF)</span>
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">

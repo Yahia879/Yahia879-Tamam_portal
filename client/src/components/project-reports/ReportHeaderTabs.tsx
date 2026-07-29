@@ -144,7 +144,7 @@ export function ReportHeaderTabs({
             </div>
           )}
 
-          {onPrintPreview && (
+          {onPrintPreview && isApproved && (
             <Button
               variant="outline"
               size="sm"

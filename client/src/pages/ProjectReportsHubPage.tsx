@@ -361,12 +361,14 @@ export default function ProjectReportsHubPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="text-right text-xs">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/project-reports/${report.id}/print`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
-                              <Printer className="w-4 h-4 text-teal-600" />
-                              <span>معاينة وطباعة التقرير (PDF)</span>
-                            </Link>
-                          </DropdownMenuItem>
+                          {report.status === "معتمد" && (
+                            <DropdownMenuItem asChild>
+                              <Link href={`/project-reports/${report.id}/print`} className="gap-2 cursor-pointer flex items-center w-full font-bold text-teal-700">
+                                <Printer className="w-4 h-4 text-teal-600" />
+                                <span>معاينة وطباعة التقرير (PDF)</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          )}
                           {report.status === "مسودة" && (
                             <DropdownMenuItem asChild>
                               <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
