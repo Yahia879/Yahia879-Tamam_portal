@@ -952,10 +952,10 @@ export default function SemiMonthlyReportPage({ showLayout = true }: { showLayou
               disabled={!isFormValid || isSubmitting}
               onClick={() => handleSaveDraft("معتمد")}
               className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-40"
-              title={!isFormValid ? "يرجى تعبئة جميع الحقول المطلوبة لتشغيل هذا الزر" : "حفظ واعتماد التقرير"}
+              title={!isFormValid ? "يرجى تعبئة جميع الحقول المطلوبة لتشغيل هذا الزر" : "إنشاء التقرير"}
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتماد التقرير
+              إنشاء التقرير
             </Button>
           </div>
         </div>

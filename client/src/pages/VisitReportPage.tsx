@@ -106,7 +106,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
       toast.error("يرجى إدخال الملاحظات المرصودة أثناء الزيارة");
       return;
     }
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = formatToInputDate(new Date());
     if (visitDate > todayStr) {
       toast.error("لا يمكن إدخال تاريخ زيارة في المستقبل");
       return;
@@ -366,7 +366,7 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
               className="gap-2 text-xs font-bold bg-[#1a5f4a] hover:bg-[#154d3c] text-white disabled:opacity-50"
             >
               <CheckCircle2 className="w-4 h-4" />
-              حفظ واعتماد التقرير
+              إنشاء التقرير
             </Button>
           </div>
         </div>

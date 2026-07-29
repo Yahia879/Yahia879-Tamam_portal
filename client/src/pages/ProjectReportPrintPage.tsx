@@ -260,7 +260,27 @@ export default function ProjectReportPrintPage() {
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const typeQuery = searchParams.get("type") || searchParams.get("reportType") || "";
   const titleLower = (data.title || "").toLowerCase();
+  const isVisitReport = typeQuery === "visit" || titleLower.includes("زيارة") || titleLower.includes("visit");
   const isSemiMonthly = typeQuery === "semi-monthly" || titleLower.includes("نصف") || titleLower.includes("semi");
+
+  const visitDetails = (() => {
+    const rec = data.recommendations || "";
+    const chal = data.challenges || "";
+
+    const purposeMatch = rec.match(/الغرض:\s*([^\n\r]+)/);
+    const submittedToMatch = rec.match(/المرسل إليه:\s*([^\n\r]+)/);
+    const visitorMatch = rec.match(/اسم الزائر:\s*([^\n\r]+)/);
+
+    const notesMatch = chal.match(/الملاحظات:\s*([\s\S]*)/);
+    const notesText = notesMatch ? notesMatch[1].trim() : (chal.startsWith("الملاحظات:") ? chal.slice(10).trim() : chal);
+
+    return {
+      purpose: purposeMatch ? purposeMatch[1].trim() : "",
+      submittedTo: submittedToMatch ? submittedToMatch[1].trim() : "",
+      visitorName: visitorMatch ? visitorMatch[1].trim() : (data.createdByName || "مهندس المشروع"),
+      notes: notesText,
+    };
+  })();
 
   const extractedIndicators = (() => {
     const text = `${data.workSummary || ""} ${data.challenges || ""} ${data.notes || ""}`;
@@ -441,12 +461,14 @@ export default function ProjectReportPrintPage() {
               </div>
 
               <div className="text-center py-4 px-6 mb-6 rounded-lg shadow-2xs" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
-                <h1 className="text-xl sm:text-2xl font-bold">تقرير إنجاز ومتابعة مشروع</h1>
+                <h1 className="text-xl sm:text-2xl font-bold">{isVisitReport ? "تقرير زيارة ميدانية تفقدية" : "تقرير إنجاز ومتابعة مشروع"}</h1>
                 <p className="text-xs sm:text-sm opacity-90 mt-1 font-medium">{data.title || data.projectName}</p>
               </div>
 
               <div className="mb-6 section-block">
-                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>1. بيانات المشروع العامة:</h3>
+                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>
+                  1. {isVisitReport ? "بيانات الزيارة والمشروع العامة:" : "بيانات المشروع العامة:"}
+                </h3>
                 <div className="overflow-x-auto w-full">
                   <table className="w-full border-collapse text-xs sm:text-sm">
                     <tbody>
@@ -457,138 +479,170 @@ export default function ProjectReportPrintPage() {
                       <tr className="border-b border-gray-200 dark:border-slate-800">
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الموقع/المدينة:</td>
                         <td className="py-2.5 px-3 text-foreground">{orgLocation}</td>
-                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">فترة التقرير:</td>
-                        <td className="py-2.5 px-3 font-bold text-[#1a5f4a]">{periodText}</td>
+                        {!isVisitReport ? (
+                          <>
+                            <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">فترة التقرير:</td>
+                            <td className="py-2.5 px-3 font-bold text-[#1a5f4a]">{periodText}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">تاريخ الزيارة:</td>
+                            <td className="py-2.5 px-3 font-bold text-[#1a5f4a]">{formatGregorianDate(reportDate)} م</td>
+                          </>
+                        )}
                       </tr>
                       <tr className="border-b border-gray-200 dark:border-slate-800">
-                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">مُعدّ التقرير:</td>
-                        <td className="py-2.5 px-3 text-foreground">{data.createdByName || "مهندس المشروع"}</td>
+                        <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">{isVisitReport ? "اسم الزائر:" : "مُعدّ التقرير:"}</td>
+                        <td className="py-2.5 px-3 text-foreground">{isVisitReport ? visitDetails.visitorName : (data.createdByName || "مهندس المشروع")}</td>
                         <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">حالة التقرير:</td>
                         <td className="py-2.5 px-3"><span className="font-bold text-[#1a5f4a]">{data.status === "approved" || data.status === "معتمد" ? "معتمد ومصادق عليه" : "قيد المراجعة والاعتماد"}</span></td>
                       </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="mb-6 section-block">
-                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>2. قيم مؤشرات الأداء ونسب الإنجاز المحققة (RAG):</h3>
-                <div className="overflow-x-auto w-full">
-                  <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm mb-4">
-                    <thead>
-                      <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800">
-                        <th className="p-3 text-right font-bold w-1/3">البيان القياسي</th>
-                        <th className="p-3 text-center font-bold w-1/3">المخطط / المتفق عليه</th>
-                        <th className="p-3 text-center font-bold w-1/3">الفعلي / المصروف</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-200 dark:border-slate-800">
-                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">نسبة الإنجاز المحققة (%)</td>
-                        <td className="p-3 text-center font-mono text-blue-700 font-bold">{planned}%</td>
-                        <td className="p-3 text-center font-bold text-emerald-700 font-mono">{actual}%</td>
-                      </tr>
-                      <tr className="border-b border-gray-200 dark:border-slate-800">
-                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">الانحراف المعياري للنسبة</td>
-                        <td className="p-3 text-center text-muted-foreground font-medium">—</td>
-                        <td className={`p-3 text-center font-bold font-mono ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>{gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام</td>
-                        <td className="p-3 text-center text-muted-foreground font-medium">—</td>
-                        <td className="p-3 text-center">
-                          <Badge className={ragStatus === "أخضر" ? "bg-emerald-600 text-white font-bold" : ragStatus === "أصفر" ? "bg-amber-500 text-white font-bold" : "bg-rose-600 text-white font-bold"}>
-                            {ragStatus} ({ragStatus === "أخضر" ? "مطابق" : ragStatus === "أصفر" ? "تأخير متوسط" : "تأخير كبير"})
-                          </Badge>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold"><span>شريط نسبة الإنجاز المخطط:</span><span className="font-mono text-[#1a5f4a]">{planned}%</span></div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden"><div className="bg-[#1a5f4a] h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, planned))}%` }} /></div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold"><span>شريط نسبة الإنجاز الفعلية:</span><span className="font-mono text-teal-600">{actual}%</span></div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden"><div className="bg-teal-600 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, actual))}%` }} /></div>
-                  </div>
-                </div>
-              </div>
-
-              {!isSemiMonthly && parsedMilestones.length > 0 && (
-                <div className="mb-6 section-block break-inside-avoid">
-                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>3. جدول التقدم مقابل المعالم الرئيسية للمشروع:</h3>
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm">
-                      <thead>
-                        <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 font-bold">
-                          <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800 w-12">#</th>
-                          <th className="p-2.5 text-right border-l border-gray-200 dark:border-slate-800">اسم المعلم الرئيسية</th>
-                          <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800">التاريخ المستهدف</th>
-                          <th className="p-2.5 text-center">حالة المعلم</th>
+                      {isVisitReport && (visitDetails.purpose || visitDetails.submittedTo) && (
+                        <tr className="border-b border-gray-200 dark:border-slate-800">
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الغرض من الزيارة:</td>
+                          <td className="py-2.5 px-3 text-foreground">{visitDetails.purpose || "—"}</td>
+                          <td className="py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 font-bold text-muted-foreground">الموجّه إليه:</td>
+                          <td className="py-2.5 px-3 text-foreground">{visitDetails.submittedTo || "—"}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {parsedMilestones.map((m: any, idx: number) => (
-                          <tr key={idx} className="border-b border-gray-200 dark:border-slate-800">
-                            <td className="p-2.5 text-center font-bold text-muted-foreground border-l border-gray-200 dark:border-slate-800">{idx + 1}</td>
-                            <td className="p-2.5 font-bold text-foreground border-l border-gray-200 dark:border-slate-800">{m.title || "—"}</td>
-                            <td className="p-2.5 text-center font-mono border-l border-gray-200 dark:border-slate-800">{m.dueDate || m.date || "—"}</td>
-                            <td className="p-2.5 text-center font-bold"><span className={`inline-block px-2.5 py-0.5 rounded text-xs ${m.status === "منجز" ? "bg-emerald-100 text-emerald-800" : m.status === "جارٍ" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>{m.status || "لم يبدأ"}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {isVisitReport && (
+                <div className="mb-6 section-block break-inside-avoid">
+                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
+                    2. الملاحظات والمرصودات الميدانية:
+                  </h3>
+                  <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
+                    {visitDetails.notes || data.workSummary || "لا توجد ملاحظات تسجيلية."}
                   </div>
                 </div>
               )}
 
-              <div className="mb-6 section-block break-inside-avoid">
-                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
-                  {isSemiMonthly ? "3. ملخص الأعمال المنجزة والخطوات:" : (parsedMilestones.length > 0 ? "4. ملخص الأعمال المنجزة والخطوات:" : "3. ملخص الأعمال المنجزة والخطوات:")}
-                </h3>
-                <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] space-y-3">
-                  <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md font-semibold text-xs space-y-1">
-                    <div>مؤشر الوقت: <span className={extractedIndicators.time === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.time === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.time}</span></div>
-                    <div>مؤشر التكلفة: <span className={extractedIndicators.cost === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.cost === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.cost}</span></div>
-                    <div>تصعيد إداري: <span className={extractedIndicators.escalation === "نعم" ? "text-rose-600 font-bold" : "text-emerald-600 font-bold"}>{extractedIndicators.escalation}</span></div>
+              {!isVisitReport && (
+                <>
+                  <div className="mb-6 section-block">
+                    <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#d4a574', color: '#5d4037' }}>2. قيم مؤشرات الأداء ونسب الإنجاز المحققة (RAG):</h3>
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm mb-4">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800">
+                            <th className="p-3 text-right font-bold w-1/3">البيان القياسي</th>
+                            <th className="p-3 text-center font-bold w-1/3">المخطط / المتفق عليه</th>
+                            <th className="p-3 text-center font-bold w-1/3">الفعلي / المصروف</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-200 dark:border-slate-800">
+                            <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">نسبة الإنجاز المحققة (%)</td>
+                            <td className="p-3 text-center font-mono text-blue-700 font-bold">{planned}%</td>
+                            <td className="p-3 text-center font-bold text-emerald-700 font-mono">{actual}%</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-slate-800">
+                            <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">الانحراف المعياري للنسبة</td>
+                            <td className="p-3 text-center text-muted-foreground font-medium">—</td>
+                            <td className={`p-3 text-center font-bold font-mono ${gap > 5 ? "text-rose-600" : "text-emerald-700"}`}>{gap > 0 ? `تأخير ${gap}%` : gap < 0 ? `متقدم ${Math.abs(gap)}%` : "مطابق 0%"}</td>
+                          </tr>
+                          <tr>
+                            <td className="p-3 font-semibold bg-slate-50/50 dark:bg-slate-800/40">تقييم مؤشر الأداء العام</td>
+                            <td className="p-3 text-center text-muted-foreground font-medium">—</td>
+                            <td className="p-3 text-center">
+                              <Badge className={ragStatus === "أخضر" ? "bg-emerald-600 text-white font-bold" : ragStatus === "أصفر" ? "bg-amber-500 text-white font-bold" : "bg-rose-600 text-white font-bold"}>
+                                {ragStatus} ({ragStatus === "أخضر" ? "مطابق" : ragStatus === "أصفر" ? "تأخير متوسط" : "تأخير كبير"})
+                              </Badge>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold"><span>شريط نسبة الإنجاز المخطط:</span><span className="font-mono text-[#1a5f4a]">{planned}%</span></div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden"><div className="bg-[#1a5f4a] h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, planned))}%` }} /></div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-bold"><span>شريط نسبة الإنجاز الفعلية:</span><span className="font-mono text-teal-600">{actual}%</span></div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden"><div className="bg-teal-600 h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, actual))}%` }} /></div>
+                      </div>
+                    </div>
                   </div>
-                  {cleanWorkSummary && cleanWorkSummary.trim() !== "" && (
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-                      {cleanWorkSummary}
+
+                  {!isSemiMonthly && parsedMilestones.length > 0 && (
+                    <div className="mb-6 section-block break-inside-avoid">
+                      <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>3. جدول التقدم مقابل المعالم الرئيسية للمشروع:</h3>
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full border border-gray-200 dark:border-slate-800 text-xs sm:text-sm">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-gray-200 dark:border-slate-800 font-bold">
+                              <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800 w-12">#</th>
+                              <th className="p-2.5 text-right border-l border-gray-200 dark:border-slate-800">اسم المعلم الرئيسية</th>
+                              <th className="p-2.5 text-center border-l border-gray-200 dark:border-slate-800">التاريخ المستهدف</th>
+                              <th className="p-2.5 text-center">حالة المعلم</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {parsedMilestones.map((m: any, idx: number) => (
+                              <tr key={idx} className="border-b border-gray-200 dark:border-slate-800">
+                                <td className="p-2.5 text-center font-bold text-muted-foreground border-l border-gray-200 dark:border-slate-800">{idx + 1}</td>
+                                <td className="p-2.5 font-bold text-foreground border-l border-gray-200 dark:border-slate-800">{m.title || "—"}</td>
+                                <td className="p-2.5 text-center font-mono border-l border-gray-200 dark:border-slate-800">{m.dueDate || m.date || "—"}</td>
+                                <td className="p-2.5 text-center font-bold"><span className={`inline-block px-2.5 py-0.5 rounded text-xs ${m.status === "منجز" ? "bg-emerald-100 text-emerald-800" : m.status === "جارٍ" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>{m.status || "لم يبدأ"}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
 
-              {(data.challenges || data.recommendations || data.nextSteps) && (
-                <div className="mb-6 section-block break-inside-avoid">
-                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
-                    {isSemiMonthly ? "4. التحديات، الخطوات القادمة والتوصيات:" : (parsedMilestones.length > 0 ? "5. التحديات، الخطوات القادمة والتوصيات:" : "4. التحديات، الخطوات القادمة والتوصيات:")}
-                  </h3>
-                  <div className="space-y-3 text-xs sm:text-sm">
-                    {data.challenges && (
-                      <div>
-                        <h4 className="font-bold text-foreground mb-1">■ التحديات والمعوقات:</h4>
-                        <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.challenges}</p>
+                  <div className="mb-6 section-block break-inside-avoid">
+                    <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
+                      {isSemiMonthly ? "3. ملخص الأعمال المنجزة والخطوات:" : (parsedMilestones.length > 0 ? "4. ملخص الأعمال المنجزة والخطوات:" : "3. ملخص الأعمال المنجزة والخطوات:")}
+                    </h3>
+                    <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] space-y-3">
+                      <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md font-semibold text-xs space-y-1">
+                        <div>مؤشر الوقت: <span className={extractedIndicators.time === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.time === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.time}</span></div>
+                        <div>مؤشر التكلفة: <span className={extractedIndicators.cost === "أخضر" ? "text-emerald-600 font-bold" : extractedIndicators.cost === "أصفر" ? "text-amber-600 font-bold" : "text-rose-600 font-bold"}>{extractedIndicators.cost}</span></div>
+                        <div>تصعيد إداري: <span className={extractedIndicators.escalation === "نعم" ? "text-rose-600 font-bold" : "text-emerald-600 font-bold"}>{extractedIndicators.escalation}</span></div>
                       </div>
-                    )}
-                    {data.nextSteps && (
-                      <div>
-                        <h4 className="font-bold text-foreground mb-1">■ الخطوات القادمة:</h4>
-                        <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.nextSteps}</p>
-                      </div>
-                    )}
-                    {data.recommendations && (
-                      <div>
-                        <h4 className="font-bold text-foreground mb-1">■ التوصيات والمقترحات:</h4>
-                        <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.recommendations}</p>
-                      </div>
-                    )}
+                      {cleanWorkSummary && cleanWorkSummary.trim() !== "" && (
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                          {cleanWorkSummary}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  {(data.challenges || data.recommendations || data.nextSteps) && (
+                    <div className="mb-6 section-block break-inside-avoid">
+                      <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>
+                        {isSemiMonthly ? "4. التحديات، الخطوات القادمة والتوصيات:" : (parsedMilestones.length > 0 ? "5. التحديات، الخطوات القادمة والتوصيات:" : "4. التحديات، الخطوات القادمة والتوصيات:")}
+                      </h3>
+                      <div className="space-y-3 text-xs sm:text-sm">
+                        {data.challenges && (
+                          <div>
+                            <h4 className="font-bold text-foreground mb-1">■ التحديات والمعوقات:</h4>
+                            <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.challenges}</p>
+                          </div>
+                        )}
+                        {data.nextSteps && (
+                          <div>
+                            <h4 className="font-bold text-foreground mb-1">■ الخطوات القادمة:</h4>
+                            <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.nextSteps}</p>
+                          </div>
+                        )}
+                        {data.recommendations && (
+                          <div>
+                            <h4 className="font-bold text-foreground mb-1">■ التوصيات والمقترحات:</h4>
+                            <p className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-md border border-gray-200 dark:border-slate-800 text-foreground whitespace-pre-wrap">{data.recommendations}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {(() => {

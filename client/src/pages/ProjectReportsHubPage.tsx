@@ -33,7 +33,6 @@ import {
   Edit,
   Sparkles,
   CheckCircle2,
-  Trash2
 } from "lucide-react";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
 
@@ -256,20 +255,6 @@ export default function ProjectReportsHubPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {reports.length > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (confirm("هل أنت تأكد من أنك تريد مسح كافة التقارير المكتوبة والمسودة؟")) {
-                    deleteAllMutation.mutate();
-                  }
-                }}
-                className="border-rose-500/40 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-bold text-xs sm:text-sm h-10 px-4 rounded-xl flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4 text-rose-500" />
-                <span>مسح كافة التقارير</span>
-              </Button>
-            )}
             <Link href="/project-reports/new">
               <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-sm flex items-center gap-2">
                 <Plus className="w-4 h-4" />
@@ -471,17 +456,6 @@ export default function ProjectReportsHubPage() {
                               </Link>
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (confirm(`هل أنت تأكد من حذف التقرير رقم ${report.id}؟`)) {
-                                deleteMutation.mutate({ id: report.id });
-                              }
-                            }}
-                            className="gap-2 cursor-pointer text-rose-600 font-semibold flex items-center"
-                          >
-                            <Trash2 className="w-4 h-4 text-rose-500" />
-                            <span>حذف التقرير</span>
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
