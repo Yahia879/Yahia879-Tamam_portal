@@ -233,13 +233,42 @@ export default function ProjectReportPrintPage() {
   else ragStatus = "أخضر";
 
   const parsedMilestones = (() => {
-    if (!data.milestones) return [];
-    if (Array.isArray(data.milestones)) return data.milestones;
-    try {
-      return JSON.parse(data.milestones);
-    } catch {
-      return [];
+    let list: any[] = [];
+    if (data.milestones) {
+      if (Array.isArray(data.milestones)) list = data.milestones;
+      else {
+        try {
+          const p = JSON.parse(data.milestones);
+          if (Array.isArray(p)) list = p;
+        } catch {}
+      }
     }
+    if (list.length === 0 && project?.milestones) {
+      if (Array.isArray(project.milestones)) list = project.milestones;
+      else {
+        try {
+          const p = JSON.parse(project.milestones as any);
+          if (Array.isArray(p)) list = p;
+        } catch {}
+      }
+    }
+    return list;
+  })();
+
+  const cleanWorkSummary = (() => {
+    const raw = data.workSummary || data.notes || "";
+    if (!raw) return "";
+    let cleaned = raw
+      .replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "")
+      .replace(/الروابط الخارجية:\s*\[.*?\]/g, "")
+      .trim();
+    if (cleaned.startsWith("تقرير شهري لفترة التنفيذ من")) {
+      const lineBreakIdx = cleaned.indexOf("\n");
+      if (lineBreakIdx !== -1) {
+        cleaned = cleaned.slice(lineBreakIdx + 1).trim();
+      }
+    }
+    return cleaned;
   })();
 
   const contract = project?.contracts?.[0];
@@ -506,12 +535,12 @@ export default function ProjectReportPrintPage() {
                 </div>
               )}
 
-              {(data.workSummary || data.notes) && (
-                <div className="mb-6 section-block break-inside-avoid">
-                  <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>4. ملخص الأعمال المنجزة والخطوات:</h3>
-                  <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap">{data.workSummary || data.notes}</div>
+              <div className="mb-6 section-block break-inside-avoid">
+                <h3 className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base" style={{ backgroundColor: '#1a5f4a', color: 'white' }}>4. ملخص الأعمال المنجزة والخطوات:</h3>
+                <div className="border border-gray-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/40 text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
+                  {cleanWorkSummary || "لا يوجد تفاصيل أعمال مسجلة."}
                 </div>
-              )}
+              </div>
 
               {(data.challenges || data.recommendations || data.nextSteps) && (
                 <div className="mb-6 section-block break-inside-avoid">
