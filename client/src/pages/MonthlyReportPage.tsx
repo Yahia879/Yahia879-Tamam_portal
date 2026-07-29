@@ -131,6 +131,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           projectId: String(r.projectId),
           actualProgress: r.actualProgress || 0,
           plannedProgress: r.plannedProgress || 0,
+          reportPeriodStart: r.reportPeriodStart,
+          reportDate: r.reportDate,
           monthYear: r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : ""),
           period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
           milestones: [],
@@ -138,16 +140,108 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
       });
   }, [dbReports, selectedProjectId]);
 
-  const selectedSemi = useMemo(() => {
-    return availableSemiReports.find((r) => r.id === selectedSemiId);
-  }, [availableSemiReports, selectedSemiId]);
+  const [selectedBlockKey, setSelectedBlockKey] = useState<string>("");
 
-  const autoMatchedSemi = useMemo(() => {
-    if (!selectedSemi) return null;
-    return availableSemiReports.find(
-      (r) => r.id !== selectedSemi.id && r.monthYear === selectedSemi.monthYear
-    ) || null;
-  }, [availableSemiReports, selectedSemi]);
+  // عدد التقارير الشهرية المسجلة سابقاً لهذا المشروع
+  const existingMonthlyReportCount = useMemo(() => {
+    if (!dbReports || !selectedProjectId) return 0;
+    return dbReports.filter((r) => {
+      if (Number(r.projectId) !== Number(selectedProjectId)) return false;
+      const titleLower = r.title.toLowerCase();
+      return (titleLower.includes("شهري") || titleLower.includes("monthly")) && !titleLower.includes("نصف") && !titleLower.includes("semi") && !titleLower.includes("ربعي") && !titleLower.includes("quarterly");
+    }).length;
+  }, [dbReports, selectedProjectId]);
+
+const getArabicMonthName = (monthStr: string) => {
+  const m = parseInt(monthStr, 10);
+  const months = [
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ];
+  return months[m - 1] || "";
+};
+
+const formatReportsMonthPeriod = (reports: any[]) => {
+  if (!reports || reports.length === 0) return "";
+  const months = new Set<string>();
+  let year = "";
+
+  reports.forEach((r) => {
+    const my = r.monthYear || "";
+    if (my.includes("-")) {
+      const [y, m] = my.split("-");
+      if (y) year = y;
+      const mName = getArabicMonthName(m);
+      if (mName) months.add(mName);
+    }
+  });
+
+  const monthArray = Array.from(months);
+  if (monthArray.length === 0) return "";
+  if (monthArray.length === 1) return `شهر ${monthArray[0]} ${year}`;
+  return `فترة (${monthArray.join(" - ")}) ${year}`;
+};
+
+  // تقسيم التقارير النصف شهرية إلى فترات شهرية تجميعية (كل 2 تقارير نصف شهرية متتابعة كفترة)
+  const semiMonthlyBlocks = useMemo(() => {
+    if (!availableSemiReports || availableSemiReports.length === 0) return [];
+
+    const sorted = [...availableSemiReports].sort((a, b) => {
+      const t1 = new Date(a.reportPeriodStart || a.reportDate || 0).getTime();
+      const t2 = new Date(b.reportPeriodStart || b.reportDate || 0).getTime();
+      return t1 - t2;
+    });
+
+    const blocks: {
+      key: string;
+      pairIndex: number;
+      monthTitle: string;
+      reports: typeof availableSemiReports;
+      isComplete: boolean;
+      alreadyUsed: boolean;
+      isDisabled: boolean;
+      statusBadge: string;
+      label: string;
+    }[] = [];
+
+    for (let i = 0; i < sorted.length; i += 2) {
+      const pairReports = sorted.slice(i, i + 2);
+      const pairIndex = Math.floor(i / 2) + 1;
+      const isComplete = pairReports.length === 2;
+      const alreadyUsed = pairIndex <= existingMonthlyReportCount;
+      const isDisabled = !isComplete || alreadyUsed;
+
+      let statusBadge = "";
+      if (alreadyUsed) {
+        statusBadge = "تم إنشاء تقرير شهري سابقاً لهذه الفترة";
+      } else if (!isComplete) {
+        statusBadge = `غير مكتمل (${pairReports.length} من أصل 2 تقارير نصف شهرية)`;
+      } else {
+        statusBadge = "جاهز للتجميع (2 تقارير نصف شهرية مكتملة)";
+      }
+
+      const monthTitle = formatReportsMonthPeriod(pairReports);
+      const displayTitle = monthTitle ? `${monthTitle} (الفترة ${pairIndex})` : `فترة التقرير الشهري ${pairIndex}`;
+
+      blocks.push({
+        key: `pair_${pairIndex}`,
+        pairIndex,
+        monthTitle,
+        reports: pairReports,
+        isComplete,
+        alreadyUsed,
+        isDisabled,
+        statusBadge,
+        label: `${displayTitle} - ${statusBadge}`,
+      });
+    }
+
+    return blocks;
+  }, [availableSemiReports, existingMonthlyReportCount]);
+
+  const selectedBlock = useMemo(() => {
+    return semiMonthlyBlocks.find((b) => b.key === selectedBlockKey);
+  }, [semiMonthlyBlocks, selectedBlockKey]);
 
   const [plannedProgress, setPlannedProgress] = useState<number>(0);
   const [actualProgress, setActualProgress] = useState<number>(projectOptions[0]?.actualProgress || 0);
@@ -167,28 +261,32 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   const [costIndicator, setCostIndicator] = useState<string>("أخضر");
   const [changeIndicator, setChangeIndicator] = useState<string>("أخضر");
 
-  const handleAggregateSemiReports = () => {
-    if (!selectedSemi) {
-      toast.error("يرجى اختيار تقرير نصف شهري واحد للبدء بالتجميع");
+  const handleAggregateSemiReports = async () => {
+    if (!selectedBlock) {
+      toast.error("يرجى اختيار بلوك التقريرين النصف شهريين المتتابعين للبدء بالتجميع");
       return;
     }
 
-    const matchedList = [selectedSemi, autoMatchedSemi].filter(Boolean) as typeof availableSemiReports;
-    if (matchedList.length < 2) {
+    if (selectedBlock.alreadyUsed) {
+      toast.error(`لقد تم إنشاء تقرير شهري سابقاً لهذه الفترة (الفترة ${selectedBlock.pairIndex}). لا يمكن تكرار التجميع لنفس الفترة.`);
+      return;
+    }
+
+    if (!selectedBlock.isComplete) {
       toast.error(
-        `لا يمكن تجميع التقرير الشهري: يتطلب التقرير الشهري توفر 2 تقارير نصف شهرية مكتملة لهذا الشهر. المتوفر حالياً: 1 تقرير نصف شهري فقط. يرجى إضافة التقرير النصف شهري الآخر أولاً.`
+        `لا يمكن تجميع التقرير الشهري: يلزم توفر تقريرين نصف شهريين لهذه الفترة (متوفر ${selectedBlock.reports.length} فقط).`
       );
       return;
     }
 
+    const matchedList = selectedBlock.reports;
     const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
     const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
+    const targetMonthYear = matchedList[0]?.monthYear || monthYear;
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
-    if (selectedSemi.monthYear) {
-      setMonthYear(selectedSemi.monthYear);
-    }
+    setMonthYear(targetMonthYear);
 
     const combinedMilestones: any[] = [];
     matchedList.forEach((r) => {
@@ -199,7 +297,34 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }
 
     setIsAggregated(true);
-    toast.success(`تم العثور على التقريرين النصف شهريين ودمج البيانات بنجاح! (الإنجاز الفعلي: ${avgActual}%)`);
+
+    // إنشاء التقرير آلياً بقيد الاعتماد والتوجه للخارج
+    try {
+      setIsSubmitting(true);
+      const res = await createMutation.mutateAsync({
+        projectId: Number(selectedProjectId),
+        title: `التقرير الشهري - ${selectedProjName}`,
+        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        plannedProgress: avgPlanned,
+        actualProgress: avgActual,
+        overallProgress: avgActual,
+        challenges: `شهر/سنة: ${targetMonthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+        recommendations: `المرحلة الحالية: ${currentPhase}`,
+        workSummary: `تم تجميع البيانات آلياً من التقريرين النصف شهريين للفترة ${selectedBlock.pairIndex}`,
+      });
+
+      await updateStatusMutation.mutateAsync({
+        id: res.id,
+        status: "submitted",
+      });
+
+      toast.success(`تم إنشاء وتجميع التقرير الشهري بنجاح وهو الآن بقيد الاعتماد! (رقم التقرير: ${res.reportNumber})`);
+      setLocation("/project-reports");
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء تجميع التقرير الشهري");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
@@ -455,20 +580,20 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر التقرير النصف شهري</Label>
-                        <Select value={selectedSemiId} onValueChange={setSelectedSemiId} disabled={!selectedProjectId}>
-                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background">
-                            <SelectValue placeholder="اختر تقرير نصف شهري من التقارير المتاحة لهذا المشروع..." />
+                        <Label className="text-[11px] font-semibold">اختر الفترات النصف شهرية المتتابعة لشهر التقرير</Label>
+                        <Select value={selectedBlockKey} onValueChange={setSelectedBlockKey} disabled={!selectedProjectId}>
+                          <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الشهر التجميلية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableSemiReports.length === 0 ? (
+                            {semiMonthlyBlocks.length === 0 ? (
                               <SelectItem value="none" disabled className="text-xs">
                                 لا يوجد تقارير نصف شهرية مسجلة لهذا المشروع
                               </SelectItem>
                             ) : (
-                              availableSemiReports.map((r) => (
-                                <SelectItem key={r.id} value={r.id} className="text-xs">
-                                  {r.title} ({r.period}) - إنجاز: {r.actualProgress}%
+                              semiMonthlyBlocks.map((b) => (
+                                <SelectItem key={b.key} value={b.key} disabled={b.isDisabled} className="text-xs py-2 font-semibold">
+                                  {b.label}
                                 </SelectItem>
                               ))
                             )}
@@ -476,28 +601,30 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                         </Select>
                       </div>
 
-                      {/* حالة الربط التلقائي */}
-                      {selectedSemi && (
-                        <div className="p-3 rounded-lg bg-muted/40 border border-border/60 space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-foreground flex items-center gap-1.5">
-                              📌 التقرير المحدد: <span className="text-teal-600 font-bold">{selectedSemi.title}</span> ({selectedSemi.period})
-                            </span>
-                            <Badge variant="outline" className="text-[10px]">إنجاز: {selectedSemi.actualProgress}%</Badge>
+                      {/* تفاصيل التقريرين النصف شهريين (مترتبين تحت بعض بصورة مبسطة ومباشرة) */}
+                      {selectedBlock && (
+                        <div className="p-3.5 rounded-xl bg-card border border-teal-600/30 space-y-2.5">
+                          <div className="flex items-center justify-between text-xs font-bold text-foreground border-b border-border/40 pb-2">
+                            <span>{selectedBlock.monthTitle ? selectedBlock.monthTitle : `فترة التقرير الشهري ${selectedBlock.pairIndex}`}</span>
+                            <Badge className={selectedBlock.alreadyUsed ? "bg-red-500/15 text-red-700" : selectedBlock.isComplete ? "bg-emerald-600 text-white" : "bg-amber-500/15 text-amber-700"}>
+                              {selectedBlock.statusBadge}
+                            </Badge>
                           </div>
 
-                          {autoMatchedSemi ? (
-                            <div className="flex items-center justify-between text-xs pt-2 border-t border-border/50 text-emerald-700 dark:text-emerald-400 font-semibold">
-                              <span className="flex items-center gap-1.5">
-                                🔗 تم العثور آلياً على التقرير المكمل: <span className="font-bold">{autoMatchedSemi.title}</span> ({autoMatchedSemi.period})
-                              </span>
-                              <Badge className="bg-emerald-600 text-white text-[10px]">إنجاز: {autoMatchedSemi.actualProgress}%</Badge>
-                            </div>
-                          ) : (
-                            <div className="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                              <span>⚠️ يتوفر تقرير نصف شهري واحد فقط من أصل 2 مطلوبين لتوليد وتجميع التقرير الشهري لهذا الشهر.</span>
-                            </div>
-                          )}
+                          {/* تقارير مكتملة ومصفوفة رأسيّاً (تحت بعض) مخصرة ومباشرة */}
+                          <div className="flex flex-col gap-2">
+                            {selectedBlock.reports.map((r, idx) => (
+                              <div key={r.id} className="p-2.5 rounded-lg bg-muted/30 border border-border/60 text-xs flex items-center justify-between">
+                                <div className="flex flex-col gap-0.5 min-w-0 pr-1">
+                                  <span className="font-bold text-foreground truncate">التقرير {idx + 1}: {r.title}</span>
+                                  <span className="text-[11px] text-muted-foreground font-medium">الفترة: {r.period}</span>
+                                </div>
+                                <Badge variant="outline" className="text-[11px] text-teal-600 border-teal-600/40 font-bold shrink-0">
+                                  إنجاز: {r.actualProgress}%
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -506,11 +633,11 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
                           type="button"
                           size="sm"
                           onClick={handleAggregateSemiReports}
-                          disabled={!selectedSemi || !selectedProjectId}
-                          className="h-8 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs"
+                          disabled={!selectedBlock || selectedBlock.isDisabled || !selectedProjectId || isSubmitting}
+                          className="h-9 text-xs gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold shadow-sm"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          دمج وتجميع بيانات النصفين تلقائياً
+                          تجميع وإرسال التقرير الشهري (بقيد الاعتماد)
                         </Button>
                       </div>
                     </div>
