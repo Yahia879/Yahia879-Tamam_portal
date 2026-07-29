@@ -34,6 +34,34 @@ const formatToInputDate = (val: any): string => {
   }
 };
 
+const getArabicMonthName = (monthStr: string) => {
+  const m = parseInt(monthStr, 10);
+  const months = [
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  ];
+  return months[m - 1] || "";
+};
+
+const formatDateToReadableArabic = (dateVal: any): string => {
+  if (!dateVal) return "";
+  try {
+    if (typeof dateVal === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateVal.trim())) {
+      const [y, m, d] = dateVal.trim().split("-");
+      const monthName = getArabicMonthName(m);
+      return `${parseInt(d, 10)} ${monthName} ${y}`;
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const day = d.getDate();
+    const monthName = getArabicMonthName(String(d.getMonth() + 1));
+    const year = d.getFullYear();
+    return `${day} ${monthName} ${year}`;
+  } catch {
+    return String(dateVal);
+  }
+};
+
 export default function MonthlyReportPage({ showLayout = true }: { showLayout?: boolean }) {
   const [, setLocation] = useLocation();
   const createMutation = trpc.progressReports.create.useMutation();
@@ -96,6 +124,9 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
   const [monthYear, setMonthYear] = useState<string>("2026-07");
   const [reportDate, setReportDate] = useState<string>(formatToInputDate(new Date()));
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
+  const [challenges, setChallenges] = useState<string>("");
+  const [recommendations, setRecommendations] = useState<string>("");
+  const [nextSteps, setNextSteps] = useState<string>("");
 
   useEffect(() => {
     if (existingReport) {
@@ -138,8 +169,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
         return (titleLower.includes("نصف") || titleLower.includes("semi")) && (titleLower.includes("شهري") || titleLower.includes("monthly"));
       })
       .map((r) => {
-        const startStr = r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 10) : "";
-        const endStr = r.reportPeriodEnd ? String(r.reportPeriodEnd).substring(0, 10) : "";
+        const startStr = r.reportPeriodStart ? formatDateToReadableArabic(r.reportPeriodStart) : "";
+        const endStr = r.reportPeriodEnd ? formatDateToReadableArabic(r.reportPeriodEnd) : "";
         return {
           id: String(r.id),
           title: r.title,
@@ -147,9 +178,12 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
           actualProgress: r.actualProgress || 0,
           plannedProgress: r.plannedProgress || 0,
           reportPeriodStart: r.reportPeriodStart,
+          reportPeriodEnd: r.reportPeriodEnd,
           reportDate: r.reportDate,
           monthYear: r.reportPeriodStart ? String(r.reportPeriodStart).substring(0, 7) : (r.reportDate ? String(r.reportDate).substring(0, 7) : ""),
-          period: startStr && endStr ? `${startStr} إلى ${endStr}` : "فترة غير محددة",
+          period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
+          startStr,
+          endStr,
           milestones: [],
         };
       });
@@ -167,34 +201,28 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     }).length;
   }, [dbReports, selectedProjectId]);
 
-const getArabicMonthName = (monthStr: string) => {
-  const m = parseInt(monthStr, 10);
-  const months = [
-    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-  ];
-  return months[m - 1] || "";
-};
 
-const formatReportsMonthPeriod = (reports: any[]) => {
-  if (!reports || reports.length === 0) return "";
-  const months = new Set<string>();
+
+const getMonthDetails = (reports: any[], pairIndex: number) => {
+  if (!reports || reports.length === 0) return { monthNum: String(pairIndex), monthName: "", year: "" };
+  let monthNum = "";
   let year = "";
+  let monthName = "";
 
-  reports.forEach((r) => {
+  for (const r of reports) {
     const my = r.monthYear || "";
     if (my.includes("-")) {
       const [y, m] = my.split("-");
       if (y) year = y;
-      const mName = getArabicMonthName(m);
-      if (mName) months.add(mName);
+      if (m) {
+        monthNum = String(parseInt(m, 10));
+        monthName = getArabicMonthName(m);
+        break;
+      }
     }
-  });
-
-  const monthArray = Array.from(months);
-  if (monthArray.length === 0) return "";
-  if (monthArray.length === 1) return `شهر ${monthArray[0]} ${year}`;
-  return `فترة (${monthArray.join(" - ")}) ${year}`;
+  }
+  if (!monthNum) monthNum = String(pairIndex);
+  return { monthNum, monthName, year };
 };
 
   // تقسيم التقارير النصف شهرية إلى فترات شهرية تجميعية (كل 2 تقارير نصف شهرية متتابعة كفترة)
@@ -228,15 +256,24 @@ const formatReportsMonthPeriod = (reports: any[]) => {
 
       let statusBadge = "";
       if (alreadyUsed) {
-        statusBadge = "تم إنشاء تقرير شهري سابقاً لهذه الفترة";
+        statusBadge = "تم إنشاء تقرير شهري مسبقاً ❌";
       } else if (!isComplete) {
-        statusBadge = `غير مكتمل (${pairReports.length} من أصل 2 تقارير نصف شهرية)`;
+        statusBadge = `غير مكتمل (${pairReports.length}/2 تقارير نصف شهرية)`;
       } else {
-        statusBadge = "جاهز للتجميع (2 تقارير نصف شهرية مكتملة)";
+        statusBadge = "جاهز للتجميع ✓";
       }
 
-      const monthTitle = formatReportsMonthPeriod(pairReports);
-      const displayTitle = monthTitle ? `${monthTitle} (الفترة ${pairIndex})` : `فترة التقرير الشهري ${pairIndex}`;
+      const mDetails = getMonthDetails(pairReports, pairIndex);
+      let monthTitle = "";
+      if (mDetails.monthName) {
+        monthTitle = `الشهر رقم (${mDetails.monthNum}) - شهر ${mDetails.monthName} ${mDetails.year}`;
+      } else {
+        monthTitle = `الشهر رقم (${pairIndex})`;
+      }
+
+      const firstStart = pairReports[0]?.startStr || "";
+      const lastEnd = pairReports[pairReports.length - 1]?.endStr || "";
+      const fullMonthPeriodText = firstStart && lastEnd ? `من ${firstStart} إلى ${lastEnd}` : pairReports.map(r => r.period).join(" | ");
 
       blocks.push({
         key: `pair_${pairIndex}`,
@@ -247,7 +284,7 @@ const formatReportsMonthPeriod = (reports: any[]) => {
         alreadyUsed,
         isDisabled,
         statusBadge,
-        label: `${displayTitle} - ${statusBadge}`,
+        label: `📅 ${monthTitle} (${fullMonthPeriodText}) — ${statusBadge}`,
       });
     }
 
@@ -595,10 +632,10 @@ const formatReportsMonthPeriod = (reports: any[]) => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label className="text-[11px] font-semibold">اختر الفترات النصف شهرية المتتابعة لشهر التقرير</Label>
+                        <Label className="text-[11px] font-semibold">اختر فترة الشهر التجميعية لهذا المشروع (محددة برقم الشهر والمرحلة)</Label>
                         <Select value={selectedBlockKey} onValueChange={setSelectedBlockKey} disabled={!selectedProjectId}>
                           <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold">
-                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الشهر التجميلية لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
+                            <SelectValue placeholder={selectedProjectId ? "اختر فترة الشهر التجميعية لهذا المشروع (محددة برقم الشهر)..." : "يرجى اختيار المشروع أولاً..."} />
                           </SelectTrigger>
                           <SelectContent>
                             {semiMonthlyBlocks.length === 0 ? (

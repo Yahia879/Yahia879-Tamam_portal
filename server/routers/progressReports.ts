@@ -445,6 +445,23 @@ export const progressReportsRouter = router({
       };
     }),
 
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.delete(progressReports).where(eq(progressReports.id, input.id));
+      return { success: true };
+    }),
+
+  deleteAll: protectedProcedure
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await db.delete(progressReports);
+      return { success: true };
+    }),
+
   cleanAndSeed: protectedProcedure
     .mutation(async () => {
       const db = await getDb();
