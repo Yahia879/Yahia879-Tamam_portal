@@ -483,7 +483,38 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
               </div>
             </CardHeader>
             <CardContent className="pt-5 space-y-4">
+              {!selectedProjectId && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0" />
+                  <span>تنبيه: يرجى تحديد المشروع أولاً لتفعيل وإكمال تعبئة كافة بيانات وملاحظات التقرير.</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. اختيار المشروع أولاً */}
+                <div className="space-y-1.5 md:col-span-3">
+                  <Label className="text-xs font-semibold flex items-center">
+                    <span>اسم المشروع</span>
+                    <span className="text-red-500 font-bold mr-1">*</span>
+                  </Label>
+                  <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
+                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
+                      <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projectOptions.map((p) => (
+                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            <span className="font-semibold">{p.name}</span>
+                            <span className="text-muted-foreground text-[11px]">({p.department})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 2. طريقة إعداد وتعبئة التقرير الربعي ثانياً (أسفل اختيار المشروع) */}
                 <div className="space-y-1.5 md:col-span-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-teal-500/5 border border-teal-500/20 mb-1">
                     <div className="space-y-0.5">
@@ -678,26 +709,6 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                       </div>
                     </div>
                   )}
-
-                  <Label className="text-xs font-semibold flex items-center">
-                    <span>اسم المشروع</span>
-                    <span className="text-red-500 font-bold mr-1">*</span>
-                  </Label>
-                  <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع ليتم تعبئة البيانات تلقائياً" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectOptions.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            <span className="font-semibold">{p.name}</span>
-                            <span className="text-muted-foreground text-[11px]">({p.department})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
