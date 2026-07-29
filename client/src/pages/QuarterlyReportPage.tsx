@@ -274,6 +274,13 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
         const startStr = startIso ? formatDateToReadableArabic(startIso) : "";
         const endStr = endIso ? formatDateToReadableArabic(endIso) : "";
 
+        let parsedMilestones: any[] = [];
+        if (r.milestones) {
+          try {
+            parsedMilestones = typeof r.milestones === "string" ? JSON.parse(r.milestones) : r.milestones;
+          } catch {}
+        }
+
         return {
           id: String(r.id),
           title: r.title || `تقرير شهري - ${startStr}`,
@@ -284,7 +291,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
           reportPeriodStart: r.reportPeriodStart,
           reportPeriodEnd: r.reportPeriodEnd,
           period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
-          milestones: [],
+          milestones: parsedMilestones,
         };
       });
   }, [dbReports, selectedProjectId]);
@@ -305,6 +312,13 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
         const startStr = startIso ? formatDateToReadableArabic(startIso) : "";
         const endStr = endIso ? formatDateToReadableArabic(endIso) : "";
 
+        let parsedMilestones: any[] = [];
+        if (r.milestones) {
+          try {
+            parsedMilestones = typeof r.milestones === "string" ? JSON.parse(r.milestones) : r.milestones;
+          } catch {}
+        }
+
         return {
           id: String(r.id),
           title: r.title || `تقرير نصف شهري - ${startStr}`,
@@ -315,7 +329,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
           reportPeriodStart: r.reportPeriodStart,
           reportPeriodEnd: r.reportPeriodEnd,
           period: startStr && endStr ? `من ${startStr} إلى ${endStr}` : "فترة غير محددة",
-          milestones: [],
+          milestones: parsedMilestones,
         };
       });
   }, [dbReports, selectedProjectId]);
@@ -465,6 +479,14 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
     if (proj) {
       setProjectManager(proj.manager);
       setCurrentPhase(proj.currentPhase);
+      if (proj.milestones && Array.isArray(proj.milestones) && proj.milestones.length > 0) {
+        const formatted = proj.milestones.map((m: any) => ({
+          title: m.title || m.name || "",
+          date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
+          status: m.status || "جارٍ",
+        }));
+        setQuarterMilestones(formatted);
+      }
     }
   };
 
@@ -528,6 +550,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
           challenges: `فترة التقرير الربعي: من ${periodFrom} إلى ${periodTo}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
           recommendations: continuationDecisions,
           workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+          milestones: quarterMilestones.length > 0 ? JSON.stringify(quarterMilestones) : undefined,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -552,6 +575,7 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
         challenges: `فترة التقرير الربعي: من ${periodFrom} إلى ${periodTo}\nالمواءمة الاستراتيجية: ${strategicAlignment}`,
         recommendations: continuationDecisions,
         workSummary: `الأثر المتحقق: ${realizedImpact}\nالدروس المستفادة: ${lessonsLearned}\nمرحلة دورة الحياة الحالية: ${currentPhase}`,
+        milestones: quarterMilestones.length > 0 ? JSON.stringify(quarterMilestones) : undefined,
       });
 
       await updateStatusMutation.mutateAsync({
@@ -718,12 +742,47 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                                 setReportDate(block.to);
                               }
                               const matchedList = block.reports;
-                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
-                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
-                              setActualProgress(avgActual);
-                              setPlannedProgress(avgPlanned);
+                              const sumActual = Math.min(100, matchedList.reduce((acc, r) => acc + (r.actualProgress || 0), 0));
+                              const sumPlanned = Math.min(100, matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0));
+                              setActualProgress(sumActual);
+                              setPlannedProgress(sumPlanned);
+
+                              const combinedMilestones: any[] = [];
+                              matchedList.forEach((r: any) => {
+                                let list = r.milestones;
+                                if (typeof list === "string") {
+                                  try { list = JSON.parse(list); } catch {}
+                                }
+                                if (Array.isArray(list) && list.length > 0) {
+                                  list.forEach((m: any) => {
+                                    combinedMilestones.push({
+                                      title: m.title || m.name || "",
+                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
+                                      status: m.status || "جارٍ",
+                                    });
+                                  });
+                                }
+                              });
+
+                              if (combinedMilestones.length === 0) {
+                                const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+                                if (proj && proj.milestones && Array.isArray(proj.milestones)) {
+                                  proj.milestones.forEach((m: any) => {
+                                    combinedMilestones.push({
+                                      title: m.title || m.name || "",
+                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
+                                      status: m.status || "جارٍ",
+                                    });
+                                  });
+                                }
+                              }
+
+                              if (combinedMilestones.length > 0) {
+                                setQuarterMilestones(combinedMilestones);
+                              }
+
                               setIsAggregated(true);
-                              toast.success(`تم ربط وتجميع بيانات التقارير الشهرية بنجاح للفترة (${block.quarterTitle})!`);
+                              toast.success(`تم ربط وتجميع بيانات التقارير الشهرية والمعالم بنجاح للفترة (${block.quarterTitle})!`);
                             }
                           }}
                           disabled={!selectedProjectId}
@@ -803,12 +862,47 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                                 setReportDate(block.to);
                               }
                               const matchedList = block.reports;
-                              const avgActual = Math.round(matchedList.reduce((acc, r) => acc + r.actualProgress, 0) / matchedList.length);
-                              const avgPlanned = Math.round(matchedList.reduce((acc, r) => acc + r.plannedProgress, 0) / matchedList.length);
-                              setActualProgress(avgActual);
-                              setPlannedProgress(avgPlanned);
+                              const sumActual = Math.min(100, matchedList.reduce((acc, r) => acc + (r.actualProgress || 0), 0));
+                              const sumPlanned = Math.min(100, matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0));
+                              setActualProgress(sumActual);
+                              setPlannedProgress(sumPlanned);
+
+                              const combinedMilestones: any[] = [];
+                              matchedList.forEach((r: any) => {
+                                let list = r.milestones;
+                                if (typeof list === "string") {
+                                  try { list = JSON.parse(list); } catch {}
+                                }
+                                if (Array.isArray(list) && list.length > 0) {
+                                  list.forEach((m: any) => {
+                                    combinedMilestones.push({
+                                      title: m.title || m.name || "",
+                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
+                                      status: m.status || "جارٍ",
+                                    });
+                                  });
+                                }
+                              });
+
+                              if (combinedMilestones.length === 0) {
+                                const proj = projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+                                if (proj && proj.milestones && Array.isArray(proj.milestones)) {
+                                  proj.milestones.forEach((m: any) => {
+                                    combinedMilestones.push({
+                                      title: m.title || m.name || "",
+                                      date: formatToInputDate(m.date || m.dueDate || m.actualStartDate || new Date()),
+                                      status: m.status || "جارٍ",
+                                    });
+                                  });
+                                }
+                              }
+
+                              if (combinedMilestones.length > 0) {
+                                setQuarterMilestones(combinedMilestones);
+                              }
+
                               setIsAggregated(true);
-                              toast.success(`تم ربط وتجميع بيانات التقارير النصف شهرية بنجاح للفترة (${block.quarterTitle})!`);
+                              toast.success(`تم ربط وتجميع بيانات التقارير النصف شهرية والمعالم بنجاح للفترة (${block.quarterTitle})!`);
                             }
                           }}
                           disabled={!selectedProjectId}
