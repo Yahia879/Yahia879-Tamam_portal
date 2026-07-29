@@ -113,6 +113,9 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
             plannedProgress: p.plannedProgress ?? 0,
             actualProgress: p.completionPercentage ?? 0,
             milestones: parsedMilestones,
+            startDate: p.startDate ? new Date(p.startDate) : (p.createdAt ? new Date(p.createdAt) : null),
+            endDate: p.expectedEndDate || p.endDate ? new Date(p.expectedEndDate || p.endDate) : null,
+            durationMonths: p.durationMonths || p.durationInMonths || null,
           };
         });
     }
@@ -121,12 +124,117 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [projectManager, setProjectManager] = useState<string>("غير محدد");
-  const [monthYear, setMonthYear] = useState<string>("2026-07");
+  const [periodFrom, setPeriodFrom] = useState<string>("");
+  const [periodTo, setPeriodTo] = useState<string>("");
+  const monthYear = periodFrom && periodTo ? `من ${periodFrom} إلى ${periodTo}` : "";
   const [reportDate, setReportDate] = useState<string>(formatToInputDate(new Date()));
   const [currentPhase, setCurrentPhase] = useState<string>("التنفيذ");
   const [challenges, setChallenges] = useState<string>("");
   const [recommendations, setRecommendations] = useState<string>("");
   const [nextSteps, setNextSteps] = useState<string>("");
+
+  const selectedProj = useMemo(() => {
+    return projectOptions.find((p) => String(p.id) === String(selectedProjectId));
+  }, [projectOptions, selectedProjectId]);
+
+  const existingProjectReportPeriods = useMemo(() => {
+    if (!dbReports || !selectedProjectId) return new Set<string>();
+    const pid = parseInt(selectedProjectId, 10);
+    const set = new Set<string>();
+    dbReports.forEach((r: any) => {
+      if (r.projectId === pid && r.reportPeriodStart && r.reportPeriodEnd) {
+        const fromStr = formatToInputDate(r.reportPeriodStart);
+        const toStr = formatToInputDate(r.reportPeriodEnd);
+        if (fromStr && toStr) {
+          if (!editId || r.id !== editId) {
+            set.add(`${fromStr}_${toStr}`);
+          }
+        }
+      }
+    });
+    return set;
+  }, [dbReports, selectedProjectId, editId]);
+
+  const projectMonthlyPeriods = useMemo(() => {
+    if (!selectedProj) return [];
+
+    let start: Date;
+    let end: Date;
+
+    const startVal = selectedProj.startDate;
+    const endVal = selectedProj.endDate;
+
+    if (startVal) {
+      const parsedStart = new Date(startVal);
+      if (!isNaN(parsedStart.getTime())) {
+        start = new Date(parsedStart.getFullYear(), parsedStart.getMonth(), parsedStart.getDate());
+      } else {
+        start = new Date(new Date().getFullYear(), 0, 1);
+      }
+    } else {
+      start = new Date(new Date().getFullYear(), 0, 1);
+    }
+
+    if (endVal) {
+      const parsedEnd = new Date(endVal);
+      if (!isNaN(parsedEnd.getTime()) && parsedEnd >= start) {
+        end = new Date(parsedEnd.getFullYear(), parsedEnd.getMonth(), parsedEnd.getDate());
+      } else {
+        end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+      }
+    } else {
+      end = new Date(start.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
+
+    const periods: { label: string; from: string; to: string; periodNum: number; readableLabel: string }[] = [];
+    let currStart = new Date(start);
+    let periodNum = 1;
+
+    while (periodNum <= 36) {
+      const currEnd = new Date(currStart.getTime() + 29 * 24 * 60 * 60 * 1000);
+
+      // عدم إضافة فترة جديدة إذا كانت لا تستوفي 30 يوماً كاملة ضمن زمن المشروع
+      if (currEnd > end) {
+        break;
+      }
+
+      const fromStr = formatToInputDate(currStart);
+      const toStr = formatToInputDate(currEnd);
+      const fromArabic = formatDateToReadableArabic(fromStr);
+      const toArabic = formatDateToReadableArabic(toStr);
+
+      periods.push({
+        label: `الشهر ${periodNum} (من ${fromStr} إلى ${toStr})`,
+        readableLabel: `الشهر ${periodNum} (من ${fromArabic} إلى ${toArabic})`,
+        from: fromStr,
+        to: toStr,
+        periodNum,
+      });
+
+      currStart = new Date(currStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+      periodNum++;
+    }
+
+    return periods;
+  }, [selectedProj]);
+
+  useEffect(() => {
+    if (selectedProjectId && projectMonthlyPeriods.length > 0 && !existingReport) {
+      const availablePeriod = projectMonthlyPeriods.find(
+        (p) => !existingProjectReportPeriods.has(`${p.from}_${p.to}`)
+      );
+      if (availablePeriod) {
+        setPeriodFrom(availablePeriod.from);
+        setPeriodTo(availablePeriod.to);
+        setReportDate(availablePeriod.to);
+      } else {
+        const first = projectMonthlyPeriods[0];
+        setPeriodFrom(first.from);
+        setPeriodTo(first.to);
+        setReportDate(first.to);
+      }
+    }
+  }, [selectedProjectId, projectMonthlyPeriods, existingReport, existingProjectReportPeriods]);
 
   useEffect(() => {
     if (existingReport) {
@@ -137,8 +245,8 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
       if (existingReport.actualProgress !== null && existingReport.actualProgress !== undefined) {
         setActualProgress(existingReport.actualProgress);
       }
-      if (existingReport.reportDate) setReportDate(formatToInputDate(existingReport.reportDate));
-      if (existingReport.reportPeriodStart) setMonthYear(String(existingReport.reportPeriodStart).substring(0, 7));
+      if (existingReport.reportPeriodStart) setPeriodFrom(formatToInputDate(existingReport.reportPeriodStart));
+      if (existingReport.reportPeriodEnd) setPeriodTo(formatToInputDate(existingReport.reportPeriodEnd));
       if (existingReport.status) {
         setReportStatus(
           existingReport.status === "approved" ? "معتمد" : existingReport.status === "submitted" ? "تم الاطلاع" : "مسودة"
@@ -338,7 +446,6 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
 
     setActualProgress(avgActual);
     setPlannedProgress(avgPlanned);
-    setMonthYear(targetMonthYear);
 
     const combinedMilestones: any[] = [];
     matchedList.forEach((r) => {
@@ -421,6 +528,11 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
       return;
     }
 
+    if (periodFrom && periodTo && existingProjectReportPeriods.has(`${periodFrom}_${periodTo}`)) {
+      toast.error(`لقد تم تسجيل تقرير شهري سابقاً لهذه الفترة (من ${formatDateToReadableArabic(periodFrom)} إلى ${formatDateToReadableArabic(periodTo)}). يرجى اختيار فترة أخرى.`);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       let statusEnum: "draft" | "submitted" | "reviewed" | "approved" = "draft";
@@ -435,13 +547,14 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
           id: editId,
           title: `التقرير الشهري - ${selectedProjName}`,
           reportDate: reportDate || undefined,
-          reportPeriodStart: monthYear ? `${monthYear}-01` : undefined,
+          reportPeriodStart: periodFrom ? new Date(periodFrom) : undefined,
+          reportPeriodEnd: periodTo ? new Date(periodTo) : undefined,
           plannedProgress: plannedProgress,
           actualProgress: actualProgress,
           overallProgress: actualProgress,
-          challenges: `شهر/سنة: ${monthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+          challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
           recommendations: `المرحلة الحالية: ${currentPhase}`,
-          workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
+          workSummary: `تقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
         });
 
         await updateStatusMutation.mutateAsync({
@@ -457,13 +570,15 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
       const res = await createMutation.mutateAsync({
         projectId: Number(selectedProjectId),
         title: `التقرير الشهري - ${selectedProjName}`,
-        reportDate: reportDate || new Date().toISOString().split("T")[0],
+        reportDate: reportDate || (periodTo ? periodTo : new Date().toISOString().split("T")[0]),
+        reportPeriodStart: periodFrom ? new Date(periodFrom) : undefined,
+        reportPeriodEnd: periodTo ? new Date(periodTo) : undefined,
         plannedProgress: plannedProgress,
         actualProgress: actualProgress,
         overallProgress: actualProgress,
-        challenges: `شهر/سنة: ${monthYear}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
+        challenges: `فترة التقرير الشهري: من ${periodFrom} إلى ${periodTo}\nالمشكلات والعقبات: (انظر تفاصيل المعالم)`,
         recommendations: `المرحلة الحالية: ${currentPhase}`,
-        workSummary: `تم استيراد البيانات من التقارير السابقة المدمجة`,
+        workSummary: `تقرير شهري لفترة التنفيذ من ${periodFrom} إلى ${periodTo}`,
       });
 
       await updateStatusMutation.mutateAsync({
@@ -704,20 +819,42 @@ const getMonthDetails = (reports: any[], pairIndex: number) => {
                   <Input value={projectManager} readOnly placeholder="مدير المشروع المرتبط" className="h-10 bg-muted/40 font-semibold border-border/60" />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 md:col-span-2">
                   <Label className="text-xs font-semibold flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-primary" />
-                    <span>الشهر / السنة</span>
+                    <span>اختر فترة التقرير الشهري (مقسمة إجبارياً على فترات 30 يوماً طبقاً لزمن المشروع)</span>
                     <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Input
-                    type="month"
+                  <Select
+                    value={periodFrom && periodTo ? `${periodFrom}_${periodTo}` : ""}
+                    onValueChange={(val) => {
+                      const [from, to] = val.split("_");
+                      setPeriodFrom(from);
+                      setPeriodTo(to);
+                      setReportDate(to);
+                    }}
                     disabled={!selectedProjectId}
-                    value={monthYear}
-                    onChange={(e) => setMonthYear(e.target.value)}
-                    placeholder="اختر الشهر والشهر المشمول"
-                    className="h-10 border-border/80"
-                  />
+                  >
+                    <SelectTrigger className="h-10 border-border/80 text-xs bg-background font-semibold text-right">
+                      <SelectValue placeholder={selectedProjectId ? "اختر فترة التقرير الشهري لهذا المشروع..." : "يرجى اختيار المشروع أولاً..."} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60 text-right">
+                      {projectMonthlyPeriods.map((p) => {
+                        const key = `${p.from}_${p.to}`;
+                        const isSubmitted = existingProjectReportPeriods.has(key);
+                        return (
+                          <SelectItem key={key} value={key} disabled={isSubmitted} className="text-xs font-semibold py-2">
+                            <div className="flex items-center justify-between gap-4 w-full">
+                              <span>📅 {p.readableLabel}</span>
+                              {isSubmitted && (
+                                <span className="text-rose-500 font-bold text-[11px]">(مُسجّل مسبقاً ❌)</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-1.5">
