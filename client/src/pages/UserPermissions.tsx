@@ -296,13 +296,7 @@ export default function UserPermissions() {
       }
     }
 
-    // منع تفعيل أي صلاحية في قسم أوامر الصرف إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("disbursement_orders.") && permId !== "disbursement_orders.view") {
-      if (!isChecked("disbursement_orders.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
-        return;
-      }
-    }
+
 
     const defaultState = rolePermissions?.includes(permId) || false;
     const currentState = isChecked(permId);
@@ -525,6 +519,7 @@ export default function UserPermissions() {
       },
       signing: {
         disbursements_sign: "توقيع طلبات الصرف",
+        disbursement_orders_sign: "توقيع أوامر الصرف",
         contracts_sign: "توقيع العقود",
         final_reports_sign: "توقيع التقارير الختامية",
       },
@@ -745,7 +740,7 @@ export default function UserPermissions() {
           id: "signing",
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
-          perms: ["disbursements_sign", "final_reports_sign"]
+          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
         }
       ]
     }
@@ -896,6 +891,7 @@ export default function UserPermissions() {
                     if (module.id === "signing") {
                       const signingIds: Record<string, string> = {
                         disbursements_sign: "disbursements.sign",
+                        disbursement_orders_sign: "disbursement_orders.sign",
                         contracts_sign: "contracts.sign",
                         final_reports_sign: "final_reports.sign",
                       };
