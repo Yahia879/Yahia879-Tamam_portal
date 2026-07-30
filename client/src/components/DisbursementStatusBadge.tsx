@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle2, XCircle, Banknote, FileCheck, AlertCircle } from "lucide-react";
 
-type DisbursementRequestStatus = "pending" | "approved" | "rejected" | "paid";
+type DisbursementRequestStatus = "draft" | "pending" | "pending_executive" | "approved" | "rejected" | "paid";
 type DisbursementOrderStatus = "pending" | "approved" | "executed" | "cancelled" | "rejected" | "edited";
 
 interface DisbursementStatusBadgeProps {
-  status: DisbursementRequestStatus | DisbursementOrderStatus;
+  status: string;
   type: "request" | "order";
 }
 
@@ -13,11 +13,23 @@ const REQUEST_STATUS_CONFIG: Record<
   DisbursementRequestStatus,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string; icon: React.ReactNode }
 > = {
-  pending: {
-    label: "قيد الاعتماد",
-    variant: "outline",
-    className: "border-yellow-500 text-yellow-700 bg-yellow-50",
+  draft: {
+    label: "مسودة",
+    variant: "secondary",
+    className: "border-gray-300 text-gray-700 bg-gray-100",
     icon: <Clock className="h-3 w-3" />,
+  },
+  pending: {
+    label: "بانتظار اعتماد مُعد الطلب",
+    variant: "outline",
+    className: "border-amber-500 text-amber-700 bg-amber-50",
+    icon: <Clock className="h-3 w-3" />,
+  },
+  pending_executive: {
+    label: "بانتظار اعتماد المدير التنفيذي",
+    variant: "outline",
+    className: "border-orange-500 text-orange-700 bg-orange-50 font-bold",
+    icon: <Clock className="h-3 w-3 animate-pulse" />,
   },
   approved: {
     label: "معتمد",
@@ -32,7 +44,7 @@ const REQUEST_STATUS_CONFIG: Record<
     icon: <XCircle className="h-3 w-3" />,
   },
   paid: {
-    label: "مدفوع",
+    label: "مصروف",
     variant: "outline",
     className: "border-blue-500 text-blue-700 bg-blue-50",
     icon: <Banknote className="h-3 w-3" />,
