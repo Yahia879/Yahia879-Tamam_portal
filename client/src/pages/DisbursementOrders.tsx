@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -23,6 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +69,7 @@ import ExcelJS from "exceljs";
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
   draft: { label: "مسودة", variant: "outline", className: "border-slate-300 text-slate-600 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
   pending: { label: "قيد الاعتماد", variant: "outline", className: "border-amber-400 text-amber-700 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30" },
+  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "outline", className: "border-amber-500 text-amber-800 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50" },
   approved: { label: "معتمد", variant: "outline", className: "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50" },
   rejected: { label: "مرفوض", variant: "outline", className: "border-red-500 text-red-700 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50" },
   edited: { label: "تم التعديل", variant: "outline", className: "border-purple-500 text-purple-700 bg-purple-50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/50" },
@@ -231,8 +238,32 @@ export default function DisbursementOrders() {
   const canViewDetails = usePermission("disbursement_orders.view_details");
   const canCreateDirectOrder = usePermission("disbursement_orders.create_direct");
 
-  // تعيين الأوامر مباشرة من استجابة الخادم
-  const filteredOrders = ordersData?.orders || [];
+  const isExecutiveDirector =
+    user?.role === "general_manager" ||
+    user?.role === "executive_director" ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي";
+
+  // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
+  const sortedOrders = useMemo(() => {
+    if (!ordersData?.orders) return [];
+
+    return [...ordersData.orders].sort((a: any, b: any) => {
+      const aPendingMyAction = isExecutiveDirector
+        ? a.status === "pending_executive" || a.status === "pending"
+        : (a.status === "pending" || a.status === "draft") && (a.createdBy === user?.id || canApproveOrder);
+
+      const bPendingMyAction = isExecutiveDirector
+        ? b.status === "pending_executive" || b.status === "pending"
+        : (b.status === "pending" || b.status === "draft") && (b.createdBy === user?.id || canApproveOrder);
+
+      if (aPendingMyAction && !bPendingMyAction) return -1;
+      if (!aPendingMyAction && bPendingMyAction) return 1;
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [ordersData?.orders, isExecutiveDirector, user, canApproveOrder]);
+
+  const filteredOrders = sortedOrders;
 
   // إحصائيات عامة وعالمية دقيقة من الخادم
   const pendingCount = ordersData?.stats?.pendingCount || 0;
@@ -374,114 +405,127 @@ export default function DisbursementOrders() {
               <Card className="border-0 shadow-sm overflow-hidden p-0">
                 {/* Desktop View Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <Table dir="rtl">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">رقم الأمر</TableHead>
-                        <TableHead className="text-right">المشروع</TableHead>
-                        <TableHead className="text-right">المستفيد</TableHead>
-                        <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">طريقة الدفع</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right">الإجراءات</TableHead>
+                  <Table dir="rtl" className="w-full min-w-[950px]">
+                    <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[140px] font-bold text-slate-700 dark:text-slate-200">طريقة الدفع</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[210px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
+                        <TableHead className="py-3.5 px-4 text-center min-w-[100px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrders?.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-mono text-xs text-right">{order.orderNumber}</TableCell>
-                          <TableCell className="max-w-[150px] truncate text-right">{order.projectName || "-"}</TableCell>
-                          <TableCell className="max-w-[150px] truncate text-right">{order.beneficiaryName}</TableCell>
-                          <TableCell className="whitespace-nowrap text-right">{Number(order.amount).toLocaleString()} ريال</TableCell>
-                          <TableCell className="text-right">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
-                              {STATUS_MAP[order.status || "draft"]?.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-right">
-                            {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
-                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-48 text-right font-medium">
-                                {order.status === "approved" ? (
-                                  <>
-                                    {canViewDetails && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowDetailsDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                      >
-                                        <Eye className="h-4 w-4 text-blue-500" />
-                                        <span>عرض التفاصيل</span>
-                                      </DropdownMenuItem>
-                                    )}
+                      {filteredOrders?.map((order) => {
+                        const isPendingMyAction = isExecutiveDirector
+                          ? order.status === "pending_executive" || order.status === "pending"
+                          : (order.status === "pending" || order.status === "draft") && (order.createdBy === user?.id || canApproveOrder);
+
+                        return (
+                          <TableRow 
+                            key={order.id}
+                            className={isPendingMyAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
+                          >
+                            <TableCell className="py-3.5 px-4 font-mono text-xs text-right font-bold whitespace-nowrap">
+                              <div className="flex items-center gap-2 justify-start">
+                                {isPendingMyAction && (
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={50}>
+                                      <TooltipTrigger asChild>
+                                        <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                          <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                            <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                          </div>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                        <span>بانتظار اعتمادك</span>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                                <span>{order.orderNumber}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3.5 px-4 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
+                            <TableCell className="py-3.5 px-4 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
+                            <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="py-3.5 px-4 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
+                            <TableCell className="py-3.5 px-4 text-right">
+                              <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
+                                {STATUS_MAP[order.status || "draft"]?.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground">
+                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
+                            </TableCell>
+                            <TableCell className="py-3.5 px-4 text-center">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
+                                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-52 text-right font-medium">
+                                  {(canApproveOrder || isPendingMyAction) && (order.status === "pending" || order.status === "pending_executive" || order.status === "edited" || order.status === "draft") && (
                                     <DropdownMenuItem
                                       onClick={() => {
-                                        navigate(`/disbursement-orders/${order.id}/print`);
+                                        setSelectedOrder(order);
+                                        setShowApproveDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                    >
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                      <span>اعتماد أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {canRejectOrder && (order.status === "pending" || order.status === "pending_executive" || order.status === "edited") && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                    >
+                                      <XCircle className="h-4 w-4 text-red-600" />
+                                      <span>رفض أمر الصرف</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      navigate(`/disbursement-orders/${order.id}/print`);
+                                    }}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
+                                  >
+                                    <Printer className="h-4 w-4 text-emerald-600" />
+                                    <span>عرض تقرير أمر الصرف</span>
+                                  </DropdownMenuItem>
+
+                                  {canViewDetails && (
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedOrder(order);
+                                        setShowDetailsDialog(true);
                                       }}
                                       className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
                                     >
-                                      <Printer className="h-4 w-4 text-emerald-600" />
-                                      <span>عرض تقرير امر الصرف</span>
+                                      <Eye className="h-4 w-4 text-blue-500" />
+                                      <span>عرض التفاصيل</span>
                                     </DropdownMenuItem>
-                                  </>
-                                ) : (
-                                  <>
-                                    {canApproveOrder && (order.status === "pending" || order.status === "edited") && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowApproveDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
-                                      >
-                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                        <span>اعتماد أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                    )}
-
-                                    {canRejectOrder && (order.status === "pending" || order.status === "edited") && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowRejectDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
-                                      >
-                                        <XCircle className="h-4 w-4 text-red-600" />
-                                        <span>رفض أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                    )}
-
-                                    {canViewDetails && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowDetailsDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                      >
-                                        <Eye className="h-4 w-4 text-blue-500" />
-                                        <span>عرض التفاصيل</span>
-                                      </DropdownMenuItem>
-                                    )}
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
