@@ -158,7 +158,15 @@ export const disbursementsRouter = router({
         .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId))
         .leftJoin(contractsEnhanced, eq(disbursementRequests.contractId, contractsEnhanced.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(disbursementRequests.createdAt))
+        .orderBy(
+          sql`CASE 
+            WHEN ${disbursementRequests.status} = 'pending_executive' THEN 0
+            WHEN ${disbursementRequests.status} = 'pending' THEN 1
+            WHEN ${disbursementRequests.status} = 'draft' THEN 2
+            ELSE 3
+          END ASC`,
+          desc(disbursementRequests.createdAt)
+        )
         .limit(limit)
         .offset((page - 1) * limit);
 
