@@ -133,6 +133,7 @@ export const disbursementsRouter = router({
           completionPercentage: disbursementRequests.completionPercentage,
           attachmentsJson: disbursementRequests.attachmentsJson,
           status: disbursementRequests.status,
+          requestedBy: disbursementRequests.requestedBy,
           requestedAt: disbursementRequests.requestedAt,
           dateMiladi: disbursementRequests.dateMiladi,
           projectId: disbursementRequests.projectId,
@@ -849,8 +850,8 @@ export const disbursementsRouter = router({
       };
     }),
 
-  // اعتماد طلب صرف
-  approveRequest: permissionProcedure("financial.approve")
+  // اعتماد طلب صرف (سلسلة الاعتمادات - Stage 1 & Stage 2)
+  approveRequest: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -861,15 +862,6 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من الصلاحيات
-      const allowedRoles = ["super_admin", "system_admin", "general_manager", "financial", "financial_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const hasPerm = await checkPermission(ctx.user.id, "disbursements.approve");
-        if (!hasPerm) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف" });
-        }
-      }
-
       const [request] = await db
         .select()
         .from(disbursementRequests)
@@ -879,108 +871,170 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
-      if (request.status !== "pending") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد هذا الطلب في حالته الحالية" });
+      const hasApprovePerm = await checkPermission(ctx.user.id, "disbursements.approve");
+      const isExecDirector = ctx.user.role === "general_manager" || ctx.user.role === "executive_director";
+
+      // المرحلة الأولى: اعتماد مُعد الطلب (pending / draft -> pending_executive)
+      if (request.status === "pending" || request.status === "draft") {
+        const allowedStage1Roles = ["super_admin", "system_admin", "general_manager", "executive_director", "financial", "financial_manager", "projects_office", "project_manager"];
+        const canApproveStage1 = allowedStage1Roles.includes(ctx.user.role) || hasApprovePerm || request.requestedBy === ctx.user.id;
+        
+        if (!canApproveStage1) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف في المرحلة الأولى" });
+        }
+
+        await db
+          .update(disbursementRequests)
+          .set({
+            status: "pending_executive",
+            approvalNotes: input.notes || request.approvalNotes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementRequests.id, input.id));
+
+        // إرسال إشعار للمدير التنفيذي / المدراء
+        const executiveUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(
+            and(
+              inArray(users.role, ["general_manager", "executive_director"]),
+              isNull(users.deletedAt)
+            )
+          );
+
+        for (const execUser of executiveUsers) {
+          await createNotification({
+            userId: execUser.id,
+            title: "طلب صرف بانتظار الاعتماد",
+            message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} من قِبَل مُعد الطلب، وهو الآن بانتظار اعتماد المدير التنفيذي`,
+            type: "warning",
+            relatedType: "disbursement_request",
+            relatedId: input.id,
+          });
+        }
+
+        return {
+          success: true,
+          status: "pending_executive",
+          message: "تمت المرحلة الأولى من الاعتماد بنجاح، والطلب الآن بانتظار اعتماد المدير التنفيذي",
+        };
       }
 
-      await db
-        .update(disbursementRequests)
-        .set({
+      // المرحلة الثانية: اعتماد المدير التنفيذي فقط (pending_executive -> approved)
+      if (request.status === "pending_executive") {
+        if (!isExecDirector && !hasApprovePerm) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لطلبات الصرف",
+          });
+        }
+
+        await db
+          .update(disbursementRequests)
+          .set({
+            status: "approved",
+            approvedBy: ctx.user.id,
+            approvedAt: new Date(),
+            approvalNotes: input.notes || request.approvalNotes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementRequests.id, input.id));
+
+        // تحديث قيمة الدفعة المجدولة في العقد أو الدفعة اليدوية إذا كان المبلغ أقل
+        const req = request as any;
+        if (req.contractPaymentId) {
+          const [contractPayment] = await db
+            .select()
+            .from(contractPayments)
+            .where(eq(contractPayments.id, req.contractPaymentId));
+
+          if (contractPayment) {
+            const cpAmount = Number(contractPayment.amount);
+            const requestAmount = Number(req.amount);
+            if (requestAmount < cpAmount) {
+              await db
+                .update(contractPayments)
+                .set({
+                  amount: req.amount,
+                  updatedAt: new Date(),
+                })
+                .where(eq(contractPayments.id, req.contractPaymentId));
+            }
+          }
+        }
+
+        if (req.paymentId) {
+          const [manualPayment] = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.id, req.paymentId));
+
+          if (manualPayment) {
+            const mpAmount = Number(manualPayment.amount);
+            const requestAmount = Number(req.amount);
+            if (requestAmount < mpAmount) {
+              await db
+                .update(payments)
+                .set({
+                  amount: req.amount,
+                  updatedAt: new Date(),
+                })
+                .where(eq(payments.id, req.paymentId));
+            }
+          }
+        }
+
+        // إرسال إشعار لمقدم/منشئ الطلب
+        if (request.requestedBy) {
+          await createNotification({
+            userId: request.requestedBy,
+            title: "تم اعتماد طلب الصرف نهائياً",
+            message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} بنجاح من قِبَل المدير التنفيذي، ويمكنك الآن تحويله إلى أمر صرف`,
+            type: "success",
+            relatedType: "disbursement_request",
+            relatedId: input.id,
+          });
+        }
+
+        // إرسال إشعار للإدارة المالية
+        const financialUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
+
+        const project = request.projectId
+          ? (await db
+              .select({ name: projects.name })
+              .from(projects)
+              .where(eq(projects.id, request.projectId)))[0]
+          : null;
+
+        for (const user of financialUsers) {
+          await createNotification({
+            userId: user.id,
+            title: "طلب صرف معتمد - جاهز لأمر الصرف",
+            message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} ${
+              project ? `للمشروع ${project.name}` : ""
+            } بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال من قِبَل المدير التنفيذي.`,
+            type: "info",
+            relatedType: "disbursement_request",
+            relatedId: input.id,
+          });
+        }
+
+        return {
+          success: true,
           status: "approved",
-          approvedBy: ctx.user.id,
-          approvedAt: new Date(),
-          approvalNotes: input.notes,
-        })
-        .where(eq(disbursementRequests.id, input.id));
-
-      // تحديث قيمة الدفعة المجدولة في العقد أو الدفعة اليدوية إذا كان مبلغ طلب الصرف المعتمد أقل من مبلغ الدفعة الأصلي
-      const req = request as any;
-      if (req.contractPaymentId) {
-        const [contractPayment] = await db
-          .select()
-          .from(contractPayments)
-          .where(eq(contractPayments.id, req.contractPaymentId));
-
-        if (contractPayment) {
-          const cpAmount = Number(contractPayment.amount);
-          const requestAmount = Number(req.amount);
-          if (requestAmount < cpAmount) {
-            // تحديث قيمة الدفعة في العقد لتكون مساوية للمبلغ المعتمد لطلب الصرف
-            await db
-              .update(contractPayments)
-              .set({
-                amount: req.amount,
-                updatedAt: new Date(),
-              })
-              .where(eq(contractPayments.id, req.contractPaymentId));
-          }
-        }
+          message: "تم اعتماد طلب الصرف بنجاح من قِبَل المدير التنفيذي",
+        };
       }
 
-      if (req.paymentId) {
-        const [manualPayment] = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.id, req.paymentId));
-
-        if (manualPayment) {
-          const mpAmount = Number(manualPayment.amount);
-          const requestAmount = Number(req.amount);
-          if (requestAmount < mpAmount) {
-            // تحديث قيمة الدفعة اليدوية لتكون مساوية لمبلغ طلب الصرف المعتمد
-            await db
-              .update(payments)
-              .set({
-                amount: req.amount,
-                updatedAt: new Date(),
-              })
-              .where(eq(payments.id, req.paymentId));
-          }
-        }
-      }
-
-      // إرسال إشعار لمقدم الطلب
-      if (request.requestedBy) {
-        await createNotification({
-          userId: request.requestedBy,
-          title: "تم اعتماد طلب الصرف",
-          message: `تم اعتماد طلب الصرف رقم ${request.requestNumber}`,
-          type: "success",
-          relatedType: "disbursement_request",
-          relatedId: input.id,
-        });
-      }
-
-      // إرسال إشعار للإدارة المالية لإنشاء أمر الصرف
-      const financialUsers = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(and(eq(users.role, "financial"), isNull(users.deletedAt)));
-
-      // جلب بيانات المشروع
-      const project = request.projectId
-        ? (await db
-            .select({ name: projects.name })
-            .from(projects)
-            .where(eq(projects.id, request.projectId)))[0]
-        : null;
-
-      for (const user of financialUsers) {
-        await createNotification({
-          userId: user.id,
-          title: "طلب صرف معتمد - يحتاج إنشاء أمر صرف",
-          message: `تم اعتماد طلب الصرف رقم ${request.requestNumber} للمشروع ${project?.name || "غير محدد"} بمبلغ ${Number(request.amount).toLocaleString("ar-SA")} ريال. يرجى إنشاء أمر الصرف.`,
-          type: "warning",
-          relatedType: "disbursement_request",
-          relatedId: input.id,
-        });
-      }
-
-      return { success: true, message: "تم اعتماد طلب الصرف بنجاح" };
+      throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد هذا الطلب في حالته الحالية" });
     }),
 
   // رفض طلب صرف
-  rejectRequest: permissionProcedure("financial.approve")
+  rejectRequest: protectedProcedure
     .input(
       z.object({
         id: z.number(),
