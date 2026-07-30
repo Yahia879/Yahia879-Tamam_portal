@@ -164,18 +164,28 @@ export default function Profile() {
 
   const hasDisbursementSignPermission = useAnyPermission([
     "disbursements.sign",
+    "disbursements_sign",
+    "signing.disbursements_sign",
+  ]);
+
+  const hasDisbursementOrderSignPermission = useAnyPermission([
     "disbursement_orders.sign",
+    "disbursement_orders_sign",
+    "signing.disbursement_orders_sign",
   ]);
 
   const hasFinalReportSignPermission = useAnyPermission([
     "requests.sign_final_report",
     "final_reports.sign",
+    "final_reports_sign",
+    "signing.final_reports_sign",
   ]);
 
   const hasSignaturePermission =
     user?.role === "super_admin" ||
     user?.role === "system_admin" ||
     hasDisbursementSignPermission ||
+    hasDisbursementOrderSignPermission ||
     hasFinalReportSignPermission;
 
   const handleSave = () => {
