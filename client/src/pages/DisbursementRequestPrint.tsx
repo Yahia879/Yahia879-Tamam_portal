@@ -320,39 +320,55 @@ export default function DisbursementRequestPrint() {
           رجوع
         </Button>
 
-        {/* خيار إظهار/إخفاء توقيع مُعدّ الطلب */}
-        {resolvedSignatureUrl && (
-          <label
-            htmlFor="show-creator-sig"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-          >
-            <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-            <span>توقيع مُعدّ الطلب</span>
-            <Checkbox
-              id="show-creator-sig"
-              checked={showCreatorSignature}
-              onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
-              className="scale-90"
-            />
-          </label>
-        )}
+        {/* تحديد صلاحية التحكم لكل زر توقيع - كل مستخدم يتحكم بتوقيعه فقط */}
+        {(() => {
+          const isCreator = currentUser?.id === request?.requestedBy;
+          const isExecutiveDirector = 
+            currentUser?.role === "general_manager" ||
+            currentUser?.role === "executive_director" ||
+            (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-        {/* خيار إظهار/إخفاء توقيع المدير التنفيذي */}
-        {executiveDirectorSignatureUrl && (
-          <label
-            htmlFor="show-exec-sig"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-          >
-            <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-            <span>توقيع المدير التنفيذي</span>
-            <Checkbox
-              id="show-exec-sig"
-              checked={showExecutiveDirectorSignature}
-              onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
-              className="scale-90"
-            />
-          </label>
-        )}
+          const canControlCreatorSig = isCreator && !!resolvedSignatureUrl;
+          const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl;
+
+          return (
+            <>
+              {/* خيار إظهار/إخفاء توقيع مُعدّ الطلب - لمُعدّ الطلب فقط */}
+              {canControlCreatorSig && (
+                <label
+                  htmlFor="show-creator-sig"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                >
+                  <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <span>توقيع مُعدّ الطلب</span>
+                  <Checkbox
+                    id="show-creator-sig"
+                    checked={showCreatorSignature}
+                    onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
+                    className="scale-90"
+                  />
+                </label>
+              )}
+
+              {/* خيار إظهار/إخفاء توقيع المدير التنفيذي - للمدير التنفيذي والآدمن فقط */}
+              {canControlExecSig && (
+                <label
+                  htmlFor="show-exec-sig"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                >
+                  <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <span>توقيع المدير التنفيذي</span>
+                  <Checkbox
+                    id="show-exec-sig"
+                    checked={showExecutiveDirectorSignature}
+                    onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
+                    className="scale-90"
+                  />
+                </label>
+              )}
+            </>
+          );
+        })()}
 
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
