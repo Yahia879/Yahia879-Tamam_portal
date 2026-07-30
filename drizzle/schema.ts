@@ -1036,11 +1036,12 @@ export const contractPayments = mysqlTable("contract_payments", {
 
 // حالات طلبات الصرف
 export const disbursementRequestStatuses = [
-  "draft",           // مسودة
-  "pending",         // قيد المراجعة
-  "approved",        // معتمد
-  "rejected",        // مرفوض
-  "paid"             // مصروف
+  "draft",               // مسودة
+  "pending",             // بانتظار اعتماد مُعد الطلب
+  "pending_executive",   // بانتظار اعتماد المدير التنفيذي
+  "approved",            // معتمد
+  "rejected",            // مرفوض
+  "paid"                 // مصروف
 ] as const;
 
 // حالات أوامر الصرف
