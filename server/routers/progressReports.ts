@@ -228,7 +228,7 @@ export const progressReportsRouter = router({
           createdBy: ctx.user.id,
         });
 
-        await notifyProgressReportCreation(result.insertId, reportNumber, input.title, input.projectId);
+        await notifyProgressReportCreation(result.insertId, reportNumber, input.title || "", input.projectId);
 
         return { id: result.insertId, reportNumber };
       } catch (error: any) {

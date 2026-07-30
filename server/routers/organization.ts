@@ -673,84 +673,19 @@ export const organizationRouter = router({
         isDefault: input.isDefault || false,
         sortOrder: nextOrder,
         createdBy: ctx.user.id,
+        userId: null,
       };
-
-      if (input.userId !== undefined) {
-        insertValues.userId = input.userId || null;
-      }
 
       await db.insert(signatories).values(insertValues);
 
-      // مزامنة التوقيع والصلاحيات مع حساب المستخدم المرتبط إن وُجد
-      let targetUserId = input.userId || null;
-      if (!targetUserId && input.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
-        if (matchedUser) {
-          targetUserId = matchedUser.id;
-        }
-      }
-
-      if (targetUserId) {
-        const userUpdate: any = {};
-        if (input.name) userUpdate.signatureName = input.name;
-        if (input.title) userUpdate.signatureDepartment = input.title;
-        if (input.signatureUrl) {
-          try {
-            await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
-          } catch (e) {}
-          userUpdate.signatureUrl = input.signatureUrl;
-        }
-
-        if (Object.keys(userUpdate).length > 0) {
-          await db.update(users).set(userUpdate).where(eq(users.id, targetUserId));
-        }
-
-        const [targetUserObj] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, targetUserId)).limit(1);
-        if (input.isDefault || (targetUserObj && ["executive_director", "general_manager"].includes(targetUserObj.role as string))) {
-          const existingSettings = await db.select().from(organizationSettings).limit(1);
-          if (existingSettings && existingSettings.length > 0) {
-            const orgUpdate: any = {};
-            if (input.name) {
-              orgUpdate.authorizedSignatory = input.name;
-              orgUpdate.executiveDirectorName = input.name;
-            }
-            if (input.title) {
-              orgUpdate.signatoryTitle = input.title;
-            }
-            if (Object.keys(orgUpdate).length > 0) {
-              await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
-            }
-          }
-        }
-
-        const grantPerm = input.grantContractSignPermission ?? true;
-        if (grantPerm) {
-          const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
-          if (!existingPerm) {
-            await db.insert(permissions).values({
-              id: "contracts.sign",
-              moduleId: "contracts",
-              action: "sign",
-              nameAr: "توقيع العقود",
-              nameEn: "Sign Contracts",
-            });
-          }
-
-          const [existingUserPerm] = await db.select().from(userPermissions).where(
-            and(
-              eq(userPermissions.userId, targetUserId),
-              eq(userPermissions.permissionId, "contracts.sign")
-            )
-          ).limit(1);
-
-          if (!existingUserPerm) {
-            await db.insert(userPermissions).values({
-              userId: targetUserId,
-              permissionId: "contracts.sign",
-              granted: true,
-              grantedBy: ctx.user.id,
-            });
-          }
+      if (input.isDefault) {
+        const existingSettings = await db.select().from(organizationSettings).limit(1);
+        if (existingSettings && existingSettings.length > 0) {
+          await db.update(organizationSettings).set({
+            authorizedSignatory: input.name,
+            executiveDirectorName: input.name,
+            signatoryTitle: input.title,
+          }).where(eq(organizationSettings.id, existingSettings[0].id));
         }
       }
 
@@ -804,85 +739,21 @@ export const organizationRouter = router({
         address: input.address || null,
         signatureUrl: input.signatureUrl || null,
         isDefault: input.isDefault || false,
+        userId: null,
       };
-
-      if (input.userId !== undefined) {
-        updateValues.userId = input.userId || null;
-      }
 
       await db.update(signatories)
         .set(updateValues)
         .where(eq(signatories.id, input.id));
 
-      // مزامنة التوقيع والصلاحيات مع حساب المستخدم المرتبط إن وُجد
-      let targetUserId = input.userId || null;
-      if (!targetUserId && input.email) {
-        const [matchedUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, input.email)).limit(1);
-        if (matchedUser) {
-          targetUserId = matchedUser.id;
-        }
-      }
-
-      if (targetUserId) {
-        const userUpdate: any = {};
-        if (input.name) userUpdate.signatureName = input.name;
-        if (input.title) userUpdate.signatureDepartment = input.title;
-        if (input.signatureUrl !== undefined) {
-          try {
-            await db.execute(sql`ALTER TABLE users ADD COLUMN signatureUrl TEXT;`);
-          } catch (e) {}
-          userUpdate.signatureUrl = input.signatureUrl || null;
-        }
-
-        if (Object.keys(userUpdate).length > 0) {
-          await db.update(users).set(userUpdate).where(eq(users.id, targetUserId));
-        }
-
-        const [targetUserObj] = await db.select({ id: users.id, role: users.role }).from(users).where(eq(users.id, targetUserId)).limit(1);
-        if (input.isDefault || (targetUserObj && ["executive_director", "general_manager"].includes(targetUserObj.role as string))) {
-          const existingSettings = await db.select().from(organizationSettings).limit(1);
-          if (existingSettings && existingSettings.length > 0) {
-            const orgUpdate: any = {};
-            if (input.name) {
-              orgUpdate.authorizedSignatory = input.name;
-              orgUpdate.executiveDirectorName = input.name;
-            }
-            if (input.title) {
-              orgUpdate.signatoryTitle = input.title;
-            }
-            if (Object.keys(orgUpdate).length > 0) {
-              await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
-            }
-          }
-        }
-
-        if (input.grantContractSignPermission !== undefined) {
-          await db.delete(userPermissions).where(
-            and(
-              eq(userPermissions.userId, targetUserId),
-              eq(userPermissions.permissionId, "contracts.sign")
-            )
-          );
-
-          if (input.grantContractSignPermission) {
-            const [existingPerm] = await db.select().from(permissions).where(eq(permissions.id, "contracts.sign")).limit(1);
-            if (!existingPerm) {
-              await db.insert(permissions).values({
-                id: "contracts.sign",
-                moduleId: "contracts",
-                action: "sign",
-                nameAr: "توقيع العقود",
-                nameEn: "Sign Contracts",
-              });
-            }
-
-            await db.insert(userPermissions).values({
-              userId: targetUserId,
-              permissionId: "contracts.sign",
-              granted: true,
-              grantedBy: ctx.user.id,
-            });
-          }
+      if (input.isDefault) {
+        const existingSettings = await db.select().from(organizationSettings).limit(1);
+        if (existingSettings && existingSettings.length > 0) {
+          await db.update(organizationSettings).set({
+            authorizedSignatory: input.name,
+            executiveDirectorName: input.name,
+            signatoryTitle: input.title,
+          }).where(eq(organizationSettings.id, existingSettings[0].id));
         }
       }
 

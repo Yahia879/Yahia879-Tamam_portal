@@ -683,54 +683,6 @@ export const authRouter = router({
         await db.update(users).set(updateData).where(eq(users.id, ctx.user.id));
       }
 
-      // مزامنة الاسم والمنصب الوظيفي وحالة إظهار التوقيع في جدول المفوضين signatories عند تعديلها في Profile
-      if (input.signatureName !== undefined || input.signatureDepartment !== undefined || input.showSignatureInDocuments !== undefined) {
-        try {
-          const signatoryConds = [eq(signatories.userId, ctx.user.id)];
-          if (ctx.user.email) {
-            signatoryConds.push(
-              and(
-                sql`length(${signatories.email}) > 0`,
-                eq(signatories.email, ctx.user.email)
-              )!
-            );
-          }
-          const whereClause = signatoryConds.length === 1 ? signatoryConds[0] : or(...signatoryConds)!;
-          const sigUpdate: any = {};
-          if (input.signatureName !== undefined) sigUpdate.name = input.signatureName;
-          if (input.signatureDepartment !== undefined) sigUpdate.title = input.signatureDepartment;
-          if (input.showSignatureInDocuments === false) {
-            sigUpdate.signatureUrl = null;
-          } else if (input.showSignatureInDocuments === true && ctx.user.signatureUrl) {
-            sigUpdate.signatureUrl = ctx.user.signatureUrl;
-          }
-
-          if (Object.keys(sigUpdate).length > 0) {
-            await db.update(signatories).set(sigUpdate).where(whereClause);
-          }
-
-          // مزامنة الاسم والمنصب مع إعدادات الجمعية organizationSettings إذا كان المستخدم هو المدير التنفيذي / المفوض
-          if (["executive_director", "general_manager"].includes(ctx.user.role as string)) {
-            const existingSettings = await db.select().from(organizationSettings).limit(1);
-            if (existingSettings && existingSettings.length > 0) {
-              const orgUpdate: any = {};
-              if (input.signatureName !== undefined) {
-                orgUpdate.authorizedSignatory = input.signatureName;
-                orgUpdate.executiveDirectorName = input.signatureName;
-              }
-              if (input.signatureDepartment !== undefined) {
-                orgUpdate.signatoryTitle = input.signatureDepartment;
-              }
-              if (Object.keys(orgUpdate).length > 0) {
-                await db.update(organizationSettings).set(orgUpdate).where(eq(organizationSettings.id, existingSettings[0].id));
-              }
-            }
-          }
-        } catch (e) {
-          console.error('[updateProfile] Failed to sync signatory name/title/showSignature:', e);
-        }
-      }
-
       return { success: true, message: "تم تحديث الملف الشخصي بنجاح" };
     }),
 

@@ -162,21 +162,21 @@ export default function Profile() {
     }
   });
 
-  const hasAnySigningPermission = useAnyPermission([
+  const hasDisbursementSignPermission = useAnyPermission([
     "disbursements.sign",
-    "contracts.sign",
-    "final_reports.sign",
     "disbursement_orders.sign",
-    "requests.sign_final_report",
   ]);
 
-  const hasSignaturePermission = 
-    user?.role === "super_admin" || 
-    user?.role === "system_admin" || 
-    (user?.role as string) === "general_manager" || 
-    hasAnySigningPermission ||
-    !!(user as any)?.signatureUrl ||
-    !!(user as any)?.isLinkedSignatory;
+  const hasFinalReportSignPermission = useAnyPermission([
+    "requests.sign_final_report",
+    "final_reports.sign",
+  ]);
+
+  const hasSignaturePermission =
+    user?.role === "super_admin" ||
+    user?.role === "system_admin" ||
+    hasDisbursementSignPermission ||
+    hasFinalReportSignPermission;
 
   const handleSave = () => {
     updateProfileMutation.mutate({

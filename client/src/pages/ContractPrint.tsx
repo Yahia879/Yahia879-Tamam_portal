@@ -189,7 +189,9 @@ export default function ContractPrint() {
   const resolvedProjectName = (data as any)?.projectName || (contract as any)?.projectName || (contract as any)?.contractTitle || "";
 
   const executiveDirectorSignatureUrl = 
+    (data as any)?.firstPartySignatureUrl ||
     (contract as any)?.firstPartySignatureUrl ||
+    (data as any)?.signatory?.signatureUrl ||
     (contract as any)?.signatory?.signatureUrl ||
     null;
 

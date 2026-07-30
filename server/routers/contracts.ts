@@ -321,16 +321,17 @@ export const contractsRouter = router({
         ? (targetUser.showSignatureInDocuments !== false && (targetUser.showSignatureInDocuments as any) !== 0)
         : true;
 
-      let firstPartySignatureUrl: string | null = null;
+      let firstPartySignatureUrl: string | null =
+        signatory?.signatureUrl ||
+        contract.firstPartySignatureUrl ||
+        (showSigInDocs ? targetUser?.signatureUrl : null) ||
+        null;
+
       let firstPartySignatoryName: string | null = signatory?.name || targetUser?.signatureName || targetUser?.name || null;
       let firstPartySignatoryTitle: string | null = signatory?.title || targetUser?.signatureDepartment || "المدير التنفيذي";
 
-      if (showSigInDocs) {
-        firstPartySignatureUrl = targetUser?.signatureUrl || signatory?.signatureUrl || null;
-      }
-
-      if (signatory && !showSigInDocs) {
-        signatory.signatureUrl = null;
+      if (signatory && !signatory.signatureUrl && firstPartySignatureUrl) {
+        signatory.signatureUrl = firstPartySignatureUrl;
       }
 
       // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)

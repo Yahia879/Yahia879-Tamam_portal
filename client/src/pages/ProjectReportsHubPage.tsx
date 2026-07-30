@@ -119,7 +119,32 @@ export default function ProjectReportsHubPage() {
 
   const reports = useMemo(() => {
     if (!dbReports) return [];
-    return dbReports.map((r) => {
+
+    // تصفية التقارير لإظهار تقارير المشاريع فقط (النصف شهرية، الشهرية، الربعية، والزيارات الميدانية)
+    const filteredDbReports = dbReports.filter((r) => {
+      if ((r as any).disbursementRequestId) return false;
+
+      const titleLower = (r.title || "").toLowerCase();
+      const reportNumUpper = (r.reportNumber || "").toUpperCase();
+
+      let diffDays = 0;
+      if (r.reportPeriodStart && r.reportPeriodEnd) {
+        const start = new Date(r.reportPeriodStart);
+        const end = new Date(r.reportPeriodEnd);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        }
+      }
+
+      return (
+        titleLower.includes("زيارة") || titleLower.includes("visit") || reportNumUpper.includes("VISIT") ||
+        titleLower.includes("ربع") || titleLower.includes("quarterly") || reportNumUpper.includes("Q") || (diffDays >= 70 && diffDays <= 110) ||
+        titleLower.includes("نصف") || titleLower.includes("semi") || reportNumUpper.includes("SEMI") || (diffDays >= 10 && diffDays <= 20) ||
+        titleLower.includes("شهري") || titleLower.includes("monthly") || reportNumUpper.includes("MONTH") || (diffDays >= 25 && diffDays <= 35)
+      );
+    });
+
+    return filteredDbReports.map((r) => {
       let typeKey: "semi-monthly" | "monthly" | "quarterly" | "visit" = "monthly";
       let typeLabel = "تقرير شهري";
 
