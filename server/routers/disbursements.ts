@@ -1168,6 +1168,8 @@ export const disbursementsRouter = router({
 
           paymentMethod: disbursementOrders.paymentMethod,
           status: disbursementOrders.status,
+          createdBy: disbursementOrders.createdBy,
+          approvedBy: disbursementOrders.approvedBy,
           createdAt: disbursementOrders.createdAt,
           approvedAt: disbursementOrders.approvedAt,
           requestNumber: disbursementRequests.requestNumber,
@@ -1181,7 +1183,15 @@ export const disbursementsRouter = router({
         .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
         .leftJoin(projects, eq(disbursementRequests.projectId, projects.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(disbursementOrders.createdAt))
+        .orderBy(
+          sql`CASE 
+            WHEN ${disbursementOrders.status} = 'pending_executive' THEN 0 
+            WHEN ${disbursementOrders.status} = 'pending' THEN 1 
+            WHEN ${disbursementOrders.status} = 'draft' THEN 2 
+            ELSE 3 
+          END`,
+          desc(disbursementOrders.createdAt)
+        )
         .limit(limit)
         .offset((page - 1) * limit);
 
@@ -1446,10 +1456,65 @@ export const disbursementsRouter = router({
         }
       }
 
+      // جلب بيانات منشئ أمر الصرف ومعتمده
+      let createdByUser = null;
+      if (order.createdBy) {
+        const [u] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            role: users.role,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+          })
+          .from(users)
+          .where(eq(users.id, order.createdBy));
+        createdByUser = u || null;
+      }
+
+      let approvedByUser = null;
+      if (order.approvedBy) {
+        const [u] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            role: users.role,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+          })
+          .from(users)
+          .where(eq(users.id, order.approvedBy));
+        approvedByUser = u || null;
+      }
+
+      if (!approvedByUser) {
+        const execUsers = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            role: users.role,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+          })
+          .from(users)
+          .where(and(
+            sql`(${users.role} IN ('general_manager', 'executive_director') OR ${users.signatureDepartment} LIKE '%المدير التنفيذي%')`,
+            isNull(users.deletedAt)
+          ));
+
+        const preferredExec = execUsers.find((u) => u.id !== order.createdBy);
+        approvedByUser = preferredExec || null;
+      }
+
       return {
         ...order,
         disbursementRequest: request,
         project,
+        createdByUser,
+        approvedByUser,
       };
     }),
 
@@ -1763,16 +1828,19 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      if (order.status !== "pending" && order.status !== "edited") {
+      if (order.status !== "pending" && order.status !== "pending_executive" && order.status !== "edited" && order.status !== "draft") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد هذا الأمر في حالته الحالية" });
       }
+
+      const isExecutiveDirector = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
+      const nextStatus = (isExecutiveDirector || order.status === "pending_executive") ? "approved" : "pending_executive";
 
       await db
         .update(disbursementOrders)
         .set({
-          status: "approved",
-          approvedBy: ctx.user.id,
-          approvedAt: new Date(),
+          status: nextStatus as any,
+          approvedBy: nextStatus === "approved" ? ctx.user.id : order.approvedBy,
+          approvedAt: nextStatus === "approved" ? new Date() : order.approvedAt,
           approvalNotes: input.notes,
         })
         .where(eq(disbursementOrders.id, input.id));
