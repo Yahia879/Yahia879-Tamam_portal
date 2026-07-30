@@ -755,7 +755,7 @@ export default function DisbursementRequests() {
                         <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
                         <TableHead className="py-3.5 px-4 text-right min-w-[210px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                         <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
-                        <TableHead className="py-3.5 px-4 text-left min-w-[90px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                        <TableHead className="py-3.5 px-4 text-center min-w-[100px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -835,7 +835,7 @@ export default function DisbursementRequests() {
                                   ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
                                   : "-"}
                               </TableCell>
-                              <TableCell className="py-3.5 px-4 text-left">
+                              <TableCell className="py-3.5 px-4 text-center">
                                 {request.status === "rejected" ? (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
