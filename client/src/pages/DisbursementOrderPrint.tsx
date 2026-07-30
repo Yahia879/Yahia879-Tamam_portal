@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, Printer, PenTool } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText } from "@shared/tafqeet";
 
@@ -39,9 +41,13 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
 };
 
 export default function DisbursementOrderPrint() {
+  const { user: currentUser } = useAuth();
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const hasOrderViewPermission = usePermission("disbursement_orders.view");
+
+  const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
+  const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
 
   const { data: order, isLoading } = trpc.disbursements.getOrderById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -172,6 +178,41 @@ export default function DisbursementOrderPrint() {
                             descLength > 100 ? "text-xs leading-snug p-2" : 
                             "p-2.5";
 
+  const createdByUser = (order as any)?.createdByUser;
+  const approvedByUser = (order as any)?.approvedByUser;
+
+  // 1. الخانة الأولى: مُعد/منشئ أمر الصرف (تأخذ مباشرة بيانات بروفايل منشئ الطلب)
+  const creatorName = createdByUser?.signatureName || createdByUser?.name || (order as any)?.createdByName || "—";
+  const creatorDepartment = createdByUser?.signatureDepartment || "مُعدّ أمر الصرف";
+  const creatorSignatureUrl = createdByUser?.signatureUrl || null;
+
+  // 2. الخانة الثانية: المدير التنفيذي (تمنع تكرار بيانات مُعدّ الأمر في الخانة الثانية عند التجربة بنفس الحساب)
+  const isSameUser = approvedByUser && createdByUser && approvedByUser.id === createdByUser.id;
+
+  const executiveDirectorName = 
+    (!isSameUser && (approvedByUser?.signatureName || approvedByUser?.name))
+    || orgSettings?.executiveDirectorName 
+    || "—";
+
+  const executiveDirectorDepartment = 
+    (!isSameUser && approvedByUser?.signatureDepartment) 
+    || (orgSettings as any)?.executiveDirectorDepartment 
+    || "المدير التنفيذي";
+
+  const executiveDirectorSignatureUrl = 
+    (!isSameUser && approvedByUser?.signatureUrl) 
+    || (orgSettings as any)?.executiveDirectorSignatureUrl 
+    || null;
+
+  const isCreator = currentUser?.id === order?.createdBy;
+  const isExecutiveDirector =
+    currentUser?.role === "general_manager" ||
+    currentUser?.role === "executive_director" ||
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
+
+  const canControlCreatorSig = isCreator && !!creatorSignatureUrl;
+  const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl;
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
@@ -182,7 +223,7 @@ export default function DisbursementOrderPrint() {
             if (window.history.length > 1) {
               window.history.back();
             } else {
-              navigate("/disbursements");
+              navigate("/disbursement-orders");
             }
           }} 
           className="bg-white border shadow-sm sm:bg-white/90"
@@ -190,6 +231,41 @@ export default function DisbursementOrderPrint() {
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
+
+        {/* التحكم بالتوقيع الخاص بمعد أمر الصرف - لمعد الأمر فقط */}
+        {canControlCreatorSig && (
+          <label
+            htmlFor="show-creator-sig"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+          >
+            <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+            <span>توقيع مُعدّ أمر الصرف</span>
+            <Checkbox
+              id="show-creator-sig"
+              checked={showCreatorSignature}
+              onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
+              className="scale-90"
+            />
+          </label>
+        )}
+
+        {/* التحكم بالتوقيع الخاص بالمدير التنفيذي - للمدير التنفيذي فقط */}
+        {canControlExecSig && (
+          <label
+            htmlFor="show-exec-sig"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+          >
+            <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+            <span>توقيع المدير التنفيذي</span>
+            <Checkbox
+              id="show-exec-sig"
+              checked={showExecutiveDirectorSignature}
+              onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
+              className="scale-90"
+            />
+          </label>
+        )}
+
         <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
           تنزيل PDF / طباعة
@@ -455,17 +531,48 @@ export default function DisbursementOrderPrint() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-slate-300 h-14">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المحاسب</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{orgSettings?.accountantName || "—"}</td>
-                    <td className="p-2 border-l border-slate-300"></td>
-                    <td className="p-2 text-slate-400 font-semibold"></td>
+                  {/* الخانة الأولى: مُعد/منشئ أمر الصرف */}
+                  <tr className="border-b border-slate-300 h-16">
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{creatorDepartment}</td>
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{creatorName}</td>
+                    <td className="p-2 border-l border-slate-300">
+                      {(showCreatorSignature && creatorSignatureUrl) ? (
+                        <div className="h-12 flex items-center justify-center mx-auto overflow-hidden">
+                          <img 
+                            src={creatorSignatureUrl} 
+                            alt="توقيع مُعد أمر الصرف" 
+                            className="max-h-12 max-w-[140px] object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-32"></div>
+                      )}
+                    </td>
+                    <td className="p-2 text-slate-600 font-medium text-xs">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—"}
+                    </td>
                   </tr>
-                  <tr className="h-14">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المدير التنفيذي</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{orgSettings?.executiveDirectorName || "—"}</td>
-                    <td className="p-2 border-l border-slate-300"></td>
-                    <td className="p-2 text-slate-400 font-semibold"></td>
+
+                  {/* الخانة الثانية: المدير التنفيذي */}
+                  <tr className="h-16">
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{executiveDirectorDepartment}</td>
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{executiveDirectorName}</td>
+                    <td className="p-2 border-l border-slate-300">
+                      {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (order.status === "approved" || order.status === "executed" || order.approvedAt)) ? (
+                        <div className="h-12 flex items-center justify-center mx-auto overflow-hidden">
+                          <img 
+                            src={executiveDirectorSignatureUrl} 
+                            alt="توقيع المدير التنفيذي" 
+                            className="max-h-12 max-w-[140px] object-contain" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-32"></div>
+                      )}
+                    </td>
+                    <td className="p-2 text-slate-600 font-medium text-xs">
+                      {order.approvedAt ? new Date(order.approvedAt).toLocaleDateString("ar-SA") : "—"}
+                    </td>
                   </tr>
                 </tbody>
               </table>
