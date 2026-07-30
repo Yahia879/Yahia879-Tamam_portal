@@ -571,7 +571,35 @@ export default function DisbursementRequests() {
 
   const total = requestsData?.total || 0;
   const totalPages = Math.ceil(total / limit);
-  const paginatedRequests = requestsData?.requests || [];
+
+  // فرز الطلبات: وضع الطلبات التي بانتظار اعتماد المستخدم في البداية
+  const sortedRequests = useMemo(() => {
+    if (!requestsData?.requests) return [];
+    const list = [...requestsData.requests];
+
+    return list.sort((a, b) => {
+      let aPendingAction = false;
+      let bPendingAction = false;
+
+      if (isExecutiveDirector) {
+        aPendingAction = a.status === "pending_executive";
+        bPendingAction = b.status === "pending_executive";
+      } else {
+        aPendingAction = (a.status === "pending" || a.status === "draft") && (a.requestedBy === user?.id || canApproveRequest);
+        bPendingAction = (b.status === "pending" || b.status === "draft") && (b.requestedBy === user?.id || canApproveRequest);
+      }
+
+      if (aPendingAction && !bPendingAction) return -1;
+      if (!aPendingAction && bPendingAction) return 1;
+
+      // الترتيب التلقائي المتبع لحسب تاريخ النشاء/المعرف نزولياً
+      const dateA = a.requestedAt ? new Date(a.requestedAt).getTime() : a.id;
+      const dateB = b.requestedAt ? new Date(b.requestedAt).getTime() : b.id;
+      return dateB - dateA;
+    });
+  }, [requestsData?.requests, user?.id, isExecutiveDirector, canApproveRequest]);
+
+  const paginatedRequests = sortedRequests;
 
 
 
@@ -745,10 +773,30 @@ export default function DisbursementRequests() {
                           ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                           const isConverted = !!request.orderId || request.status === "paid";
+                          const isPendingMyAction = isExecutiveDirector
+                            ? request.status === "pending_executive"
+                            : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || canApproveRequest);
 
                           return (
-                            <TableRow key={request.id}>
-                              <TableCell className="font-mono text-xs text-right">{request.requestNumber}</TableCell>
+                            <TableRow 
+                              key={request.id} 
+                              className={isPendingMyAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
+                            >
+                              <TableCell className="font-mono text-xs text-right">
+                                <div className="flex items-center gap-2 justify-start">
+                                  {isPendingMyAction && (
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-[#1a5f4a] to-emerald-700 text-white shadow-sm border border-emerald-400/30 animate-pulse shrink-0">
+                                      <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
+                                      </span>
+                                      <Clock className="w-3 h-3 text-amber-200 animate-spin" style={{ animationDuration: '3s' }} />
+                                      <span>بانتظار اعتمادك</span>
+                                    </div>
+                                  )}
+                                  <span className="font-bold">{request.requestNumber}</span>
+                                </div>
+                              </TableCell>
                               <TableCell className="max-w-[200px] truncate text-right">{request.title || request.description}</TableCell>
                               <TableCell className="max-w-[200px] text-right">
                                 {request.projectId ? (
@@ -969,9 +1017,31 @@ export default function DisbursementRequests() {
                       ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                         const isConverted = !!request.orderId || request.status === "paid";
+                        const isPendingMyAction = isExecutiveDirector
+                          ? request.status === "pending_executive"
+                          : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || canApproveRequest);
 
                         return (
-                          <div key={request.id} className="p-4 space-y-3 hover:bg-muted/10 transition-colors">
+                          <div 
+                            key={request.id} 
+                            className={`p-4 space-y-3 transition-all rounded-xl border ${
+                              isPendingMyAction 
+                                ? "bg-gradient-to-br from-emerald-50/80 via-teal-50/30 to-background dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-background border-2 border-[#1a5f4a]/60 shadow-md my-3" 
+                                : "hover:bg-muted/10 border-border"
+                            }`}
+                          >
+                            {isPendingMyAction && (
+                              <div className="flex items-center justify-between border-b pb-2.5 border-[#1a5f4a]/20">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#1a5f4a] to-emerald-700 text-white shadow-md border border-emerald-400/30 animate-pulse">
+                                  <span className="relative flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
+                                  </span>
+                                  <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin" style={{ animationDuration: '3s' }} />
+                                  <span>بانتظار اعتمادك الآن</span>
+                                </div>
+                              </div>
+                            )}
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1 text-right">
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
