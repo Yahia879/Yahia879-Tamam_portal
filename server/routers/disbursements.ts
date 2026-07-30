@@ -324,33 +324,55 @@ export const disbursementsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
 
-      const potentialGMs = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          signatureName: users.signatureName,
-          signatureDepartment: users.signatureDepartment,
-          signatureUrl: users.signatureUrl,
-          showSignatureInDocuments: users.showSignatureInDocuments,
-          role: users.role,
-        })
-        .from(users)
-        .where(
-          and(
-            isNull(users.deletedAt),
-            eq(users.status, "active" as any),
-            inArray(users.role, ["general_manager" as any, "executive_director" as any])
-          )
-        );
+      let execDirector: any = null;
 
-      let execDirector: typeof potentialGMs[0] | null = null;
+      if ((request as any).approvedBy) {
+        const [approver] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            role: users.role,
+          })
+          .from(users)
+          .where(eq(users.id, (request as any).approvedBy));
 
-      for (const u of potentialGMs) {
-        const userPerms = await calculateUserPermissions(u.id);
-        if (userPerms.includes("disbursements.sign")) {
-          execDirector = u;
-          break;
+        if (approver) {
+          execDirector = approver;
+        }
+      }
+
+      if (!execDirector) {
+        const potentialGMs = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+            role: users.role,
+          })
+          .from(users)
+          .where(
+            and(
+              isNull(users.deletedAt),
+              eq(users.status, "active" as any),
+              inArray(users.role, ["general_manager" as any, "executive_director" as any])
+            )
+          );
+
+        for (const u of potentialGMs) {
+          const userPerms = await calculateUserPermissions(u.id);
+          if (userPerms.includes("disbursements.sign")) {
+            execDirector = u;
+            break;
+          }
         }
       }
 
