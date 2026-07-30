@@ -44,6 +44,12 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Plus,
   Eye,
   CheckCircle,
@@ -739,17 +745,17 @@ export default function DisbursementRequests() {
             <Card className="border-0 shadow-sm overflow-hidden">
               <CardContent className="p-0">
                 {/* Desktop View Table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <Table dir="rtl">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">رقم الطلب</TableHead>
-                        <TableHead className="text-right">العنوان</TableHead>
-                        <TableHead className="text-right">المشروع</TableHead>
-                        <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right">الإجراءات</TableHead>
+                <div className="hidden md:block w-full overflow-x-auto">
+                  <Table dir="rtl" className="w-full min-w-[950px]">
+                    <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">رقم الطلب</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[200px] font-bold text-slate-700 dark:text-slate-200">العنوان</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[210px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
+                        <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
+                        <TableHead className="py-3.5 px-4 text-left min-w-[90px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -782,33 +788,41 @@ export default function DisbursementRequests() {
                               key={request.id} 
                               className={isPendingMyAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
                             >
-                              <TableCell className="font-mono text-xs text-right">
+                              <TableCell className="py-3.5 px-4 font-mono text-xs text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center gap-2 justify-start">
                                   {isPendingMyAction && (
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-[#1a5f4a] to-emerald-700 text-white shadow-sm border border-emerald-400/30 animate-pulse shrink-0">
-                                      <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
-                                      </span>
-                                      <Clock className="w-3 h-3 text-amber-200 animate-spin" style={{ animationDuration: '3s' }} />
-                                      <span>بانتظار اعتمادك</span>
-                                    </div>
+                                    <TooltipProvider>
+                                      <Tooltip delayDuration={50}>
+                                        <TooltipTrigger asChild>
+                                          <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                            <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                              <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                            </div>
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                          <span>بانتظار اعتمادك</span>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   )}
-                                  <span className="font-bold">{request.requestNumber}</span>
+                                  <span>{request.requestNumber}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[200px] truncate text-right">{request.title || request.description}</TableCell>
-                              <TableCell className="max-w-[200px] text-right">
+                              <TableCell className="py-3.5 px-4 max-w-[220px] truncate text-right text-xs">{request.title || request.description}</TableCell>
+                              <TableCell className="py-3.5 px-4 max-w-[200px] text-right">
                                 {request.projectId ? (
-                                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate max-w-[190px]">
+                                  <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate">
                                     {request.projectName}
                                   </span>
                                 ) : (
                                   <span className="text-muted-foreground text-xs font-medium">-</span>
                                 )}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-right">{Number(request.amount).toLocaleString()} ريال</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="py-3.5 px-4 whitespace-nowrap text-right font-semibold text-xs">{Number(request.amount).toLocaleString()} ريال</TableCell>
+                              <TableCell className="py-3.5 px-4 text-right">
                                 <div className="flex flex-col gap-1 items-start justify-start">
                                   <DisbursementStatusBadge 
                                     status={request.status as any} 
@@ -816,12 +830,12 @@ export default function DisbursementRequests() {
                                   />
                                 </div>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-right">
+                              <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground">
                                 {request.requestedAt
                                   ? new Date(request.requestedAt).toLocaleDateString("ar-SA")
                                   : "-"}
                               </TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="py-3.5 px-4 text-left">
                                 {request.status === "rejected" ? (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -898,9 +912,9 @@ export default function DisbursementRequests() {
                                       {hasApprovePermission && (
                                         <DropdownMenuItem
                                           onClick={() => navigate(`/disbursements/requests/${request.id}/print`)}
-                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-blue-600 focus:text-blue-600 focus:bg-blue-50 dark:focus:bg-blue-950/30"
+                                          className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
                                         >
-                                          <Printer className="h-4 w-4 text-blue-500" />
+                                          <Printer className="h-4 w-4 text-[#1a5f4a]" />
                                           <span>عرض تقرير طلب الصرف</span>
                                         </DropdownMenuItem>
                                       )}
@@ -1031,15 +1045,24 @@ export default function DisbursementRequests() {
                             }`}
                           >
                             {isPendingMyAction && (
-                              <div className="flex items-center justify-between border-b pb-2.5 border-[#1a5f4a]/20">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#1a5f4a] to-emerald-700 text-white shadow-md border border-emerald-400/30 animate-pulse">
-                                  <span className="relative flex h-2.5 w-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-80"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400"></span>
-                                  </span>
-                                  <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin" style={{ animationDuration: '3s' }} />
-                                  <span>بانتظار اعتمادك الآن</span>
-                                </div>
+                              <div className="flex items-center justify-between border-b pb-2 border-[#1a5f4a]/20">
+                                <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">{request.requestNumber}</span>
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                          <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                      <span>بانتظار اعتمادك</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             )}
                             <div className="flex items-start justify-between gap-2">
