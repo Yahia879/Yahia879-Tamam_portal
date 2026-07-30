@@ -67,7 +67,8 @@ import ExcelJS from "exceljs";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
-  pending: { label: "قيد الاعتماد", variant: "default" },
+  pending: { label: "بانتظار اعتماد مُعد الطلب", variant: "default" },
+  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
   rejected: { label: "مرفوض", variant: "destructive" },
   paid: { label: "مصروف", variant: "outline" },
@@ -295,8 +296,8 @@ export default function DisbursementRequests() {
   });
   
   const approveRequestMutation = trpc.disbursements.approveRequest.useMutation({
-    onSuccess: () => {
-      toast.success("تم اعتماد طلب الصرف بنجاح");
+    onSuccess: (data: any) => {
+      toast.success(data?.message || "تم اعتماد طلب الصرف بنجاح");
       setShowApproveDialog(false);
       setApprovalNotes("");
       refetchRequests();
@@ -417,6 +418,7 @@ export default function DisbursementRequests() {
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
+  const isExecutiveDirector = user?.role === "general_manager" || user?.role === "executive_director";
 
   const handleCreateRequest = () => {
     if (!newRequest.projectId || !newRequest.title || !newRequest.amount) {
@@ -676,13 +678,14 @@ export default function DisbursementRequests() {
                 </Select>
 
                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-[180px]">
+                  <SelectTrigger className="w-full lg:w-[220px]">
                     <Filter className="ml-2 h-4 w-4" />
                     <SelectValue placeholder="الحالة" />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
                     <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="pending">قيد الاعتماد</SelectItem>
+                    <SelectItem value="pending">بانتظار اعتماد مُعد الطلب</SelectItem>
+                    <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
                     <SelectItem value="rejected">مرفوض</SelectItem>
                   </SelectContent>
@@ -871,7 +874,9 @@ export default function DisbursementRequests() {
                                           <span>عرض تقرير الإنجاز</span>
                                         </DropdownMenuItem>
                                       )}
-                                      {canApproveRequest && request.status === "pending" && (
+                                      
+                                      {/* Stage 1 Approval: Preparer */}
+                                      {(request.status === "pending" || request.status === "draft") && (canApproveRequest || canCreateRequest || request.requestedBy === user?.id) && (
                                         <>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -882,7 +887,35 @@ export default function DisbursementRequests() {
                                             className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
                                           >
                                             <CheckCircle className="h-4 w-4 text-emerald-500" />
-                                            <span>اعتماد طلب الصرف</span>
+                                            <span>اعتماد طلب الصرف (مُعد الطلب)</span>
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedRequest(request);
+                                              setRejectionReason("");
+                                              setShowRejectDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
+                                          >
+                                            <XCircle className="h-4 w-4 text-rose-500" />
+                                            <span>رفض طلب الصرف</span>
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+
+                                      {/* Stage 2 Approval: Executive Director ONLY */}
+                                      {request.status === "pending_executive" && isExecutiveDirector && (
+                                        <>
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedRequest(request);
+                                              setApprovalNotes("");
+                                              setShowApproveDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer font-bold text-[#1a5f4a] hover:text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                          >
+                                            <CheckCircle className="h-4 w-4 text-emerald-600 animate-pulse" />
+                                            <span>اعتماد طلب الصرف (المدير التنفيذي)</span>
                                           </DropdownMenuItem>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -1724,34 +1757,44 @@ export default function DisbursementRequests() {
 
         {/* نافذة اعتماد طلب الصرف */}
         <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-          <DialogContent>
+          <DialogContent dir="rtl">
             <DialogHeader>
-              <DialogTitle>اعتماد طلب الصرف</DialogTitle>
+              <DialogTitle>
+                {selectedRequest?.status === "pending"
+                  ? "اعتماد طلب الصرف (اعتماد مُعد الطلب - المرحلة الأولى)"
+                  : "اعتماد طلب الصرف (اعتماد المدير التنفيذي - المرحلة الثانية)"}
+              </DialogTitle>
               <DialogDescription>
-                هل تريد اعتماد طلب الصرف رقم {selectedRequest?.requestNumber}؟
+                {selectedRequest?.status === "pending"
+                  ? `هل تريد اعتماد طلب الصرف رقم ${selectedRequest?.requestNumber} وتحويله لتكويطه إلى (بانتظار اعتماد المدير التنفيذي)؟`
+                  : `هل تريد الاعتماد النهائي لطلب الصرف رقم ${selectedRequest?.requestNumber} من قِبَل المدير التنفيذي؟`}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="rounded-lg bg-muted p-4">
-                <p className="font-medium">{selectedRequest?.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  المبلغ: {Number(selectedRequest?.amount || 0).toLocaleString()} ريال
+              <div className="rounded-lg bg-muted p-4 space-y-1">
+                <p className="font-bold text-slate-800">{selectedRequest?.title}</p>
+                <p className="text-sm text-slate-600">
+                  المبلغ: <span className="font-bold text-[#1a5f4a]">{Number(selectedRequest?.amount || 0).toLocaleString()} ريال</span>
                 </p>
+                {selectedRequest?.projectName && (
+                  <p className="text-xs text-slate-500">المشروع: {selectedRequest.projectName}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>ملاحظات (اختياري)</Label>
+                <Label>ملاحظات الاعتماد (اختياري)</Label>
                 <Textarea
                   value={approvalNotes}
                   onChange={(e) => setApprovalNotes(e.target.value)}
-                  placeholder="أي ملاحظات على الاعتماد..."
+                  placeholder="أدخل أي ملاحظات..."
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
                 إلغاء
               </Button>
               <Button
+                className="bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold"
                 onClick={() =>
                   approveRequestMutation.mutate({
                     id: selectedRequest?.id,
@@ -1760,7 +1803,11 @@ export default function DisbursementRequests() {
                 }
                 disabled={approveRequestMutation.isPending}
               >
-                {approveRequestMutation.isPending ? "جاري الاعتماد..." : "اعتماد"}
+                {approveRequestMutation.isPending
+                  ? "جاري الاعتماد..."
+                  : selectedRequest?.status === "pending"
+                  ? "اعتماد وتحويل للمدير التنفيذي"
+                  : "اعتماد نهائي (المدير التنفيذي)"}
               </Button>
             </DialogFooter>
           </DialogContent>
