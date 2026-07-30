@@ -1047,7 +1047,8 @@ export const disbursementRequestStatuses = [
 // حالات أوامر الصرف
 export const disbursementOrderStatuses = [
   "draft",           // مسودة
-  "pending",         // قيد الاعتماد
+  "pending",         // قيد الاعتماد (معد الطلب)
+  "pending_executive",// بانتظار اعتماد المدير التنفيذي
   "approved",        // معتمد
   "rejected",        // مرفوض
   "executed",        // منفذ
