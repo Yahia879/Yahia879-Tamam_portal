@@ -524,13 +524,7 @@ export default function RoleEdit() {
       }
     }
 
-    // منع تفعيل أي صلاحية في قسم أوامر الصرف إلا إذا كانت صلاحية العرض مفعلة
-    if (permId.startsWith("disbursement_orders.") && permId !== "disbursement_orders.view") {
-      if (!selectedPerms.includes("disbursement_orders.view")) {
-        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
-        return;
-      }
-    }
+
 
     setSelectedPerms(prev => {
       const isAlreadySelected = prev.includes(permId);
