@@ -431,7 +431,7 @@ export default function DisbursementRequests() {
   const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
   const isExecutiveDirector = 
-    ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
+    ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
