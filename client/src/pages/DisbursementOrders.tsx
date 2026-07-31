@@ -257,12 +257,12 @@ export default function DisbursementOrders() {
 
     return [...ordersData.orders].sort((a: any, b: any) => {
       const aPendingMyAction = isExecutiveDirector
-        ? a.status === "pending_executive" || a.status === "pending"
-        : (a.status === "pending" || a.status === "draft") && (a.createdBy === user?.id || canApproveOrder);
+        ? a.status === "pending_executive"
+        : (a.status === "pending" || a.status === "edited" || a.status === "draft") && a.createdBy === user?.id;
 
       const bPendingMyAction = isExecutiveDirector
-        ? b.status === "pending_executive" || b.status === "pending"
-        : (b.status === "pending" || b.status === "draft") && (b.createdBy === user?.id || canApproveOrder);
+        ? b.status === "pending_executive"
+        : (b.status === "pending" || b.status === "edited" || b.status === "draft") && b.createdBy === user?.id;
 
       if (aPendingMyAction && !bPendingMyAction) return -1;
       if (!aPendingMyAction && bPendingMyAction) return 1;
@@ -429,8 +429,8 @@ export default function DisbursementOrders() {
                     <TableBody>
                       {filteredOrders?.map((order) => {
                         const isPendingMyAction = isExecutiveDirector
-                          ? order.status === "pending_executive" || order.status === "pending"
-                          : (order.status === "pending" || order.status === "draft") && (order.createdBy === user?.id || canApproveOrder);
+                          ? order.status === "pending_executive"
+                          : (order.status === "pending" || order.status === "edited" || order.status === "draft") && order.createdBy === user?.id;
 
                         return (
                           <TableRow 
@@ -480,7 +480,7 @@ export default function DisbursementOrders() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-52 text-right font-medium">
-                                  {((order.status === "pending_executive" && isExecutiveDirector) || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (order.createdBy === user?.id || isExecutiveDirector))) && (canApproveOrder || canCreateDirectOrder) && (
+                                  {(order.status === "pending_executive" ? isExecutiveDirector : ((order.status === "pending" || order.status === "edited" || order.status === "draft") && order.createdBy === user?.id)) && (
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setSelectedOrder(order);
