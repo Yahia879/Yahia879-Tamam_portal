@@ -414,7 +414,7 @@ export default function DisbursementRequests() {
   };
 
   // التحقق من الصلاحيات
-  const hasApprovePermission = usePermission("disbursements.approve");
+  const hasApprovePermission = usePermission("disbursements.approve") || usePermission("disbursements.sign") || usePermission("disbursement_orders.sign");
   const hasEditPermission = usePermission("disbursements.edit");
   const hasAddPermission = usePermission("disbursements.add");
   const hasCreateCustomPermission = usePermission("disbursements.create_custom");
@@ -422,9 +422,13 @@ export default function DisbursementRequests() {
   const canCreateDisbursement = usePermission("disbursements.create");
   const canApproveRequest = hasApprovePermission;
   const canCreateOrder = hasApprovePermission;
-  const canApproveOrder = ["super_admin", "system_admin", "general_manager"].includes(user?.role || "");
+  const canApproveOrder = usePermission("disbursement_orders.approve") || usePermission("disbursement_orders.sign") || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
-  const isExecutiveDirector = user?.role === "general_manager" || user?.role === "executive_director";
+  const isExecutiveDirector = 
+    ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    canApproveRequest ||
+    canApproveOrder;
 
   const handleCreateRequest = () => {
     if (!newRequest.projectId || !newRequest.title || !newRequest.amount) {
