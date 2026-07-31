@@ -195,26 +195,26 @@ export default function DisbursementOrderPrint() {
   const createdByUser = (order as any)?.createdByUser;
   const approvedByUser = (order as any)?.approvedByUser;
 
-  // 1. الخانة الأولى: مُعد/منشئ أمر الصرف (تأخذ مباشرة بيانات بروفايل منشئ الطلب)
-  const creatorName = createdByUser?.signatureName || createdByUser?.name || (order as any)?.createdByName || "—";
-  const creatorDepartment = createdByUser?.signatureDepartment || "مُعدّ أمر الصرف";
+  // 1. الخانة الأولى: الإدارة المالية (اعتماد المرحلة الأولى)
+  const creatorName = createdByUser?.signatureName || createdByUser?.name || "—";
+  const creatorDepartment = createdByUser?.signatureDepartment || "الإدارة المالية";
   const creatorSignatureUrl = createdByUser?.signatureUrl || null;
 
-  // 2. الخانة الثانية: المدير التنفيذي (تمنع تكرار بيانات مُعدّ الأمر في الخانة الثانية عند التجربة بنفس الحساب)
+  // 2. الخانة الثانية: المدير التنفيذي (اعتماد المرحلة الثانية)
   const isSameUser = approvedByUser && createdByUser && approvedByUser.id === createdByUser.id;
 
   const executiveDirectorName = 
-    (!isSameUser && (approvedByUser?.signatureName || approvedByUser?.name))
+    (approvedByUser?.signatureName || approvedByUser?.name)
     || orgSettings?.executiveDirectorName 
     || "—";
 
   const executiveDirectorDepartment = 
-    (!isSameUser && approvedByUser?.signatureDepartment) 
+    approvedByUser?.signatureDepartment 
     || (orgSettings as any)?.executiveDirectorDepartment 
     || "المدير التنفيذي";
 
   const executiveDirectorSignatureUrl = 
-    (!isSameUser && approvedByUser?.signatureUrl) 
+    approvedByUser?.signatureUrl 
     || (orgSettings as any)?.executiveDirectorSignatureUrl 
     || null;
 
@@ -256,7 +256,7 @@ export default function DisbursementOrderPrint() {
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
           >
             <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-            <span>توقيع مُعدّ أمر الصرف</span>
+            <span>توقيع الإدارة المالية</span>
             <Checkbox
               id="show-creator-sig"
               checked={showCreatorSignature}
