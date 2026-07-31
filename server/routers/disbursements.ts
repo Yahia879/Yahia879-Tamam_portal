@@ -902,15 +902,20 @@ export const disbursementsRouter = router({
       }
 
       const hasApprovePerm = await checkPermission(ctx.user.id, "disbursements.approve");
-      const isExecDirector = ctx.user.role === "general_manager" || ctx.user.role === "executive_director";
+      const isExecDirector = 
+        ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-      // المرحلة الأولى: اعتماد مُعد الطلب (pending / draft -> pending_executive)
+      // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
-        const allowedStage1Roles = ["super_admin", "system_admin", "general_manager", "executive_director", "financial", "financial_manager", "projects_office", "project_manager"];
-        const canApproveStage1 = allowedStage1Roles.includes(ctx.user.role) || hasApprovePerm || request.requestedBy === ctx.user.id;
+        const isPreparer = request.requestedBy === ctx.user.id;
+        const canApproveStage1 = isPreparer || isExecDirector;
         
         if (!canApproveStage1) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد طلب الصرف في المرحلة الأولى" });
+          throw new TRPCError({ 
+            code: "FORBIDDEN", 
+            message: "فقط مُعدّ الطلب أو المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الأولى لطلبات الصرف" 
+          });
         }
 
         await db
@@ -1828,12 +1833,27 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      if (order.status !== "pending" && order.status !== "pending_executive" && order.status !== "edited" && order.status !== "draft") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن اعتماد هذا الأمر في حالته الحالية" });
+      const isExecDirector = 
+        ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي";
+
+      const isPreparer = order.createdBy === ctx.user.id;
+
+      if (order.status === "pending_executive" && !isExecDirector) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
+        });
       }
 
-      const isExecutiveDirector = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role);
-      const nextStatus = (isExecutiveDirector || order.status === "pending_executive") ? "approved" : "pending_executive";
+      if ((order.status === "pending" || order.status === "draft" || order.status === "edited") && !isPreparer && !isExecDirector) {
+        throw new TRPCError({ 
+          code: "FORBIDDEN", 
+          message: "فقط مُعدّ الأمر أو المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+        });
+      }
+
+      const nextStatus = (isExecDirector || order.status === "pending_executive") ? "approved" : "pending_executive";
 
       await db
         .update(disbursementOrders)

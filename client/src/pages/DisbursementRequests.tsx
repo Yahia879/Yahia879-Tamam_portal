@@ -949,7 +949,7 @@ export default function DisbursementRequests() {
                                             className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
                                           >
                                             <CheckCircle className="h-4 w-4 text-emerald-500" />
-                                            <span>اعتماد طلب الصرف (مُعد الطلب)</span>
+                                            <span>اعتماد طلب الصرف</span>
                                           </DropdownMenuItem>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -977,7 +977,7 @@ export default function DisbursementRequests() {
                                             className="flex items-center gap-2 cursor-pointer font-bold text-[#1a5f4a] hover:text-emerald-700 focus:text-emerald-700 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
                                           >
                                             <CheckCircle className="h-4 w-4 text-emerald-600 animate-pulse" />
-                                            <span>اعتماد طلب الصرف (المدير التنفيذي)</span>
+                                            <span>اعتماد طلب الصرف</span>
                                           </DropdownMenuItem>
                                           <DropdownMenuItem
                                             onClick={() => {
@@ -1898,9 +1898,7 @@ export default function DisbursementRequests() {
               >
                 {approveRequestMutation.isPending
                   ? "جاري الاعتماد..."
-                  : selectedRequest?.status === "pending"
-                  ? "اعتماد وتحويل للمدير التنفيذي"
-                  : "اعتماد نهائي (المدير التنفيذي)"}
+                  : "اعتماد طلب الصرف"}
               </Button>
             </DialogFooter>
           </DialogContent>

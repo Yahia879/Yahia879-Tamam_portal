@@ -472,7 +472,7 @@ export default function DisbursementOrders() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-52 text-right font-medium">
-                                  {(canApproveOrder || isPendingMyAction) && (order.status === "pending" || order.status === "pending_executive" || order.status === "edited" || order.status === "draft") && (
+                                  {((order.status === "pending_executive" && isExecutiveDirector) || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && (order.createdBy === user?.id || isExecutiveDirector))) && (canApproveOrder || canCreateDirectOrder) && (
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setSelectedOrder(order);
