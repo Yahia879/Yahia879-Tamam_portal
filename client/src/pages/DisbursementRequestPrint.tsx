@@ -35,6 +35,7 @@ function formatGregorianDate(date: Date): string {
 
 export default function DisbursementRequestPrint() {
   const params = useParams<{ id: string }>();
+  const requestId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("disbursements.approve");
   const hasSignPermission = usePermission("disbursements.sign");
@@ -46,7 +47,12 @@ export default function DisbursementRequestPrint() {
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
 
-  const updateRequestSigVisibilityMutation = trpc.disbursements.updateRequestSignatureVisibility.useMutation();
+  const utils = trpc.useContext();
+  const updateRequestSigVisibilityMutation = trpc.disbursements.updateRequestSignatureVisibility.useMutation({
+    onSuccess: () => {
+      utils.disbursements.getRequestById.invalidate({ id: requestId });
+    },
+  });
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
   const userPermissionsList = (currentUser as any)?.permissions || [];
@@ -109,17 +115,17 @@ export default function DisbursementRequestPrint() {
     if (request) {
       const originalTitle = document.title;
       document.title = `طلب صرف رقم ${request.requestNumber}`;
-      if (typeof (request as any).showCreatorSignature === "boolean") {
-        setShowCreatorSignature((request as any).showCreatorSignature);
+      if ((request as any).showCreatorSignature !== undefined && (request as any).showCreatorSignature !== null) {
+        setShowCreatorSignature(Boolean((request as any).showCreatorSignature));
       }
-      if (typeof (request as any).showExecutiveDirectorSignature === "boolean") {
-        setShowExecutiveDirectorSignature((request as any).showExecutiveDirectorSignature);
+      if ((request as any).showExecutiveDirectorSignature !== undefined && (request as any).showExecutiveDirectorSignature !== null) {
+        setShowExecutiveDirectorSignature(Boolean((request as any).showExecutiveDirectorSignature));
       }
       return () => {
         document.title = originalTitle;
       };
     }
-  }, [request]);
+  }, [request?.showCreatorSignature, request?.showExecutiveDirectorSignature]);
 
   // جلب تقارير الإنجاز للمشروع المحدد
   const { data: progressReports } = trpc.progressReports.list.useQuery(
