@@ -43,13 +43,19 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
 export default function DisbursementOrderPrint() {
   const { user: currentUser } = useAuth();
   const params = useParams<{ id: string }>();
+  const orderId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
   const hasOrderViewPermission = usePermission("disbursement_orders.view");
 
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
 
-  const updateOrderSigVisibilityMutation = trpc.disbursements.updateOrderSignatureVisibility.useMutation();
+  const utils = trpc.useContext();
+  const updateOrderSigVisibilityMutation = trpc.disbursements.updateOrderSignatureVisibility.useMutation({
+    onSuccess: () => {
+      utils.disbursements.getOrderById.invalidate({ id: orderId });
+    },
+  });
 
   const { data: order, isLoading } = trpc.disbursements.getOrderById.useQuery(
     { id: parseInt(params.id || "0") },
@@ -61,17 +67,17 @@ export default function DisbursementOrderPrint() {
     if (order) {
       const originalTitle = document.title;
       document.title = `أمر صرف رقم ${order.orderNumber}`;
-      if (typeof (order as any).showCreatorSignature === "boolean") {
-        setShowCreatorSignature((order as any).showCreatorSignature);
+      if ((order as any).showCreatorSignature !== undefined && (order as any).showCreatorSignature !== null) {
+        setShowCreatorSignature(Boolean((order as any).showCreatorSignature));
       }
-      if (typeof (order as any).showExecutiveDirectorSignature === "boolean") {
-        setShowExecutiveDirectorSignature((order as any).showExecutiveDirectorSignature);
+      if ((order as any).showExecutiveDirectorSignature !== undefined && (order as any).showExecutiveDirectorSignature !== null) {
+        setShowExecutiveDirectorSignature(Boolean((order as any).showExecutiveDirectorSignature));
       }
       return () => {
         document.title = originalTitle;
       };
     }
-  }, [order]);
+  }, [(order as any)?.showCreatorSignature, (order as any)?.showExecutiveDirectorSignature]);
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
