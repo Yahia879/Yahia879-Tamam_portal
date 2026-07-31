@@ -46,6 +46,8 @@ export default function DisbursementRequestPrint() {
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
 
+  const updateRequestSigVisibilityMutation = trpc.disbursements.updateRequestSignatureVisibility.useMutation();
+
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
@@ -107,6 +109,12 @@ export default function DisbursementRequestPrint() {
     if (request) {
       const originalTitle = document.title;
       document.title = `طلب صرف رقم ${request.requestNumber}`;
+      if (typeof (request as any).showCreatorSignature === "boolean") {
+        setShowCreatorSignature((request as any).showCreatorSignature);
+      }
+      if (typeof (request as any).showExecutiveDirectorSignature === "boolean") {
+        setShowExecutiveDirectorSignature((request as any).showExecutiveDirectorSignature);
+      }
       return () => {
         document.title = originalTitle;
       };
@@ -349,7 +357,13 @@ export default function DisbursementRequestPrint() {
                   <Checkbox
                     id="show-creator-sig"
                     checked={showCreatorSignature}
-                    onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
+                    onCheckedChange={(checked) => {
+                    const val = !!checked;
+                    setShowCreatorSignature(val);
+                    if (request?.id) {
+                      updateRequestSigVisibilityMutation.mutate({ id: request.id, showCreatorSignature: val });
+                    }
+                  }}
                     className="scale-90"
                   />
                 </label>
@@ -366,7 +380,13 @@ export default function DisbursementRequestPrint() {
                   <Checkbox
                     id="show-exec-sig"
                     checked={showExecutiveDirectorSignature}
-                    onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
+                    onCheckedChange={(checked) => {
+                    const val = !!checked;
+                    setShowExecutiveDirectorSignature(val);
+                    if (request?.id) {
+                      updateRequestSigVisibilityMutation.mutate({ id: request.id, showExecutiveDirectorSignature: val });
+                    }
+                  }}
                     className="scale-90"
                   />
                 </label>

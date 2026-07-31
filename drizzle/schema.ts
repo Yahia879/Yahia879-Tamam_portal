@@ -1096,6 +1096,8 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   // توقيع منشئ الطلب (Snapshot)
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
+  showCreatorSignature: boolean("showCreatorSignature").default(true),
+  showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
   
   isDirect: boolean("isDirect").default(false).notNull(),
   

@@ -220,6 +220,8 @@ export const disbursementsRouter = router({
           requestedByShowSignature: users.showSignatureInDocuments,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
+          showCreatorSignature: disbursementRequests.showCreatorSignature,
+          showExecutiveDirectorSignature: disbursementRequests.showExecutiveDirectorSignature,
           dateMiladi: disbursementRequests.dateMiladi,
           supplierName: contractsEnhanced.secondPartyName,
           supplierBank: contractsEnhanced.secondPartyBankName,
@@ -2754,5 +2756,62 @@ export const disbursementsRouter = router({
         finalPayment: paymentBreakdown.final,
         retentionAmount: paymentBreakdown.retention,
       };
+    }),
+  // تحديث إظهار/إخفاء توقيع طلب الصرف
+  updateRequestSignatureVisibility: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        showCreatorSignature: z.boolean().optional(),
+        showExecutiveDirectorSignature: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const updateData: Record<string, any> = {};
+      if (typeof input.showCreatorSignature === "boolean") {
+        updateData.showCreatorSignature = input.showCreatorSignature;
+      }
+      if (typeof input.showExecutiveDirectorSignature === "boolean") {
+        updateData.showExecutiveDirectorSignature = input.showExecutiveDirectorSignature;
+      }
+
+      await db
+        .update(disbursementRequests)
+        .set(updateData)
+        .where(eq(disbursementRequests.id, input.id));
+
+      return { success: true };
+    }),
+
+  // تحديث إظهار/إخفاء توقيع أمر الصرف
+  updateOrderSignatureVisibility: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        showCreatorSignature: z.boolean().optional(),
+        showExecutiveDirectorSignature: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const updateData: Record<string, any> = {};
+      if (typeof input.showCreatorSignature === "boolean") {
+        updateData.showCreatorSignature = input.showCreatorSignature;
+      }
+      if (typeof input.showExecutiveDirectorSignature === "boolean") {
+        updateData.showExecutiveDirectorSignature = input.showExecutiveDirectorSignature;
+      }
+
+      await db
+        .update(disbursementOrders)
+        .set(updateData)
+        .where(eq(disbursementOrders.id, input.id));
+
+      return { success: true };
     }),
 });

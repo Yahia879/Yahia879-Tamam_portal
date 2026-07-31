@@ -49,6 +49,8 @@ export default function DisbursementOrderPrint() {
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
 
+  const updateOrderSigVisibilityMutation = trpc.disbursements.updateOrderSignatureVisibility.useMutation();
+
   const { data: order, isLoading } = trpc.disbursements.getOrderById.useQuery(
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
@@ -59,6 +61,12 @@ export default function DisbursementOrderPrint() {
     if (order) {
       const originalTitle = document.title;
       document.title = `أمر صرف رقم ${order.orderNumber}`;
+      if (typeof (order as any).showCreatorSignature === "boolean") {
+        setShowCreatorSignature((order as any).showCreatorSignature);
+      }
+      if (typeof (order as any).showExecutiveDirectorSignature === "boolean") {
+        setShowExecutiveDirectorSignature((order as any).showExecutiveDirectorSignature);
+      }
       return () => {
         document.title = originalTitle;
       };
@@ -246,7 +254,13 @@ export default function DisbursementOrderPrint() {
             <Checkbox
               id="show-creator-sig"
               checked={showCreatorSignature}
-              onCheckedChange={(checked) => setShowCreatorSignature(!!checked)}
+              onCheckedChange={(checked) => {
+                const val = !!checked;
+                setShowCreatorSignature(val);
+                if (order?.id) {
+                  updateOrderSigVisibilityMutation.mutate({ id: order.id, showCreatorSignature: val });
+                }
+              }}
               className="scale-90"
             />
           </label>
@@ -263,7 +277,13 @@ export default function DisbursementOrderPrint() {
             <Checkbox
               id="show-exec-sig"
               checked={showExecutiveDirectorSignature}
-              onCheckedChange={(checked) => setShowExecutiveDirectorSignature(!!checked)}
+              onCheckedChange={(checked) => {
+                const val = !!checked;
+                setShowExecutiveDirectorSignature(val);
+                if (order?.id) {
+                  updateOrderSigVisibilityMutation.mutate({ id: order.id, showExecutiveDirectorSignature: val });
+                }
+              }}
               className="scale-90"
             />
           </label>
