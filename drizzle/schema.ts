@@ -1142,6 +1142,9 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
   
+  showCreatorSignature: boolean("showCreatorSignature").default(true).notNull(),
+  showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true).notNull(),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
