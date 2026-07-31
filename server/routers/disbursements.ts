@@ -1843,25 +1843,29 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "disbursements.approve") ||
         await checkPermission(ctx.user.id, "disbursements.sign");
 
-      const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const userEmail = ctx.user.email;
 
-      const isPreparer = order.createdBy === ctx.user.id;
-
-      if (order.status === "pending_executive" && !isExecDirector) {
-        throw new TRPCError({ 
-          code: "FORBIDDEN", 
-          message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
-        });
+      // المرحلة الأولى: حساب الإدارة المالية (fdd8@gmail.com) حصراً
+      if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
+        if (userEmail !== "fdd8@gmail.com") {
+          throw new TRPCError({ 
+            code: "FORBIDDEN", 
+            message: "فقط حساب الإدارة المالية (fdd8@gmail.com) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+          });
+        }
       }
 
-      if ((order.status === "pending" || order.status === "draft" || order.status === "edited") && !isPreparer) {
-        throw new TRPCError({ 
-          code: "FORBIDDEN", 
-          message: "فقط مُعدّ الأمر يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
-        });
+      // المرحلة الثانية: حساب المدير التنفيذي (fds8@gmail.com) حصراً
+      if (order.status === "pending_executive") {
+        if (userEmail !== "fds8@gmail.com") {
+          throw new TRPCError({ 
+            code: "FORBIDDEN", 
+            message: "فقط حساب المدير التنفيذي (fds8@gmail.com) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
+          });
+        }
       }
 
-      const nextStatus = (isExecDirector || order.status === "pending_executive") ? "approved" : "pending_executive";
+      const nextStatus = order.status === "pending_executive" ? "approved" : "pending_executive";
 
       await db
         .update(disbursementOrders)
