@@ -1465,75 +1465,39 @@ export const disbursementsRouter = router({
         }
       }
 
-      // جلب بيانات منشئ أمر الصرف ومعتمده
-      let createdByUser = null;
-      if (order.createdBy) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            role: users.role,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-            signatureUrl: users.signatureUrl,
-          })
-          .from(users)
-          .where(eq(users.id, order.createdBy));
-        createdByUser = u || null;
-      }
+      // جلب بيانات الحسابين المثبتين للإدارة المالية والمدير التنفيذي
+      const [financialUser] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          role: users.role,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.email, "fdd8@gmail.com"));
 
-      if (!createdByUser) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            role: users.role,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-            signatureUrl: users.signatureUrl,
-          })
-          .from(users)
-          .where(eq(users.email, "fdd8@gmail.com"));
-        createdByUser = u || null;
-      }
-
-      let approvedByUser = null;
-      if (order.approvedBy) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            role: users.role,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-            signatureUrl: users.signatureUrl,
-          })
-          .from(users)
-          .where(eq(users.id, order.approvedBy));
-        approvedByUser = u || null;
-      }
-
-      if (!approvedByUser) {
-        const [u] = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            role: users.role,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-            signatureUrl: users.signatureUrl,
-          })
-          .from(users)
-          .where(eq(users.email, "fds8@gmail.com"));
-        approvedByUser = u || null;
-      }
+      const [executiveDirectorUser] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          role: users.role,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.email, "fds8@gmail.com"));
 
       return {
         ...order,
         disbursementRequest: request,
         project,
-        createdByUser,
-        approvedByUser,
+        createdByUser: financialUser || null,
+        approvedByUser: executiveDirectorUser || null,
+        financialUser: financialUser || null,
+        executiveDirectorUser: executiveDirectorUser || null,
       };
     }),
 
