@@ -198,17 +198,20 @@ export default function DisbursementOrderPrint() {
   const isOrderStage1Approved = order?.status === "pending_executive" || order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
   const isOrderStage2Approved = order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
 
-  // 1. الخانة الأولى: الإدارة المالية (تظهر بياناتها فقط عند اعتماد المرحلة الأولى)
-  const creatorName = isOrderStage1Approved ? (createdByUser?.signatureName || createdByUser?.name || "الإدارة المالية") : "—";
-  const creatorDepartment = isOrderStage1Approved ? (createdByUser?.signatureDepartment || "الإدارة المالية") : "—";
-  const creatorSignatureUrl = isOrderStage1Approved ? (createdByUser?.signatureUrl || null) : null;
-  const creatorDate = isOrderStage1Approved && order?.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—";
+  const financialUser = (order as any)?.financialUser || (order as any)?.createdByUser;
+  const executiveDirectorUser = (order as any)?.executiveDirectorUser || (order as any)?.approvedByUser;
 
-  // 2. الخانة الثانية: المدير التنفيذي (تظهر بياناته فقط عند اعتماد المرحلة الثانية والنهائية)
-  const executiveDirectorName = isOrderStage2Approved ? (approvedByUser?.signatureName || approvedByUser?.name || orgSettings?.executiveDirectorName || "المدير التنفيذي") : "—";
-  const executiveDirectorDepartment = isOrderStage2Approved ? (approvedByUser?.signatureDepartment || (orgSettings as any)?.executiveDirectorDepartment || "المدير التنفيذي") : "—";
-  const executiveDirectorSignatureUrl = isOrderStage2Approved ? (approvedByUser?.signatureUrl || (orgSettings as any)?.executiveDirectorSignatureUrl || null) : null;
-  const executiveDirectorDate = isOrderStage2Approved && order?.approvedAt ? new Date(order.approvedAt).toLocaleDateString("ar-SA") : "—";
+  // 1. الخانة الأولى: الإدارة المالية (الاسم والوظيفة دائماً من حساب الإدارة المالية المثبت fdd8@gmail.com، والتاريخ فاضي دائماً)
+  const creatorName = financialUser?.signatureName || financialUser?.name || "الإدارة المالية";
+  const creatorDepartment = financialUser?.signatureDepartment || "الإدارة المالية";
+  const creatorSignatureUrl = isOrderStage1Approved ? (financialUser?.signatureUrl || null) : null;
+  const creatorDate = "—"; // التاريخ فاضي دائماً
+
+  // 2. الخانة الثانية: المدير التنفيذي (الاسم والوظيفة دائماً من حساب المدير التنفيذي المثبت fds8@gmail.com، والتاريخ فاضي دائماً)
+  const executiveDirectorName = executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "المدير التنفيذي";
+  const executiveDirectorDepartment = executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
+  const executiveDirectorSignatureUrl = isOrderStage2Approved ? (executiveDirectorUser?.signatureUrl || null) : null;
+  const executiveDirectorDate = "—"; // التاريخ فاضي دائماً
 
   const isCreator = currentUser?.id === order?.createdBy;
   const isExecutiveDirector =
