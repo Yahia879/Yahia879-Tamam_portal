@@ -247,7 +247,7 @@ export default function DisbursementOrders() {
   const canCreateDirectOrder = permOrdersCreateDirect;
 
   const isExecutiveDirector = 
-    ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
+    ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
