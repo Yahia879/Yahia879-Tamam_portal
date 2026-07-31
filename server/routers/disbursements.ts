@@ -1863,6 +1863,22 @@ export const disbursementsRouter = router({
             message: "فقط حساب الإدارة المالية (fdd8@gmail.com) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
           });
         }
+
+        await db
+          .update(disbursementOrders)
+          .set({
+            status: "pending_executive" as any,
+            createdBy: ctx.user.id,
+            approvalNotes: input.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.id));
+
+        return {
+          success: true,
+          status: "pending_executive",
+          message: "تم اعتماد المرحلة الأولى من أمر الصرف بنجاح، والأمر الآن بانتظار اعتماد المدير التنفيذي",
+        };
       }
 
       // المرحلة الثانية: حساب المدير التنفيذي (fds8@gmail.com) حصراً
@@ -1873,19 +1889,18 @@ export const disbursementsRouter = router({
             message: "فقط حساب المدير التنفيذي (fds8@gmail.com) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
           });
         }
+
+        await db
+          .update(disbursementOrders)
+          .set({
+            status: "approved" as any,
+            approvedBy: ctx.user.id,
+            approvedAt: new Date(),
+            approvalNotes: input.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.id));
       }
-
-      const nextStatus = order.status === "pending_executive" ? "approved" : "pending_executive";
-
-      await db
-        .update(disbursementOrders)
-        .set({
-          status: nextStatus as any,
-          approvedBy: nextStatus === "approved" ? ctx.user.id : order.approvedBy,
-          approvedAt: nextStatus === "approved" ? new Date() : order.approvedAt,
-          approvalNotes: input.notes,
-        })
-        .where(eq(disbursementOrders.id, input.id));
 
       // تحديث قيمة الدفعة المجدولة في العقد وطلب الصرف إذا كان المبلغ الموافق عليه في أمر الصرف أقل من مبلغ الدفعة الأصلي
       const [orderWithRequest] = await db
