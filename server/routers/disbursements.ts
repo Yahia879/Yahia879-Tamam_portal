@@ -901,10 +901,16 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
-      const hasApprovePerm = await checkPermission(ctx.user.id, "disbursements.approve");
+      const hasApprovePerm = 
+        await checkPermission(ctx.user.id, "disbursements.approve") ||
+        await checkPermission(ctx.user.id, "disbursements.sign") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.sign");
+
       const isExecDirector = 
-        ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي";
+        ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        hasApprovePerm;
 
       // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
@@ -1833,9 +1839,16 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
+      const hasApprovePermOrder = 
+        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.sign") ||
+        await checkPermission(ctx.user.id, "disbursements.approve") ||
+        await checkPermission(ctx.user.id, "disbursements.sign");
+
       const isExecDirector = 
-        ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
-        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي";
+        ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        hasApprovePermOrder;
 
       const isPreparer = order.createdBy === ctx.user.id;
 
