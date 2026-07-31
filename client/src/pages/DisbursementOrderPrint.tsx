@@ -195,37 +195,26 @@ export default function DisbursementOrderPrint() {
   const createdByUser = (order as any)?.createdByUser;
   const approvedByUser = (order as any)?.approvedByUser;
 
-  // 1. الخانة الأولى: الإدارة المالية (اعتماد المرحلة الأولى)
-  const creatorName = createdByUser?.signatureName || createdByUser?.name || "—";
-  const creatorDepartment = createdByUser?.signatureDepartment || "الإدارة المالية";
-  const creatorSignatureUrl = createdByUser?.signatureUrl || null;
+  const isOrderStage1Approved = order?.status === "pending_executive" || order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
+  const isOrderStage2Approved = order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
 
-  // 2. الخانة الثانية: المدير التنفيذي (اعتماد المرحلة الثانية)
-  const isSameUser = approvedByUser && createdByUser && approvedByUser.id === createdByUser.id;
+  // 1. الخانة الأولى: الإدارة المالية (تظهر بياناتها فقط عند اعتماد المرحلة الأولى)
+  const creatorName = isOrderStage1Approved ? (createdByUser?.signatureName || createdByUser?.name || "الإدارة المالية") : "—";
+  const creatorDepartment = isOrderStage1Approved ? (createdByUser?.signatureDepartment || "الإدارة المالية") : "—";
+  const creatorSignatureUrl = isOrderStage1Approved ? (createdByUser?.signatureUrl || null) : null;
+  const creatorDate = isOrderStage1Approved && order?.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—";
 
-  const executiveDirectorName = 
-    (approvedByUser?.signatureName || approvedByUser?.name)
-    || orgSettings?.executiveDirectorName 
-    || "—";
-
-  const executiveDirectorDepartment = 
-    approvedByUser?.signatureDepartment 
-    || (orgSettings as any)?.executiveDirectorDepartment 
-    || "المدير التنفيذي";
-
-  const executiveDirectorSignatureUrl = 
-    approvedByUser?.signatureUrl 
-    || (orgSettings as any)?.executiveDirectorSignatureUrl 
-    || null;
+  // 2. الخانة الثانية: المدير التنفيذي (تظهر بياناته فقط عند اعتماد المرحلة الثانية والنهائية)
+  const executiveDirectorName = isOrderStage2Approved ? (approvedByUser?.signatureName || approvedByUser?.name || orgSettings?.executiveDirectorName || "المدير التنفيذي") : "—";
+  const executiveDirectorDepartment = isOrderStage2Approved ? (approvedByUser?.signatureDepartment || (orgSettings as any)?.executiveDirectorDepartment || "المدير التنفيذي") : "—";
+  const executiveDirectorSignatureUrl = isOrderStage2Approved ? (approvedByUser?.signatureUrl || (orgSettings as any)?.executiveDirectorSignatureUrl || null) : null;
+  const executiveDirectorDate = isOrderStage2Approved && order?.approvedAt ? new Date(order.approvedAt).toLocaleDateString("ar-SA") : "—";
 
   const isCreator = currentUser?.id === order?.createdBy;
   const isExecutiveDirector =
     currentUser?.role === "general_manager" ||
     currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
-
-  const isOrderStage1Approved = order?.status === "pending_executive" || order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
-  const isOrderStage2Approved = order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
 
   const canControlCreatorSig = (currentUser?.email === "fdd8@gmail.com" || isCreator) && !!creatorSignatureUrl && isOrderStage1Approved;
   const canControlExecSig = (currentUser?.email === "fds8@gmail.com" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
@@ -578,7 +567,7 @@ export default function DisbursementOrderPrint() {
                       )}
                     </td>
                     <td className="p-2 text-slate-600 font-medium text-xs">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "—"}
+                      {creatorDate}
                     </td>
                   </tr>
 
@@ -600,7 +589,7 @@ export default function DisbursementOrderPrint() {
                       )}
                     </td>
                     <td className="p-2 text-slate-600 font-medium text-xs">
-                      {order.approvedAt ? new Date(order.approvedAt).toLocaleDateString("ar-SA") : "—"}
+                      {executiveDirectorDate}
                     </td>
                   </tr>
                 </tbody>
