@@ -38,6 +38,8 @@ export default function DisbursementRequestPrint() {
   const [, navigate] = useLocation();
   const hasApprovePermission = usePermission("disbursements.approve");
   const hasSignPermission = usePermission("disbursements.sign");
+  const hasViewPermission = usePermission("disbursements.view");
+  const hasRequestViewPermission = hasViewPermission || hasApprovePermission || hasSignPermission;
   const { user: currentUser } = useAuth();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
@@ -169,7 +171,7 @@ export default function DisbursementRequestPrint() {
     );
   }
 
-  if (!hasApprovePermission) {
+  if (!hasRequestViewPermission) {
     return (
       <div className="flex items-center justify-center min-h-screen text-red-500 font-bold" dir="rtl">
         عذراً، لا تملك صلاحية عرض تقرير طلب الصرف.
