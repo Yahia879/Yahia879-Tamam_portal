@@ -487,29 +487,28 @@ export default function DisbursementOrders() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-52 text-right font-medium">
                                   {((order.status === "pending_executive" && user?.email === "fds8@gmail.com") || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && user?.email === "fdd8@gmail.com")) && (
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowApproveDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
-                                    >
-                                      <CheckCircle className="h-4 w-4 text-green-600" />
-                                      <span>اعتماد أمر الصرف</span>
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {canRejectOrder && (order.status === "pending" || order.status === "pending_executive" || order.status === "edited") && (
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowRejectDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
-                                    >
-                                      <XCircle className="h-4 w-4 text-red-600" />
-                                      <span>رفض أمر الصرف</span>
-                                    </DropdownMenuItem>
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedOrder(order);
+                                          setShowApproveDialog(true);
+                                        }}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                      >
+                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                        <span>اعتماد أمر الصرف</span>
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedOrder(order);
+                                          setShowRejectDialog(true);
+                                        }}
+                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                      >
+                                        <XCircle className="h-4 w-4 text-red-600" />
+                                        <span>رفض أمر الصرف</span>
+                                      </DropdownMenuItem>
+                                    </>
                                   )}
 
                                   <DropdownMenuItem
