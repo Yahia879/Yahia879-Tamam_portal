@@ -912,12 +912,11 @@ export const disbursementsRouter = router({
       // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
         const isPreparer = request.requestedBy === ctx.user.id;
-        const canApproveStage1 = isPreparer || isExecDirector;
         
-        if (!canApproveStage1) {
+        if (!isPreparer) {
           throw new TRPCError({ 
             code: "FORBIDDEN", 
-            message: "فقط مُعدّ الطلب أو المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الأولى لطلبات الصرف" 
+            message: "فقط مُعدّ الطلب يمتلك صلاحية اعتماد المرحلة الأولى لطلبات الصرف" 
           });
         }
 
@@ -1853,10 +1852,10 @@ export const disbursementsRouter = router({
         });
       }
 
-      if ((order.status === "pending" || order.status === "draft" || order.status === "edited") && !isPreparer && !isExecDirector) {
+      if ((order.status === "pending" || order.status === "draft" || order.status === "edited") && !isPreparer) {
         throw new TRPCError({ 
           code: "FORBIDDEN", 
-          message: "فقط مُعدّ الأمر أو المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+          message: "فقط مُعدّ الأمر يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
         });
       }
 
