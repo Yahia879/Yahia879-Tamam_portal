@@ -330,8 +330,11 @@ export default function DisbursementRequestPrint() {
             currentUser?.role === "executive_director" ||
             (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-          const canControlCreatorSig = isCreator && !!resolvedSignatureUrl;
-          const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl;
+          const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
+          const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
+
+          const canControlCreatorSig = isCreator && !!resolvedSignatureUrl && isRequestStage1Approved;
+          const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
 
           return (
             <>
