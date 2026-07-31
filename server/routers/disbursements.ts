@@ -907,7 +907,7 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
         await checkPermission(ctx.user.id, "disbursement_orders.sign");
 
-      const isExecDirector = ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
       // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
@@ -1841,7 +1841,7 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "disbursements.approve") ||
         await checkPermission(ctx.user.id, "disbursements.sign");
 
-      const isExecDirector = ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
       const isPreparer = order.createdBy === ctx.user.id;
 
