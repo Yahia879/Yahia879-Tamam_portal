@@ -233,15 +233,15 @@ export default function DisbursementOrders() {
   });
 
   // التحقق من الصلاحيات
-  const canApproveOrder = usePermission("disbursement_orders.approve");
+  const canApproveOrder = usePermission("disbursement_orders.approve") || usePermission("disbursement_orders.sign") || usePermission("disbursements.approve") || usePermission("disbursements.sign");
   const canRejectOrder = usePermission("disbursement_orders.reject");
   const canViewDetails = usePermission("disbursement_orders.view_details");
   const canCreateDirectOrder = usePermission("disbursement_orders.create_direct");
 
   const isExecutiveDirector =
-    user?.role === "general_manager" ||
-    user?.role === "executive_director" ||
-    (user as any)?.customRole?.nameAr === "المدير التنفيذي";
+    ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    canApproveOrder;
 
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
