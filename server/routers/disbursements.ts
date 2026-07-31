@@ -1482,6 +1482,21 @@ export const disbursementsRouter = router({
         createdByUser = u || null;
       }
 
+      if (!createdByUser) {
+        const [u] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            role: users.role,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+          })
+          .from(users)
+          .where(eq(users.email, "fdd8@gmail.com"));
+        createdByUser = u || null;
+      }
+
       let approvedByUser = null;
       if (order.approvedBy) {
         const [u] = await db
@@ -1499,7 +1514,7 @@ export const disbursementsRouter = router({
       }
 
       if (!approvedByUser) {
-        const execUsers = await db
+        const [u] = await db
           .select({
             id: users.id,
             name: users.name,
@@ -1509,13 +1524,8 @@ export const disbursementsRouter = router({
             signatureUrl: users.signatureUrl,
           })
           .from(users)
-          .where(and(
-            sql`(${users.role} IN ('general_manager', 'executive_director') OR ${users.signatureDepartment} LIKE '%المدير التنفيذي%')`,
-            isNull(users.deletedAt)
-          ));
-
-        const preferredExec = execUsers.find((u) => u.id !== order.createdBy);
-        approvedByUser = preferredExec || null;
+          .where(eq(users.email, "fds8@gmail.com"));
+        approvedByUser = u || null;
       }
 
       return {
@@ -2104,13 +2114,36 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedRoles = ["super_admin", "system_admin", "general_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
-        const { calculateUserPermissions } = await import("../permissions");
-        const userPermissions = await calculateUserPermissions(ctx.user.id);
-        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.reject")) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية رفض أمر الصرف" });
+      const [orderData] = await db
+        .select({ status: disbursementOrders.status })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!orderData) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      const userEmail = ctx.user.email;
+
+      if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
+        if (userEmail !== "fdd8@gmail.com") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط حساب الإدارة المالية (fdd8@gmail.com) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+          });
         }
+      } else if (orderData.status === "pending_executive") {
+        if (userEmail !== "fds8@gmail.com") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط حساب المدير التنفيذي (fds8@gmail.com) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+          });
+        }
+      } else {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "لا يمكن رفض أمر الصرف في حالته الحالية",
+        });
       }
 
       const [order] = await db
