@@ -210,8 +210,11 @@ export default function DisbursementOrderPrint() {
     currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-  const canControlCreatorSig = isCreator && !!creatorSignatureUrl;
-  const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl;
+  const isOrderStage1Approved = order?.status === "pending_executive" || order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
+  const isOrderStage2Approved = order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
+
+  const canControlCreatorSig = isCreator && !!creatorSignatureUrl && isOrderStage1Approved;
+  const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
