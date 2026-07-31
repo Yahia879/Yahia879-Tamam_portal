@@ -379,15 +379,17 @@ export default function DisbursementOrders() {
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full lg:w-[180px]">
+                <SelectTrigger className="w-full lg:w-[240px]">
                   <Filter className="ml-2 h-4 w-4" />
                   <SelectValue placeholder="جميع الحالات" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">جميع الحالات</SelectItem>
-                  <SelectItem value="pending">قيد الاعتماد</SelectItem>
+                  <SelectItem value="pending">بانتظار اعتماد الإدارة المالية</SelectItem>
+                  <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
                   <SelectItem value="approved">معتمد</SelectItem>
                   <SelectItem value="rejected">مرفوض</SelectItem>
+                  <SelectItem value="executed">منفذ</SelectItem>
                   <SelectItem value="edited">تم التعديل</SelectItem>
                 </SelectContent>
               </Select>
@@ -417,17 +419,17 @@ export default function DisbursementOrders() {
               <Card className="border-0 shadow-sm overflow-hidden p-0">
                 {/* Desktop View Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <Table dir="rtl" className="w-full min-w-[950px]">
+                  <Table dir="rtl" className="w-full min-w-full">
                     <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
                       <TableRow className="hover:bg-transparent">
-                        <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[140px] font-bold text-slate-700 dark:text-slate-200">طريقة الدفع</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[210px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
-                        <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
-                        <TableHead className="py-3.5 px-4 text-center min-w-[100px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">طريقة الدفع</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
+                        <TableHead className="py-2.5 px-3 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -443,7 +445,7 @@ export default function DisbursementOrders() {
                             key={order.id}
                             className={isPendingMyAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
                           >
-                            <TableCell className="py-3.5 px-4 font-mono text-xs text-right font-bold whitespace-nowrap">
+                            <TableCell className="py-2.5 px-3 font-mono text-xs text-right font-bold whitespace-nowrap">
                               <div className="flex items-center gap-2 justify-start">
                                 {isPendingMyAction && (
                                   <TooltipProvider>
@@ -466,19 +468,19 @@ export default function DisbursementOrders() {
                                 <span>{order.orderNumber}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="py-3.5 px-4 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
-                            <TableCell className="py-3.5 px-4 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
-                            <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</TableCell>
-                            <TableCell className="py-3.5 px-4 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
-                            <TableCell className="py-3.5 px-4 text-right">
+                            <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
+                            <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
+                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="py-2.5 px-3 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
+                            <TableCell className="py-2.5 px-3 text-right">
                               <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
                                 {STATUS_MAP[order.status || "draft"]?.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground">
+                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs text-muted-foreground">
                               {order.createdAt ? new Date(order.createdAt).toLocaleDateString("ar-SA") : "-"}
                             </TableCell>
-                            <TableCell className="py-3.5 px-4 text-center">
+                            <TableCell className="py-2.5 px-3 text-center">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
