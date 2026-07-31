@@ -413,16 +413,22 @@ export default function DisbursementRequests() {
     }
   };
 
-  // التحقق من الصلاحيات
-  const hasApprovePermission = usePermission("disbursements.approve") || usePermission("disbursements.sign") || usePermission("disbursement_orders.sign");
-  const hasEditPermission = usePermission("disbursements.edit");
-  const hasAddPermission = usePermission("disbursements.add");
-  const hasCreateCustomPermission = usePermission("disbursements.create_custom");
-  const canCreateRequest = hasEditPermission;
-  const canCreateDisbursement = usePermission("disbursements.create");
+  // التحقق من الصلاحيات (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ short-circuit)
+  const permDisbursementsApprove = usePermission("disbursements.approve");
+  const permDisbursementsSign = usePermission("disbursements.sign");
+  const permOrdersSign = usePermission("disbursement_orders.sign");
+  const permOrdersApprove = usePermission("disbursement_orders.approve");
+  const permDisbursementsEdit = usePermission("disbursements.edit");
+  const permDisbursementsAdd = usePermission("disbursements.add");
+  const permCreateCustom = usePermission("disbursements.create_custom");
+  const permDisbursementsCreate = usePermission("disbursements.create");
+
+  const hasApprovePermission = permDisbursementsApprove || permDisbursementsSign || permOrdersSign;
+  const canCreateRequest = permDisbursementsEdit;
+  const canCreateDisbursement = permDisbursementsCreate;
   const canApproveRequest = hasApprovePermission;
   const canCreateOrder = hasApprovePermission;
-  const canApproveOrder = usePermission("disbursement_orders.approve") || usePermission("disbursement_orders.sign") || hasApprovePermission;
+  const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
   const isExecutiveDirector = 
     ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
