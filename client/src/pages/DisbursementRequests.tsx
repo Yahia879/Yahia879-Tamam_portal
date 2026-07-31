@@ -427,8 +427,7 @@ export default function DisbursementRequests() {
   const isExecutiveDirector = 
     ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-    canApproveRequest ||
-    canApproveOrder;
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
   const handleCreateRequest = () => {
     if (!newRequest.projectId || !newRequest.title || !newRequest.amount) {
