@@ -238,10 +238,10 @@ export default function DisbursementOrders() {
   const canViewDetails = usePermission("disbursement_orders.view_details");
   const canCreateDirectOrder = usePermission("disbursement_orders.create_direct");
 
-  const isExecutiveDirector =
+  const isExecutiveDirector = 
     ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-    canApproveOrder;
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
