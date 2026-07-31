@@ -227,8 +227,8 @@ export default function DisbursementOrderPrint() {
   const isOrderStage1Approved = order?.status === "pending_executive" || order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
   const isOrderStage2Approved = order?.status === "approved" || order?.status === "executed" || !!order?.approvedAt;
 
-  const canControlCreatorSig = isCreator && !!creatorSignatureUrl && isOrderStage1Approved;
-  const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
+  const canControlCreatorSig = (currentUser?.email === "fdd8@gmail.com" || isCreator) && !!creatorSignatureUrl && isOrderStage1Approved;
+  const canControlExecSig = (currentUser?.email === "fds8@gmail.com" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
