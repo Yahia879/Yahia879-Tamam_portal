@@ -600,8 +600,8 @@ export default function DisbursementRequests() {
         aPendingAction = a.status === "pending_executive";
         bPendingAction = b.status === "pending_executive";
       } else {
-        aPendingAction = (a.status === "pending" || a.status === "draft") && (a.requestedBy === user?.id || canApproveRequest);
-        bPendingAction = (b.status === "pending" || b.status === "draft") && (b.requestedBy === user?.id || canApproveRequest);
+        aPendingAction = (a.status === "pending" || a.status === "draft") && a.requestedBy === user?.id;
+        bPendingAction = (b.status === "pending" || b.status === "draft") && b.requestedBy === user?.id;
       }
 
       if (aPendingAction && !bPendingAction) return -1;
@@ -790,7 +790,7 @@ export default function DisbursementRequests() {
                           const isConverted = !!request.orderId || request.status === "paid";
                           const isPendingMyAction = isExecutiveDirector
                             ? request.status === "pending_executive"
-                            : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || canApproveRequest);
+                            : (request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id;
 
                           return (
                             <TableRow 
@@ -947,7 +947,7 @@ export default function DisbursementRequests() {
                                       )}
                                       
                                       {/* Stage 1 Approval: Preparer */}
-                                      {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || isExecutiveDirector) && (
+                                      {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && (
                                         <>
                                           <DropdownMenuItem
                                             onClick={() => {
