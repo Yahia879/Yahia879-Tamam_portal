@@ -232,11 +232,19 @@ export default function DisbursementOrders() {
     },
   });
 
-  // التحقق من الصلاحيات
-  const canApproveOrder = usePermission("disbursement_orders.approve") || usePermission("disbursement_orders.sign") || usePermission("disbursements.approve") || usePermission("disbursements.sign");
-  const canRejectOrder = usePermission("disbursement_orders.reject");
-  const canViewDetails = usePermission("disbursement_orders.view_details");
-  const canCreateDirectOrder = usePermission("disbursement_orders.create_direct");
+  // التحقق من الصلاحيات (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ short-circuit)
+  const permOrdersApprove = usePermission("disbursement_orders.approve");
+  const permOrdersSign = usePermission("disbursement_orders.sign");
+  const permDisbursementsApprove = usePermission("disbursements.approve");
+  const permDisbursementsSign = usePermission("disbursements.sign");
+  const permOrdersReject = usePermission("disbursement_orders.reject");
+  const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
+  const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
+
+  const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
+  const canRejectOrder = permOrdersReject;
+  const canViewDetails = permOrdersViewDetails;
+  const canCreateDirectOrder = permOrdersCreateDirect;
 
   const isExecutiveDirector = 
     ["super_admin", "system_admin", "admin", "general_manager", "executive_director"].includes(user?.role || "") ||
