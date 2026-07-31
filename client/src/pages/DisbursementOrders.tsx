@@ -255,21 +255,25 @@ export default function DisbursementOrders() {
   const sortedOrders = useMemo(() => {
     if (!ordersData?.orders) return [];
 
+    const userEmail = user?.email;
     return [...ordersData.orders].sort((a: any, b: any) => {
-      const aPendingMyAction = isExecutiveDirector
-        ? a.status === "pending_executive"
-        : (a.status === "pending" || a.status === "edited" || a.status === "draft") && a.createdBy === user?.id;
+      let aPendingMyAction = false;
+      let bPendingMyAction = false;
 
-      const bPendingMyAction = isExecutiveDirector
-        ? b.status === "pending_executive"
-        : (b.status === "pending" || b.status === "edited" || b.status === "draft") && b.createdBy === user?.id;
+      if (userEmail === "fdd8@gmail.com") {
+        aPendingMyAction = a.status === "pending" || a.status === "edited" || a.status === "draft";
+        bPendingMyAction = b.status === "pending" || b.status === "edited" || b.status === "draft";
+      } else if (userEmail === "fds8@gmail.com") {
+        aPendingMyAction = a.status === "pending_executive";
+        bPendingMyAction = b.status === "pending_executive";
+      }
 
       if (aPendingMyAction && !bPendingMyAction) return -1;
       if (!aPendingMyAction && bPendingMyAction) return 1;
 
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [ordersData?.orders, isExecutiveDirector, user, canApproveOrder]);
+  }, [ordersData?.orders, user?.email]);
 
   const filteredOrders = sortedOrders;
 
@@ -428,9 +432,11 @@ export default function DisbursementOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isPendingMyAction = isExecutiveDirector
+                        const isPendingMyAction = user?.email === "fdd8@gmail.com"
+                          ? (order.status === "pending" || order.status === "edited" || order.status === "draft")
+                          : user?.email === "fds8@gmail.com"
                           ? order.status === "pending_executive"
-                          : (order.status === "pending" || order.status === "edited" || order.status === "draft") && order.createdBy === user?.id;
+                          : false;
 
                         return (
                           <TableRow 
@@ -480,7 +486,7 @@ export default function DisbursementOrders() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-52 text-right font-medium">
-                                  {(order.status === "pending_executive" ? isExecutiveDirector : ((order.status === "pending" || order.status === "edited" || order.status === "draft") && order.createdBy === user?.id)) && (
+                                  {((order.status === "pending_executive" && user?.email === "fds8@gmail.com") || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && user?.email === "fdd8@gmail.com")) && (
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setSelectedOrder(order);
