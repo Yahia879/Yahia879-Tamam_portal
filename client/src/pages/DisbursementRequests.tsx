@@ -942,7 +942,7 @@ export default function DisbursementRequests() {
                                       )}
                                       
                                       {/* Stage 1 Approval: Preparer */}
-                                      {(request.status === "pending" || request.status === "draft") && (canApproveRequest || canCreateRequest || request.requestedBy === user?.id) && (
+                                      {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || isExecutiveDirector) && (
                                         <>
                                           <DropdownMenuItem
                                             onClick={() => {
