@@ -536,7 +536,7 @@ export default function DisbursementOrderPrint() {
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{creatorDepartment}</td>
                     <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{creatorName}</td>
                     <td className="p-2 border-l border-slate-300">
-                      {(showCreatorSignature && creatorSignatureUrl && (order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
+                      {(showCreatorSignature && creatorSignatureUrl && (order.status === "pending_executive" || order.status === "approved" || order.status === "executed" || !!order.approvedAt)) ? (
                         <div className="h-12 flex items-center justify-center mx-auto overflow-hidden">
                           <img 
                             src={creatorSignatureUrl} 

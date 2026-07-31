@@ -587,7 +587,7 @@ export default function DisbursementRequestPrint() {
                       {resolvedSignatureDepartment}
                     </div>
                     <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                      {(showCreatorSignature && resolvedSignatureUrl && (request.status === "approved" || request.status === "paid" || !!request.approvedAt)) ? (
+                      {(showCreatorSignature && resolvedSignatureUrl && (request.status === "pending_executive" || request.status === "approved" || request.status === "paid" || !!request.approvedAt)) ? (
                         <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
                           <img 
                             src={resolvedSignatureUrl} 
