@@ -43,6 +43,7 @@ import {
   Sparkles,
   Download,
   Paperclip,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +70,8 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
   const [supportAmount, setSupportAmount] = useState<number>(0);
   const [adminFeeType, setAdminFeeType] = useState<"percentage" | "fixed">("percentage");
   const [adminFeeValue, setAdminFeeValue] = useState<number>(0);
+  const [associationFundingAmount, setAssociationFundingAmount] = useState<number>(0);
+  const [associationFundingNotes, setAssociationFundingNotes] = useState<string>("");
   const [financialNotes, setFinancialNotes] = useState<string>("");
 
   const [isEditingFinancials, setIsEditingFinancials] = useState<boolean>(false);
@@ -138,6 +141,8 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
       setSupportAmount(parseFloat(data.financialDetail.supportAmount || "0"));
       setAdminFeeType((data.financialDetail.adminFeeType as any) || "percentage");
       setAdminFeeValue(parseFloat(data.financialDetail.adminFeeValue || "0"));
+      setAssociationFundingAmount(parseFloat(data.financialDetail.associationFundingAmount || "0"));
+      setAssociationFundingNotes(data.financialDetail.associationFundingNotes || "");
       setFinancialNotes(data.financialDetail.notes || "");
     } else if (data?.approvedQuotation) {
       setApprovedQuotationId(data.approvedQuotation.id);
@@ -179,6 +184,8 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
       adminFeeType,
       adminFeeValue,
       adminFeeAmount: calculatedAdminFeeAmount,
+      associationFundingAmount,
+      associationFundingNotes,
       notes: financialNotes,
     });
   };
@@ -607,6 +614,117 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
         </Card>
 
       </div>
+
+      {/* 2.5 قسم التمويل الذاتي الممدود من حساب الجمعية (دين / مستحق على الداعم) */}
+      {((data?.associationFunding?.totalAmount || 0) > 0 || associationFundingAmount > 0 || isEditingFinancials) && (() => {
+        const assocData = data?.associationFunding || { totalAmount: 0, requests: [] };
+        const effectiveAssocAmount = associationFundingAmount > 0 ? associationFundingAmount : (assocData.totalAmount || 0);
+
+        return (
+          <Card className="border-amber-300/80 dark:border-amber-900/60 shadow-sm bg-gradient-to-br from-amber-50/70 via-white to-amber-50/20 dark:from-amber-950/20 dark:via-slate-900 dark:to-slate-900 overflow-hidden">
+            <CardHeader className="bg-amber-100/40 dark:bg-amber-950/30 border-b border-amber-200/60 dark:border-amber-900/40 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-right">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-400/30">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    التمويل الذاتي الممدود من حساب الجمعية
+                    <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-300 font-bold text-[10px]">
+                      دين / مستحق على الداعم
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-amber-800/80 dark:text-slate-300">
+                    توثيق المبالغ الممدودة مؤقتاً من الحساب العام للجمعية بسبب نقص دفعات الداعم
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="text-right sm:text-left bg-white/80 dark:bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                <span className="text-[10px] text-muted-foreground block font-semibold">إجمالي الدين المستحق للجمعية</span>
+                <span className="text-lg font-black text-amber-800 dark:text-amber-400">
+                  {effectiveAssocAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">ريال</span>
+                </span>
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-4 space-y-4 text-right">
+              {/* التنبيه والإشارة الخاصة بحالة الدين */}
+              <div className="p-4 bg-amber-100/60 dark:bg-amber-950/40 rounded-xl border border-amber-300 dark:border-amber-800/60 flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="font-bold text-xs text-amber-950 dark:text-amber-300">
+                    إشارة وحالة الدين المالي: يُعد ديناً مستحقاً على المتبرع / الداعم
+                  </h4>
+                  <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed font-medium">
+                    تم صرف مبلغ قدره <strong>{effectiveAssocAmount.toLocaleString("ar-SA")} ريال</strong> من "الحساب العام للجمعية" لتغطية عجز مدفوعات الداعم ومتابعة تنفيذ أعمال المشروع بدون توقف. هذا المبلغ يُعد <strong>ديناً ثابتاً ومستحقاً لصالح الجمعية على جهة الدعم/المتبرع</strong>، ويجب سداده وإعادة إيداعه في الحساب العام للجمعية عند تحصيل باقي الدعم وسندات القبض القادمة.
+                  </p>
+                </div>
+              </div>
+
+              {/* تعديل يدوي في حال كان نموذج التعديل مفتاحاً */}
+              {isEditingFinancials && (
+                <div className="p-3.5 bg-background rounded-xl border space-y-3 text-xs">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">المبلغ الممدود من حساب الجمعية (يدوي / تعديل)</Label>
+                    <Input
+                      type="number"
+                      value={associationFundingAmount || ""}
+                      onChange={(e) => setAssociationFundingAmount(parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">ملاحظات التمويل الذاتي والدين</Label>
+                    <Input
+                      type="text"
+                      value={associationFundingNotes}
+                      onChange={(e) => setAssociationFundingNotes(e.target.value)}
+                      placeholder="أدخل ملاحظات توثيق الدين..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* جدول تفاصيل طلبات الصرف الممولة من حساب الجمعية إن وجدت */}
+              {assocData.requests && assocData.requests.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">طلبات الصرف الممولة جزئياً أو كلياً من حساب الجمعية:</h4>
+                  <div className="border rounded-xl overflow-hidden bg-background">
+                    <Table dir="rtl">
+                      <TableHeader className="bg-muted/40">
+                        <TableRow>
+                          <TableHead className="text-right text-xs">رقم الطلب</TableHead>
+                          <TableHead className="text-right text-xs">عنوان طلب الصرف</TableHead>
+                          <TableHead className="text-right text-xs">إجمالي الطلب</TableHead>
+                          <TableHead className="text-right text-xs">المبلغ الممدود من الجمعية (الدين)</TableHead>
+                          <TableHead className="text-center text-xs">حالة الدين</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {assocData.requests.map((req: any) => (
+                          <TableRow key={req.id}>
+                            <TableCell className="font-mono text-xs font-bold">{req.requestNumber}</TableCell>
+                            <TableCell className="text-xs font-medium">{req.title || "طلب صرف مرتبط"}</TableCell>
+                            <TableCell className="text-xs">{req.amount.toLocaleString()} ريال</TableCell>
+                            <TableCell className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                              {req.coveredAmount.toLocaleString()} ريال
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-bold">
+                                دين مستحق على الداعم
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* 3. قسم سندات القبض (Receipt Vouchers Section) */}
       <Card className="shadow-xs border-slate-200">
