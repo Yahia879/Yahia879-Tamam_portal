@@ -204,10 +204,12 @@ export default function NewLinkedDisbursementRequest() {
   const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);
   const [disburseFromGeneralAccount, setDisburseFromGeneralAccount] = useState(false);
 
-  // إعادة ضبط التغطيّة التلقائية عند تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
+  // إعادة ضبط التغطيّة التلقائية عند دخول الخطوة الثانية أو تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
   useEffect(() => {
-    setDisburseFromGeneralAccount(false);
-  }, [selectedReportId, formData.projectId]);
+    if (step === 2) {
+      setDisburseFromGeneralAccount(false);
+    }
+  }, [step, selectedReportId, formData.projectId]);
 
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
@@ -890,6 +892,10 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة النقر على زر "التالي" بالخطوة الثانية (إظهار المودال التحذيري فوراً عند وجود عجز)
   const handleStep2Next = () => {
+    if (!isCustom && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
       setShowSupporterDeficitDialog(true);
       return;
