@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -2488,60 +2489,66 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
       <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>
-        <DialogContent className="dir-rtl text-right max-w-lg" dir="rtl">
-          <DialogHeader className="text-right">
-            <div className="flex items-start gap-3 mb-1 text-amber-600">
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0 border border-amber-200">
-                <AlertCircle className="h-6 w-6 text-amber-600" />
+        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900" dir="rtl">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-6 text-white text-right relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-4 relative z-10">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0 shadow-inner">
+                <AlertCircle className="h-6 w-6 text-amber-400" />
               </div>
-              <div className="space-y-1">
-                <DialogTitle className="text-base font-bold text-amber-950 dark:text-amber-400">
+              <div className="space-y-1 text-right">
+                <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-400/30 text-[11px] font-bold px-2.5 py-0.5 mb-1">
+                  تنبيه المطابقة المالية
+                </Badge>
+                <DialogTitle className="text-base sm:text-lg font-bold text-white leading-snug">
                   المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
                 </DialogTitle>
-                <DialogDescription className="text-xs text-amber-800 dark:text-amber-300/80 leading-relaxed">
-                  تبيّن من آلية التدقيق المالي أن إجمالي المدفوعات الفعلية (سندات القبض) المستلمة من الداعم أقل من المبلغ المطلوب صرفه حالياً لهذا المشروع.
+                <DialogDescription className="text-xs text-slate-300 leading-relaxed font-normal">
+                  تبيّن من آلية التدقيق المالي أن إجمالي المقبوض فعلياً من الداعم لا يغطي المبلغ المطلوب صرفه حالياً.
                 </DialogDescription>
               </div>
             </div>
-          </DialogHeader>
+          </div>
 
-          <div className="space-y-4 py-2 text-xs">
-            {/* تفاصيل المبالغ والعجز */}
-            <div className="p-4 bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2.5">
-              <div className="flex justify-between items-center text-sm font-semibold border-b border-amber-200 dark:border-amber-900/40 pb-2">
-                <span className="text-gray-800 dark:text-gray-200">المبلغ المراد صرفه:</span>
-                <span className="font-bold text-blue-900 dark:text-blue-400 text-base">
-                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+          <div className="p-6 space-y-5 text-xs text-right bg-slate-50/50 dark:bg-slate-950/40">
+            {/* Financial Metrics Card */}
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+              <div className="flex justify-between items-center text-sm font-semibold border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <span className="text-slate-600 dark:text-slate-400">المبلغ المراد صرفه:</span>
+                <span className="font-bold text-blue-700 dark:text-blue-400 text-base">
+                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">ريال</span>
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
+                <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">ريال</span>
                 </span>
               </div>
 
-              <div className="flex justify-between items-center border-t border-amber-200 dark:border-amber-900/40 pt-2 font-bold">
-                <span className="text-amber-950 dark:text-amber-300">مبلغ العجز المطلوب تغطيته:</span>
-                <span className="text-rose-700 dark:text-rose-400 text-sm">
-                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+              <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2.5">
+                <span className="font-bold text-slate-900 dark:text-slate-100">مبلغ العجز المطلوب تغطيته:</span>
+                <span className="font-black text-rose-600 dark:text-rose-400 text-base">
+                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">ريال</span>
                 </span>
               </div>
             </div>
 
-            <div className="p-3 bg-muted/40 rounded-lg border text-muted-foreground leading-relaxed text-[11px]">
-              <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">خيارات المتابعة للمسؤول المالي:</p>
-              <p className="mb-1">
-                <strong>أ) الاستمرار والصرف من الحساب العام للجمعية:</strong> سيتم اعتماد التغطيّة من الحساب العام للجمعية والانتقال إلى خطوة المطابقة المالية.
+            {/* Explanation box */}
+            <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed space-y-1 text-right">
+              <p className="font-bold text-amber-900 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                توجيه الصرف المالي:
               </p>
-              <p>
-                <strong>ب) إلغاء / التراجع عن طلب الصرف:</strong> إغلاق المودال والبقاء في الخطوة الحالية للمراجعة.
+              <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                عند الموافقة على الاستمرار، سيتم تحويل مبلغ العجز المتبقي ليُصرف مؤقتاً من <strong>الحساب العام للجمعية</strong>، مع توثيقه كـ <strong>دين مستحق على الداعم</strong> يطالب بتسديده فور تحصيل دفعات الداعم القادمة.
               </p>
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row-reverse items-center justify-between gap-2.5 pt-2 border-t">
+          <DialogFooter className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-center justify-between gap-3">
             <Button
               type="button"
               onClick={() => {
@@ -2553,18 +2560,18 @@ export default function NewLinkedDisbursementRequest() {
                   executeDisbursementSubmit(true);
                 }
               }}
-              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 h-10 px-4 rounded-xl shadow-xs"
+              className="w-full sm:w-auto font-bold text-xs bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white gap-2 h-11 px-5 rounded-xl shadow-md transition-all"
             >
               <Coins className="h-4 w-4" />
-              أ) الاستمرار والصرف من الحساب العام للجمعية
+              الاستمرار والصرف من الحساب العام للجمعية
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setShowSupporterDeficitDialog(false)}
-              className="w-full sm:w-auto text-xs font-semibold h-10 rounded-xl"
+              className="w-full sm:w-auto text-xs font-semibold h-11 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              ب) إلغاء / التراجع عن طلب الصرف
+              إلغاء / التراجع عن الطلب
             </Button>
           </DialogFooter>
         </DialogContent>
