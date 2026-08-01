@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
+import { eq, desc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
@@ -1815,11 +1815,85 @@ export const projectsRouter = router({
         .where(eq(receiptVouchers.projectId, input.projectId))
         .orderBy(desc(receiptVouchers.receiptDate));
 
+      // جلب طلبات الصرف غير المرفوضة للمشروع لحساب مبالغ التمويل من الحساب العام للجمعية (دين على الداعم)
+      const projectDisbursements = await db
+        .select()
+        .from(disbursementRequests)
+        .where(and(
+          eq(disbursementRequests.projectId, input.projectId),
+          ne(disbursementRequests.status, "rejected")
+        ));
+
+      let autoAssociationFunding = 0;
+      const associationFundedRequests: Array<{
+        id: number;
+        requestNumber: string;
+        title: string | null;
+        amount: number;
+        coveredAmount: number;
+        dateMiladi: string | null;
+        status: string | null;
+      }> = [];
+
+      for (const req of projectDisbursements) {
+        const desc = req.description || "";
+        const attachments = req.attachmentsJson || "";
+        let isGenAccount = desc.includes("الحساب العام للجمعية") || desc.includes("تم التوجيه بالصرف من الحساب العام");
+        let coveredAmount = 0;
+
+        if (attachments.includes("general_account_coverage")) {
+          isGenAccount = true;
+          try {
+            const parsed = JSON.parse(attachments);
+            const genItem = Array.isArray(parsed) ? parsed.find((item: any) => item.name === "general_account_coverage") : null;
+            if (genItem && genItem.url) {
+              const info = JSON.parse(genItem.url);
+              coveredAmount = parseFloat(info.funderDeficit || "0");
+            }
+          } catch (e) {
+            // fallback
+          }
+        }
+
+        if (!coveredAmount && isGenAccount) {
+          const match = desc.match(/العجز البالغ\s*\(?([0-9.,]+)/);
+          if (match) {
+            coveredAmount = parseFloat(match[1].replace(/,/g, "")) || 0;
+          } else {
+            coveredAmount = parseFloat(req.amount || "0");
+          }
+        }
+
+        if (isGenAccount && coveredAmount > 0) {
+          autoAssociationFunding += coveredAmount;
+          associationFundedRequests.push({
+            id: req.id,
+            requestNumber: req.requestNumber,
+            title: req.title,
+            amount: parseFloat(req.amount || "0"),
+            coveredAmount,
+            dateMiladi: req.dateMiladi ? req.dateMiladi.toString() : null,
+            status: req.status,
+          });
+        }
+      }
+
+      const manualAssociationFunding = parseFloat(financialDetail?.associationFundingAmount || "0");
+      const totalAssociationFunding = manualAssociationFunding > 0 ? manualAssociationFunding : autoAssociationFunding;
+
       return {
         financialDetail: financialDetail || null,
         approvedQuotation: approvedQuotation || null,
         allQuotations,
         receiptVouchers: vouchers,
+        associationFunding: {
+          totalAmount: totalAssociationFunding,
+          autoCalculatedAmount: autoAssociationFunding,
+          manualAmount: manualAssociationFunding,
+          notes: financialDetail?.associationFundingNotes || "",
+          debtStatus: "دين / مستحق على الداعم يجب تسديده للجمعية فور تحصيل باقي الدعم",
+          requests: associationFundedRequests,
+        },
       };
     }),
 
@@ -1833,6 +1907,8 @@ export const projectsRouter = router({
       adminFeeType: z.enum(["percentage", "fixed"]).optional(),
       adminFeeValue: z.number().optional(),
       adminFeeAmount: z.number().optional(),
+      associationFundingAmount: z.number().optional(),
+      associationFundingNotes: z.string().optional(),
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -1853,6 +1929,8 @@ export const projectsRouter = router({
         adminFeeType: input.adminFeeType ?? "percentage",
         adminFeeValue: input.adminFeeValue?.toString() ?? "0.00",
         adminFeeAmount: input.adminFeeAmount?.toString() ?? "0.00",
+        associationFundingAmount: input.associationFundingAmount?.toString() ?? "0.00",
+        associationFundingNotes: input.associationFundingNotes ?? "",
         notes: input.notes ?? "",
       };
 
