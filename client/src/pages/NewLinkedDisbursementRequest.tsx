@@ -204,6 +204,11 @@ export default function NewLinkedDisbursementRequest() {
   const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);
   const [disburseFromGeneralAccount, setDisburseFromGeneralAccount] = useState(false);
 
+  // إعادة ضبط التغطيّة التلقائية عند تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
+  useEffect(() => {
+    setDisburseFromGeneralAccount(false);
+  }, [selectedReportId, formData.projectId]);
+
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
@@ -772,10 +777,15 @@ export default function NewLinkedDisbursementRequest() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
-  // حساب قيمة طلب الصرف المتوقع من التقرير أو الموردين
+  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد أو الموردين
   const currentDisbursementAmount = totalAmount > 0 
     ? totalAmount 
-    : (selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : formData.amount);
+    : (
+        parseFloat(String(selectedReport?.budgetSpent || "0")) ||
+        parseFloat(String(paymentInfo?.amount || "0")) ||
+        parseFloat(String(contractDetails?.contract?.contractAmount || "0")) ||
+        formData.amount
+      );
   
   // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
   const funderDeficit = currentDisbursementAmount - totalSupporterPayments;
