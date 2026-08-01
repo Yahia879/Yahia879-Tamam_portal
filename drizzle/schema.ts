@@ -1990,6 +1990,8 @@ export const projectFinancialDetails = mysqlTable("project_financial_details", {
   adminFeeType: mysqlEnum("adminFeeType", ["percentage", "fixed"]).default("percentage"),
   adminFeeValue: decimal("adminFeeValue", { precision: 15, scale: 2 }).default("0.00"),
   adminFeeAmount: decimal("adminFeeAmount", { precision: 15, scale: 2 }).default("0.00"),
+  associationFundingAmount: decimal("associationFundingAmount", { precision: 15, scale: 2 }).default("0.00"),
+  associationFundingNotes: text("associationFundingNotes"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
