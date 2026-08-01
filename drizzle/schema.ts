@@ -1979,6 +1979,47 @@ export const notificationTemplates = mysqlTable("notification_templates", {
 export type NotificationTemplate = typeof notificationTemplates.$inferSelect;
 export type InsertNotificationTemplate = typeof notificationTemplates.$inferInsert;
 
+// ==================== تفاصيل بيانات المالية والدعم للمشروع ====================
+export const projectFinancialDetails = mysqlTable("project_financial_details", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("projectId").notNull().unique().references(() => projects.id, { onDelete: "cascade" }),
+  approvedQuotationId: int("approvedQuotationId").references(() => quotations.id, { onDelete: "set null" }),
+  supportEntity: varchar("supportEntity", { length: 255 }),
+  customSupportEntity: varchar("customSupportEntity", { length: 255 }),
+  supportAmount: decimal("supportAmount", { precision: 15, scale: 2 }).default("0.00"),
+  adminFeeType: mysqlEnum("adminFeeType", ["percentage", "fixed"]).default("percentage"),
+  adminFeeValue: decimal("adminFeeValue", { precision: 15, scale: 2 }).default("0.00"),
+  adminFeeAmount: decimal("adminFeeAmount", { precision: 15, scale: 2 }).default("0.00"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProjectFinancialDetail = typeof projectFinancialDetails.$inferSelect;
+export type InsertProjectFinancialDetail = typeof projectFinancialDetails.$inferInsert;
+
+// ==================== سندات القبض ====================
+export const receiptVouchers = mysqlTable("receipt_vouchers", {
+  id: int("id").primaryKey().autoincrement(),
+  voucherNumber: varchar("voucherNumber", { length: 50 }).notNull().unique(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  receiptDate: datetime("receiptDate").notNull(),
+  payerName: varchar("payerName", { length: 255 }),
+  paymentMethod: varchar("paymentMethod", { length: 50 }).default("bank_transfer"),
+  referenceNumber: varchar("referenceNumber", { length: 100 }),
+  bankName: varchar("bankName", { length: 255 }),
+  attachmentUrl: varchar("attachmentUrl", { length: 500 }),
+  notes: text("notes"),
+  createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ReceiptVoucher = typeof receiptVouchers.$inferSelect;
+export type InsertReceiptVoucher = typeof receiptVouchers.$inferInsert;
+
+
 
 
 
