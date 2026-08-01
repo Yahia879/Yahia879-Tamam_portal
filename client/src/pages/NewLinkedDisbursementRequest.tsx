@@ -721,49 +721,54 @@ export default function NewLinkedDisbursementRequest() {
     },
   });
   
-  // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
+  // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
-    if (contractDetails && contractDetails.contract) {
-      // المبلغ الفعلي والاعتيادي للدفعة ينجاب من تقرير الإنجاز أو الدفعة أو العقد
-      const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
-      const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
-      const contractAmt = parseFloat(String(contractDetails.contract.contractAmount || "0"));
-      
-      const actualAmount = reportBudget > 0 
-        ? reportBudget 
-        : (paymentAmt > 0 ? paymentAmt : contractAmt);
+    const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
+    const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
+    const quotationAmt = parseFloat(String(
+      projectFinancials?.approvedQuotation?.approvedAmount || 
+      projectFinancials?.approvedQuotation?.finalAmount || 
+      projectFinancials?.approvedQuotation?.totalAmount || 
+      projectFinancials?.allQuotations?.[0]?.approvedAmount ||
+      projectFinancials?.allQuotations?.[0]?.finalAmount ||
+      projectFinancials?.allQuotations?.[0]?.totalAmount || 
+      "0"
+    ));
+    const contractAmt = parseFloat(String(
+      contractDetails?.contract?.contractAmount || 
+      (projectContracts?.contracts?.[0] as any)?.contractAmount || 
+      "0"
+    ));
+    const projectBudgetAmt = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
 
-      // المبلغ المتفق عليه للدفعة ينجاب من الدفعة أو العقد بتفاصيل المشروع
-      const agreedAmount = paymentAmt > 0 ? paymentAmt : contractAmt;
-      
-      // بيان الأعمال ينجاب من تقرير الإنجاز
-      const targetWork = selectedReport
-        ? selectedReport.title || ""
-        : contractDetails.contract.contractTitle || "";
+    const calculatedAmount = reportBudget > 0
+      ? reportBudget
+      : (paymentAmt > 0 ? paymentAmt : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)));
 
-      if (
-        suppliers.length === 1 &&
-        suppliers[0].name === contractDetails.contract.secondPartyName &&
-        suppliers[0].iban === contractDetails.contract.secondPartyIban &&
-        suppliers[0].amount === actualAmount &&
-        suppliers[0].agreedAmount === agreedAmount &&
-        suppliers[0].work === targetWork
-      ) {
-        return;
-      }
-
-      const supplierFromContract: SupplierEntry = {
-        id: suppliers.length === 1 ? suppliers[0].id : crypto.randomUUID(),
-        name: contractDetails.contract.secondPartyName || "",
-        work: targetWork,
-        amount: actualAmount,
-        agreedAmount: agreedAmount,
-        iban: contractDetails.contract.secondPartyIban || "",
-        bank: contractDetails.contract.secondPartyBankName || "",
-      };
-      setSuppliers([supplierFromContract]);
+    if (calculatedAmount > 0) {
+      setSuppliers(prev => {
+        if (prev.length > 0 && prev[0].amount !== calculatedAmount) {
+          const updated = [...prev];
+          const secondPartyName = contractDetails?.contract?.secondPartyName || (projectContracts?.contracts?.[0] as any)?.secondPartyName || "مورد المشروع";
+          const secondPartyIban = contractDetails?.contract?.secondPartyIban || (projectContracts?.contracts?.[0] as any)?.secondPartyIban || "";
+          const secondPartyBank = contractDetails?.contract?.secondPartyBankName || (projectContracts?.contracts?.[0] as any)?.secondPartyBankName || "";
+          const targetWork = selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز";
+          
+          updated[0] = {
+            ...updated[0],
+            amount: calculatedAmount,
+            agreedAmount: updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount,
+            name: updated[0].name || secondPartyName,
+            iban: updated[0].iban || secondPartyIban,
+            bank: updated[0].bank || secondPartyBank,
+            work: updated[0].work || targetWork,
+          };
+          return updated;
+        }
+        return prev;
+      });
     }
-  }, [contractDetails, selectedReport, paymentInfo]);
+  }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد معتمد أو نشط واحد فقط للمشروع
   useEffect(() => {
@@ -783,14 +788,22 @@ export default function NewLinkedDisbursementRequest() {
   const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   const totalAmount = rawSuppliersAmount;
   
-  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، أو ميزانية المشروع
+  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، ميزانية المشروع، أو العرض المعتمد
   const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
   const rawPaymentAmount = parseFloat(String(paymentInfo?.amount || "0"));
   const rawQuotation = projectFinancials?.approvedQuotation;
-  const rawQuotationAmount = parseFloat(String(rawQuotation?.approvedAmount || rawQuotation?.totalAmount || rawQuotation?.finalAmount || "0"));
+  const rawQuotationAmount = parseFloat(String(
+    rawQuotation?.approvedAmount || 
+    rawQuotation?.finalAmount || 
+    rawQuotation?.totalAmount || 
+    projectFinancials?.allQuotations?.[0]?.approvedAmount ||
+    projectFinancials?.allQuotations?.[0]?.finalAmount ||
+    projectFinancials?.allQuotations?.[0]?.totalAmount || 
+    "0"
+  ));
   const rawContractAmount = parseFloat(String(contractDetails?.contract?.contractAmount || "0"));
   const rawProjectContractAmount = parseFloat(String((projectContracts?.contracts?.[0] as any)?.contractAmount || "0"));
-  const rawProjectBudget = parseFloat(String((projectDetails as any)?.budget || "0"));
+  const rawProjectBudget = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
 
   const currentDisbursementAmount = 
     rawSuppliersAmount > 0 
