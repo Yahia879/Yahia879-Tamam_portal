@@ -200,6 +200,10 @@ export default function NewLinkedDisbursementRequest() {
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
   const [billerSearch, setBillerSearch] = useState("");
 
+  // حالات التنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً
+  const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);
+  const [disburseFromGeneralAccount, setDisburseFromGeneralAccount] = useState(false);
+
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
@@ -612,6 +616,18 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
+  // جلب البيانات المالية وسندات القبض للمشروع المحدد للتحقق الذكي من رصيد مدفوعات الداعم
+  const { data: projectFinancials } = trpc.projects.getFinancialData.useQuery(
+    { projectId: formData.projectId },
+    { enabled: formData.projectId > 0 }
+  );
+
+  // إجمالي سندات القبض (المدفوعات الفعلية المقبوضة من الداعم لهذا المشروع)
+  const totalSupporterPayments = (projectFinancials?.receiptVouchers || []).reduce(
+    (sum: number, v: any) => sum + parseFloat(v.amount || "0"),
+    0
+  );
+
 
 
   // دالة للتحقق مما إذا كان تقرير الإنجاز مرتبطاً بطلب صرف سابق
@@ -756,6 +772,15 @@ export default function NewLinkedDisbursementRequest() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
+  // حساب قيمة طلب الصرف المتوقع من التقرير أو الموردين
+  const currentDisbursementAmount = totalAmount > 0 
+    ? totalAmount 
+    : (selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : formData.amount);
+  
+  // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
+  const funderDeficit = currentDisbursementAmount - totalSupporterPayments;
+  const hasFunderPaymentDeficit = formData.projectId > 0 && currentDisbursementAmount > 0 && funderDeficit > 0.01;
+
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
@@ -853,6 +878,15 @@ export default function NewLinkedDisbursementRequest() {
 
   const isNextDisabled = isStep2NextDisabled;
 
+  // معالجة النقر على زر "التالي" بالخطوة الثانية (إظهار المودال التحذيري فوراً عند وجود عجز)
+  const handleStep2Next = () => {
+    if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
+    setStep(3);
+  };
+
   // إرسال للاعتماد
   const handleSubmit = () => {
     const isFundingRequired = requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses";
@@ -936,7 +970,17 @@ export default function NewLinkedDisbursementRequest() {
       toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
       return;
     }
+
+    // 1. التحقق الذكي من رصيد مدفوعات الداعم الفعلية (سندات القبض)
+    if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
     
+    executeDisbursementSubmit(disburseFromGeneralAccount);
+  };
+
+  const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
     const isManual = paymentIdRaw.startsWith("manual-");
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
@@ -979,13 +1023,17 @@ export default function NewLinkedDisbursementRequest() {
       type: "metadata"
     }] : [];
     
+    const generalAccountNote = useGeneralAccount
+      ? `\n[تنبيه مالـي: تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ (${funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) عن مدفوعات الداعم الفعلية المقبوضة]`
+      : "";
+
     createMutation.mutate({
       projectId: formData.projectId && formData.projectId > 0 ? formData.projectId : null,
       contractId: isCustom ? undefined : (formData.contractId || undefined),
       contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
       paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
       title: formData.title,
-      description: formData.description,
+      description: formData.description + generalAccountNote,
       amount: totalAmount,
       adminFees: (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? formData.adminFees : undefined,
       paymentType: "progress",
@@ -1899,7 +1947,7 @@ export default function NewLinkedDisbursementRequest() {
                   <span>السابق</span>
                 </Button>
                 <Button
-                  onClick={() => setStep(3)}
+                  onClick={handleStep2Next}
                   disabled={isStep2NextDisabled()}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
                 >
@@ -2258,8 +2306,6 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
 
-                <Separator />
-
                 <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
@@ -2419,6 +2465,90 @@ export default function NewLinkedDisbursementRequest() {
           <DialogFooter className="text-right border-t pt-4">
             <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="text-xs h-9">
               إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
+      <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>
+        <DialogContent className="dir-rtl text-right max-w-lg" dir="rtl">
+          <DialogHeader className="text-right">
+            <div className="flex items-start gap-3 mb-1 text-amber-600">
+              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0 border border-amber-200">
+                <AlertCircle className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-base font-bold text-amber-950 dark:text-amber-400">
+                  المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
+                </DialogTitle>
+                <DialogDescription className="text-xs text-amber-800 dark:text-amber-300/80 leading-relaxed">
+                  تبيّن من آلية التدقيق المالي أن إجمالي المدفوعات الفعلية (سندات القبض) المستلمة من الداعم أقل من المبلغ المطلوب صرفه حالياً لهذا المشروع.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* تفاصيل المبالغ والعجز */}
+            <div className="p-4 bg-amber-50/70 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40 space-y-2.5">
+              <div className="flex justify-between items-center text-sm font-semibold border-b border-amber-200 dark:border-amber-900/40 pb-2">
+                <span className="text-gray-800 dark:text-gray-200">المبلغ المراد صرفه:</span>
+                <span className="font-bold text-blue-900 dark:text-blue-400 text-base">
+                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-amber-200 dark:border-amber-900/40 pt-2 font-bold">
+                <span className="text-amber-950 dark:text-amber-300">مبلغ العجز المطلوب تغطيته:</span>
+                <span className="text-rose-700 dark:text-rose-400 text-sm">
+                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/40 rounded-lg border text-muted-foreground leading-relaxed text-[11px]">
+              <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">خيارات المتابعة للمسؤول المالي:</p>
+              <p className="mb-1">
+                <strong>أ) الاستمرار والصرف من الحساب العام للجمعية:</strong> سيتم اعتماد التغطيّة من الحساب العام للجمعية والانتقال إلى خطوة المطابقة المالية.
+              </p>
+              <p>
+                <strong>ب) إلغاء / التراجع عن طلب الصرف:</strong> إغلاق المودال والبقاء في الخطوة الحالية للمراجعة.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row-reverse items-center justify-between gap-2.5 pt-2 border-t">
+            <Button
+              type="button"
+              onClick={() => {
+                setDisburseFromGeneralAccount(true);
+                setShowSupporterDeficitDialog(false);
+                if (step === 2) {
+                  setStep(3);
+                } else {
+                  executeDisbursementSubmit(true);
+                }
+              }}
+              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 h-10 px-4 rounded-xl shadow-xs"
+            >
+              <Coins className="h-4 w-4" />
+              أ) الاستمرار والصرف من الحساب العام للجمعية
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSupporterDeficitDialog(false)}
+              className="w-full sm:w-auto text-xs font-semibold h-10 rounded-xl"
+            >
+              ب) إلغاء / التراجع عن طلب الصرف
             </Button>
           </DialogFooter>
         </DialogContent>
