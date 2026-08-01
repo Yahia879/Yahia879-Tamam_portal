@@ -606,9 +606,9 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
   
-  // جلب تفاصيل المشروع
+  // جلب تفاصيل المشروع (بدون lightweight لجلب قائمة الدفعات والعقود)
   const { data: projectDetails } = trpc.projects.getById.useQuery(
-    { id: formData.projectId, lightweight: true },
+    { id: formData.projectId, lightweight: false },
     { enabled: formData.projectId > 0 }
   );
 
@@ -724,15 +724,17 @@ export default function NewLinkedDisbursementRequest() {
   // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
   useEffect(() => {
     if (contractDetails && contractDetails.contract) {
-      // المبلغ الفعلي للدفعة ينجاب من تقرير الإنجاز
-      const actualAmount = selectedReport 
-        ? parseFloat(String(selectedReport.budgetSpent || "0")) 
-        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
+      // المبلغ الفعلي والاعتيادي للدفعة ينجاب من تقرير الإنجاز أو الدفعة أو العقد
+      const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
+      const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
+      const contractAmt = parseFloat(String(contractDetails.contract.contractAmount || "0"));
+      
+      const actualAmount = reportBudget > 0 
+        ? reportBudget 
+        : (paymentAmt > 0 ? paymentAmt : contractAmt);
 
-      // المبلغ المتفق عليه للدفعة ينجاب من الدفعة بتفاصيل المشروع
-      const agreedAmount = paymentInfo
-        ? parseFloat(String(paymentInfo.amount || "0"))
-        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
+      // المبلغ المتفق عليه للدفعة ينجاب من الدفعة أو العقد بتفاصيل المشروع
+      const agreedAmount = paymentAmt > 0 ? paymentAmt : contractAmt;
       
       // بيان الأعمال ينجاب من تقرير الإنجاز
       const targetWork = selectedReport
@@ -777,22 +779,35 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [projectContracts]);
   
-  // حساب الإجمالي
-  const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
+  // حساب الإجمالي من قائمة الموردين
+  const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const totalAmount = rawSuppliersAmount;
   
-  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد أو الموردين
-  const currentDisbursementAmount = totalAmount > 0 
-    ? totalAmount 
-    : (
-        parseFloat(String(selectedReport?.budgetSpent || "0")) ||
-        parseFloat(String(paymentInfo?.amount || "0")) ||
-        parseFloat(String(contractDetails?.contract?.contractAmount || "0")) ||
-        formData.amount
-      );
+  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، أو ميزانية المشروع
+  const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
+  const rawPaymentAmount = parseFloat(String(paymentInfo?.amount || "0"));
+  const rawQuotation = projectFinancials?.approvedQuotation;
+  const rawQuotationAmount = parseFloat(String(rawQuotation?.approvedAmount || rawQuotation?.totalAmount || rawQuotation?.finalAmount || "0"));
+  const rawContractAmount = parseFloat(String(contractDetails?.contract?.contractAmount || "0"));
+  const rawProjectContractAmount = parseFloat(String((projectContracts?.contracts?.[0] as any)?.contractAmount || "0"));
+  const rawProjectBudget = parseFloat(String((projectDetails as any)?.budget || "0"));
+
+  const currentDisbursementAmount = 
+    rawSuppliersAmount > 0 
+      ? rawSuppliersAmount 
+      : (
+          rawReportAmount > 0 ? rawReportAmount :
+          rawPaymentAmount > 0 ? rawPaymentAmount :
+          rawQuotationAmount > 0 ? rawQuotationAmount :
+          rawContractAmount > 0 ? rawContractAmount :
+          rawProjectContractAmount > 0 ? rawProjectContractAmount :
+          rawProjectBudget > 0 ? rawProjectBudget :
+          formData.amount || 0
+        );
   
   // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
-  const funderDeficit = currentDisbursementAmount - totalSupporterPayments;
-  const hasFunderPaymentDeficit = formData.projectId > 0 && currentDisbursementAmount > 0 && funderDeficit > 0.01;
+  const funderDeficit = Math.max(0, currentDisbursementAmount - totalSupporterPayments);
+  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId) && (funderDeficit > 0.01 || totalSupporterPayments === 0);
 
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
@@ -2489,66 +2504,60 @@ export default function NewLinkedDisbursementRequest() {
 
       {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
       <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>
-        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-0 overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900" dir="rtl">
-          {/* Header Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 p-6 text-white text-right relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex items-start gap-4 relative z-10">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0 shadow-inner">
-                <AlertCircle className="h-6 w-6 text-amber-400" />
-              </div>
-              <div className="space-y-1 text-right">
-                <Badge variant="outline" className="bg-amber-500/20 text-amber-300 border-amber-400/30 text-[11px] font-bold px-2.5 py-0.5 mb-1">
-                  تنبيه المطابقة المالية
-                </Badge>
-                <DialogTitle className="text-base sm:text-lg font-bold text-white leading-snug">
-                  المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
-                </DialogTitle>
-                <DialogDescription className="text-xs text-slate-300 leading-relaxed font-normal">
-                  تبيّن من آلية التدقيق المالي أن إجمالي المقبوض فعلياً من الداعم لا يغطي المبلغ المطلوب صرفه حالياً.
-                </DialogDescription>
-              </div>
+        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-200/80 dark:border-amber-900/60 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+          {/* Header Title */}
+          <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-1 text-right">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                تبيّن من آلية التدقيق المالي أن إجمالي المقبوض فعلياً من الداعم أقل من المبلغ المطلوب صرفه حالياً لهذا المشروع.
+              </DialogDescription>
             </div>
           </div>
 
-          <div className="p-6 space-y-5 text-xs text-right bg-slate-50/50 dark:bg-slate-950/40">
-            {/* Financial Metrics Card */}
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
-              <div className="flex justify-between items-center text-sm font-semibold border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                <span className="text-slate-600 dark:text-slate-400">المبلغ المراد صرفه:</span>
-                <span className="font-bold text-blue-700 dark:text-blue-400 text-base">
-                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">ريال</span>
+          <div className="space-y-4 py-4 text-xs text-right">
+            {/* Financial Breakdown Card */}
+            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 space-y-2.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
+                <span className="text-slate-700 dark:text-slate-300">المبلغ المراد صرفه:</span>
+                <span className="font-bold text-blue-800 dark:text-blue-400 text-sm sm:text-base">
+                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
               </div>
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center text-xs sm:text-sm">
                 <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-slate-500">ريال</span>
+                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
               </div>
 
-              <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800 pt-2.5">
-                <span className="font-bold text-slate-900 dark:text-slate-100">مبلغ العجز المطلوب تغطيته:</span>
-                <span className="font-black text-rose-600 dark:text-rose-400 text-base">
-                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">ريال</span>
+              <div className="flex justify-between items-center border-t border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs sm:text-sm">
+                <span className="text-amber-950 dark:text-amber-300">مبلغ العجز المطلوب تغطيته:</span>
+                <span className="font-black text-rose-700 dark:text-rose-400 text-sm sm:text-base">
+                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
               </div>
             </div>
 
-            {/* Explanation box */}
-            <div className="p-3.5 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-xl text-slate-700 dark:text-slate-300 leading-relaxed space-y-1 text-right">
-              <p className="font-bold text-amber-900 dark:text-amber-300 text-xs flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-amber-600 shrink-0" />
-                توجيه الصرف المالي:
+            {/* Amber Warning Box (مربع التنبيه الأصلي ذو الإطار البرتقالي) */}
+            <div className="p-4 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/80 rounded-xl space-y-1.5 text-right shadow-xs">
+              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) أكبر من إجمالي ما دفعه الداعم فعلياً ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال)
               </p>
-              <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
-                عند الموافقة على الاستمرار، سيتم تحويل مبلغ العجز المتبقي ليُصرف مؤقتاً من <strong>الحساب العام للجمعية</strong>، مع توثيقه كـ <strong>دين مستحق على الداعم</strong> يطالب بتسديده فور تحصيل دفعات الداعم القادمة.
+              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal pt-0.5">
+                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.
               </p>
             </div>
           </div>
 
-          <DialogFooter className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-center justify-between gap-3">
+          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-center justify-between gap-2.5">
             <Button
               type="button"
               onClick={() => {
@@ -2560,7 +2569,7 @@ export default function NewLinkedDisbursementRequest() {
                   executeDisbursementSubmit(true);
                 }
               }}
-              className="w-full sm:w-auto font-bold text-xs bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white gap-2 h-11 px-5 rounded-xl shadow-md transition-all"
+              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-2 h-10 px-4 rounded-xl shadow-xs"
             >
               <Coins className="h-4 w-4" />
               الاستمرار والصرف من الحساب العام للجمعية
@@ -2569,9 +2578,9 @@ export default function NewLinkedDisbursementRequest() {
               type="button"
               variant="outline"
               onClick={() => setShowSupporterDeficitDialog(false)}
-              className="w-full sm:w-auto text-xs font-semibold h-11 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+              className="w-full sm:w-auto text-xs font-semibold h-10 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
             >
-              إلغاء / التراجع عن الطلب
+              التراجع عن الطلب
             </Button>
           </DialogFooter>
         </DialogContent>
