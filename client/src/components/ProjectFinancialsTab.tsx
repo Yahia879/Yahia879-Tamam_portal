@@ -328,16 +328,20 @@ const isGeneralAccountName = (name?: string | null) => {
 
   const handleSaveVoucher = () => {
     const amountNum = parseFloat(voucherAmount);
-    if (!amountNum || amountNum <= 0) {
-      toast.error("يرجى إدخال مبلغ قبض صحيح أكبر من صفر");
+    if (!voucherAmount || isNaN(amountNum) || amountNum <= 0) {
+      toast.error("يرجى إدخال مبلغ الدفعة المقبوضة بشكل صحيح أكبر من صفر");
       return;
     }
-    if (!voucherDate) {
+    if (!voucherDate || !voucherDate.trim()) {
       toast.error("يرجى تحديد تاريخ القبض");
       return;
     }
+    if (!voucherPayerName || !voucherPayerName.trim()) {
+      toast.error("يرجى اختيار الجهة الداعمة / القابض منه");
+      return;
+    }
 
-    const finalPayerName = (voucherPayerName === "اخرى" ? customVoucherPayerName : voucherPayerName) || "";
+    const finalPayerName = voucherPayerName.trim();
 
     if (editingVoucherId) {
       updateVoucherMutation.mutate({
