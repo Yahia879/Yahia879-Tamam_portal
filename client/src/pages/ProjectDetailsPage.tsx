@@ -646,15 +646,17 @@ export default function ProjectDetailsPage() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className={`flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-${financialsOnly ? '1' : canViewFinancials ? '7' : '6'} h-auto p-1 bg-muted`}>
-            {!financialsOnly && <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>}
-            {!financialsOnly && <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>}
-            {!financialsOnly && <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>}
-            {!financialsOnly && <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>}
-            {canViewFinancials && <TabsTrigger value="financials" className="shrink-0">المالية</TabsTrigger>}
-            {!financialsOnly && <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>}
-            {!financialsOnly && <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>}
-          </TabsList>
+          {!financialsOnly && (
+            <TabsList className={`flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid ${canViewFinancials ? 'md:grid-cols-7' : 'md:grid-cols-6'} h-auto p-1 bg-muted`}>
+              <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>
+              <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>
+              <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>
+              <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>
+              {canViewFinancials && <TabsTrigger value="financials" className="shrink-0">المالية</TabsTrigger>}
+              <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>
+              <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>
+            </TabsList>
+          )}
 
           {/* نظرة عامة */}
           <TabsContent value="overview" className="space-y-4">
