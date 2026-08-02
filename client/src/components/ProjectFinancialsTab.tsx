@@ -942,7 +942,7 @@ interface SupportSourceItem {
                   return (
                     <div key={sIdx} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2.5 hover:border-blue-300 transition-colors">
                       <div className="flex items-center justify-between">
-                        <Badge className="bg-blue-700 text-white font-bold text-xs px-2.5 py-0.5">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
                           {sName}
                         </Badge>
                         <Badge variant="outline" className={`text-[10px] font-bold ${sPct >= 100 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-amber-50 text-amber-800 border-amber-300'}`}>
@@ -1008,7 +1008,7 @@ interface SupportSourceItem {
                   <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
                     <CardHeader className="bg-slate-100/60 pb-3 border-b py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-700 text-white font-bold text-xs">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
                           {sName}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
