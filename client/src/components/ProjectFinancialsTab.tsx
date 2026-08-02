@@ -94,9 +94,7 @@ const isGeneralAccountName = (name?: string | null) => {
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
   const [supportAmount, setSupportAmount] = useState<number>(0);
-  const [supportSources, setSupportSources] = useState<SupportSourceItem[]>([
-    { entity: "", customEntity: "", amount: 0 }
-  ]);
+  const [supportSources, setSupportSources] = useState<SupportSourceItem[]>([]);
   const [adminFeeType, setAdminFeeType] = useState<"percentage" | "fixed">("percentage");
   const [adminFeeValue, setAdminFeeValue] = useState<number>(0);
   const [associationFundingAmount, setAssociationFundingAmount] = useState<number>(0);
@@ -188,18 +186,20 @@ const isGeneralAccountName = (name?: string | null) => {
         }
       }
 
-      if (parsedSources.length > 0) {
-        setSupportSources(parsedSources);
-      } else if (data.financialDetail.supportEntity || parseFloat(data.financialDetail.supportAmount || "0") > 0) {
+      const validParsed = parsedSources.filter(s => (s.entity && s.entity.trim() !== "") || (s.amount && s.amount > 0) || (s.customEntity && s.customEntity.trim() !== ""));
+
+      if (validParsed.length > 0) {
+        setSupportSources(validParsed);
+      } else if (data.financialDetail.supportEntity && data.financialDetail.supportEntity.trim() !== "") {
         setSupportSources([
           {
-            entity: data.financialDetail.supportEntity || "",
+            entity: data.financialDetail.supportEntity,
             customEntity: data.financialDetail.customSupportEntity || "",
             amount: parseFloat(data.financialDetail.supportAmount || "0"),
           }
         ]);
       } else {
-        setSupportSources([{ entity: "", customEntity: "", amount: 0 }]);
+        setSupportSources([]);
       }
     } else if (data?.approvedQuotation) {
       setApprovedQuotationId(data.approvedQuotation.id);
@@ -222,6 +222,10 @@ const isGeneralAccountName = (name?: string | null) => {
   };
 
   // Calculations
+  const validSupportSources = supportSources.filter(
+    (s) => (s.entity && s.entity.trim() !== "") || (s.amount && s.amount > 0) || (s.customEntity && s.customEntity.trim() !== "")
+  );
+
   const approvedQuotation = data?.approvedQuotation || null;
   const supplierBaseAmount = approvedQuotation 
     ? parseFloat((approvedQuotation.approvedAmount || approvedQuotation.negotiatedAmount || approvedQuotation.finalAmount || approvedQuotation.totalAmount || "0").toString())
@@ -233,7 +237,7 @@ const isGeneralAccountName = (name?: string | null) => {
     : (adminFeeValue || 0);
 
   const totalRequiredCost = supplierBaseAmount + calculatedAdminFeeAmount;
-  const currentSupportAmount = supportSources.reduce((sum, s) => sum + (s.amount || 0), 0) || supportAmount || 0;
+  const currentSupportAmount = validSupportSources.reduce((sum, s) => sum + (s.amount || 0), 0) || supportAmount || 0;
   const coverageDifference = currentSupportAmount - totalRequiredCost;
   const isFullyCovered = coverageDifference >= -0.01;
 
@@ -241,7 +245,7 @@ const isGeneralAccountName = (name?: string | null) => {
   const receiptVouchers = data?.receiptVouchers || [];
   const vouchersTotalReceived = receiptVouchers.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0);
 
-  const generalAccountReceivedAmount = supportSources
+  const generalAccountReceivedAmount = validSupportSources
     .filter(s => {
       const name = s.entity === "اخرى" ? s.customEntity : s.entity;
       return isGeneralAccountName(name);
@@ -547,6 +551,9 @@ const isGeneralAccountName = (name?: string | null) => {
                 if (isEditingFinancials) {
                   handleSaveFinancials();
                 } else {
+                  if (supportSources.length === 0) {
+                    setSupportSources([{ entity: "", customEntity: "", amount: 0 }]);
+                  }
                   setIsEditingFinancials(true);
                 }
               }}
@@ -734,22 +741,28 @@ const isGeneralAccountName = (name?: string | null) => {
                   <div className="flex items-center justify-between font-semibold text-xs text-gray-700 border-b pb-1.5">
                     <span>الجهات الداعمة للتمويل:</span>
                     <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
-                      {supportSources.length} {supportSources.length === 1 ? "داعم" : "داعمين"}
+                      {validSupportSources.length} {validSupportSources.length === 1 ? "داعم" : "داعمين"}
                     </Badge>
                   </div>
 
                   <div className="space-y-1.5 pt-1">
-                    {supportSources.map((source, idx) => {
-                      const name = source.entity === "اخرى" ? source.customEntity || "جهة أخرى" : source.entity || "لم تدرج بعد";
-                      return (
-                        <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
-                          <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
-                          <span className="font-bold text-blue-900">
-                            {(source.amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {validSupportSources.length === 0 ? (
+                      <div className="text-center py-2 text-xs text-muted-foreground">
+                        لم يتم إضافة أي داعم لهذا المشروع بعد (0 داعم).
+                      </div>
+                    ) : (
+                      validSupportSources.map((source, idx) => {
+                        const name = source.entity === "اخرى" ? source.customEntity || "جهة أخرى" : source.entity || "غير محدد";
+                        return (
+                          <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
+                            <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
+                            <span className="font-bold text-blue-900">
+                              {(source.amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between border-t border-gray-200 pt-2 font-bold">
@@ -953,17 +966,17 @@ const isGeneralAccountName = (name?: string | null) => {
           </div>
 
           {/* 3.1 كروت التحصيل والقبض تفصيلياً حسب كل داعم */}
-          {supportSources.length > 0 && (
+          {validSupportSources.length > 0 && (
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <Building2 className="h-4 w-4 text-blue-600" />
-                  مباشر: المبالغ المدفوعة والمتبقية تفصيلياً لكل داعم ({supportSources.length} داعم)
+                  مباشر: المبالغ المدفوعة والمتبقية تفصيلياً لكل داعم ({validSupportSources.length} داعم)
                 </h4>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {supportSources.map((source, sIdx) => {
+                {validSupportSources.map((source, sIdx) => {
                   const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                   const targetAmt = source.amount || 0;
                   const isGenAcc = isGeneralAccountName(sName);
@@ -1042,7 +1055,7 @@ const isGeneralAccountName = (name?: string | null) => {
             </div>
           ) : (
             <div className="space-y-6">
-              {supportSources.map((source, sIdx) => {
+              {validSupportSources.map((source, sIdx) => {
                 const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                 const targetAmt = source.amount || 0;
                 const isGenAcc = isGeneralAccountName(sName);
