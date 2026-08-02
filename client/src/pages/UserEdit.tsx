@@ -11,10 +11,9 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 
 const ROLE_OPTIONS = [
-  { value: "super_admin", label: "المدير العام (Super Admin)" },
+  { value: "super_admin", label: "المدير العام" },
   { value: "general_manager", label: "المدير التنفيذي" },
-  { value: "executive_director", label: "المدير التنفيذي" },
-  { value: "system_admin", label: "مدير نظام" },
+  { value: "system_admin", label: "مدير النظام" },
   { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
   { value: "field_team", label: "الفريق الميداني" },
@@ -53,11 +52,12 @@ export default function UserEdit() {
 
   useEffect(() => {
     if (user) {
+      const mappedRole = user.role === "executive_director" ? "general_manager" : (user.role || "");
       setFormData({
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
-        role: user.role || "",
+        role: mappedRole,
         status: user.status || "active",
       });
     }
