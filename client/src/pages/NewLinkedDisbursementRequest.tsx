@@ -1072,6 +1072,25 @@ export default function NewLinkedDisbursementRequest() {
       ? `\n[تنبيه مالـي: تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ (${funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) عن مدفوعات الداعم الفعلية المقبوضة]`
       : "";
 
+    const generalAccountMetadata = useGeneralAccount
+      ? [{
+          name: "general_account_coverage",
+          url: JSON.stringify({
+            funderDeficit,
+            totalSupporterPayments,
+            currentDisbursementAmount,
+            disburseFromGeneralAccount: true,
+          }),
+          type: "metadata"
+        }]
+      : [];
+
+    const baseAttachments = isCustom 
+      ? customSupplierMetadata 
+      : (linkedMetadata.length > 0 ? linkedMetadata : []);
+
+    const finalAttachments = [...baseAttachments, ...generalAccountMetadata];
+
     createMutation.mutate({
       projectId: formData.projectId && formData.projectId > 0 ? formData.projectId : null,
       contractId: isCustom ? undefined : (formData.contractId || undefined),
@@ -1084,7 +1103,7 @@ export default function NewLinkedDisbursementRequest() {
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
-      attachments: isCustom ? customSupplierMetadata : (linkedMetadata.length > 0 ? linkedMetadata : undefined),
+      attachments: finalAttachments.length > 0 ? finalAttachments : undefined,
     });
   };
   
