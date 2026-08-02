@@ -820,7 +820,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
   const funderDeficit = Math.max(0, currentDisbursementAmount - totalSupporterPayments);
-  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId !== null) && currentDisbursementAmount > 0 && (funderDeficit > 0.01 || totalSupporterPayments === 0);
+  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId) && (funderDeficit > 0.01 || totalSupporterPayments === 0);
 
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
@@ -919,8 +919,12 @@ export default function NewLinkedDisbursementRequest() {
 
   const isNextDisabled = isStep2NextDisabled;
 
-  // معالجة النقر على زر "التالي" بالخطوة الثانية (إظهار المودال التحذيري فوراً عند وجود عجز فعلي)
+  // معالجة النقر على زر "التالي" بالخطوة الثانية (إظهار المودال التحذيري فوراً عند وجود عجز)
   const handleStep2Next = () => {
+    if (!isCustom && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
       setShowSupporterDeficitDialog(true);
       return;
