@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 
 const ROLE_OPTIONS = [
+  { value: "super_admin", label: "المدير العام (Super Admin)" },
   { value: "general_manager", label: "المدير التنفيذي" },
+  { value: "executive_director", label: "المدير التنفيذي" },
   { value: "system_admin", label: "مدير نظام" },
   { value: "financial_manager", label: "المدير المالي" },
   { value: "projects_office", label: "مكتب المشاريع" },
@@ -33,6 +35,7 @@ export default function UserEdit() {
   const userId = parseInt(params.id || "0");
   const [, setLocation] = useLocation();
 
+  const { data: currentUser } = trpc.auth.me.useQuery();
   const { data: user, isLoading } = trpc.users.getById.useQuery({ id: userId });
   const { data: existingGMData } = trpc.users.getAll.useQuery({ role: "general_manager", includeAll: true });
   const existingGMUser = existingGMData?.items?.find((u: any) => u.role === "general_manager" || u.role === "executive_director");
@@ -103,13 +106,13 @@ export default function UserEdit() {
       phone: formData.phone || undefined,
     });
 
-    // تحديث الدور إذا تغيّر
-    if (user && formData.role !== user.role && formData.role) {
+    // تحديث الدور إذا تغيّر ولم يكن مديراً عاماً
+    if (user && formData.role !== user.role && formData.role && user.role !== "super_admin") {
       updateRoleMutation.mutate({ userId, role: formData.role as any });
     }
 
-    // تحديث الحالة إذا تغيّرت
-    if (user && formData.status !== user.status && formData.status) {
+    // تحديث الحالة إذا تغيّرت ولم يكن مديراً عاماً أو حساب الشخص نفسه
+    if (user && formData.status !== user.status && formData.status && user.role !== "super_admin" && currentUser?.id !== userId) {
       updateStatusMutation.mutate({ userId, status: formData.status as any });
     }
   };
@@ -225,6 +228,7 @@ export default function UserEdit() {
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                  disabled={user?.role === "super_admin" || currentUser?.id === userId}
                 >
                   <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm mt-1">
                     <SelectValue placeholder="اختر الحالة" />
@@ -237,6 +241,11 @@ export default function UserEdit() {
                     ))}
                   </SelectContent>
                 </Select>
+                {(user?.role === "super_admin" || currentUser?.id === userId) && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {user?.role === "super_admin" ? "لا يمكن تعديل حالة حساب المدير العام" : "لا يمكنك إيقاف حسابك الشخصي من هنا"}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
