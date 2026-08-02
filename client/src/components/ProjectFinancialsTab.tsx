@@ -44,6 +44,7 @@ import {
   Download,
   Paperclip,
   Coins,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +70,17 @@ interface SupportSourceItem {
   amount: number;
   notes?: string;
 }
+
+const normalizeArabicText = (str?: string | null) => {
+  if (!str) return "";
+  return str
+    .trim()
+    .replace(/[\u064B-\u0652]/g, "") // tashkeel
+    .replace(/[أإآ]/g, "ا") // Alif
+    .replace(/ى/g, "ي") // Ya
+    .replace(/ة/g, "ه") // Ta Marbouta
+    .toLowerCase();
+};
 
   // Form States for Financial & Support Details
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
@@ -98,6 +110,7 @@ interface SupportSourceItem {
   const [voucherBankName, setVoucherBankName] = useState<string>("");
   const [voucherAttachmentUrl, setVoucherAttachmentUrl] = useState<string>("");
   const [voucherNotes, setVoucherNotes] = useState<string>("");
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
 
   // Mutations
   const upsertFinancialsMutation = trpc.projects.upsertFinancialDetails.useMutation({
@@ -221,9 +234,10 @@ interface SupportSourceItem {
   const receiptVouchers = data?.receiptVouchers || [];
   const totalReceivedAmount = receiptVouchers.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0);
   const remainingSupportToCollect = Math.max(0, currentSupportAmount - totalReceivedAmount);
-  const collectionPercentage = currentSupportAmount > 0 
-    ? Math.min(100, Math.round((totalReceivedAmount / currentSupportAmount) * 100))
-    : 0;
+  const collectionRawPct = currentSupportAmount > 0 ? (totalReceivedAmount / currentSupportAmount) * 100 : 0;
+  const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
+    ? parseFloat(collectionRawPct.toFixed(2))
+    : Math.min(100, Math.round(collectionRawPct));
 
   // Handlers
   const handleSaveFinancials = () => {
@@ -929,15 +943,28 @@ interface SupportSourceItem {
                   const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                   const targetAmt = source.amount || 0;
                   
-                  // Filter receipt vouchers for this supporter
+                  // Filter receipt vouchers for this supporter with Arabic normalization
+                  const normSName = normalizeArabicText(sName);
+                  const normEntity = normalizeArabicText(source.entity);
+                  const normCustom = normalizeArabicText(source.customEntity);
+
                   const sVouchers = receiptVouchers.filter(v => {
-                    const pName = (v.payerName || "").trim().toLowerCase();
-                    return pName === sName.trim().toLowerCase() || (source.entity !== "اخرى" && pName === source.entity.trim().toLowerCase());
+                    const normPayer = normalizeArabicText(v.payerName);
+                    if (!normPayer) return false;
+                    return (
+                      normPayer === normSName ||
+                      normPayer === normEntity ||
+                      (normCustom && normPayer === normCustom) ||
+                      (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+                    );
                   });
 
                   const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                   const remainingAmt = Math.max(0, targetAmt - receivedAmt);
-                  const sPct = targetAmt > 0 ? Math.min(100, Math.round((receivedAmt / targetAmt) * 100)) : (receivedAmt > 0 ? 100 : 0);
+                  const sRawPct = targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0);
+                  const sPct = sRawPct > 0 && sRawPct < 1
+                    ? parseFloat(sRawPct.toFixed(2))
+                    : Math.min(100, Math.round(sRawPct));
 
                   return (
                     <div key={sIdx} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2.5 hover:border-blue-300 transition-colors">
@@ -994,15 +1021,28 @@ interface SupportSourceItem {
                 const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                 const targetAmt = source.amount || 0;
                 
-                // Filter receipt vouchers for this supporter
+                // Filter receipt vouchers for this supporter with Arabic normalization
+                const normSName = normalizeArabicText(sName);
+                const normEntity = normalizeArabicText(source.entity);
+                const normCustom = normalizeArabicText(source.customEntity);
+
                 const sVouchers = receiptVouchers.filter(v => {
-                  const pName = (v.payerName || "").trim().toLowerCase();
-                  return pName === sName.trim().toLowerCase() || (source.entity !== "اخرى" && pName === source.entity.trim().toLowerCase());
+                  const normPayer = normalizeArabicText(v.payerName);
+                  if (!normPayer) return false;
+                  return (
+                    normPayer === normSName ||
+                    normPayer === normEntity ||
+                    (normCustom && normPayer === normCustom) ||
+                    (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+                  );
                 });
 
                 const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                 const remainingAmt = Math.max(0, targetAmt - receivedAmt);
-                const sPct = targetAmt > 0 ? Math.min(100, Math.round((receivedAmt / targetAmt) * 100)) : (receivedAmt > 0 ? 100 : 0);
+                const sRawPct = targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0);
+                const sPct = sRawPct > 0 && sRawPct < 1
+                  ? parseFloat(sRawPct.toFixed(2))
+                  : Math.min(100, Math.round(sRawPct));
 
                 return (
                   <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
@@ -1070,8 +1110,30 @@ interface SupportSourceItem {
                                   <TableCell className="font-bold text-emerald-700 text-xs">
                                     {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                                   </TableCell>
-                                  <TableCell className="text-xs text-muted-foreground">
-                                    {voucher.notes || "-"}
+                                  <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                                    {voucher.notes ? (
+                                      voucher.notes.length > 20 ? (
+                                        <div className="flex items-center justify-between gap-1.5">
+                                          <span className="truncate" title={voucher.notes}>
+                                            {voucher.notes.slice(0, 20)}...
+                                          </span>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setSelectedNote(voucher.notes)}
+                                            className="h-6 w-6 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                            title="عرض الملاحظة كاملة"
+                                          >
+                                            <Eye className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <span>{voucher.notes}</span>
+                                      )
+                                    ) : (
+                                      <span>-</span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-center">
                                     <div className="flex items-center justify-center gap-1">
@@ -1146,7 +1208,31 @@ interface SupportSourceItem {
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
                                 <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
                                 <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
-                                <TableCell className="text-xs text-muted-foreground">{voucher.notes || "-"}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                                  {voucher.notes ? (
+                                    voucher.notes.length > 20 ? (
+                                      <div className="flex items-center justify-between gap-1.5">
+                                        <span className="truncate" title={voucher.notes}>
+                                          {voucher.notes.slice(0, 20)}...
+                                        </span>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setSelectedNote(voucher.notes)}
+                                          className="h-6 w-6 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                          title="عرض الملاحظة كاملة"
+                                        >
+                                          <Eye className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <span>{voucher.notes}</span>
+                                    )
+                                  ) : (
+                                    <span>-</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
@@ -1258,6 +1344,26 @@ interface SupportSourceItem {
             </Button>
             <Button type="button" variant="outline" onClick={closeVoucherModal} className="text-xs">
               إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Full Note View */}
+      <Dialog open={!!selectedNote} onOpenChange={(open) => !open && setSelectedNote(null)}>
+        <DialogContent className="dir-rtl text-right max-w-sm">
+          <DialogHeader className="text-right">
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+              <FileText className="h-4 w-4 text-primary" />
+              الملاحظة الكاملة لسند القبض
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-3.5 bg-slate-50 rounded-lg border text-xs text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
+            {selectedNote}
+          </div>
+          <DialogFooter className="justify-start">
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelectedNote(null)} className="text-xs font-bold">
+              إغلاق
             </Button>
           </DialogFooter>
         </DialogContent>
