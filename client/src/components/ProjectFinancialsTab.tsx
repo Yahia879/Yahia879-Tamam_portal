@@ -616,7 +616,7 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
       </div>
 
       {/* 2.5 قسم التمويل الذاتي الممدود من حساب الجمعية (دين / مستحق على الداعم) */}
-      {((data?.associationFunding?.totalAmount || 0) > 0 || associationFundingAmount > 0 || isEditingFinancials) && (() => {
+      {((data?.associationFunding?.totalAmount || 0) > 0 || (data?.associationFunding?.requests?.length || 0) > 0 || associationFundingAmount > 0 || isEditingFinancials) && (() => {
         const assocData = data?.associationFunding || { totalAmount: 0, requests: [] };
         const effectiveAssocAmount = associationFundingAmount > 0 ? associationFundingAmount : (assocData.totalAmount || 0);
 
