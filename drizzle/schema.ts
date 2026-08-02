@@ -1992,6 +1992,7 @@ export const projectFinancialDetails = mysqlTable("project_financial_details", {
   adminFeeAmount: decimal("adminFeeAmount", { precision: 15, scale: 2 }).default("0.00"),
   associationFundingAmount: decimal("associationFundingAmount", { precision: 15, scale: 2 }).default("0.00"),
   associationFundingNotes: text("associationFundingNotes"),
+  supportSourcesJson: text("supportSourcesJson"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

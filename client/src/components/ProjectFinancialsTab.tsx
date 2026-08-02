@@ -63,11 +63,21 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
   });
   const fundingSupportCategories = (allCategories || []).filter((cat: any) => cat.type === "funding_support" && cat.isActive !== false);
 
+interface SupportSourceItem {
+  entity: string;
+  customEntity?: string;
+  amount: number;
+  notes?: string;
+}
+
   // Form States for Financial & Support Details
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
   const [supportAmount, setSupportAmount] = useState<number>(0);
+  const [supportSources, setSupportSources] = useState<SupportSourceItem[]>([
+    { entity: "", customEntity: "", amount: 0 }
+  ]);
   const [adminFeeType, setAdminFeeType] = useState<"percentage" | "fixed">("percentage");
   const [adminFeeValue, setAdminFeeValue] = useState<number>(0);
   const [associationFundingAmount, setAssociationFundingAmount] = useState<number>(0);
@@ -144,10 +154,51 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
       setAssociationFundingAmount(parseFloat(data.financialDetail.associationFundingAmount || "0"));
       setAssociationFundingNotes(data.financialDetail.associationFundingNotes || "");
       setFinancialNotes(data.financialDetail.notes || "");
+
+      let parsedSources: SupportSourceItem[] = [];
+      if (data.financialDetail.supportSourcesJson) {
+        try {
+          const parsed = JSON.parse(data.financialDetail.supportSourcesJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsedSources = parsed;
+          }
+        } catch (e) {
+          console.error("Failed to parse supportSourcesJson", e);
+        }
+      }
+
+      if (parsedSources.length > 0) {
+        setSupportSources(parsedSources);
+      } else if (data.financialDetail.supportEntity || parseFloat(data.financialDetail.supportAmount || "0") > 0) {
+        setSupportSources([
+          {
+            entity: data.financialDetail.supportEntity || "",
+            customEntity: data.financialDetail.customSupportEntity || "",
+            amount: parseFloat(data.financialDetail.supportAmount || "0"),
+          }
+        ]);
+      } else {
+        setSupportSources([{ entity: "", customEntity: "", amount: 0 }]);
+      }
     } else if (data?.approvedQuotation) {
       setApprovedQuotationId(data.approvedQuotation.id);
     }
   }, [data]);
+
+  const addSupportSource = () => {
+    setSupportSources(prev => [...prev, { entity: "", customEntity: "", amount: 0 }]);
+  };
+
+  const removeSupportSource = (index: number) => {
+    setSupportSources(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      return updated.length > 0 ? updated : [{ entity: "", customEntity: "", amount: 0 }];
+    });
+  };
+
+  const updateSupportSource = (index: number, updates: Partial<SupportSourceItem>) => {
+    setSupportSources(prev => prev.map((src, i) => i === index ? { ...src, ...updates } : src));
+  };
 
   // Calculations
   const approvedQuotation = data?.approvedQuotation || null;
@@ -161,7 +212,7 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
     : (adminFeeValue || 0);
 
   const totalRequiredCost = supplierBaseAmount + calculatedAdminFeeAmount;
-  const currentSupportAmount = supportAmount || 0;
+  const currentSupportAmount = supportSources.reduce((sum, s) => sum + (s.amount || 0), 0) || supportAmount || 0;
   const coverageDifference = currentSupportAmount - totalRequiredCost;
   const isFullyCovered = coverageDifference >= -0.01;
 
@@ -175,12 +226,17 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
 
   // Handlers
   const handleSaveFinancials = () => {
+    const validSources = supportSources.filter(s => (s.entity && s.entity.trim() !== "") || s.amount > 0);
+    const finalSources = validSources.length > 0 ? validSources : supportSources;
+    const totalSupport = finalSources.reduce((sum, s) => sum + (s.amount || 0), 0);
+
     upsertFinancialsMutation.mutate({
       projectId,
       approvedQuotationId,
-      supportEntity,
-      customSupportEntity,
-      supportAmount: currentSupportAmount,
+      supportEntity: finalSources.length === 1 ? finalSources[0].entity : "عدة داعمين",
+      customSupportEntity: finalSources.length === 1 ? (finalSources[0].customEntity || "") : "",
+      supportAmount: totalSupport,
+      supportSources: finalSources,
       adminFeeType,
       adminFeeValue,
       adminFeeAmount: calculatedAdminFeeAmount,
@@ -461,60 +517,107 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
           <CardContent className="pt-4 space-y-4">
             {isEditingFinancials ? (
               <div className="space-y-4 text-xs">
-                {/* اختيار جهة الدعم */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">جهة الدعم المعتمدة *</Label>
-                  <Select
-                    value={supportEntity}
-                    onValueChange={(val) => {
-                      setSupportEntity(val);
-                      if (val !== "اخرى") setCustomSupportEntity("");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر جهة الدعم" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fundingSupportCategories.map((cat: any) => (
-                        <SelectItem key={cat.id} value={cat.nameAr}>
-                          {cat.nameAr}
-                        </SelectItem>
-                      ))}
-                      {fundingSupportCategories.length === 0 && (
-                        <>
-                          <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
-                          <SelectItem value="منصة احسان">منصة احسان</SelectItem>
-                          <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
-                        </>
-                      )}
-                      <SelectItem value="اخرى">جهة أخرى</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {supportEntity === "اخرى" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">اسم جهة الدعم الأخرى *</Label>
-                    <Input
-                      type="text"
-                      value={customSupportEntity}
-                      onChange={(e) => setCustomSupportEntity(e.target.value)}
-                      placeholder="أدخل اسم الجهة الداعمة"
-                    />
+                {/* قائمة الجهات الداعمة */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-gray-800">الجهات الداعمة المعتمدة للتمويل *</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSupportSource}
+                      className="h-7 text-xs gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      إضافة داعم آخر
+                    </Button>
                   </div>
-                )}
 
-                {/* مبلغ الدعم المقدم */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">مبلغ الدعم المقدم من الداعم (ريال) *</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={supportAmount || ""}
-                    onChange={(e) => setSupportAmount(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    className="font-bold text-blue-800 text-left [direction:ltr]"
-                  />
+                  {supportSources.map((source, index) => (
+                    <div key={index} className="p-3 bg-blue-50/40 rounded-lg border border-blue-100 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold text-blue-900">الداعم #{index + 1}</span>
+                        {supportSources.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSupportSource(index)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground mb-1 block">جهة الدعم</Label>
+                          <Select
+                            value={source.entity}
+                            onValueChange={(val) => {
+                              updateSupportSource(index, {
+                                entity: val,
+                                customEntity: val !== "اخرى" ? "" : source.customEntity
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="اختر جهة الدعم" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {fundingSupportCategories.map((cat: any) => (
+                                <SelectItem key={cat.id} value={cat.nameAr}>
+                                  {cat.nameAr}
+                                </SelectItem>
+                              ))}
+                              {fundingSupportCategories.length === 0 && (
+                                <>
+                                  <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
+                                  <SelectItem value="منصة احسان">منصة احسان</SelectItem>
+                                  <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
+                                </>
+                              )}
+                              <SelectItem value="اخرى">جهة أخرى</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground mb-1 block">مبلغ الدعم المقدم (ريال)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={source.amount || ""}
+                            onChange={(e) => updateSupportSource(index, { amount: parseFloat(e.target.value) || 0 })}
+                            placeholder="0.00"
+                            className="h-8 text-xs font-bold text-blue-900 text-left [direction:ltr]"
+                          />
+                        </div>
+                      </div>
+
+                      {source.entity === "اخرى" && (
+                        <div>
+                          <Label className="text-[11px] text-muted-foreground mb-1 block">اسم جهة الدعم الأخرى *</Label>
+                          <Input
+                            type="text"
+                            value={source.customEntity || ""}
+                            onChange={(e) => updateSupportSource(index, { customEntity: e.target.value })}
+                            placeholder="أدخل اسم الجهة الداعمة"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* إجمالي مبالغ الدعم من كل الداعمين */}
+                  <div className="p-2.5 bg-blue-100/60 rounded-md border border-blue-200 flex items-center justify-between">
+                    <span className="font-semibold text-blue-950 text-xs">إجمالي التمويل من كافة الداعمين:</span>
+                    <span className="font-bold text-blue-900 text-sm">
+                      {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                    </span>
+                  </div>
                 </div>
 
                 {/* الأجور الإدارية */}
@@ -573,15 +676,30 @@ export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTab
               <div className="space-y-3 text-xs">
                 {/* عرض البيانات الحالية */}
                 <div className="p-3 bg-gray-50 rounded-lg border space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">جهة الدعم المعتمدة:</span>
-                    <span className="font-bold text-blue-900 text-sm">
-                      {supportEntity === "اخرى" ? customSupportEntity || "جهة أخرى" : supportEntity || "لم تدرج بعد"}
-                    </span>
+                  <div className="flex items-center justify-between font-semibold text-xs text-gray-700 border-b pb-1.5">
+                    <span>الجهات الداعمة للتمويل:</span>
+                    <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                      {supportSources.length} {supportSources.length === 1 ? "داعم" : "داعمين"}
+                    </Badge>
                   </div>
-                  <div className="flex items-center justify-between border-t pt-2">
-                    <span className="text-muted-foreground">مبلغ الدعم المقدم:</span>
-                    <span className="font-bold text-green-700 text-sm">
+
+                  <div className="space-y-1.5 pt-1">
+                    {supportSources.map((source, idx) => {
+                      const name = source.entity === "اخرى" ? source.customEntity || "جهة أخرى" : source.entity || "لم تدرج بعد";
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
+                          <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
+                          <span className="font-bold text-blue-900">
+                            {(source.amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-gray-200 pt-2 font-bold">
+                    <span className="text-muted-foreground">إجمالي الدعم المقدم:</span>
+                    <span className="font-black text-green-700 text-sm">
                       {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                     </span>
                   </div>

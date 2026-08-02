@@ -1909,6 +1909,13 @@ export const projectsRouter = router({
       adminFeeAmount: z.number().optional(),
       associationFundingAmount: z.number().optional(),
       associationFundingNotes: z.string().optional(),
+      supportSources: z.array(z.object({
+        entity: z.string(),
+        customEntity: z.string().optional(),
+        amount: z.number(),
+        notes: z.string().optional(),
+      })).optional(),
+      supportSourcesJson: z.string().optional(),
       notes: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -1920,17 +1927,34 @@ export const projectsRouter = router({
         .from(projectFinancialDetails)
         .where(eq(projectFinancialDetails.projectId, input.projectId));
 
-      const values = {
+      const supportSourcesJson = input.supportSources 
+        ? JSON.stringify(input.supportSources) 
+        : input.supportSourcesJson ?? null;
+
+      const calculatedTotalSupport = input.supportSources && input.supportSources.length > 0
+        ? input.supportSources.reduce((sum, item) => sum + (item.amount || 0), 0)
+        : input.supportAmount;
+
+      const primarySupportEntity = input.supportSources && input.supportSources.length > 0
+        ? (input.supportSources.length === 1 ? input.supportSources[0].entity : "عدة داعمين")
+        : (input.supportEntity ?? "");
+
+      const primaryCustomSupportEntity = input.supportSources && input.supportSources.length === 1
+        ? (input.supportSources[0].customEntity ?? "")
+        : (input.customSupportEntity ?? "");
+
+      const values: any = {
         projectId: input.projectId,
         approvedQuotationId: input.approvedQuotationId ?? null,
-        supportEntity: input.supportEntity ?? "",
-        customSupportEntity: input.customSupportEntity ?? "",
-        supportAmount: input.supportAmount?.toString() ?? "0.00",
+        supportEntity: primarySupportEntity,
+        customSupportEntity: primaryCustomSupportEntity,
+        supportAmount: calculatedTotalSupport?.toString() ?? "0.00",
         adminFeeType: input.adminFeeType ?? "percentage",
         adminFeeValue: input.adminFeeValue?.toString() ?? "0.00",
         adminFeeAmount: input.adminFeeAmount?.toString() ?? "0.00",
         associationFundingAmount: input.associationFundingAmount?.toString() ?? "0.00",
         associationFundingNotes: input.associationFundingNotes ?? "",
+        supportSourcesJson: supportSourcesJson,
         notes: input.notes ?? "",
       };
 
