@@ -1054,9 +1054,7 @@ interface SupportSourceItem {
                                 <TableHead className="text-right text-xs">رقم السند</TableHead>
                                 <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                                 <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                                <TableHead className="text-right text-xs">طريقة الدفع</TableHead>
-                                <TableHead className="text-right text-xs">المرجع / الحوالة</TableHead>
-                                <TableHead className="text-right text-xs">الملاحظات والمرفق</TableHead>
+                                <TableHead className="text-right text-xs">الملاحظات</TableHead>
                                 <TableHead className="text-center text-xs">إجراءات</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -1072,32 +1070,8 @@ interface SupportSourceItem {
                                   <TableCell className="font-bold text-emerald-700 text-xs">
                                     {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                                   </TableCell>
-                                  <TableCell className="text-xs">
-                                    <Badge variant="outline" className="bg-slate-100 text-slate-800 text-[10px]">
-                                      {voucher.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
-                                       voucher.paymentMethod === "cash" ? "نقداً" :
-                                       voucher.paymentMethod === "cheque" ? "شيك بنكي" :
-                                       voucher.paymentMethod === "platform" ? "منصة إلكترونية" : voucher.paymentMethod}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-xs text-gray-650">
-                                    {voucher.referenceNumber || "-"}
-                                  </TableCell>
                                   <TableCell className="text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-2">
-                                      <span>{voucher.notes || "-"}</span>
-                                      {voucher.attachmentUrl && (
-                                        <a 
-                                          href={voucher.attachmentUrl} 
-                                          target="_blank" 
-                                          rel="noreferrer"
-                                          className="text-blue-600 hover:underline flex items-center gap-0.5"
-                                        >
-                                          <Paperclip className="h-3.5 w-3.5" />
-                                          <span className="text-[11px]">مرفق</span>
-                                        </a>
-                                      )}
-                                    </div>
+                                    {voucher.notes || "-"}
                                   </TableCell>
                                   <TableCell className="text-center">
                                     <div className="flex items-center justify-center gap-1">
@@ -1161,7 +1135,7 @@ interface SupportSourceItem {
                               <TableHead className="text-right text-xs">رقم السند</TableHead>
                               <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                               <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                              <TableHead className="text-right text-xs">طريقة الدفع</TableHead>
+                              <TableHead className="text-right text-xs">الملاحظات</TableHead>
                               <TableHead className="text-center text-xs">إجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1172,7 +1146,7 @@ interface SupportSourceItem {
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
                                 <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
                                 <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
-                                <TableCell className="text-xs">{voucher.paymentMethod}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{voucher.notes || "-"}</TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
@@ -1202,16 +1176,16 @@ interface SupportSourceItem {
       <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
         <DialogContent className="dir-rtl text-right max-w-md">
           <DialogHeader className="text-right">
-            <DialogTitle className="text-base font-bold flex items-center gap-2">
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">
               <Receipt className="h-5 w-5 text-primary" />
               {editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-xs text-right mt-1">
               أدخل تفاصيل الدفعة المقبوضة فعلياً من الجهة الداعمة
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
+          <div className="space-y-4 py-2 text-xs text-right">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">مبلغ الدفعة المقبوضة (ريال) *</Label>
               <Input
@@ -1251,62 +1225,12 @@ interface SupportSourceItem {
                     const name = src.entity === "اخرى" ? src.customEntity : src.entity;
                     return name ? (
                       <SelectItem key={idx} value={name}>
-                        {name} ({src.amount ? `${src.amount.toLocaleString("ar-SA")} ريال` : "غير محدد"})
+                        {name}
                       </SelectItem>
                     ) : null;
                   })}
-                  <SelectItem value="اخرى">داعم آخر / إدخال يدوي</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {voucherPayerName === "اخرى" && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">اسم الداعم الآخر *</Label>
-                <Input
-                  type="text"
-                  value={customVoucherPayerName}
-                  onChange={(e) => setCustomVoucherPayerName(e.target.value)}
-                  placeholder="أدخل اسم الجهة الداعمة"
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">طريقة الدفع</Label>
-                <Select value={voucherPaymentMethod} onValueChange={setVoucherPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                    <SelectItem value="cash">نقداً</SelectItem>
-                    <SelectItem value="cheque">شيك بنكي</SelectItem>
-                    <SelectItem value="platform">منصة إلكترونية</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">رقم المرجع / الحوالة</Label>
-                <Input
-                  type="text"
-                  value={voucherRefNumber}
-                  onChange={(e) => setVoucherRefNumber(e.target.value)}
-                  placeholder="رقم الحوالة أو الشيك"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">رابط مرفق السند (اختياري)</Label>
-              <Input
-                type="text"
-                value={voucherAttachmentUrl}
-                onChange={(e) => setVoucherAttachmentUrl(e.target.value)}
-                placeholder="رابط الصورة أو مستند السند"
-              />
             </div>
 
             <div className="space-y-1.5">
