@@ -211,7 +211,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع
-  { pattern: /^\/projects\/\d+$/, permission: "projects.view_details" },
+  { pattern: /^\/projects\/\d+$/, permission: ["projects.view_details", "projects.financials"] },
 
   // الموردون
   { pattern: /^\/suppliers\/\d+\/edit$/, permission: "suppliers.edit" },

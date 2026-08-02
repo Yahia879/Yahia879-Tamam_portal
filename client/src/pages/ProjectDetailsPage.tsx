@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,8 +126,24 @@ export default function ProjectDetailsPage() {
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const canEditProjectName = isAdmin || userPermissions.includes("projects.view_details");
+  // صلاحية عرض تفاصيل المشروع → تعرض جميع الأقسام
+  const canViewDetails = isAdmin || userPermissions.includes("projects.view_details");
+  const canEditProjectName = canViewDetails;
   const canChangeManager = isAdmin || user?.role === 'projects_office';
+  // صلاحية مالية المشاريع → تعرض قسم المالية
+  const hasFinancialsPerm = usePermission("projects.financials");
+  const canViewFinancials = isAdmin || userPermissions.includes("projects.financials") || hasFinancialsPerm;
+  // إذا كان المستخدم يملك فقط صلاحية المالية بدون عرض التفاصيل
+  const financialsOnly = canViewFinancials && !canViewDetails;
+
+  useEffect(() => {
+    // إذا كان يملك فقط صلاحية المالية، يتم توجيهه إلى قسم المالية مباشرة
+    if (financialsOnly) {
+      setActiveTab("financials");
+    } else if (!canViewFinancials && activeTab === "financials") {
+      setActiveTab("overview");
+    }
+  }, [financialsOnly, canViewFinancials, activeTab]);
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
@@ -627,14 +644,14 @@ export default function ProjectDetailsPage() {
 
         {/* التبويبات */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-          <TabsList className="flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-7 h-auto p-1 bg-muted">
-            <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>
-            <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>
-            <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>
-            <TabsTrigger value="financials" className="shrink-0">المالية</TabsTrigger>
-            <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>
-            <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>
+          <TabsList className={`flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid md:grid-cols-${financialsOnly ? '1' : canViewFinancials ? '7' : '6'} h-auto p-1 bg-muted`}>
+            {!financialsOnly && <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>}
+            {!financialsOnly && <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>}
+            {!financialsOnly && <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>}
+            {!financialsOnly && <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>}
+            {canViewFinancials && <TabsTrigger value="financials" className="shrink-0">المالية</TabsTrigger>}
+            {!financialsOnly && <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>}
+            {!financialsOnly && <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>}
           </TabsList>
 
           {/* نظرة عامة */}
@@ -877,31 +894,33 @@ export default function ProjectDetailsPage() {
           </TabsContent>
 
           {/* المالية */}
-          <TabsContent value="financials" className="space-y-4 pt-2">
-            {isFinancialsLocked ? (
-              <Card className="border-0 shadow-sm">
-                <CardContent className="pt-6">
-                  <div className="text-center py-12">
-                    <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
-                      <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
-                        <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-amber-900 mb-3">قسم المالية مقفل حالياً</h3>
-                      <p className="text-amber-700 text-sm leading-relaxed mb-6">
-                        هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم المالية وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الثالثة: التقييم المالي والاعتماد** للمشروع.
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
-                        <AlertCircle className="w-4 h-4 text-amber-600" />
-                        يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
+          {canViewFinancials && (
+            <TabsContent value="financials" className="space-y-4 pt-2">
+              {isFinancialsLocked ? (
+                <Card className="border-0 shadow-sm">
+                  <CardContent className="pt-6">
+                    <div className="text-center py-12">
+                      <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
+                        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
+                          <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-amber-900 mb-3">قسم المالية مقفل حالياً</h3>
+                        <p className="text-amber-700 text-sm leading-relaxed mb-6">
+                          هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم المالية وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الثالثة: التقييم المالي والاعتماد** للمشروع.
+                        </p>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
+                          <AlertCircle className="w-4 h-4 text-amber-600" />
+                          يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <ProjectFinancialsTab projectId={parseInt(id || "0")} />
-            )}
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ProjectFinancialsTab projectId={parseInt(id || "0")} />
+              )}
+            </TabsContent>
+          )}
 
           {/* العقود */}
           <TabsContent value="contracts" className="space-y-4">

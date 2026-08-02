@@ -767,7 +767,7 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       ]
@@ -825,7 +825,7 @@ export default function RolePermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
@@ -927,7 +927,8 @@ export default function RolePermissions() {
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
-        assign_as_manager: "تعيين كمدير للمشاريع"
+        assign_as_manager: "تعيين كمدير للمشاريع",
+        financials: "مالية المشاريع"
       },
       boq: {
         add: "إضافة بند جديد",

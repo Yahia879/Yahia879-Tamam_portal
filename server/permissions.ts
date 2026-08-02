@@ -36,9 +36,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.view_details"],
+  projects: ["projects.view", "projects.view_details", "projects.assign_as_manager", "projects.financials"],
   "projects.view": ["projects.view"],
   "projects.view_details": ["projects.view", "projects.view_details"],
+  "projects.financials": ["projects.view", "projects.financials"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
     "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
@@ -539,6 +540,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
       { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
+      { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
     ];
 

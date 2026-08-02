@@ -60,7 +60,7 @@ const superAdminGroups = [
   {
     title: "الهندسة والمشاريع",
     modules: [
-      { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager"] },
+      { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
       { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
       { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
     ]
@@ -153,7 +153,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     projects: {
       view: "عرض المشاريع",
       view_details: "عرض تفاصيل المشروع وادارته",
-      assign_as_manager: "تعيين كمدير للمشاريع"
+      assign_as_manager: "تعيين كمدير للمشاريع",
+      financials: "مالية المشاريع"
     },
     boq: {
       add: "إضافة بند جديد",
