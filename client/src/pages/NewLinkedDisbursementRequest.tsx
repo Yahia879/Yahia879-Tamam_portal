@@ -634,11 +634,30 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
-  // إجمالي سندات القبض (المدفوعات الفعلية المقبوضة من الداعم لهذا المشروع)
+  const generalAccountSupportAmount = useMemo(() => {
+    const finDetail = projectFinancials?.financialDetail;
+    if (!finDetail?.supportSourcesJson) return 0;
+    try {
+      const parsed = JSON.parse(finDetail.supportSourcesJson);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((s: any) => {
+            const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+            if (!name) return false;
+            const norm = name.trim().toLowerCase();
+            return norm.includes("الحساب العام") || norm.includes("حساب عام");
+          })
+          .reduce((sum: number, s: any) => sum + (parseFloat(s.amount) || 0), 0);
+      }
+    } catch (e) {}
+    return 0;
+  }, [projectFinancials]);
+
+  // إجمالي سندات القبض (المدفوعات الفعلية المقبوضة من الداعم لهذا المشروع) + مبالغ تمويل الحساب العام
   const totalSupporterPayments = (projectFinancials?.receiptVouchers || []).reduce(
     (sum: number, v: any) => sum + parseFloat(v.amount || "0"),
     0
-  );
+  ) + generalAccountSupportAmount;
 
   // استخراج جهات الدعم المسجلة للمشروع
   const supportSources = useMemo(() => {

@@ -82,6 +82,13 @@ const normalizeArabicText = (str?: string | null) => {
     .toLowerCase();
 };
 
+const isGeneralAccountName = (name?: string | null) => {
+  if (!name) return false;
+  const norm = normalizeArabicText(name);
+  return norm.includes("الحساب العام") || norm.includes("حساب عام");
+};
+
+
   // Form States for Financial & Support Details
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
   const [supportEntity, setSupportEntity] = useState<string>("");
@@ -232,7 +239,16 @@ const normalizeArabicText = (str?: string | null) => {
 
   // Receipts Calculations
   const receiptVouchers = data?.receiptVouchers || [];
-  const totalReceivedAmount = receiptVouchers.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0);
+  const vouchersTotalReceived = receiptVouchers.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0);
+
+  const generalAccountReceivedAmount = supportSources
+    .filter(s => {
+      const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+      return isGeneralAccountName(name);
+    })
+    .reduce((sum, s) => sum + (s.amount || 0), 0);
+
+  const totalReceivedAmount = vouchersTotalReceived + generalAccountReceivedAmount;
   const remainingSupportToCollect = Math.max(0, currentSupportAmount - totalReceivedAmount);
   const collectionRawPct = currentSupportAmount > 0 ? (totalReceivedAmount / currentSupportAmount) * 100 : 0;
   const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
@@ -265,7 +281,11 @@ const normalizeArabicText = (str?: string | null) => {
     setEditingVoucherId(null);
     setVoucherAmount("");
     setVoucherDate(new Date().toISOString().split("T")[0]);
-    const firstSupporter = supportSources[0]?.entity === "اخرى" ? supportSources[0]?.customEntity : supportSources[0]?.entity;
+    const validSupporters = supportSources.filter(src => {
+      const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+      return name && !isGeneralAccountName(name);
+    });
+    const firstSupporter = validSupporters[0]?.entity === "اخرى" ? validSupporters[0]?.customEntity : validSupporters[0]?.entity;
     setVoucherPayerName(firstSupporter || "");
     setCustomVoucherPayerName("");
     setVoucherPaymentMethod("bank_transfer");
@@ -942,6 +962,7 @@ const normalizeArabicText = (str?: string | null) => {
                 {supportSources.map((source, sIdx) => {
                   const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                   const targetAmt = source.amount || 0;
+                  const isGenAcc = isGeneralAccountName(sName);
                   
                   // Filter receipt vouchers for this supporter with Arabic normalization
                   const normSName = normalizeArabicText(sName);
@@ -959,9 +980,9 @@ const normalizeArabicText = (str?: string | null) => {
                     );
                   });
 
-                  const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
-                  const remainingAmt = Math.max(0, targetAmt - receivedAmt);
-                  const sRawPct = targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0);
+                  const receivedAmt = isGenAcc ? targetAmt : sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                  const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
+                  const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
                   const sPct = sRawPct > 0 && sRawPct < 1
                     ? parseFloat(sRawPct.toFixed(2))
                     : Math.min(100, Math.round(sRawPct));
@@ -1020,6 +1041,7 @@ const normalizeArabicText = (str?: string | null) => {
               {supportSources.map((source, sIdx) => {
                 const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                 const targetAmt = source.amount || 0;
+                const isGenAcc = isGeneralAccountName(sName);
                 
                 // Filter receipt vouchers for this supporter with Arabic normalization
                 const normSName = normalizeArabicText(sName);
@@ -1037,9 +1059,9 @@ const normalizeArabicText = (str?: string | null) => {
                   );
                 });
 
-                const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
-                const remainingAmt = Math.max(0, targetAmt - receivedAmt);
-                const sRawPct = targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0);
+                const receivedAmt = isGenAcc ? targetAmt : sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
+                const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
                 const sPct = sRawPct > 0 && sRawPct < 1
                   ? parseFloat(sRawPct.toFixed(2))
                   : Math.min(100, Math.round(sRawPct));
@@ -1071,7 +1093,7 @@ const normalizeArabicText = (str?: string | null) => {
 
                     <CardContent className="p-3 space-y-3">
                       {/* Supporter mini progress */}
-                      {targetAmt > 0 && (
+                      {(targetAmt > 0 || isGenAcc) && (
                         <div className="space-y-1 bg-white p-2 rounded-md border text-[11px]">
                           <div className="flex justify-between items-center font-medium">
                             <span className="text-gray-600">نسبة تحصيل دفعات {sName}:</span>
@@ -1084,7 +1106,10 @@ const normalizeArabicText = (str?: string | null) => {
                       {/* Supporter Vouchers Table */}
                       {sVouchers.length === 0 ? (
                         <div className="text-center py-4 text-xs text-muted-foreground bg-white rounded-md border border-dashed">
-                          لم يتم تسجيل أي سندات قبض خاصة بـ ({sName}) حتى الآن.
+                          {isGenAcc 
+                            ? `تم توفير تمويل (${sName}) بالكامل من الحساب العام للجمعية بنسبة 100%. لا يلزم تسجيل سندات قبض لهذا الداعم.`
+                            : `لم يتم تسجيل أي سندات قبض خاصة بـ (${sName}) حتى الآن.`
+                          }
                         </div>
                       ) : (
                         <div className="border rounded-md overflow-x-auto bg-white">
@@ -1307,14 +1332,20 @@ const normalizeArabicText = (str?: string | null) => {
                   <SelectValue placeholder="اختر الداعم" />
                 </SelectTrigger>
                 <SelectContent>
-                  {supportSources.map((src, idx) => {
-                    const name = src.entity === "اخرى" ? src.customEntity : src.entity;
-                    return name ? (
-                      <SelectItem key={idx} value={name}>
-                        {name}
-                      </SelectItem>
-                    ) : null;
-                  })}
+                  {supportSources
+                    .filter((src) => {
+                      const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+                      if (editingVoucherId && name === voucherPayerName) return true;
+                      return !isGeneralAccountName(name);
+                    })
+                    .map((src, idx) => {
+                      const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+                      return name ? (
+                        <SelectItem key={idx} value={name}>
+                          {name}
+                        </SelectItem>
+                      ) : null;
+                    })}
                 </SelectContent>
               </Select>
             </div>
