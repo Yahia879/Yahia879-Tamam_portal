@@ -1110,11 +1110,11 @@ const normalizeArabicText = (str?: string | null) => {
                                   <TableCell className="font-bold text-emerald-700 text-xs">
                                     {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                                   </TableCell>
-                                  <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                                  <TableCell className="text-xs text-muted-foreground">
                                     {voucher.notes ? (
                                       voucher.notes.length > 20 ? (
-                                        <div className="flex items-center justify-between gap-1.5">
-                                          <span className="truncate" title={voucher.notes}>
+                                        <div className="flex items-center gap-1">
+                                          <span title={voucher.notes}>
                                             {voucher.notes.slice(0, 20)}...
                                           </span>
                                           <Button
@@ -1122,7 +1122,7 @@ const normalizeArabicText = (str?: string | null) => {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => setSelectedNote(voucher.notes)}
-                                            className="h-6 w-6 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                            className="h-5 w-5 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 inline-flex items-center justify-center"
                                             title="عرض الملاحظة كاملة"
                                           >
                                             <Eye className="h-3.5 w-3.5" />
@@ -1208,11 +1208,11 @@ const normalizeArabicText = (str?: string | null) => {
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
                                 <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
                                 <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
-                                <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                                <TableCell className="text-xs text-muted-foreground">
                                   {voucher.notes ? (
                                     voucher.notes.length > 20 ? (
-                                      <div className="flex items-center justify-between gap-1.5">
-                                        <span className="truncate" title={voucher.notes}>
+                                      <div className="flex items-center gap-1">
+                                        <span title={voucher.notes}>
                                           {voucher.notes.slice(0, 20)}...
                                         </span>
                                         <Button
@@ -1220,7 +1220,7 @@ const normalizeArabicText = (str?: string | null) => {
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => setSelectedNote(voucher.notes)}
-                                          className="h-6 w-6 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                          className="h-5 w-5 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 inline-flex items-center justify-center"
                                           title="عرض الملاحظة كاملة"
                                         >
                                           <Eye className="h-3.5 w-3.5" />
