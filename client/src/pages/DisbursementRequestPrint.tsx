@@ -537,23 +537,14 @@ export default function DisbursementRequestPrint() {
                 <table className="w-full text-xs sm:text-sm text-center border-collapse">
                   <thead>
                     <tr className="bg-gray-55 border-b border-gray-200 text-gray-750">
-                      <th className="p-2 font-bold border-l border-gray-200 w-2/3">اسم المورد</th>
-                      <th className="p-2 font-bold w-1/3">المبلغ</th>
+                      <th className="p-2 font-bold border-l border-gray-200 w-1/2">اسم المورد</th>
+                      <th className="p-2 font-bold w-1/2">المبلغ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-200">
+                    <tr>
                       <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
                       <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
-                    </tr>
-
-                    <tr className="border-b border-gray-200 h-8 bg-gray-50/10">
-                      <td className="border-l border-gray-200"></td>
-                      <td></td>
-                    </tr>
-                    <tr className="h-8 bg-gray-50/10">
-                      <td className="border-l border-gray-200"></td>
-                      <td></td>
                     </tr>
                   </tbody>
                 </table>
