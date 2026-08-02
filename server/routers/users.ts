@@ -547,6 +547,9 @@ export const usersRouter = router({
       if (input.phone && input.phone.trim() !== "") {
         const [existingUserByPhone] = await db
           .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.phone, input.phone), ne(users.id, input.id)))
+          .limit(1);
         if (existingUserByPhone) {
           throw new TRPCError({
             code: "CONFLICT",

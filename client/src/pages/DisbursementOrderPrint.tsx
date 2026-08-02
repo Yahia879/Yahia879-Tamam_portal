@@ -201,17 +201,17 @@ export default function DisbursementOrderPrint() {
   const financialUser = (order as any)?.financialUser || (order as any)?.createdByUser;
   const executiveDirectorUser = (order as any)?.executiveDirectorUser || (order as any)?.approvedByUser;
 
-  // 1. الخانة الأولى: الإدارة المالية (الاسم والوظيفة دائماً من حساب الإدارة المالية المثبت fdd8@gmail.com، والتاريخ فاضي دائماً)
+  // 1. الخانة الأولى: الإدارة المالية (الاسم والوظيفة دائماً من حساب الإدارة المالية المثبت solayani@manarah.org.sa، والتاريخ فاضي دائماً)
   const creatorName = financialUser?.signatureName || financialUser?.name || "الإدارة المالية";
   const creatorDepartment = financialUser?.signatureDepartment || "الإدارة المالية";
   const creatorSignatureUrl = isOrderStage1Approved ? (financialUser?.signatureUrl || null) : null;
-  const creatorDate = "—"; // التاريخ فاضي دائماً
+  const creatorDate = ""; // التاريخ فارغ
 
-  // 2. الخانة الثانية: المدير التنفيذي (الاسم والوظيفة دائماً من حساب المدير التنفيذي المثبت fds8@gmail.com، والتاريخ فاضي دائماً)
+  // 2. الخانة الثانية: المدير التنفيذي (الاسم والوظيفة دائماً من حساب المدير التنفيذي المثبت ceo@manarah.org.sa، والتاريخ فاضي دائماً)
   const executiveDirectorName = executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "المدير التنفيذي";
   const executiveDirectorDepartment = executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
   const executiveDirectorSignatureUrl = isOrderStage2Approved ? (executiveDirectorUser?.signatureUrl || null) : null;
-  const executiveDirectorDate = "—"; // التاريخ فاضي دائماً
+  const executiveDirectorDate = ""; // التاريخ فارغ
 
   const isCreator = currentUser?.id === order?.createdBy;
   const isExecutiveDirector =
@@ -219,8 +219,8 @@ export default function DisbursementOrderPrint() {
     currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-  const canControlCreatorSig = (currentUser?.email === "fdd8@gmail.com" || isCreator) && !!creatorSignatureUrl && isOrderStage1Approved;
-  const canControlExecSig = (currentUser?.email === "fds8@gmail.com" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
+  const canControlCreatorSig = (currentUser?.email === "solayani@manarah.org.sa" || isCreator) && !!creatorSignatureUrl && isOrderStage1Approved;
+  const canControlExecSig = (currentUser?.email === "ceo@manarah.org.sa" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
