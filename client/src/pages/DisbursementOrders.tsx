@@ -71,7 +71,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pending: { label: "قيد الاعتماد", variant: "outline", className: "border-amber-400 text-amber-700 bg-amber-50/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30" },
   pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "outline", className: "border-amber-500 text-amber-800 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50" },
   approved: { label: "معتمد", variant: "outline", className: "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50" },
-  rejected: { label: "مرفوض", variant: "outline", className: "border-red-500 text-red-700 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50" },
+  rejected: { label: "ملغي", variant: "outline", className: "border-red-500 text-red-700 bg-red-50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50" },
   edited: { label: "تم التعديل", variant: "outline", className: "border-purple-500 text-purple-700 bg-purple-50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/50" },
   executed: { label: "منفذ", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
   paid: { label: "مدفوع", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
@@ -388,7 +388,7 @@ export default function DisbursementOrders() {
                   <SelectItem value="pending">بانتظار اعتماد الإدارة المالية</SelectItem>
                   <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
                   <SelectItem value="approved">معتمد</SelectItem>
-                  <SelectItem value="rejected">مرفوض</SelectItem>
+                  <SelectItem value="rejected">ملغي</SelectItem>
                   <SelectItem value="executed">منفذ</SelectItem>
                   <SelectItem value="edited">تم التعديل</SelectItem>
                 </SelectContent>

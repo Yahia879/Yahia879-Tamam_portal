@@ -653,12 +653,6 @@ export default function NewLinkedDisbursementRequest() {
     return 0;
   }, [projectFinancials]);
 
-  // إجمالي سندات القبض (المدفوعات الفعلية المقبوضة من الداعم لهذا المشروع) + مبالغ تمويل الحساب العام
-  const totalSupporterPayments = (projectFinancials?.receiptVouchers || []).reduce(
-    (sum: number, v: any) => sum + parseFloat(v.amount || "0"),
-    0
-  ) + generalAccountSupportAmount;
-
   // استخراج جهات الدعم المسجلة للمشروع
   const supportSources = useMemo(() => {
     const list: Array<{ entity: string; amount?: number }> = [];
@@ -687,6 +681,44 @@ export default function NewLinkedDisbursementRequest() {
     }
     return list;
   }, [projectFinancials, projectDetails]);
+
+  const normalizeArabicText = (str?: string | null) => {
+    if (!str) return "";
+    return str
+      .trim()
+      .replace(/[\u064B-\u0652]/g, "") // tashkeel
+      .replace(/[أإآ]/g, "ا") // Alif
+      .replace(/ى/g, "ي") // Ya
+      .replace(/ة/g, "ه") // Ta Marbouta
+      .toLowerCase();
+  };
+
+  // إجمالي سندات القبض المقبوضة فعلياً الخاصة بالداعم المحدد فقط
+  const totalSupporterPayments = useMemo(() => {
+    const vouchers = projectFinancials?.receiptVouchers || [];
+    const selectedFunder = (formData.fundingSourceName || (supportSources.length === 1 ? supportSources[0]?.entity : "") || "").trim();
+
+    if (!selectedFunder) {
+      return vouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0) + generalAccountSupportAmount;
+    }
+
+    const normSelected = normalizeArabicText(selectedFunder);
+
+    const matchingVouchers = vouchers.filter((v: any) => {
+      const normPayer = normalizeArabicText(v.payerName);
+      if (!normPayer) return false;
+      return (
+        normPayer === normSelected ||
+        normPayer.includes(normSelected) ||
+        normSelected.includes(normPayer)
+      );
+    });
+
+    const vouchersTotal = matchingVouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0);
+    const isGenAccountSelected = normSelected.includes("الحساب العام") || normSelected.includes("حساب عام");
+
+    return isGenAccountSelected ? (vouchersTotal + generalAccountSupportAmount) : vouchersTotal;
+  }, [projectFinancials, formData.fundingSourceName, supportSources, generalAccountSupportAmount]);
 
   // الضبط التلقائي لجهة الدعم عند وجود داعم واحد فقط أو تغيير المشروع
   useEffect(() => {

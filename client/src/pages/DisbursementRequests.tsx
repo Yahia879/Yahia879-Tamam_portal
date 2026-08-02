@@ -76,7 +76,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pending: { label: "بانتظار اعتماد مُعد الطلب", variant: "default" },
   pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
-  rejected: { label: "مرفوض", variant: "destructive" },
+  rejected: { label: "ملغي", variant: "destructive" },
   paid: { label: "مصروف", variant: "outline" },
 };
 
@@ -129,7 +129,7 @@ export default function DisbursementRequests() {
           const statusText = req.status === "draft" ? "مسودة" :
                              req.status === "pending" ? "قيد الاعتماد" :
                              req.status === "approved" ? "معتمد" :
-                             req.status === "rejected" ? "مرفوض" :
+                             req.status === "rejected" ? "ملغي" :
                              req.status === "paid" ? "مدفوع" : req.status || "-";
 
           worksheet.addRow([
@@ -181,7 +181,7 @@ export default function DisbursementRequests() {
           const statusText = order.status === "pending" ? "قيد الاعتماد" :
                              order.status === "approved" ? "معتمد" :
                              order.status === "executed" ? "منفذ" :
-                             order.status === "rejected" ? "مرفوض" : order.status || "-";
+                             order.status === "rejected" ? "ملغي" : order.status || "-";
 
           const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
           const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
@@ -315,13 +315,13 @@ export default function DisbursementRequests() {
 
   const rejectRequestMutation = trpc.disbursements.rejectRequest.useMutation({
     onSuccess: () => {
-      toast.success("تم رفض طلب الصرف");
+      toast.success("تم إلغاء طلب الصرف");
       setShowRejectDialog(false);
       setRejectionReason("");
       refetchRequests();
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء رفض طلب الصرف");
+      toast.error(error.message || "حدث خطأ أثناء إلغاء طلب الصرف");
     },
   });
 
@@ -730,7 +730,7 @@ export default function DisbursementRequests() {
                     <SelectItem value="pending">بانتظار اعتماد مُعد الطلب</SelectItem>
                     <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
-                    <SelectItem value="rejected">مرفوض</SelectItem>
+                    <SelectItem value="rejected">ملغي</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -862,7 +862,7 @@ export default function DisbursementRequests() {
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
                                       >
                                         <AlertCircle className="h-4 w-4 text-red-500" />
-                                        <span>عرض سبب رفض طلب الصرف</span>
+                                        <span>عرض سبب إلغاء طلب الصرف</span>
                                       </DropdownMenuItem>
                                       {canCreateRequest && (
                                         <DropdownMenuItem
@@ -969,7 +969,7 @@ export default function DisbursementRequests() {
                                             className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
                                           >
                                             <XCircle className="h-4 w-4 text-rose-500" />
-                                            <span>رفض طلب الصرف</span>
+                                            <span>إلغاء طلب الصرف</span>
                                           </DropdownMenuItem>
                                         </>
                                       )}
@@ -997,7 +997,7 @@ export default function DisbursementRequests() {
                                             className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
                                           >
                                             <XCircle className="h-4 w-4 text-rose-500" />
-                                            <span>رفض طلب الصرف</span>
+                                            <span>إلغاء طلب الصرف</span>
                                           </DropdownMenuItem>
                                         </>
                                       )}
@@ -1122,7 +1122,7 @@ export default function DisbursementRequests() {
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
                                       >
                                         <AlertCircle className="h-4 w-4 text-red-500" />
-                                        <span>عرض سبب الرفض</span>
+                                        <span>عرض سبب الإلغاء</span>
                                       </DropdownMenuItem>
                                     )}
 
@@ -1172,7 +1172,7 @@ export default function DisbursementRequests() {
                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
                                          >
                                            <XCircle className="h-4 w-4 text-rose-500" />
-                                           <span>رفض طلب الصرف</span>
+                                           <span>إلغاء طلب الصرف</span>
                                          </DropdownMenuItem>
                                        </>
                                      )}
@@ -1913,22 +1913,22 @@ export default function DisbursementRequests() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة رفض طلب الصرف */}
+        {/* نافذة إلغاء طلب الصرف */}
         <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>رفض طلب الصرف</DialogTitle>
+              <DialogTitle>إلغاء طلب الصرف</DialogTitle>
               <DialogDescription>
-                هل تريد رفض طلب الصرف رقم {selectedRequest?.requestNumber}؟
+                هل تريد إلغاء طلب الصرف رقم {selectedRequest?.requestNumber}؟
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>سبب الرفض *</Label>
+                <Label>سبب الإلغاء *</Label>
                 <Textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="يرجى توضيح سبب رفض الطلب..."
+                  placeholder="يرجى توضيح سبب إلغاء الطلب..."
                 />
               </div>
             </div>
@@ -1946,22 +1946,22 @@ export default function DisbursementRequests() {
                 }
                 disabled={!rejectionReason || rejectRequestMutation.isPending}
               >
-                {rejectRequestMutation.isPending ? "جاري الرفض..." : "رفض"}
+                {rejectRequestMutation.isPending ? "جاري الإلغاء..." : "إلغاء طلب الصرف"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* نافذة عرض سبب رفض طلب الصرف */}
+        {/* نافذة عرض سبب إلغاء طلب الصرف */}
         <Dialog open={showViewRejectionDialog} onOpenChange={setShowViewRejectionDialog}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
-                <span>سبب رفض طلب الصرف</span>
+                <span>سبب إلغاء طلب الصرف</span>
               </DialogTitle>
               <DialogDescription className="text-right">
-                تفاصيل سبب رفض طلب الصرف رقم {selectedRequest?.requestNumber}
+                تفاصيل سبب إلغاء طلب الصرف رقم {selectedRequest?.requestNumber}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -2435,7 +2435,7 @@ export default function DisbursementRequests() {
                       : selectedOrder.status === "approved"
                       ? "معتمد"
                       : selectedOrder.status === "rejected"
-                      ? "مرفوض"
+                      ? "ملغي"
                       : "منفذ"}
                   </Badge>
                 </div>
