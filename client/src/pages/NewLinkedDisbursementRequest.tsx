@@ -44,6 +44,7 @@ import {
   Building2,
   FileText,
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   ArrowLeft,
   Info,
@@ -919,6 +920,9 @@ export default function NewLinkedDisbursementRequest() {
     if ((isFundingRequired && !formData.fundingSupport) || !formData.mainProjectName) return true;
 
     if (requestType === "project_linked") {
+      if (formData.projectId > 0 && supportSources.length === 0) {
+        return true;
+      }
       if (formData.projectId > 0 && supportSources.length > 1 && !formData.fundingSourceName) {
         return true;
       }
@@ -968,6 +972,10 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة النقر على زر "التالي" بالخطوة الثانية
   const handleStep2Next = () => {
+    if (formData.projectId > 0 && supportSources.length === 0) {
+      toast.error("عذراً، هذا المشروع لا يمتلك أي جهة دعم مسجلة. يرجى إكمال باقي البيانات في صفحة المشروع أولاً.");
+      return;
+    }
     if (formData.projectId > 0 && supportSources.length > 1 && !formData.fundingSourceName) {
       toast.error("يرجى تحديد جهة الدعم المصروف منها لكون المشروع مسجلاً بأكثر من داعم");
       return;
@@ -1555,41 +1563,74 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                {/* اختيار جهة الدعم المصروف منها إذا كان للمشروع جهات دعم مسجلة */}
-                {formData.projectId > 0 && supportSources.length > 0 && (
-                  <div className="space-y-2 text-right animate-in fade-in duration-200">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                        جهة الدعم المصروف منها *
-                      </Label>
-                      {supportSources.length > 1 && (
-                        <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 font-bold">
-                          {supportSources.length} داعمين للمشروع (يلزم التحديد)
-                        </Badge>
-                      )}
-                    </div>
-                    <Select
-                      value={formData.fundingSourceName || ""}
-                      onValueChange={(value) => setFormData({ ...formData, fundingSourceName: value })}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full font-medium" dir="rtl">
-                        <SelectValue placeholder="اختر جهة الدعم المصروف منها..." />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {supportSources.map((src, idx) => (
-                          <SelectItem key={idx} value={src.entity} className="text-right font-medium">
-                            {src.entity}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* اختيار جهة الدعم المصروف منها أو تنبيه منع الإكمال عند عدم وجود داعم */}
+                {formData.projectId > 0 && (
+                  <div className="space-y-3 text-right animate-in fade-in duration-200">
+                    {supportSources.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            جهة الدعم المصروف منها *
+                          </Label>
+                          {supportSources.length > 1 && (
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 font-bold">
+                              {supportSources.length} داعمين للمشروع (يلزم التحديد)
+                            </Badge>
+                          )}
+                        </div>
+                        <Select
+                          value={formData.fundingSourceName || ""}
+                          onValueChange={(value) => setFormData({ ...formData, fundingSourceName: value })}
+                        >
+                          <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full font-medium" dir="rtl">
+                            <SelectValue placeholder="اختر جهة الدعم المصروف منها..." />
+                          </SelectTrigger>
+                          <SelectContent dir="rtl">
+                            {supportSources.map((src, idx) => (
+                              <SelectItem key={idx} value={src.entity} className="text-right font-medium">
+                                {src.entity}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-                    {supportSources.length > 1 && (
-                      <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <p className="font-bold">تنبيه: هذا المشروع يمتلك أكثر من جهة دعم ({supportSources.length} داعمين)</p>
-                          <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400">يجب تحديد جهة الدعم المحددة المراد خصم مبلغ طلب الصرف من حسابها/ميزانيتها.</p>
+                        {supportSources.length > 1 && (
+                          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                            <div>
+                              <p className="font-bold">تنبيه: هذا المشروع يمتلك أكثر من جهة دعم ({supportSources.length} داعمين)</p>
+                              <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400">يجب تحديد جهة الدعم المحددة المراد خصم مبلغ طلب الصرف من حسابها/ميزانيتها.</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* تنبيه لطيف وهادئ الألوان يوضح عدم وجود أي داعم مسجل للمشروع */
+                      <div className="p-4 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 text-right space-y-3 shadow-2xs animate-in fade-in duration-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-rose-100/60 dark:bg-rose-950/50 border border-rose-200/60 dark:border-rose-800/40 flex items-center justify-center shrink-0">
+                            <AlertTriangle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400" />
+                          </div>
+                          <div className="space-y-1 text-right">
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                              لا يمكن إكمال طلب الصرف لهذا المشروع
+                            </h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                              عذراً، هذا المشروع لا يمتلك أي جهة دعم مسجلة في بياناته المالية. يرجى إكمال باقي البيانات المالية وجهات الدعم في صفحة المشروع أولاً حتى تتمكن من إنشاء طلب الصرف.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-rose-200/60 dark:border-rose-900/30 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => navigate(`/projects/${formData.projectId}`)}
+                            className="border-rose-300 text-rose-700 bg-white hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:bg-slate-900 dark:hover:bg-rose-950/40 font-bold text-xs h-9 px-4 rounded-xl shadow-2xs flex items-center gap-1.5"
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            الانتقال لصفحة المشروع لإكمال البيانات
+                          </Button>
                         </div>
                       </div>
                     )}
