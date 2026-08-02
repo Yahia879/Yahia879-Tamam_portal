@@ -134,6 +134,7 @@ export default function ContractForm() {
     // القيمة المالية
     totalValue: 0,
     managementPercentage: 0, // نسبة الإشراف/الإدارة
+    managementAmount: 0, // قيمة الجمعية / الأجور الإدارية بالريال
     baseValue: 0, // القيمة الأساسية قبل النسبة
     
     // ملاحظات
@@ -234,6 +235,53 @@ export default function ContractForm() {
     { enabled: !!effectiveRequestId }
   );
 
+  // تحديد معرف المشروع المرتبط للحصول على التفاصيل المالية للأجور الإدارية
+  const targetProjectId = contractData.projectId || projectDetails?.id || requestDetails?.project?.id;
+
+  // جلب التفاصيل المالية للمشروع (الأجور الإدارية / قيمة الجمعية)
+  const { data: projectFinancials } = trpc.projects.getFinancialData.useQuery(
+    { projectId: targetProjectId! },
+    { enabled: !!targetProjectId }
+  );
+
+  // عكس الأجور الإدارية ونسبة الجمعية المحددة في المشروع تلقائياً عند إنشاء العقد
+  useEffect(() => {
+    if (projectFinancials?.financialDetail && !isEditMode) {
+      const fd = projectFinancials.financialDetail;
+      const feeVal = parseFloat(fd.adminFeeValue || "0");
+      const feeAmt = parseFloat(fd.adminFeeAmount || "0");
+      const assocAmt = parseFloat(fd.associationFundingAmount || "0");
+
+      let initialPct = 0;
+      let initialAmt = 0;
+
+      if (fd.adminFeeType === "percentage" && feeVal > 0) {
+        initialPct = feeVal;
+        initialAmt = feeAmt > 0 ? feeAmt : (contractData.totalValue * feeVal) / 100;
+      } else if (fd.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
+        initialAmt = feeAmt > 0 ? feeAmt : feeVal;
+        initialPct = contractData.totalValue > 0 ? Number(((initialAmt / contractData.totalValue) * 100).toFixed(2)) : 0;
+      } else if (assocAmt > 0) {
+        initialAmt = assocAmt;
+        initialPct = contractData.totalValue > 0 ? Number(((assocAmt / contractData.totalValue) * 100).toFixed(2)) : 0;
+      }
+
+      setContractData(prev => {
+        const newPct = prev.managementPercentage || initialPct;
+        const newAmt = prev.managementAmount || (prev.totalValue > 0 && newPct > 0 ? (prev.totalValue * newPct) / 100 : initialAmt);
+
+        if (newPct !== prev.managementPercentage || newAmt !== prev.managementAmount) {
+          return {
+            ...prev,
+            managementPercentage: newPct,
+            managementAmount: newAmt,
+          };
+        }
+        return prev;
+      });
+    }
+  }, [projectFinancials, isEditMode, contractData.totalValue]);
+
   // جلب تفاصيل المورد المختار
   const { data: selectedSupplier } = trpc.suppliers.getById.useQuery(
     { id: contractData.supplierId! },
@@ -277,8 +325,9 @@ export default function ContractForm() {
 
   // إذا وجد مسودة سابقة لنفس الطلب، يتم فتحها وتعيين المعرف
   useEffect(() => {
-    if (!editContractId && !createdDraftId && contractByRequest?.contract) {
-      const c = contractByRequest.contract;
+    const rawContract = contractByRequest as any;
+    const c = rawContract?.contract || (rawContract?.id ? rawContract : null);
+    if (!editContractId && !createdDraftId && c) {
       if (c.status === "draft") {
         setCreatedDraftId(c.id);
       }
@@ -346,6 +395,7 @@ export default function ContractForm() {
         startDate: c.startDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate)) : "",
         totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
+        managementAmount: (c.contractAmount && c.managementPercentage) ? (parseFloat(c.contractAmount) * parseFloat(c.managementPercentage)) / 100 : 0,
         baseValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         notes: c.customTerms || "",
         supportingEntity,
@@ -847,7 +897,7 @@ export default function ContractForm() {
 
     // عنوان افتراضي في حال لم يتم إدخاله بعد
     const defaultTitle = contractData.subject?.trim() 
-      || (requestDetails?.mosqueName ? `عقد ${requestDetails.mosqueName}` : `مسودة عقد جديد`);
+      || (requestDetails?.mosque?.name ? `عقد ${requestDetails.mosque.name}` : `مسودة عقد جديد`);
 
     const payload: any = {
       contractType: selectedTemplate?.type || "supply",
@@ -1396,11 +1446,17 @@ export default function ContractForm() {
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
-                          const newTotalProjectCost = val + (val * (prev.managementPercentage || 0)) / 100;
+                          const mgmtAmt = prev.managementPercentage > 0 
+                            ? (val * prev.managementPercentage) / 100 
+                            : prev.managementAmount;
+                          const mgmtPct = val > 0 && mgmtAmt > 0 ? (mgmtAmt / val) * 100 : prev.managementPercentage;
+                          const newTotalProjectCost = val + mgmtAmt;
                           return { 
                             ...prev, 
                             totalValue: val,
                             baseValue: val,
+                            managementAmount: mgmtAmt,
+                            managementPercentage: mgmtPct,
                             supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
                           };
                         });
@@ -1417,14 +1473,17 @@ export default function ContractForm() {
                       type="number"
                       min={0}
                       max={100}
+                      step="any"
                       value={contractData.managementPercentage || ""}
                       onChange={(e) => {
                         const percentage = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
-                          const newTotalProjectCost = prev.totalValue + (prev.totalValue * percentage) / 100;
+                          const mgmtAmt = (prev.totalValue * percentage) / 100;
+                          const newTotalProjectCost = prev.totalValue + mgmtAmt;
                           return { 
                             ...prev, 
                             managementPercentage: percentage,
+                            managementAmount: mgmtAmt,
                             supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
                           };
                         });
@@ -1437,12 +1496,27 @@ export default function ContractForm() {
                   <div className="space-y-2">
                     <Label>قيمة الجمعية (ريال)</Label>
                     <Input
-                      type="text"
-                      disabled
-                      value={((contractData.totalValue * (contractData.managementPercentage || 0)) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      className="bg-muted text-muted-foreground font-semibold text-right"
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={contractData.managementAmount || (contractData.totalValue && contractData.managementPercentage ? ((contractData.totalValue * contractData.managementPercentage) / 100) : "")}
+                      onChange={(e) => {
+                        const amount = parseFloat(e.target.value) || 0;
+                        setContractData(prev => {
+                          const percentage = prev.totalValue > 0 ? Number(((amount / prev.totalValue) * 100).toFixed(2)) : prev.managementPercentage;
+                          const newTotalProjectCost = prev.totalValue + amount;
+                          return {
+                            ...prev,
+                            managementAmount: amount,
+                            managementPercentage: percentage,
+                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                          };
+                        });
+                      }}
+                      placeholder="أدخل قيمة الجمعية"
+                      className="font-semibold text-right"
                     />
-                    <p className="text-xs text-muted-foreground">قيمة نسبة الجمعية المحسوبة</p>
+                    <p className="text-xs text-muted-foreground">قيمة الأجور الإدارية / نسبة الجمعية (قابلة للتعديل)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1450,10 +1524,13 @@ export default function ContractForm() {
                     <Input
                       type="text"
                       disabled
-                      value={(contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      value={(
+                        contractData.totalValue + 
+                        (contractData.managementAmount || ((contractData.totalValue * (contractData.managementPercentage || 0)) / 100))
+                      ).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right"
                     />
-                    <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع</p>
+                    <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع شاملة الأجور الإدارية</p>
                   </div>
                 </div>
               </div>
@@ -1946,22 +2023,22 @@ export default function ContractForm() {
                       <span className="text-muted-foreground">قيمة العقد:</span>
                       <p className="font-medium text-green-700 font-bold">{contractData.totalValue.toLocaleString()} ريال</p>
                     </div>
-                    {contractData.managementPercentage > 0 && (
+                    {(contractData.managementPercentage > 0 || (contractData.managementAmount && contractData.managementAmount > 0)) && (
                       <>
                         <div>
                           <span className="text-muted-foreground">نسبة الجمعية:</span>
-                          <p className="font-medium">{contractData.managementPercentage}%</p>
+                          <p className="font-medium">{contractData.managementPercentage ? `${contractData.managementPercentage}%` : "-"}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">قيمة الجمعية:</span>
                           <p className="font-medium text-orange-600">
-                            {((contractData.totalValue * contractData.managementPercentage) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                            {(contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100)).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
                           </p>
                         </div>
                         <div className="sm:col-span-2 border-t pt-2 mt-2">
                           <span className="text-muted-foreground">القيمة الكلية للمشروع:</span>
                           <p className="text-base font-bold text-blue-700">
-                            {(contractData.totalValue + (contractData.totalValue * contractData.managementPercentage) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                            {(contractData.totalValue + (contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100))).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
                           </p>
                         </div>
                       </>
