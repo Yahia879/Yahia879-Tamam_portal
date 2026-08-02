@@ -145,8 +145,10 @@ export default function ProjectDetailsPage() {
   }, [financialsOnly, canViewFinancials, activeTab]);
 
   // جلب تفاصيل المشروع
-  const { data: project, isLoading, refetch } = trpc.projects.getById.useQuery({ 
-    id: parseInt(id || "0") 
+  const { data: project, isLoading, error: projectError, refetch } = trpc.projects.getById.useQuery({ 
+    id: parseInt(id || "0"),
+  }, {
+    retry: false,
   });
 
   // جلب مديري المشاريع المتاحين
@@ -321,6 +323,48 @@ export default function ProjectDetailsPage() {
         <div className="space-y-6">
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-64 bg-muted animate-pulse rounded-lg" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (projectError) {
+    const errObj = projectError as any;
+    const isForbidden = 
+      errObj?.data?.code === "FORBIDDEN" || 
+      errObj?.shape?.data?.code === "FORBIDDEN" || 
+      errObj?.message?.includes("صلاحية") ||
+      errObj?.data?.httpStatus === 403;
+    
+    const errorMessage = errObj?.message || "تحقق من صحة رقم المشروع أو ربما تم حذفه";
+    const isUnconvertedRequest = errorMessage.includes("الطلب رقم") || errorMessage.includes("لم يتم تحويله إلى مشروع");
+
+    return (
+      <DashboardLayout>
+        <div className="text-center py-16 max-w-lg mx-auto">
+          <AlertCircle className={`w-14 h-14 mx-auto mb-4 ${isForbidden ? "text-amber-500" : isUnconvertedRequest ? "text-blue-500" : "text-destructive"}`} />
+          <h2 className="text-xl font-bold mb-2">
+            {isForbidden 
+              ? "ليس لديك صلاحية لعرض هذا المشروع" 
+              : isUnconvertedRequest
+                ? "الطلب غير مرتبط بمشروع بعد"
+                : "المشروع غير موجود"}
+          </h2>
+          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
+            {isForbidden 
+              ? "تواصل مع مدير النظام لمنحك الصلاحية المطلوبة"
+              : errorMessage}
+          </p>
+          <div className="flex justify-center gap-3">
+            <Button variant="outline" onClick={() => navigate("/project-management")}>
+              العودة للمشاريع
+            </Button>
+            {isUnconvertedRequest && (
+              <Button onClick={() => navigate(`/requests/${id}`)}>
+                عرض تفاصيل الطلب
+              </Button>
+            )}
+          </div>
         </div>
       </DashboardLayout>
     );

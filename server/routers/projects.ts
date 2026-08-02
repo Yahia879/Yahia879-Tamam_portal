@@ -65,6 +65,7 @@ export const projectsRouter = router({
         !isAdmin &&
         !userPermissions.includes("projects.view") &&
         !userPermissions.includes("projects.view_details") &&
+        !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
         !userPermissions.includes("disbursements.view")
       ) {
@@ -159,6 +160,7 @@ export const projectsRouter = router({
         !isAdmin &&
         !userPermissions.includes("projects.view") &&
         !userPermissions.includes("projects.view_details") &&
+        !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
         !userPermissions.includes("disbursements.view")
       ) {
@@ -290,14 +292,16 @@ export const projectsRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       if (
         !isAdmin &&
+        !userPermissions.includes("projects.view") &&
         !userPermissions.includes("projects.view_details") &&
+        !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
         !userPermissions.includes("disbursements.view")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل هذا المشروع" });
       }
 
-      const [project] = await db
+      let [project] = await db
         .select({
           id: projects.id,
           projectNumber: projects.projectNumber,
@@ -321,9 +325,51 @@ export const projectsRouter = router({
         .leftJoin(users, eq(projects.managerId, users.id))
         .where(eq(projects.id, input.id));
 
+      // إذا لم يُعثر على المشروع بالمعرّف المباشر، نحاول البحث عنه عبر رقم الطلب requestId
       if (!project) {
+        [project] = await db
+          .select({
+            id: projects.id,
+            projectNumber: projects.projectNumber,
+            name: projects.name,
+            description: projects.description,
+            status: projects.status,
+            budget: projects.budget,
+            actualCost: projects.actualCost,
+            startDate: projects.startDate,
+            expectedEndDate: projects.expectedEndDate,
+            completionPercentage: projects.completionPercentage,
+            plannedProgress: projects.plannedProgress,
+            milestones: projects.milestones,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+            requestId: projects.requestId,
+            managerId: projects.managerId,
+            managerName: users.name,
+          })
+          .from(projects)
+          .leftJoin(users, eq(projects.managerId, users.id))
+          .where(eq(projects.requestId, input.id));
+      }
+
+      if (!project) {
+        // التحقق مما إذا كان الرقم يتبع لطلب موجود ولكن لم يتحول لمشروع بعد
+        const [existingRequest] = await db
+          .select({ id: mosqueRequests.id, requestNumber: mosqueRequests.requestNumber, currentStage: mosqueRequests.currentStage })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.id));
+
+        if (existingRequest) {
+          throw new TRPCError({ 
+            code: "NOT_FOUND", 
+            message: `الطلب رقم (${existingRequest.requestNumber}) لا يزال في مرحلة (${existingRequest.currentStage}) ولم يتم تحويله إلى مشروع بعد.` 
+          });
+        }
+
         throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
       }
+
+      const targetProjectId = project.id;
 
       // جلب الطلب المرتبط
       const [request] = input.lightweight ? [null] : await db
@@ -343,7 +389,7 @@ export const projectsRouter = router({
       const phases = input.lightweight ? [] : await db
         .select()
         .from(projectPhases)
-        .where(eq(projectPhases.projectId, input.id))
+        .where(eq(projectPhases.projectId, targetProjectId))
         .orderBy(projectPhases.phaseOrder);
 
       // جلب ملاحظات التقييم الفني من الطلب المرتبط
@@ -374,7 +420,7 @@ export const projectsRouter = router({
           supplierName: contractsEnhanced.secondPartyName,
         })
         .from(contractsEnhanced)
-        .where(eq(contractsEnhanced.projectId, input.id));
+        .where(eq(contractsEnhanced.projectId, targetProjectId));
 
       const contractIds = projectContracts.map(c => c.id);
 
@@ -387,14 +433,14 @@ export const projectsRouter = router({
       const projectDisbursements = await db
         .select()
         .from(disbursementRequests)
-        .where(eq(disbursementRequests.projectId, input.id))
+        .where(eq(disbursementRequests.projectId, targetProjectId))
         .orderBy(desc(disbursementRequests.createdAt));
 
       // جلب الدفعات اليدوية
       const manualPayments = await db
         .select()
         .from(payments)
-        .where(eq(payments.projectId, input.id))
+        .where(eq(payments.projectId, targetProjectId))
         .orderBy(desc(payments.createdAt));
 
       const toLocalDateString = (d: any): string => {
@@ -457,7 +503,7 @@ export const projectsRouter = router({
       const boq = await db
         .select()
         .from(quantitySchedules)
-        .where(eq(quantitySchedules.projectId, input.id));
+        .where(eq(quantitySchedules.projectId, targetProjectId));
 
       // جلب عروض الأسعار
       const projectQuotations = await db
@@ -472,7 +518,7 @@ export const projectsRouter = router({
         })
         .from(quotations)
         .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
-        .where(eq(quotations.projectId, input.id));
+        .where(eq(quotations.projectId, targetProjectId));
 
       return {
         ...project,

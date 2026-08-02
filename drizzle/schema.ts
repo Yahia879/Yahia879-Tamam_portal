@@ -1073,6 +1073,8 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   dateMiladi: date("dateMiladi"),
   completionPercentage: int("completionPercentage"), // نسبة الإنجاز المرتبطة بالدفعة
   
+  fundingSourceName: varchar("fundingSourceName", { length: 255 }),
+  
   // المرفقات
   attachmentsJson: text("attachmentsJson"), // JSON array of attachments
   

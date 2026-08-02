@@ -691,6 +691,7 @@ export const disbursementsRouter = router({
         paymentType: input.paymentType,
         dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
         completionPercentage: input.completionPercentage,
+        fundingSourceName: input.fundingSourceName || null,
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
         status: "pending",
         requestedBy: ctx.user.id,
