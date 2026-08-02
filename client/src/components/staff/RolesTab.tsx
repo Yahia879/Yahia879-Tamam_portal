@@ -23,6 +23,8 @@ import {
 import { Shield, Plus, Users, Loader2, Power, MoreVertical, ShieldOff, ChevronLeft } from "lucide-react";
 
 export const SYSTEM_ROLE_DESCRIPTIONS: Record<string, string> = {
+  general_manager: "الإشراف والاعتماد النهائي على طلبات وأوامر الصرف والعقود، وإدارة العمليات التنفيذية للجمعية.",
+  executive_director: "الإشراف والاعتماد النهائي على طلبات وأوامر الصرف والعقود، وإدارة العمليات التنفيذية للجمعية.",
   super_admin: "التحكم الكامل والإشراف الشامل على كافة جوانب النظام والجمعية، بما في ذلك إدارة الصلاحيات، الاعتمادات المالية والتقارير.",
   system_admin: "إدارة النظام تقنياً وتخصيص صلاحيات المستخدمين والأدوار المخصصة، ومراقبة سجلات النظام وإدارة الموظفين.",
   projects_office: "إدارة المشاريع الإنشائية والصيانة، دراسة طلبات الصيانة والترميم، إعداد جداول الكميات، وإسناد الزيارات الميدانية.",
@@ -59,16 +61,17 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
   const rolePriority: Record<string, number> = {
     system_admin: 1,
     super_admin: 2,
-    projects_office: 3,
-    project_manager: 4,
-    financial: 5,
-    field_team: 6,
-    quick_response: 7,
-    corporate_comm: 8,
+    general_manager: 3,
+    projects_office: 4,
+    project_manager: 5,
+    financial: 6,
+    field_team: 7,
+    quick_response: 8,
+    corporate_comm: 9,
   };
 
   const roles = allRoles
-    ?.filter(role => role.id !== 'service_requester' && role.id !== 'financial_manager' && role.isSystem)
+    ?.filter(role => role.id !== 'service_requester' && role.id !== 'financial_manager' && role.id !== 'executive_director' && role.isSystem)
     .sort((a, b) => (rolePriority[a.id] || 99) - (rolePriority[b.id] || 99));
 
   useEffect(() => {

@@ -1476,7 +1476,7 @@ export const disbursementsRouter = router({
           signatureUrl: users.signatureUrl,
         })
         .from(users)
-        .where(eq(users.email, "fdd8@gmail.com"));
+        .where(eq(users.email, "solayani@manarah.org.sa"));
 
       const [executiveDirectorUser] = await db
         .select({
@@ -1488,7 +1488,7 @@ export const disbursementsRouter = router({
           signatureUrl: users.signatureUrl,
         })
         .from(users)
-        .where(eq(users.email, "fds8@gmail.com"));
+        .where(eq(users.email, "ceo@manarah.org.sa"));
 
       return {
         ...order,
@@ -1819,12 +1819,12 @@ export const disbursementsRouter = router({
 
       const userEmail = ctx.user.email;
 
-      // المرحلة الأولى: حساب الإدارة المالية (fdd8@gmail.com) حصراً
+      // المرحلة الأولى: حساب الإدارة المالية (solayani@manarah.org.sa) حصراً
       if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
-        if (userEmail !== "fdd8@gmail.com") {
+        if (userEmail !== "solayani@manarah.org.sa") {
           throw new TRPCError({ 
             code: "FORBIDDEN", 
-            message: "فقط حساب الإدارة المالية (fdd8@gmail.com) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+            message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
           });
         }
 
@@ -1845,12 +1845,12 @@ export const disbursementsRouter = router({
         };
       }
 
-      // المرحلة الثانية: حساب المدير التنفيذي (fds8@gmail.com) حصراً
+      // المرحلة الثانية: حساب المدير التنفيذي (ceo@manarah.org.sa) حصراً
       if (order.status === "pending_executive") {
-        if (userEmail !== "fds8@gmail.com") {
+        if (userEmail !== "ceo@manarah.org.sa") {
           throw new TRPCError({ 
             code: "FORBIDDEN", 
-            message: "فقط حساب المدير التنفيذي (fds8@gmail.com) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
+            message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
           });
         }
 
@@ -2105,17 +2105,17 @@ export const disbursementsRouter = router({
       const userEmail = ctx.user.email;
 
       if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
-        if (userEmail !== "fdd8@gmail.com") {
+        if (userEmail !== "solayani@manarah.org.sa") {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "فقط حساب الإدارة المالية (fdd8@gmail.com) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+            message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
           });
         }
       } else if (orderData.status === "pending_executive") {
-        if (userEmail !== "fds8@gmail.com") {
+        if (userEmail !== "ceo@manarah.org.sa") {
           throw new TRPCError({
             code: "FORBIDDEN",
-            message: "فقط حساب المدير التنفيذي (fds8@gmail.com) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+            message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
           });
         }
       } else {

@@ -323,7 +323,7 @@ export const contractsRouter = router({
 
       let firstPartySignatureUrl: string | null =
         signatory?.signatureUrl ||
-        contract.firstPartySignatureUrl ||
+        (contract as any).firstPartySignatureUrl ||
         (showSigInDocs ? targetUser?.signatureUrl : null) ||
         null;
 

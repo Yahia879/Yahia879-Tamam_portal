@@ -260,10 +260,10 @@ export default function DisbursementOrders() {
       let aPendingMyAction = false;
       let bPendingMyAction = false;
 
-      if (userEmail === "fdd8@gmail.com") {
+      if (userEmail === "solayani@manarah.org.sa") {
         aPendingMyAction = a.status === "pending" || a.status === "edited" || a.status === "draft";
         bPendingMyAction = b.status === "pending" || b.status === "edited" || b.status === "draft";
-      } else if (userEmail === "fds8@gmail.com") {
+      } else if (userEmail === "ceo@manarah.org.sa") {
         aPendingMyAction = a.status === "pending_executive";
         bPendingMyAction = b.status === "pending_executive";
       }
@@ -434,9 +434,9 @@ export default function DisbursementOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isPendingMyAction = user?.email === "fdd8@gmail.com"
+                        const isPendingMyAction = user?.email === "solayani@manarah.org.sa"
                           ? (order.status === "pending" || order.status === "edited" || order.status === "draft")
-                          : user?.email === "fds8@gmail.com"
+                          : user?.email === "ceo@manarah.org.sa"
                           ? order.status === "pending_executive"
                           : false;
 
@@ -488,7 +488,7 @@ export default function DisbursementOrders() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-52 text-right font-medium">
-                                  {((order.status === "pending_executive" && user?.email === "fds8@gmail.com") || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && user?.email === "fdd8@gmail.com")) && (
+                                  {((order.status === "pending_executive" && user?.email === "ceo@manarah.org.sa") || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && user?.email === "solayani@manarah.org.sa")) && (
                                     <>
                                       <DropdownMenuItem
                                         onClick={() => {
