@@ -92,6 +92,7 @@ interface SupportSourceItem {
   const [voucherAmount, setVoucherAmount] = useState<string>("");
   const [voucherDate, setVoucherDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [voucherPayerName, setVoucherPayerName] = useState<string>("");
+  const [customVoucherPayerName, setCustomVoucherPayerName] = useState<string>("");
   const [voucherPaymentMethod, setVoucherPaymentMethod] = useState<string>("bank_transfer");
   const [voucherRefNumber, setVoucherRefNumber] = useState<string>("");
   const [voucherBankName, setVoucherBankName] = useState<string>("");
@@ -250,7 +251,9 @@ interface SupportSourceItem {
     setEditingVoucherId(null);
     setVoucherAmount("");
     setVoucherDate(new Date().toISOString().split("T")[0]);
-    setVoucherPayerName(supportEntity === "اخرى" ? customSupportEntity : supportEntity || "");
+    const firstSupporter = supportSources[0]?.entity === "اخرى" ? supportSources[0]?.customEntity : supportSources[0]?.entity;
+    setVoucherPayerName(firstSupporter || "");
+    setCustomVoucherPayerName("");
     setVoucherPaymentMethod("bank_transfer");
     setVoucherRefNumber("");
     setVoucherBankName("");
@@ -262,8 +265,20 @@ interface SupportSourceItem {
   const openEditVoucherModal = (voucher: any) => {
     setEditingVoucherId(voucher.id);
     setVoucherAmount(voucher.amount.toString());
-    setVoucherDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : "");
-    setVoucherPayerName(voucher.payerName || "");
+    setVoucherDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+    const pName = voucher.payerName || "";
+    const matchedSource = supportSources.find(s => {
+      const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+      return (name || "").trim().toLowerCase() === pName.trim().toLowerCase();
+    });
+    if (matchedSource) {
+      const name = matchedSource.entity === "اخرى" ? matchedSource.customEntity : matchedSource.entity;
+      setVoucherPayerName(name || "");
+      setCustomVoucherPayerName("");
+    } else {
+      setVoucherPayerName("اخرى");
+      setCustomVoucherPayerName(pName);
+    }
     setVoucherPaymentMethod(voucher.paymentMethod || "bank_transfer");
     setVoucherRefNumber(voucher.referenceNumber || "");
     setVoucherBankName(voucher.bankName || "");
@@ -288,12 +303,14 @@ interface SupportSourceItem {
       return;
     }
 
+    const finalPayerName = (voucherPayerName === "اخرى" ? customVoucherPayerName : voucherPayerName) || "";
+
     if (editingVoucherId) {
       updateVoucherMutation.mutate({
         id: editingVoucherId,
         amount: amountNum,
         receiptDate: voucherDate,
-        payerName: voucherPayerName,
+        payerName: finalPayerName,
         paymentMethod: voucherPaymentMethod,
         referenceNumber: voucherRefNumber,
         bankName: voucherBankName,
@@ -305,7 +322,7 @@ interface SupportSourceItem {
         projectId,
         amount: amountNum,
         receiptDate: voucherDate,
-        payerName: voucherPayerName,
+        payerName: finalPayerName,
         paymentMethod: voucherPaymentMethod,
         referenceNumber: voucherRefNumber,
         bankName: voucherBankName,
@@ -891,13 +908,78 @@ interface SupportSourceItem {
           {/* Progress Bar of Collection */}
           <div className="space-y-1.5 bg-slate-50 p-3 rounded-lg border">
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="text-gray-700">نسبة التحصيل والقبض الفعلي</span>
+              <span className="text-gray-700">نسبة التحصيل والقبض الفعلي الإجمالية</span>
               <span className="text-emerald-700 font-bold">{collectionPercentage}%</span>
             </div>
             <Progress value={collectionPercentage} className="h-2.5 bg-gray-200" />
           </div>
 
-          {/* Table of Receipt Vouchers */}
+          {/* 3.1 كروت التحصيل والقبض تفصيلياً حسب كل داعم */}
+          {supportSources.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  مباشر: المبالغ المدفوعة والمتبقية تفصيلياً لكل داعم ({supportSources.length} داعم)
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {supportSources.map((source, sIdx) => {
+                  const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
+                  const targetAmt = source.amount || 0;
+                  
+                  // Filter receipt vouchers for this supporter
+                  const sVouchers = receiptVouchers.filter(v => {
+                    const pName = (v.payerName || "").trim().toLowerCase();
+                    return pName === sName.trim().toLowerCase() || (source.entity !== "اخرى" && pName === source.entity.trim().toLowerCase());
+                  });
+
+                  const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                  const remainingAmt = Math.max(0, targetAmt - receivedAmt);
+                  const sPct = targetAmt > 0 ? Math.min(100, Math.round((receivedAmt / targetAmt) * 100)) : (receivedAmt > 0 ? 100 : 0);
+
+                  return (
+                    <div key={sIdx} className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2.5 hover:border-blue-300 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <Badge className="bg-blue-700 text-white font-bold text-xs px-2.5 py-0.5">
+                          {sName}
+                        </Badge>
+                        <Badge variant="outline" className={`text-[10px] font-bold ${sPct >= 100 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-amber-50 text-amber-800 border-amber-300'}`}>
+                          {sPct >= 100 ? 'مكتمل التحصيل 100%' : `مكتمل ${sPct}%`}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
+                        <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-100/90 text-right">
+                          <span className="text-[10px] text-emerald-800 block font-semibold">المقبوض فعلياً (المدفوع)</span>
+                          <span className="text-sm font-bold text-emerald-950 block mt-0.5">
+                            {receivedAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                          </span>
+                        </div>
+
+                        <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-100/90 text-right">
+                          <span className="text-[10px] text-amber-800 block font-semibold">المبلغ المتبقي للقبض</span>
+                          <span className="text-sm font-bold text-amber-950 block mt-0.5">
+                            {remainingAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                        <span>إجمالي الدعم المقرر:</span>
+                        <span className="font-bold text-slate-800">{targetAmt.toLocaleString("ar-SA")} ريال</span>
+                      </div>
+
+                      <Progress value={sPct} className="h-1.5 bg-slate-100" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Categorized Receipt Vouchers by Supporter */}
           {receiptVouchers.length === 0 ? (
             <div className="text-center py-10 border-2 border-dashed rounded-lg bg-gray-50/40">
               <Receipt className="h-12 w-12 mx-auto mb-2 text-muted-foreground/40" />
@@ -907,82 +989,209 @@ interface SupportSourceItem {
               </p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-x-auto">
-              <Table dir="rtl">
-                <TableHeader className="bg-slate-50">
-                  <TableRow>
-                    <TableHead className="text-right">رقم السند</TableHead>
-                    <TableHead className="text-right">تاريخ القبض</TableHead>
-                    <TableHead className="text-right">المبلغ المقبوض</TableHead>
-                    <TableHead className="text-right">طريقة الدفع</TableHead>
-                    <TableHead className="text-right">المرجع / الحوالة</TableHead>
-                    <TableHead className="text-right">الملاحظات والمرفق</TableHead>
-                    <TableHead className="text-center">إجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {receiptVouchers.map((voucher) => (
-                    <TableRow key={voucher.id} className="hover:bg-slate-50/60">
-                      <TableCell className="font-bold text-primary text-xs">
-                        {voucher.voucherNumber}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}
-                      </TableCell>
-                      <TableCell className="font-bold text-emerald-700 text-xs">
-                        {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <Badge variant="outline" className="bg-slate-100 text-slate-800">
-                          {voucher.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
-                           voucher.paymentMethod === "cash" ? "نقداً" :
-                           voucher.paymentMethod === "cheque" ? "شيك بنكي" :
-                           voucher.paymentMethod === "platform" ? "منصة إلكترونية" : voucher.paymentMethod}
+            <div className="space-y-6">
+              {supportSources.map((source, sIdx) => {
+                const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
+                const targetAmt = source.amount || 0;
+                
+                // Filter receipt vouchers for this supporter
+                const sVouchers = receiptVouchers.filter(v => {
+                  const pName = (v.payerName || "").trim().toLowerCase();
+                  return pName === sName.trim().toLowerCase() || (source.entity !== "اخرى" && pName === source.entity.trim().toLowerCase());
+                });
+
+                const receivedAmt = sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                const remainingAmt = Math.max(0, targetAmt - receivedAmt);
+                const sPct = targetAmt > 0 ? Math.min(100, Math.round((receivedAmt / targetAmt) * 100)) : (receivedAmt > 0 ? 100 : 0);
+
+                return (
+                  <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
+                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-blue-700 text-white font-bold text-xs">
+                          {sName}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-gray-650">
-                        {voucher.referenceNumber || "-"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <span>{voucher.notes || "-"}</span>
-                          {voucher.attachmentUrl && (
-                            <a 
-                              href={voucher.attachmentUrl} 
-                              target="_blank" 
-                              rel="noreferrer"
-                              className="text-blue-600 hover:underline flex items-center gap-0.5"
-                            >
-                              <Paperclip className="h-3.5 w-3.5" />
-                              <span className="text-[11px]">مرفق</span>
-                            </a>
-                          )}
+                        <span className="text-xs text-muted-foreground">
+                          ({sVouchers.length} {sVouchers.length === 1 ? "سند" : "سندات"})
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs font-semibold">
+                        <div className="text-gray-600">
+                          المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditVoucherModal(voucher)}
-                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteVoucher(voucher.id)}
-                            className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div className="text-emerald-700">
+                          المقبوض: <span className="font-bold text-emerald-800">{receivedAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <div className="text-amber-700">
+                          المتبقي: <span className="font-bold text-amber-800">{remainingAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-3 space-y-3">
+                      {/* Supporter mini progress */}
+                      {targetAmt > 0 && (
+                        <div className="space-y-1 bg-white p-2 rounded-md border text-[11px]">
+                          <div className="flex justify-between items-center font-medium">
+                            <span className="text-gray-600">نسبة تحصيل دفعات {sName}:</span>
+                            <span className="font-bold text-emerald-700">{sPct}%</span>
+                          </div>
+                          <Progress value={sPct} className="h-1.5 bg-gray-100" />
+                        </div>
+                      )}
+
+                      {/* Supporter Vouchers Table */}
+                      {sVouchers.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-muted-foreground bg-white rounded-md border border-dashed">
+                          لم يتم تسجيل أي سندات قبض خاصة بـ ({sName}) حتى الآن.
+                        </div>
+                      ) : (
+                        <div className="border rounded-md overflow-x-auto bg-white">
+                          <Table dir="rtl">
+                            <TableHeader className="bg-slate-50/80">
+                              <TableRow>
+                                <TableHead className="text-right text-xs">رقم السند</TableHead>
+                                <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
+                                <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
+                                <TableHead className="text-right text-xs">طريقة الدفع</TableHead>
+                                <TableHead className="text-right text-xs">المرجع / الحوالة</TableHead>
+                                <TableHead className="text-right text-xs">الملاحظات والمرفق</TableHead>
+                                <TableHead className="text-center text-xs">إجراءات</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {sVouchers.map((voucher) => (
+                                <TableRow key={voucher.id} className="hover:bg-slate-50/60">
+                                  <TableCell className="font-bold text-primary text-xs">
+                                    {voucher.voucherNumber}
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}
+                                  </TableCell>
+                                  <TableCell className="font-bold text-emerald-700 text-xs">
+                                    {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                                  </TableCell>
+                                  <TableCell className="text-xs">
+                                    <Badge variant="outline" className="bg-slate-100 text-slate-800 text-[10px]">
+                                      {voucher.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
+                                       voucher.paymentMethod === "cash" ? "نقداً" :
+                                       voucher.paymentMethod === "cheque" ? "شيك بنكي" :
+                                       voucher.paymentMethod === "platform" ? "منصة إلكترونية" : voucher.paymentMethod}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs text-gray-650">
+                                    {voucher.referenceNumber || "-"}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                      <span>{voucher.notes || "-"}</span>
+                                      {voucher.attachmentUrl && (
+                                        <a 
+                                          href={voucher.attachmentUrl} 
+                                          target="_blank" 
+                                          rel="noreferrer"
+                                          className="text-blue-600 hover:underline flex items-center gap-0.5"
+                                        >
+                                          <Paperclip className="h-3.5 w-3.5" />
+                                          <span className="text-[11px]">مرفق</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => openEditVoucherModal(voucher)}
+                                        className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                      >
+                                        <Edit3 className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDeleteVoucher(voucher.id)}
+                                        className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Unassigned vouchers if any */}
+              {(() => {
+                const unassigned = receiptVouchers.filter(v => {
+                  const pName = (v.payerName || "").trim().toLowerCase();
+                  return !supportSources.some(src => {
+                    const sName = (src.entity === "اخرى" ? src.customEntity : src.entity) || "";
+                    return sName.trim().toLowerCase() === pName || (src.entity !== "اخرى" && src.entity.trim().toLowerCase() === pName);
+                  });
+                });
+
+                if (unassigned.length === 0) return null;
+
+                return (
+                  <Card className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
+                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-3 px-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-slate-200 text-slate-800 font-bold text-xs">
+                          سندات قبض أخرى / غير مصنفة
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">({unassigned.length} سندات)</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-3">
+                      <div className="border rounded-md overflow-x-auto bg-white">
+                        <Table dir="rtl">
+                          <TableHeader className="bg-slate-50/80">
+                            <TableRow>
+                              <TableHead className="text-right text-xs">اسم القابض / الداعم</TableHead>
+                              <TableHead className="text-right text-xs">رقم السند</TableHead>
+                              <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
+                              <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
+                              <TableHead className="text-right text-xs">طريقة الدفع</TableHead>
+                              <TableHead className="text-center text-xs">إجراءات</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {unassigned.map((voucher) => (
+                              <TableRow key={voucher.id}>
+                                <TableCell className="text-xs font-semibold">{voucher.payerName || "-"}</TableCell>
+                                <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
+                                <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
+                                <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
+                                <TableCell className="text-xs">{voucher.paymentMethod}</TableCell>
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
+                                      <Edit3 className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteVoucher(voucher.id)} className="h-7 w-7 text-red-600">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </div>
           )}
 
@@ -1026,14 +1235,42 @@ interface SupportSourceItem {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">اسم الداعم / القابض</Label>
-              <Input
-                type="text"
-                value={voucherPayerName}
-                onChange={(e) => setVoucherPayerName(e.target.value)}
-                placeholder="اسم الجهة الداعمة"
-              />
+              <Label className="text-xs font-semibold">اختيار الداعم / القابض منه *</Label>
+              <Select 
+                value={voucherPayerName} 
+                onValueChange={(val) => {
+                  setVoucherPayerName(val);
+                  if (val !== "اخرى") setCustomVoucherPayerName("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الداعم" />
+                </SelectTrigger>
+                <SelectContent>
+                  {supportSources.map((src, idx) => {
+                    const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+                    return name ? (
+                      <SelectItem key={idx} value={name}>
+                        {name} ({src.amount ? `${src.amount.toLocaleString("ar-SA")} ريال` : "غير محدد"})
+                      </SelectItem>
+                    ) : null;
+                  })}
+                  <SelectItem value="اخرى">داعم آخر / إدخال يدوي</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {voucherPayerName === "اخرى" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">اسم الداعم الآخر *</Label>
+                <Input
+                  type="text"
+                  value={customVoucherPayerName}
+                  onChange={(e) => setCustomVoucherPayerName(e.target.value)}
+                  placeholder="أدخل اسم الجهة الداعمة"
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
