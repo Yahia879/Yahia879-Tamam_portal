@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { usePermission } from "@/hooks/usePermission";
+import { useUserPermissions } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -125,19 +125,18 @@ export default function ProjectDetailsPage() {
   const [isEditingManager, setIsEditingManager] = useState(false);
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  // صلاحية عرض تفاصيل المشروع → تعرض جميع الأقسام
-  const canViewDetails = isAdmin || userPermissions.includes("projects.view_details");
-  const canEditProjectName = canViewDetails;
+  // جلب الصلاحيات المحسوبة من السيرفر (تأخذ بالاعتبار الأدوار + الحجب الخاص والحظر)
+  const serverPermissions = useUserPermissions();
   const canChangeManager = isAdmin || user?.role === 'projects_office';
+  // صلاحية عرض تفاصيل المشروع → تعرض جميع الأقسام (إلا إذا تم حجبها خاصاً)
+  const canViewDetails = serverPermissions.includes("projects.view_details");
+  const canEditProjectName = canViewDetails || isAdmin;
   // صلاحية مالية المشاريع → تعرض قسم المالية
-  const hasFinancialsPerm = usePermission("projects.financials");
-  const canViewFinancials = isAdmin || userPermissions.includes("projects.financials") || hasFinancialsPerm;
-  // إذا كان المستخدم يملك فقط صلاحية المالية بدون عرض التفاصيل
+  const canViewFinancials = serverPermissions.includes("projects.financials");
+  // إذا كان المستخدم يملك فقط صلاحية المالية بدون صلاحية عرض التفاصيل
   const financialsOnly = canViewFinancials && !canViewDetails;
 
   useEffect(() => {
-    // إذا كان يملك فقط صلاحية المالية، يتم توجيهه إلى قسم المالية مباشرة
     if (financialsOnly) {
       setActiveTab("financials");
     } else if (!canViewFinancials && activeTab === "financials") {
