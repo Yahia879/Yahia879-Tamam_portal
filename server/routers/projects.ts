@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray, or } from "drizzle-orm";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers } from "../../drizzle/schema";
+import { eq, desc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
@@ -1742,4 +1742,286 @@ export const projectsRouter = router({
       await db.update(projects).set(updateData).where(eq(projects.id, input.id));
       return { success: true };
     }),
+
+  // ==================== تفاصيل البيانات المالية والدعم للمشروع ====================
+  getFinancialData: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [financialDetail] = await db
+        .select()
+        .from(projectFinancialDetails)
+        .where(eq(projectFinancialDetails.projectId, input.projectId));
+
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, input.projectId));
+
+      if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
+
+      // جلب جميع عروض الأسعار المتاحة للمشروع
+      const allQuotations = await db
+        .select({
+          id: quotations.id,
+          quotationNumber: quotations.quotationNumber,
+          totalAmount: quotations.totalAmount,
+          finalAmount: quotations.finalAmount,
+          negotiatedAmount: quotations.negotiatedAmount,
+          approvedAmount: quotations.approvedAmount,
+          status: quotations.status,
+          createdAt: quotations.createdAt,
+          supplierId: quotations.supplierId,
+          supplierName: suppliers.name,
+          supplierCommercialRegister: suppliers.commercialRegister,
+          supplierPhone: suppliers.phone,
+          supplierEmail: suppliers.email,
+        })
+        .from(quotations)
+        .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
+        .where(or(eq(quotations.projectId, input.projectId), project.requestId ? eq(quotations.requestId, project.requestId) : sql`1=0`));
+
+      // تحديد عرض السعر المعتمد (إما المحدد بـ approvedQuotationId أو الذي حالته approved)
+      let approvedQuotation = null;
+      if (financialDetail?.approvedQuotationId) {
+        approvedQuotation = allQuotations.find(q => q.id === financialDetail.approvedQuotationId) || null;
+      }
+      if (!approvedQuotation) {
+        approvedQuotation = allQuotations.find(q => q.status === "approved") || allQuotations[0] || null;
+      }
+
+      // جلب سندات القبض
+      const vouchers = await db
+        .select({
+          id: receiptVouchers.id,
+          voucherNumber: receiptVouchers.voucherNumber,
+          projectId: receiptVouchers.projectId,
+          amount: receiptVouchers.amount,
+          receiptDate: receiptVouchers.receiptDate,
+          payerName: receiptVouchers.payerName,
+          paymentMethod: receiptVouchers.paymentMethod,
+          referenceNumber: receiptVouchers.referenceNumber,
+          bankName: receiptVouchers.bankName,
+          attachmentUrl: receiptVouchers.attachmentUrl,
+          notes: receiptVouchers.notes,
+          createdAt: receiptVouchers.createdAt,
+          createdById: receiptVouchers.createdById,
+          creatorName: users.name,
+        })
+        .from(receiptVouchers)
+        .leftJoin(users, eq(receiptVouchers.createdById, users.id))
+        .where(eq(receiptVouchers.projectId, input.projectId))
+        .orderBy(desc(receiptVouchers.receiptDate));
+
+      // جلب طلبات الصرف غير المرفوضة للمشروع لحساب مبالغ التمويل من الحساب العام للجمعية (دين على الداعم)
+      const projectDisbursements = await db
+        .select()
+        .from(disbursementRequests)
+        .where(and(
+          eq(disbursementRequests.projectId, input.projectId),
+          ne(disbursementRequests.status, "rejected")
+        ));
+
+      let autoAssociationFunding = 0;
+      const associationFundedRequests: Array<{
+        id: number;
+        requestNumber: string;
+        title: string | null;
+        amount: number;
+        coveredAmount: number;
+        dateMiladi: string | null;
+        status: string | null;
+      }> = [];
+
+      for (const req of projectDisbursements) {
+        const desc = req.description || "";
+        const attachments = req.attachmentsJson || "";
+        let isGenAccount = desc.includes("الحساب العام للجمعية") || desc.includes("تم التوجيه بالصرف من الحساب العام");
+        let coveredAmount = 0;
+
+        if (attachments.includes("general_account_coverage")) {
+          isGenAccount = true;
+          try {
+            const parsed = JSON.parse(attachments);
+            const genItem = Array.isArray(parsed) ? parsed.find((item: any) => item.name === "general_account_coverage") : null;
+            if (genItem && genItem.url) {
+              const info = JSON.parse(genItem.url);
+              coveredAmount = parseFloat(info.funderDeficit || "0");
+            }
+          } catch (e) {
+            // fallback
+          }
+        }
+
+        if (!coveredAmount && isGenAccount) {
+          const match = desc.match(/العجز البالغ\s*\(?([0-9.,]+)/);
+          if (match) {
+            coveredAmount = parseFloat(match[1].replace(/,/g, "")) || 0;
+          } else {
+            coveredAmount = parseFloat(req.amount || "0");
+          }
+        }
+
+        if (isGenAccount && coveredAmount > 0) {
+          autoAssociationFunding += coveredAmount;
+          associationFundedRequests.push({
+            id: req.id,
+            requestNumber: req.requestNumber,
+            title: req.title,
+            amount: parseFloat(req.amount || "0"),
+            coveredAmount,
+            dateMiladi: req.dateMiladi ? req.dateMiladi.toString() : null,
+            status: req.status,
+          });
+        }
+      }
+
+      const manualAssociationFunding = parseFloat(financialDetail?.associationFundingAmount || "0");
+      const totalAssociationFunding = manualAssociationFunding > 0 ? manualAssociationFunding : autoAssociationFunding;
+
+      return {
+        financialDetail: financialDetail || null,
+        approvedQuotation: approvedQuotation || null,
+        allQuotations,
+        receiptVouchers: vouchers,
+        associationFunding: {
+          totalAmount: totalAssociationFunding,
+          autoCalculatedAmount: autoAssociationFunding,
+          manualAmount: manualAssociationFunding,
+          notes: financialDetail?.associationFundingNotes || "",
+          debtStatus: "دين / مستحق على الداعم يجب تسديده للجمعية فور تحصيل باقي الدعم",
+          requests: associationFundedRequests,
+        },
+      };
+    }),
+
+  upsertFinancialDetails: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      approvedQuotationId: z.number().nullable().optional(),
+      supportEntity: z.string().optional(),
+      customSupportEntity: z.string().optional(),
+      supportAmount: z.number().optional(),
+      adminFeeType: z.enum(["percentage", "fixed"]).optional(),
+      adminFeeValue: z.number().optional(),
+      adminFeeAmount: z.number().optional(),
+      associationFundingAmount: z.number().optional(),
+      associationFundingNotes: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [existing] = await db
+        .select()
+        .from(projectFinancialDetails)
+        .where(eq(projectFinancialDetails.projectId, input.projectId));
+
+      const values = {
+        projectId: input.projectId,
+        approvedQuotationId: input.approvedQuotationId ?? null,
+        supportEntity: input.supportEntity ?? "",
+        customSupportEntity: input.customSupportEntity ?? "",
+        supportAmount: input.supportAmount?.toString() ?? "0.00",
+        adminFeeType: input.adminFeeType ?? "percentage",
+        adminFeeValue: input.adminFeeValue?.toString() ?? "0.00",
+        adminFeeAmount: input.adminFeeAmount?.toString() ?? "0.00",
+        associationFundingAmount: input.associationFundingAmount?.toString() ?? "0.00",
+        associationFundingNotes: input.associationFundingNotes ?? "",
+        notes: input.notes ?? "",
+      };
+
+      if (existing) {
+        await db.update(projectFinancialDetails)
+          .set(values)
+          .where(eq(projectFinancialDetails.id, existing.id));
+      } else {
+        await db.insert(projectFinancialDetails).values(values);
+      }
+
+      return { success: true };
+    }),
+
+  createReceiptVoucher: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      amount: z.number().positive("يرجى إدخال مبلغ صحيح أكبر من 0"),
+      receiptDate: z.string().min(1, "يرجى تحديد تاريخ القبض"),
+      payerName: z.string().optional(),
+      paymentMethod: z.string().optional(),
+      referenceNumber: z.string().optional(),
+      bankName: z.string().optional(),
+      attachmentUrl: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const year = new Date().getFullYear();
+      const randomSeq = Math.floor(1000 + Math.random() * 9000);
+      const voucherNumber = `REC-${year}-${input.projectId}-${randomSeq}`;
+
+      await db.insert(receiptVouchers).values({
+        voucherNumber,
+        projectId: input.projectId,
+        amount: input.amount.toString(),
+        receiptDate: new Date(input.receiptDate),
+        payerName: input.payerName || "",
+        paymentMethod: input.paymentMethod || "bank_transfer",
+        referenceNumber: input.referenceNumber || "",
+        bankName: input.bankName || "",
+        attachmentUrl: input.attachmentUrl || "",
+        notes: input.notes || "",
+        createdById: ctx.user.id,
+      });
+
+      return { success: true, voucherNumber };
+    }),
+
+  updateReceiptVoucher: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      amount: z.number().positive("يرجى إدخال مبلغ صحيح أكبر من 0"),
+      receiptDate: z.string().min(1, "يرجى تحديد تاريخ القبض"),
+      payerName: z.string().optional(),
+      paymentMethod: z.string().optional(),
+      referenceNumber: z.string().optional(),
+      bankName: z.string().optional(),
+      attachmentUrl: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.update(receiptVouchers)
+        .set({
+          amount: input.amount.toString(),
+          receiptDate: new Date(input.receiptDate),
+          payerName: input.payerName || "",
+          paymentMethod: input.paymentMethod || "bank_transfer",
+          referenceNumber: input.referenceNumber || "",
+          bankName: input.bankName || "",
+          attachmentUrl: input.attachmentUrl || "",
+          notes: input.notes || "",
+        })
+        .where(eq(receiptVouchers.id, input.id));
+
+      return { success: true };
+    }),
+
+  deleteReceiptVoucher: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db.delete(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      return { success: true };
+    }),
 });
+

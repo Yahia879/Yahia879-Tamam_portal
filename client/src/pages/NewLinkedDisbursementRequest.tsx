@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -199,6 +200,17 @@ export default function NewLinkedDisbursementRequest() {
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
   const [billerSearch, setBillerSearch] = useState("");
+
+  // حالات التنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً
+  const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);
+  const [disburseFromGeneralAccount, setDisburseFromGeneralAccount] = useState(false);
+
+  // إعادة ضبط التغطيّة التلقائية عند دخول الخطوة الثانية أو تغيير المشروع أو تقرير الإنجاز لضمان إظهار النافذة المنبثقة
+  useEffect(() => {
+    if (step === 2) {
+      setDisburseFromGeneralAccount(false);
+    }
+  }, [step, selectedReportId, formData.projectId]);
 
   // قائمة الموردين
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
@@ -594,9 +606,9 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
   
-  // جلب تفاصيل المشروع
+  // جلب تفاصيل المشروع (بدون lightweight لجلب قائمة الدفعات والعقود)
   const { data: projectDetails } = trpc.projects.getById.useQuery(
-    { id: formData.projectId, lightweight: true },
+    { id: formData.projectId, lightweight: false },
     { enabled: formData.projectId > 0 }
   );
 
@@ -610,6 +622,18 @@ export default function NewLinkedDisbursementRequest() {
   const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(
     { projectId: formData.projectId },
     { enabled: formData.projectId > 0 }
+  );
+
+  // جلب البيانات المالية وسندات القبض للمشروع المحدد للتحقق الذكي من رصيد مدفوعات الداعم
+  const { data: projectFinancials } = trpc.projects.getFinancialData.useQuery(
+    { projectId: formData.projectId },
+    { enabled: formData.projectId > 0 }
+  );
+
+  // إجمالي سندات القبض (المدفوعات الفعلية المقبوضة من الداعم لهذا المشروع)
+  const totalSupporterPayments = (projectFinancials?.receiptVouchers || []).reduce(
+    (sum: number, v: any) => sum + parseFloat(v.amount || "0"),
+    0
   );
 
 
@@ -697,47 +721,54 @@ export default function NewLinkedDisbursementRequest() {
     },
   });
   
-  // تحديث بيانات المورد من العقد وتقرير الإنجاز تلقائياً
+  // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
-    if (contractDetails && contractDetails.contract) {
-      // المبلغ الفعلي للدفعة ينجاب من تقرير الإنجاز
-      const actualAmount = selectedReport 
-        ? parseFloat(String(selectedReport.budgetSpent || "0")) 
-        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
+    const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
+    const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
+    const quotationAmt = parseFloat(String(
+      projectFinancials?.approvedQuotation?.approvedAmount || 
+      projectFinancials?.approvedQuotation?.finalAmount || 
+      projectFinancials?.approvedQuotation?.totalAmount || 
+      projectFinancials?.allQuotations?.[0]?.approvedAmount ||
+      projectFinancials?.allQuotations?.[0]?.finalAmount ||
+      projectFinancials?.allQuotations?.[0]?.totalAmount || 
+      "0"
+    ));
+    const contractAmt = parseFloat(String(
+      contractDetails?.contract?.contractAmount || 
+      (projectContracts?.contracts?.[0] as any)?.contractAmount || 
+      "0"
+    ));
+    const projectBudgetAmt = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
 
-      // المبلغ المتفق عليه للدفعة ينجاب من الدفعة بتفاصيل المشروع
-      const agreedAmount = paymentInfo
-        ? parseFloat(String(paymentInfo.amount || "0"))
-        : parseFloat(String(contractDetails.contract.contractAmount || "0"));
-      
-      // بيان الأعمال ينجاب من تقرير الإنجاز
-      const targetWork = selectedReport
-        ? selectedReport.title || ""
-        : contractDetails.contract.contractTitle || "";
+    const calculatedAmount = reportBudget > 0
+      ? reportBudget
+      : (paymentAmt > 0 ? paymentAmt : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)));
 
-      if (
-        suppliers.length === 1 &&
-        suppliers[0].name === contractDetails.contract.secondPartyName &&
-        suppliers[0].iban === contractDetails.contract.secondPartyIban &&
-        suppliers[0].amount === actualAmount &&
-        suppliers[0].agreedAmount === agreedAmount &&
-        suppliers[0].work === targetWork
-      ) {
-        return;
-      }
-
-      const supplierFromContract: SupplierEntry = {
-        id: suppliers.length === 1 ? suppliers[0].id : crypto.randomUUID(),
-        name: contractDetails.contract.secondPartyName || "",
-        work: targetWork,
-        amount: actualAmount,
-        agreedAmount: agreedAmount,
-        iban: contractDetails.contract.secondPartyIban || "",
-        bank: contractDetails.contract.secondPartyBankName || "",
-      };
-      setSuppliers([supplierFromContract]);
+    if (calculatedAmount > 0) {
+      setSuppliers(prev => {
+        if (prev.length > 0 && prev[0].amount !== calculatedAmount) {
+          const updated = [...prev];
+          const secondPartyName = contractDetails?.contract?.secondPartyName || (projectContracts?.contracts?.[0] as any)?.secondPartyName || "مورد المشروع";
+          const secondPartyIban = contractDetails?.contract?.secondPartyIban || (projectContracts?.contracts?.[0] as any)?.secondPartyIban || "";
+          const secondPartyBank = contractDetails?.contract?.secondPartyBankName || (projectContracts?.contracts?.[0] as any)?.secondPartyBankName || "";
+          const targetWork = selectedReport?.title || contractDetails?.contract?.contractTitle || "أعمال منفذة حسب تقرير الإنجاز";
+          
+          updated[0] = {
+            ...updated[0],
+            amount: calculatedAmount,
+            agreedAmount: updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount,
+            name: updated[0].name || secondPartyName,
+            iban: updated[0].iban || secondPartyIban,
+            bank: updated[0].bank || secondPartyBank,
+            work: updated[0].work || targetWork,
+          };
+          return updated;
+        }
+        return prev;
+      });
     }
-  }, [contractDetails, selectedReport, paymentInfo]);
+  }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد معتمد أو نشط واحد فقط للمشروع
   useEffect(() => {
@@ -753,9 +784,44 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [projectContracts]);
   
-  // حساب الإجمالي
-  const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
+  // حساب الإجمالي من قائمة الموردين
+  const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const totalAmount = rawSuppliersAmount;
   
+  // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، ميزانية المشروع، أو العرض المعتمد
+  const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
+  const rawPaymentAmount = parseFloat(String(paymentInfo?.amount || "0"));
+  const rawQuotation = projectFinancials?.approvedQuotation;
+  const rawQuotationAmount = parseFloat(String(
+    rawQuotation?.approvedAmount || 
+    rawQuotation?.finalAmount || 
+    rawQuotation?.totalAmount || 
+    projectFinancials?.allQuotations?.[0]?.approvedAmount ||
+    projectFinancials?.allQuotations?.[0]?.finalAmount ||
+    projectFinancials?.allQuotations?.[0]?.totalAmount || 
+    "0"
+  ));
+  const rawContractAmount = parseFloat(String(contractDetails?.contract?.contractAmount || "0"));
+  const rawProjectContractAmount = parseFloat(String((projectContracts?.contracts?.[0] as any)?.contractAmount || "0"));
+  const rawProjectBudget = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
+
+  const currentDisbursementAmount = 
+    rawSuppliersAmount > 0 
+      ? rawSuppliersAmount 
+      : (
+          rawReportAmount > 0 ? rawReportAmount :
+          rawPaymentAmount > 0 ? rawPaymentAmount :
+          rawQuotationAmount > 0 ? rawQuotationAmount :
+          rawContractAmount > 0 ? rawContractAmount :
+          rawProjectContractAmount > 0 ? rawProjectContractAmount :
+          rawProjectBudget > 0 ? rawProjectBudget :
+          formData.amount || 0
+        );
+  
+  // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
+  const funderDeficit = Math.max(0, currentDisbursementAmount - totalSupporterPayments);
+  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId !== null) && currentDisbursementAmount > 0 && (funderDeficit > 0.01 || totalSupporterPayments === 0);
+
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
@@ -853,6 +919,15 @@ export default function NewLinkedDisbursementRequest() {
 
   const isNextDisabled = isStep2NextDisabled;
 
+  // معالجة النقر على زر "التالي" بالخطوة الثانية (إظهار المودال التحذيري فوراً عند وجود عجز فعلي)
+  const handleStep2Next = () => {
+    if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
+    setStep(3);
+  };
+
   // إرسال للاعتماد
   const handleSubmit = () => {
     const isFundingRequired = requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses";
@@ -936,7 +1011,17 @@ export default function NewLinkedDisbursementRequest() {
       toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
       return;
     }
+
+    // 1. التحقق الذكي من رصيد مدفوعات الداعم الفعلية (سندات القبض)
+    if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
+      setShowSupporterDeficitDialog(true);
+      return;
+    }
     
+    executeDisbursementSubmit(disburseFromGeneralAccount);
+  };
+
+  const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
     const isManual = paymentIdRaw.startsWith("manual-");
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
@@ -979,19 +1064,42 @@ export default function NewLinkedDisbursementRequest() {
       type: "metadata"
     }] : [];
     
+    const generalAccountNote = useGeneralAccount
+      ? `\n[تنبيه مالـي: تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ (${funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) عن مدفوعات الداعم الفعلية المقبوضة]`
+      : "";
+
+    const generalAccountMetadata = useGeneralAccount
+      ? [{
+          name: "general_account_coverage",
+          url: JSON.stringify({
+            funderDeficit,
+            totalSupporterPayments,
+            currentDisbursementAmount,
+            disburseFromGeneralAccount: true,
+          }),
+          type: "metadata"
+        }]
+      : [];
+
+    const baseAttachments = isCustom 
+      ? customSupplierMetadata 
+      : (linkedMetadata.length > 0 ? linkedMetadata : []);
+
+    const finalAttachments = [...baseAttachments, ...generalAccountMetadata];
+
     createMutation.mutate({
       projectId: formData.projectId && formData.projectId > 0 ? formData.projectId : null,
       contractId: isCustom ? undefined : (formData.contractId || undefined),
       contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
       paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
       title: formData.title,
-      description: formData.description,
+      description: formData.description + generalAccountNote,
       amount: totalAmount,
       adminFees: (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? formData.adminFees : undefined,
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
       completionPercentage: formData.completionPercentage,
-      attachments: isCustom ? customSupplierMetadata : (linkedMetadata.length > 0 ? linkedMetadata : undefined),
+      attachments: finalAttachments.length > 0 ? finalAttachments : undefined,
     });
   };
   
@@ -1899,7 +2007,7 @@ export default function NewLinkedDisbursementRequest() {
                   <span>السابق</span>
                 </Button>
                 <Button
-                  onClick={() => setStep(3)}
+                  onClick={handleStep2Next}
                   disabled={isStep2NextDisabled()}
                   className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
                 >
@@ -2258,8 +2366,6 @@ export default function NewLinkedDisbursementRequest() {
                   )}
                 </div>
 
-                <Separator />
-
                 <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
@@ -2419,6 +2525,90 @@ export default function NewLinkedDisbursementRequest() {
           <DialogFooter className="text-right border-t pt-4">
             <Button variant="outline" onClick={() => setShowReportReviewDialog(false)} className="text-xs h-9">
               إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal التحقق والتنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً */}
+      <Dialog open={showSupporterDeficitDialog} onOpenChange={setShowSupporterDeficitDialog}>
+        <DialogContent className="dir-rtl text-right max-w-lg rounded-2xl p-6 overflow-hidden border border-amber-200/80 dark:border-amber-900/60 shadow-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" dir="rtl">
+          {/* Header Title */}
+          <div className="flex items-start gap-3.5 pb-4 border-b border-slate-100 dark:border-slate-800 pr-1 pl-8">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-1 text-right">
+              <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                تبيّن من آلية التدقيق المالي أن إجمالي المقبوض فعلياً من الداعم أقل من المبلغ المطلوب صرفه حالياً لهذا المشروع.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="space-y-4 py-4 text-xs text-right">
+            {/* Financial Breakdown Card */}
+            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 space-y-2.5">
+              <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
+                <span className="text-slate-700 dark:text-slate-300">المبلغ المراد صرفه:</span>
+                <span className="font-bold text-blue-800 dark:text-blue-400 text-sm sm:text-base">
+                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center text-xs sm:text-sm">
+                <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center border-t border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs sm:text-sm">
+                <span className="text-amber-950 dark:text-amber-300">مبلغ العجز المطلوب تغطيته:</span>
+                <span className="font-black text-rose-700 dark:text-rose-400 text-sm sm:text-base">
+                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+              </div>
+            </div>
+
+            {/* Amber Warning Box (مربع التنبيه الأصلي ذو الإطار البرتقالي) */}
+            <div className="p-4 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/80 rounded-xl space-y-1.5 text-right shadow-xs">
+              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) أكبر من إجمالي ما دفعه الداعم فعلياً ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال)
+              </p>
+              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal pt-0.5">
+                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row-reverse items-center justify-between gap-2.5">
+            <Button
+              type="button"
+              onClick={() => {
+                setDisburseFromGeneralAccount(true);
+                setShowSupporterDeficitDialog(false);
+                if (step === 2) {
+                  setStep(3);
+                } else {
+                  executeDisbursementSubmit(true);
+                }
+              }}
+              className="w-full sm:w-auto font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white gap-2 h-10 px-4 rounded-xl shadow-xs"
+            >
+              <Coins className="h-4 w-4" />
+              الاستمرار والصرف من الحساب العام للجمعية
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSupporterDeficitDialog(false)}
+              className="w-full sm:w-auto text-xs font-semibold h-10 rounded-xl border-slate-200 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+            >
+              التراجع عن الطلب
             </Button>
           </DialogFooter>
         </DialogContent>

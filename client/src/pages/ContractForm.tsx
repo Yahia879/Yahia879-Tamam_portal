@@ -664,35 +664,6 @@ export default function ContractForm() {
         }
         return true;
       case 4:
-        if (supportSources.length === 0 || (supportSources.length === 1 && !supportSources[0].entity && supportSources[0].amount === 0)) {
-          toast.error("يرجى إضافة جهة داعمة واحدة على الأقل");
-          return false;
-        }
-
-        let totalSupported = 0;
-        for (let i = 0; i < supportSources.length; i++) {
-          const src = supportSources[i];
-          if (!src.entity) {
-            toast.error(`يرجى تحديد الجهة الداعمة في السطر ${i + 1}`);
-            return false;
-          }
-          if (src.entity === "اخرى" && (!src.customEntity || !src.customEntity.trim())) {
-            toast.error(`يرجى إدخال اسم الجهة الداعمة الأخرى في السطر ${i + 1}`);
-            return false;
-          }
-          if (!src.amount || src.amount <= 0) {
-            toast.error(`يرجى إدخال مبلغ دعم صحيح للجهة في السطر ${i + 1}`);
-            return false;
-          }
-          totalSupported += src.amount;
-        }
-
-        if (totalSupported > totalProjectCost) {
-          toast.error(`مجموع مبالغ الدعم (${totalSupported.toLocaleString()} ريال) لا يمكن أن يتجاوز القيمة الكلية للمشروع (${totalProjectCost.toLocaleString()} ريال)`);
-          return false;
-        }
-        return true;
-      case 5:
         // التحقق من صحة جدول الدفعات
         if (paymentSchedule.length === 0) {
           return true;
@@ -747,7 +718,7 @@ export default function ContractForm() {
   const nextStep = () => {
     if (validateStep(currentStep)) {
       setIsDraftSaved(false);
-      setCurrentStep(prev => Math.min(prev + 1, 8));
+      setCurrentStep(prev => Math.min(prev + 1, 7));
     }
   };
 
@@ -976,11 +947,10 @@ export default function ContractForm() {
     { id: 1, title: "القالب", icon: FileText },
     { id: 2, title: "الطرف الثاني", icon: Building2 },
     { id: 3, title: "التفاصيل", icon: DollarSign },
-    { id: 4, title: "دعم المشروع", icon: Heart },
-    { id: 5, title: "الدفعات", icon: Calendar },
-    { id: 6, title: "البنود", icon: Edit },
-    { id: 7, title: "البنود المخصصة", icon: Plus },
-    { id: 8, title: "المراجعة", icon: Eye },
+    { id: 4, title: "الدفعات", icon: Calendar },
+    { id: 5, title: "البنود", icon: Edit },
+    { id: 6, title: "البنود المخصصة", icon: Plus },
+    { id: 7, title: "المراجعة", icon: Eye },
   ];
 
   return (
@@ -1489,137 +1459,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 4: دعم المشروع */}
+            {/* الخطوة 4: جدول الدفعات */}
             {currentStep === 4 && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b pb-2 mb-2">
-                    <h3 className="font-semibold text-base text-primary">بيانات الدعم والتمويل</h3>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={addSupportSource}
-                      className="flex items-center gap-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                      إضافة جهة داعمة
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    {supportSources.map((src, index) => (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-4 bg-slate-50/50 rounded-lg border border-slate-100 relative animate-in fade-in-50 duration-200">
-                        <div className={`${src.entity === "اخرى" ? "md:col-span-4" : "md:col-span-7"} space-y-2`}>
-                          <Label>الجهة الداعمة *</Label>
-                          <Select
-                            value={src.entity || ""}
-                            onValueChange={(value) => {
-                              updateSupportSource(index, { 
-                                entity: value,
-                                customEntity: value === "اخرى" ? src.customEntity || "" : "" 
-                              });
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="اختر الجهة الداعمة" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {fundingSupportCategories.map((cat: any) => (
-                                <SelectItem key={cat.id} value={cat.nameAr}>
-                                  {cat.nameAr}
-                                </SelectItem>
-                              ))}
-                              {fundingSupportCategories.length === 0 && (
-                                <>
-                                  <SelectItem value="متجر التبرعات">متجر التبرعات</SelectItem>
-                                  <SelectItem value="منصة احسان">منصة احسان</SelectItem>
-                                  <SelectItem value="تبرع مباشر">تبرع مباشر</SelectItem>
-                                </>
-                              )}
-                              <SelectItem value="اخرى">جهة أخرى</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {src.entity === "اخرى" && (
-                          <div className="md:col-span-3 space-y-2">
-                            <Label>اسم الجهة الداعمة الأخرى *</Label>
-                            <Input
-                              type="text"
-                              value={src.customEntity || ""}
-                              onChange={(e) => updateSupportSource(index, { customEntity: e.target.value })}
-                              placeholder="أدخل اسم الجهة الداعمة"
-                            />
-                          </div>
-                        )}
-
-                        <div className="md:col-span-4 space-y-2">
-                          <Label>مبلغ الدعم (ريال) *</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={src.amount || ""}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              updateSupportSource(index, { amount: val });
-                            }}
-                            placeholder="أدخل مبلغ الدعم"
-                            className="font-bold text-blue-700 text-left [direction:ltr]"
-                          />
-                        </div>
-
-                        <div className="md:col-span-1 flex justify-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeSupportSource(index)}
-                            disabled={supportSources.length === 1 && !src.entity && src.amount === 0}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Summary of Support */}
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-4">
-                    <div>
-                      <span className="text-muted-foreground block text-xs">إجمالي القيمة الكلية للمشروع:</span>
-                      <span className="font-bold text-sm text-gray-900 mt-1 inline-block">
-                        {(contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs">إجمالي مبالغ الدعم المغطاة:</span>
-                      <span className="font-bold text-sm text-blue-700 mt-1 inline-block">
-                        {supportSources.reduce((sum, s) => sum + (s.amount || 0), 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs">المبلغ المتبقي (غير المغطى):</span>
-                      <span className={`font-bold text-sm mt-1 inline-block ${
-                        ((contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100) - supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)) === 0 
-                          ? "text-green-600" 
-                          : ((contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100) - supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)) < 0 
-                            ? "text-red-600" 
-                            : "text-amber-600"
-                      }`}>
-                        {((contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100) - supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                        {Math.abs((contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100) - supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)) < 0.01 && " (مغطى بالكامل)"}
-                        {((contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100) - supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)) < 0 && " (تجاوز المبلغ الكلي!)"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* الخطوة 5: جدول الدفعات */}
-            {currentStep === 5 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1882,8 +1723,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 6: بنود العقد */}
-            {currentStep === 6 && (
+            {/* الخطوة 5: بنود العقد */}
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <div>
                   <h3 className="font-medium">بنود العقد</h3>
@@ -1963,8 +1804,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 7: البنود المخصصة */}
-            {currentStep === 7 && (
+            {/* الخطوة 6: البنود المخصصة */}
+            {currentStep === 6 && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="font-medium text-lg">البنود المخصصة (اختياري)</h3>
@@ -2037,8 +1878,8 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 8: المراجعة */}
-            {currentStep === 8 && (
+            {/* الخطوة 7: المراجعة */}
+            {currentStep === 7 && (
               <div className="space-y-6">
                 <h3 className="font-medium text-lg">مراجعة العقد</h3>
                 
@@ -2105,30 +1946,6 @@ export default function ContractForm() {
                       <span className="text-muted-foreground">قيمة العقد:</span>
                       <p className="font-medium text-green-700 font-bold">{contractData.totalValue.toLocaleString()} ريال</p>
                     </div>
-                    {supportSources.length > 0 && supportSources.some(s => s.entity) && (
-                      <div className="col-span-2 border-t pt-4 mt-2">
-                        <span className="text-muted-foreground font-semibold block mb-2 text-primary">بيانات الدعم والتمويل:</span>
-                        <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                          {supportSources.filter(s => s.entity).map((src, index) => (
-                            <div key={index} className="flex justify-between items-center text-sm">
-                              <span className="text-gray-650 font-medium">
-                                • {src.entity === "اخرى" ? src.customEntity : src.entity}
-                              </span>
-                              <span className="font-bold text-blue-700">
-                                {src.amount.toLocaleString("ar-SA")} ريال
-                              </span>
-                            </div>
-                          ))}
-                          <div className="flex justify-between items-center text-sm font-bold border-t pt-2 mt-2">
-                            <span className="text-gray-900">إجمالي الدعم:</span>
-                            <span className="text-green-700">
-                              {supportSources.reduce((sum, src) => sum + src.amount, 0).toLocaleString("ar-SA")} ريال 
-                              ({Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "دعم كامل" : "دعم جزئي"})
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                     {contractData.managementPercentage > 0 && (
                       <>
                         <div>
@@ -2228,7 +2045,7 @@ export default function ContractForm() {
                   )}
                 </Button>
 
-                {currentStep < 8 ? (
+                {currentStep < 7 ? (
                   <Button onClick={nextStep} disabled={isSubmitting || isSavingDraft}>
                     التالي
                     <ArrowLeft className="h-4 w-4 mr-2" />
