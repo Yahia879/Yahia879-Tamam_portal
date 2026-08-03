@@ -176,7 +176,8 @@ export default function DisbursementOrderPrint() {
                        linkedRequestInfo?.requestType === "misc_expenses";
 
   const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
-                         linkedRequestInfo?.requestType === "sadad_invoice";
+                         linkedRequestInfo?.requestType === "sadad_invoice" ||
+                         order?.paymentMethod === "sadad";
 
   const showRequestNumber = !!request && !request.isDirect;
 
@@ -479,7 +480,7 @@ export default function DisbursementOrderPrint() {
               )}
 
               {/* تحويل بنكي من حساب الجمعية إلى */}
-              {order.paymentMethod === "bank_transfer" && (
+              {(order.paymentMethod === "bank_transfer" || order.paymentMethod === "sadad" || isSadadInvoice) && (
                 <div className="mb-4">
                   <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
                     تحويل بنكي من حساب الجمعية إلى:
