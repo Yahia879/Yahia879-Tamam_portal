@@ -438,10 +438,6 @@ export default function DisbursementRequestPrint() {
                 <div className="text-xs space-y-1 text-right sm:text-left">
                   <div className="flex gap-1.5 justify-start sm:justify-end">
                     <span className="font-bold text-gray-600">التاريخ:</span>
-                    <span className="border-b border-dotted border-gray-400 px-2">{toHijriDate(requestDate)}</span>
-                  </div>
-                  <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">الموافق:</span>
                     <span className="border-b border-dotted border-gray-400 px-2">{formatGregorianDate(requestDate)} م</span>
                   </div>
                   <div className="flex gap-1.5 justify-start sm:justify-end">
