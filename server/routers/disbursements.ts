@@ -1834,6 +1834,7 @@ export const disbursementsRouter = router({
           .set({
             status: "pending_executive" as any,
             createdBy: ctx.user.id,
+            financialApprovedAt: new Date(),
             approvalNotes: input.notes,
             updatedAt: new Date(),
           })
