@@ -447,10 +447,6 @@ export default function ProjectReportPrintPage() {
                 <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5">
                   <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold text-muted-foreground">التاريخ:</span>
-                    <span className="border-b border-dotted border-gray-400 px-3 font-semibold">{toHijriDate(reportDate)} هـ</span>
-                  </div>
-                  <div className="flex gap-2 justify-center sm:justify-end">
-                    <span className="font-bold text-muted-foreground">الموافق:</span>
                     <span className="border-b border-dotted border-gray-400 px-3 font-semibold">{formatGregorianDate(reportDate)} م</span>
                   </div>
                   <div className="flex gap-2 justify-center sm:justify-end">
