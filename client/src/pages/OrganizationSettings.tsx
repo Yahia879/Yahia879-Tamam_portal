@@ -654,7 +654,7 @@ function SignatoriesSection() {
                     <label className="cursor-pointer">
                       <input 
                         type="file" 
-                        accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" 
+                        accept="image/*,image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif,image/svg+xml,.heic,.heif,.jpg,.jpeg,.png" 
                         className="hidden" 
                         onChange={handleSignatureFileUpload} 
                         disabled={uploadingSignature}
@@ -714,7 +714,7 @@ function SignatoriesSection() {
                     <label className="cursor-pointer inline-block">
                       <input 
                         type="file" 
-                        accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" 
+                        accept="image/*,image/png,image/jpeg,image/jpg,image/webp,image/heic,image/heif,image/svg+xml,.heic,.heif,.jpg,.jpeg,.png" 
                         className="hidden" 
                         onChange={handleSignatureFileUpload}
                         disabled={uploadingSignature}
