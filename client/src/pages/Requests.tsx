@@ -21,7 +21,8 @@ import {
   MapPin,
   ClipboardList,
   Languages,
-  Briefcase
+  Briefcase,
+  Tag
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -407,9 +408,10 @@ export default function Requests({
           ) : requests.length > 0 ? (
             <div>
               {/* Table Header (Desktop Only) */}
-              <div className="hidden md:grid grid-cols-[auto_1.2fr_1.2fr_1.2fr_1fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <div className="hidden md:grid grid-cols-[auto_1.3fr_1.2fr_1.2fr_1.1fr_1.6fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                 <div className="w-8"></div>
                 <div>{isEn ? "Request" : "الطلب"}</div>
+                <div>{isEn ? "Caption" : "التسمية التوضيحية"}</div>
                 <div>{isEn ? "Mosque" : "المسجد"}</div>
                 <div>{isEn ? "Stage" : "المرحلة"}</div>
                 <div>{isEn ? "Project" : "المشروع"}</div>
@@ -424,7 +426,7 @@ export default function Requests({
                   return (
                     <div
                       key={request.id}
-                      className={`grid grid-cols-1 md:grid-cols-[auto_1.2fr_1.2fr_1.2fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
+                      className={`grid grid-cols-1 md:grid-cols-[auto_1.3fr_1.2fr_1.2fr_1.1fr_1.6fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
                       onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
                     >
                       {/* Desktop: Program Icon */}
@@ -458,6 +460,18 @@ export default function Requests({
                         </div>
                       </div>
 
+                      {/* Descriptive Name / التسمية التوضيحية */}
+                      <div className="hidden md:flex items-center gap-1.5 min-w-0">
+                        {request.descriptiveName ? (
+                          <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md border border-purple-200/60 dark:border-purple-800/60 truncate max-w-[170px]" title={request.descriptiveName}>
+                            <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 inline-block ml-1" />
+                            {request.descriptiveName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+
                       {/* Mosque (Desktop & Tablet) */}
                       <div className="hidden md:flex items-center gap-2 min-w-0">
                         <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -479,9 +493,9 @@ export default function Requests({
                       {/* Project (Desktop) */}
                       <div className="hidden md:flex items-center gap-1.5 min-w-0">
                         {request.projectId ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2 py-1 rounded-md border border-primary/10">
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10">
                             <Briefcase className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[180px]">{request.projectName}</span>
+                            <span className="truncate max-w-[220px]">{request.projectName}</span>
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
