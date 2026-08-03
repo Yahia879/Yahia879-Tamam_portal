@@ -1066,31 +1066,23 @@ export default function RequestDetailsNew() {
               </Link>
               <div className="flex items-start sm:items-center gap-3 min-w-0">
                 <ProgramIcon program={request.programType} className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                    <h1 className="text-base sm:text-xl font-bold text-muted-foreground font-mono truncate">{request.requestNumber}</h1>
-                    {linkedProject && (
-                      <Link href={`/projects/${linkedProject.id}`}>
-                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-7 text-[10px] sm:text-xs px-2 truncate max-w-full">
-                          <Building2 className={`w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
-                          <span className="truncate">{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2.5 flex-wrap mt-2">
-                    <p className="text-base sm:text-lg font-bold text-foreground truncate">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-base sm:text-xl font-bold text-foreground truncate">
                       {request.programType === "bunyan" 
                         ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
                         : (isEn 
                             ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
                             : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
-                    </p>
+                    </h1>
+                    <span className="text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2 py-0.5 rounded-md font-medium">
+                      {translateProgram(request.programType)}
+                    </span>
 
-                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم مع حركة نبض خفيفة */}
+                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم بجانب الاسم مباشرة */}
                     {request.descriptiveName ? (
-                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-sm">
-                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-sm">
+                        <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                         <span>{request.descriptiveName}</span>
                         <button
                           type="button"
@@ -1098,12 +1090,12 @@ export default function RequestDetailsNew() {
                             setDescriptiveNameInput(request.descriptiveName || "");
                             setShowEditCaptionDialog(true);
                           }}
-                          className="hover:text-purple-900 dark:hover:text-purple-100 transition-colors mr-1 p-0.5"
+                          className="hover:text-purple-900 dark:hover:text-purple-100 transition-colors mr-0.5 p-0.5"
                           title="تعديل التسمية التوضيحية"
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
-                      </div>
+                      </span>
                     ) : (
                       <button
                         type="button"
@@ -1111,18 +1103,28 @@ export default function RequestDetailsNew() {
                           setDescriptiveNameInput("");
                           setShowEditCaptionDialog(true);
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/80 transition-all cursor-pointer shadow-sm animate-pulse"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/80 transition-all cursor-pointer shadow-sm animate-pulse"
                         title="اضغط لإضافة تسمية توضيحية للطلب"
                       >
-                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                         <span>إضافة تسمية توضيحية</span>
-                        <Pencil className="w-3 h-3 text-purple-500 opacity-80" />
+                        <Pencil className="w-2.5 h-2.5 text-purple-500 opacity-80" />
                       </button>
                     )}
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {translateProgram(request.programType)}
-                  </p>
+
+                  <div className="flex items-center gap-2 flex-wrap text-xs pt-0.5">
+                    <span className="font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">{request.requestNumber}</span>
+
+                    {linkedProject && (
+                      <Link href={`/projects/${linkedProject.id}`}>
+                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-6 text-[10px] sm:text-xs px-2 truncate max-w-full">
+                          <Building2 className={`w-3 h-3 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          <span className="truncate">{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2804,12 +2806,12 @@ export default function RequestDetailsNew() {
         onOpenChange={setDetailsModalOpen}
       />
       
-      {/* Edit Descriptive Name Dialog (Clean Modern Theme) */}
+      {/* Edit Descriptive Name Dialog (Clean Green Portal Theme) */}
       <Dialog open={showEditCaptionDialog} onOpenChange={setShowEditCaptionDialog}>
-        <DialogContent className="sm:max-w-[480px] p-6 bg-background rounded-2xl border border-purple-100 dark:border-purple-900/40 shadow-xl" dir={isEn ? "ltr" : "rtl"}>
+        <DialogContent className="sm:max-w-[480px] p-6 bg-background rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xl" dir={isEn ? "ltr" : "rtl"}>
           <DialogHeader className="text-right pb-3 border-b border-border/50">
             <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-800/60 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-center shrink-0">
                 <Tag className="w-5 h-5" />
               </div>
               <span>التسمية التوضيحية للطلب</span>
@@ -2825,7 +2827,7 @@ export default function RequestDetailsNew() {
                 value={descriptiveNameInput}
                 onChange={(e) => setDescriptiveNameInput(e.target.value)}
                 placeholder="مثال: ترميم المصلى الرئيسي، صيانة المكيفات..."
-                className="w-full h-11 text-sm bg-muted/20 border-border focus:border-purple-500 rounded-xl"
+                className="w-full h-11 text-sm bg-muted/20 border-border focus:border-emerald-500 rounded-xl"
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 تساعد التسمية التوضيحية في تمييز الطلب وتنظيمه بسهولة في جدول الطلبات والمشاريع.
@@ -2851,7 +2853,7 @@ export default function RequestDetailsNew() {
                 });
               }}
               disabled={updateDescriptiveNameMutation.isPending}
-              className="w-full sm:w-auto h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl px-6"
+              className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-6 shadow-sm"
             >
               <Tag className="w-4 h-4 ml-2" />
               {updateDescriptiveNameMutation.isPending ? "جاري الحفظ..." : "حفظ التسمية التوضيحية"}
