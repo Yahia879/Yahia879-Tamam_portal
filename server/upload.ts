@@ -10,9 +10,17 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/jpg",
+  "image/pjpeg",
   "image/png",
+  "image/x-png",
   "image/webp",
   "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+  "image/x-heic",
+  "application/heic",
   "application/pdf",
   "video/mp4",
   "video/webm",
@@ -34,7 +42,7 @@ const ALLOWED_MIME_TYPES = [
   "application/octet-stream"
 ];
 const ALLOWED_EXTENSIONS = [
-  "jpg", "jpeg", "png", "webp", "gif", 
+  "jpg", "jpeg", "png", "webp", "gif", "heic", "heif",
   "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", 
   "mp4", "webm", "ogg", "mov", "mkv", "avi", 
   "zip", "rar"
@@ -47,7 +55,10 @@ const upload = multer({
   },
   fileFilter: (_req, file, cb) => {
     const extension = file.originalname.split(".").pop()?.toLowerCase() || "";
-    if (ALLOWED_MIME_TYPES.includes(file.mimetype) && ALLOWED_EXTENSIONS.includes(extension)) {
+    const isMimeOk = ALLOWED_MIME_TYPES.includes(file.mimetype) || file.mimetype.startsWith("image/") || file.mimetype === "application/octet-stream" || file.mimetype === "";
+    const isExtOk = ALLOWED_EXTENSIONS.includes(extension);
+
+    if (isExtOk && isMimeOk) {
       cb(null, true);
     } else {
       cb(new Error("نوع الملف غير مسموح به. يسمح بالصور، الفيديوهات، والمستندات والملفات المضغوطة فقط."));

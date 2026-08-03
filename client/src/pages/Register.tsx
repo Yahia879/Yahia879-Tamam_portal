@@ -402,7 +402,7 @@ export default function Register() {
                       <input
                         id="proofFile"
                         type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,image/*"
                         onChange={handleFileChange}
                         className="hidden"
                       />
