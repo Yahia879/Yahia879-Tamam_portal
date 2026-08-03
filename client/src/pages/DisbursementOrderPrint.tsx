@@ -335,15 +335,11 @@ export default function DisbursementOrderPrint() {
                 أمر صرف رقم {order.orderNumber} | {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
               </div>
 
-              {/* التاريخ والموافق */}
-              <div className="grid grid-cols-2 gap-4 mb-4 text-xs sm:text-sm">
+              {/* التاريخ */}
+              <div className="mb-4 text-xs sm:text-sm">
                 <div className="flex border border-slate-300 rounded overflow-hidden">
                   <span className="p-2.5 bg-slate-100 font-bold border-l border-slate-300 text-slate-700 w-24 shrink-0 text-center">التاريخ</span>
-                  <span className="p-2.5 text-slate-800 font-medium flex-1 text-center" dir="rtl">{toHijriDate(orderDate)}</span>
-                </div>
-                <div className="flex border border-slate-300 rounded overflow-hidden">
-                  <span className="p-2.5 bg-slate-100 font-bold border-l border-slate-300 text-slate-700 w-24 shrink-0 text-center">الموافق</span>
-                  <span className="p-2.5 text-slate-800 font-medium flex-1 text-center">{formatGregorianDate(orderDate)}</span>
+                  <span className="p-2.5 text-slate-800 font-medium flex-1 text-center">{formatGregorianDate(orderDate)} م</span>
                 </div>
               </div>
 
