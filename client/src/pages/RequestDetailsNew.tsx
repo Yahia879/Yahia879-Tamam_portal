@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ActiveActionCard } from "@/components/ActiveActionCard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ColoredDialog } from "@/components/ColoredDialog";
 import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
@@ -218,6 +219,22 @@ export default function RequestDetailsNew() {
   const [addAttachmentOpen, setAddAttachmentOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // States for descriptive name (التسمية التوضيحية)
+  const [showEditCaptionDialog, setShowEditCaptionDialog] = useState(false);
+  const [descriptiveNameInput, setDescriptiveNameInput] = useState("");
+
+  const updateDescriptiveNameMutation = trpc.requests.updateDescriptiveName.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث التسمية التوضيحية بنجاح");
+      setShowEditCaptionDialog(false);
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.list.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ التسمية التوضيحية");
+    },
+  });
 
   // Mark comments as read mutation
   const markAsReadMutation = trpc.requests.markCommentsAsRead.useMutation({
@@ -1061,13 +1078,48 @@ export default function RequestDetailsNew() {
                       </Link>
                     )}
                   </div>
-                  <p className="text-base sm:text-lg font-bold text-foreground truncate">
-                    {request.programType === "bunyan" 
-                      ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
-                      : (isEn 
-                          ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
-                          : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
-                  </p>
+                  <div className="flex items-center gap-2.5 flex-wrap mt-2">
+                    <p className="text-base sm:text-lg font-bold text-foreground truncate">
+                      {request.programType === "bunyan" 
+                        ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
+                        : (isEn 
+                            ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
+                            : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
+                    </p>
+
+                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم مع حركة نبض خفيفة */}
+                    {request.descriptiveName ? (
+                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-sm">
+                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>{request.descriptiveName}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDescriptiveNameInput(request.descriptiveName || "");
+                            setShowEditCaptionDialog(true);
+                          }}
+                          className="hover:text-purple-900 dark:hover:text-purple-100 transition-colors mr-1 p-0.5"
+                          title="تعديل التسمية التوضيحية"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDescriptiveNameInput("");
+                          setShowEditCaptionDialog(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/80 transition-all cursor-pointer shadow-sm animate-pulse"
+                        title="اضغط لإضافة تسمية توضيحية للطلب"
+                      >
+                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        <span>إضافة تسمية توضيحية</span>
+                        <Pencil className="w-3 h-3 text-purple-500 opacity-80" />
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {translateProgram(request.programType)}
                   </p>
@@ -2752,6 +2804,62 @@ export default function RequestDetailsNew() {
         onOpenChange={setDetailsModalOpen}
       />
       
+      {/* Edit Descriptive Name Dialog (Clean Modern Theme) */}
+      <Dialog open={showEditCaptionDialog} onOpenChange={setShowEditCaptionDialog}>
+        <DialogContent className="sm:max-w-[480px] p-6 bg-background rounded-2xl border border-purple-100 dark:border-purple-900/40 shadow-xl" dir={isEn ? "ltr" : "rtl"}>
+          <DialogHeader className="text-right pb-3 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border border-purple-200/60 dark:border-purple-800/60 flex items-center justify-center shrink-0">
+                <Tag className="w-5 h-5" />
+              </div>
+              <span>التسمية التوضيحية للطلب</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-3 text-right">
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-bold text-foreground">
+                التسمية التوضيحية (اختياري)
+              </label>
+              <Input
+                value={descriptiveNameInput}
+                onChange={(e) => setDescriptiveNameInput(e.target.value)}
+                placeholder="مثال: ترميم المصلى الرئيسي، صيانة المكيفات..."
+                className="w-full h-11 text-sm bg-muted/20 border-border focus:border-purple-500 rounded-xl"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                تساعد التسمية التوضيحية في تمييز الطلب وتنظيمه بسهولة في جدول الطلبات والمشاريع.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2.5 pt-4 border-t border-border/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowEditCaptionDialog(false)}
+              className="w-full sm:w-auto h-11 font-medium rounded-xl"
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                updateDescriptiveNameMutation.mutate({
+                  requestId,
+                  descriptiveName: descriptiveNameInput.trim() || null,
+                });
+              }}
+              disabled={updateDescriptiveNameMutation.isPending}
+              className="w-full sm:w-auto h-11 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl px-6"
+            >
+              <Tag className="w-4 h-4 ml-2" />
+              {updateDescriptiveNameMutation.isPending ? "جاري الحفظ..." : "حفظ التسمية التوضيحية"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Add Comment Dialog */}
       <ColoredDialog
         open={addCommentOpen}
