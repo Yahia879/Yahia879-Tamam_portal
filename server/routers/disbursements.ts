@@ -1183,6 +1183,7 @@ export const disbursementsRouter = router({
           createdAt: disbursementOrders.createdAt,
           approvedAt: disbursementOrders.approvedAt,
           requestNumber: disbursementRequests.requestNumber,
+          isDirect: disbursementRequests.isDirect,
           requestTitle: disbursementRequests.description,
           attachmentsJson: disbursementRequests.attachmentsJson,
           projectId: projects.id,
