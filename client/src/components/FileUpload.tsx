@@ -35,11 +35,29 @@ export interface UploadedFile {
 
 const DEFAULT_ACCEPTED_TYPES = [
   "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
   "image/png",
+  "image/x-png",
   "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+  "image/x-heic",
+  "application/heic",
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
+  "application/octet-stream",
+  ".heic",
+  ".heif",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  "image/*"
 ];
 
 export function FileUpload({
@@ -66,35 +84,44 @@ export function FileUpload({
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
-  const compressImage = (base64: string, mimeType: string): Promise<{ base64: string; size: number }> => {
+  const compressImage = (base64: string, mimeType: string): Promise<{ base64: string; size: number; isWebp: boolean }> => {
     return new Promise((resolve) => {
       const img = new window.Image();
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        const maxDimension = maxImageDimension;
+        try {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+          const maxDimension = maxImageDimension;
 
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
           }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL("image/webp", imageQuality);
+          const justBase64 = compressedBase64.split(",")[1];
+          const approxSize = Math.round((justBase64.length * 3) / 4);
+          
+          resolve({ base64: justBase64, size: approxSize, isWebp: true });
+        } catch (e) {
+          const justBase64 = base64.split(",")[1];
+          resolve({ base64: justBase64, size: Math.round((justBase64.length * 3) / 4), isWebp: false });
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const compressedBase64 = canvas.toDataURL("image/webp", imageQuality);
-        const justBase64 = compressedBase64.split(",")[1];
-        const approxSize = Math.round((justBase64.length * 3) / 4);
-        
-        resolve({ base64: justBase64, size: approxSize });
+      };
+      img.onerror = () => {
+        const justBase64 = base64.split(",")[1];
+        resolve({ base64: justBase64, size: Math.round((justBase64.length * 3) / 4), isWebp: false });
       };
       img.src = base64;
     });
@@ -103,10 +130,16 @@ export function FileUpload({
 
   const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
     // التحقق من نوع الملف وامتداده
-    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "pdf", "doc", "docx"];
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "pdf", "doc", "docx"];
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
+    const isExtAllowed = allowedExtensions.includes(extension);
+    const isMimeAllowed = acceptedTypes.includes(file.type) || 
+                          file.type.startsWith("image/") || 
+                          file.type === "application/octet-stream" || 
+                          file.type === "" || 
+                          isExtAllowed;
 
-    if (!acceptedTypes.includes(file.type) || !allowedExtensions.includes(extension)) {
+    if (!isExtAllowed || !isMimeAllowed) {
       return {
         fileName: file.name,
         fileData: "",
@@ -135,22 +168,27 @@ export function FileUpload({
         const originalBase64 = reader.result as string;
         let fileData = originalBase64.split(",")[1];
         let size = file.size;
-        let mimeType = file.type;
+        let mimeType = file.type || "application/octet-stream";
+        const isImage = mimeType.startsWith("image/") || ["heic", "heif", "jpg", "jpeg", "png", "webp"].includes(extension);
+        let isWebpConverted = false;
 
         // ضغط الصور فقط
-        if (file.type.startsWith("image/") && file.type !== "image/gif") {
-          const compressed = await compressImage(originalBase64, file.type);
+        if (isImage && mimeType !== "image/gif") {
+          const compressed = await compressImage(originalBase64, mimeType);
           fileData = compressed.base64;
           size = compressed.size;
-          mimeType = "image/webp"; // نغير النوع إلى webp بعد الضغط
+          if (compressed.isWebp) {
+            mimeType = "image/webp";
+            isWebpConverted = true;
+          }
         }
 
-        const preview = mimeType.startsWith("image/") 
+        const preview = isImage 
           ? `data:${mimeType};base64,${fileData}` 
           : undefined;
 
         resolve({
-          fileName: file.name.replace(/\.[^/.]+$/, "") + (file.type.startsWith("image/") ? ".webp" : ""),
+          fileName: isWebpConverted ? file.name.replace(/\.[^/.]+$/, "") + ".webp" : file.name,
           fileData: fileData,
           mimeType: mimeType,
           preview,
