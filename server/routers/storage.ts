@@ -6,10 +6,15 @@ import { requestAttachments } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
-// أنواع الملفات المسموح بها (الصور وملفات PDF فقط)
+// أنواع الملفات المسموح بها (الصور وملفات PDF والمستندات)
 const ALLOWED_FILE_TYPES = {
-  image: ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png"],
-  document: ["application/pdf"],
+  image: [
+    "image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/gif",
+    "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic", "application/heic"
+  ],
+  document: [
+    "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ],
 };
 
 const ALL_ALLOWED_TYPES = [...ALLOWED_FILE_TYPES.image, ...ALLOWED_FILE_TYPES.document];
@@ -18,7 +23,7 @@ const ALL_ALLOWED_TYPES = [...ALLOWED_FILE_TYPES.image, ...ALLOWED_FILE_TYPES.do
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 // القائمة البيضاء للامتدادات المسموح بها
-const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "pdf"];
+const ALLOWED_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "pdf", "doc", "docx"];
 
 // توليد معرف فريد للملف
 function generateFileKey(userId: number, originalName: string, folder: string): string {
@@ -38,8 +43,9 @@ function isExtensionAllowed(fileName: string): boolean {
 }
 
 // تحديد نوع الملف
-function getFileCategory(mimeType: string): "image" | "document" {
-  if (ALLOWED_FILE_TYPES.image.includes(mimeType)) {
+function getFileCategory(mimeType: string, fileName?: string): "image" | "document" {
+  const extension = fileName ? (fileName.split('.').pop()?.toLowerCase() || '') : '';
+  if (ALLOWED_FILE_TYPES.image.includes(mimeType) || mimeType.startsWith("image/") || ["heic", "heif"].includes(extension)) {
     return "image";
   }
   return "document";
