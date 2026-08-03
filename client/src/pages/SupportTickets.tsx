@@ -723,7 +723,7 @@ export default function SupportTickets() {
                               <input
                                 id="support-file-input"
                                 type="file"
-                                accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                accept="image/*,.heic,.heif,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                                 className="hidden"
                                 onChange={handleFileChange}
                                 disabled={uploading}
@@ -1035,7 +1035,7 @@ export default function SupportTickets() {
                         <input
                           type="file"
                           id="user-reply-file-input"
-                          accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          accept="image/*,.heic,.heif,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                           className="hidden"
                           onChange={handleReplyFileChange}
                           disabled={replyUploading}
@@ -1428,7 +1428,7 @@ export default function SupportTickets() {
                         <input
                           type="file"
                           id="admin-reply-file-input"
-                          accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          accept="image/*,.heic,.heif,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
                           className="hidden"
                           onChange={handleReplyFileChange}
                           disabled={replyUploading}
