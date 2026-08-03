@@ -98,6 +98,7 @@ const createRequestSchema = z.object({
   programType: z.string().min(1, "يرجى اختيار البرنامج"),
   priority: z.enum(["urgent", "medium", "normal"]).default("normal"),
   programData: z.record(z.string(), z.any()).optional(),
+  descriptiveName: z.string().optional().nullable(),
   description: z.string().optional(),
 });
 
@@ -220,6 +221,7 @@ export const requestsRouter = router({
         status: "pending",
         priority: input.priority,
         programData: input.programData || {},
+        descriptiveName: input.descriptiveName || null,
       });
 
       const requestId = Number(result[0].insertId);
@@ -247,6 +249,32 @@ export const requestsRouter = router({
       await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
 
       return { success: true, requestId, requestNumber, message: "تم تقديم الطلب بنجاح" };
+    }),
+
+  // تحديث التسمية التوضيحية للطلب
+  updateDescriptiveName: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      descriptiveName: z.string().optional().nullable(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await db
+        .update(mosqueRequests)
+        .set({ descriptiveName: input.descriptiveName || null })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "request_updated",
+        entityType: "request",
+        entityId: input.requestId,
+        newValues: { descriptiveName: input.descriptiveName },
+      });
+
+      return { success: true, message: "تم تحديث التسمية التوضيحية بنجاح" };
     }),
 
   // الحصول على طلب بالمعرف
@@ -518,6 +546,7 @@ export const requestsRouter = router({
         conditions.push(
           or(
             sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
+            sql`${mosqueRequests.descriptiveName} LIKE ${`%${input.search}%`}`,
             sql`${mosques.name} LIKE ${`%${input.search}%`}`,
             sql`JSON_UNQUOTE(JSON_EXTRACT(${mosqueRequests.programData}, '$.customMosqueName')) LIKE ${`%${input.search}%`}`,
             sql`${users.name} LIKE ${`%${input.search}%`}`,
