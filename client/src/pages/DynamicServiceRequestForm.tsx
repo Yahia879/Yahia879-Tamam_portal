@@ -656,11 +656,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     type="file"
                     id="request-attachment"
                     className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.doc,.docx,image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0] || null;
                       if (file) {
-                        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+                        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'doc', 'docx'];
                         const extension = file.name.split('.').pop()?.toLowerCase();
                         if (!extension || !allowedExtensions.includes(extension)) {
                           alert('نوع الملف غير مسموح. يرجى اختيار ملف PDF أو صور أو مستندات Word.');
@@ -933,6 +933,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   <Input 
                     type="file" 
                     id="attachment" 
+                    accept="image/*,.heic,.heif,.pdf,.doc,.docx,.jpg,.jpeg,.png"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
                         setExceptionFile(e.target.files[0]);
