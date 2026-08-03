@@ -31,52 +31,52 @@ import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLOR
 import { getUserHomeRoute } from "@/lib/routePermissions";
 
 function getArabicTimeAgo(createdAt: string | Date | null | undefined): string {
-  if (!createdAt) return "تاريخ إنشاء الحساب غير متاح";
+  if (!createdAt) return "تاريخ غير متاح";
   const date = new Date(createdAt);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return "تم إنشاء الحساب منذ لحظات";
+    return "متأخر منذ لحظات";
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
-    if (diffInMinutes === 1) return "تم إنشاء الحساب منذ دقيقة واحدة";
-    if (diffInMinutes === 2) return "تم إنشاء الحساب منذ دقيقتين";
-    if (diffInMinutes >= 3 && diffInMinutes <= 10) return `تم إنشاء الحساب منذ ${diffInMinutes} دقائق`;
-    return `تم إنشاء الحساب منذ ${diffInMinutes} دقيقة`;
+    if (diffInMinutes === 1) return "متأخر دقيقة واحدة";
+    if (diffInMinutes === 2) return "متأخر دقيقتين";
+    if (diffInMinutes >= 3 && diffInMinutes <= 10) return `متأخر ${diffInMinutes} دقائق`;
+    return `متأخر ${diffInMinutes} دقيقة`;
   }
 
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
-    if (diffInHours === 1) return "تم إنشاء الحساب منذ ساعة واحدة";
-    if (diffInHours === 2) return "تم إنشاء الحساب منذ ساعتين";
-    if (diffInHours >= 3 && diffInHours <= 10) return `تم إنشاء الحساب منذ ${diffInHours} ساعات`;
-    return `تم إنشاء الحساب منذ ${diffInHours} ساعة`;
+    if (diffInHours === 1) return "متأخر ساعة واحدة";
+    if (diffInHours === 2) return "متأخر ساعتين";
+    if (diffInHours >= 3 && diffInHours <= 10) return `متأخر ${diffInHours} ساعات`;
+    return `متأخر ${diffInHours} ساعة`;
   }
 
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) {
-    if (diffInDays === 1) return "تم إنشاء الحساب منذ يوم واحد";
-    if (diffInDays === 2) return "تم إنشاء الحساب منذ يومين";
-    if (diffInDays >= 3 && diffInDays <= 10) return `تم إنشاء الحساب منذ ${diffInDays} أيام`;
-    return `تم إنشاء الحساب منذ ${diffInDays} يوماً`;
+    if (diffInDays === 1) return "متأخر يوم واحد";
+    if (diffInDays === 2) return "متأخر يومين";
+    if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
+    return `متأخر ${diffInDays} يوماً`;
   }
 
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
-    if (diffInMonths === 1) return "تم إنشاء الحساب منذ شهر واحد";
-    if (diffInMonths === 2) return "تم إنشاء الحساب منذ شهرين";
-    if (diffInMonths >= 3 && diffInMonths <= 10) return `تم إنشاء الحساب منذ ${diffInMonths} أشهر`;
-    return `تم إنشاء الحساب منذ ${diffInMonths} شهراً`;
+    if (diffInMonths === 1) return "متأخر شهر واحد";
+    if (diffInMonths === 2) return "متأخر شهرين";
+    if (diffInMonths >= 3 && diffInMonths <= 10) return `متأخر ${diffInMonths} أشهر`;
+    return `متأخر ${diffInMonths} شهراً`;
   }
 
   const diffInYears = Math.floor(diffInDays / 365);
-  if (diffInYears === 1) return "تم إنشاء الحساب منذ سنة واحدة";
-  if (diffInYears === 2) return "تم إنشاء الحساب منذ سنتين";
-  if (diffInYears >= 3 && diffInYears <= 10) return `تم إنشاء الحساب منذ ${diffInYears} سنوات`;
-  return `تم إنشاء الحساب منذ ${diffInYears} سنة`;
+  if (diffInYears === 1) return "متأخر سنة واحدة";
+  if (diffInYears === 2) return "متأخر سنتين";
+  if (diffInYears >= 3 && diffInYears <= 10) return `متأخر ${diffInYears} سنوات`;
+  return `متأخر ${diffInYears} سنة`;
 }
 
 export default function Dashboard() {
@@ -453,8 +453,8 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{pendingUser.name}</p>
                       <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{pendingUser.email}</p>
-                      <p className="text-[10px] sm:text-[11px] text-amber-700 dark:text-amber-400 font-medium mt-1 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+                      <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 shrink-0 text-red-500" />
                         <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
                       </p>
                     </div>
