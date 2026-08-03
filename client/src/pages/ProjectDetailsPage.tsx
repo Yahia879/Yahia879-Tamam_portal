@@ -400,11 +400,15 @@ export default function ProjectDetailsPage() {
     return statusLabels[project.status || "planning"];
   };
 
-  const totalPaymentsSum = project?.payments?.reduce((sum, p) => {
-    return sum + parseFloat(p.amount || "0");
-  }, 0) || 0;
+  const totalPaymentsSum = project?.payments
+    ?.filter(p => p.status === "paid" || p.status === "executed")
+    ?.reduce((sum, p) => {
+      return sum + parseFloat(p.amount || "0");
+    }, 0) || 0;
 
   const totalContractsSum = project?.contracts?.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0) || 0;
+
+  const remainingContractSum = Math.max(0, totalContractsSum - totalPaymentsSum);
 
   return (
     <DashboardLayout>
@@ -1261,14 +1265,20 @@ export default function ProjectDetailsPage() {
                     </TableBody>
                   </Table>
                   </div>
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg flex flex-col sm:flex-row items-center justify-between border border-dashed border-muted-foreground/20 gap-4">
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between border border-dashed border-slate-200 dark:border-slate-800 gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium">إجمالي قيم المدفوعات:</span>
-                      <span className="font-bold text-lg text-primary">{formatCurrency(totalPaymentsSum.toString())}</span>
+                      <span className="text-muted-foreground font-medium text-sm sm:text-base">إجمالي قيم المدفوعات:</span>
+                      <span className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(totalPaymentsSum.toString())}</span>
                     </div>
+
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium">من إجمالي قيمة العقد:</span>
-                      <span className="font-bold text-lg">{formatCurrency(totalContractsSum.toString())}</span>
+                      <span className="text-muted-foreground font-medium text-sm sm:text-base">المتبقي:</span>
+                      <span className="font-bold text-base sm:text-lg text-amber-600 dark:text-amber-400">{formatCurrency(remainingContractSum.toString())}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium text-sm sm:text-base">من إجمالي قيمة العقد:</span>
+                      <span className="font-bold text-base sm:text-lg text-foreground">{formatCurrency(totalContractsSum.toString())}</span>
                     </div>
                   </div>
                 </>
