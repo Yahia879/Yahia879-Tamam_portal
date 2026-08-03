@@ -400,7 +400,16 @@ export default function ProjectDetailsPage() {
     return statusLabels[project.status || "planning"];
   };
 
-  const totalPaymentsSum = project?.payments
+  // 1. الدفعات المسددة فعلياً (تظهر في البار بالأسفل)
+  const paidPaymentsSum = project?.payments
+    ?.filter(p => p.status === "paid" || p.status === "executed" || !!p.paidAt)
+    ?.reduce((sum, p) => {
+      const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0) || 0;
+
+  // 2. كـافة الدفعات المخصصة بالجدول (لمعرفة هل تم تخصيص العقد بالكامل)
+  const allPaymentsSum = project?.payments
     ?.filter(p => p.status !== "rejected" && p.status !== "cancelled")
     ?.reduce((sum, p) => {
       const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
@@ -412,7 +421,8 @@ export default function ProjectDetailsPage() {
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0) || 0;
 
-  const remainingContractSum = Math.max(0, totalContractsSum - totalPaymentsSum);
+  const remainingContractSum = Math.max(0, totalContractsSum - paidPaymentsSum);
+  const isContractFullyAllocated = allPaymentsSum >= totalContractsSum && totalContractsSum > 0;
 
   return (
     <DashboardLayout>
@@ -1132,8 +1142,8 @@ export default function ProjectDetailsPage() {
                   <Button 
                     className="gradient-primary text-white" 
                     onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                    disabled={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0}
-                    title={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0 ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
+                    disabled={isContractFullyAllocated}
+                    title={isContractFullyAllocated ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
                   >
                     <Plus className="w-4 h-4 ml-2" />
                     إضافة دفعة
@@ -1272,7 +1282,7 @@ export default function ProjectDetailsPage() {
                   <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between border border-dashed border-slate-200 dark:border-slate-800 gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-medium text-sm sm:text-base">إجمالي قيم المدفوعات:</span>
-                      <span className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(totalPaymentsSum.toString())}</span>
+                      <span className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(paidPaymentsSum.toString())}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
