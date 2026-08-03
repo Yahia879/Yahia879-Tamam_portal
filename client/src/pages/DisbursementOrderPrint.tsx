@@ -202,17 +202,27 @@ export default function DisbursementOrderPrint() {
   const financialUser = (order as any)?.financialUser || (order as any)?.createdByUser;
   const executiveDirectorUser = (order as any)?.executiveDirectorUser || (order as any)?.approvedByUser;
 
-  // 1. الخانة الأولى: الإدارة المالية (الاسم والوظيفة دائماً من حساب الإدارة المالية المثبت solayani@manarah.org.sa، والتاريخ فاضي دائماً)
+  const formatGregorianDate = (dateVal: any) => {
+    if (!dateVal) return "—";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "—";
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    return `${year}/${month}/${day}`;
+  };
+
+  // 1. الخانة الأولى: الإدارة المالية (يظهر تاريخ الاعتماد الميلادي عند اعتماد المرحلة الأولى)
   const creatorName = financialUser?.signatureName || financialUser?.name || "الإدارة المالية";
   const creatorDepartment = financialUser?.signatureDepartment || "الإدارة المالية";
   const creatorSignatureUrl = isOrderStage1Approved ? (financialUser?.signatureUrl || null) : null;
-  const creatorDate = ""; // التاريخ فارغ
+  const creatorDate = isOrderStage1Approved ? formatGregorianDate((order as any)?.financialApprovedAt || order?.updatedAt || order?.createdAt) : "—";
 
-  // 2. الخانة الثانية: المدير التنفيذي (الاسم والوظيفة دائماً من حساب المدير التنفيذي المثبت ceo@manarah.org.sa، والتاريخ فاضي دائماً)
+  // 2. الخانة الثانية: المدير التنفيذي (يظهر تاريخ الاعتماد الميلادي عند اعتماد المرحلة الثانية والنهائية)
   const executiveDirectorName = executiveDirectorUser?.signatureName || executiveDirectorUser?.name || "المدير التنفيذي";
   const executiveDirectorDepartment = executiveDirectorUser?.signatureDepartment || "المدير التنفيذي";
   const executiveDirectorSignatureUrl = isOrderStage2Approved ? (executiveDirectorUser?.signatureUrl || null) : null;
-  const executiveDirectorDate = ""; // التاريخ فارغ
+  const executiveDirectorDate = isOrderStage2Approved ? formatGregorianDate(order?.approvedAt) : "—";
 
   const isCreator = currentUser?.id === order?.createdBy;
   const isExecutiveDirector =
