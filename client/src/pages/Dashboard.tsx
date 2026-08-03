@@ -445,26 +445,29 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {[...pendingUsers].sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()).slice(0, 6).map((pendingUser, index) => (
-                  <div key={pendingUser.id} className="flex items-center gap-3 p-3 sm:p-4 bg-muted/50 rounded-xl min-w-0 border border-slate-100 dark:border-slate-800">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 text-white font-bold text-base sm:text-lg flex items-center justify-center shrink-0 shadow-sm">
-                      {pendingUser.name?.charAt(0) || 'م'}
+                {[...pendingUsers]
+                  .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+                  .slice(0, 6)
+                  .map((pendingUser) => (
+                    <div key={pendingUser.id} className="flex items-center gap-3 p-3 sm:p-4 bg-muted/50 rounded-xl min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0">
+                        {pendingUser.name?.charAt(0) || 'م'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{pendingUser.name}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{pendingUser.email}</p>
+                        <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1 flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                          <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
+                        </p>
+                      </div>
+                      <Link href={`/users/${pendingUser.id}`} className="shrink-0">
+                        <Button size="sm" variant="outline" className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3">
+                          مراجعة
+                        </Button>
+                      </Link>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{pendingUser.name}</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{pendingUser.email}</p>
-                      <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                        <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
-                      </p>
-                    </div>
-                    <Link href={`/users/${pendingUser.id}`} className="shrink-0 self-center">
-                      <Button size="sm" variant="outline" className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3 border-amber-300 hover:bg-amber-50 hover:text-amber-800 dark:hover:bg-amber-950">
-                        مراجعة
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
+                  ))}
               </div>
             </CardContent>
           </Card>
