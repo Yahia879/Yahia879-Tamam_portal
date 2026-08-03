@@ -125,9 +125,11 @@ export default function DisbursementOrders() {
         const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
         const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
 
+        const reqNumText = (order.isDirect || !order.requestNumber) ? "مخصص" : order.requestNumber;
+
         worksheet.addRow([
           order.orderNumber || "-",
-          order.requestNumber || "-",
+          reqNumText,
           order.projectName || "-",
           order.beneficiaryName || "-",
           Number(order.amount) || 0,
@@ -423,6 +425,7 @@ export default function DisbursementOrders() {
                     <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم طلب الصرف</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
@@ -467,6 +470,15 @@ export default function DisbursementOrders() {
                                 )}
                                 <span>{order.orderNumber}</span>
                               </div>
+                            </TableCell>
+                            <TableCell className="py-2.5 px-3 font-mono text-xs text-right whitespace-nowrap">
+                              {order.isDirect || !order.requestNumber ? (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[11px] px-2.5 py-0.5">
+                                  مخصص
+                                </Badge>
+                              ) : (
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
+                              )}
                             </TableCell>
                             <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
                             <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
@@ -562,6 +574,17 @@ export default function DisbursementOrders() {
 
                         {/* Card Body */}
                         <div className="space-y-3">
+                          <div className="flex items-center justify-between text-xs bg-slate-50/80 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                            <span className="text-muted-foreground font-medium text-[11px]">رقم طلب الصرف:</span>
+                            {order.isDirect || !order.requestNumber ? (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
+                                مخصص
+                              </Badge>
+                            ) : (
+                              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
+                            )}
+                          </div>
+
                           <div>
                             <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">المستفيد</p>
                             <h4 className="font-bold text-sm text-foreground leading-tight">{order.beneficiaryName}</h4>
