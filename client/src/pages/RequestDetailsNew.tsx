@@ -1064,21 +1064,42 @@ export default function RequestDetailsNew() {
                   <span className="hidden sm:inline">{isEn ? "Back" : "رجوع"}</span>
                 </Button>
               </Link>
-              <div className="flex items-start sm:items-center gap-3 min-w-0">
-                <ProgramIcon program={request.programType} className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0" />
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    <h1 className="text-base sm:text-xl font-bold text-foreground shrink-0">
-                      {request.programType === "bunyan" 
-                        ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
-                        : (isEn 
-                            ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
-                            : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
-                    </h1>
+              <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0">
+                <ProgramIcon program={request.programType} className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 mt-0.5 sm:mt-0" />
+                <div className="min-w-0 space-y-1.5">
+                  {/* Top Metadata Line */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-mono font-bold text-muted-foreground bg-muted/80 px-2.5 py-0.5 rounded-md border border-border/50">
+                      {request.requestNumber}
+                    </span>
 
-                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم بجانب اسم الطلب مباشرة */}
+                    <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-md">
+                      {translateProgram(request.programType)}
+                    </span>
+
+                    {linkedProject && (
+                      <Link href={`/projects/${linkedProject.id}`}>
+                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-6 text-[11px] px-2.5 rounded-md font-medium">
+                          <Building2 className={`w-3.5 h-3.5 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          <span>{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+
+                  {/* Main Title */}
+                  <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight leading-tight">
+                    {request.programType === "bunyan" 
+                      ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
+                      : (isEn 
+                          ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
+                          : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
+                  </h1>
+
+                  {/* Descriptive Name Subtitle Line */}
+                  <div className="pt-0.5">
                     {request.descriptiveName ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-xs shrink-0">
+                      <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-lg bg-purple-50/90 text-purple-700 border border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/80 shadow-2xs">
                         <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>{request.descriptiveName}</span>
                         <button
@@ -1087,12 +1108,12 @@ export default function RequestDetailsNew() {
                             setDescriptiveNameInput(request.descriptiveName || "");
                             setShowEditCaptionDialog(true);
                           }}
-                          className="hover:text-purple-900 dark:hover:text-purple-100 transition-colors mr-0.5 p-0.5"
+                          className="hover:text-purple-950 dark:hover:text-purple-100 transition-colors mr-1 p-0.5 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50"
                           title="تعديل التسمية التوضيحية"
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
-                      </span>
+                      </div>
                     ) : (
                       <button
                         type="button"
@@ -1100,30 +1121,13 @@ export default function RequestDetailsNew() {
                           setDescriptiveNameInput("");
                           setShowEditCaptionDialog(true);
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/90 transition-all cursor-pointer shadow-xs animate-pulse shrink-0"
+                        className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-lg bg-purple-50/90 text-purple-700 border border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/80 hover:bg-purple-100 transition-all cursor-pointer shadow-2xs animate-pulse"
                         title="اضغط لإضافة تسمية توضيحية للطلب"
                       >
                         <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                        <span>إضافة تسمية توضيحية</span>
-                        <Pencil className="w-2.5 h-2.5 text-purple-500 opacity-80" />
+                        <span>إضافة تسمية توضيحية للطلب</span>
+                        <Pencil className="w-3 h-3 text-purple-500 opacity-80" />
                       </button>
-                    )}
-
-                    <span className="text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2 py-0.5 rounded-md font-medium shrink-0">
-                      {translateProgram(request.programType)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap text-xs pt-0.5">
-                    <span className="font-mono font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">{request.requestNumber}</span>
-
-                    {linkedProject && (
-                      <Link href={`/projects/${linkedProject.id}`}>
-                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-6 text-[10px] sm:text-xs px-2 truncate max-w-full">
-                          <Building2 className={`w-3 h-3 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
-                          <span className="truncate">{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
-                        </Button>
-                      </Link>
                     )}
                   </div>
                 </div>
