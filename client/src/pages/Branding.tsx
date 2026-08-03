@@ -334,7 +334,7 @@ export default function Branding() {
                     <input
                       ref={mainLogoRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -389,7 +389,7 @@ export default function Branding() {
                     <input
                       ref={whiteLogoRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -442,7 +442,7 @@ export default function Branding() {
                     <input
                       ref={darkLogoRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -495,7 +495,7 @@ export default function Branding() {
                     <input
                       ref={technicalLogoRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
@@ -548,7 +548,7 @@ export default function Branding() {
                     <input
                       ref={adminLogoRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
