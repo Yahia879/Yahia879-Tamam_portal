@@ -162,14 +162,17 @@ export default function EditPaymentPage() {
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
   // حساب المتبقي للصرف (نستثني الدفعة الحالية لتجنب مضاعفتها في المعادلة)
-  const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => {
-    if (p.id === paymentId) return sum;
-    if (payment?.contractPaymentId && p.contractPaymentId === payment.contractPaymentId) return sum;
-    if (paymentId.startsWith("disb-") && p.id === `cp-${payment?.contractPaymentId}`) return sum;
-    return sum + parseFloat(p.amount || "0");
-  }, 0) || 0;
+  const totalPaymentsSum = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum: number, p: any) => {
+      if (p.id === paymentId) return sum;
+      if (payment?.contractPaymentId && p.contractPaymentId === payment.contractPaymentId) return sum;
+      if (paymentId.startsWith("disb-") && p.id === `cp-${payment?.contractPaymentId}`) return sum;
+      return sum + parseFloat(p.amount || "0");
+    }, 0) || 0;
 
-  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
+  const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
   const remainingAmount = contractAmount - totalPaymentsSum;
 
   // تحديث بيانات المورد
@@ -299,14 +302,16 @@ export default function EditPaymentPage() {
     }
 
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractDetails && totalAmount > contractAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
-      return;
-    }
+    if (contractAmount > 0) {
+      if (totalAmount > contractAmount) {
+        toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
+        return;
+      }
 
-    if (contractDetails && (totalAmount > remainingAmount || remainingAmount < 0)) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingAmount).toLocaleString()} ريال)`);
-      return;
+      if (totalAmount > remainingAmount || remainingAmount < 0) {
+        toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingAmount).toLocaleString()} ريال)`);
+        return;
+      }
     }
     
     updateMutation.mutate({
