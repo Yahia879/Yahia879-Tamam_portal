@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { users, employees, auditLogs, InsertUser, userRoleAssignments, roles, rolePermissions, passwordResetTokens, signatories } from "../../drizzle/schema";
 import { calculateUserPermissions, checkPermission } from "../permissions";
-import { eq, and, isNull, inArray, sql, or, ne, gt } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, or, ne, gt, asc } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { COOKIE_NAME } from "../../shared/const";
@@ -609,7 +609,7 @@ export const authRouter = router({
     const db = await getDb();
     if (!db) return [];
 
-    return await db.select().from(users).where(and(eq(users.status, "pending"), isNull(users.deletedAt)));
+    return await db.select().from(users).where(and(eq(users.status, "pending"), isNull(users.deletedAt))).orderBy(asc(users.createdAt));
   }),
 
   // الحصول على جميع المستخدمين
