@@ -176,7 +176,8 @@ export default function DisbursementOrderPrint() {
                        linkedRequestInfo?.requestType === "misc_expenses";
 
   const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
-                         linkedRequestInfo?.requestType === "sadad_invoice";
+                         linkedRequestInfo?.requestType === "sadad_invoice" ||
+                         order?.paymentMethod === "sadad";
 
   const showRequestNumber = !!request && !request.isDirect;
 
@@ -478,62 +479,75 @@ export default function DisbursementOrderPrint() {
                 </div>
               )}
 
-              {/* تحويل بنكي من حساب الجمعية إلى */}
-              {order.paymentMethod === "bank_transfer" && (
+              {/* تحويل بنكي / تفاصيل نظام سداد */}
+              {(order.paymentMethod === "bank_transfer" || order.paymentMethod === "sadad" || isSadadInvoice) && (
                 <div className="mb-4">
                   <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800">
-                    تحويل بنكي من حساب الجمعية إلى:
+                    {isSadadInvoice || order.paymentMethod === "sadad" 
+                      ? "بيانات سداد الفاتورة (نظام سداد):" 
+                      : "تحويل بنكي من حساب الجمعية إلى:"}
                   </div>
                   <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
                     <tbody>
-                      <tr className="border-b border-slate-300">
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          اسم الحساب
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-bold text-right">
-                          {isSadadInvoice ? "—" : (order.beneficiaryAccountName || order.beneficiaryName || "—")}
-                        </td>
-                      </tr>
-                      
-                      <tr className="border-b border-slate-300">
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          اسم البنك
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-semibold text-right">
-                          {isSadadInvoice ? "—" : (order.beneficiaryBank || "—")}
-                        </td>
-                      </tr>
+                      {isSadadInvoice || order.paymentMethod === "sadad" ? (
+                        <>
+                          <tr className="border-b border-slate-300">
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              اسم المفوتر
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-bold text-right">
+                              {customSupplier?.billerName || linkedRequestInfo?.billerName || customSupplier?.name || order.beneficiaryAccountName || order.beneficiaryName || "—"}
+                            </td>
+                          </tr>
+                          
+                          <tr className="border-b border-slate-300">
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              رمز المفوتر
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
+                              {customSupplier?.billerCode || linkedRequestInfo?.billerCode || order.billerCode || (order.paymentMethod === "sadad" ? order.beneficiaryBank : "") || "—"}
+                            </td>
+                          </tr>
 
-                      <tr className="border-b border-slate-300">
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          رقم الآيبان
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
-                          {isSadadInvoice ? "—" : (order.beneficiaryIban || "—")}
-                        </td>
-                      </tr>
+                          <tr className="border-b border-slate-300">
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              رقم سداد
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider">
+                              {customSupplier?.sadadNumber || linkedRequestInfo?.sadadNumber || order.sadadNumber || (order.paymentMethod === "sadad" ? order.beneficiaryIban : "") || "—"}
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <>
+                          <tr className="border-b border-slate-300">
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              اسم الحساب
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-bold text-right">
+                              {order.beneficiaryAccountName || order.beneficiaryName || customSupplier?.bankAccountName || customSupplier?.name || "—"}
+                            </td>
+                          </tr>
+                          
+                          <tr className="border-b border-slate-300">
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              اسم البنك
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-semibold text-right">
+                              {order.beneficiaryBank || customSupplier?.bank || "—"}
+                            </td>
+                          </tr>
 
-                      <tr className="border-b border-slate-300">
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          رقم سداد
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {isSadadInvoice 
-                            ? (customSupplier?.sadadNumber || order.beneficiaryIban || order.sadadNumber || "—")
-                            : (order.sadadNumber || "—")}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          رمز المفوتر
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {isSadadInvoice 
-                            ? (customSupplier?.billerCode || order.beneficiaryBank || order.billerCode || "—")
-                            : (order.billerCode || "—")}
-                        </td>
-                      </tr>
+                          <tr>
+                            <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                              رقم الآيبان
+                            </td>
+                            <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
+                              {order.beneficiaryIban || customSupplier?.iban || "—"}
+                            </td>
+                          </tr>
+                        </>
+                      )}
                     </tbody>
                   </table>
                 </div>
