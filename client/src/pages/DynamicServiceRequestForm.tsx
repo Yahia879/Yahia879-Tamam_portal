@@ -27,7 +27,8 @@ import {
   Plus, 
   Loader2, 
   Paperclip,
-  Building2, 
+  Building2,
+  Tag, 
   Hammer, 
   Wrench, 
   Package, 
@@ -287,6 +288,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         programData,
         priority: 'normal',
         description: formData.workDescription || '',
+        descriptiveName: formData.descriptiveName || null,
       });
 
       // إذا كان هناك ملف مختار، قم برفعه وربطه بالطلب
@@ -554,6 +556,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             )}
 
             <div className="space-y-4 sm:space-y-6">
+              {/* حقل التسمية التوضيحية الاختياري */}
+              <div className="space-y-1.5 bg-muted/20 p-4 rounded-xl border border-border">
+                <label htmlFor="descriptiveName" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                  <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  التسمية التوضيحية (اختياري)
+                </label>
+                <Input
+                  id="descriptiveName"
+                  type="text"
+                  value={formData.descriptiveName || ''}
+                  onChange={(e) => handleFieldChange("descriptiveName", e.target.value)}
+                  placeholder="مثال: ترميم المصلى الرئيسي، صيانة التكييف، مظلات الخارجية..."
+                  className="h-10 text-xs sm:text-sm bg-background border-border"
+                />
+                <p className="text-[11px] text-muted-foreground">اسم توضيحي يسهل التمييز والتنظيم في جدول الطلبات والمشاريع.</p>
+              </div>
               {(selectedService === 'bunyan'
                 ? visibleFields.filter(f => f.name !== 'womenPrayerArea' && f.name !== 'womenPrayerCapacity')
                 : visibleFields
