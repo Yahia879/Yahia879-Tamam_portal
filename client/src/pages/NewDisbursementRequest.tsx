@@ -187,8 +187,11 @@ export default function NewDisbursementRequest() {
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
   // حساب المتبقي للدفعة
-  const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
-  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
+  const totalPaymentsSum = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
   const remainingAmount = contractAmount - totalPaymentsSum;
 
   // إضافة مورد جديد
@@ -291,18 +294,20 @@ export default function NewDisbursementRequest() {
     }
 
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (contractDetails && totalAmount > contractAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
-      return;
-    }
+    if (contractAmount > 0) {
+      if (totalAmount > contractAmount) {
+        toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
+        return;
+      }
 
-    if (contractDetails && (totalAmount > remainingAmount || remainingAmount <= 0)) {
-      toast.error(
-        remainingAmount <= 0
-          ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
-          : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${Math.max(0, remainingAmount).toLocaleString()} ريال)`
-      );
-      return;
+      if (totalAmount > remainingAmount || remainingAmount <= 0) {
+        toast.error(
+          remainingAmount <= 0
+            ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
+            : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${Math.max(0, remainingAmount).toLocaleString()} ريال)`
+        );
+        return;
+      }
     }
     
     createMutation.mutate({
