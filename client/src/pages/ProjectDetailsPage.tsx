@@ -401,7 +401,7 @@ export default function ProjectDetailsPage() {
   };
 
   const totalPaymentsSum = project?.payments
-    ?.filter(p => p.status !== "rejected" && p.status !== "cancelled")
+    ?.filter(p => p.status === "paid" || p.status === "executed" || !!p.paidAt)
     ?.reduce((sum, p) => {
       const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
       return sum + (isNaN(amt) ? 0 : amt);
