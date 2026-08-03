@@ -2810,6 +2810,7 @@ export default function RequestDetailsNew() {
             <label className="block text-sm font-medium mb-2">اختر ملف</label>
             <input
               type="file"
+              accept="image/*,.heic,.heif,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
               onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               className="w-full p-2 border rounded-md"
             />
