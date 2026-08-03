@@ -1121,8 +1121,12 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
-    if (!isCustom && contractDetails && totalAmount > remainingForDisbursement && remainingForDisbursement > 0) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingForDisbursement.toLocaleString()} ريال)`);
+    if (!isCustom && contractDetails && (totalAmount > remainingForDisbursement || remainingForDisbursement <= 0)) {
+      toast.error(
+        remainingForDisbursement <= 0
+          ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
+          : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingForDisbursement).toLocaleString()} ريال)`
+      );
       return;
     }
 
