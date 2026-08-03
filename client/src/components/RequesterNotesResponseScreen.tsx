@@ -164,7 +164,7 @@ export default function RequesterNotesResponseScreen() {
                   <input
                     id="responseProofFile"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.doc,.docx,image/*"
                     onChange={handleFileChange}
                     className="hidden"
                     disabled={isSubmitting}
