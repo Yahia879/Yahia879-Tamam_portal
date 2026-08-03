@@ -1008,6 +1008,7 @@ export const contractsEnhanced = mysqlTable("contracts_enhanced", {
   signedDocumentUrl: varchar("signedDocumentUrl", { length: 500 }),
   
   // الاعتماد
+  financialApprovedAt: datetime("financialApprovedAt"),
   approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   
@@ -1086,6 +1087,7 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   requestedAt: timestamp("requestedAt").defaultNow().notNull(),
   
   // الاعتماد
+  financialApprovedAt: datetime("financialApprovedAt"),
   approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
   approvedAt: datetime("approvedAt"),
   approvalNotes: text("approvalNotes"),
@@ -1110,6 +1112,7 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
 // جدول أوامر الصرف (الإدارة المالية)
 export const disbursementOrders = mysqlTable("disbursement_orders", {
   id: int("id").autoincrement().primaryKey(),
+  financialApprovedAt: datetime("financialApprovedAt"),
   orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
   disbursementRequestId: int("disbursementRequestId").notNull(),
   
