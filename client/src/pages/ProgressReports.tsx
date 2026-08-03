@@ -1223,7 +1223,7 @@ export default function ProgressReports() {
                           multiple
                           onChange={handleFileChange}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                          accept="image/*,application/pdf"
+                          accept="image/*,.heic,.heif,application/pdf"
                         />
                         <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors mb-2" />
                         <p className="text-sm font-semibold text-foreground mb-1">اسحب وأفلت الملفات هنا، أو انقر للتصفح</p>
