@@ -296,8 +296,12 @@ export default function NewDisbursementRequest() {
       return;
     }
 
-    if (contractDetails && totalAmount > remainingAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${remainingAmount.toLocaleString()} ريال)`);
+    if (contractDetails && (totalAmount > remainingAmount || remainingAmount <= 0)) {
+      toast.error(
+        remainingAmount <= 0
+          ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
+          : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${Math.max(0, remainingAmount).toLocaleString()} ريال)`
+      );
       return;
     }
     
