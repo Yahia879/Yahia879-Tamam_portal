@@ -347,9 +347,9 @@ export default function DisbursementOrderPrint() {
 
               {/* التاريخ */}
               <div className="mb-4 text-xs sm:text-sm">
-                <div className="flex border border-slate-300 rounded overflow-hidden">
+                <div className="flex border border-slate-300 rounded overflow-hidden items-center">
                   <span className="p-2.5 bg-slate-100 font-bold border-l border-slate-300 text-slate-700 w-24 shrink-0 text-center">التاريخ</span>
-                  <span className="p-2.5 text-slate-800 font-medium flex-1 text-center">{formatGregorianDate(orderDate)} م</span>
+                  <span className="p-2.5 text-slate-900 font-bold text-base sm:text-lg flex-1 text-center">{formatGregorianDate(orderDate)} م</span>
                 </div>
               </div>
 

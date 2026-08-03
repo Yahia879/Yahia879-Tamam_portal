@@ -108,7 +108,7 @@ export default function DisbursementOrders() {
       });
 
       // Add headers
-      worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
+      worksheet.addRow(["رقم الأمر", "رقم طلب الصرف المرتبط", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
 
       // Add rows
       (allData?.orders || []).forEach((order: any) => {
@@ -425,7 +425,7 @@ export default function DisbursementOrders() {
                     <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
-                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم طلب الصرف</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم طلب الصرف المرتبط</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
@@ -471,13 +471,13 @@ export default function DisbursementOrders() {
                                 <span>{order.orderNumber}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 font-mono text-xs text-right whitespace-nowrap">
+                            <TableCell className="py-2.5 px-3 text-xs text-right whitespace-nowrap">
                               {order.isDirect || !order.requestNumber ? (
-                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[11px] px-2.5 py-0.5">
+                                <Badge variant="outline" className="font-sans bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[11px] px-2.5 py-0.5">
                                   مخصص
                                 </Badge>
                               ) : (
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
+                                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
                               )}
                             </TableCell>
                             <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
@@ -575,9 +575,9 @@ export default function DisbursementOrders() {
                         {/* Card Body */}
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-xs bg-slate-50/80 dark:bg-slate-900/40 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
-                            <span className="text-muted-foreground font-medium text-[11px]">رقم طلب الصرف:</span>
+                            <span className="text-muted-foreground font-medium text-[11px]">رقم طلب الصرف المرتبط:</span>
                             {order.isDirect || !order.requestNumber ? (
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
+                              <Badge variant="outline" className="font-sans bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
                                 مخصص
                               </Badge>
                             ) : (
