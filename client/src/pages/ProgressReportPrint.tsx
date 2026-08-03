@@ -367,10 +367,6 @@ export default function ProgressReportPrint() {
                 <div className="text-xs space-y-1 text-center sm:text-left sm:pl-5 print:pl-5">
                   <div className="flex gap-2 justify-center sm:justify-end">
                     <span className="font-bold">التاريخ:</span>
-                    <span className="border-b border-dotted border-gray-400 px-3">{toHijriDate(reportDate)} هـ</span>
-                  </div>
-                  <div className="flex gap-2 justify-center sm:justify-end">
-                    <span className="font-bold">الموافق:</span>
                     <span className="border-b border-dotted border-gray-400 px-3">{formatGregorianDate(reportDate)} م</span>
                   </div>
                   <div className="flex gap-2 justify-center sm:justify-end">
