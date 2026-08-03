@@ -304,8 +304,8 @@ export default function EditPaymentPage() {
       return;
     }
 
-    if (contractDetails && totalAmount > remainingAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${remainingAmount.toLocaleString()} ريال)`);
+    if (contractDetails && (totalAmount > remainingAmount || remainingAmount < 0)) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingAmount).toLocaleString()} ريال)`);
       return;
     }
     
