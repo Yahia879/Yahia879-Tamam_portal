@@ -919,8 +919,11 @@ export default function NewLinkedDisbursementRequest() {
   const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId !== null) && currentDisbursementAmount > 0 && (funderDeficit > 0.01 || totalSupporterPayments === 0);
 
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
-  const totalPaymentsSum = projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0;
-  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
+  const totalPaymentsSum = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
+  const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
   const remainingForDisbursement = contractAmount - totalPaymentsSum;
   const remainingAmount = remainingForDisbursement - totalAmount;
 
@@ -1116,18 +1119,20 @@ export default function NewLinkedDisbursementRequest() {
     }
 
     // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
-    if (!isCustom && contractDetails && totalAmount > contractAmount) {
-      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
-      return;
-    }
+    if (!isCustom && contractAmount > 0) {
+      if (totalAmount > contractAmount) {
+        toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
+        return;
+      }
 
-    if (!isCustom && contractDetails && (totalAmount > remainingForDisbursement || remainingForDisbursement <= 0)) {
-      toast.error(
-        remainingForDisbursement <= 0
-          ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
-          : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingForDisbursement).toLocaleString()} ريال)`
-      );
-      return;
+      if (totalAmount > remainingForDisbursement || remainingForDisbursement <= 0) {
+        toast.error(
+          remainingForDisbursement <= 0
+            ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
+            : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingForDisbursement).toLocaleString()} ريال)`
+        );
+        return;
+      }
     }
 
     // 1. التحقق الذكي من رصيد مدفوعات الداعم الفعلية (سندات القبض)
