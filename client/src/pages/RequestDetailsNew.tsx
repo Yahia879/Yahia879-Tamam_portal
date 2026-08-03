@@ -1067,22 +1067,19 @@ export default function RequestDetailsNew() {
               <div className="flex items-start sm:items-center gap-3 min-w-0">
                 <ProgramIcon program={request.programType} className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0" />
                 <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-base sm:text-xl font-bold text-foreground truncate">
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <h1 className="text-base sm:text-xl font-bold text-foreground shrink-0">
                       {request.programType === "bunyan" 
                         ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
                         : (isEn 
                             ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
                             : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
                     </h1>
-                    <span className="text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2 py-0.5 rounded-md font-medium">
-                      {translateProgram(request.programType)}
-                    </span>
 
-                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم بجانب الاسم مباشرة */}
+                    {/* التسمية التوضيحية - Hint باللون النهدي الناعم بجانب اسم الطلب مباشرة */}
                     {request.descriptiveName ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-sm">
-                        <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/80 shadow-xs shrink-0">
+                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>{request.descriptiveName}</span>
                         <button
                           type="button"
@@ -1103,14 +1100,18 @@ export default function RequestDetailsNew() {
                           setDescriptiveNameInput("");
                           setShowEditCaptionDialog(true);
                         }}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/80 transition-all cursor-pointer shadow-sm animate-pulse"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 hover:bg-purple-100/90 transition-all cursor-pointer shadow-xs animate-pulse shrink-0"
                         title="اضغط لإضافة تسمية توضيحية للطلب"
                       >
-                        <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                        <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>إضافة تسمية توضيحية</span>
                         <Pencil className="w-2.5 h-2.5 text-purple-500 opacity-80" />
                       </button>
                     )}
+
+                    <span className="text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2 py-0.5 rounded-md font-medium shrink-0">
+                      {translateProgram(request.programType)}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap text-xs pt-0.5">
