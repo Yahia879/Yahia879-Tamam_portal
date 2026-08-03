@@ -407,12 +407,20 @@ export default function ProjectDetailsPage() {
       return sum + (isNaN(amt) ? 0 : amt);
     }, 0) || 0;
 
+  const allPaymentsSum = project?.payments
+    ?.filter(p => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum, p) => {
+      const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
+      return sum + (isNaN(amt) ? 0 : amt);
+    }, 0) || 0;
+
   const totalContractsSum = project?.contracts?.reduce((sum, c) => {
     const amt = parseFloat(String(c.amount || "0").replace(/,/g, ""));
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0) || 0;
 
   const remainingContractSum = Math.max(0, totalContractsSum - totalPaymentsSum);
+  const isContractFullyAllocated = allPaymentsSum >= totalContractsSum && totalContractsSum > 0;
 
   return (
     <DashboardLayout>
@@ -1132,8 +1140,8 @@ export default function ProjectDetailsPage() {
                   <Button 
                     className="gradient-primary text-white" 
                     onClick={() => navigate(`/disbursements/new/${project.id}`)}
-                    disabled={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0}
-                    title={totalPaymentsSum >= totalContractsSum && totalContractsSum > 0 ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
+                    disabled={isContractFullyAllocated}
+                    title={isContractFullyAllocated ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
                   >
                     <Plus className="w-4 h-4 ml-2" />
                     إضافة دفعة
