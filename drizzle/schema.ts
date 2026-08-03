@@ -267,6 +267,7 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   
   // بيانات البرنامج (JSON مرن لكل برنامج)
   programData: json("programData"),
+  descriptiveName: varchar("descriptiveName", { length: 255 }), // التسمية التوضيحية للطلب/المشروع
   
   // مسار الطلب (standard: مشروع عادي, quick_response: استجابة سريعة, rejected: مرفوض)
   requestTrack: mysqlEnum("requestTrack", ["standard", "quick_response", "rejected"]).default("standard"),
