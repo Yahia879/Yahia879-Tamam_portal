@@ -401,12 +401,16 @@ export default function ProjectDetailsPage() {
   };
 
   const totalPaymentsSum = project?.payments
-    ?.filter(p => p.status === "paid" || p.status === "executed")
+    ?.filter(p => p.status !== "rejected" && p.status !== "cancelled")
     ?.reduce((sum, p) => {
-      return sum + parseFloat(p.amount || "0");
+      const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
+      return sum + (isNaN(amt) ? 0 : amt);
     }, 0) || 0;
 
-  const totalContractsSum = project?.contracts?.reduce((sum, c) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const totalContractsSum = project?.contracts?.reduce((sum, c) => {
+    const amt = parseFloat(String(c.amount || "0").replace(/,/g, ""));
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0) || 0;
 
   const remainingContractSum = Math.max(0, totalContractsSum - totalPaymentsSum);
 
