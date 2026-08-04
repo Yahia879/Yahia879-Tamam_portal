@@ -80,7 +80,7 @@ const ORDER_STATUS_CONFIG: Record<
     icon: <AlertCircle className="h-3 w-3" />,
   },
   rejected: {
-    label: "ملغي",
+    label: "مرفوض",
     variant: "destructive",
     className: "border-red-500 text-red-700 bg-red-50",
     icon: <XCircle className="h-3 w-3" />,
