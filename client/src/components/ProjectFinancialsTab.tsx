@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useLocation } from "wouter";
 import {
   DollarSign,
   Building2,
@@ -45,6 +46,7 @@ import {
   Paperclip,
   Coins,
   Eye,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +56,7 @@ interface ProjectFinancialsTabProps {
 
 export default function ProjectFinancialsTab({ projectId }: ProjectFinancialsTabProps) {
   const utils = trpc.useUtils();
+  const [, navigate] = useLocation();
 
   // 1. Fetch Financial Data
   const { data, isLoading, refetch } = trpc.projects.getFinancialData.useQuery({ projectId });
@@ -1136,7 +1139,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                 <TableHead className="text-right text-xs">رقم السند</TableHead>
                                 <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                                 <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                                <TableHead className="text-right text-xs">الملاحظات</TableHead>
+                                <TableHead className="text-right text-xs">وذلك مقابل / السبب</TableHead>
                                 <TableHead className="text-center text-xs">إجراءات</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -1182,8 +1185,18 @@ const isGeneralAccountName = (name?: string | null) => {
                                       <Button
                                         variant="ghost"
                                         size="icon"
+                                        onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                        className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                        title="معاينة وطباعة سند القبض"
+                                      >
+                                        <Eye className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
                                         onClick={() => openEditVoucherModal(voucher)}
                                         className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                        title="تعديل سند القبض"
                                       >
                                         <Edit3 className="h-3.5 w-3.5" />
                                       </Button>
@@ -1192,6 +1205,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                         size="icon"
                                         onClick={() => handleDeleteVoucher(voucher.id)}
                                         className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                        title="حذف سند القبض"
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </Button>
@@ -1277,6 +1291,15 @@ const isGeneralAccountName = (name?: string | null) => {
                                 </TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
+                                     <Button
+                                       variant="ghost"
+                                       size="icon"
+                                       onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                       className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                       title="معاينة وطباعة سند القبض"
+                                     >
+                                       <Eye className="h-3.5 w-3.5" />
+                                     </Button>
                                     <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
                                       <Edit3 className="h-3.5 w-3.5" />
                                     </Button>
@@ -1368,12 +1391,13 @@ const isGeneralAccountName = (name?: string | null) => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">ملاحظات السند</Label>
+              <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">وذلك مقابل (سبب المقبوض / الغرض) *</Label>
               <Textarea
                 value={voucherNotes}
                 onChange={(e) => setVoucherNotes(e.target.value)}
-                placeholder="أي ملاحظات إضافية حول هذه الدفعة..."
+                placeholder="أدخل سبب القبض أو الغرض (مثال: تأمين احتياجات جامع ابن حمران بالمنسك)..."
                 rows={2}
+                required
               />
             </div>
           </div>
