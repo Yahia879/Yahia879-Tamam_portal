@@ -104,9 +104,10 @@ export default function ReceiptVoucherPrint() {
   // License number from Branding/Org settings with fallback to 2238
   const licenseNo = orgSettings?.licenseNumber || "2238";
 
-  // Main Logo & Stamp from Branding (/branding) with Fallbacks
+  // Main Logo & Stamp from Branding (/branding)
   const mainLogoUrl = orgSettings?.logoUrl;
   const officialStampUrl = orgSettings?.stampUrl;
+  const secondaryLogoUrl = orgSettings?.secondaryLogoUrl;
 
   // Payment Method details string
   const getPaymentMethodDetails = () => {
@@ -196,15 +197,15 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Top Header Grid (RTL layout):
-            - First column in RTL HTML = RIGHT side (Authentic Islamic Geometric Lattice + Partner Logos Vision 2030)
+            - First column in RTL HTML = RIGHT side (Authentic Islamic Geometric Lattice + Secondary Logo)
             - Last column in RTL HTML = LEFT side (Main Logo from /branding)
         */}
         <div className="grid grid-cols-12 gap-4 items-center mb-8 relative z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Authentic Islamic Geometric Lattice Ornament & Partner Logos */}
+          {/* Right Side Column (In RTL HTML: First Col): Authentic Islamic Geometric Lattice Ornament & Secondary Logo */}
           <div className="col-span-6 flex flex-col items-start gap-2 text-right">
             
-            {/* Seamless Islamic Geometric Lattice Pattern (Top Right - Matching Photo) */}
+            {/* Seamless Islamic Geometric Lattice Pattern (Top Right) */}
             <div className="w-64 sm:w-72 h-12 relative overflow-hidden bg-transparent opacity-90">
               <svg className="w-full h-full" viewBox="0 0 280 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -226,41 +227,22 @@ export default function ReceiptVoucherPrint() {
               </svg>
             </div>
 
-            {/* National Center for Non-Profit Sector & Vision 2030 Badges */}
-            <div className="flex items-center gap-3 mt-1">
-              {/* National Center Logo Representation */}
-              <div className="flex items-center gap-1.5 text-slate-800 leading-tight">
-                <svg className="w-6 h-6 text-emerald-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-                <div className="text-right">
-                  <span className="block font-black text-slate-900 text-[9px]">المركز الوطني لتنمية</span>
-                  <span className="block font-bold text-emerald-800 text-[9px]">القطاع غير الربحي</span>
-                </div>
-              </div>
-
-              <div className="h-7 w-px bg-slate-300"></div>
-
-              {/* Vision 2030 Logo from /branding */}
-              {orgSettings?.secondaryLogoUrl ? (
+            {/* Secondary Logo / Vision 2030 (Rendered ONLY if uploaded in /branding) */}
+            {secondaryLogoUrl && (
+              <div className="flex items-center gap-3 mt-1">
                 <img
-                  src={orgSettings.secondaryLogoUrl}
-                  alt="شعار رؤية 2030"
-                  className="max-h-9 max-w-[110px] object-contain"
+                  src={secondaryLogoUrl}
+                  alt="الشعار الثانوي / رؤية 2030"
+                  className="max-h-10 max-w-[140px] object-contain"
                 />
-              ) : (
-                <div className="flex items-center gap-0.5 text-slate-800 font-black tracking-tighter">
-                  <span className="text-[11px] text-slate-600 font-bold">رؤيــــــــة</span>
-                  <span className="text-base font-black text-slate-900">2030</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Middle Spacer */}
           <div className="col-span-1"></div>
 
-          {/* Left Side Column (In RTL HTML: Third Col): Main Logo from /branding */}
+          {/* Left Side Column (In RTL HTML: Third Col): Main Logo from /branding (Rendered ONLY if uploaded) */}
           <div className="col-span-5 flex justify-end items-center">
             {mainLogoUrl ? (
               <img
@@ -269,25 +251,7 @@ export default function ReceiptVoucherPrint() {
                 className="max-h-24 max-w-[210px] object-contain"
               />
             ) : (
-              <div className="flex flex-col items-center">
-                {/* Modern Islamic Dome Emblem Fallback */}
-                <div className="relative w-16 h-18 flex items-center justify-center">
-                  <svg className="w-full h-full text-[#1f7a63]" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M50 5 C30 25 20 45 20 80 L80 80 C80 45 70 25 50 5 Z" fill="none" stroke="#1f7a63" strokeWidth="4.5" />
-                    <path d="M50 20 C38 35 30 50 30 80 L70 80 C70 50 62 35 50 20 Z" fill="none" stroke="#978457" strokeWidth="3.5" />
-                    <path d="M50 35 C42 45 38 55 38 80 L62 80 C62 55 58 45 50 35 Z" fill="none" stroke="#1f7a63" strokeWidth="3" />
-                    <circle cx="50" cy="5" r="3.5" fill="#978457" />
-                  </svg>
-                </div>
-                <div className="text-center mt-1">
-                  <span className="block font-black text-2xl text-[#978457] tracking-tight leading-none">
-                    {orgSettings?.organizationNameShort || "منارة"}
-                  </span>
-                  <span className="block font-bold text-xs text-[#1f7a63] mt-0.5">
-                    {orgSettings?.organizationName || "جمعية عمارة المساجد"}
-                  </span>
-                </div>
-              </div>
+              <div className="h-24 w-full"></div>
             )}
           </div>
         </div>
@@ -368,40 +332,20 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Bottom Section (Signatures & Stamp):
-            - First column in RTL HTML (col-span-6) = RIGHT side (Official Stamp from /branding - Straight without CSS tilt)
+            - First column in RTL HTML (col-span-6) = RIGHT side (Official Stamp from /branding - ONLY rendered if uploaded)
             - Second column in RTL HTML (col-span-6) = LEFT side (Financial Department الإدارة المالية + Blank space for future signature)
         */}
         <div className="grid grid-cols-12 items-end pt-6 mb-10 relative z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Official Stamp from /branding (Straight / Unrotated) */}
-          <div className="col-span-6 flex justify-start items-center">
-            {officialStampUrl ? (
+          {/* Right Side Column (In RTL HTML: First Col): Official Stamp from /branding (Rendered ONLY if uploaded) */}
+          <div className="col-span-6 flex justify-start items-center min-h-[100px]">
+            {officialStampUrl && (
               <div className="relative select-none">
                 <img
                   src={officialStampUrl}
                   alt="الختم الرسمي"
                   className="w-48 h-auto max-h-36 object-contain"
                 />
-              </div>
-            ) : (
-              <div className="relative select-none">
-                <div className="border-2 border-dashed border-[#1a4b8c] rounded-2xl p-2.5 text-center bg-blue-50/20 backdrop-blur-2xs shadow-xs w-52 text-[#1a4b8c] font-bold">
-                  <div className="border border-[#1a4b8c] rounded-xl p-2.5 space-y-1">
-                    <div className="flex items-center justify-center gap-1.5 text-xs font-black">
-                      <svg className="w-4 h-4 text-[#1a4b8c]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                        <path d="M12 6a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0v-4a4 4 0 0 1 4-4z" />
-                      </svg>
-                      <span>{orgSettings?.organizationName || "جمعية عمارة المساجد"}</span>
-                    </div>
-                    <div className="text-[10px] font-bold opacity-90 border-t border-b border-[#1a4b8c]/40 py-0.5">
-                      ترخيص المركز الوطني لتنمية القطاع غير الربحي
-                    </div>
-                    <div className="text-[11px] font-black">
-                      رقم الترخيص: {licenseNo}
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
           </div>
