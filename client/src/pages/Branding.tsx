@@ -124,12 +124,16 @@ export default function Branding() {
     type: "logo" | "secondaryLogo" | "stamp",
     setLogo: (url: string | null) => void
   ) => {
-    const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-    const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
+    const allowedImageMimes = [
+      "image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png",
+      "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic",
+      "application/heic", "application/octet-stream", ""
+    ];
+    const allowedImageExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
 
-    if (!allowedImageMimes.includes(file.type) || !allowedImageExtensions.includes(extension)) {
-      toast.error("الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP.");
+    if (!allowedImageMimes.includes(file.type) && !allowedImageExtensions.includes(extension)) {
+      toast.error("الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP, HEIC, HEIF.");
       return;
     }
 
