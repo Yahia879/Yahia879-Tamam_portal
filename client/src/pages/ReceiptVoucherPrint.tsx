@@ -241,13 +241,13 @@ export default function ReceiptVoucherPrint() {
             )}
           </div>
 
-          {/* Top Left: Main Logo from /branding */}
-          <div className="flex justify-end items-center">
+          {/* Top Left: Main Logo from /branding (Positioned lower) */}
+          <div className="flex justify-end items-center pt-4 mt-2">
             {mainLogoUrl ? (
               <img
                 src={mainLogoUrl}
                 alt={orgSettings?.organizationName || "الشعار الرئيسي"}
-                className="max-h-24 max-w-[210px] object-contain"
+                className="max-h-24 max-w-[210px] object-contain translate-y-2"
               />
             ) : (
               <div className="h-20 w-44"></div>
@@ -334,19 +334,19 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Bottom Section (Signatures & Stamp):
-            - RIGHT (RTL First Col): Official Stamp from /branding (Rendered ONLY if uploaded)
+            - RIGHT (RTL First Col): Official Stamp from /branding (Shifted left and down overlapping footer line)
             - LEFT (RTL Second Col): Financial Department الإدارة المالية + Blank space for future signature
         */}
-        <div className="grid grid-cols-12 items-end pt-6 mb-10 relative z-10">
+        <div className="grid grid-cols-12 items-end pt-4 mb-4 relative z-20">
           
-          {/* Right Side Column (In RTL HTML: First Col): Official Stamp from /branding (Rendered ONLY if uploaded) */}
-          <div className="col-span-6 flex justify-start items-center min-h-[100px]">
+          {/* Right Side Column: Official Stamp (Shifted further left and down onto the footer) */}
+          <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
             {officialStampUrl && (
-              <div className="relative select-none">
+              <div className="relative select-none pr-8 sm:pr-14 translate-y-8 sm:translate-y-11 opacity-95 pointer-events-none">
                 <img
                   src={officialStampUrl}
                   alt="الختم الرسمي"
-                  className="w-48 h-auto max-h-36 object-contain"
+                  className="w-48 sm:w-52 h-auto max-h-38 object-contain"
                 />
               </div>
             )}
