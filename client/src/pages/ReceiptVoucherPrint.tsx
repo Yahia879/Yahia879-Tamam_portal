@@ -362,16 +362,29 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Page Footer Section */}
-        <div className="border-t-2 border-[#a18952]/50 pt-4 mt-auto relative z-10">
-          <div className="flex flex-col sm:flex-row items-center justify-between text-xs font-black text-slate-700 gap-2">
-            <div>
-              <span>المركز الرئيسي : {orgSettings?.address || "المملكة العربية السعودية - أبها - طريق الملك فهد العزيزية"}</span>
+        <div className="border-t-2 border-[#978457] pt-3 mt-auto relative z-10">
+          <div className="flex flex-row items-end justify-between text-xs text-slate-700 gap-4">
+            
+            {/* Right Side: Main Center Title & Address */}
+            <div className="text-right space-y-0.5">
+              <span className="block font-black text-[#978457] text-xs">المركز الرئيسي</span>
+              <span className="block font-bold text-slate-600 text-[11px] leading-tight">
+                {orgSettings?.address || "المملكة العربية السعودية - أبها - طريق الملك فهد العزيزية"}
+              </span>
             </div>
-            <div>
-              <span className="font-sans font-bold text-slate-800">{orgSettings?.website || "www.manarah.org.sa"}</span>
+
+            {/* Center Side: Website */}
+            <div className="text-center pb-0.5">
+              <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
+                {orgSettings?.website || "www.manarah.org.sa"}
+              </span>
             </div>
-            <div>
-              <span className="font-sans font-bold text-slate-800">E: {orgSettings?.email || "info@manarah.org.sa"}</span>
+
+            {/* Left Side: Email */}
+            <div className="text-left pb-0.5">
+              <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
+                E: {orgSettings?.email || "info@manarah.org.sa"}
+              </span>
             </div>
           </div>
         </div>
