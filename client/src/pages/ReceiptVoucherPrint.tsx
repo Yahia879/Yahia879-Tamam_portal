@@ -180,7 +180,7 @@ export default function ReceiptVoucherPrint() {
           <svg className="w-full h-full" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
             <pattern id="bg-islamic-watermark" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
               <path d="M40 0 L80 40 L40 80 L0 40 Z" stroke="#978457" strokeWidth="1.5" fill="none" />
-              <path d="M40 10 L70 40 L40 70 L10 40 Z" stroke="#1f7a63" strokeWidth="1" fill="none" />
+              <path d="M40 10 L70 40 L40 70 L10 40 Z" stroke="#c2a76d" strokeWidth="1" fill="none" />
               <circle cx="40" cy="40" r="10" stroke="#978457" strokeWidth="1" fill="none" />
             </pattern>
             <rect width="100%" height="100%" fill="url(#bg-islamic-watermark)" />
@@ -212,7 +212,7 @@ export default function ReceiptVoucherPrint() {
                     {/* Outer Diamond Grid */}
                     <path d="M 12 0 L 24 12 L 12 24 L 0 12 Z" stroke="#978457" strokeWidth="1" fill="none" />
                     {/* Inner Octagonal Lines */}
-                    <path d="M 12 4 L 20 12 L 12 20 L 4 12 Z" stroke="#1f7a63" strokeWidth="0.6" fill="none" />
+                    <path d="M 12 4 L 20 12 L 12 20 L 4 12 Z" stroke="#c2a76d" strokeWidth="0.7" fill="none" />
                     <path d="M 0 0 L 24 24 M 24 0 L 0 24" stroke="#a18952" strokeWidth="0.5" opacity="0.6" fill="none" />
                     {/* Intersecting Dots */}
                     <circle cx="12" cy="12" r="1.8" fill="#978457" />
@@ -241,11 +241,19 @@ export default function ReceiptVoucherPrint() {
 
               <div className="h-7 w-px bg-slate-300"></div>
 
-              {/* Vision 2030 Logo Representation */}
-              <div className="flex items-center gap-0.5 text-slate-800 font-black tracking-tighter">
-                <span className="text-[11px] text-slate-600 font-bold">رؤيــــــــة</span>
-                <span className="text-base font-black text-slate-900">2030</span>
-              </div>
+              {/* Vision 2030 Logo from /branding */}
+              {orgSettings?.secondaryLogoUrl ? (
+                <img
+                  src={orgSettings.secondaryLogoUrl}
+                  alt="شعار رؤية 2030"
+                  className="max-h-9 max-w-[110px] object-contain"
+                />
+              ) : (
+                <div className="flex items-center gap-0.5 text-slate-800 font-black tracking-tighter">
+                  <span className="text-[11px] text-slate-600 font-bold">رؤيــــــــة</span>
+                  <span className="text-base font-black text-slate-900">2030</span>
+                </div>
+              )}
             </div>
           </div>
 
