@@ -101,6 +101,7 @@ import NewDisbursementOrder from "./pages/NewDisbursementOrder";
 import NewDirectDisbursementOrder from "./pages/NewDirectDisbursementOrder";
 import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
+import ReceiptVoucherPrint from "./pages/ReceiptVoucherPrint";
 import ProgressReports from "./pages/ProgressReports";
 import ProgressReportPrint from "./pages/ProgressReportPrint";
 import DisbursementOrders from "./pages/DisbursementOrders";
@@ -336,6 +337,8 @@ function Router() {
       <Route path="/disbursements/orders/:id/print">{() => <AdminRoute component={DisbursementOrderPrint} />}</Route>
       <Route path="/disbursements/requests/:id/print">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       <Route path="/disbursements/requests/:id">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
+      <Route path="/receipt-vouchers/:id/print">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
+      <Route path="/receipt-vouchers/:id">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       
       {/* تقارير الإنجاز - إدارية */}
       <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
