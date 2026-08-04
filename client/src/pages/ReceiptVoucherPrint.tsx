@@ -196,31 +196,61 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Top Header Grid (RTL layout):
-            - First column in RTL HTML = RIGHT side (Seamless Wide Islamic Ornament + Partner Logos Vision 2030)
+            - First column in RTL HTML = RIGHT side (Islamic Star Rosette Ornament + Partner Logos Vision 2030)
             - Last column in RTL HTML = LEFT side (Main Logo from /branding)
         */}
         <div className="grid grid-cols-12 gap-4 items-center mb-8 relative z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Seamless Wide Islamic Ornament & Partner Logos */}
+          {/* Right Side Column (In RTL HTML: First Col): High-Quality Islamic Star Rosette Ornament & Partner Logos */}
           <div className="col-span-6 flex flex-col items-start gap-2 text-right">
             
-            {/* Seamless Borderless Islamic Geometric Ornament (Extending Towards Left) */}
-            <div className="w-72 sm:w-80 h-16 sm:h-20 relative overflow-hidden bg-transparent">
-              <svg className="w-full h-full" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Clean Islamic Geometric Star Rosette Ribbon (Top Right) */}
+            <div className="w-72 sm:w-80 h-14 relative overflow-hidden bg-transparent">
+              <svg className="w-full h-full" viewBox="0 0 320 60" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  {/* Seamless 8-Pointed Star Lattice Pattern */}
-                  <pattern id="seamless-islamic-ornament" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
-                    {/* Interlocking Diamond Grid */}
-                    <path d="M16 0 L32 16 L16 32 L0 16 Z" stroke="#a18952" strokeWidth="0.9" fill="none" opacity="0.8" />
-                    <path d="M16 4 L28 16 L16 28 L4 16 Z" stroke="#1f7a63" strokeWidth="0.6" fill="none" opacity="0.5" />
-                    {/* Octagonal 8-Star Inner Lines */}
-                    <polygon points="16,4 20,12 28,12 22,16 25,24 16,19 7,24 10,16 4,12 12,12" stroke="#a18952" strokeWidth="0.8" fill="none" opacity="0.7" />
-                    <circle cx="16" cy="16" r="2.5" fill="#978457" opacity="0.6" />
-                  </pattern>
+                  <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#c5a059" />
+                    <stop offset="50%" stopColor="#9a7b3e" />
+                    <stop offset="100%" stopColor="#7a5f2b" />
+                  </linearGradient>
+                  <linearGradient id="gold-light-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#faf6ee" />
+                    <stop offset="100%" stopColor="#f3ebda" />
+                  </linearGradient>
                 </defs>
 
-                {/* Seamless Pattern Background */}
-                <rect width="100%" height="100%" fill="url(#seamless-islamic-ornament)" />
+                {/* Rosette 1 (Right) */}
+                <g transform="translate(280, 30)">
+                  <polygon points="0,-22 6,-8 20,-8 10,2 14,16 0,8 -14,16 -10,2 -20,-8 -6,-8" fill="url(#gold-light-grad)" stroke="url(#gold-grad)" strokeWidth="1.5" />
+                  <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="url(#gold-grad)" strokeWidth="1" />
+                  <circle cx="0" cy="0" r="4" fill="#9a7b3e" />
+                </g>
+
+                {/* Rosette 2 (Middle-Right) */}
+                <g transform="translate(210, 30)">
+                  <polygon points="0,-22 6,-8 20,-8 10,2 14,16 0,8 -14,16 -10,2 -20,-8 -6,-8" fill="url(#gold-light-grad)" stroke="url(#gold-grad)" strokeWidth="1.5" />
+                  <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="url(#gold-grad)" strokeWidth="1" />
+                  <circle cx="0" cy="0" r="4" fill="#9a7b3e" />
+                </g>
+
+                {/* Rosette 3 (Middle-Left) */}
+                <g transform="translate(140, 30)">
+                  <polygon points="0,-22 6,-8 20,-8 10,2 14,16 0,8 -14,16 -10,2 -20,-8 -6,-8" fill="url(#gold-light-grad)" stroke="url(#gold-grad)" strokeWidth="1.5" />
+                  <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="url(#gold-grad)" strokeWidth="1" />
+                  <circle cx="0" cy="0" r="4" fill="#9a7b3e" />
+                </g>
+
+                {/* Rosette 4 (Left Fade) */}
+                <g transform="translate(70, 30)" opacity="0.6">
+                  <polygon points="0,-22 6,-8 20,-8 10,2 14,16 0,8 -14,16 -10,2 -20,-8 -6,-8" fill="url(#gold-light-grad)" stroke="url(#gold-grad)" strokeWidth="1.2" />
+                  <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="url(#gold-grad)" strokeWidth="0.8" />
+                  <circle cx="0" cy="0" r="3" fill="#9a7b3e" />
+                </g>
+
+                {/* Interconnecting Geometric Lines */}
+                <path d="M 50 30 L 300 30" stroke="url(#gold-grad)" strokeWidth="1.2" strokeDasharray="5 3" />
+                <path d="M 50 8 L 300 8" stroke="url(#gold-grad)" strokeWidth="1" opacity="0.7" />
+                <path d="M 50 52 L 300 52" stroke="url(#gold-grad)" strokeWidth="1" opacity="0.7" />
               </svg>
             </div>
 
