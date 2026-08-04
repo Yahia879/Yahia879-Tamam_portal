@@ -188,62 +188,61 @@ export default function ReceiptVoucherPrint() {
           </svg>
         </div>
 
-        {/* Top License Bar & Line (License on LEFT side) */}
-        <div className="flex justify-between items-center border-b-2 border-[#a18952]/60 pb-2 mb-6">
-          <div></div>
+        {/* Solid Gold Top Header Band with License Number on the Left & Ornament on Right */}
+        <div className="relative border-b-2 border-[#978457] pb-2 mb-6 flex justify-between items-center">
+          {/* Islamic Geometric Lattice Ornament (Top Right under gold bar) */}
+          <div className="w-64 sm:w-80 h-10 relative overflow-hidden opacity-90">
+            <svg className="w-full h-full" viewBox="0 0 320 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="islamic-header-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 10 0 L 20 10 L 10 20 L 0 10 Z" stroke="#978457" strokeWidth="1" fill="none" />
+                  <path d="M 10 3 L 17 10 L 10 17 L 3 10 Z" stroke="#c2a76d" strokeWidth="0.7" fill="none" />
+                  <circle cx="10" cy="10" r="1.5" fill="#978457" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#islamic-header-pattern)" />
+            </svg>
+          </div>
+
+          {/* License Number (Top Left) */}
           <div className="text-left">
-            <span className="text-sm font-black text-[#a18952]">رقم الترخيص {licenseNo}</span>
+            <span className="text-sm sm:text-base font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
           </div>
         </div>
 
-        {/* Top Header Grid (RTL layout):
-            - First column in RTL HTML = RIGHT side (Authentic Islamic Geometric Lattice + Secondary Logo)
-            - Last column in RTL HTML = LEFT side (Main Logo from /branding)
+        {/* Top Header Logos Row:
+            - RIGHT: National Center Logo & Secondary Logo / Vision 2030 (if uploaded)
+            - LEFT: Main Logo (منارة)
         */}
-        <div className="grid grid-cols-12 gap-4 items-center mb-8 relative z-10">
+        <div className="flex justify-between items-center mb-8 relative z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Authentic Islamic Geometric Lattice Ornament & Secondary Logo */}
-          <div className="col-span-6 flex flex-col items-start gap-2 text-right">
-            
-            {/* Seamless Islamic Geometric Lattice Pattern (Top Right) */}
-            <div className="w-64 sm:w-72 h-12 relative overflow-hidden bg-transparent opacity-90">
-              <svg className="w-full h-full" viewBox="0 0 280 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="islamic-header-pattern" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-                    {/* Outer Diamond Grid */}
-                    <path d="M 12 0 L 24 12 L 12 24 L 0 12 Z" stroke="#978457" strokeWidth="1" fill="none" />
-                    {/* Inner Octagonal Lines */}
-                    <path d="M 12 4 L 20 12 L 12 20 L 4 12 Z" stroke="#c2a76d" strokeWidth="0.7" fill="none" />
-                    <path d="M 0 0 L 24 24 M 24 0 L 0 24" stroke="#a18952" strokeWidth="0.5" opacity="0.6" fill="none" />
-                    {/* Intersecting Dots */}
-                    <circle cx="12" cy="12" r="1.8" fill="#978457" />
-                    <circle cx="0" cy="0" r="1.2" fill="#a18952" />
-                    <circle cx="24" cy="0" r="1.2" fill="#a18952" />
-                    <circle cx="0" cy="24" r="1.2" fill="#a18952" />
-                    <circle cx="24" cy="24" r="1.2" fill="#a18952" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#islamic-header-pattern)" />
+          {/* Top Right: Partner Logos (National Center Logo + Secondary Logo / Vision 2030 if uploaded) */}
+          <div className="flex items-center gap-4">
+            {/* National Center for Non-Profit Sector Logo */}
+            <div className="flex items-center gap-2 text-slate-800 leading-tight">
+              <svg className="w-7 h-7 text-[#088362] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
+              <div className="text-right">
+                <span className="block font-black text-slate-900 text-[10px]">المركز الوطني لتنمية</span>
+                <span className="block font-bold text-[#088362] text-[10px]">القطاع غير الربحي</span>
+              </div>
             </div>
 
-            {/* Secondary Logo / Vision 2030 (Rendered ONLY if uploaded in /branding) */}
             {secondaryLogoUrl && (
-              <div className="flex items-center gap-3 mt-1">
+              <>
+                <div className="h-7 w-px bg-slate-300"></div>
                 <img
                   src={secondaryLogoUrl}
                   alt="الشعار الثانوي / رؤية 2030"
-                  className="max-h-10 max-w-[140px] object-contain"
+                  className="max-h-10 max-w-[130px] object-contain"
                 />
-              </div>
+              </>
             )}
           </div>
 
-          {/* Middle Spacer */}
-          <div className="col-span-1"></div>
-
-          {/* Left Side Column (In RTL HTML: Third Col): Main Logo from /branding (Rendered ONLY if uploaded) */}
-          <div className="col-span-5 flex justify-end items-center">
+          {/* Top Left: Main Logo from /branding */}
+          <div className="flex justify-end items-center">
             {mainLogoUrl ? (
               <img
                 src={mainLogoUrl}
@@ -251,31 +250,31 @@ export default function ReceiptVoucherPrint() {
                 className="max-h-24 max-w-[210px] object-contain"
               />
             ) : (
-              <div className="h-24 w-full"></div>
+              <div className="h-20 w-44"></div>
             )}
           </div>
         </div>
 
-        {/* Title & Dates Banner Line:
-            - First column in RTL HTML (col-span-5) = RIGHT side (Hijri & Gregorian Dates)
-            - Second column in RTL HTML (col-span-7) = LEFT side (سند قبض 240124)
+        {/* Title & Dates Block:
+            - RIGHT: Hijri & Gregorian Dates (in teal #1f7a63)
+            - CENTER: "سند قبض 240124"
         */}
-        <div className="grid grid-cols-12 items-center mb-10 border-b-2 border-slate-200 pb-4 relative z-10">
+        <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Hijri & Gregorian Dates */}
-          <div className="col-span-5 flex flex-col items-start justify-center space-y-1.5 text-xs sm:text-sm font-bold text-slate-800">
-            <div className="flex items-center gap-2">
+          {/* Right Side: Hijri & Gregorian Dates */}
+          <div className="flex flex-col items-start space-y-1.5 text-sm sm:text-base font-bold">
+            <div className="flex items-center gap-3">
               <span className="text-[#1f7a63] font-black">التاريخ</span>
-              <span className="font-extrabold text-slate-900 text-sm sm:text-base">{toHijriDate(receiptDateObj)}</span>
+              <span className="font-extrabold text-slate-900">{toHijriDate(receiptDateObj)}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-[#1f7a63] font-black">الموافق</span>
-              <span className="font-extrabold text-slate-900 text-sm sm:text-base">{formatGregorianDate(receiptDateObj)}</span>
+              <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
             </div>
           </div>
 
-          {/* Left/Center Side Column (In RTL HTML: Second Col): Title "سند قبض" & Number */}
-          <div className="col-span-7 flex items-center justify-end gap-3">
+          {/* Center Side: Title "سند قبض" (Gold) & Voucher Number (Red) */}
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
             <h1 className="text-3xl sm:text-4xl font-black text-[#978457] tracking-tight">
               سند قبض
             </h1>
@@ -283,6 +282,9 @@ export default function ReceiptVoucherPrint() {
               {voucherNumDisplay}
             </span>
           </div>
+
+          {/* Left Side Spacer */}
+          <div className="w-24"></div>
         </div>
 
         {/* Main Document Content Body (Right-Aligned Arabic Text) */}
@@ -332,8 +334,8 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Bottom Section (Signatures & Stamp):
-            - First column in RTL HTML (col-span-6) = RIGHT side (Official Stamp from /branding - ONLY rendered if uploaded)
-            - Second column in RTL HTML (col-span-6) = LEFT side (Financial Department الإدارة المالية + Blank space for future signature)
+            - RIGHT (RTL First Col): Official Stamp from /branding (Rendered ONLY if uploaded)
+            - LEFT (RTL Second Col): Financial Department الإدارة المالية + Blank space for future signature
         */}
         <div className="grid grid-cols-12 items-end pt-6 mb-10 relative z-10">
           
