@@ -263,6 +263,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
 
   // تقارير الإنجاز والمشاريع
+  { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["projects", "projects.view", "projects.view_details", "disbursements", "disbursement_requests", "financial_reports"] },
   { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
   { pattern: /^\/project-reports\/.*$/, permission: ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"] },
 ];
