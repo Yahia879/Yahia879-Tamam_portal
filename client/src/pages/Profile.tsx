@@ -92,9 +92,16 @@ export default function Profile() {
       return;
     }
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("يرجى اختيار صورة صالحة (PNG, JPG, WEBP, SVG)");
+    const allowedTypes = [
+      "image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml",
+      "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic",
+      "application/heic", "application/octet-stream", ""
+    ];
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const isHeic = ["heic", "heif"].includes(ext);
+
+    if (!allowedTypes.includes(file.type) && !isHeic) {
+      toast.error("يرجى اختيار صورة صالحة (PNG, JPG, WEBP, SVG, HEIC, HEIF)");
       return;
     }
 
