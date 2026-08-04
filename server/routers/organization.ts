@@ -286,14 +286,18 @@ export const organizationRouter = router({
       const { storagePut } = await import("../storage");
 
       // التحقق من نوع الملف المرفوع ليكون صورة صالحة فقط
-      const allowedImageMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png"];
-      const allowedImageExtensions = ["jpg", "jpeg", "png", "webp"];
+      const allowedImageMimes = [
+        "image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png",
+        "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic",
+        "application/heic", "application/octet-stream", ""
+      ];
+      const allowedImageExtensions = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
       const extension = input.fileName.split(".").pop()?.toLowerCase() || "";
 
-      if (!allowedImageMimes.includes(input.mimeType) || !allowedImageExtensions.includes(extension)) {
+      if (!allowedImageMimes.includes(input.mimeType) && !allowedImageExtensions.includes(extension)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "الملف المرفوع ليس صورة صالحة. يسمح فقط بـ JPG, JPEG, PNG, WEBP."
+          message: "الملف المرفوع ليس صورة صالحة. يسمح فقط بـ (JPG, JPEG, PNG, WEBP, HEIC, HEIF)."
         });
       }
 
@@ -589,14 +593,18 @@ export const organizationRouter = router({
       mimeType: z.string(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml"];
-      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg"];
+      const allowedMimes = [
+        "image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml",
+        "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic",
+        "application/heic", "application/octet-stream", ""
+      ];
+      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg", "heic", "heif"];
       const extension = input.fileName.split(".").pop()?.toLowerCase() || "png";
 
-      if (!allowedMimes.includes(input.mimeType) || !allowedExts.includes(extension)) {
+      if (!allowedMimes.includes(input.mimeType) && !allowedExts.includes(extension)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG)."
+          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG, HEIC, HEIF)."
         });
       }
 
