@@ -2093,5 +2093,50 @@ export const projectsRouter = router({
       await db.delete(receiptVouchers).where(eq(receiptVouchers.id, input.id));
       return { success: true };
     }),
+
+  getReceiptVoucherById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [voucher] = await db
+        .select({
+          id: receiptVouchers.id,
+          voucherNumber: receiptVouchers.voucherNumber,
+          projectId: receiptVouchers.projectId,
+          amount: receiptVouchers.amount,
+          receiptDate: receiptVouchers.receiptDate,
+          payerName: receiptVouchers.payerName,
+          paymentMethod: receiptVouchers.paymentMethod,
+          referenceNumber: receiptVouchers.referenceNumber,
+          bankName: receiptVouchers.bankName,
+          attachmentUrl: receiptVouchers.attachmentUrl,
+          notes: receiptVouchers.notes,
+          createdAt: receiptVouchers.createdAt,
+          createdById: receiptVouchers.createdById,
+        })
+        .from(receiptVouchers)
+        .where(eq(receiptVouchers.id, input.id));
+
+      if (!voucher) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+      }
+
+      const [project] = await db
+        .select({
+          id: projects.id,
+          name: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(projects)
+        .where(eq(projects.id, voucher.projectId));
+
+      return {
+        ...voucher,
+        project,
+      };
+    }),
 });
+
 
