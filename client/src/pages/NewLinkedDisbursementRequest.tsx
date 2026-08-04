@@ -693,44 +693,13 @@ export default function NewLinkedDisbursementRequest() {
       .toLowerCase();
   };
 
-  // إجمالي سندات القبض المقبوضة فعلياً الخاصة بالداعم المحدد فقط
+  // إجمالي سندات القبض المقبوضة فعلياً لجميع الداعمين المصروفين للمشروع
   const totalSupporterPayments = useMemo(() => {
     const vouchers = projectFinancials?.receiptVouchers || [];
-    const selectedFunder = (formData.fundingSourceName || (supportSources.length === 1 ? supportSources[0]?.entity : "") || "").trim();
+    const vouchersTotal = vouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0);
+    return vouchersTotal + generalAccountSupportAmount;
+  }, [projectFinancials, generalAccountSupportAmount]);
 
-    if (!selectedFunder) {
-      return vouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0) + generalAccountSupportAmount;
-    }
-
-    const normSelected = normalizeArabicText(selectedFunder);
-
-    const matchingVouchers = vouchers.filter((v: any) => {
-      const normPayer = normalizeArabicText(v.payerName);
-      if (!normPayer) return false;
-      return (
-        normPayer === normSelected ||
-        normPayer.includes(normSelected) ||
-        normSelected.includes(normPayer)
-      );
-    });
-
-    const vouchersTotal = matchingVouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0);
-    const isGenAccountSelected = normSelected.includes("الحساب العام") || normSelected.includes("حساب عام");
-
-    return isGenAccountSelected ? (vouchersTotal + generalAccountSupportAmount) : vouchersTotal;
-  }, [projectFinancials, formData.fundingSourceName, supportSources, generalAccountSupportAmount]);
-
-  // الضبط التلقائي لجهة الدعم عند وجود داعم واحد فقط أو تغيير المشروع
-  useEffect(() => {
-    if (supportSources.length > 0) {
-      if (supportSources.length === 1 || !formData.fundingSourceName) {
-        setFormData(prev => ({
-          ...prev,
-          fundingSourceName: supportSources.length === 1 ? supportSources[0].entity : (prev.fundingSourceName || "")
-        }));
-      }
-    }
-  }, [supportSources]);
 
 
 
@@ -974,12 +943,6 @@ export default function NewLinkedDisbursementRequest() {
     if ((isFundingRequired && !formData.fundingSupport) || !formData.mainProjectName) return true;
 
     if (requestType === "project_linked") {
-      if (formData.projectId > 0 && supportSources.length === 0) {
-        return true;
-      }
-      if (formData.projectId > 0 && supportSources.length > 1 && !formData.fundingSourceName) {
-        return true;
-      }
       return !selectedReportId || (selectedReport && isReportLinked(selectedReport));
     }
     
@@ -1026,14 +989,6 @@ export default function NewLinkedDisbursementRequest() {
 
   // معالجة النقر على زر "التالي" بالخطوة الثانية
   const handleStep2Next = () => {
-    if (formData.projectId > 0 && supportSources.length === 0) {
-      toast.error("عذراً، هذا المشروع لا يمتلك أي جهة دعم مسجلة. يرجى إكمال باقي البيانات في صفحة المشروع أولاً.");
-      return;
-    }
-    if (formData.projectId > 0 && supportSources.length > 1 && !formData.fundingSourceName) {
-      toast.error("يرجى تحديد جهة الدعم المصروف منها لكون المشروع مسجلاً بأكثر من داعم");
-      return;
-    }
     if (hasFunderPaymentDeficit && !disburseFromGeneralAccount) {
       setShowSupporterDeficitDialog(true);
       return;
@@ -1054,10 +1009,6 @@ export default function NewLinkedDisbursementRequest() {
     }
     if (!isCustom && !formData.projectId) {
       toast.error("يرجى اختيار المشروع");
-      return;
-    }
-    if (formData.projectId > 0 && supportSources.length > 1 && !formData.fundingSourceName) {
-      toast.error("يرجى تحديد جهة الدعم المصروف منها لكون المشروع مسجلاً بأكثر من داعم");
       return;
     }
     if (!formData.dateMiladi) {
@@ -1623,79 +1574,7 @@ export default function NewLinkedDisbursementRequest() {
                   </div>
                 )}
 
-                {/* اختيار جهة الدعم المصروف منها أو تنبيه منع الإكمال عند عدم وجود داعم */}
-                {formData.projectId > 0 && (
-                  <div className="space-y-3 text-right animate-in fade-in duration-200">
-                    {supportSources.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            جهة الدعم المصروف منها *
-                          </Label>
-                          {supportSources.length > 1 && (
-                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 font-bold">
-                              {supportSources.length} داعمين للمشروع (يلزم التحديد)
-                            </Badge>
-                          )}
-                        </div>
-                        <Select
-                          value={formData.fundingSourceName || ""}
-                          onValueChange={(value) => setFormData({ ...formData, fundingSourceName: value })}
-                        >
-                          <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full font-medium" dir="rtl">
-                            <SelectValue placeholder="اختر جهة الدعم المصروف منها..." />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl">
-                            {supportSources.map((src, idx) => (
-                              <SelectItem key={idx} value={src.entity} className="text-right font-medium">
-                                {src.entity}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
 
-                        {supportSources.length > 1 && (
-                          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-xl text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-                            <div>
-                              <p className="font-bold">تنبيه: هذا المشروع يمتلك أكثر من جهة دعم ({supportSources.length} داعمين)</p>
-                              <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-400">يجب تحديد جهة الدعم المحددة المراد خصم مبلغ طلب الصرف من حسابها/ميزانيتها.</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      /* تنبيه لطيف وهادئ الألوان يوضح عدم وجود أي داعم مسجل للمشروع */
-                      <div className="p-4 rounded-xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/40 dark:bg-rose-950/20 text-right space-y-3 shadow-2xs animate-in fade-in duration-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-rose-100/60 dark:bg-rose-950/50 border border-rose-200/60 dark:border-rose-800/40 flex items-center justify-center shrink-0">
-                            <AlertTriangle className="w-4.5 h-4.5 text-rose-600 dark:text-rose-400" />
-                          </div>
-                          <div className="space-y-1 text-right">
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                              لا يمكن إكمال طلب الصرف لهذا المشروع
-                            </h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
-                              عذراً، هذا المشروع لا يمتلك أي جهة دعم مسجلة في بياناته المالية. يرجى إكمال باقي البيانات المالية وجهات الدعم في صفحة المشروع أولاً حتى تتمكن من إنشاء طلب الصرف.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-rose-200/60 dark:border-rose-900/30 flex justify-end">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => navigate(`/projects/${formData.projectId}`)}
-                            className="border-rose-300 text-rose-700 bg-white hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:bg-slate-900 dark:hover:bg-rose-950/40 font-bold text-xs h-9 px-4 rounded-xl shadow-2xs flex items-center gap-1.5"
-                          >
-                            <Building2 className="w-3.5 h-3.5" />
-                            الانتقال لصفحة المشروع لإكمال البيانات
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {isCustom && (
                   <div className="space-y-4 animate-slide-up text-right">
@@ -2296,17 +2175,7 @@ export default function NewLinkedDisbursementRequest() {
                   />
                 </div>
 
-                {formData.fundingSourceName && (
-                  <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">جهة الدعم المصروف منها *</Label>
-                    <Input
-                      value={formData.fundingSourceName}
-                      readOnly
-                      required
-                      className="text-right border-border focus:ring-0 rounded-xl h-10 font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50/30 dark:bg-emerald-950/20 cursor-default"
-                    />
-                  </div>
-                )}
+
                 
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -2754,10 +2623,10 @@ export default function NewLinkedDisbursementRequest() {
             </div>
             <div className="space-y-1 text-right">
               <DialogTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 leading-snug">
-                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم
+                المبلغ المراد صرفه غير متوافق مع مدفوعات الداعمين
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                تبيّن من التدقيق المالي أن إجمالي المقبوض فعلياً من الداعم <span className="font-bold text-emerald-700 dark:text-emerald-300">({formData.fundingSourceName || supportSources[0]?.entity || "جهة الدعم المعتمدة"})</span> أقل من المبلغ المطلوب صرفه حالياً.
+                تبيّن من التدقيق المالي أن إجمالي المقبوض فعلياً من كل الداعمين أقل من المبلغ المطلوب صرفه حالياً.
               </DialogDescription>
             </div>
           </div>
@@ -2766,13 +2635,6 @@ export default function NewLinkedDisbursementRequest() {
             {/* Financial Breakdown Card */}
             <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 space-y-2.5">
               <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
-                <span className="text-slate-700 dark:text-slate-300">جهة الدعم المصروف منها:</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">
-                  {formData.fundingSourceName || supportSources[0]?.entity || (projectDetails as any)?.supportingEntity || "غير محدد"}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
                 <span className="text-slate-700 dark:text-slate-300">المبلغ المراد صرفه:</span>
                 <span className="font-bold text-blue-800 dark:text-blue-400 text-sm sm:text-base">
                   {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
@@ -2780,7 +2642,7 @@ export default function NewLinkedDisbursementRequest() {
               </div>
 
               <div className="flex justify-between items-center text-xs sm:text-sm">
-                <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه الداعم فعلياً (سندات القبض):</span>
+                <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه كل الداعمين (سندات القبض):</span>
                 <span className="font-bold text-emerald-700 dark:text-emerald-400">
                   {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
@@ -2798,10 +2660,10 @@ export default function NewLinkedDisbursementRequest() {
             <div className="p-4 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/80 rounded-xl space-y-1.5 text-right shadow-xs">
               <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
                 <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) أكبر من إجمالي ما دفعه الداعم فعلياً ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال)
+                تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) أكبر من إجمالي ما دفعه كل الداعمين ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال)
               </p>
               <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal pt-0.5">
-                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعم لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.
+                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعمين لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.
               </p>
             </div>
           </div>
