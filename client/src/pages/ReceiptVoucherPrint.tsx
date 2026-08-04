@@ -196,46 +196,36 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Top Header Grid (RTL layout):
-            - First column in RTL HTML = RIGHT side (Islamic Ornament + Partner Logos Vision 2030)
+            - First column in RTL HTML = RIGHT side (Seamless Wide Islamic Ornament + Partner Logos Vision 2030)
             - Last column in RTL HTML = LEFT side (Main Logo from /branding)
         */}
         <div className="grid grid-cols-12 gap-4 items-center mb-8 relative z-10">
           
-          {/* Right Side Column (In RTL HTML: First Col): Authentic 8-Pointed Star Islamic Ornament & Partner Logos */}
-          <div className="col-span-5 flex flex-col items-start gap-2 text-right">
+          {/* Right Side Column (In RTL HTML: First Col): Seamless Wide Islamic Ornament & Partner Logos */}
+          <div className="col-span-6 flex flex-col items-start gap-2 text-right">
             
-            {/* Rich Authentic Islamic Geometric Ornament Tile (Top Right) */}
-            <div className="w-56 h-16 relative overflow-hidden rounded-lg border-2 border-[#a18952]/40 bg-[#faf8f3] shadow-xs">
-              <svg className="w-full h-full" viewBox="0 0 240 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Seamless Borderless Islamic Geometric Ornament (Extending Towards Left) */}
+            <div className="w-72 sm:w-80 h-16 sm:h-20 relative overflow-hidden bg-transparent">
+              <svg className="w-full h-full" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
-                  {/* Islamic 8-Pointed Star Geometric Tile Pattern */}
-                  <pattern id="islamic-star-8-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                    {/* Outer Square Grid */}
-                    <rect x="0" y="0" width="40" height="40" fill="#faf8f3" />
-                    {/* Rotated Diamond Square */}
-                    <polygon points="20,0 40,20 20,40 0,20" fill="none" stroke="#a18952" strokeWidth="1.2" />
-                    {/* Central 8-Pointed Star (Rub el Hizb / Khatam Suleimani) */}
-                    <polygon points="20,4 24,14 34,14 26,20 30,30 20,24 10,30 14,20 6,14 16,14" fill="none" stroke="#978457" strokeWidth="1.4" />
-                    <polygon points="20,8 23,15 30,15 24,20 27,27 20,22 13,27 16,20 10,15 17,15" fill="#f3eee3" stroke="#1f7a63" strokeWidth="0.8" />
-                    {/* Corner Star Accents */}
-                    <circle cx="20" cy="20" r="3" fill="#a18952" />
-                    <circle cx="0" cy="0" r="2.5" fill="#978457" />
-                    <circle cx="40" cy="0" r="2.5" fill="#978457" />
-                    <circle cx="0" cy="40" r="2.5" fill="#978457" />
-                    <circle cx="40" cy="40" r="2.5" fill="#978457" />
+                  {/* Seamless 8-Pointed Star Lattice Pattern */}
+                  <pattern id="seamless-islamic-ornament" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+                    {/* Interlocking Diamond Grid */}
+                    <path d="M16 0 L32 16 L16 32 L0 16 Z" stroke="#a18952" strokeWidth="0.9" fill="none" opacity="0.8" />
+                    <path d="M16 4 L28 16 L16 28 L4 16 Z" stroke="#1f7a63" strokeWidth="0.6" fill="none" opacity="0.5" />
+                    {/* Octagonal 8-Star Inner Lines */}
+                    <polygon points="16,4 20,12 28,12 22,16 25,24 16,19 7,24 10,16 4,12 12,12" stroke="#a18952" strokeWidth="0.8" fill="none" opacity="0.7" />
+                    <circle cx="16" cy="16" r="2.5" fill="#978457" opacity="0.6" />
                   </pattern>
                 </defs>
 
-                {/* Pattern Fill */}
-                <rect width="100%" height="100%" fill="url(#islamic-star-8-pattern)" />
-
-                {/* Inner Gold Frame Lines */}
-                <rect x="3" y="3" width="234" height="64" rx="4" fill="none" stroke="#a18952" strokeWidth="1" opacity="0.6" />
+                {/* Seamless Pattern Background */}
+                <rect width="100%" height="100%" fill="url(#seamless-islamic-ornament)" />
               </svg>
             </div>
 
             {/* National Center for Non-Profit Sector & Vision 2030 Badges */}
-            <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex items-center gap-3 mt-1">
               {/* National Center Logo Representation */}
               <div className="flex items-center gap-1.5 text-slate-800 leading-tight">
                 <svg className="w-6 h-6 text-emerald-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -257,8 +247,8 @@ export default function ReceiptVoucherPrint() {
             </div>
           </div>
 
-          {/* Middle Column Spacer */}
-          <div className="col-span-2"></div>
+          {/* Middle Spacer */}
+          <div className="col-span-1"></div>
 
           {/* Left Side Column (In RTL HTML: Third Col): Main Logo from /branding */}
           <div className="col-span-5 flex justify-end items-center">
