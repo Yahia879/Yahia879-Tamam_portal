@@ -44,6 +44,31 @@ const DURATION_UNITS = [
   { value: "years", label: "سنة" },
 ];
 
+function toHijriDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+      calendar: 'islamic-umalqura',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(date);
+    const day = parts.find(p => p.type === 'day')?.value || '';
+    const month = parts.find(p => p.type === 'month')?.value || '';
+    const year = parts.find(p => p.type === 'year')?.value || '';
+    return `${year}/${month}/${day}`;
+  } catch (e) {
+    const gregorianYear = date.getFullYear();
+    const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
+    const hijriMonth = String(((date.getMonth() + 9) % 12) + 1).padStart(2, '0');
+    const hijriDay = String(date.getDate()).padStart(2, '0');
+    return `${hijriYear}/${hijriMonth}/${hijriDay}`;
+  }
+}
+
 // أنواع الدفعات
 const PAYMENT_TYPES = [
   { value: "advance", label: "دفعة مقدمة" },
@@ -130,6 +155,7 @@ export default function ContractForm() {
     duration: 0,
     durationUnit: "months" as string,
     startDate: "",
+    startDateHijri: "",
     
     // القيمة المالية
     totalValue: 0,
@@ -393,6 +419,7 @@ export default function ContractForm() {
         duration: c.duration || 0,
         durationUnit: c.durationUnit || "months",
         startDate: c.startDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate)) : "",
+        startDateHijri: c.contractDateHijri ? c.contractDateHijri.replace(/[^0-9/]/g, '') : (c.startDate ? toHijriDate(new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate))) : ""),
         totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
         managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
         managementAmount: (c.contractAmount && c.managementPercentage) ? (parseFloat(c.contractAmount) * parseFloat(c.managementPercentage)) / 100 : 0,
@@ -600,7 +627,11 @@ export default function ContractForm() {
       
       // تعيين تاريخ البدء إلى اليوم إذا كان فارغاً
       if (!contractData.startDate) {
-        updates.startDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const todayStr = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        updates.startDate = todayStr;
+        if (!contractData.startDateHijri) {
+          updates.startDateHijri = toHijriDate(todayStr);
+        }
       }
       
       // تعيين مدة افتراضية (3 أشهر) إذا كانت فارغة
@@ -811,6 +842,7 @@ export default function ContractForm() {
         duration: contractData.duration,
         durationUnit: contractData.durationUnit as any,
         contractDate: contractData.startDate,
+        contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
         startDate: contractData.startDate,
         customTerms: contractData.notes || undefined,
         // جدول الدفعات
@@ -866,6 +898,7 @@ export default function ContractForm() {
       duration: contractData.duration,
       durationUnit: contractData.durationUnit as any,
       contractDate: contractData.startDate,
+      contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate,
       // جدول الدفعات
       paymentSchedule: paymentSchedule.length > 0 ? JSON.stringify(paymentSchedule) : undefined,
@@ -926,6 +959,7 @@ export default function ContractForm() {
       duration: contractData.duration || 1,
       durationUnit: (contractData.durationUnit || "months") as any,
       contractDate: contractData.startDate || undefined,
+      contractDateHijri: contractData.startDateHijri ? `${contractData.startDateHijri.replace(/[^0-9/]/g, '')} هـ` : (contractData.startDate ? `${toHijriDate(contractData.startDate)} هـ` : undefined),
       startDate: contractData.startDate || undefined,
       customTerms: contractData.notes || undefined,
       
@@ -1393,7 +1427,7 @@ export default function ContractForm() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label>مدة العقد *</Label>
                     <Input
@@ -1426,12 +1460,38 @@ export default function ContractForm() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>تاريخ البدء *</Label>
+                    <Label>تاريخ البدء (ميلادي) *</Label>
                     <Input
                       type="date"
                       value={contractData.startDate}
-                      onChange={(e) => setContractData({ ...contractData, startDate: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setContractData(prev => ({
+                          ...prev,
+                          startDate: val,
+                          startDateHijri: val ? toHijriDate(val) : prev.startDateHijri
+                        }));
+                      }}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>تاريخ البدء (هجري)</Label>
+                    <div className="relative flex items-center">
+                      <Input
+                        type="text"
+                        value={contractData.startDateHijri}
+                        onChange={(e) => {
+                          const cleaned = e.target.value.replace(/[^0-9/]/g, "");
+                          setContractData(prev => ({ ...prev, startDateHijri: cleaned }));
+                        }}
+                        placeholder="1447/02/15"
+                        dir="ltr"
+                        className="text-right pl-10 font-mono"
+                      />
+                      <span className="absolute left-3 text-sm font-bold text-muted-foreground select-none pointer-events-none">
+                        هـ
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -2017,7 +2077,9 @@ export default function ContractForm() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">تاريخ البدء:</span>
-                      <p className="font-medium">{contractData.startDate || "-"}</p>
+                      <p className="font-medium">
+                        {contractData.startDate || "-"} {contractData.startDateHijri ? `(${contractData.startDateHijri} هـ)` : ""}
+                      </p>
                     </div>
                     <div>
                       <span className="text-muted-foreground">قيمة العقد:</span>
