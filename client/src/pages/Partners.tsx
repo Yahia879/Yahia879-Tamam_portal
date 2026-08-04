@@ -80,7 +80,7 @@ export default function Partners() {
                 </div>
                 <div className="space-y-2">
                   <Label>الشعار</Label>
-                  <Input type="file" accept="image/*" />
+                  <Input type="file" accept="image/*,.heic,.heif,image/heic,image/heif" />
                 </div>
                 <div className="space-y-2">
                   <Label>ملاحظات</Label>
