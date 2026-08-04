@@ -625,7 +625,7 @@ export default function FieldInspectionForm() {
             <FileUpload
               onFilesSelected={setAttachments}
               maxFiles={10}
-              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+              acceptedTypes={["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", ".heic", ".heif"]}
               maxSizeMB={10}
               maxTotalSizeMB={10}
               label="رفع الصور"
