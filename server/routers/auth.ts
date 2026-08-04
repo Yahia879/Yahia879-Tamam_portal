@@ -697,14 +697,18 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml"];
-      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg"];
+      const allowedMimes = [
+        "image/jpeg", "image/png", "image/webp", "image/jpg", "image/pjpeg", "image/x-png", "image/svg+xml",
+        "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence", "image/x-heic",
+        "application/heic", "application/octet-stream", ""
+      ];
+      const allowedExts = ["jpg", "jpeg", "png", "webp", "svg", "heic", "heif"];
       const extension = input.fileName.split(".").pop()?.toLowerCase() || "png";
 
-      if (!allowedMimes.includes(input.mimeType) || !allowedExts.includes(extension)) {
+      if (!allowedMimes.includes(input.mimeType) && !allowedExts.includes(extension)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG)."
+          message: "الملف المرفوع ليس صورة توقيع صالحة. يُسمح فقط بصور (PNG, JPG, WEBP, SVG, HEIC, HEIF)."
         });
       }
 
