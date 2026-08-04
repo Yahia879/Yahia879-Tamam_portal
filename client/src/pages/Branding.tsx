@@ -95,12 +95,11 @@ export default function Branding() {
     try {
       await updateSettingsMutation.mutateAsync({
         organizationName: orgSettings.organizationName || "بوابة تمام",
-        // الحفاظ على الشعارات الموجودة عند حفظ الألوان
-        logoUrl: mainLogo || orgSettings.logoUrl || undefined,
-        secondaryLogoUrl: whiteLogo || orgSettings.secondaryLogoUrl || undefined,
-        stampUrl: darkLogo || orgSettings.stampUrl || undefined,
-        technicalSupervisorLogoUrl: technicalLogo || (orgSettings as any).technicalSupervisorLogoUrl || undefined,
-        administrativeSupervisorLogoUrl: adminLogo || (orgSettings as any).administrativeSupervisorLogoUrl || undefined,
+        logoUrl: mainLogo !== null ? mainLogo : "",
+        secondaryLogoUrl: whiteLogo !== null ? whiteLogo : "",
+        stampUrl: darkLogo !== null ? darkLogo : "",
+        technicalSupervisorLogoUrl: technicalLogo !== null ? technicalLogo : "",
+        administrativeSupervisorLogoUrl: adminLogo !== null ? adminLogo : "",
         colorPrimary1,
         colorPrimary2,
         colorSecondary1,
@@ -172,13 +171,33 @@ export default function Branding() {
     }
   };
 
-  // دالة حذف الشعار
-  const handleRemoveLogo = (
+  // دالة حذف الشعار وتحديث قاعدة البيانات مباشرة
+  const handleRemoveLogo = async (
     type: string,
     setLogo: (url: string | null) => void
   ) => {
     setLogo(null);
-    toast.success("تم حذف الشعار");
+    try {
+      const fieldMap: Record<string, string> = {
+        logo: "logoUrl",
+        secondaryLogo: "secondaryLogoUrl",
+        stamp: "stampUrl",
+        technical_supervision: "technicalSupervisorLogoUrl",
+        admin_supervision: "administrativeSupervisorLogoUrl",
+      };
+      const fieldName = fieldMap[type];
+      if (fieldName && orgSettings) {
+        await updateSettingsMutation.mutateAsync({
+          organizationName: orgSettings.organizationName || "بوابة تمام",
+          [fieldName]: "",
+        });
+      }
+      toast.success("تم حذف الشعار وتحديث الإعدادات بنجاح");
+      refetch();
+    } catch (e) {
+      console.error("[handleRemoveLogo] Error:", e);
+      toast.error("فشل في حذف الشعار من الإعدادات");
+    }
   };
 
   // مكوّن حقل اللون
