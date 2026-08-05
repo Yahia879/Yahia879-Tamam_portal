@@ -95,6 +95,18 @@ const isGeneralAccountName = (name?: string | null) => {
   return norm.includes("الحساب العام") || norm.includes("حساب عام");
 };
 
+const getCleanVoucherNotes = (notes?: string | null): string => {
+  if (!notes) return "-";
+  if (notes.includes(" | ")) {
+    const parts = notes.split(" | ");
+    return parts[0].trim() || "-";
+  }
+  if (notes.startsWith("تم إلغاء الاعتماد:") || notes.startsWith("مبررات إلغاء الاعتماد:") || notes.startsWith("مرفوض")) {
+    return "-";
+  }
+  return notes;
+};
+
 
   // Form States for Financial & Support Details
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
