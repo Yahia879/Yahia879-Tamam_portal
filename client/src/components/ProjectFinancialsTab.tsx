@@ -1268,31 +1268,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                   <TableCell className="font-bold text-emerald-700 text-xs">
                                     {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                                   </TableCell>
-                                  <TableCell className="text-xs text-muted-foreground">
-                                    {voucher.notes ? (
-                                      voucher.notes.length > 20 ? (
-                                        <div className="flex items-center gap-1">
-                                          <span title={voucher.notes}>
-                                            {voucher.notes.slice(0, 20)}...
-                                          </span>
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setSelectedNote(voucher.notes)}
-                                            className="h-5 w-5 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 inline-flex items-center justify-center"
-                                            title="عرض الملاحظة كاملة"
-                                          >
-                                            <Eye className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </div>
-                                      ) : (
-                                        <span>{voucher.notes}</span>
-                                      )
-                                    ) : (
-                                      <span>-</span>
-                                    )}
-                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
+                                     {getCleanVoucherNotes(voucher.notes)}
+                                   </TableCell>
                                   <TableCell className="text-center text-xs">
                                     {voucher.status === "approved" ? (
                                       <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
@@ -1461,31 +1439,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
                                 <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
                                 <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
-                                <TableCell className="text-xs text-muted-foreground">
-                                  {voucher.notes ? (
-                                    voucher.notes.length > 20 ? (
-                                      <div className="flex items-center gap-1">
-                                        <span title={voucher.notes}>
-                                          {voucher.notes.slice(0, 20)}...
-                                        </span>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => setSelectedNote(voucher.notes)}
-                                          className="h-5 w-5 p-0 shrink-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 inline-flex items-center justify-center"
-                                          title="عرض الملاحظة كاملة"
-                                        >
-                                          <Eye className="h-3.5 w-3.5" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <span>{voucher.notes}</span>
-                                    )
-                                  ) : (
-                                    <span>-</span>
-                                  )}
-                                </TableCell>
+                                <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
+                                     {getCleanVoucherNotes(voucher.notes)}
+                                   </TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
                                      <Button
