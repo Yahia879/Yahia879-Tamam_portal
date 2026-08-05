@@ -210,15 +210,15 @@ export default function ReceiptVoucherPrint() {
         </div>
 
         {/* Top Header Row:
-            - RIGHT: Rectangular Box "سند قبض" (aligned with the main logo on the left)
+            - RIGHT: Rectangular Box "سند قبض" (aligned symmetrically on Y-axis with the main logo)
             - LEFT: Main Logo (منارة)
         */}
         <div className="flex justify-between items-center mb-8 relative z-10">
           
           {/* Top Right: Rectangular Box "سند قبض" */}
-          <div className="flex items-center pt-4 mt-2">
-            <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] px-8 py-2.5 rounded-xl shadow-xs flex items-center justify-center">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none">
+          <div className="flex items-center justify-start pt-4 mt-2">
+            <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[200px] h-[72px] rounded-xl shadow-xs flex items-center justify-center translate-y-2 px-6">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-center">
                 سند قبض
               </h1>
             </div>
