@@ -107,7 +107,7 @@ export default function Home() {
             <div className="flex justify-center mb-6">
               <div className="w-24 h-24 rounded-2xl bg-white/10 backdrop-blur-sm p-3 flex items-center justify-center shadow-xl">
                 <img
-                  src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo.svg'}
+                  src={orgSettings?.logoUrl || '/logo.svg'}
                   alt="شعار"
                   className="w-full h-full object-contain"
                   onError={(e) => { (e.target as HTMLImageElement).src = '/logo.svg'; }}
