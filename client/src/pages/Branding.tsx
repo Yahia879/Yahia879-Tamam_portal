@@ -346,16 +346,16 @@ export default function Branding() {
                 )}
               </div>
 
-              {/* شعار رؤية 2030 / الشعار الثانوي */}
+              {/* الشعار الأبيض (أيقونة) */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[#978457]" />
-                  <Label className="text-sm sm:text-base font-semibold">شعار رؤية 2030 / الشعار الثانوي</Label>
-                  <span className="text-[10px] sm:text-xs text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded">رؤية 2030</span>
+                  <div className="w-3 h-3 rounded-full bg-gray-700" />
+                  <Label className="text-sm sm:text-base font-semibold">الشعار الأبيض (أيقونة)</Label>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">أبيض</span>
                 </div>
                 {whiteLogo ? (
-                  <div className="border-2 border-primary/20 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
-                    <img src={whiteLogo} alt="شعار رؤية 2030" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
+                  <div className="border-2 border-white/10 rounded-2xl p-6 sm:p-10 relative shadow-inner group" style={{ backgroundColor: colorPrimary1 }}>
+                    <img src={whiteLogo} alt="الشعار الأبيض" className="max-h-24 sm:max-h-32 mx-auto object-contain transition-transform group-hover:scale-105" />
                     <Button
                       variant="destructive"
                       size="icon"
@@ -364,25 +364,26 @@ export default function Branding() {
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                    <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار رؤية 2030 المعتمد لسندات القبض والتقارير</p>
+                    <p className="text-center text-[10px] sm:text-xs text-white/70 mt-4 font-medium">الشعار الأبيض للخلفيات الداكنة</p>
                   </div>
                 ) : (
                   <div
-                    className="border-2 border-dashed border-amber-300/80 rounded-2xl p-8 sm:p-12 text-center hover:border-amber-500 hover:bg-amber-50/30 transition-all cursor-pointer bg-white group"
+                    className="border-2 border-dashed border-gray-400 rounded-2xl p-8 sm:p-12 text-center hover:border-gray-600 transition-all cursor-pointer group"
+                    style={{ backgroundColor: colorPrimary1 + "15" }}
                     onClick={() => whiteLogoRef.current?.click()}
                   >
                     {uploading === "secondaryLogo" ? (
                       <>
-                        <Loader2 className="w-10 h-10 text-amber-600 mx-auto mb-3 animate-spin" />
-                        <p className="text-sm font-bold text-amber-600">جاري رفع الشعار...</p>
+                        <Loader2 className="w-10 h-10 text-gray-600 mx-auto mb-3 animate-spin" />
+                        <p className="text-sm font-bold text-gray-600">جاري رفع الشعار...</p>
                       </>
                     ) : (
                       <>
-                        <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                          <Upload className="w-8 h-8 text-amber-600" />
+                        <div className="w-16 h-16 rounded-2xl bg-gray-800/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                          <Upload className="w-8 h-8 text-gray-500" />
                         </div>
-                        <p className="text-sm font-bold text-foreground">انقر لرفع شعار رؤية 2030 / الشعار الثانوي</p>
-                        <p className="text-xs text-muted-foreground mt-2">PNG أو SVG بخلفية شفافة</p>
+                        <p className="text-sm font-bold text-foreground">انقر لرفع الشعار الأبيض</p>
+                        <p className="text-xs text-muted-foreground mt-2">يفضل PNG بخلفية شفافة</p>
                       </>
                     )}
                     <input
