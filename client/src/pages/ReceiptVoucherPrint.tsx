@@ -209,46 +209,22 @@ export default function ReceiptVoucherPrint() {
           </div>
         </div>
 
-        {/* Top Header Logos Row:
-            - RIGHT: National Center Logo & Secondary Logo / Vision 2030 (if uploaded)
+        {/* Top Header Row:
+            - RIGHT: Rectangular Box "سند قبض" (aligned with the main logo on the left)
             - LEFT: Main Logo (منارة)
         */}
         <div className="flex justify-between items-center mb-8 relative z-10">
           
-          {/* Top Right: Partner Logos (National Center Logo + Secondary Logo / Vision 2030 if uploaded) */}
-          <div className="flex items-center gap-4">
-            {/* Technical Supervision Logo from /branding (Default fallback to National Center Logo) */}
-            {technicalSupervisorLogoUrl ? (
-              <img
-                src={technicalSupervisorLogoUrl}
-                alt="جهة الإشراف الفني"
-                className="max-h-12 max-w-[150px] object-contain"
-              />
-            ) : (
-              <div className="flex items-center gap-2 text-slate-800 leading-tight">
-                <svg className="w-7 h-7 text-[#088362] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-                <div className="text-right">
-                  <span className="block font-black text-slate-900 text-[10px]">المركز الوطني لتنمية</span>
-                  <span className="block font-bold text-[#088362] text-[10px]">القطاع غير الربحي</span>
-                </div>
-              </div>
-            )}
-
-            {secondaryLogoUrl && (
-              <>
-                <div className="h-10 w-px bg-slate-300"></div>
-                <img
-                  src={secondaryLogoUrl}
-                  alt="شعار رؤية 2030"
-                  className="max-h-14 sm:max-h-16 max-w-[180px] sm:max-w-[200px] object-contain"
-                />
-              </>
-            )}
+          {/* Top Right: Rectangular Box "سند قبض" */}
+          <div className="flex items-center pt-4 mt-2">
+            <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] px-8 py-2.5 rounded-xl shadow-xs flex items-center justify-center">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none">
+                سند قبض
+              </h1>
+            </div>
           </div>
 
-          {/* Top Left: Main Logo from /branding (Positioned lower) */}
+          {/* Top Left: Main Logo from /branding */}
           <div className="flex justify-end items-center pt-4 mt-2">
             {mainLogoUrl ? (
               <img
@@ -264,7 +240,7 @@ export default function ReceiptVoucherPrint() {
 
         {/* Title & Dates Block:
             - RIGHT: Hijri & Gregorian Dates (in teal #1f7a63)
-            - CENTER: "سند قبض 240124"
+            - LEFT: Voucher Number (Red)
         */}
         <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
           
@@ -280,18 +256,13 @@ export default function ReceiptVoucherPrint() {
             </div>
           </div>
 
-          {/* Center Side: Title "سند قبض" (Gold) & Voucher Number (Red) */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-[#978457] tracking-tight">
-              سند قبض
-            </h1>
+          {/* Left Side: Voucher Number */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
             <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
               {voucherNumDisplay}
             </span>
           </div>
-
-          {/* Left Side Spacer */}
-          <div className="w-24"></div>
         </div>
 
         {/* Main Document Content Body (Right-Aligned Arabic Text) */}
