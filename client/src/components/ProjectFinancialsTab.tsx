@@ -113,7 +113,7 @@ const isGeneralAccountName = (name?: string | null) => {
   return norm.includes("الحساب العام") || norm.includes("حساب عام");
 };
 
- = (notes?: string | null): string => {
+const getCleanVoucherNotes = (notes?: string | null): string => {
   if (!notes) return "-";
   if (notes.includes(" | ")) {
     const parts = notes.split(" | ");
