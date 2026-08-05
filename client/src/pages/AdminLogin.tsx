@@ -194,8 +194,8 @@ export default function AdminLogin() {
   const primaryColor = orgSettings?.colorPrimary1 || "#09707e";
   const secondaryColor = orgSettings?.colorPrimary2 || "#0D9488";
 
-  // الشعار: الشعار الثانوي (الأبيض/الأيقونة) للخلفيات الداكنة، ثم الرئيسي، ثم الافتراضي
-  const logoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo.svg";
+  // الشعار الرئيسي للبوابة
+  const logoSrc = orgSettings?.logoUrl || "/logo.svg";
 
   return (
     <div 
