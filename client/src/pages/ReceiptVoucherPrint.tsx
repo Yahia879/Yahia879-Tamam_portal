@@ -108,6 +108,7 @@ export default function ReceiptVoucherPrint() {
   const mainLogoUrl = orgSettings?.logoUrl;
   const officialStampUrl = orgSettings?.stampUrl;
   const secondaryLogoUrl = orgSettings?.secondaryLogoUrl;
+  const technicalSupervisorLogoUrl = (orgSettings as any)?.technicalSupervisorLogoUrl;
 
   // Payment Method details string
   const getPaymentMethodDetails = () => {
@@ -218,16 +219,24 @@ export default function ReceiptVoucherPrint() {
           
           {/* Top Right: Partner Logos (National Center Logo + Secondary Logo / Vision 2030 if uploaded) */}
           <div className="flex items-center gap-4">
-            {/* National Center for Non-Profit Sector Logo */}
-            <div className="flex items-center gap-2 text-slate-800 leading-tight">
-              <svg className="w-7 h-7 text-[#088362] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-              <div className="text-right">
-                <span className="block font-black text-slate-900 text-[10px]">المركز الوطني لتنمية</span>
-                <span className="block font-bold text-[#088362] text-[10px]">القطاع غير الربحي</span>
+            {/* Technical Supervision Logo from /branding (Default fallback to National Center Logo) */}
+            {technicalSupervisorLogoUrl ? (
+              <img
+                src={technicalSupervisorLogoUrl}
+                alt="جهة الإشراف الفني"
+                className="max-h-12 max-w-[150px] object-contain"
+              />
+            ) : (
+              <div className="flex items-center gap-2 text-slate-800 leading-tight">
+                <svg className="w-7 h-7 text-[#088362] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+                <div className="text-right">
+                  <span className="block font-black text-slate-900 text-[10px]">المركز الوطني لتنمية</span>
+                  <span className="block font-bold text-[#088362] text-[10px]">القطاع غير الربحي</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {secondaryLogoUrl && (
               <>
