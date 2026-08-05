@@ -1708,6 +1708,26 @@ const isGeneralAccountName = (name?: string | null) => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog for Viewing Revocation / Rejection Justification */}
+      <Dialog open={!!justificationModalNote} onOpenChange={(open) => !open && setJustificationModalNote(null)}>
+        <DialogContent className="dir-rtl text-right max-w-md bg-white rounded-xl shadow-xl border border-amber-200">
+          <DialogHeader className="text-right border-b pb-3">
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-amber-900 text-right">
+              <Info className="h-5 w-5 text-amber-600" />
+              <span>تفاصيل ومبررات القرار</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 bg-amber-50/60 rounded-lg border border-amber-200/80 text-xs text-amber-950 leading-relaxed font-semibold whitespace-pre-wrap mt-2">
+            {justificationModalNote}
+          </div>
+          <DialogFooter className="justify-start border-t pt-3">
+            <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold border-amber-300">
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
