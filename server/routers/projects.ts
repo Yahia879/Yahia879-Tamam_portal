@@ -1853,6 +1853,7 @@ export const projectsRouter = router({
           attachmentUrl: receiptVouchers.attachmentUrl,
           notes: receiptVouchers.notes,
           status: receiptVouchers.status,
+          rejectionReason: receiptVouchers.rejectionReason,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
           creatorName: users.name,
@@ -2154,14 +2155,10 @@ export const projectsRouter = router({
       const [voucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
       if (!voucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
 
-      const oldNotes = voucher.notes || "";
-      const reasonNote = `تم إلغاء الاعتماد: ${input.revocationReason}`;
-      const newNotes = oldNotes ? `${oldNotes} | ${reasonNote}` : reasonNote;
-
       await db.update(receiptVouchers)
         .set({
           status: "approval_revoked",
-          notes: newNotes,
+          rejectionReason: `مبررات إلغاء الاعتماد: ${input.revocationReason}`,
           updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
@@ -2188,7 +2185,7 @@ export const projectsRouter = router({
       await db.update(receiptVouchers)
         .set({
           status: "rejected",
-          notes: input.rejectionReason ? `مرفوض - ${input.rejectionReason}` : "مرفوض",
+          rejectionReason: input.rejectionReason ? `سبب الرفض: ${input.rejectionReason}` : "مرفوض",
           updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
@@ -2216,6 +2213,7 @@ export const projectsRouter = router({
           attachmentUrl: receiptVouchers.attachmentUrl,
           notes: receiptVouchers.notes,
           status: receiptVouchers.status,
+          rejectionReason: receiptVouchers.rejectionReason,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
         })
