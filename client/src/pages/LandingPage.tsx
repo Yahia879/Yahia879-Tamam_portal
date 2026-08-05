@@ -63,11 +63,7 @@ export default function LandingPage() {
             {/* الشعار */}
             <div className="flex items-center gap-1.5 xs:gap-3 min-w-0">
               <img 
-                src={
-                  isScrolled 
-                    ? (orgSettings?.logoUrl || "/logo.svg") 
-                    : (orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg")
-                } 
+                src={orgSettings?.logoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
                 alt="شعار بوابة تمام" 
                 className="w-12 h-12 xs:w-14 xs:h-14 shrink-0 object-contain transition-all duration-300" 
               />
@@ -140,7 +136,7 @@ export default function LandingPage() {
             {/* الشعار الكبير */}
             <div className="flex justify-center mb-6 md:mb-8">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
-                <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
+                <img src={orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
               </div>
             </div>
 
