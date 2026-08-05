@@ -89,13 +89,31 @@ const normalizeArabicText = (str?: string | null) => {
     .toLowerCase();
 };
 
+
+
+const getCleanJustificationText = (text?: string | null): string => {
+  if (!text) return "لا يوجد مبرر مسجل";
+  let cleaned = text.trim();
+  const prefixes = [
+    "مبررات إلغاء الاعتماد:",
+    "سبب الرفض:",
+    "تم إلغاء الاعتماد:",
+  ];
+  for (const prefix of prefixes) {
+    if (cleaned.startsWith(prefix)) {
+      cleaned = cleaned.substring(prefix.length).trim();
+    }
+  }
+  return cleaned || "لا يوجد مبرر مسجل";
+};
+
 const isGeneralAccountName = (name?: string | null) => {
   if (!name) return false;
   const norm = normalizeArabicText(name);
   return norm.includes("الحساب العام") || norm.includes("حساب عام");
 };
 
-const getCleanVoucherNotes = (notes?: string | null): string => {
+ = (notes?: string | null): string => {
   if (!notes) return "-";
   if (notes.includes(" | ")) {
     const parts = notes.split(" | ");
@@ -1428,7 +1446,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                               <TableHead className="text-right text-xs">رقم السند</TableHead>
                               <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                               <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                              <TableHead className="text-right text-xs">الملاحظات</TableHead>
+                              <TableHead className="text-right text-xs">وذلك مقابل</TableHead>
                               <TableHead className="text-center text-xs">إجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -1686,7 +1704,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </DialogTitle>
           </DialogHeader>
           <div className="p-4 bg-amber-50/60 rounded-lg border border-amber-200/80 text-xs text-amber-950 leading-relaxed font-semibold whitespace-pre-wrap mt-2">
-            {justificationModalNote}
+            {getCleanJustificationText(justificationModalNote)}
           </div>
           <DialogFooter className="justify-start border-t pt-3">
             <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold border-amber-300">
