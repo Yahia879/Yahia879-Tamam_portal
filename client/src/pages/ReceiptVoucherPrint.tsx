@@ -347,12 +347,22 @@ export default function ReceiptVoucherPrint() {
             )}
           </div>
 
-          {/* Left Side Column (In RTL HTML: Second Col): Financial Department الإدارة المالية (Blank space for signature) */}
-          <div className="col-span-6 flex flex-col items-center justify-end space-y-2">
+          {/* Left Side Column (In RTL HTML: Second Col): Financial Department الإدارة المالية */}
+          <div className="col-span-6 flex flex-col items-center justify-end space-y-1">
             <span className="text-base font-black text-[#978457]">الإدارة المالية</span>
             
-            {/* Blank Space for Future Signature */}
-            <div className="w-40 h-16"></div>
+            {/* Signature Slot for Authorized Signer (Pure Signature Image Only) */}
+            <div className="w-44 h-16 flex items-center justify-center relative">
+              {(voucher as any)?.signerUser?.signatureUrl && (voucher as any)?.signerUser?.showSignatureInDocuments !== false ? (
+                <img
+                  src={(voucher as any).signerUser.signatureUrl}
+                  alt="توقيع الإدارة المالية"
+                  className="max-h-16 max-w-full object-contain"
+                />
+              ) : (
+                <div className="w-40 h-16"></div>
+              )}
+            </div>
           </div>
         </div>
 
