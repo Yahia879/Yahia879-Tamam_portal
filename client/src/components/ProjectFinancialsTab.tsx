@@ -185,6 +185,7 @@ const isGeneralAccountName = (name?: string | null) => {
   const rejectVoucherMutation = trpc.projects.rejectReceiptVoucher.useMutation({
     onSuccess: () => {
       toast.success("تم رفض سند القبض");
+      setActionModal(prev => ({ ...prev, isOpen: false }));
       refetch();
     },
     onError: (err) => {
@@ -195,12 +196,72 @@ const isGeneralAccountName = (name?: string | null) => {
   const revokeVoucherApprovalMutation = trpc.projects.revokeReceiptVoucherApproval.useMutation({
     onSuccess: () => {
       toast.success("تم إلغاء اعتماد سند القبض ويمكن تعديله الآن");
+      setActionModal(prev => ({ ...prev, isOpen: false }));
       refetch();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
     },
   });
+
+  // Modal State for Revoking Approval & Rejection
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    type: "revoke" | "reject";
+    voucherId: number | null;
+    voucherNumber?: string;
+  }>({
+    isOpen: false,
+    type: "revoke",
+    voucherId: null,
+  });
+  const [actionReason, setActionReason] = useState<string>("");
+  const [actionError, setActionError] = useState<string>("");
+
+  const handleOpenRevokeModal = (voucher: { id: number; voucherNumber: string }) => {
+    setActionModal({
+      isOpen: true,
+      type: "revoke",
+      voucherId: voucher.id,
+      voucherNumber: voucher.voucherNumber,
+    });
+    setActionReason("");
+    setActionError("");
+  };
+
+  const handleOpenRejectModal = (voucher: { id: number; voucherNumber: string }) => {
+    setActionModal({
+      isOpen: true,
+      type: "reject",
+      voucherId: voucher.id,
+      voucherNumber: voucher.voucherNumber,
+    });
+    setActionReason("");
+    setActionError("");
+  };
+
+  const handleConfirmAction = () => {
+    if (!actionReason.trim()) {
+      setActionError(
+        actionModal.type === "revoke"
+          ? "يرجى إدخال مبررات إلغاء الاعتماد أولاً"
+          : "يرجى إدخال سبب الرفض أولاً"
+      );
+      return;
+    }
+
+    if (actionModal.type === "revoke" && actionModal.voucherId) {
+      revokeVoucherApprovalMutation.mutate({
+        id: actionModal.voucherId,
+        revocationReason: actionReason.trim(),
+      });
+    } else if (actionModal.type === "reject" && actionModal.voucherId) {
+      rejectVoucherMutation.mutate({
+        id: actionModal.voucherId,
+        rejectionReason: actionReason.trim(),
+      });
+    }
+  };
 
   // Populate state when data arrives
   useEffect(() => {
@@ -1252,14 +1313,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => {
-                                              const reason = prompt("يرجى إدخال مبررات إلغاء الاعتماد لتتمكن من التعديل (إجباري):");
-                                              if (reason && reason.trim().length > 0) {
-                                                revokeVoucherApprovalMutation.mutate({ id: voucher.id, revocationReason: reason.trim() });
-                                              } else if (reason !== null) {
-                                                toast.error("مبررات إلغاء الاعتماد مطلوبة إلزامياً");
-                                              }
-                                            }}
+                                            onClick={() => handleOpenRevokeModal(voucher)}
                                             disabled={revokeVoucherApprovalMutation.isPending}
                                             className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
                                             title="إلغاء الاعتماد لإتاحة التعديل"
@@ -1285,12 +1339,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                             <Button
                                               variant="ghost"
                                               size="sm"
-                                              onClick={() => {
-                                                const reason = prompt("يرجى إدخال سبب الرفض (اختياري):");
-                                                if (reason !== null) {
-                                                  rejectVoucherMutation.mutate({ id: voucher.id, rejectionReason: reason });
-                                                }
-                                              }}
+                                              onClick={() => handleOpenRejectModal(voucher)}
                                               disabled={rejectVoucherMutation.isPending}
                                               className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
                                               title="رفض سند القبض"
@@ -1552,6 +1601,88 @@ const isGeneralAccountName = (name?: string | null) => {
           <DialogFooter className="justify-start">
             <Button type="button" variant="outline" size="sm" onClick={() => setSelectedNote(null)} className="text-xs font-bold">
               إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pop-up Dialog for Revoking Approval or Rejecting Receipt Voucher */}
+      <Dialog open={actionModal.isOpen} onOpenChange={(open) => setActionModal(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="dir-rtl text-right max-w-md bg-white rounded-xl shadow-xl border border-slate-200">
+          <DialogHeader className="text-right border-b pb-3">
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-800 text-right">
+              {actionModal.type === "revoke" ? (
+                <>
+                  <RotateCcw className="h-5 w-5 text-amber-600" />
+                  <span>إلغاء اعتماد سند القبض</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-rose-600" />
+                  <span>رفض سند القبض</span>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1 text-right">
+              {actionModal.type === "revoke"
+                ? `عند إلغاء اعتماد السند (${actionModal.voucherNumber || ""})، سيتم سحب التوقيع المالي من التقرير الرسمي وإعادة إتاحة خياري التعديل والحذف.`
+                : `عند رفض السند (${actionModal.voucherNumber || ""})، سيتم تسجيل حالة الرفض وحفظ السبب.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700">
+                {actionModal.type === "revoke" ? "مبررات إلغاء الاعتماد *" : "سبب الرفض *"}
+              </Label>
+              <Textarea
+                value={actionReason}
+                onChange={(e) => {
+                  setActionReason(e.target.value);
+                  if (actionError) setActionError("");
+                }}
+                placeholder={
+                  actionModal.type === "revoke"
+                    ? "أدخل مبررات إلغاء الاعتماد بالتفصيل..."
+                    : "أدخل سبب رفض سند القبض..."
+                }
+                rows={3}
+                className="text-xs border-slate-300 focus:border-amber-500 focus:ring-amber-500 rounded-lg"
+              />
+              {actionError && (
+                <p className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {actionError}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+              className="text-xs font-medium border-slate-300"
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleConfirmAction}
+              disabled={revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending}
+              className={`text-xs font-bold px-4 gap-1.5 ${
+                actionModal.type === "revoke"
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "bg-rose-600 hover:bg-rose-700 text-white"
+              }`}
+            >
+              {(revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending) && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              )}
+              {actionModal.type === "revoke" ? "تأكيد إلغاء الاعتماد" : "تأكيد الرفض"}
             </Button>
           </DialogFooter>
         </DialogContent>
