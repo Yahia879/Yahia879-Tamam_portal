@@ -188,12 +188,20 @@ export default function Profile() {
     "signing.final_reports_sign",
   ]);
 
+  const hasReceiptVoucherSignPermission = useAnyPermission([
+    "receipt_vouchers.sign",
+    "vouchers.sign_receipt",
+    "receipt_vouchers_sign",
+    "signing.receipt_vouchers_sign",
+  ]);
+
   const hasSignaturePermission =
     user?.role === "super_admin" ||
     user?.role === "system_admin" ||
     hasDisbursementSignPermission ||
     hasDisbursementOrderSignPermission ||
-    hasFinalReportSignPermission;
+    hasFinalReportSignPermission ||
+    hasReceiptVoucherSignPermission;
 
   const handleSave = () => {
     updateProfileMutation.mutate({
