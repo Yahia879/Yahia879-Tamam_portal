@@ -2158,7 +2158,7 @@ export const projectsRouter = router({
       await db.update(receiptVouchers)
         .set({
           status: "approval_revoked",
-          rejectionReason: `مبررات إلغاء الاعتماد: ${input.revocationReason}`,
+          rejectionReason: input.revocationReason.trim(),
           updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
@@ -2185,7 +2185,7 @@ export const projectsRouter = router({
       await db.update(receiptVouchers)
         .set({
           status: "rejected",
-          rejectionReason: input.rejectionReason ? `سبب الرفض: ${input.rejectionReason}` : "مرفوض",
+          rejectionReason: input.rejectionReason?.trim() || "مرفوض",
           updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
