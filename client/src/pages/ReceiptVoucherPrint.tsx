@@ -226,11 +226,11 @@ export default function ReceiptVoucherPrint() {
 
             {secondaryLogoUrl && (
               <>
-                <div className="h-7 w-px bg-slate-300"></div>
+                <div className="h-10 w-px bg-slate-300"></div>
                 <img
                   src={secondaryLogoUrl}
-                  alt="الشعار الثانوي / رؤية 2030"
-                  className="max-h-10 max-w-[130px] object-contain"
+                  alt="شعار رؤية 2030"
+                  className="max-h-14 sm:max-h-16 max-w-[180px] sm:max-w-[200px] object-contain"
                 />
               </>
             )}
