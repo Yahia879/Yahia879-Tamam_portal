@@ -2129,6 +2129,7 @@ export const projectsRouter = router({
       await db.update(receiptVouchers)
         .set({
           status: "approved",
+          rejectionReason: null,
           updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
