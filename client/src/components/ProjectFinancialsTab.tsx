@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,9 @@ import {
   Edit3,
   Trash2,
   CheckCircle2,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
   AlertTriangle,
   Receipt,
   Check,
@@ -96,6 +100,10 @@ const isGeneralAccountName = (name?: string | null) => {
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
+  const { user } = useAuth();
+  const isFaaa8User = user?.email === "faaa8@gmail.com" || user?.role === "super_admin";
+
+  const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);
   const [supportSources, setSupportSources] = useState<SupportSourceItem[]>([]);
   const [adminFeeType, setAdminFeeType] = useState<"percentage" | "fixed">("percentage");
@@ -161,6 +169,36 @@ const isGeneralAccountName = (name?: string | null) => {
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حذف السند");
+    },
+  });
+
+  const approveVoucherMutation = trpc.projects.approveReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد سند القبض بنجاح");
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد السند");
+    },
+  });
+
+  const rejectVoucherMutation = trpc.projects.rejectReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض سند القبض");
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء رفض السند");
+    },
+  });
+
+  const revokeVoucherApprovalMutation = trpc.projects.revokeReceiptVoucherApproval.useMutation({
+    onSuccess: () => {
+      toast.success("تم إلغاء اعتماد سند القبض ويمكن تعديله الآن");
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
     },
   });
 
@@ -1140,6 +1178,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                 <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                                 <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
                                 <TableHead className="text-right text-xs">وذلك مقابل / السبب</TableHead>
+                                <TableHead className="text-center text-xs">الحالة</TableHead>
                                 <TableHead className="text-center text-xs">إجراءات</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -1180,6 +1219,21 @@ const isGeneralAccountName = (name?: string | null) => {
                                       <span>-</span>
                                     )}
                                   </TableCell>
+                                  <TableCell className="text-center text-xs">
+                                    {voucher.status === "approved" ? (
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
+                                        معتمد
+                                      </Badge>
+                                    ) : voucher.status === "rejected" ? (
+                                      <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
+                                        مرفوض
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 font-bold text-[10px] px-2 py-0.5">
+                                        قيد الاعتماد
+                                      </Badge>
+                                    )}
+                                  </TableCell>
                                   <TableCell className="text-center">
                                     <div className="flex items-center justify-center gap-1">
                                       <Button
@@ -1191,24 +1245,86 @@ const isGeneralAccountName = (name?: string | null) => {
                                       >
                                         <Eye className="h-3.5 w-3.5" />
                                       </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => openEditVoucherModal(voucher)}
-                                        className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                        title="تعديل سند القبض"
-                                      >
-                                        <Edit3 className="h-3.5 w-3.5" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDeleteVoucher(voucher.id)}
-                                        className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
-                                        title="حذف سند القبض"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
+
+                                      {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
+                                      {isFaaa8User && (
+                                        voucher.status === "approved" ? (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              const reason = prompt("يرجى إدخال مبررات إلغاء الاعتماد لتتمكن من التعديل (إجباري):");
+                                              if (reason && reason.trim().length > 0) {
+                                                revokeVoucherApprovalMutation.mutate({ id: voucher.id, revocationReason: reason.trim() });
+                                              } else if (reason !== null) {
+                                                toast.error("مبررات إلغاء الاعتماد مطلوبة إلزامياً");
+                                              }
+                                            }}
+                                            disabled={revokeVoucherApprovalMutation.isPending}
+                                            className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                                            title="إلغاء الاعتماد لإتاحة التعديل"
+                                          >
+                                            <RotateCcw className="h-3.5 w-3.5" />
+                                            إلغاء الاعتماد
+                                          </Button>
+                                        ) : (
+                                          <>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                approveVoucherMutation.mutate({ id: voucher.id });
+                                              }}
+                                              disabled={approveVoucherMutation.isPending}
+                                              className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                                              title="اعتماد سند القبض"
+                                            >
+                                              <CheckCircle className="h-3.5 w-3.5" />
+                                              اعتماد
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                const reason = prompt("يرجى إدخال سبب الرفض (اختياري):");
+                                                if (reason !== null) {
+                                                  rejectVoucherMutation.mutate({ id: voucher.id, rejectionReason: reason });
+                                                }
+                                              }}
+                                              disabled={rejectVoucherMutation.isPending}
+                                              className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                                              title="رفض سند القبض"
+                                            >
+                                              <XCircle className="h-3.5 w-3.5" />
+                                              رفض
+                                            </Button>
+                                          </>
+                                        )
+                                      )}
+
+                                      {/* أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
+                                      {voucher.status !== "approved" && (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => openEditVoucherModal(voucher)}
+                                            className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                            title="تعديل سند القبض"
+                                          >
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDeleteVoucher(voucher.id)}
+                                            className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                            title="حذف سند القبض"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </>
+                                      )}
                                     </div>
                                   </TableCell>
                                 </TableRow>
