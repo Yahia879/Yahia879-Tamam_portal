@@ -2020,6 +2020,7 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
   bankName: varchar("bankName", { length: 255 }),
   attachmentUrl: varchar("attachmentUrl", { length: 500 }),
   notes: text("notes"),
+  status: varchar("status", { length: 50 }).default("pending_approval"),
   createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
