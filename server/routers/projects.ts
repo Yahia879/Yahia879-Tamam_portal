@@ -2047,6 +2047,7 @@ export const projectsRouter = router({
         bankName: input.bankName || "",
         attachmentUrl: input.attachmentUrl || "",
         notes: input.notes || "",
+        status: "pending_approval",
         createdById: ctx.user.id,
       });
 
