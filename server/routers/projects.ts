@@ -1852,6 +1852,7 @@ export const projectsRouter = router({
           bankName: receiptVouchers.bankName,
           attachmentUrl: receiptVouchers.attachmentUrl,
           notes: receiptVouchers.notes,
+          status: receiptVouchers.status,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
           creatorName: users.name,
@@ -2068,6 +2069,14 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [existingVoucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      if (existingVoucher && existingVoucher.status === "approved") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "لا يمكن تعديل سند القبض المعتمد، يرجى إلغاء الاعتماد أولاً مع كتابة المبررات"
+        });
+      }
+
       await db.update(receiptVouchers)
         .set({
           amount: input.amount.toString(),
@@ -2090,7 +2099,99 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [existingVoucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      if (existingVoucher && existingVoucher.status === "approved") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "لا يمكن حذف سند القبض المعتمد، يرجى إلغاء الاعتماد أولاً مع كتابة المبررات"
+        });
+      }
+
       await db.delete(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      return { success: true };
+    }),
+
+  approveReceiptVoucher: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (ctx.user.email !== "faaa8@gmail.com") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عذراً، اعتماد سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+        });
+      }
+
+      await db.update(receiptVouchers)
+        .set({
+          status: "approved",
+          updatedAt: new Date(),
+        })
+        .where(eq(receiptVouchers.id, input.id));
+
+      return { success: true };
+    }),
+
+  revokeReceiptVoucherApproval: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      revocationReason: z.string().min(1, "يرجى إدخال مبررات إلغاء الاعتماد"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (ctx.user.email !== "faaa8@gmail.com") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عذراً، إلغاء اعتماد سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+        });
+      }
+
+      const [voucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      if (!voucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+
+      const oldNotes = voucher.notes || "";
+      const reasonNote = `تم إلغاء الاعتماد: ${input.revocationReason}`;
+      const newNotes = oldNotes ? `${oldNotes} | ${reasonNote}` : reasonNote;
+
+      await db.update(receiptVouchers)
+        .set({
+          status: "pending_approval",
+          notes: newNotes,
+          updatedAt: new Date(),
+        })
+        .where(eq(receiptVouchers.id, input.id));
+
+      return { success: true };
+    }),
+
+  rejectReceiptVoucher: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      rejectionReason: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (ctx.user.email !== "faaa8@gmail.com") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عذراً، رفض سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+        });
+      }
+
+      await db.update(receiptVouchers)
+        .set({
+          status: "rejected",
+          notes: input.rejectionReason ? `مرفوض - ${input.rejectionReason}` : "مرفوض",
+          updatedAt: new Date(),
+        })
+        .where(eq(receiptVouchers.id, input.id));
+
       return { success: true };
     }),
 
@@ -2113,6 +2214,7 @@ export const projectsRouter = router({
           bankName: receiptVouchers.bankName,
           attachmentUrl: receiptVouchers.attachmentUrl,
           notes: receiptVouchers.notes,
+          status: receiptVouchers.status,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
         })
@@ -2132,29 +2234,25 @@ export const projectsRouter = router({
         .from(projects)
         .where(eq(projects.id, voucher.projectId));
 
-      // البحث عن المستخدم المخول بالتوقيع على سندات القبض (أو faaa8@gmail.com)
-      const signerUserList = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          signatureUrl: users.signatureUrl,
-          signatureName: users.signatureName,
-          signatureDepartment: users.signatureDepartment,
-          showSignatureInDocuments: users.showSignatureInDocuments,
-        })
-        .from(users)
-        .leftJoin(userPermissions, eq(users.id, userPermissions.userId))
-        .where(
-          or(
-            eq(userPermissions.permissionId, "receipt_vouchers.sign"),
-            eq(userPermissions.permissionId, "signing.receipt_vouchers_sign"),
-            eq(users.email, "faaa8@gmail.com")
-          )
-        )
-        .limit(1);
+      // التوقيع يظهر بالتقرير فقط وحصرياً إذا كان السند معتمداً (status === 'approved')
+      let signerUser = null;
+      if (voucher.status === "approved") {
+        const signerUserList = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            signatureUrl: users.signatureUrl,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            showSignatureInDocuments: users.showSignatureInDocuments,
+          })
+          .from(users)
+          .where(eq(users.email, "faaa8@gmail.com"))
+          .limit(1);
 
-      const signerUser = signerUserList.length > 0 ? signerUserList[0] : null;
+        signerUser = signerUserList.length > 0 ? signerUserList[0] : null;
+      }
 
       return {
         ...voucher,
