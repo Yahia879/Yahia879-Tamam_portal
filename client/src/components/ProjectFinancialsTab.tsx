@@ -1239,7 +1239,7 @@ const isGeneralAccountName = (name?: string | null) => {
                                 <TableHead className="text-right text-xs">رقم السند</TableHead>
                                 <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
                                 <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                                <TableHead className="text-right text-xs">وذلك مقابل / السبب</TableHead>
+                                <TableHead className="text-right text-xs">وذلك مقابل</TableHead>
                                 <TableHead className="text-center text-xs">الحالة</TableHead>
                                 <TableHead className="text-center text-xs">إجراءات</TableHead>
                               </TableRow>
@@ -1314,11 +1314,11 @@ const isGeneralAccountName = (name?: string | null) => {
                                       </Button>
 
                                       {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
-                                      {voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض") || voucher.status === "approval_revoked" || voucher.status === "rejected") && (
+                                      {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => setJustificationModalNote(voucher.notes || "لا يوجد مبرر مسجل")}
+                                          onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
                                           className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
                                           title="عرض مبررات إلغاء الاعتماد / السبب"
                                         >
