@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers } from "../../drizzle/schema";
+import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions } from "../../drizzle/schema";
 import { eq, desc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -2132,9 +2132,34 @@ export const projectsRouter = router({
         .from(projects)
         .where(eq(projects.id, voucher.projectId));
 
+      // البحث عن المستخدم المخول بالتوقيع على سندات القبض (أو faaa8@gmail.com)
+      const signerUserList = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          signatureUrl: users.signatureUrl,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          showSignatureInDocuments: users.showSignatureInDocuments,
+        })
+        .from(users)
+        .leftJoin(userPermissions, eq(users.id, userPermissions.userId))
+        .where(
+          or(
+            eq(userPermissions.permissionId, "receipt_vouchers.sign"),
+            eq(userPermissions.permissionId, "signing.receipt_vouchers_sign"),
+            eq(users.email, "faaa8@gmail.com")
+          )
+        )
+        .limit(1);
+
+      const signerUser = signerUserList.length > 0 ? signerUserList[0] : null;
+
       return {
         ...voucher,
         project,
+        signerUser,
       };
     }),
 });
