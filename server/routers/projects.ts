@@ -2126,6 +2126,16 @@ export const projectsRouter = router({
         });
       }
 
+      const [voucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      if (!voucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+
+      if (voucher.status === "approval_revoked") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عذراً، لا يمكن إعادة اعتماد سند قبض تم إلغاء اعتماده بمبررات"
+        });
+      }
+
       await db.update(receiptVouchers)
         .set({
           status: "approved",
