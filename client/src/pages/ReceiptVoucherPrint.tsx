@@ -34,6 +34,18 @@ function formatGregorianDate(dateObj: Date): string {
   return `${y} / ${m} / ${d} م`;
 }
 
+function getCleanVoucherNotes(notes: string | null | undefined): string {
+  if (!notes) return "";
+  if (notes.includes(" | ")) {
+    const parts = notes.split(" | ");
+    return parts[0].trim();
+  }
+  if (notes.startsWith("تم إلغاء الاعتماد:") || notes.startsWith("مبررات إلغاء الاعتماد:") || notes.startsWith("مرفوض")) {
+    return "";
+  }
+  return notes;
+}
+
 export default function ReceiptVoucherPrint() {
   const params = useParams<{ id: string }>();
   const voucherId = parseInt(params.id || "0");
@@ -323,7 +335,7 @@ export default function ReceiptVoucherPrint() {
               وذلك مقابل
             </span>
             <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
-              {voucher.notes || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
+              {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
             </div>
           </div>
         </div>
