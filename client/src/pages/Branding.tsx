@@ -369,12 +369,11 @@ export default function Branding() {
                 )}
               </div>
 
-              {/* شعار رؤية 2030 / الشعار الثانوي */}
+              {/* شعار رؤية 2030 */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#978457]" />
-                  <Label className="text-sm sm:text-base font-semibold">شعار رؤية 2030 / الشعار الثانوي</Label>
-                  <span className="text-[10px] sm:text-xs text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded">رؤية 2030</span>
+                  <Label className="text-sm sm:text-base font-semibold">شعار رؤية 2030</Label>
                 </div>
                 {whiteLogo ? (
                   <div className="border-2 border-primary/20 rounded-2xl p-6 sm:p-10 relative bg-white shadow-inner group">
@@ -387,7 +386,6 @@ export default function Branding() {
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                    <p className="text-center text-[10px] sm:text-xs text-muted-foreground mt-4 font-medium">شعار رؤية 2030 المعتمد لسندات القبض والتقارير</p>
                   </div>
                 ) : (
                   <div
@@ -404,8 +402,7 @@ export default function Branding() {
                         <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                           <Upload className="w-8 h-8 text-amber-600" />
                         </div>
-                        <p className="text-sm font-bold text-foreground">انقر لرفع شعار رؤية 2030 / الشعار الثانوي</p>
-                        <p className="text-xs text-muted-foreground mt-2">PNG أو SVG بخلفية شفافة</p>
+                        <p className="text-sm font-bold text-foreground">انقر لرفع شعار رؤية 2030</p>
                       </>
                     )}
                     <input
@@ -599,10 +596,8 @@ export default function Branding() {
               {/* معاينة الهيدر بلون رئيسي 1 */}
               <div className="h-16 sm:h-20 flex items-center px-4 sm:px-8" style={{ background: `linear-gradient(135deg, ${colorPrimary1} 0%, ${colorPrimary2} 100%)` }}>
                 <div className="flex items-center gap-3 sm:gap-4">
-                  {whiteLogo ? (
-                    <img src={whiteLogo} alt="الشعار الأبيض" className="h-8 sm:h-10 w-auto" />
-                  ) : mainLogo ? (
-                    <img src={mainLogo} alt="الشعار" className="h-8 sm:h-10 w-auto opacity-90" />
+                  {mainLogo ? (
+                    <img src={mainLogo} alt="الشعار الرئيسي" className="h-8 sm:h-10 w-auto object-contain" />
                   ) : (
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
                       <span className="text-white font-bold text-lg">ت</span>
