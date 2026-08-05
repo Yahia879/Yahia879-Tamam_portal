@@ -189,23 +189,9 @@ export default function ReceiptVoucherPrint() {
           </svg>
         </div>
 
-        {/* Solid Gold Top Header Band with License Number on the Left & Ornament on Right */}
+        {/* Top Header Line with License Number */}
         <div className="relative border-b-2 border-[#978457] pb-2 mb-6 flex justify-between items-center">
-          {/* Islamic Geometric Lattice Ornament (Top Right under gold bar) */}
-          <div className="w-64 sm:w-80 h-10 relative overflow-hidden opacity-90">
-            <svg className="w-full h-full" viewBox="0 0 320 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="islamic-header-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M 10 0 L 20 10 L 10 20 L 0 10 Z" stroke="#978457" strokeWidth="1" fill="none" />
-                  <path d="M 10 3 L 17 10 L 10 17 L 3 10 Z" stroke="#c2a76d" strokeWidth="0.7" fill="none" />
-                  <circle cx="10" cy="10" r="1.5" fill="#978457" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#islamic-header-pattern)" />
-            </svg>
-          </div>
-
-          {/* License Number (Top Left) */}
+          <div></div>
           <div className="text-left">
             <span className="text-sm sm:text-base font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
           </div>
@@ -351,7 +337,7 @@ export default function ReceiptVoucherPrint() {
           {/* Right Side Column: Official Stamp (Shifted further left and down onto the footer) */}
           <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
             {officialStampUrl && (
-              <div className="relative select-none pr-8 sm:pr-14 translate-y-8 sm:translate-y-11 opacity-95 pointer-events-none">
+              <div className="relative select-none pr-8 sm:pr-14 translate-y-2 sm:translate-y-4 opacity-95 pointer-events-none">
                 <img
                   src={officialStampUrl}
                   alt="الختم الرسمي"
