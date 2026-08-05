@@ -2160,7 +2160,7 @@ export const projectsRouter = router({
 
       await db.update(receiptVouchers)
         .set({
-          status: "pending_approval",
+          status: "approval_revoked",
           notes: newNotes,
           updatedAt: new Date(),
         })
