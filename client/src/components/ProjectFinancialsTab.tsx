@@ -217,6 +217,7 @@ const isGeneralAccountName = (name?: string | null) => {
   });
   const [actionReason, setActionReason] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
+  const [justificationModalNote, setJustificationModalNote] = useState<string | null>(null);
 
   const handleOpenRevokeModal = (voucher: { id: number; voucherNumber: string }) => {
     setActionModal({
@@ -1285,12 +1286,17 @@ const isGeneralAccountName = (name?: string | null) => {
                                       <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
                                         معتمد
                                       </Badge>
+                                    ) : voucher.status === "approval_revoked" ? (
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
+                                        <RotateCcw className="h-3 w-3 text-amber-600" />
+                                        ملغى الاعتماد
+                                      </Badge>
                                     ) : voucher.status === "rejected" ? (
                                       <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
                                         مرفوض
                                       </Badge>
                                     ) : (
-                                      <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 font-bold text-[10px] px-2 py-0.5">
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
                                         قيد الاعتماد
                                       </Badge>
                                     )}
@@ -1306,6 +1312,20 @@ const isGeneralAccountName = (name?: string | null) => {
                                       >
                                         <Eye className="h-3.5 w-3.5" />
                                       </Button>
+
+                                      {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
+                                      {voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض") || voucher.status === "approval_revoked" || voucher.status === "rejected") && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setJustificationModalNote(voucher.notes || "لا يوجد مبرر مسجل")}
+                                          className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                          title="عرض مبررات إلغاء الاعتماد / السبب"
+                                        >
+                                          <Info className="h-3.5 w-3.5 text-amber-700" />
+                                          المبررات
+                                        </Button>
+                                      )}
 
                                       {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
                                       {isFaaa8User && (
