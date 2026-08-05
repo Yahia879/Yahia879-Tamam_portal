@@ -565,8 +565,8 @@ function DashboardLayoutContent({
     enabled: !!user,
     refetchInterval: 10000,
   });
-  // الشعار الأبيض (للقائمة الجانبية الداكنة) أو الرئيسي كاحتياط
-  const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
+  // الشعار الرئيسي للبوابة والقائمة الجانبية
+  const sidebarLogoSrc = orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الرئيسي (للهيدر في الموبايل)
   const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
   // اسم الجمعية
