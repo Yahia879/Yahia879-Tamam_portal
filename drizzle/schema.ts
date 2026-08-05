@@ -2021,6 +2021,7 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
   attachmentUrl: varchar("attachmentUrl", { length: 500 }),
   notes: text("notes"),
   status: varchar("status", { length: 50 }).default("pending_approval"),
+  rejectionReason: text("rejectionReason"),
   createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
