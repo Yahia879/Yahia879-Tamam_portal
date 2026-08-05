@@ -84,7 +84,7 @@ const superAdminGroups = [
         id: "signing",
         nameAr: "صلاحيات التوقيع",
         icon: PenLine,
-        perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
+        perms: ["disbursements_sign", "disbursement_orders_sign", "receipt_vouchers_sign", "final_reports_sign"]
       }
     ]
   },
@@ -129,7 +129,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     signing: {
       disbursements_sign: "توقيع طلبات الصرف",
       disbursement_orders_sign: "توقيع أوامر الصرف",
-      contracts_sign: "توقيع العقود",
+      receipt_vouchers_sign: "توقيع سندات القبض",
       final_reports_sign: "توقيع التقارير الختامية",
     },
     mosques: {
@@ -639,7 +639,7 @@ export default function RoleEdit() {
             const signingIds: Record<string, string> = {
               disbursements_sign: "disbursements.sign",
               disbursement_orders_sign: "disbursement_orders.sign",
-              contracts_sign: "contracts.sign",
+              receipt_vouchers_sign: "receipt_vouchers.sign",
               final_reports_sign: "final_reports.sign",
             };
             id = signingIds[p] || id;
