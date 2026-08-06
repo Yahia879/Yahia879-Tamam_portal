@@ -31,12 +31,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Coins,
   Receipt,
   Building2,
   Search,
   Eye,
+  CheckCircle,
   CheckCircle2,
   Clock,
   RotateCcw,
@@ -44,17 +46,20 @@ import {
   FolderOpen,
   ArrowRight,
   Loader2,
-  Printer,
   Filter,
   Plus,
   FileText,
-  Sparkles,
+  Info,
+  Edit3,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
 
 export default function ReceiptVouchers() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const utils = trpc.useUtils();
 
   // الحصول على البارامترات من URL إن وجدت
@@ -65,16 +70,30 @@ export default function ReceiptVouchers() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // حالة مودال تسجيل سند قبض جديد المباشر
+  // حالة مودال تسجيل/تعديل سند القبض
   const [isAddVoucherModalOpen, setIsAddVoucherModalOpen] = useState<boolean>(false);
+  const [editingVoucherId, setEditingVoucherId] = useState<number | null>(null);
   const [modalProjectId, setModalProjectId] = useState<string>("");
   const [modalAmount, setModalAmount] = useState<string>("");
   const [modalDate, setModalDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [modalPayerName, setModalPayerName] = useState<string>("");
   const [customPayerName, setCustomPayerName] = useState<string>("");
-  const [modalPaymentMethod, setModalPaymentMethod] = useState<string>("bank_transfer");
-  const [modalRefNumber, setModalRefNumber] = useState<string>("");
   const [modalNotes, setModalNotes] = useState<string>("");
+
+  // حالات مودالات المبررات والاعتماد/الرفض
+  const [justificationModalNote, setJustificationModalNote] = useState<string | null>(null);
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    type: "revoke" | "reject";
+    voucherId: number | null;
+    voucherNumber?: string;
+  }>({
+    isOpen: false,
+    type: "revoke",
+    voucherId: null,
+  });
+  const [actionReason, setActionReason] = useState<string>("");
+  const [actionError, setActionError] = useState<string>("");
 
   // تحديث حالة المشروع عند تغير البارامتر بالرابط
   useEffect(() => {
@@ -88,7 +107,7 @@ export default function ReceiptVouchers() {
   const { data: rawProjectsData } = trpc.projects.getAll.useQuery({
     limit: 200,
   });
-  const projectsList = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
+  const projectsList: any[] = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
 
   // جلب سندات القبض مع الفلترة
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
@@ -127,7 +146,7 @@ export default function ReceiptVouchers() {
     }
   }
 
-  // طفرة إضافة سند القبض
+  // الطفرات (Mutations)
   const createVoucherMutation = trpc.projects.createReceiptVoucher.useMutation({
     onSuccess: () => {
       toast.success("تم تسجيل سند القبض بنجاح");
@@ -141,13 +160,71 @@ export default function ReceiptVouchers() {
     },
   });
 
+  const updateVoucherMutation = trpc.projects.updateReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث سند القبض بنجاح");
+      setIsAddVoucherModalOpen(false);
+      resetModalForm();
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تحديث سند القبض");
+    },
+  });
+
+  const deleteVoucherMutation = trpc.projects.deleteReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف سند القبض");
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حذف السند");
+    },
+  });
+
+  const approveVoucherMutation = trpc.projects.approveReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد سند القبض بنجاح");
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد السند");
+    },
+  });
+
+  const rejectVoucherMutation = trpc.projects.rejectReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض سند القبض");
+      setActionModal(prev => ({ ...prev, isOpen: false }));
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء رفض السند");
+    },
+  });
+
+  const revokeVoucherApprovalMutation = trpc.projects.revokeReceiptVoucherApproval.useMutation({
+    onSuccess: () => {
+      toast.success("تم إلغاء اعتماد سند القبض ويمكن تعديله الآن");
+      setActionModal(prev => ({ ...prev, isOpen: false }));
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
+    },
+  });
+
   const resetModalForm = () => {
+    setEditingVoucherId(null);
     setModalAmount("");
     setModalDate(new Date().toISOString().split("T")[0]);
     setModalPayerName("");
     setCustomPayerName("");
-    setModalPaymentMethod("bank_transfer");
-    setModalRefNumber("");
     setModalNotes("");
   };
 
@@ -156,6 +233,68 @@ export default function ReceiptVouchers() {
     setModalProjectId(initialPrj);
     resetModalForm();
     setIsAddVoucherModalOpen(true);
+  };
+
+  const openEditVoucherModal = (voucher: any) => {
+    setEditingVoucherId(voucher.id);
+    setModalProjectId(voucher.projectId.toString());
+    setModalAmount(voucher.amount.toString());
+    setModalDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
+    setModalPayerName(voucher.payerName || "");
+    setCustomPayerName("");
+    setModalNotes(voucher.notes || "");
+    setIsAddVoucherModalOpen(true);
+  };
+
+  const handleDeleteVoucher = (id: number) => {
+    if (confirm("هل أنت تأكد من رغبتك في حذف سند القبض هذا؟")) {
+      deleteVoucherMutation.mutate({ id });
+    }
+  };
+
+  const handleOpenRevokeModal = (voucher: { id: number; voucherNumber: string }) => {
+    setActionModal({
+      isOpen: true,
+      type: "revoke",
+      voucherId: voucher.id,
+      voucherNumber: voucher.voucherNumber,
+    });
+    setActionReason("");
+    setActionError("");
+  };
+
+  const handleOpenRejectModal = (voucher: { id: number; voucherNumber: string }) => {
+    setActionModal({
+      isOpen: true,
+      type: "reject",
+      voucherId: voucher.id,
+      voucherNumber: voucher.voucherNumber,
+    });
+    setActionReason("");
+    setActionError("");
+  };
+
+  const handleConfirmAction = () => {
+    if (!actionReason.trim()) {
+      setActionError(
+        actionModal.type === "revoke"
+          ? "يرجى إدخال مبررات إلغاء الاعتماد أولاً"
+          : "يرجى إدخال سبب الرفض أولاً"
+      );
+      return;
+    }
+
+    if (actionModal.type === "revoke" && actionModal.voucherId) {
+      revokeVoucherApprovalMutation.mutate({
+        id: actionModal.voucherId,
+        revocationReason: actionReason.trim(),
+      });
+    } else if (actionModal.type === "reject" && actionModal.voucherId) {
+      rejectVoucherMutation.mutate({
+        id: actionModal.voucherId,
+        rejectionReason: actionReason.trim(),
+      });
+    }
   };
 
   const handleSaveVoucher = () => {
@@ -179,15 +318,35 @@ export default function ReceiptVouchers() {
       return;
     }
 
-    createVoucherMutation.mutate({
-      projectId: prjId,
-      amount: amountNum,
-      receiptDate: modalDate,
-      payerName: finalPayerName,
-      paymentMethod: modalPaymentMethod,
-      referenceNumber: modalRefNumber,
-      notes: modalNotes,
-    });
+    if (editingVoucherId) {
+      updateVoucherMutation.mutate({
+        id: editingVoucherId,
+        amount: amountNum,
+        receiptDate: modalDate,
+        payerName: finalPayerName,
+        notes: modalNotes,
+      });
+    } else {
+      createVoucherMutation.mutate({
+        projectId: prjId,
+        amount: amountNum,
+        receiptDate: modalDate,
+        payerName: finalPayerName,
+        notes: modalNotes,
+      });
+    }
+  };
+
+  const getCleanVoucherNotes = (notes?: string | null): string => {
+    if (!notes) return "-";
+    if (notes.includes(" | ")) {
+      const parts = notes.split(" | ");
+      return parts[0].trim() || "-";
+    }
+    if (notes.startsWith("تم إلغاء الاعتماد:") || notes.startsWith("مبررات إلغاء الاعتماد:") || notes.startsWith("مرفوض")) {
+      return "-";
+    }
+    return notes;
   };
 
   // حساب الإحصائيات
@@ -198,7 +357,7 @@ export default function ReceiptVouchers() {
   const totalPendingCount = allVouchers.filter(v => v.status === "pending_approval").length;
   const totalVouchersCount = allVouchers.length;
 
-  const currentProject = projectsList.find(p => p.id.toString() === selectedProjectId);
+  const currentProject = projectsList.find((p: any) => p.id.toString() === selectedProjectId);
 
   const handleSelectProject = (val: string) => {
     setSelectedProjectId(val);
@@ -231,7 +390,7 @@ export default function ReceiptVouchers() {
           </Button>
         </div>
 
-        {/* 2. كروت الإحصائيات (أول شيء بأعلى الصفحة مع تصميم محسن أنيق) */}
+        {/* 2. كروت الإحصائيات بأعلى الصفحة */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           {/* إجمالي المقبوضات */}
@@ -292,7 +451,7 @@ export default function ReceiptVouchers() {
 
         </div>
 
-        {/* 3. شريط البحث والفلترة (تأتي بعد كروت الإحصائيات مباشرة) */}
+        {/* 3. شريط البحث والفلترة */}
         <Card className="border-slate-200 shadow-2xs">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row items-center gap-3">
@@ -318,7 +477,7 @@ export default function ReceiptVouchers() {
                     </div>
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-72">
-                    {projectsList.map((p) => (
+                    {projectsList.map((p: any) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
@@ -472,8 +631,8 @@ export default function ReceiptVouchers() {
                             {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                           </TableCell>
 
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={voucher.notes || "-"}>
-                            {voucher.notes || "-"}
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
+                            {getCleanVoucherNotes(voucher.notes)}
                           </TableCell>
 
                           <TableCell className="text-center text-xs">
@@ -499,25 +658,97 @@ export default function ReceiptVouchers() {
 
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleSelectProject(voucher.projectId.toString())}
-                                className="h-7 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 font-bold gap-1"
-                                title="إدارة وتفاصيل سندات المشروع"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                                إدارة السندات
-                              </Button>
+                              {/* زر المعاينة والطباعة بأيقونة العين Eye */}
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                className="h-7 w-7 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
                                 title="معاينة وطباعة سند القبض"
                               >
-                                <Printer className="h-3.5 w-3.5" />
+                                <Eye className="h-3.5 w-3.5" />
                               </Button>
+
+                              {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
+                              {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                  className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                  title="عرض مبررات إلغاء الاعتماد / السبب"
+                                >
+                                  <Info className="h-3.5 w-3.5 text-amber-700" />
+                                  المبررات
+                                </Button>
+                              )}
+
+                              {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
+                              {isFaaa8User && (
+                                voucher.status === "approved" ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenRevokeModal(voucher)}
+                                    disabled={revokeVoucherApprovalMutation.isPending}
+                                    className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                                    title="إلغاء الاعتماد لإتاحة التعديل"
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    إلغاء الاعتماد
+                                  </Button>
+                                ) : voucher.status === "pending_approval" ? (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
+                                      disabled={approveVoucherMutation.isPending}
+                                      className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                                      title="اعتماد سند القبض"
+                                    >
+                                      <CheckCircle className="h-3.5 w-3.5" />
+                                      اعتماد
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleOpenRejectModal(voucher)}
+                                      disabled={rejectVoucherMutation.isPending}
+                                      className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                                      title="رفض سند القبض"
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      رفض
+                                    </Button>
+                                  </>
+                                ) : null
+                              )}
+
+                              {/* أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
+                              {voucher.status !== "approved" && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEditVoucherModal(voucher)}
+                                    className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                    title="تعديل سند القبض"
+                                  >
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteVoucher(voucher.id)}
+                                    className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                    title="حذف سند القبض"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
+
                             </div>
                           </TableCell>
                         </TableRow>
@@ -530,13 +761,13 @@ export default function ReceiptVouchers() {
           </Card>
         )}
 
-        {/* نافذة المودال المباشرة لتسجيل سند قبض جديد لجهة داعمة ومشروع محدد */}
+        {/* نافذة المودال المباشرة لتسجيل/تعديل سند قبض */}
         <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
           <DialogContent className="dir-rtl text-right max-w-md">
             <DialogHeader className="text-right">
               <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">
                 <Receipt className="h-5 w-5 text-emerald-600" />
-                تسجيل سند قبض جديد
+                {editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}
               </DialogTitle>
               <DialogDescription className="text-xs text-right mt-1">
                 اختر المشروع والجهة الداعمة وأدخل تفاصيل الدفعة المقبوضة
@@ -548,12 +779,12 @@ export default function ReceiptVouchers() {
               {/* اختيار المشروع */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
-                <Select value={modalProjectId} onValueChange={setModalProjectId}>
+                <Select value={modalProjectId} onValueChange={setModalProjectId} disabled={!!editingVoucherId}>
                   <SelectTrigger className="h-10 text-xs">
                     <SelectValue placeholder="اختر المشروع..." />
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-60">
-                    {projectsList.map((p) => (
+                    {projectsList.map((p: any) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
@@ -645,34 +876,8 @@ export default function ReceiptVouchers() {
                   value={modalNotes}
                   onChange={(e) => setModalNotes(e.target.value)}
                   placeholder="أدخل البيان أو سبب القبض..."
-                  rows={2}
+                  rows={3}
                 />
-              </div>
-
-              {/* طريقة الدفع والرقم المرجعي (اختياري) */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground">طريقة الدفع</Label>
-                  <Select value={modalPaymentMethod} onValueChange={setModalPaymentMethod}>
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                      <SelectItem value="check">شيك</SelectItem>
-                      <SelectItem value="cash">نقداً</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground">الرقم المرجعي (اختياري)</Label>
-                  <Input
-                    value={modalRefNumber}
-                    onChange={(e) => setModalRefNumber(e.target.value)}
-                    placeholder="رقم العملية / الحوالة"
-                    className="h-9 text-xs"
-                  />
-                </div>
               </div>
 
             </div>
@@ -681,18 +886,115 @@ export default function ReceiptVouchers() {
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
-                disabled={createVoucherMutation.isPending}
+                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending}
                 className="bg-emerald-600 hover:bg-emerald-700 font-bold text-xs"
               >
-                {createVoucherMutation.isPending && (
+                {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
                   <Loader2 className="h-3.5 w-3.5 ml-2 animate-spin" />
                 )}
-                تسجيل سند القبض
+                {editingVoucherId ? "حفظ التعديلات" : "تسجيل سند القبض"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsAddVoucherModalOpen(false)}
+                className="text-xs"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* مودال عرض الملاحظات والمبررات الكاملة */}
+        <Dialog open={!!justificationModalNote} onOpenChange={(open) => !open && setJustificationModalNote(null)}>
+          <DialogContent className="dir-rtl text-right max-w-sm">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-sm font-bold flex items-center gap-2 text-primary">
+                <Info className="h-4 w-4 text-amber-600" />
+                المبررات / السبب المسجل
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-3.5 bg-amber-50/50 rounded-lg border border-amber-200 text-xs text-amber-950 leading-relaxed font-medium whitespace-pre-wrap">
+              {justificationModalNote}
+            </div>
+            <DialogFooter className="justify-start">
+              <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold">
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* مودال الاعتماد والرفض وإلغاء الاعتماد بمبررات */}
+        <Dialog open={actionModal.isOpen} onOpenChange={(open) => setActionModal(prev => ({ ...prev, isOpen: open }))}>
+          <DialogContent className="dir-rtl text-right max-w-md bg-white rounded-xl shadow-xl border border-slate-200">
+            <DialogHeader className="text-right border-b pb-3">
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-800 text-right">
+                {actionModal.type === "revoke" ? (
+                  <>
+                    <RotateCcw className="h-5 w-5 text-amber-600" />
+                    <span>إلغاء اعتماد سند القبض</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 text-rose-600" />
+                    <span>رفض سند القبض</span>
+                  </>
+                )}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500 mt-1 text-right">
+                {actionModal.type === "revoke"
+                  ? `عند إلغاء اعتماد السند (${actionModal.voucherNumber || ""})، سيتم سحب التوقيع المالي وإعادة إتاحة التعديل والحذف.`
+                  : `عند رفض السند (${actionModal.voucherNumber || ""})، سيتم تسجيل حالة الرفض وحفظ السبب.`}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">
+                  {actionModal.type === "revoke" ? "مبررات إلغاء الاعتماد *" : "سبب الرفض *"}
+                </Label>
+                <Textarea
+                  value={actionReason}
+                  onChange={(e) => {
+                    setActionReason(e.target.value);
+                    if (actionError) setActionError("");
+                  }}
+                  placeholder={
+                    actionModal.type === "revoke"
+                      ? "أدخل مبررات إلغاء الاعتماد بالتفصيل..."
+                      : "أدخل سبب رفض سند القبض..."
+                  }
+                  rows={3}
+                  className="text-xs"
+                />
+                {actionError && (
+                  <p className="text-xs text-rose-600 font-semibold">{actionError}</p>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-2 border-t">
+              <Button
+                type="button"
+                onClick={handleConfirmAction}
+                disabled={revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending}
+                className={
+                  actionModal.type === "revoke"
+                    ? "bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+                    : "bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                }
+              >
+                {(revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending) && (
+                  <Loader2 className="h-3.5 w-3.5 ml-2 animate-spin" />
+                )}
+                {actionModal.type === "revoke" ? "تأكيد إلغاء الاعتماد" : "تأكيد الرفض"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
                 className="text-xs"
               >
                 إلغاء
