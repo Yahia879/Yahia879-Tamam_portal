@@ -738,7 +738,12 @@ export const projectsRouter = router({
       });
 
       for (const itemValue of valuesToInsert) {
-        await db.insert(quantitySchedules).values(itemValue);
+        await db.execute(sql`
+          INSERT INTO quantity_schedules 
+          (requestId, projectId, itemName, itemDescription, unit, quantity, unitPrice, totalPrice, category) 
+          VALUES 
+          (${itemValue.requestId}, ${itemValue.projectId}, ${itemValue.itemName}, ${itemValue.itemDescription || ''}, ${itemValue.unit}, ${itemValue.quantity}, ${itemValue.unitPrice}, ${itemValue.totalPrice}, ${itemValue.category})
+        `);
       }
 
       return { success: true, count: valuesToInsert.length, projectId };
