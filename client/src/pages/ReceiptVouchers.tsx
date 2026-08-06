@@ -37,7 +37,7 @@ import {
   Building2,
   Search,
   Eye,
-  CheckCircle,
+  CheckCircle2,
   Clock,
   RotateCcw,
   XCircle,
@@ -47,6 +47,8 @@ import {
   Printer,
   Filter,
   Plus,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
@@ -187,12 +189,13 @@ export default function ReceiptVouchers() {
     });
   };
 
-  // حساب الإحصائيات السريعة
+  // حساب الإحصائيات
   const totalAmountReceived = allVouchers
     .filter(v => v.status === "approved" || v.status === "pending_approval")
     .reduce((sum, v) => sum + parseFloat((v.amount || "0").toString()), 0);
   const totalApprovedCount = allVouchers.filter(v => v.status === "approved").length;
   const totalPendingCount = allVouchers.filter(v => v.status === "pending_approval").length;
+  const totalVouchersCount = allVouchers.length;
 
   const currentProject = projectsList.find(p => p.id.toString() === selectedProjectId);
 
@@ -206,28 +209,89 @@ export default function ReceiptVouchers() {
     <DashboardLayout>
       <div className="space-y-6 dir-rtl text-right p-4 sm:p-6">
         
-        {/* هيدر الصفحة القياسي والمبسط مع زر تسجيل سند جديد */}
+        {/* 1. هيدر الصفحة الرئيسي ورأس العمليات */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
-          <div>
+          <div className="space-y-1">
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
               <Coins className="h-6 w-6 text-primary" />
               سندات القبض
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة
+            <p className="text-sm text-muted-foreground">
+              إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع
             </p>
           </div>
 
           <Button
             onClick={openAddVoucherModal}
-            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 text-xs shadow-xs"
+            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 text-xs shadow-xs h-10 px-4"
           >
             <Plus className="h-4 w-4" />
             تسجيل سند قبض جديد
           </Button>
         </div>
 
-        {/* شريط البحث والفلترة القياسي */}
+        {/* 2. كروت الإحصائيات (أول شيء بأعلى الصفحة مع تصميم محسن أنيق) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          {/* إجمالي المقبوضات */}
+          <div className="p-4 bg-gradient-to-br from-emerald-50/80 to-white rounded-xl border border-emerald-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-emerald-300">
+            <div className="space-y-1">
+              <span className="text-xs text-emerald-800 font-semibold block">إجمالي المقبوضات</span>
+              <span className="text-2xl font-extrabold text-emerald-950 block">
+                {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                <span className="text-xs font-semibold text-emerald-700 mr-1">ريال</span>
+              </span>
+            </div>
+            <div className="p-3 bg-emerald-100/70 text-emerald-700 rounded-xl">
+              <Coins className="h-6 w-6" />
+            </div>
+          </div>
+
+          {/* سندات معتمدة */}
+          <div className="p-4 bg-gradient-to-br from-blue-50/80 to-white rounded-xl border border-blue-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-blue-300">
+            <div className="space-y-1">
+              <span className="text-xs text-blue-800 font-semibold block">سندات معتمدة</span>
+              <span className="text-2xl font-extrabold text-blue-950 block">
+                {totalApprovedCount}
+                <span className="text-xs font-semibold text-blue-700 mr-1">سند</span>
+              </span>
+            </div>
+            <div className="p-3 bg-blue-100/70 text-blue-700 rounded-xl">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+          </div>
+
+          {/* سندات قيد الاعتماد */}
+          <div className="p-4 bg-gradient-to-br from-amber-50/80 to-white rounded-xl border border-amber-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-amber-300">
+            <div className="space-y-1">
+              <span className="text-xs text-amber-800 font-semibold block">قيد الاعتماد</span>
+              <span className="text-2xl font-extrabold text-amber-950 block">
+                {totalPendingCount}
+                <span className="text-xs font-semibold text-amber-700 mr-1">سند</span>
+              </span>
+            </div>
+            <div className="p-3 bg-amber-100/70 text-amber-700 rounded-xl">
+              <Clock className="h-6 w-6" />
+            </div>
+          </div>
+
+          {/* إجمالي عدد السندات */}
+          <div className="p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between transition-all hover:border-slate-300">
+            <div className="space-y-1">
+              <span className="text-xs text-slate-600 font-semibold block">إجمالي عدد السندات</span>
+              <span className="text-2xl font-extrabold text-slate-900 block">
+                {totalVouchersCount}
+                <span className="text-xs font-semibold text-slate-500 mr-1">سند مسجل</span>
+              </span>
+            </div>
+            <div className="p-3 bg-slate-100 text-slate-700 rounded-xl">
+              <FileText className="h-6 w-6" />
+            </div>
+          </div>
+
+        </div>
+
+        {/* 3. شريط البحث والفلترة (تأتي بعد كروت الإحصائيات مباشرة) */}
         <Card className="border-slate-200 shadow-2xs">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row items-center gap-3">
@@ -236,25 +300,25 @@ export default function ReceiptVouchers() {
               <div className="relative flex-1 w-full">
                 <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="بحث برقم السند، الجهة الداعمة، اسم المشروع..."
+                  placeholder="بحث برقم السند، اسم المشروع، أو الجهة الداعمة..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pr-9 h-10 text-xs bg-white"
                 />
               </div>
 
-              {/* منسدلة اختيار المشروع */}
-              <div className="w-full md:w-72">
+              {/* فلترة حسب المشروع */}
+              <div className="w-full md:w-80">
                 <Select value={selectedProjectId} onValueChange={handleSelectProject}>
                   <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                     <div className="flex items-center gap-2 truncate">
-                      <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="اختر المشروع..." />
+                      <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <SelectValue placeholder="تصفية حسب المشروع..." />
                     </div>
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-72">
-                    <SelectItem value="all" className="font-bold">
-                      🌐 جميع المشاريع
+                    <SelectItem value="all" className="font-bold text-slate-900">
+                      🌐 جميع المشاريع (عرض كافة السندات)
                     </SelectItem>
                     {projectsList.map((p) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
@@ -291,71 +355,21 @@ export default function ReceiptVouchers() {
           </CardContent>
         </Card>
 
-        {/* إحصائيات سريعة ملخصة */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-xs text-muted-foreground block font-medium">إجمالي المقبوضات المعروضة</span>
-              <span className="text-xl font-bold text-emerald-700 mt-0.5 block">
-                {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">ريال</span>
-              </span>
-            </div>
-            <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
-              <Coins className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-xs text-muted-foreground block font-medium">سندات معتمدة</span>
-              <span className="text-xl font-bold text-blue-700 mt-0.5 block">
-                {totalApprovedCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
-              </span>
-            </div>
-            <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600">
-              <CheckCircle className="h-5 w-5" />
-            </div>
-          </div>
-
-          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
-            <div>
-              <span className="text-xs text-muted-foreground block font-medium">سندات قيد الاعتماد</span>
-              <span className="text-xl font-bold text-amber-700 mt-0.5 block">
-                {totalPendingCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
-              </span>
-            </div>
-            <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
-              <Clock className="h-5 w-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* عرض المحتوى: عند اختيار مشروع محدد */}
+        {/* 4. عرض المحتوى: عند اختيار مشروع محدد */}
         {selectedProjectId !== "all" ? (
           <div className="space-y-6">
             
             {/* شريط معلومات المشروع المحدد */}
             <Card className="border-emerald-200 bg-emerald-50/40">
               <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSelectProject("all")}
-                    className="gap-1.5 text-xs font-bold border-emerald-300 hover:bg-emerald-100"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                    عرض جميع المشاريع
-                  </Button>
-                  <div>
-                    <h2 className="text-base font-bold text-emerald-950 flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-emerald-700" />
-                      مشروع: {currentProject?.name || `مشروع #${selectedProjectId}`}
-                    </h2>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      رقم المشروع: {currentProject?.projectNumber || selectedProjectId}
-                    </p>
-                  </div>
+                <div>
+                  <h2 className="text-base font-bold text-emerald-950 flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-emerald-700" />
+                    مشروع: {currentProject?.name || `مشروع #${selectedProjectId}`}
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    رقم المشروع: {currentProject?.projectNumber || selectedProjectId}
+                  </p>
                 </div>
 
                 {currentProject && (
@@ -377,27 +391,18 @@ export default function ReceiptVouchers() {
 
           </div>
         ) : (
-          /* عرض كشف سندات القبض لجميع المشاريع عند عدم اختيار مشروع */
+          /* 5. عرض كشف سندات القبض لجميع المشاريع عند عدم اختيار مشروع محدد */
           <Card className="border-slate-200 shadow-2xs">
-            <CardHeader className="pb-3 border-b bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardHeader className="pb-3 border-b bg-slate-50/50">
               <div>
                 <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <Receipt className="h-5 w-5 text-emerald-600" />
                   سجل كافة سندات القبض ({allVouchers.length})
                 </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  جدول مجمع لجميع سندات القبض المسجلة في النظام. اضغط "تسجيل سند قبض جديد" لإضافة دفعة لأي مشروع.
+                <CardDescription className="text-xs">
+                  جدول مجمع لجميع سندات القبض المسجلة في النظام. يمكنك اختيار مشروع من القائمة أعلاه للتصفية.
                 </CardDescription>
               </div>
-
-              <Button
-                onClick={openAddVoucherModal}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs"
-              >
-                <Plus className="h-4 w-4" />
-                تسجيل سند قبض جديد
-              </Button>
             </CardHeader>
 
             <CardContent className="p-0">
