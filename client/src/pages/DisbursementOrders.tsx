@@ -75,7 +75,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   edited: { label: "تم التعديل", variant: "outline", className: "border-purple-500 text-purple-700 bg-purple-50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/50" },
   executed: { label: "منفذ", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
   paid: { label: "مدفوع", variant: "outline", className: "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50" },
-  cancelled: { label: "ملغي", variant: "outline", className: "border-slate-500 text-slate-700 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
+  cancelled: { label: "مرفوض", variant: "outline", className: "border-slate-500 text-slate-700 bg-slate-50 dark:bg-slate-900/20 dark:text-slate-400 dark:border-slate-800" },
 };
 
 const PAYMENT_METHOD_MAP: Record<string, string> = {

@@ -76,7 +76,7 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   pending: { label: "بانتظار اعتماد مُعد الطلب", variant: "default" },
   pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
-  rejected: { label: "ملغي", variant: "destructive" },
+  rejected: { label: "مرفوض", variant: "destructive" },
   paid: { label: "مصروف", variant: "outline" },
 };
 
@@ -129,7 +129,7 @@ export default function DisbursementRequests() {
           const statusText = req.status === "draft" ? "مسودة" :
                              req.status === "pending" ? "قيد الاعتماد" :
                              req.status === "approved" ? "معتمد" :
-                             req.status === "rejected" ? "ملغي" :
+                             req.status === "rejected" ? "مرفوض" :
                              req.status === "paid" ? "مدفوع" : req.status || "-";
 
           worksheet.addRow([
@@ -181,7 +181,7 @@ export default function DisbursementRequests() {
           const statusText = order.status === "pending" ? "قيد الاعتماد" :
                              order.status === "approved" ? "معتمد" :
                              order.status === "executed" ? "منفذ" :
-                             order.status === "rejected" ? "ملغي" : order.status || "-";
+                             order.status === "rejected" ? "مرفوض" : order.status || "-";
 
           const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
           const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
@@ -730,7 +730,7 @@ export default function DisbursementRequests() {
                     <SelectItem value="pending">بانتظار اعتماد مُعد الطلب</SelectItem>
                     <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
                     <SelectItem value="approved">معتمد</SelectItem>
-                    <SelectItem value="rejected">ملغي</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -2435,7 +2435,7 @@ export default function DisbursementRequests() {
                       : selectedOrder.status === "approved"
                       ? "معتمد"
                       : selectedOrder.status === "rejected"
-                      ? "ملغي"
+                      ? "مرفوض"
                       : "منفذ"}
                   </Badge>
                 </div>
