@@ -24,7 +24,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
-    "disbursement_requests", "disbursement_orders",
+    "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
   ],
 
@@ -38,18 +38,18 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
 
   financial: [
     "suppliers", "quotations", "financial_approval",
-    "disbursement_requests", "disbursement_orders", "financial_report",
+    "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts",
   ],
 
   financial_manager: [
     "suppliers", "quotations", "financial_approval",
-    "disbursement_requests", "disbursement_orders", "financial_report",
+    "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts", "requests",
   ],
 
   project_manager: [
-    "projects", "progress_reports", "requests", "contracts", "disbursement_requests"
+    "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers"
   ],
 
   corporate_comm: [
@@ -123,12 +123,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/contracts": "contracts",
   "/contracts/new": "contracts",
 
-  // ── طلبات وأوامر الصرف ──
+  // ── طلبات وأوامر الصرف وسندات القبض ──
   "/financial-dashboard": ["disbursement_requests", "financial_report"],
   "/disbursements": "disbursement_requests",
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
+  "/receipt-vouchers": ["receipt_vouchers", "disbursement_requests", "financial_report", "financial_approval", "projects.financials", "projects"],
 
   // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": "progress_reports",
