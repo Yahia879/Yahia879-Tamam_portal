@@ -63,7 +63,7 @@ export default function LandingPage() {
             {/* الشعار */}
             <div className="flex items-center gap-1.5 xs:gap-3 min-w-0">
               <img 
-                src={orgSettings?.logoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
+                src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || (isScrolled ? "/logo.svg" : "/logo-white.svg")} 
                 alt="شعار بوابة تمام" 
                 className="w-12 h-12 xs:w-14 xs:h-14 shrink-0 object-contain transition-all duration-300" 
               />
@@ -235,7 +235,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <img src={orgSettings?.logoUrl || "/logo.svg"} alt="شعار بوابة تمام" className="w-8 h-8 object-contain" />
+              <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-8 h-8 object-contain" />
               <div>
                 <span className="font-bold text-foreground">{orgSettings?.organizationName || "بوابة تمام"}</span>
                 <span className="text-muted-foreground text-sm mr-2">{orgSettings?.organizationNameShort || "للعناية بالمساجد"}</span>
