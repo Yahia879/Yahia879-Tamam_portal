@@ -50,7 +50,7 @@ export const projectsRouter = router({
   getAll: protectedProcedure
     .input(z.object({
       status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
-      limit: z.number().min(1).max(100).default(50),
+      limit: z.number().min(1).max(1000).default(100),
       offset: z.number().min(0).default(0),
     }).optional())
     .query(async ({ input, ctx }) => {
