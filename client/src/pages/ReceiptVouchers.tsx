@@ -661,69 +661,83 @@ export default function ReceiptVouchers() {
                           )}
                         </TableCell>
 
-                        <TableCell className="text-center py-2 min-w-[180px]">
-                          <div className="flex flex-wrap items-center justify-center gap-1.5">
-                            {/* 1. زر المعاينة والطباعة بأيقونة العين Eye */}
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            {/* زر المعاينة والطباعة بأيقونة العين Eye */}
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                              className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 shrink-0"
+                              className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
                               title="معاينة وطباعة سند القبض"
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
 
-                            {/* 2. أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
+                            {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
+                            {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                title="عرض مبررات إلغاء الاعتماد / السبب"
+                              >
+                                <Info className="h-3.5 w-3.5 text-amber-700" />
+                                المبررات
+                              </Button>
+                            )}
+
+                            {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
                             {isFaaa8User && (
                               voucher.status === "approved" ? (
                                 <Button
-                                  variant="outline"
+                                  variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenRevokeModal(voucher)}
                                   disabled={revokeVoucherApprovalMutation.isPending}
-                                  className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 bg-amber-50/70 hover:bg-amber-100/90 border-amber-300 rounded-md gap-1 shrink-0"
+                                  className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
                                   title="إلغاء الاعتماد لإتاحة التعديل"
                                 >
-                                  <RotateCcw className="h-3 w-3" />
-                                  <span>إلغاء الاعتماد</span>
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  إلغاء الاعتماد
                                 </Button>
                               ) : voucher.status === "pending_approval" ? (
                                 <>
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
                                     disabled={approveVoucherMutation.isPending}
-                                    className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-50/70 hover:bg-emerald-100/90 border-emerald-300 rounded-md gap-1 shrink-0"
+                                    className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
                                     title="اعتماد سند القبض"
                                   >
-                                    <CheckCircle className="h-3 w-3" />
-                                    <span>اعتماد</span>
+                                    <CheckCircle className="h-3.5 w-3.5" />
+                                    اعتماد
                                   </Button>
                                   <Button
-                                    variant="outline"
+                                    variant="ghost"
                                     size="sm"
                                     onClick={() => handleOpenRejectModal(voucher)}
                                     disabled={rejectVoucherMutation.isPending}
-                                    className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50/70 hover:bg-rose-100/90 border-rose-300 rounded-md gap-1 shrink-0"
+                                    className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
                                     title="رفض سند القبض"
                                   >
-                                    <XCircle className="h-3 w-3" />
-                                    <span>رفض</span>
+                                    <XCircle className="h-3.5 w-3.5" />
+                                    رفض
                                   </Button>
                                 </>
                               ) : null
                             )}
 
-                            {/* 3. أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
+                            {/* أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
                             {voucher.status !== "approved" && (
                               <>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => openEditVoucherModal(voucher)}
-                                  className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50 shrink-0"
+                                  className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                                   title="تعديل سند القبض"
                                 >
                                   <Edit3 className="h-3.5 w-3.5" />
@@ -732,26 +746,12 @@ export default function ReceiptVouchers() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleDeleteVoucher(voucher.id)}
-                                  className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50 shrink-0"
+                                  className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
                                   title="حذف سند القبض"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </>
-                            )}
-
-                            {/* 4. زر المبررات يظهر في الترتيب النهائي بجانب الأزرار دون تخريب المحاذاة */}
-                            {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
-                                className="h-7 px-2 text-[10px] font-bold text-amber-900 hover:text-amber-950 bg-amber-100/80 hover:bg-amber-200/90 border-amber-300 rounded-md gap-1 shrink-0"
-                                title="عرض مبررات إلغاء الاعتماد / السبب"
-                              >
-                                <Info className="h-3.5 w-3.5 text-amber-700 shrink-0" />
-                                <span>المبررات</span>
-                              </Button>
                             )}
 
                           </div>
