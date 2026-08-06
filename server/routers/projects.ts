@@ -738,11 +738,15 @@ export const projectsRouter = router({
       });
 
       for (const itemValue of valuesToInsert) {
+        const pid = itemValue.projectId ?? null;
+        const uPrice = itemValue.unitPrice ?? null;
+        const tPrice = itemValue.totalPrice ?? null;
+        const desc = itemValue.itemDescription || null;
         await db.execute(sql`
           INSERT INTO quantity_schedules 
           (requestId, projectId, itemName, itemDescription, unit, quantity, unitPrice, totalPrice, category) 
           VALUES 
-          (${itemValue.requestId}, ${itemValue.projectId}, ${itemValue.itemName}, ${itemValue.itemDescription || ''}, ${itemValue.unit}, ${itemValue.quantity}, ${itemValue.unitPrice}, ${itemValue.totalPrice}, ${itemValue.category})
+          (${itemValue.requestId}, ${pid}, ${itemValue.itemName}, ${desc}, ${itemValue.unit}, ${itemValue.quantity}, ${uPrice}, ${tPrice}, ${itemValue.category})
         `);
       }
 
