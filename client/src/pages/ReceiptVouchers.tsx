@@ -600,8 +600,12 @@ export default function ReceiptVouchers() {
                     <TableBody>
                       {allVouchers.map((voucher) => (
                         <TableRow key={voucher.id} className="hover:bg-slate-50/70">
-                          <TableCell className="font-bold text-primary text-xs font-mono">
-                            {voucher.voucherNumber}
+                          <TableCell className="font-bold text-xs font-mono">
+                            {voucher.status === "approved" ? (
+                              <span className="text-primary">{voucher.voucherNumber}</span>
+                            ) : (
+                              <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
+                            )}
                           </TableCell>
 
                           <TableCell className="text-xs">
