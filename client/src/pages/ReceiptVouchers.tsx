@@ -85,9 +85,10 @@ export default function ReceiptVouchers() {
   }, [window.location.search]);
 
   // جلب قائمة المشاريع للاختيار من القائمة المنسدلة
-  const { data: projectsList = [] } = trpc.projects.getAll.useQuery({
+  const { data: rawProjectsData } = trpc.projects.getAll.useQuery({
     limit: 200,
   });
+  const projectsList = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
 
   // جلب سندات القبض مع الفلترة
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
