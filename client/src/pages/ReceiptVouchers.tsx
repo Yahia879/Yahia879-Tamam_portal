@@ -484,10 +484,10 @@ export default function ReceiptVouchers() {
         {/* 3. شريط البحث والفلترة تضبيط المسافات والترتيب */}
         <Card className="border-slate-200 shadow-2xs">
           <CardContent className="p-3.5">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
               
               {/* حقل البحث */}
-              <div className="relative flex-1 w-full">
+              <div className="relative flex-1 w-full min-w-[200px]">
                 <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="بحث برقم السند، اسم المشروع، أو الداعم..."
@@ -497,89 +497,55 @@ export default function ReceiptVouchers() {
                 />
               </div>
 
-              {/* المنسدلات متجاورة ومضمومة بخطوة واحدة بدون تباعد كبير */}
-              <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                
-                {/* 1. منسدلة فلترة الحالة */}
-                <div className="w-36 sm:w-40 shrink-0">
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
-                      <div className="flex items-center gap-1.5">
-                        <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <SelectValue placeholder="الحالة" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="all">جميع الحالات</SelectItem>
-                      <SelectItem value="approved">معتمد</SelectItem>
-                      <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
-                      <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
-                      <SelectItem value="rejected">مرفوض</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* 1. منسدلة فلترة الحالة */}
+              <div className="w-full sm:w-36 shrink-0">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="الحالة" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
+                    <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                {/* 2. اختيار وتصفية حسب المشروع بعرض ثابت وتقطيع بالنقط */}
-                <div className="w-56 sm:w-64 max-w-[260px] shrink-0">
-                  <Select value={selectedProjectId} onValueChange={handleSelectProject}>
-                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full overflow-hidden">
-                      <div className="flex items-center gap-2 truncate w-full overflow-hidden">
-                        <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
-                        <span className="truncate block text-ellipsis overflow-hidden font-medium max-w-[190px]">
-                          <SelectValue placeholder="اختر المشروع..." />
-                        </span>
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent dir="rtl" className="max-h-72 max-w-sm">
-                      <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
-                        جميع المشاريع
+              {/* 2. اختيار وتصفية حسب المشروع بعرض ثابت وتقطيع بالنقط */}
+              <div className="w-full sm:w-56 md:w-64 max-w-[250px] shrink-0">
+                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
+                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full overflow-hidden">
+                    <div className="flex items-center gap-1.5 truncate w-full overflow-hidden">
+                      <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="truncate block text-ellipsis overflow-hidden font-medium max-w-[170px]">
+                        <SelectValue placeholder="اختر المشروع..." />
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="max-h-72 max-w-sm">
+                    <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
+                      جميع المشاريع
+                    </SelectItem>
+                    {projectsList.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        <div className="flex items-center gap-2 max-w-[240px]">
+                          <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
+                          <span className="font-medium truncate block">{p.name}</span>
+                        </div>
                       </SelectItem>
-                      {projectsList.map((p: any) => (
-                        <SelectItem key={p.id} value={p.id.toString()}>
-                          <div className="flex items-center gap-2 max-w-[260px]">
-                            <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
-                            <span className="font-medium truncate block">{p.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
             </div>
           </CardContent>
         </Card>
-
-        {/* 4. عرض المحتوى: عند اختيار مشروع محدد */}
-        {selectedProjectId !== "all" && (
-          <Card className="border-emerald-200 bg-emerald-50/40">
-            <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-bold text-emerald-950 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-emerald-700" />
-                  تصفية المشاريع: {currentProject?.name || `مشروع #${selectedProjectId}`}
-                </h2>
-                <p className="text-xs text-muted-foreground font-mono">
-                  رقم المشروع: {currentProject?.projectNumber || selectedProjectId}
-                </p>
-              </div>
-
-              {currentProject && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(`/projects/${selectedProjectId}`)}
-                  className="text-xs text-primary font-bold hover:bg-white border gap-1"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  تفاصيل المشروع
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* 5. عرض كشف جدول سندات القبض المنظم والخفيف */}
         <Card className="border-slate-200 shadow-2xs">
