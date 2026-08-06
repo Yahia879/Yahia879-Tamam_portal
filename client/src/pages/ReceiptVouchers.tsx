@@ -477,8 +477,8 @@ export default function ReceiptVouchers() {
                     </div>
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-72">
-                    <SelectItem value="all" className="font-bold text-emerald-800 border-b pb-1 mb-1">
-                      🌐 جميع المشاريع
+                    <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
+                      جميع المشاريع
                     </SelectItem>
                     {projectsList.map((p: any) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
