@@ -51,6 +51,7 @@ import {
   ShieldAlert,
   Languages,
   LifeBuoy,
+  Coins,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
