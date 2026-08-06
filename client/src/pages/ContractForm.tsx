@@ -621,9 +621,9 @@ export default function ContractForm() {
         }
       }
 
-// step check
+      // Clamp currentStep to max 7 (Step 7: المراجعة) as there are only 7 steps in the wizard
       if (typeof c.currentStep === 'number' && c.currentStep >= 1) {
-        setCurrentStep(Math.min(Math.max(c.currentStep, 1), 8));
+        setCurrentStep(Math.min(Math.max(c.currentStep, 1), 7));
       }
 
       setEditDataLoaded(true);
@@ -658,9 +658,9 @@ export default function ContractForm() {
     }
   }, [contractData, paymentSchedule, clauseValues, customClauses, supportSources, currentStep, editDataLoaded, existingContract]);
 
-  // تحديث بنود العقد عند تغيير القالب
+  // تحديث بنود العقد عند تغيير القالب أو في حال عدم وجود بنود محمّلة
   useEffect(() => {
-    if (templateClauses && (!isEditMode || selectedTemplateChanged)) {
+    if (templateClauses && (!isEditMode || selectedTemplateChanged || clauseValues.length === 0)) {
       const values: ClauseValue[] = templateClauses.map((clause: any) => ({
         clauseId: clause.id,
         title: clause.title,
@@ -674,7 +674,8 @@ export default function ContractForm() {
       }));
       setClauseValues(values.sort((a, b) => a.orderIndex - b.orderIndex));
     }
-  }, [templateClauses, isEditMode, selectedTemplateChanged]);
+  }, [templateClauses, isEditMode, selectedTemplateChanged, clauseValues.length]);
+
 
   // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
@@ -1278,6 +1279,13 @@ export default function ContractForm() {
         {/* محتوى الخطوات */}
         <Card>
           <CardContent className="pt-6">
+            {isEditMode && (isLoadingContract || !editDataLoaded) ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium text-sm">جاري تحميل بيانات العقد للمراجعة والتعديل...</p>
+              </div>
+            ) : (
+              <>
             {/* الخطوة 1: اختيار القالب */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -2128,7 +2136,7 @@ export default function ContractForm() {
                     <CardTitle className="text-base">قالب العقد</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {templates.find((t: any) => t.id === contractData.templateId)?.name || "-"}
+                    {templates.find((t: any) => t.id === contractData.templateId)?.name || (existingContract?.contract as any)?.templateName || "-"}
                   </CardContent>
                 </Card>
 
@@ -2138,8 +2146,8 @@ export default function ContractForm() {
                     <CardTitle className="text-base">الطرف الثاني</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="font-medium">{selectedSupplier?.name || "-"}</p>
-                    <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || "-"}</p>
+                    <p className="font-medium">{selectedSupplier?.name || (existingContract?.contract as any)?.secondPartyName || "-"}</p>
+                    <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || (existingContract?.contract as any)?.secondPartyPhone || "-"}</p>
                   </CardContent>
                 </Card>
                 {/* ملخص البنود المخصصة */}
@@ -2237,17 +2245,23 @@ export default function ContractForm() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-1">
-                      {clauseValues.filter(c => c.isIncluded).map((clause, index) => (
-                        <div key={clause.clauseId} className="text-sm">
-                          <span className="text-muted-foreground">المادة {index + 1}:</span>
-                          <span className="mr-2">{clause.titleAr || clause.title}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {clauseValues.filter(c => c.isIncluded).length > 0 ? (
+                      <div className="space-y-1">
+                        {clauseValues.filter(c => c.isIncluded).map((clause, index) => (
+                          <div key={clause.clauseId} className="text-sm">
+                            <span className="text-muted-foreground">المادة {index + 1}:</span>
+                            <span className="mr-2">{clause.titleAr || clause.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">لا توجد بنود مخصصة أو محددة لهذه النسخة.</p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
+            )}
+            </>
             )}
 
             {/* أزرار التنقل وحفظ المسودة */}
