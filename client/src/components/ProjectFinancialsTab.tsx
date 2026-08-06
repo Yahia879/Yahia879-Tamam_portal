@@ -416,6 +416,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   const openAddVoucherModal = () => {
     setEditingVoucherId(null);
+    setVoucherHonorificTitle("السادة");
     setVoucherAmount("");
     setVoucherDate(new Date().toISOString().split("T")[0]);
     const validSupporters = supportSources.filter(src => {
@@ -437,10 +438,24 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     setEditingVoucherId(voucher.id);
     setVoucherAmount(voucher.amount.toString());
     setVoucherDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
-    const pName = voucher.payerName || "";
+    
+    let rawPayer = voucher.payerName || "";
+    if (rawPayer.startsWith("السيد / ")) {
+      setVoucherHonorificTitle("السيد");
+      rawPayer = rawPayer.replace("السيد / ", "");
+    } else if (rawPayer.startsWith("السيدة / ")) {
+      setVoucherHonorificTitle("السيدة");
+      rawPayer = rawPayer.replace("السيدة / ", "");
+    } else if (rawPayer.startsWith("السادة / ")) {
+      setVoucherHonorificTitle("السادة");
+      rawPayer = rawPayer.replace("السادة / ", "");
+    } else {
+      setVoucherHonorificTitle("السادة");
+    }
+
     const matchedSource = supportSources.find(s => {
       const name = s.entity === "اخرى" ? s.customEntity : s.entity;
-      return (name || "").trim().toLowerCase() === pName.trim().toLowerCase();
+      return (name || "").trim().toLowerCase() === rawPayer.trim().toLowerCase();
     });
     if (matchedSource) {
       const name = matchedSource.entity === "اخرى" ? matchedSource.customEntity : matchedSource.entity;
@@ -448,7 +463,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       setCustomVoucherPayerName("");
     } else {
       setVoucherPayerName("اخرى");
-      setCustomVoucherPayerName(pName);
+      setCustomVoucherPayerName(rawPayer);
     }
     setVoucherPaymentMethod(voucher.paymentMethod || "bank_transfer");
     setVoucherRefNumber(voucher.referenceNumber || "");
@@ -473,12 +488,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       toast.error("يرجى تحديد تاريخ القبض");
       return;
     }
-    if (!voucherPayerName || !voucherPayerName.trim()) {
+    const cleanPayer = voucherPayerName === "اخرى" ? customVoucherPayerName.trim() : voucherPayerName.trim();
+    if (!cleanPayer) {
       toast.error("يرجى اختيار الجهة الداعمة / القابض منه");
       return;
     }
 
-    const finalPayerName = voucherPayerName.trim();
+    let finalPayerName = cleanPayer;
+    if (!cleanPayer.startsWith("السيد /") && !cleanPayer.startsWith("السيدة /") && !cleanPayer.startsWith("السادة /")) {
+      finalPayerName = `${voucherHonorificTitle} / ${cleanPayer}`;
+    }
 
     if (editingVoucherId) {
       updateVoucherMutation.mutate({
@@ -1534,35 +1553,51 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">اختيار الداعم / القابض منه *</Label>
-              <Select 
-                value={voucherPayerName} 
-                onValueChange={(val) => {
-                  setVoucherPayerName(val);
-                  if (val !== "اخرى") setCustomVoucherPayerName("");
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الداعم" />
-                </SelectTrigger>
-                <SelectContent>
-                  {supportSources
-                    .filter((src) => {
-                      const name = src.entity === "اخرى" ? src.customEntity : src.entity;
-                      if (editingVoucherId && name === voucherPayerName) return true;
-                      return !isGeneralAccountName(name);
-                    })
-                    .map((src, idx) => {
-                      const name = src.entity === "اخرى" ? src.customEntity : src.entity;
-                      return name ? (
-                        <SelectItem key={idx} value={name}>
-                          {name}
-                        </SelectItem>
-                      ) : null;
-                    })}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-1 space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">اللقب / الصفة *</Label>
+                <Select value={voucherHonorificTitle} onValueChange={setVoucherHonorificTitle}>
+                  <SelectTrigger className="h-10 text-xs bg-white">
+                    <SelectValue placeholder="اللقب..." />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="السادة">السادة /</SelectItem>
+                    <SelectItem value="السيد">السيد /</SelectItem>
+                    <SelectItem value="السيدة">السيدة /</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
+                <Select 
+                  value={voucherPayerName} 
+                  onValueChange={(val) => {
+                    setVoucherPayerName(val);
+                    if (val !== "اخرى") setCustomVoucherPayerName("");
+                  }}
+                >
+                  <SelectTrigger className="h-10 text-xs bg-white">
+                    <SelectValue placeholder="اختر الداعم..." />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {supportSources
+                      .filter((src) => {
+                        const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+                        if (editingVoucherId && name === voucherPayerName) return true;
+                        return !isGeneralAccountName(name);
+                      })
+                      .map((src, idx) => {
+                        const name = src.entity === "اخرى" ? src.customEntity : src.entity;
+                        return name ? (
+                          <SelectItem key={idx} value={name}>
+                            {name}
+                          </SelectItem>
+                        ) : null;
+                      })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-1.5">
