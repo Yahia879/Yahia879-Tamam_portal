@@ -2028,6 +2028,63 @@ export const projectsRouter = router({
       return { success: true };
     }),
 
+  getAllReceiptVouchers: protectedProcedure
+    .input(z.object({
+      projectId: z.number().optional(),
+      status: z.string().optional(),
+      search: z.string().optional(),
+    }).optional())
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const filters: any[] = [];
+      if (input?.projectId) {
+        filters.push(eq(receiptVouchers.projectId, input.projectId));
+      }
+      if (input?.status && input.status !== "all") {
+        filters.push(eq(receiptVouchers.status, input.status));
+      }
+
+      const rows = await db
+        .select({
+          id: receiptVouchers.id,
+          voucherNumber: receiptVouchers.voucherNumber,
+          projectId: receiptVouchers.projectId,
+          amount: receiptVouchers.amount,
+          receiptDate: receiptVouchers.receiptDate,
+          payerName: receiptVouchers.payerName,
+          paymentMethod: receiptVouchers.paymentMethod,
+          referenceNumber: receiptVouchers.referenceNumber,
+          bankName: receiptVouchers.bankName,
+          attachmentUrl: receiptVouchers.attachmentUrl,
+          notes: receiptVouchers.notes,
+          status: receiptVouchers.status,
+          rejectionReason: receiptVouchers.rejectionReason,
+          createdAt: receiptVouchers.createdAt,
+          projectName: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(receiptVouchers)
+        .leftJoin(projects, eq(receiptVouchers.projectId, projects.id))
+        .where(filters.length > 0 ? and(...filters) : undefined)
+        .orderBy(desc(receiptVouchers.createdAt));
+
+      if (input?.search && input.search.trim() !== "") {
+        const searchLower = input.search.trim().toLowerCase();
+        return rows.filter(r => 
+          (r.voucherNumber && r.voucherNumber.toLowerCase().includes(searchLower)) ||
+          (r.payerName && r.payerName.toLowerCase().includes(searchLower)) ||
+          (r.projectName && r.projectName.toLowerCase().includes(searchLower)) ||
+          (r.projectNumber && r.projectNumber.toLowerCase().includes(searchLower)) ||
+          (r.referenceNumber && r.referenceNumber.toLowerCase().includes(searchLower)) ||
+          (r.notes && r.notes.toLowerCase().includes(searchLower))
+        );
+      }
+
+      return rows;
+    }),
+
   createReceiptVoucher: protectedProcedure
     .input(z.object({
       projectId: z.number(),
