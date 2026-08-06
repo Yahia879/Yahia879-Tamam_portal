@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,9 +78,13 @@ export default function Projects() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const userPermissions = (user as any)?.permissions ?? [];
+  const serverPermissions = useUserPermissions();
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canViewDetails = isAdmin || userPermissions.includes("projects.view_details");
+  const canViewDetails = isAdmin || serverPermissions.includes("projects.view_details");
+  // مَن لديه فقط صلاحية المالية (بدون تفاصيل المشروع) يمكنه الدخول على صفحة المشروع لعرض قسم المالية فقط
+  const canViewFinancials = serverPermissions.includes("projects.financials");
+  // يظهر عمود الإجراءات لأي شخص يملك صلاحية عرض التفاصيل أو مالية المشاريع
+  const canAccessProjectPage = canViewDetails || canViewFinancials;
 
   // جلب المشاريع من قاعدة البيانات باستخدام الإجراء الجديد search
   const { data, isLoading } = trpc.projects.search.useQuery({
@@ -228,7 +233,7 @@ export default function Projects() {
                         <TableHead className="text-right">التقدم</TableHead>
                         <TableHead className="text-right">الميزانية</TableHead>
                         <TableHead className="text-right">تاريخ الإنشاء</TableHead>
-                        {canViewDetails && <TableHead className="text-right">الإجراءات</TableHead>}
+                        {canAccessProjectPage && <TableHead className="text-right">الإجراءات</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -280,7 +285,7 @@ export default function Projects() {
                               </span>
                             </div>
                           </TableCell>
-                          {canViewDetails && (
+                          {canAccessProjectPage && (
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -292,10 +297,10 @@ export default function Projects() {
                                   <Link href={`/projects/${project.id}`}>
                                     <DropdownMenuItem>
                                       <Eye className="w-4 h-4 ml-2" />
-                                      عرض التفاصيل
+                                      {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
                                     </DropdownMenuItem>
                                   </Link>
-                                  {project.requestId && user?.role !== "project_manager" && (
+                                  {canViewDetails && project.requestId && user?.role !== "project_manager" && (
                                     <Link href={`/requests/${project.requestId}`}>
                                       <DropdownMenuItem>
                                         <FileText className="w-4 h-4 ml-2" />
@@ -327,7 +332,7 @@ export default function Projects() {
                             <p className="text-xs font-mono text-muted-foreground">{project.projectNumber}</p>
                           </div>
                         </div>
-                        {canViewDetails && (
+                        {canAccessProjectPage && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -338,10 +343,10 @@ export default function Projects() {
                               <Link href={`/projects/${project.id}`}>
                                 <DropdownMenuItem>
                                   <Eye className="w-4 h-4 ml-2" />
-                                  عرض التفاصيل
+                                  {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
                                 </DropdownMenuItem>
                               </Link>
-                              {project.requestId && user?.role !== "project_manager" && (
+                              {canViewDetails && project.requestId && user?.role !== "project_manager" && (
                                 <Link href={`/requests/${project.requestId}`}>
                                   <DropdownMenuItem>
                                     <FileText className="w-4 h-4 ml-2" />

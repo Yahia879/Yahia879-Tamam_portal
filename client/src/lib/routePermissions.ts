@@ -96,7 +96,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/field-visits/calendar": "appointments_calendar",
 
   // ── المشاريع ──
-  "/projects": ["projects.view", "projects.view_details"],
+  "/projects": ["projects.view", "projects.view_details", "projects.financials"],
   "/project-management": ["projects.view", "projects.view_details"],
 
   // ── إدارة المستخدمين ──
