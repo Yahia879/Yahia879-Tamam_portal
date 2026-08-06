@@ -737,7 +737,9 @@ export const projectsRouter = router({
         };
       });
 
-      await db.insert(quantitySchedules).values(valuesToInsert);
+      for (const itemValue of valuesToInsert) {
+        await db.insert(quantitySchedules).values(itemValue);
+      }
 
       return { success: true, count: valuesToInsert.length, projectId };
     }),
