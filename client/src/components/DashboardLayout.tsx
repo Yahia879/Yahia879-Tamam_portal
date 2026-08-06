@@ -124,6 +124,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
+      { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
       { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     ];
     groups.push({
@@ -246,6 +247,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("contracts"))           finItems.push({ icon: FileText,    label: "العقود",          path: "/contracts" });
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
+  if (has("receipt_vouchers") || has("financial_report") || has("disbursement_requests") || has("financial_approval")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
   if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
   
   if (finItems.length > 0) {
