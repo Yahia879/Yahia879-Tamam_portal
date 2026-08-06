@@ -4,6 +4,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -12,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -36,11 +46,14 @@ import {
   Loader2,
   Printer,
   Filter,
+  Plus,
 } from "lucide-react";
+import { toast } from "sonner";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
 
 export default function ReceiptVouchers() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
 
   // الحصول على البارامترات من URL إن وجدت
   const urlParams = new URLSearchParams(window.location.search);
@@ -49,6 +62,17 @@ export default function ReceiptVouchers() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // حالة مودال تسجيل سند قبض جديد المباشر
+  const [isAddVoucherModalOpen, setIsAddVoucherModalOpen] = useState<boolean>(false);
+  const [modalProjectId, setModalProjectId] = useState<string>("");
+  const [modalAmount, setModalAmount] = useState<string>("");
+  const [modalDate, setModalDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [modalPayerName, setModalPayerName] = useState<string>("");
+  const [customPayerName, setCustomPayerName] = useState<string>("");
+  const [modalPaymentMethod, setModalPaymentMethod] = useState<string>("bank_transfer");
+  const [modalRefNumber, setModalRefNumber] = useState<string>("");
+  const [modalNotes, setModalNotes] = useState<string>("");
 
   // تحديث حالة المشروع عند تغير البارامتر بالرابط
   useEffect(() => {
@@ -64,11 +88,104 @@ export default function ReceiptVouchers() {
   });
 
   // جلب سندات القبض مع الفلترة
-  const { data: allVouchers = [], isLoading: isLoadingVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
+  const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
     projectId: selectedProjectId !== "all" ? parseInt(selectedProjectId) : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery,
   });
+
+  // جلب البيانات المالية للمشروع المختار داخل المودال لمعرفة الداعمين
+  const activeModalProjectId = parseInt(modalProjectId) || 0;
+  const { data: projectFinancialData } = trpc.projects.getFinancialData.useQuery(
+    { projectId: activeModalProjectId },
+    { enabled: activeModalProjectId > 0 }
+  );
+
+  // استخراج قائمة الداعمين للمشروع المختار في المودال
+  const projectSupporters: string[] = [];
+  if (projectFinancialData?.financialDetail) {
+    if (projectFinancialData.financialDetail.supportSourcesJson) {
+      try {
+        const parsed = JSON.parse(projectFinancialData.financialDetail.supportSourcesJson);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((item: any) => {
+            const name = item.entity === "اخرى" ? item.customEntity : item.entity;
+            if (name && name.trim() && !projectSupporters.includes(name.trim())) {
+              projectSupporters.push(name.trim());
+            }
+          });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    if (projectSupporters.length === 0 && projectFinancialData.financialDetail.supportEntity) {
+      projectSupporters.push(projectFinancialData.financialDetail.supportEntity);
+    }
+  }
+
+  // طفرة إضافة سند القبض
+  const createVoucherMutation = trpc.projects.createReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم تسجيل سند القبض بنجاح");
+      setIsAddVoucherModalOpen(false);
+      resetModalForm();
+      refetchVouchers();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تسجيل سند القبض");
+    },
+  });
+
+  const resetModalForm = () => {
+    setModalAmount("");
+    setModalDate(new Date().toISOString().split("T")[0]);
+    setModalPayerName("");
+    setCustomPayerName("");
+    setModalPaymentMethod("bank_transfer");
+    setModalRefNumber("");
+    setModalNotes("");
+  };
+
+  const openAddVoucherModal = () => {
+    const initialPrj = selectedProjectId !== "all" ? selectedProjectId : (projectsList[0]?.id.toString() || "");
+    setModalProjectId(initialPrj);
+    resetModalForm();
+    setIsAddVoucherModalOpen(true);
+  };
+
+  const handleSaveVoucher = () => {
+    const prjId = parseInt(modalProjectId);
+    if (!modalProjectId || isNaN(prjId) || prjId <= 0) {
+      toast.error("يرجى اختيار المشروع أولاً");
+      return;
+    }
+    const amountNum = parseFloat(modalAmount);
+    if (!modalAmount || isNaN(amountNum) || amountNum <= 0) {
+      toast.error("يرجى إدخال مبلغ الدفعة المقبوضة بشكل صحيح أكبر من صفر");
+      return;
+    }
+    if (!modalDate || !modalDate.trim()) {
+      toast.error("يرجى تحديد تاريخ القبض");
+      return;
+    }
+    const finalPayerName = modalPayerName === "اخرى" ? customPayerName.trim() : modalPayerName.trim();
+    if (!finalPayerName) {
+      toast.error("يرجى اختيار أو كتابة اسم الجهة الداعمة / القابض منه");
+      return;
+    }
+
+    createVoucherMutation.mutate({
+      projectId: prjId,
+      amount: amountNum,
+      receiptDate: modalDate,
+      payerName: finalPayerName,
+      paymentMethod: modalPaymentMethod,
+      referenceNumber: modalRefNumber,
+      notes: modalNotes,
+    });
+  };
 
   // حساب الإحصائيات السريعة
   const totalAmountReceived = allVouchers
@@ -89,7 +206,7 @@ export default function ReceiptVouchers() {
     <DashboardLayout>
       <div className="space-y-6 dir-rtl text-right p-4 sm:p-6">
         
-        {/* هيدر الصفحة القياسي والمبسط */}
+        {/* هيدر الصفحة القياسي والمبسط مع زر تسجيل سند جديد */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -100,6 +217,14 @@ export default function ReceiptVouchers() {
               إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة
             </p>
           </div>
+
+          <Button
+            onClick={openAddVoucherModal}
+            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 text-xs shadow-xs"
+          >
+            <Plus className="h-4 w-4" />
+            تسجيل سند قبض جديد
+          </Button>
         </div>
 
         {/* شريط البحث والفلترة القياسي */}
@@ -254,14 +379,25 @@ export default function ReceiptVouchers() {
         ) : (
           /* عرض كشف سندات القبض لجميع المشاريع عند عدم اختيار مشروع */
           <Card className="border-slate-200 shadow-2xs">
-            <CardHeader className="pb-3 border-b bg-slate-50/50">
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-emerald-600" />
-                سجل كافة سندات القبض ({allVouchers.length})
-              </CardTitle>
-              <CardDescription className="text-xs">
-                جدول مجمع لجميع سندات القبض المسجلة في النظام. اختر مشروعاً من القائمة أعلاه لتسجيل أو تعديل سندات مشروع محدد.
-              </CardDescription>
+            <CardHeader className="pb-3 border-b bg-slate-50/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-emerald-600" />
+                  سجل كافة سندات القبض ({allVouchers.length})
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  جدول مجمع لجميع سندات القبض المسجلة في النظام. اضغط "تسجيل سند قبض جديد" لإضافة دفعة لأي مشروع.
+                </CardDescription>
+              </div>
+
+              <Button
+                onClick={openAddVoucherModal}
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5 text-xs"
+              >
+                <Plus className="h-4 w-4" />
+                تسجيل سند قبض جديد
+              </Button>
             </CardHeader>
 
             <CardContent className="p-0">
@@ -271,10 +407,13 @@ export default function ReceiptVouchers() {
                   جاري تحميل سندات القبض...
                 </div>
               ) : allVouchers.length === 0 ? (
-                <div className="text-center py-12 space-y-2">
+                <div className="text-center py-12 space-y-3">
                   <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
                   <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
-                  <p className="text-xs text-muted-foreground">اختر مشروعاً من الفلتر أعلاه لتسجيل سند قبض جديد</p>
+                  <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary">
+                    <Plus className="h-4 w-4" />
+                    تسجيل أول سند قبض
+                  </Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -387,6 +526,177 @@ export default function ReceiptVouchers() {
             </CardContent>
           </Card>
         )}
+
+        {/* نافذة المودال المباشرة لتسجيل سند قبض جديد لجهة داعمة ومشروع محدد */}
+        <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
+          <DialogContent className="dir-rtl text-right max-w-md">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">
+                <Receipt className="h-5 w-5 text-emerald-600" />
+                تسجيل سند قبض جديد
+              </DialogTitle>
+              <DialogDescription className="text-xs text-right mt-1">
+                اختر المشروع والجهة الداعمة وأدخل تفاصيل الدفعة المقبوضة
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-xs text-right">
+              
+              {/* اختيار المشروع */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
+                <Select value={modalProjectId} onValueChange={setModalProjectId}>
+                  <SelectTrigger className="h-10 text-xs">
+                    <SelectValue placeholder="اختر المشروع..." />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="max-h-60">
+                    {projectsList.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
+                          <span className="font-medium">{p.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* اختيار الداعم للمشروع */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
+                {projectSupporters.length > 0 ? (
+                  <Select
+                    value={modalPayerName}
+                    onValueChange={(val) => {
+                      setModalPayerName(val);
+                      if (val !== "اخرى") setCustomPayerName("");
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-xs">
+                      <SelectValue placeholder="اختر الداعم المسجل أو أدخل جهة أخرى..." />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      {projectSupporters.map((sup, idx) => (
+                        <SelectItem key={idx} value={sup}>
+                          {sup}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="اخرى" className="font-bold text-blue-700">
+                        + جهة أخرى (إدخال يدوي)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={modalPayerName}
+                    onChange={(e) => setModalPayerName(e.target.value)}
+                    placeholder="اسم الجهة الداعمة / القابض منه..."
+                    className="h-10 text-xs"
+                  />
+                )}
+              </div>
+
+              {/* إدخال اسم داعم مخصص عند اختيار اخرى */}
+              {modalPayerName === "اخرى" && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-blue-900">اسم الجهة الداعمة المخصصة *</Label>
+                  <Input
+                    value={customPayerName}
+                    onChange={(e) => setCustomPayerName(e.target.value)}
+                    placeholder="أدخل اسم الداعم..."
+                    className="h-10 text-xs"
+                  />
+                </div>
+              )}
+
+              {/* مبلغ الدفعة المقبوضة */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                <Input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={modalAmount}
+                  onChange={(e) => setModalAmount(e.target.value)}
+                  placeholder="مثال: 50000"
+                  className="h-10 font-bold text-emerald-800 text-left [direction:ltr]"
+                />
+              </div>
+
+              {/* تاريخ القبض */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">تاريخ القبض *</Label>
+                <Input
+                  type="date"
+                  value={modalDate}
+                  onChange={(e) => setModalDate(e.target.value)}
+                  className="h-10 text-xs"
+                />
+              </div>
+
+              {/* البيان / الملاحظات */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-800">وذلك مقابل (سبب المقبوض / البيان) *</Label>
+                <Textarea
+                  value={modalNotes}
+                  onChange={(e) => setModalNotes(e.target.value)}
+                  placeholder="أدخل البيان أو سبب القبض..."
+                  rows={2}
+                />
+              </div>
+
+              {/* طريقة الدفع والرقم المرجعي (اختياري) */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">طريقة الدفع</Label>
+                  <Select value={modalPaymentMethod} onValueChange={setModalPaymentMethod}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
+                      <SelectItem value="check">شيك</SelectItem>
+                      <SelectItem value="cash">نقداً</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">الرقم المرجعي (اختياري)</Label>
+                  <Input
+                    value={modalRefNumber}
+                    onChange={(e) => setModalRefNumber(e.target.value)}
+                    placeholder="رقم العملية / الحوالة"
+                    className="h-9 text-xs"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-2 border-t">
+              <Button
+                type="button"
+                onClick={handleSaveVoucher}
+                disabled={createVoucherMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 font-bold text-xs"
+              >
+                {createVoucherMutation.isPending && (
+                  <Loader2 className="h-3.5 w-3.5 ml-2 animate-spin" />
+                )}
+                تسجيل سند القبض
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddVoucherModalOpen(false)}
+                className="text-xs"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </DashboardLayout>
