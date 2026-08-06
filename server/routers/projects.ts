@@ -2119,10 +2119,10 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.email !== "faaa8@gmail.com") {
+      if (ctx.user.email !== "solayani@manarah.org.sa") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "عذراً، اعتماد سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+          message: "عذراً، اعتماد سند القبض مخصص حصرياً للمسؤول المالي (solayani@manarah.org.sa)"
         });
       }
 
@@ -2156,10 +2156,10 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.email !== "faaa8@gmail.com") {
+      if (ctx.user.email !== "solayani@manarah.org.sa") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "عذراً، إلغاء اعتماد سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+          message: "عذراً، إلغاء اعتماد سند القبض مخصص حصرياً للمسؤول المالي (solayani@manarah.org.sa)"
         });
       }
 
@@ -2186,10 +2186,10 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.email !== "faaa8@gmail.com") {
+      if (ctx.user.email !== "solayani@manarah.org.sa") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "عذراً، رفض سند القبض مخصص حصرياً للمسؤول المالي (faaa8@gmail.com)"
+          message: "عذراً، رفض سند القبض مخصص حصرياً للمسؤول المالي (solayani@manarah.org.sa)"
         });
       }
 
@@ -2268,7 +2268,7 @@ export const projectsRouter = router({
             showSignatureInDocuments: users.showSignatureInDocuments,
           })
           .from(users)
-          .where(eq(users.email, "faaa8@gmail.com"))
+          .where(eq(users.email, "solayani@manarah.org.sa"))
           .limit(1);
 
         signerUser = signerUserList.length > 0 ? signerUserList[0] : null;

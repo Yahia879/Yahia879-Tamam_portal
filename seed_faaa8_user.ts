@@ -39,8 +39,8 @@ async function seedUserAndPermissions() {
     }
   }
 
-  // 2. Ensure user faaa8@gmail.com exists
-  const targetEmail = "faaa8@gmail.com";
+  // 2. Ensure user solayani@manarah.org.sa exists
+  const targetEmail = "solayani@manarah.org.sa";
   let userList = await db.select().from(users).where(eq(users.email, targetEmail));
   let userId: number;
 

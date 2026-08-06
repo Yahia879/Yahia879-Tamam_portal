@@ -131,7 +131,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
   const { user } = useAuth();
-  const isFaaa8User = user?.email === "faaa8@gmail.com";
+  const isFaaa8User = user?.email === "solayani@manarah.org.sa";
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);
