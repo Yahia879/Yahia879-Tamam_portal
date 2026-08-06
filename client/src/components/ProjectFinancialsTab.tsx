@@ -1333,32 +1333,45 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                       </Badge>
                                     )}
                                   </TableCell>
-                                  <TableCell className="text-center py-2 min-w-[180px]">
-                                     <div className="flex flex-wrap items-center justify-center gap-1.5">
-                                       {/* 1. زر المعاينة والطباعة */}
-                                       <Button
-                                         variant="ghost"
-                                         size="icon"
-                                         onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                         className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 shrink-0"
-                                         title="معاينة وطباعة سند القبض"
-                                       >
-                                         <Eye className="h-3.5 w-3.5" />
-                                       </Button>
+                                  <TableCell className="text-center">
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                        className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                        title="معاينة وطباعة سند القبض"
+                                      >
+                                        <Eye className="h-3.5 w-3.5" />
+                                      </Button>
 
-                                       {/* 2. أزرار الاعتماد والرفض وإلغاء الاعتماد للمسؤول المالي */}
+                                      {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
+                                      {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                          className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                          title="عرض مبررات إلغاء الاعتماد / السبب"
+                                        >
+                                          <Info className="h-3.5 w-3.5 text-amber-700" />
+                                          المبررات
+                                        </Button>
+                                      )}
+
+                                       {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
                                        {isFaaa8User && (
                                          voucher.status === "approved" ? (
                                            <Button
-                                             variant="outline"
+                                             variant="ghost"
                                              size="sm"
                                              onClick={() => handleOpenRevokeModal(voucher)}
                                              disabled={revokeVoucherApprovalMutation.isPending}
-                                             className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 bg-amber-50/70 hover:bg-amber-100/90 border-amber-300 rounded-md gap-1 shrink-0"
+                                             className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
                                              title="إلغاء الاعتماد لإتاحة التعديل"
                                            >
-                                             <RotateCcw className="h-3 w-3" />
-                                             <span>إلغاء الاعتماد</span>
+                                             <RotateCcw className="h-3.5 w-3.5" />
+                                             إلغاء الاعتماد
                                            </Button>
                                          ) : voucher.status === "pending_approval" ? (
                                            <>
