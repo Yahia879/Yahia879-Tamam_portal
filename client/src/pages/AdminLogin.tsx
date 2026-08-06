@@ -194,8 +194,8 @@ export default function AdminLogin() {
   const primaryColor = orgSettings?.colorPrimary1 || "#09707e";
   const secondaryColor = orgSettings?.colorPrimary2 || "#0D9488";
 
-  // الشعار الرئيسي للبوابة
-  const logoSrc = orgSettings?.logoUrl || "/logo.svg";
+  // الشعار الأبيض (أيقونة) للخلفيات الداكنة، ثم الرئيسي، ثم الافتراضي
+  const logoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg";
 
   return (
     <div 
@@ -216,7 +216,7 @@ export default function AdminLogin() {
               alt={`شعار ${orgSettings?.organizationName || "بوابة تمام"}`} 
               className="h-10 w-10 sm:h-14 sm:w-14 object-contain"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = "/logo.svg";
+                (e.target as HTMLImageElement).src = "/logo-white.svg";
               }}
             />
           </div>
