@@ -35,7 +35,7 @@ import {
   ArrowRight,
   Loader2,
   Printer,
-  Sparkles,
+  Filter,
 } from "lucide-react";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
 
@@ -58,19 +58,19 @@ export default function ReceiptVouchers() {
     }
   }, [window.location.search]);
 
-  // جلب قائمة المشاريع لااختيار مشروع من القائمة المنسدلة
-  const { data: projectsList = [], isLoading: isLoadingProjects } = trpc.projects.getAll.useQuery({
-    limit: 100,
+  // جلب قائمة المشاريع للاختيار من القائمة المنسدلة
+  const { data: projectsList = [] } = trpc.projects.getAll.useQuery({
+    limit: 200,
   });
 
-  // جلب كافة سندات القبض عبر جميع المشاريع
+  // جلب سندات القبض مع الفلترة
   const { data: allVouchers = [], isLoading: isLoadingVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
     projectId: selectedProjectId !== "all" ? parseInt(selectedProjectId) : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery,
   });
 
-  // حساب الإحصائيات العامة السريعة
+  // حساب الإحصائيات السريعة
   const totalAmountReceived = allVouchers
     .filter(v => v.status === "approved" || v.status === "pending_approval")
     .reduce((sum, v) => sum + parseFloat((v.amount || "0").toString()), 0);
@@ -87,62 +87,130 @@ export default function ReceiptVouchers() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 dir-rtl text-right p-2 sm:p-4">
+      <div className="space-y-6 dir-rtl text-right p-4 sm:p-6">
         
-        {/* الهيدر الرئيسي */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-900/90 via-teal-900/90 to-slate-900 text-white p-6 rounded-2xl shadow-lg border border-emerald-700/30">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-400/30 text-emerald-300">
-                <Coins className="h-7 w-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                  سندات القبض
-                  <Badge className="bg-emerald-500/30 text-emerald-200 border-emerald-400/30 font-normal text-xs px-2.5">
-                    القسم المالي
-                  </Badge>
-                </h1>
-                <p className="text-sm text-emerald-100/80">
-                  إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* محدد المشروع المنسدل السريع */}
-          <div className="w-full md:w-80 space-y-1">
-            <label className="text-xs font-semibold text-emerald-200 block flex items-center gap-1.5">
-              <FolderOpen className="h-3.5 w-3.5" />
-              اختر المشروع للتصفية والمعاينة:
-            </label>
-            <Select value={selectedProjectId} onValueChange={handleSelectProject}>
-              <SelectTrigger className="bg-white/10 text-white border-emerald-400/30 hover:bg-white/20 transition-colors h-10 font-medium">
-                <SelectValue placeholder="اختر مشروعاً..." />
-              </SelectTrigger>
-              <SelectContent dir="rtl" className="max-h-72">
-                <SelectItem value="all" className="font-bold text-emerald-800">
-                  🌐 جميع المشاريع (عرض كشف عام)
-                </SelectItem>
-                {projectsList.map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">{p.projectNumber}</span>
-                      <span className="font-semibold">{p.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* هيدر الصفحة القياسي والمبسط */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <Coins className="h-6 w-6 text-primary" />
+              سندات القبض
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة
+            </p>
           </div>
         </div>
 
-        {/* عرض تفاصيل المشروع المحدد إن كان هناك مشروع مختار */}
+        {/* شريط البحث والفلترة القياسي */}
+        <Card className="border-slate-200 shadow-2xs">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              
+              {/* حقل البحث */}
+              <div className="relative flex-1 w-full">
+                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث برقم السند، الجهة الداعمة، اسم المشروع..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pr-9 h-10 text-xs bg-white"
+                />
+              </div>
+
+              {/* منسدلة اختيار المشروع */}
+              <div className="w-full md:w-72">
+                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
+                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                    <div className="flex items-center gap-2 truncate">
+                      <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="اختر المشروع..." />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="max-h-72">
+                    <SelectItem value="all" className="font-bold">
+                      🌐 جميع المشاريع
+                    </SelectItem>
+                    {projectsList.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
+                          <span className="font-medium truncate">{p.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* منسدلة فلترة الحالة */}
+              <div className="w-full md:w-44">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <SelectValue placeholder="الحالة" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    <SelectItem value="all">جميع الحالات</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
+                    <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
+                    <SelectItem value="rejected">مرفوض</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* إحصائيات سريعة ملخصة */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-muted-foreground block font-medium">إجمالي المقبوضات المعروضة</span>
+              <span className="text-xl font-bold text-emerald-700 mt-0.5 block">
+                {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+              </span>
+            </div>
+            <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
+              <Coins className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-muted-foreground block font-medium">سندات معتمدة</span>
+              <span className="text-xl font-bold text-blue-700 mt-0.5 block">
+                {totalApprovedCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
+              </span>
+            </div>
+            <div className="p-2.5 bg-blue-50 rounded-lg text-blue-600">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-muted-foreground block font-medium">سندات قيد الاعتماد</span>
+              <span className="text-xl font-bold text-amber-700 mt-0.5 block">
+                {totalPendingCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
+              </span>
+            </div>
+            <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
+              <Clock className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* عرض المحتوى: عند اختيار مشروع محدد */}
         {selectedProjectId !== "all" ? (
           <div className="space-y-6">
             
-            {/* شريط العودة ورأس المشروع المحدد */}
-            <Card className="border-emerald-200 bg-emerald-50/30">
+            {/* شريط معلومات المشروع المحدد */}
+            <Card className="border-emerald-200 bg-emerald-50/40">
               <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <Button
@@ -173,275 +241,151 @@ export default function ReceiptVouchers() {
                     className="text-xs text-primary font-bold hover:bg-white border gap-1"
                   >
                     <Eye className="h-3.5 w-3.5" />
-                    الانتقال لتفاصيل المشروع الكاملة
+                    تفاصيل المشروع
                   </Button>
                 )}
               </CardContent>
             </Card>
 
-            {/* تضمين مكون سندات القبض للمشروع المختار */}
+            {/* عرض التاب المالي وسندات القبض الخاصة بالمشروع */}
             <ProjectFinancialsTab projectId={parseInt(selectedProjectId)} />
 
           </div>
         ) : (
-          /* عرض الكشف العام لجميع سندات القبض والمشاريع */
-          <div className="space-y-6">
-            
-            {/* كروت الإحصائيات العامة */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground block font-medium">إجمالي المقبوضات المسجلة</span>
-                    <span className="text-2xl font-bold text-emerald-700 mt-1 block">
-                      {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">ريال</span>
-                    </span>
-                  </div>
-                  <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
-                    <Coins className="h-6 w-6" />
-                  </div>
-                </CardContent>
-              </Card>
+          /* عرض كشف سندات القبض لجميع المشاريع عند عدم اختيار مشروع */
+          <Card className="border-slate-200 shadow-2xs">
+            <CardHeader className="pb-3 border-b bg-slate-50/50">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Receipt className="h-5 w-5 text-emerald-600" />
+                سجل كافة سندات القبض ({allVouchers.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                جدول مجمع لجميع سندات القبض المسجلة في النظام. اختر مشروعاً من القائمة أعلاه لتسجيل أو تعديل سندات مشروع محدد.
+              </CardDescription>
+            </CardHeader>
 
-              <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground block font-medium">سندات معتمدة</span>
-                    <span className="text-2xl font-bold text-blue-700 mt-1 block">
-                      {totalApprovedCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
-                    </span>
-                  </div>
-                  <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
-                    <CheckCircle className="h-6 w-6" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-slate-200 bg-white shadow-2xs">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground block font-medium">سندات قيد الاعتماد</span>
-                    <span className="text-2xl font-bold text-amber-700 mt-1 block">
-                      {totalPendingCount} <span className="text-xs font-normal text-muted-foreground">سند</span>
-                    </span>
-                  </div>
-                  <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
-                    <Clock className="h-6 w-6" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* كروت المشاريع السريعة للاختيار */}
-            <Card className="border-slate-200 shadow-2xs">
-              <CardHeader className="pb-3 border-b bg-slate-50/50">
-                <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-800">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  اختر مشروعاً لمعاينة وتأكيد سندات القبض الخاصة به
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  يمكنك النقر على أي مشروع أدناه لفتح التاب المالي وسندات القبض المخصصة له مباشرة
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {isLoadingProjects ? (
-                  <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    جاري تحميل المشاريع...
-                  </div>
-                ) : projectsList.length === 0 ? (
-                  <p className="text-center py-6 text-xs text-muted-foreground">لا توجد مشاريع مسجلة حالياً</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {projectsList.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSelectProject(p.id.toString())}
-                        className="p-3 bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-xs rounded-xl text-right transition-all group flex flex-col justify-between space-y-2 cursor-pointer"
-                      >
-                        <div className="space-y-1">
-                          <span className="font-mono text-[11px] text-muted-foreground font-semibold bg-slate-100 px-2 py-0.5 rounded-md inline-block">
-                            {p.projectNumber}
-                          </span>
-                          <h4 className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors line-clamp-1">
-                            {p.name}
-                          </h4>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-                          <span>عرض سندات القبض</span>
-                          <ArrowRight className="h-3.5 w-3.5 text-emerald-600 group-hover:translate-x-[-2px] transition-transform" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* جدول كافة سندات القبض بكل المشاريع */}
-            <Card className="border-slate-200 shadow-2xs">
-              <CardHeader className="pb-3 border-b bg-slate-50/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base font-bold flex items-center gap-2 text-slate-900">
-                    <Receipt className="h-5 w-5 text-emerald-600" />
-                    سجل كافة سندات القبض ({allVouchers.length})
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    جدول مجمع لجميع سندات القبض المسجلة في النظام عبر كافة المشاريع
-                  </CardDescription>
+            <CardContent className="p-0">
+              {isLoadingVouchers ? (
+                <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  جاري تحميل سندات القبض...
                 </div>
-
-                {/* أدوات البحث والفلترة */}
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                  <div className="relative flex-1 md:w-64">
-                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="بحث برقم السند، الداعم، اسم المشروع..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pr-9 h-9 text-xs"
-                    />
-                  </div>
-
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-36 h-9 text-xs">
-                      <SelectValue placeholder="الحالة" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="all">كل الحالات</SelectItem>
-                      <SelectItem value="approved">معتمد</SelectItem>
-                      <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
-                      <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
-                      <SelectItem value="rejected">مرفوض</SelectItem>
-                    </SelectContent>
-                  </Select>
+              ) : allVouchers.length === 0 ? (
+                <div className="text-center py-12 space-y-2">
+                  <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
+                  <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
+                  <p className="text-xs text-muted-foreground">اختر مشروعاً من الفلتر أعلاه لتسجيل سند قبض جديد</p>
                 </div>
-              </CardHeader>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table dir="rtl">
+                    <TableHeader className="bg-slate-50">
+                      <TableRow>
+                        <TableHead className="text-right text-xs font-bold">رقم السند</TableHead>
+                        <TableHead className="text-right text-xs font-bold">المشروع</TableHead>
+                        <TableHead className="text-right text-xs font-bold">تاريخ القبض</TableHead>
+                        <TableHead className="text-right text-xs font-bold">الجهة الداعمة (المسدد)</TableHead>
+                        <TableHead className="text-right text-xs font-bold">المبلغ المقبوض</TableHead>
+                        <TableHead className="text-right text-xs font-bold">البيان / ملاحظات</TableHead>
+                        <TableHead className="text-center text-xs font-bold">الحالة</TableHead>
+                        <TableHead className="text-center text-xs font-bold">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allVouchers.map((voucher) => (
+                        <TableRow key={voucher.id} className="hover:bg-slate-50/70">
+                          <TableCell className="font-bold text-primary text-xs font-mono">
+                            {voucher.voucherNumber}
+                          </TableCell>
 
-              <CardContent className="p-0">
-                {isLoadingVouchers ? (
-                  <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    جاري تحميل سندات القبض...
-                  </div>
-                ) : allVouchers.length === 0 ? (
-                  <div className="text-center py-12 space-y-2">
-                    <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
-                    <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
-                    <p className="text-xs text-muted-foreground">اختر مشروعاً أعلاه لتسجيل سند قبض جديد</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table dir="rtl">
-                      <TableHeader className="bg-slate-50">
-                        <TableRow>
-                          <TableHead className="text-right text-xs font-bold">رقم السند</TableHead>
-                          <TableHead className="text-right text-xs font-bold">المشروع</TableHead>
-                          <TableHead className="text-right text-xs font-bold">تاريخ القبض</TableHead>
-                          <TableHead className="text-right text-xs font-bold">الجهة الداعمة (المسدد)</TableHead>
-                          <TableHead className="text-right text-xs font-bold">المبلغ المقبوض</TableHead>
-                          <TableHead className="text-right text-xs font-bold">البيان / ملاحظات</TableHead>
-                          <TableHead className="text-center text-xs font-bold">الحالة</TableHead>
-                          <TableHead className="text-center text-xs font-bold">الإجراءات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {allVouchers.map((voucher) => (
-                          <TableRow key={voucher.id} className="hover:bg-slate-50/70">
-                            <TableCell className="font-bold text-primary text-xs font-mono">
-                              {voucher.voucherNumber}
-                            </TableCell>
-
-                            <TableCell className="text-xs">
-                              <button
-                                onClick={() => handleSelectProject(voucher.projectId.toString())}
-                                className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
-                              >
-                                <span className="font-bold text-slate-800 block line-clamp-1 group-hover:underline">
-                                  {voucher.projectName || `مشروع #${voucher.projectId}`}
+                          <TableCell className="text-xs">
+                            <button
+                              onClick={() => handleSelectProject(voucher.projectId.toString())}
+                              className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
+                            >
+                              <span className="font-bold text-slate-800 block line-clamp-1 group-hover:underline">
+                                {voucher.projectName || `مشروع #${voucher.projectId}`}
+                              </span>
+                              {voucher.projectNumber && (
+                                <span className="text-[10px] text-muted-foreground font-mono block">
+                                  {voucher.projectNumber}
                                 </span>
-                                {voucher.projectNumber && (
-                                  <span className="text-[10px] text-muted-foreground font-mono block">
-                                    {voucher.projectNumber}
-                                  </span>
-                                )}
-                              </button>
-                            </TableCell>
-
-                            <TableCell className="text-xs font-mono">
-                              {voucher.receiptDate
-                                ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
-                                : "-"}
-                            </TableCell>
-
-                            <TableCell className="text-xs font-semibold text-slate-800">
-                              <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold">
-                                {voucher.payerName || "جهة غير محددة"}
-                              </Badge>
-                            </TableCell>
-
-                            <TableCell className="font-bold text-emerald-700 text-xs">
-                              {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                            </TableCell>
-
-                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={voucher.notes || "-"}>
-                              {voucher.notes || "-"}
-                            </TableCell>
-
-                            <TableCell className="text-center text-xs">
-                              {voucher.status === "approved" ? (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
-                                  معتمد
-                                </Badge>
-                              ) : voucher.status === "approval_revoked" ? (
-                                <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
-                                  <RotateCcw className="h-3 w-3 text-amber-600" />
-                                  ملغى الاعتماد
-                                </Badge>
-                              ) : voucher.status === "rejected" ? (
-                                <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
-                                  مرفوض
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
-                                  قيد الاعتماد
-                                </Badge>
                               )}
-                            </TableCell>
+                            </button>
+                          </TableCell>
 
-                            <TableCell className="text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleSelectProject(voucher.projectId.toString())}
-                                  className="h-7 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 font-bold gap-1"
-                                  title="إدارة وتفاصيل سندات المشروع"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  إدارة السندات
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                  className="h-7 w-7 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                  title="معاينة وطباعة سند القبض"
-                                >
-                                  <Printer className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          <TableCell className="text-xs font-mono">
+                            {voucher.receiptDate
+                              ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
+                              : "-"}
+                          </TableCell>
 
-          </div>
+                          <TableCell className="text-xs font-semibold text-slate-800">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold">
+                              {voucher.payerName || "جهة غير محددة"}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="font-bold text-emerald-700 text-xs">
+                            {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                          </TableCell>
+
+                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={voucher.notes || "-"}>
+                            {voucher.notes || "-"}
+                          </TableCell>
+
+                          <TableCell className="text-center text-xs">
+                            {voucher.status === "approved" ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
+                                معتمد
+                              </Badge>
+                            ) : voucher.status === "approval_revoked" ? (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
+                                <RotateCcw className="h-3 w-3 text-amber-600" />
+                                ملغى الاعتماد
+                              </Badge>
+                            ) : voucher.status === "rejected" ? (
+                              <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
+                                مرفوض
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
+                                قيد الاعتماد
+                              </Badge>
+                            )}
+                          </TableCell>
+
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSelectProject(voucher.projectId.toString())}
+                                className="h-7 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 font-bold gap-1"
+                                title="إدارة وتفاصيل سندات المشروع"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                إدارة السندات
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                className="h-7 w-7 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                title="معاينة وطباعة سند القبض"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
       </div>
