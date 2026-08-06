@@ -72,14 +72,14 @@ export default function ReceiptVoucherPrint() {
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
-  const voucherNumDisplay = voucher?.voucherNumber
+  const voucherNumDisplay = (voucher?.status === "approved" && voucher?.voucherNumber)
     ? voucher.voucherNumber.replace(/^(REC-\d+-\d+-)/i, "")
-    : voucher?.id.toString() || "";
+    : "";
 
   useEffect(() => {
     if (voucher) {
       const originalTitle = document.title;
-      document.title = `سند قبض رقم ${voucherNumDisplay}`;
+      document.title = voucher.status === "approved" ? `سند قبض رقم ${voucherNumDisplay}` : `معاينة سند قبض (غير معتمد)`;
       return () => {
         document.title = originalTitle;
       };
@@ -339,10 +339,18 @@ export default function ReceiptVoucherPrint() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
-                {voucherNumDisplay}
-              </span>
+              {voucher.status === "approved" ? (
+                <>
+                  <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
+                    {voucherNumDisplay}
+                  </span>
+                </>
+              ) : (
+                <div className="px-3 py-1 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs sm:text-sm font-bold">
+                  سند قيد الاعتماد (ينشأ رقم السند بعد الاعتماد)
+                </div>
+              )}
             </div>
           </div>
 
