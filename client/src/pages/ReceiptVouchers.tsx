@@ -453,30 +453,33 @@ export default function ReceiptVouchers() {
 
         {/* 3. شريط البحث والفلترة */}
         <Card className="border-slate-200 shadow-2xs">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row items-center gap-3">
+          <CardContent className="p-3.5">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
               
               {/* حقل البحث */}
               <div className="relative flex-1 w-full">
                 <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="بحث برقم السند، اسم المشروع، أو الجهة الداعمة..."
+                  placeholder="بحث برقم السند، اسم المشروع، أو الداعم..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-9 h-10 text-xs bg-white"
+                  className="pr-9 h-10 text-xs bg-white border-slate-200"
                 />
               </div>
 
-              {/* فلترة حسب المشروع */}
-              <div className="w-full md:w-80">
-                <Select value={selectedProjectId === "all" ? "" : selectedProjectId} onValueChange={handleSelectProject}>
+              {/* اختيار وتصفية حسب المشروع */}
+              <div className="w-full sm:w-64 md:w-72">
+                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
                   <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                     <div className="flex items-center gap-2 truncate">
-                      <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
                       <SelectValue placeholder="اختر المشروع..." />
                     </div>
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-72">
+                    <SelectItem value="all" className="font-bold text-slate-900">
+                      🌐 جميع المشاريع
+                    </SelectItem>
                     {projectsList.map((p: any) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
                         <div className="flex items-center gap-2">
@@ -490,7 +493,7 @@ export default function ReceiptVouchers() {
               </div>
 
               {/* منسدلة فلترة الحالة */}
-              <div className="w-full md:w-44">
+              <div className="w-full sm:w-40 md:w-44">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                     <div className="flex items-center gap-2">
