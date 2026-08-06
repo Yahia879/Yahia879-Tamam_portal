@@ -136,7 +136,7 @@ export default function LandingPage() {
             {/* الشعار الكبير */}
             <div className="flex justify-center mb-6 md:mb-8">
               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center shadow-xl border border-white/30">
-                <img src={orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
+                <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="شعار بوابة تمام" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
               </div>
             </div>
 
