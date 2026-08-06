@@ -146,7 +146,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Receipt Voucher Dialog States
   const [isVoucherModalOpen, setIsVoucherModalOpen] = useState<boolean>(false);
-  const [editingVoucherId, setEditingVoucherId] = useState<number | null>(null);
+  const [voucherHonorificTitle, setVoucherHonorificTitle] = useState<string>("السادة");
   const [voucherAmount, setVoucherAmount] = useState<string>("");
   const [voucherDate, setVoucherDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [voucherPayerName, setVoucherPayerName] = useState<string>("");
