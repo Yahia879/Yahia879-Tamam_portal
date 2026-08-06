@@ -467,33 +467,8 @@ export default function ReceiptVouchers() {
                 />
               </div>
 
-              {/* اختيار وتصفية حسب المشروع */}
-              <div className="w-full sm:w-64 md:w-72">
-                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
-                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
-                    <div className="flex items-center gap-2 truncate">
-                      <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <SelectValue placeholder="اختر المشروع..." />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent dir="rtl" className="max-h-72">
-                    <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
-                      جميع المشاريع
-                    </SelectItem>
-                    {projectsList.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
-                          <span className="font-medium truncate">{p.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* منسدلة فلترة الحالة */}
-              <div className="w-full sm:w-40 md:w-44">
+              {/* 1. منسدلة فلترة الحالة */}
+              <div className="w-full sm:w-40 md:w-44 shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                     <div className="flex items-center gap-2">
@@ -507,6 +482,33 @@ export default function ReceiptVouchers() {
                     <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
                     <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
                     <SelectItem value="rejected">مرفوض</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 2. اختيار وتصفية حسب المشروع بعرض ثابت وتقطيع بالنقط */}
+              <div className="w-full sm:w-64 md:w-72 max-w-[280px] shrink-0">
+                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
+                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full overflow-hidden">
+                    <div className="flex items-center gap-2 truncate w-full overflow-hidden">
+                      <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="truncate block text-ellipsis overflow-hidden font-medium max-w-[210px]">
+                        <SelectValue placeholder="اختر المشروع..." />
+                      </span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="max-h-72 max-w-sm">
+                    <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
+                      جميع المشاريع
+                    </SelectItem>
+                    {projectsList.map((p: any) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        <div className="flex items-center gap-2 max-w-[260px]">
+                          <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
+                          <span className="font-medium truncate block">{p.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
