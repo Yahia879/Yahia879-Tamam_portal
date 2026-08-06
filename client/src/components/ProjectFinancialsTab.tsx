@@ -376,7 +376,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Receipts Calculations
   const receiptVouchers = data?.receiptVouchers || [];
-  const vouchersTotalReceived = receiptVouchers.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0);
+  const vouchersTotalReceived = receiptVouchers.reduce((sum, v) => sum + parseFloat((v as any).amount || "0"), 0);
 
   const generalAccountReceivedAmount = validSupportSources
     .filter(s => {
