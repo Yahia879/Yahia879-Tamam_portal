@@ -1321,7 +1321,11 @@ export default function Quotations() {
                       {boqData.items.map((item: any, index: number) => (
                         <TableRow key={item.id}>
                           <TableCell className="text-center">{index + 1}</TableCell>
-                          <TableCell className="font-medium">{item.itemName}</TableCell>
+                          <TableCell className="font-medium align-middle max-w-[400px] min-w-[180px]">
+                            <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
+                              {item.itemName}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {item.itemDescription || "-"}
                           </TableCell>
@@ -1719,12 +1723,12 @@ export default function Quotations() {
                     <div className="flex items-center gap-2">
                     </div>
                   </div>
-                  <div className="border rounded-lg overflow-hidden shadow-sm">
+                  <div className="border rounded-lg overflow-x-auto shadow-sm">
                     <Table>
                       <TableHeader>
                         <TableRow className="bg-gradient-to-r from-primary/10 to-primary/5">
                           <TableHead className="w-14 text-center font-bold">#</TableHead>
-                          <TableHead className="min-w-[250px] font-bold">البند</TableHead>
+                          <TableHead className="min-w-[220px] max-w-[450px] font-bold text-right">البند</TableHead>
                           <TableHead className="w-24 text-center font-bold">الوحدة</TableHead>
                           <TableHead className="w-28 text-center font-bold">الكمية</TableHead>
                           <TableHead className="w-40 text-center font-bold">سعر الوحدة (ريال)</TableHead>
@@ -1734,17 +1738,20 @@ export default function Quotations() {
                       <TableBody>
                         {quotationItems.map((item, index) => (
                           <TableRow key={item.boqItemId} className="hover:bg-muted/30">
-                            <TableCell className="text-center text-muted-foreground font-medium">{index + 1}</TableCell>
-                            <TableCell className="font-medium">
-                              <div className="max-w-[300px]">
+                            <TableCell className="text-center text-muted-foreground font-medium align-middle">{index + 1}</TableCell>
+                            <TableCell className="font-medium align-middle max-w-[450px] min-w-[200px]">
+                              <div
+                                className="text-sm font-semibold text-foreground whitespace-normal break-words leading-relaxed text-right [overflow-wrap:anywhere]"
+                                title={item.itemName}
+                              >
                                 {item.itemName}
                               </div>
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center align-middle">
                               <Badge variant="secondary" className="font-normal">{item.unit}</Badge>
                             </TableCell>
-                            <TableCell className="text-center font-medium">{item.quantity.toLocaleString("ar-SA")}</TableCell>
-                            <TableCell>
+                            <TableCell className="text-center font-medium align-middle">{item.quantity.toLocaleString("ar-SA")}</TableCell>
+                            <TableCell className="align-middle">
                               <Input
                                 type="number"
                                 value={item.unitPrice}
@@ -1755,7 +1762,7 @@ export default function Quotations() {
                                 step="0.01"
                               />
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center align-middle">
                               <span className={`font-bold ${item.totalPrice > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
                                 {item.totalPrice > 0 ? `${item.totalPrice.toLocaleString("ar-SA")}` : "-"}
                               </span>

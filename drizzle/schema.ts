@@ -703,7 +703,7 @@ export const quantitySchedules = mysqlTable("quantity_schedules", {
   projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
   boqCode: varchar("boqCode", { length: 50 }).unique(), // BOQ-2025-001
   boqName: varchar("boqName", { length: 255 }), // اسم وصفي للجدول
-  itemName: varchar("itemName", { length: 255 }).notNull(),
+  itemName: text("itemName").notNull(),
   itemDescription: text("itemDescription"),
   unit: varchar("unit", { length: 50 }).notNull(),
   quantity: decimal("quantity", { precision: 15, scale: 3 }).notNull(),

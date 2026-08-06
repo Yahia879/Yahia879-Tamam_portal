@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, AlertCircle } from "lucide-react";
+import { ArrowRight, Printer, Loader2, AlertCircle } from "lucide-react";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 
 function numberToArabicText(num: number): string {
@@ -51,6 +52,8 @@ export default function ReceiptVoucherPrint() {
   const voucherId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
 
+  const [isPreparingPrint, setIsPreparingPrint] = useState<boolean>(false);
+
   // Fetch Voucher Data
   const { data: voucher, isLoading, error } = trpc.projects.getReceiptVoucherById.useQuery(
     { id: voucherId },
@@ -60,8 +63,85 @@ export default function ReceiptVoucherPrint() {
   // Fetch Branding & Organization Settings (Logo, Stamp, License Number)
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
-  const handlePrint = () => {
-    window.print();
+  // Reset print loading on afterprint event
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPreparingPrint(false);
+    };
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
+
+  const voucherNumDisplay = voucher?.voucherNumber
+    ? voucher.voucherNumber.replace(/^(REC-\d+-\d+-)/i, "")
+    : voucher?.id.toString() || "";
+
+  useEffect(() => {
+    if (voucher) {
+      const originalTitle = document.title;
+      document.title = `سند قبض رقم ${voucherNumDisplay}`;
+      return () => {
+        document.title = originalTitle;
+      };
+    }
+  }, [voucher, voucherNumDisplay]);
+
+  // Main Logo, Stamp & Signature URLs
+  const mainLogoUrl = orgSettings?.logoUrl;
+  const officialStampUrl = orgSettings?.stampUrl;
+  const signerUser = (voucher as any)?.signerUser;
+  const signatureUrl =
+    signerUser?.showSignatureInDocuments !== false ? signerUser?.signatureUrl : null;
+
+  // Print function with full image preloading (stamp, signature, logos) before window.print()
+  const handlePrint = async () => {
+    if (isPreparingPrint) return;
+    setIsPreparingPrint(true);
+
+    if (voucher) {
+      document.title = `سند قبض رقم ${voucherNumDisplay}`;
+    }
+
+    try {
+      // 1. Preload image URLs in memory
+      const imageUrls: string[] = [];
+      if (mainLogoUrl) imageUrls.push(mainLogoUrl);
+      if (officialStampUrl) imageUrls.push(officialStampUrl);
+      if (signatureUrl) imageUrls.push(signatureUrl);
+
+      const preloadPromises = imageUrls.map((url) => {
+        return new Promise<void>((resolve) => {
+          const img = new Image();
+          const timer = setTimeout(() => resolve(), 3500);
+          img.onload = () => { clearTimeout(timer); resolve(); };
+          img.onerror = () => { clearTimeout(timer); resolve(); };
+          img.src = url;
+          if (img.complete) { clearTimeout(timer); resolve(); }
+        });
+      });
+
+      // 2. Preload DOM <img> elements
+      const domImgPromises = Array.from(
+        document.querySelectorAll<HTMLImageElement>('.print-card img, .print-container img')
+      ).map((img) => {
+        return new Promise<void>((resolve) => {
+          if (img.complete && img.naturalWidth !== 0) return resolve();
+          const timer = setTimeout(() => resolve(), 3500);
+          img.onload = () => { clearTimeout(timer); resolve(); };
+          img.onerror = () => { clearTimeout(timer); resolve(); };
+        });
+      });
+
+      await Promise.all([...preloadPromises, ...domImgPromises]);
+    } catch (e) {
+      console.error("Print preload error:", e);
+    } finally {
+      setIsPreparingPrint(false);
+    }
+
+    setTimeout(() => {
+      window.print();
+    }, 50);
   };
 
   const handleBack = () => {
@@ -76,25 +156,22 @@ export default function ReceiptVoucherPrint() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 dir-rtl" dir="rtl">
-        <div className="flex flex-col items-center gap-3 text-slate-600 dark:text-slate-300">
-          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-semibold">جاري تحميل بيانات سند القبض...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (error || !voucher) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 dir-rtl" dir="rtl">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center space-y-4 max-w-md shadow-lg">
-          <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center mx-auto">
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center space-y-4 max-w-md shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">سند القبض غير موجود</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <h3 className="text-base font-bold text-slate-900">سند القبض غير موجود</h3>
+            <p className="text-xs text-slate-500">
               لم نتمكن من العثور على بيانات سند القبض المطلوب.
             </p>
           </div>
@@ -110,17 +187,8 @@ export default function ReceiptVoucherPrint() {
   const amountVal = parseFloat(voucher.amount.toString()) || 0;
   const tafqeetStr = numberToArabicText(amountVal);
 
-  // Formatting Voucher Number (extract numerical part or full code)
-  const voucherNumDisplay = voucher.voucherNumber ? voucher.voucherNumber.replace(/^(REC-\d+-\d+-)/i, "") : voucher.id.toString();
-
   // License number from Branding/Org settings with fallback to 2238
   const licenseNo = orgSettings?.licenseNumber || "2238";
-
-  // Main Logo & Stamp from Branding (/branding)
-  const mainLogoUrl = orgSettings?.logoUrl;
-  const officialStampUrl = orgSettings?.stampUrl;
-  const secondaryLogoUrl = orgSettings?.secondaryLogoUrl;
-  const technicalSupervisorLogoUrl = (orgSettings as any)?.technicalSupervisorLogoUrl;
 
   // Payment Method details string
   const getPaymentMethodDetails = () => {
@@ -139,10 +207,14 @@ export default function ReceiptVoucherPrint() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-6 sm:py-10 px-3 sm:px-6 dir-rtl select-none" dir="rtl">
+    <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* Dynamic CSS for Print Mode */}
       <style>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 0 !important;
+          }
           body {
             background-color: white !important;
             color: black !important;
@@ -151,8 +223,21 @@ export default function ReceiptVoucherPrint() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .no-print {
+          .print\\:hidden, .no-print {
             display: none !important;
+          }
+          .min-h-screen {
+            background-color: white !important;
+            padding: 0 !important;
+          }
+          .print-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            padding: 8mm !important;
+            margin: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
           }
           .print-card {
             box-shadow: none !important;
@@ -165,218 +250,198 @@ export default function ReceiptVoucherPrint() {
         }
       `}</style>
 
-      {/* Floating Action Bar (hidden on print) */}
-      <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between no-print bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          className="font-bold text-xs border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-        >
+      {/* Floating Action Bar (hidden on print) matching DisbursementRequestPrint layout */}
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
+        <Button variant="outline" onClick={handleBack} className="bg-white border shadow-sm sm:bg-white/90">
           <ArrowRight className="ml-2 h-4 w-4" />
-          رجوع لصفحة المشروع
+          رجوع
         </Button>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handlePrint}
-            className="gradient-primary font-bold text-xs text-white rounded-xl shadow-xs px-5"
-          >
-            <Printer className="ml-2 h-4 w-4" />
-            طباعة سند القبض
-          </Button>
-        </div>
+
+        <Button
+          onClick={handlePrint}
+          disabled={isPreparingPrint}
+          className="shadow-md gradient-primary text-white font-semibold"
+        >
+          {isPreparingPrint ? (
+            <>
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              جاري تجهيز الطباعة...
+            </>
+          ) : (
+            <>
+              <Printer className="ml-2 h-4 w-4" />
+              تنزيل PDF / طباعة
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Main A4 Document Canvas */}
-      <div className="max-w-[235mm] mx-auto bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-8 sm:p-12 relative overflow-hidden print-card">
+      {/* Main Container wrapping original receipt report */}
+      <div className="print-container w-full max-w-[210mm] sm:max-w-[235mm] mx-auto">
         
-        {/* Subtle Islamic Geometric Watermark Overlay Background */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.035] overflow-hidden flex items-center justify-center">
-          <svg className="w-full h-full" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="bg-islamic-watermark" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-              <path d="M40 0 L80 40 L40 80 L0 40 Z" stroke="#978457" strokeWidth="1.5" fill="none" />
-              <path d="M40 10 L70 40 L40 70 L10 40 Z" stroke="#c2a76d" strokeWidth="1" fill="none" />
-              <circle cx="40" cy="40" r="10" stroke="#978457" strokeWidth="1" fill="none" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#bg-islamic-watermark)" />
-          </svg>
-        </div>
-
-        {/* Top Header Line with License Number */}
-        <div className="relative border-b-2 border-[#978457] pb-2 mb-6 flex justify-between items-center">
-          <div></div>
-          <div className="text-left">
-            <span className="text-sm sm:text-base font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
-          </div>
-        </div>
-
-        {/* Top Header Row:
-            - RIGHT: Rectangular Box "سند قبض" (aligned symmetrically on Y-axis with the main logo)
-            - LEFT: Main Logo (منارة)
-        */}
-        <div className="flex justify-between items-center mb-8 relative z-10">
+        {/* Main A4 Document Canvas - Original Receipt Voucher Design */}
+        <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-8 sm:p-12 relative overflow-hidden print-card">
           
-          {/* Top Right: Rectangular Box "سند قبض" */}
-          <div className="flex items-center justify-start pt-4 mt-2">
-            <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[200px] h-[72px] rounded-xl shadow-xs flex items-center justify-center translate-y-2 px-6">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-center">
-                سند قبض
-              </h1>
+          {/* Subtle Islamic Geometric Watermark Overlay Background */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.035] overflow-hidden flex items-center justify-center">
+            <svg className="w-full h-full" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <pattern id="bg-islamic-watermark" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+                <path d="M40 0 L80 40 L40 80 L0 40 Z" stroke="#978457" strokeWidth="1.5" fill="none" />
+                <path d="M40 10 L70 40 L40 70 L10 40 Z" stroke="#c2a76d" strokeWidth="1" fill="none" />
+                <circle cx="40" cy="40" r="10" stroke="#978457" strokeWidth="1" fill="none" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#bg-islamic-watermark)" />
+            </svg>
+          </div>
+
+          {/* Top Header Line with License Number */}
+          <div className="relative border-b-2 border-[#978457] pb-2 mb-6 flex justify-between items-center">
+            <div></div>
+            <div className="text-left">
+              <span className="text-sm sm:text-base font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
             </div>
           </div>
 
-          {/* Top Left: Main Logo from /branding */}
-          <div className="flex justify-end items-center pt-4 mt-2">
-            {mainLogoUrl ? (
-              <img
-                src={mainLogoUrl}
-                alt={orgSettings?.organizationName || "الشعار الرئيسي"}
-                className="max-h-24 max-w-[210px] object-contain translate-y-2"
-              />
-            ) : (
-              <div className="h-20 w-44"></div>
-            )}
-          </div>
-        </div>
-
-        {/* Title & Dates Block:
-            - RIGHT: Hijri & Gregorian Dates (in teal #1f7a63)
-            - LEFT: Voucher Number (Red)
-        */}
-        <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
-          
-          {/* Right Side: Hijri & Gregorian Dates */}
-          <div className="flex flex-col items-start space-y-1.5 text-sm sm:text-base font-bold">
-            <div className="flex items-center gap-3">
-              <span className="text-[#1f7a63] font-black">التاريخ</span>
-              <span className="font-extrabold text-slate-900">{toHijriDate(receiptDateObj)}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[#1f7a63] font-black">الموافق</span>
-              <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
-            </div>
-          </div>
-
-          {/* Left Side: Voucher Number */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
-            <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
-              {voucherNumDisplay}
-            </span>
-          </div>
-        </div>
-
-        {/* Main Document Content Body (Right-Aligned Arabic Text) */}
-        <div className="space-y-7 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-12 relative z-10">
-          
-          {/* Field 1: Received From (استلمنا من) */}
-          <div className="flex items-baseline gap-3 text-right">
-            <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
-              استلمنا من
-            </span>
-            <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
-              السادة/ {voucher.payerName || "المتبرع الكريم"}
-            </div>
-          </div>
-
-          {/* Field 2: Amount in figures & words (مبلغ وقدره) */}
-          <div className="flex items-baseline gap-3 text-right">
-            <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
-              مبلغ وقدره
-            </span>
-            <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-extrabold text-base sm:text-lg">
-              <span className="text-emerald-800 font-black text-lg sm:text-xl ml-2">
-                {amountVal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-              </span>
-              <span className="text-slate-400 font-semibold px-2">|</span>
-              <span className="text-slate-900 font-black">{tafqeetStr}</span>
-            </div>
-          </div>
-
-          {/* Field 3: Payment details (حوالة بنكية / شيك / نقدي) */}
-          <div className="flex items-baseline gap-3 text-right">
-            <div className="w-[120px] shrink-0"></div>
-            <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
-              {getPaymentMethodDetails()}
-            </div>
-          </div>
-
-          {/* Field 4: Description / For (وذلك مقابل) */}
-          <div className="flex items-baseline gap-3 text-right">
-            <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
-              وذلك مقابل
-            </span>
-            <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
-              {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Section (Signatures & Stamp):
-            - RIGHT (RTL First Col): Official Stamp from /branding (Shifted left and down overlapping footer line)
-            - LEFT (RTL Second Col): Financial Department الإدارة المالية + Blank space for future signature
-        */}
-        <div className="grid grid-cols-12 items-end pt-4 mb-4 relative z-20">
-          
-          {/* Right Side Column: Official Stamp (Shifted further left and down onto the footer) */}
-          <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
-            {officialStampUrl && (
-              <div className="relative select-none pr-8 sm:pr-14 translate-y-2 sm:translate-y-4 opacity-95 pointer-events-none">
-                <img
-                  src={officialStampUrl}
-                  alt="الختم الرسمي"
-                  className="w-48 sm:w-52 h-auto max-h-38 object-contain"
-                />
+          {/* Top Header Row: Rectangular Box "سند قبض" & Main Logo */}
+          <div className="flex justify-between items-center mb-8 relative z-10">
+            <div className="flex items-center justify-start pt-4 mt-2">
+              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[200px] h-[72px] rounded-xl shadow-xs flex items-center justify-center translate-y-2 px-6">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-center">
+                  سند قبض
+                </h1>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Left Side Column (In RTL HTML: Second Col): Financial Department الإدارة المالية */}
-          <div className="col-span-6 flex flex-col items-center justify-end space-y-1">
-            <span className="text-base font-black text-[#978457]">الإدارة المالية</span>
-            
-            {/* Signature Slot for Authorized Signer (Pure Signature Image Only) */}
-            <div className="w-44 h-16 flex items-center justify-center relative">
-              {(voucher as any)?.signerUser?.signatureUrl && (voucher as any)?.signerUser?.showSignatureInDocuments !== false ? (
+            <div className="flex justify-end items-center pt-4 mt-2">
+              {mainLogoUrl ? (
                 <img
-                  src={(voucher as any).signerUser.signatureUrl}
-                  alt="توقيع الإدارة المالية"
-                  className="max-h-16 max-w-full object-contain"
+                  src={mainLogoUrl}
+                  alt={orgSettings?.organizationName || "الشعار الرئيسي"}
+                  className="max-h-24 max-w-[210px] object-contain translate-y-2"
                 />
               ) : (
-                <div className="w-40 h-16"></div>
+                <div className="h-20 w-44"></div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Page Footer Section */}
-        <div className="border-t-2 border-[#978457] pt-3 mt-auto relative z-10">
-          <div className="flex flex-row items-end justify-between text-xs text-slate-700 gap-4">
-            
-            {/* Right Side: Main Center Title & Address */}
-            <div className="text-right space-y-0.5">
-              <span className="block font-black text-[#978457] text-xs">المركز الرئيسي</span>
-              <span className="block font-bold text-slate-600 text-[11px] leading-tight">
-                {orgSettings?.address || "المملكة العربية السعودية - أبها - طريق الملك فهد العزيزية"}
-              </span>
+          {/* Title & Dates Block */}
+          <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
+            <div className="flex flex-col items-start space-y-1.5 text-sm sm:text-base font-bold">
+              <div className="flex items-center gap-3">
+                <span className="text-[#1f7a63] font-black">التاريخ</span>
+                <span className="font-extrabold text-slate-900">{toHijriDate(receiptDateObj)}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[#1f7a63] font-black">الموافق</span>
+                <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
+              </div>
             </div>
 
-            {/* Center Side: Website */}
-            <div className="text-center pb-0.5">
-              <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
-                {orgSettings?.website || "www.manarah.org.sa"}
-              </span>
-            </div>
-
-            {/* Left Side: Email */}
-            <div className="text-left pb-0.5">
-              <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
-                E: {orgSettings?.email || "info@manarah.org.sa"}
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
+                {voucherNumDisplay}
               </span>
             </div>
           </div>
-        </div>
 
+          {/* Main Document Content Body */}
+          <div className="space-y-7 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-12 relative z-10">
+            <div className="flex items-baseline gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+                استلمنا من
+              </span>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
+                السادة/ {voucher.payerName || "المتبرع الكريم"}
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+                مبلغ وقدره
+              </span>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-extrabold text-base sm:text-lg">
+                <span className="text-emerald-800 font-black text-lg sm:text-xl ml-2">
+                  {amountVal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                </span>
+                <span className="text-slate-400 font-semibold px-2">|</span>
+                <span className="text-slate-900 font-black">{tafqeetStr}</span>
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-3 text-right">
+              <div className="w-[120px] shrink-0"></div>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+                {getPaymentMethodDetails()}
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+                وذلك مقابل
+              </span>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+                {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Section: Signatures & Stamp */}
+          <div className="grid grid-cols-12 items-end pt-4 mb-4 relative z-20">
+            <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
+              {officialStampUrl && (
+                <div className="relative select-none pr-8 sm:pr-14 translate-y-2 sm:translate-y-4 opacity-95 pointer-events-none">
+                  <img
+                    src={officialStampUrl}
+                    alt="الختم الرسمي"
+                    className="w-48 sm:w-52 h-auto max-h-38 object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="col-span-6 flex flex-col items-center justify-end space-y-1">
+              <span className="text-base font-black text-[#978457]">الإدارة المالية</span>
+              <div className="w-44 h-16 flex items-center justify-center relative">
+                {signatureUrl ? (
+                  <img
+                    src={signatureUrl}
+                    alt="توقيع الإدارة المالية"
+                    className="max-h-16 max-w-full object-contain"
+                  />
+                ) : (
+                  <div className="w-40 h-16"></div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Page Footer Section */}
+          <div className="border-t-2 border-[#978457] pt-3 mt-auto relative z-10">
+            <div className="flex flex-row items-end justify-between text-xs text-slate-700 gap-4">
+              <div className="text-right space-y-0.5">
+                <span className="block font-black text-[#978457] text-xs">المركز الرئيسي</span>
+                <span className="block font-bold text-slate-600 text-[11px] leading-tight">
+                  {orgSettings?.address || "المملكة العربية السعودية - أبها - طريق الملك فهد العزيزية"}
+                </span>
+              </div>
+
+              <div className="text-center pb-0.5">
+                <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
+                  {orgSettings?.website || "www.manarah.org.sa"}
+                </span>
+              </div>
+
+              <div className="text-left pb-0.5">
+                <span className="font-sans font-bold text-slate-700 text-xs sm:text-sm tracking-wide dir-ltr inline-block">
+                  E: {orgSettings?.email || "info@manarah.org.sa"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -693,12 +693,33 @@ export default function NewLinkedDisbursementRequest() {
       .toLowerCase();
   };
 
-  // إجمالي سندات القبض المقبوضة فعلياً لجميع الداعمين المصروفين للمشروع
+  // إجمالي سندات القبض المقبوضة لجميع الداعمين + مبالغ جهات دعم الحساب العام المسجلة (مطابق تماماً لـ ProjectFinancialsTab)
   const totalSupporterPayments = useMemo(() => {
     const vouchers = projectFinancials?.receiptVouchers || [];
     const vouchersTotal = vouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0);
-    return vouchersTotal + generalAccountSupportAmount;
-  }, [projectFinancials, generalAccountSupportAmount]);
+
+    // إضافة مبالغ جهات الدعم المصنفة كـ "حساب عام" (نفس منطق ProjectFinancialsTab)
+    const finDetail = projectFinancials?.financialDetail;
+    let genAccountTotal = 0;
+    if (finDetail?.supportSourcesJson) {
+      try {
+        const parsed = JSON.parse(finDetail.supportSourcesJson);
+        if (Array.isArray(parsed)) {
+          genAccountTotal = parsed
+            .filter((s: any) => {
+              const name = s.entity === "اخرى" ? s.customEntity : s.entity;
+              if (!name) return false;
+              const norm = normalizeArabicText(name);
+              return norm.includes("الحساب العام") || norm.includes("حساب عام");
+            })
+            .reduce((sum: number, s: any) => sum + (parseFloat(s.amount) || 0), 0);
+        }
+      } catch (e) {}
+    }
+
+    return vouchersTotal + genAccountTotal;
+  }, [projectFinancials, normalizeArabicText]);
+
 
 
 

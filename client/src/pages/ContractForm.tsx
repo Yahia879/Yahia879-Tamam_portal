@@ -69,6 +69,120 @@ function toHijriDate(dateStr: string): string {
   }
 }
 
+function formatHijriInput(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length === 0) return "";
+  if (digits.length <= 4) {
+    return digits;
+  } else if (digits.length <= 6) {
+    return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+  } else {
+    return `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6, 8)}`;
+  }
+}
+
+function HijriDateInput({
+  value,
+  onChange
+}: {
+  value: string;
+  onChange: (val: string) => void;
+}) {
+  const yearRef = useRef<HTMLInputElement>(null);
+  const monthRef = useRef<HTMLInputElement>(null);
+  const dayRef = useRef<HTMLInputElement>(null);
+
+  const cleanVal = (value || "").replace(/[^0-9/]/g, "");
+  const parts = cleanVal.split("/");
+  const year = parts[0] || "";
+  const month = parts[1] || "";
+  const day = parts[2] || "";
+
+  const updateParts = (newYear: string, newMonth: string, newDay: string) => {
+    if (!newYear && !newMonth && !newDay) {
+      onChange("");
+      return;
+    }
+    onChange(`${newYear}/${newMonth}/${newDay}`);
+  };
+
+  return (
+    <div className="relative flex items-center justify-between h-10 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-within:outline-hidden focus-within:ring-2 focus-within:ring-ring font-mono dir-ltr">
+      <div className="flex items-center gap-1.5 flex-1">
+        {/* السنة */}
+        <input
+          ref={yearRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="السنة"
+          maxLength={4}
+          value={year}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+            updateParts(val, month, day);
+            if (val.length === 4) {
+              monthRef.current?.focus();
+            }
+          }}
+          className="w-12 text-center bg-transparent border-0 outline-hidden p-0 text-sm font-bold text-foreground placeholder:text-muted-foreground/40 placeholder:font-normal"
+        />
+        <span className="text-muted-foreground font-bold select-none pointer-events-none text-base">/</span>
+
+        {/* الشهر */}
+        <input
+          ref={monthRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="الشهر"
+          maxLength={2}
+          value={month}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "").slice(0, 2);
+            updateParts(year, val, day);
+            if (val.length === 2) {
+              dayRef.current?.focus();
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Backspace" && !month) {
+              yearRef.current?.focus();
+            }
+          }}
+          className="w-9 text-center bg-transparent border-0 outline-hidden p-0 text-sm font-bold text-foreground placeholder:text-muted-foreground/40 placeholder:font-normal"
+        />
+        <span className="text-muted-foreground font-bold select-none pointer-events-none text-base">/</span>
+
+        {/* اليوم */}
+        <input
+          ref={dayRef}
+          type="text"
+          inputMode="numeric"
+          placeholder="اليوم"
+          maxLength={2}
+          value={day}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "").slice(0, 2);
+            updateParts(year, month, val);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Backspace" && !day) {
+              monthRef.current?.focus();
+            }
+          }}
+          className="w-9 text-center bg-transparent border-0 outline-hidden p-0 text-sm font-bold text-foreground placeholder:text-muted-foreground/40 placeholder:font-normal"
+        />
+      </div>
+
+      {/* الرمز الهجري الثابت */}
+      <span className="text-sm font-bold text-muted-foreground select-none pointer-events-none shrink-0 pr-1">
+        هـ
+      </span>
+    </div>
+  );
+}
+
+
+
 // أنواع الدفعات
 const PAYMENT_TYPES = [
   { value: "advance", label: "دفعة مقدمة" },
@@ -507,9 +621,9 @@ export default function ContractForm() {
         }
       }
 
-// step check
+      // Clamp currentStep to max 7 (Step 7: المراجعة) as there are only 7 steps in the wizard
       if (typeof c.currentStep === 'number' && c.currentStep >= 1) {
-        setCurrentStep(Math.min(Math.max(c.currentStep, 1), 8));
+        setCurrentStep(Math.min(Math.max(c.currentStep, 1), 7));
       }
 
       setEditDataLoaded(true);
@@ -544,9 +658,9 @@ export default function ContractForm() {
     }
   }, [contractData, paymentSchedule, clauseValues, customClauses, supportSources, currentStep, editDataLoaded, existingContract]);
 
-  // تحديث بنود العقد عند تغيير القالب
+  // تحديث بنود العقد عند تغيير القالب أو في حال عدم وجود بنود محمّلة
   useEffect(() => {
-    if (templateClauses && (!isEditMode || selectedTemplateChanged)) {
+    if (templateClauses && (!isEditMode || selectedTemplateChanged || clauseValues.length === 0)) {
       const values: ClauseValue[] = templateClauses.map((clause: any) => ({
         clauseId: clause.id,
         title: clause.title,
@@ -560,7 +674,8 @@ export default function ContractForm() {
       }));
       setClauseValues(values.sort((a, b) => a.orderIndex - b.orderIndex));
     }
-  }, [templateClauses, isEditMode, selectedTemplateChanged]);
+  }, [templateClauses, isEditMode, selectedTemplateChanged, clauseValues.length]);
+
 
   // تحديث القيمة والمورد من العرض المعتمد
   useEffect(() => {
@@ -1164,6 +1279,13 @@ export default function ContractForm() {
         {/* محتوى الخطوات */}
         <Card>
           <CardContent className="pt-6">
+            {isEditMode && (isLoadingContract || !editDataLoaded) ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium text-sm">جاري تحميل بيانات العقد للمراجعة والتعديل...</p>
+              </div>
+            ) : (
+              <>
             {/* الخطوة 1: اختيار القالب */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -1476,22 +1598,10 @@ export default function ContractForm() {
                   </div>
                   <div className="space-y-2">
                     <Label>تاريخ البدء (هجري)</Label>
-                    <div className="relative flex items-center">
-                      <Input
-                        type="text"
-                        value={contractData.startDateHijri}
-                        onChange={(e) => {
-                          const cleaned = e.target.value.replace(/[^0-9/]/g, "");
-                          setContractData(prev => ({ ...prev, startDateHijri: cleaned }));
-                        }}
-                        placeholder="1447/02/15"
-                        dir="ltr"
-                        className="text-right pl-10 font-mono"
-                      />
-                      <span className="absolute left-3 text-sm font-bold text-muted-foreground select-none pointer-events-none">
-                        هـ
-                      </span>
-                    </div>
+                    <HijriDateInput
+                      value={contractData.startDateHijri}
+                      onChange={(formatted) => setContractData(prev => ({ ...prev, startDateHijri: formatted }))}
+                    />
                   </div>
                 </div>
 
@@ -2026,7 +2136,7 @@ export default function ContractForm() {
                     <CardTitle className="text-base">قالب العقد</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {templates.find((t: any) => t.id === contractData.templateId)?.name || "-"}
+                    {templates.find((t: any) => t.id === contractData.templateId)?.name || (existingContract?.contract as any)?.templateName || "-"}
                   </CardContent>
                 </Card>
 
@@ -2036,8 +2146,8 @@ export default function ContractForm() {
                     <CardTitle className="text-base">الطرف الثاني</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="font-medium">{selectedSupplier?.name || "-"}</p>
-                    <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || "-"}</p>
+                    <p className="font-medium">{selectedSupplier?.name || (existingContract?.contract as any)?.secondPartyName || "-"}</p>
+                    <p className="text-sm text-muted-foreground">{selectedSupplier?.phone || (existingContract?.contract as any)?.secondPartyPhone || "-"}</p>
                   </CardContent>
                 </Card>
                 {/* ملخص البنود المخصصة */}
@@ -2135,17 +2245,23 @@ export default function ContractForm() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-1">
-                      {clauseValues.filter(c => c.isIncluded).map((clause, index) => (
-                        <div key={clause.clauseId} className="text-sm">
-                          <span className="text-muted-foreground">المادة {index + 1}:</span>
-                          <span className="mr-2">{clause.titleAr || clause.title}</span>
-                        </div>
-                      ))}
-                    </div>
+                    {clauseValues.filter(c => c.isIncluded).length > 0 ? (
+                      <div className="space-y-1">
+                        {clauseValues.filter(c => c.isIncluded).map((clause, index) => (
+                          <div key={clause.clauseId} className="text-sm">
+                            <span className="text-muted-foreground">المادة {index + 1}:</span>
+                            <span className="mr-2">{clause.titleAr || clause.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">لا توجد بنود مخصصة أو محددة لهذه النسخة.</p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
+            )}
+            </>
             )}
 
             {/* أزرار التنقل وحفظ المسودة */}

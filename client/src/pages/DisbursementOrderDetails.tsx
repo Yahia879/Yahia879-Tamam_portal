@@ -25,7 +25,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   approved: { label: "معتمد", color: "bg-blue-100 text-blue-800", icon: <CheckCircle className="h-4 w-4" /> },
   executed: { label: "منفذ", color: "bg-green-100 text-green-800", icon: <CheckCircle className="h-4 w-4" /> },
   rejected: { label: "مرفوض", color: "bg-red-100 text-red-800", icon: <XCircle className="h-4 w-4" /> },
-  cancelled: { label: "ملغي", color: "bg-gray-100 text-gray-800", icon: <XCircle className="h-4 w-4" /> },
+  cancelled: { label: "مرفوض", color: "bg-gray-100 text-gray-800", icon: <XCircle className="h-4 w-4" /> },
 };
 
 const paymentMethodLabels: Record<string, string> = {
