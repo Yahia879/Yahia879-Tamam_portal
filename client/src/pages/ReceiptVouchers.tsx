@@ -309,17 +309,14 @@ export default function ReceiptVouchers() {
 
               {/* فلترة حسب المشروع */}
               <div className="w-full md:w-80">
-                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
+                <Select value={selectedProjectId === "all" ? "" : selectedProjectId} onValueChange={handleSelectProject}>
                   <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                     <div className="flex items-center gap-2 truncate">
                       <FolderOpen className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                      <SelectValue placeholder="تصفية حسب المشروع..." />
+                      <SelectValue placeholder="اختر المشروع..." />
                     </div>
                   </SelectTrigger>
                   <SelectContent dir="rtl" className="max-h-72">
-                    <SelectItem value="all" className="font-bold text-slate-900">
-                      🌐 جميع المشاريع (عرض كافة السندات)
-                    </SelectItem>
                     {projectsList.map((p) => (
                       <SelectItem key={p.id} value={p.id.toString()}>
                         <div className="flex items-center gap-2">
