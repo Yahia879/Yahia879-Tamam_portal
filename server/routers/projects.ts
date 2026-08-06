@@ -60,14 +60,20 @@ export const projectsRouter = router({
       const { calculateUserPermissions } = await import("../permissions");
       const userPermissions = await calculateUserPermissions(ctx.user.id);
 
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isAdmin = ["super_admin", "system_admin", "projects_office", "financial", "financial_manager"].includes(ctx.user.role);
       if (
         !isAdmin &&
+        !userPermissions.includes("projects") &&
         !userPermissions.includes("projects.view") &&
         !userPermissions.includes("projects.view_details") &&
         !userPermissions.includes("projects.financials") &&
         !userPermissions.includes("progress_reports.view") &&
-        !userPermissions.includes("disbursements.view")
+        !userPermissions.includes("disbursements.view") &&
+        !userPermissions.includes("receipt_vouchers") &&
+        !userPermissions.includes("financial_report") &&
+        !userPermissions.includes("financial_approval") &&
+        !userPermissions.includes("disbursement_requests") &&
+        !userPermissions.includes("contracts")
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض سجل المشاريع" });
       }
