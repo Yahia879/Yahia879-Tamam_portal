@@ -542,6 +542,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
+      { id: "receipt_vouchers.view", moduleId: "disbursements", action: "view", nameAr: "عرض سندات القبض", nameEn: "View Receipt Vouchers" },
+      { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },
     ];
 
     for (const p of customPerms) {
@@ -1778,6 +1780,29 @@ export const permissionsRouter = router({
 
 
       await ensureRequestsPermissionsExist(db);
+      await ensureAllCustomPermissionsExist(db);
+
+      // التأكد من وجود كافة المعرفات في جدول الصلاحيات قبل الربط لتفادي أخطاء المفاتيح الأجنبية
+      if (input.permissions.length > 0) {
+        const permIds = input.permissions.map(p => p.permissionId);
+        const existingPerms = await db.select({ id: permissions.id }).from(permissions)
+          .where(inArray(permissions.id, permIds));
+        const existingSet = new Set(existingPerms.map((p: any) => p.id));
+
+        for (const p of input.permissions) {
+          if (!existingSet.has(p.permissionId)) {
+            const parts = p.permissionId.split(".");
+            await db.insert(permissions).values({
+              id: p.permissionId,
+              moduleId: parts[0] || "general",
+              action: parts[1] || "manage",
+              nameAr: p.permissionId,
+              nameEn: p.permissionId
+            });
+            existingSet.add(p.permissionId);
+          }
+        }
+      }
 
       await db.transaction(async (tx) => {
         // 1. حذف جميع الصلاحيات الفردية الحالية للمستخدم

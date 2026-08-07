@@ -75,6 +75,10 @@ export default function ReceiptVouchers() {
   const { user } = useAuth();
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const utils = trpc.useUtils();
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
+  const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
+  const canEdit = isAdmin || userPermissions.includes("receipt_vouchers.edit");
 
   // الحصول على البارامترات من URL إن وجدت
   const urlParams = new URLSearchParams(window.location.search);
@@ -511,6 +515,23 @@ export default function ReceiptVouchers() {
     window.history.replaceState(null, "", newUrl);
   };
 
+  if (!canView) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 space-y-4 font-sans" dir="rtl">
+          <div className="p-4 rounded-full bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-950/30 dark:border-rose-900">
+            <AlertCircle className="h-10 w-10 text-rose-600" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">عذراً، ليس لديك صلاحية لعرض صفحة سندات القبض</h2>
+          <p className="text-xs text-muted-foreground max-w-md">يرجى التواصل مع مسؤول النظام لمنحك صلاحية "عرض سندات القبض" أو "تعديل سند القبض".</p>
+          <Button onClick={() => navigate("/dashboard")} className="mt-2 bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold text-xs">
+            العودة للوحة التحكم
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 px-4 md:px-0 font-sans">
@@ -521,15 +542,17 @@ export default function ReceiptVouchers() {
             <h1 className="text-2xl font-bold">سندات القبض</h1>
             <p className="text-muted-foreground">إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع</p>
           </div>
-          <div className="w-full sm:w-auto flex justify-end">
-            <Button 
-              onClick={openAddVoucherModal}
-              className="w-full sm:w-auto gradient-primary text-white font-bold"
-            >
-              <Plus className="ml-2 h-4 w-4" />
-              تسجيل سند قبض جديد
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="w-full sm:w-auto flex justify-end">
+              <Button 
+                onClick={openAddVoucherModal}
+                className="w-full sm:w-auto gradient-primary text-white font-bold"
+              >
+                <Plus className="ml-2 h-4 w-4" />
+                تسجيل سند قبض جديد
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* 2. بطاقات الإحصائيات */}
@@ -802,7 +825,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 4. تعديل سند القبض */}
-                                {voucher.status !== "approved" && (
+                                {canEdit && voucher.status !== "approved" && (
                                   <DropdownMenuItem
                                     onClick={() => openEditVoucherModal(voucher)}
                                     className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -836,7 +859,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 7. حذف سند القبض */}
-                                {voucher.status !== "approved" && (
+                                {canEdit && voucher.status !== "approved" && (
                                   <DropdownMenuItem
                                     onClick={() => handleDeleteVoucher(voucher.id)}
                                     className="flex items-center gap-2 cursor-pointer text-red-600 hover:text-red-700 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"

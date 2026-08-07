@@ -581,6 +581,10 @@ export default function UserPermissions() {
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
       },
+      receipt_vouchers: {
+        view: "عرض سندات القبض",
+        edit: "تعديل سند القبض",
+      },
       disbursement_orders: {
         view: "عرض أوامر الصرف",
         create_direct: "انشاء امر صرف مخصص"
@@ -697,6 +701,7 @@ export default function UserPermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
