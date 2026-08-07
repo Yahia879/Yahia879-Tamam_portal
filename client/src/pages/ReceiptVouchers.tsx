@@ -749,21 +749,24 @@ export default function ReceiptVouchers() {
                           {/* الحالة */}
                           <TableCell className="py-3.5 px-4 text-right">
                             {voucher.status === "approved" ? (
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2.5 py-0.5">
-                                معتمد
+                              <Badge variant="outline" className="bg-emerald-50/80 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[11px] px-2.5 py-1 gap-1 inline-flex items-center">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>معتمد</span>
                               </Badge>
                             ) : voucher.status === "approval_revoked" ? (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2.5 py-0.5 gap-1 inline-flex items-center">
-                                <RotateCcw className="h-3 w-3 text-amber-600" />
-                                ملغى الاعتماد
+                              <Badge variant="outline" className="bg-amber-50/80 text-amber-900 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold text-[11px] px-2.5 py-1 gap-1 inline-flex items-center">
+                                <RotateCcw className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                <span>ملغى الاعتماد</span>
                               </Badge>
                             ) : voucher.status === "rejected" ? (
-                              <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2.5 py-0.5">
-                                مرفوض
+                              <Badge variant="outline" className="bg-rose-50/80 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 font-bold text-[11px] px-2.5 py-1 gap-1 inline-flex items-center">
+                                <XCircle className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+                                <span>مرفوض</span>
                               </Badge>
                             ) : (
-                              <Badge variant="default" className="bg-amber-500 text-white font-bold text-[10px] px-2.5 py-0.5">
-                                قيد الاعتماد
+                              <Badge variant="outline" className="bg-amber-50/90 text-amber-800 border-amber-300/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800 font-bold text-[11px] px-2.5 py-1 gap-1 inline-flex items-center shadow-2xs">
+                                <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400 animate-pulse" />
+                                <span>قيد الاعتماد</span>
                               </Badge>
                             )}
                           </TableCell>
