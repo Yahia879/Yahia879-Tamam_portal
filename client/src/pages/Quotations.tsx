@@ -289,9 +289,18 @@ export default function Quotations() {
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = window.URL.createObjectURL(blob);
+      const currentReq = (singleRequestData as any)?.request || allRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
+      const projectNameStr = currentReq?.projectName || currentReq?.mosqueName || currentReq?.title || currentReq?.requestNumber || "";
+
+      let projectPart = "";
+      if (projectNameStr) {
+        const clean = projectNameStr.replace(/[\/\\?%*:|"<>]/g, "_").trim();
+        projectPart = clean.startsWith("مشروع") ? clean : `مشروع_${clean}`;
+      }
+      const fileName = projectPart ? `قالب_عرض_سعر_${projectPart}.xlsx` : "قالب_عرض_سعر_المشروع.xlsx";
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Quotation_Template.xlsx";
+      a.download = fileName;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("تم تحميل قالب عرض السعر بنجاح");
@@ -566,9 +575,18 @@ export default function Quotations() {
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = window.URL.createObjectURL(blob);
+      const currentReq = (singleRequestData as any)?.request || allRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
+      const projectNameStr = currentReq?.projectName || currentReq?.mosqueName || currentReq?.title || currentReq?.requestNumber || "";
+
+      let projectPart = "";
+      if (projectNameStr) {
+        const clean = projectNameStr.replace(/[\/\\?%*:|"<>]/g, "_").trim();
+        projectPart = clean.startsWith("مشروع") ? clean : `مشروع_${clean}`;
+      }
+      const fileName = projectPart ? `قالب_عروض_أسعار_متعددة_${projectPart}.xlsx` : "قالب_عروض_أسعار_متعددة.xlsx";
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Bulk_Quotations_Template.xlsx";
+      a.download = fileName;
       a.click();
       window.URL.revokeObjectURL(url);
       toast.success("تم تحميل قالب عروض الأسعار المتعددة بنجاح");
