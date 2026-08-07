@@ -64,6 +64,7 @@ import {
   Trash2,
   Download,
   MoreVertical,
+  AlertCircle,
   Printer,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -174,9 +175,7 @@ export default function ReceiptVouchers() {
   }
 
   // تحديد اسم الداعم المختار (نظيف)
-  const selectedSupporterCleanName = modalPayerName === "اخرى" 
-    ? customPayerName.trim() 
-    : modalPayerName.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+  const selectedSupporterCleanName = modalPayerName.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
 
   // جلب المبلغ الملتزم به للداعم المختار
   const matchedSupporterItem = supporterDetailsList.find(s => s.name === selectedSupporterCleanName);
@@ -205,7 +204,7 @@ export default function ReceiptVouchers() {
   // تلقائياً: تحديد الداعم الأول عند فتح المودال أو اختيار مشروع يحتوي داعمين مسجلين
   useEffect(() => {
     if (isAddVoucherModalOpen && projectSupporters.length > 0) {
-      if (!modalPayerName || (!projectSupporters.includes(modalPayerName) && modalPayerName !== "اخرى")) {
+      if (!modalPayerName || !projectSupporters.includes(modalPayerName)) {
         setModalPayerName(projectSupporters[0]);
       }
     }
@@ -389,6 +388,10 @@ export default function ReceiptVouchers() {
       toast.error("يرجى اختيار المشروع أولاً");
       return;
     }
+    if (projectSupporters.length === 0) {
+      toast.error("يجب تحديد الداعمين ومبلغ الدعم للمشروع أولاً قبل تسجيل سند القبض");
+      return;
+    }
     const amountNum = parseFloat(modalAmount);
     if (!modalAmount || isNaN(amountNum) || amountNum <= 0) {
       toast.error("يرجى إدخال مبلغ الدفعة المقبوضة بشكل صحيح أكبر من صفر");
@@ -398,9 +401,9 @@ export default function ReceiptVouchers() {
       toast.error("يرجى تحديد تاريخ القبض");
       return;
     }
-    const cleanPayer = modalPayerName === "اخرى" ? customPayerName.trim() : modalPayerName.trim();
+    const cleanPayer = modalPayerName.trim();
     if (!cleanPayer) {
-      toast.error("يرجى اختيار أو كتابة اسم الجهة الداعمة / القابض منه");
+      toast.error("يرجى اختيار اسم الجهة الداعمة المسجلة للمشروع");
       return;
     }
 
@@ -925,13 +928,11 @@ export default function ReceiptVouchers() {
                     <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
                     <Select
                       value={modalPayerName}
-                      onValueChange={(val) => {
-                        setModalPayerName(val);
-                        if (val !== "اخرى") setCustomPayerName("");
-                      }}
+                      onValueChange={(val) => setModalPayerName(val)}
+                      disabled={projectSupporters.length === 0}
                     >
                       <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full">
-                        <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "اختر الداعم..."} />
+                        <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "لا يوجد داعمين مسجلين للمشروع"} />
                       </SelectTrigger>
                       <SelectContent dir="rtl" className="max-h-60">
                         {projectSupporters.map((sup, idx) => (
@@ -939,30 +940,29 @@ export default function ReceiptVouchers() {
                             {sup}
                           </SelectItem>
                         ))}
-                        <SelectItem value="اخرى" className="font-bold text-blue-700">
-                          + جهة أخرى (إدخال يدوي)
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
               </div>
 
-              {/* إدخال اسم داعم مخصص عند اختيار اخرى */}
-              {modalPayerName === "اخرى" && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-blue-900">اسم الجهة الداعمة المخصصة *</Label>
-                  <Input
-                    value={customPayerName}
-                    onChange={(e) => setCustomPayerName(e.target.value)}
-                    placeholder="أدخل اسم الداعم..."
-                    className="h-10 text-xs bg-white border-slate-200"
-                  />
+              {/* تنبيه عدم وجود داعمين مسجلين للمشروع */}
+              {activeModalProjectId > 0 && projectSupporters.length === 0 && (
+                <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl text-amber-900 flex items-start gap-3 shadow-2xs">
+                  <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-amber-900">
+                      تنبيه: يجب تحديد الداعمين ومبلغ الدعم للمشروع أولاً لتتمكن من تسجيل سند القبض.
+                    </p>
+                    <p className="text-[11px] text-amber-700 font-medium leading-relaxed">
+                      لم يتم تسجيل أي جهة داعمة لهذا المشروع في تفاصيله المالية. يرجى الانتقال إلى التفاصيل المالية الخاصة بالمشروع وتحديد الجهات الداعمة ومبالغ الدعم المخصصة أولاً.
+                    </p>
+                  </div>
                 </div>
               )}
 
               {/* 2. كروت الإحصائيات المالية المباشرة للمشروع والداعم داخل المودال */}
-              {activeModalProjectId > 0 && (
+              {activeModalProjectId > 0 && projectSupporters.length > 0 && (
                 <div className="p-4 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -1064,7 +1064,7 @@ export default function ReceiptVouchers() {
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
-                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending}
+                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 h-10 rounded-lg shadow-2xs"
               >
                 {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
