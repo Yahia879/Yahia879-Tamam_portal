@@ -446,7 +446,7 @@ export default function ReceiptVouchers() {
         views: [{ showGridLines: true, rightToLeft: true }]
       });
 
-      worksheet.addRow(["رقم السند", "المشروع", "رقم المشروع", "تاريخ القبض", "الجهة الداعمة (المسدد)", "المبلغ المقبوض (ريال)", "الحالة", "البيان / ملاحظات"]);
+      worksheet.addRow(["رقم السند", "المشروع", "رقم المشروع", "تاريخ الإنشاء", "الجهة الداعمة (المسدد)", "المبلغ المقبوض (ريال)", "الحالة", "البيان / ملاحظات"]);
 
       allVouchers.forEach((v: any) => {
         const statusText = v.status === "approved" ? "معتمد" :
@@ -667,7 +667,7 @@ export default function ReceiptVouchers() {
                       <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
                       <TableHead className="py-3.5 px-4 text-right min-w-[160px] font-bold text-slate-700 dark:text-slate-200">الجهة الداعمة (المسدد)</TableHead>
                       <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ المقبوض</TableHead>
-                      <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">تاريخ القبض</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[120px] font-bold text-slate-700 dark:text-slate-200">تاريخ الإنشاء</TableHead>
                       <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                       <TableHead className="py-3.5 px-4 text-center min-w-[140px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                     </TableRow>
@@ -739,8 +739,8 @@ export default function ReceiptVouchers() {
                             {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px] font-normal text-muted-foreground">ريال</span>
                           </TableCell>
 
-                          {/* تاريخ القبض */}
-                          <TableCell className="py-3.5 px-4 text-right text-xs font-mono text-muted-foreground whitespace-nowrap">
+                          {/* تاريخ الإنشاء */}
+                          <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground">
                             {voucher.receiptDate
                               ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
                               : "-"}

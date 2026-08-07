@@ -327,15 +327,9 @@ export default function ReceiptVoucherPrint() {
 
           {/* Title & Dates Block */}
           <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
-            <div className="flex flex-col items-start space-y-1.5 text-sm sm:text-base font-bold">
-              <div className="flex items-center gap-3">
-                <span className="text-[#1f7a63] font-black">التاريخ</span>
-                <span className="font-extrabold text-slate-900">{toHijriDate(receiptDateObj)}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[#1f7a63] font-black">الموافق</span>
-                <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
-              </div>
+            <div className="flex items-center gap-3 text-sm sm:text-base font-bold">
+              <span className="text-[#1f7a63] font-black">التاريخ:</span>
+              <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
             </div>
 
             <div className="flex items-center gap-2">
