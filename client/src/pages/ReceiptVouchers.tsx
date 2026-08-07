@@ -36,6 +36,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
@@ -632,11 +638,31 @@ export default function ReceiptVouchers() {
                         >
                           {/* رقم السند */}
                           <TableCell className="py-3.5 px-4 font-mono text-xs text-right font-bold whitespace-nowrap">
-                            {voucher.status === "approved" ? (
-                              <span className="text-primary font-bold">{voucher.voucherNumber}</span>
-                            ) : (
-                              <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
-                            )}
+                            <div className="flex items-center gap-2 justify-start">
+                              {isPendingMyApproval && (
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                          <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                      <span>بانتظار اعتمادك</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              {voucher.status === "approved" ? (
+                                <span className="text-primary font-bold">{voucher.voucherNumber}</span>
+                              ) : (
+                                <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* اسم المشروع */}
@@ -699,99 +725,91 @@ export default function ReceiptVouchers() {
 
                           {/* الإجراءات */}
                           <TableCell className="py-3.5 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              {/* معاينة وطباعة */}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                className="h-8 w-8 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"
-                                title="معاينة وطباعة سند القبض"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-
-                              {/* عرض مبررات الرفض / إلغاء الاعتماد */}
-                              {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
-                                  className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
-                                  title="عرض مبررات إلغاء الاعتماد / السبب"
-                                >
-                                  <Info className="h-3.5 w-3.5 text-amber-700" />
-                                  المبررات
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                 </Button>
-                              )}
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                  className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                >
+                                  <Eye className="h-4 w-4 text-[#1a5f4a]" />
+                                  <span>عرض وسند القبض والطباعة</span>
+                                </DropdownMenuItem>
 
-                              {/* إجراءات الاعتماد والرفض وإلغاء الاعتماد للمسؤول المالي */}
-                              {isFaaa8User && (
-                                voucher.status === "approved" ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
+                                {/* اعتماد سند القبض للمسؤول المالي */}
+                                {isFaaa8User && voucher.status === "pending_approval" && (
+                                  <DropdownMenuItem
+                                    onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
+                                    disabled={approveVoucherMutation.isPending}
+                                    className="flex items-center gap-2 cursor-pointer text-emerald-600 hover:text-emerald-700 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                    <span>اعتماد سند القبض</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* عرض المبررات / السبب */}
+                                {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                                  <DropdownMenuItem
+                                    onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50"
+                                  >
+                                    <Info className="h-4 w-4 text-amber-600" />
+                                    <span>عرض مبررات إلغاء الاعتماد / السبب</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* تعديل سند القبض */}
+                                {voucher.status !== "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => openEditVoucherModal(voucher)}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                  >
+                                    <Edit3 className="h-4 w-4 text-gray-500" />
+                                    <span>تعديل سند القبض</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* إلغاء الاعتماد للمسؤول المالي */}
+                                {isFaaa8User && voucher.status === "approved" && (
+                                  <DropdownMenuItem
                                     onClick={() => handleOpenRevokeModal(voucher)}
                                     disabled={revokeVoucherApprovalMutation.isPending}
-                                    className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
-                                    title="إلغاء الاعتماد لإتاحة التعديل"
+                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50"
                                   >
-                                    <RotateCcw className="h-3.5 w-3.5" />
-                                    إلغاء الاعتماد
-                                  </Button>
-                                ) : voucher.status === "pending_approval" ? (
-                                  <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
-                                      disabled={approveVoucherMutation.isPending}
-                                      className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
-                                      title="اعتماد سند القبض"
-                                    >
-                                      <CheckCircle className="h-3.5 w-3.5" />
-                                      اعتماد
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleOpenRejectModal(voucher)}
-                                      disabled={rejectVoucherMutation.isPending}
-                                      className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
-                                      title="رفض سند القبض"
-                                    >
-                                      <XCircle className="h-3.5 w-3.5" />
-                                      رفض
-                                    </Button>
-                                  </>
-                                ) : null
-                              )}
+                                    <RotateCcw className="h-4 w-4 text-amber-600" />
+                                    <span>إلغاء الاعتماد</span>
+                                  </DropdownMenuItem>
+                                )}
 
-                              {/* أزرار التعديل والحذف لسندات غير المعتمدة */}
-                              {voucher.status !== "approved" && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => openEditVoucherModal(voucher)}
-                                    className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
-                                    title="تعديل سند القبض"
+                                {/* رفض سند القبض للمسؤول المالي */}
+                                {isFaaa8User && voucher.status === "pending_approval" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenRejectModal(voucher)}
+                                    disabled={rejectVoucherMutation.isPending}
+                                    className="flex items-center gap-2 cursor-pointer text-rose-600 hover:text-rose-700 focus:bg-rose-50"
                                   >
-                                    <Edit3 className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
+                                    <XCircle className="h-4 w-4 text-rose-600" />
+                                    <span>رفض سند القبض</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* حذف سند القبض */}
+                                {voucher.status !== "approved" && (
+                                  <DropdownMenuItem
                                     onClick={() => handleDeleteVoucher(voucher.id)}
-                                    className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
-                                    title="حذف سند القبض"
+                                    className="flex items-center gap-2 cursor-pointer text-red-600 hover:text-red-700 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
                                   >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </>
-                              )}
-
-                            </div>
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                    <span>حذف سند القبض</span>
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       );
@@ -811,9 +829,6 @@ export default function ReceiptVouchers() {
                 <Receipt className="h-5 w-5 text-emerald-600" />
                 {editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}
               </DialogTitle>
-              <DialogDescription className="text-xs text-right mt-1">
-                اختر المشروع والجهة الداعمة وأدخل تفاصيل الدفعة المقبوضة
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2 text-xs text-right">
@@ -847,9 +862,9 @@ export default function ReceiptVouchers() {
                       <SelectValue placeholder="اللقب..." />
                     </SelectTrigger>
                     <SelectContent dir="rtl">
-                      <SelectItem value="السادة">السادة /</SelectItem>
-                      <SelectItem value="السيد">السيد /</SelectItem>
-                      <SelectItem value="السيدة">السيدة /</SelectItem>
+                      <SelectItem value="السادة">السادة</SelectItem>
+                      <SelectItem value="السيد">السيد</SelectItem>
+                      <SelectItem value="السيدة">السيدة</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
