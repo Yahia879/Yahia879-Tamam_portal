@@ -193,16 +193,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     },
   });
 
-  const deleteVoucherMutation = trpc.projects.deleteReceiptVoucher.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف سند القبض");
-      refetch();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حذف السند");
-    },
-  });
-
   const approveVoucherMutation = trpc.projects.approveReceiptVoucher.useMutation({
     onSuccess: () => {
       toast.success("تم اعتماد سند القبض بنجاح");
@@ -524,12 +514,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         attachmentUrl: voucherAttachmentUrl,
         notes: voucherNotes,
       });
-    }
-  };
-
-  const handleDeleteVoucher = (id: number) => {
-    if (confirm("هل أنت تأكد من رغبتك في حذف سند القبض هذا؟")) {
-      deleteVoucherMutation.mutate({ id });
     }
   };
 
@@ -1373,9 +1357,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                              <RotateCcw className="h-3.5 w-3.5" />
                                              إلغاء الاعتماد
                                            </Button>
-                                         ) : voucher.status === "pending_approval" ? (
-                                           <>
-                                             <Button
+                                         ) : voucher.status === "pending_approval" ? (<>
+                                           <Button
                                                variant="ghost"
                                                size="sm"
                                                onClick={() => {
@@ -1398,15 +1381,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                              >
                                                <XCircle className="h-3.5 w-3.5" />
                                                رفض
-                                             </Button>
-                                           </>
-                                         ) : null
+                                              </Button>
+                                            </> ) : null
                                        )}
 
-                                      {/* أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
+                                      {/* زر التعديل يظهر فقط إذا لم يكن السند معتمداً */}
                                       {voucher.status !== "approved" && (
-                                        <>
-                                          <Button
+                                        <Button
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => openEditVoucherModal(voucher)}
@@ -1415,16 +1396,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                           >
                                             <Edit3 className="h-3.5 w-3.5" />
                                           </Button>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDeleteVoucher(voucher.id)}
-                                            className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
-                                            title="حذف سند القبض"
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </Button>
-                                        </>
                                       )}
                                     </div>
                                   </TableCell>
@@ -1497,9 +1468,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                      </Button>
                                     <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
                                       <Edit3 className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteVoucher(voucher.id)} className="h-7 w-7 text-red-600">
-                                      <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                   </div>
                                 </TableCell>

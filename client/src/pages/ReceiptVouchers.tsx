@@ -61,7 +61,6 @@ import {
   FileText,
   Info,
   Edit3,
-  Trash2,
   Download,
   MoreVertical,
   AlertCircle,
@@ -242,17 +241,6 @@ export default function ReceiptVouchers() {
     },
   });
 
-  const deleteVoucherMutation = trpc.projects.deleteReceiptVoucher.useMutation({
-    onSuccess: () => {
-      toast.success("تم حذف سند القبض");
-      refetchVouchers();
-      utils.projects.getFinancialData.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حذف السند");
-    },
-  });
-
   const approveVoucherMutation = trpc.projects.approveReceiptVoucher.useMutation({
     onSuccess: () => {
       toast.success("تم اعتماد سند القبض بنجاح");
@@ -335,13 +323,6 @@ export default function ReceiptVouchers() {
     setModalNotes(voucher.notes || "");
     setIsAddVoucherModalOpen(true);
   };
-
-  const handleDeleteVoucher = (id: number) => {
-    if (confirm("هل أنت تأكد من رغبتك في حذف سند القبض هذا؟")) {
-      deleteVoucherMutation.mutate({ id });
-    }
-  };
-
   const handleOpenRevokeModal = (voucher: { id: number; voucherNumber: string }) => {
     setActionModal({
       isOpen: true,
@@ -858,16 +839,6 @@ export default function ReceiptVouchers() {
                                   </DropdownMenuItem>
                                 )}
 
-                                {/* 7. حذف سند القبض */}
-                                {canEdit && voucher.status !== "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleDeleteVoucher(voucher.id)}
-                                    className="flex items-center gap-2 cursor-pointer text-red-600 hover:text-red-700 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                    <span>حذف سند القبض</span>
-                                  </DropdownMenuItem>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
