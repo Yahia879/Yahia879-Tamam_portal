@@ -30,12 +30,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   Coins,
   Receipt,
-  Building2,
   Search,
   Eye,
   CheckCircle,
@@ -51,8 +56,12 @@ import {
   Info,
   Edit3,
   Trash2,
+  Download,
+  MoreVertical,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
+import ExcelJS from "exceljs";
 
 export default function ReceiptVouchers() {
   const [, navigate] = useLocation();
@@ -67,6 +76,7 @@ export default function ReceiptVouchers() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   // حالة مودال تسجيل/تعديل سند القبض
   const [isAddVoucherModalOpen, setIsAddVoucherModalOpen] = useState<boolean>(false);
@@ -132,7 +142,6 @@ export default function ReceiptVouchers() {
           parsed.forEach((item: any) => {
             let name = item.entity === "اخرى" ? item.customEntity : item.entity;
             if (name && name.trim()) {
-              // تنظيف الألقاب السابقة لمنع التكرار
               name = name.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
               if (name && !projectSupporters.includes(name)) {
                 projectSupporters.push(name);
@@ -338,7 +347,6 @@ export default function ReceiptVouchers() {
       return;
     }
 
-    // تجهيز الاسم النهائي بسبق اللقب (السيد / السيدة / السادة)
     let finalPayerName = cleanPayer;
     if (
       !cleanPayer.startsWith("السيد /") &&
@@ -379,6 +387,54 @@ export default function ReceiptVouchers() {
     return notes;
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("سندات القبض", {
+        views: [{ showGridLines: true, rightToLeft: true }]
+      });
+
+      worksheet.addRow(["رقم السند", "المشروع", "رقم المشروع", "تاريخ القبض", "الجهة الداعمة (المسدد)", "المبلغ المقبوض (ريال)", "الحالة", "البيان / ملاحظات"]);
+
+      allVouchers.forEach((v: any) => {
+        const statusText = v.status === "approved" ? "معتمد" :
+                           v.status === "approval_revoked" ? "ملغى الاعتماد" :
+                           v.status === "rejected" ? "مرفوض" : "قيد الاعتماد";
+
+        worksheet.addRow([
+          v.voucherNumber || (v.status === "approved" ? `VCH-${v.id}` : "ينشأ بعد الاعتماد"),
+          v.projectName || `مشروع #${v.projectId}`,
+          v.projectNumber || "-",
+          v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("ar-SA") : "-",
+          v.payerName || "-",
+          Number(v.amount) || 0,
+          statusText,
+          getCleanVoucherNotes(v.notes),
+        ]);
+      });
+
+      ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].forEach(col => {
+        worksheet.getColumn(col).width = 25;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `تقرير_سندات_القبض_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("تم تصدير ملف Excel بنجاح");
+    } catch (error) {
+      console.error("Failed to export excel:", error);
+      toast.error("حدث خطأ أثناء تصدير ملف Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // حساب الإحصائيات
   const totalAmountReceived = allVouchers
     .filter(v => v.status === "approved" || v.status === "pending_approval")
@@ -397,172 +453,145 @@ export default function ReceiptVouchers() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 dir-rtl text-right p-4 sm:p-6">
+      <div className="space-y-6 px-4 md:px-0 font-sans">
         
-        {/* 1. هيدر الصفحة الرئيسي ورأس العمليات */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <Coins className="h-6 w-6 text-primary" />
-              سندات القبض
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع
-            </p>
+        {/* 1. هيدر الصفحة الرئيسي وزر الإضافة */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" dir="rtl">
+          <div className="text-right">
+            <h1 className="text-2xl font-bold">سندات القبض</h1>
+            <p className="text-muted-foreground">إدارة وتوثيق سندات القبض والدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع</p>
           </div>
-
-          <Button
-            onClick={openAddVoucherModal}
-            className="bg-primary hover:bg-primary/90 text-white font-bold gap-2 text-xs shadow-xs h-10 px-4"
-          >
-            <Plus className="h-4 w-4" />
-            تسجيل سند قبض جديد
-          </Button>
+          <div className="w-full sm:w-auto flex justify-end">
+            <Button 
+              onClick={openAddVoucherModal}
+              className="w-full sm:w-auto gradient-primary text-white font-bold"
+            >
+              <Plus className="ml-2 h-4 w-4" />
+              تسجيل سند قبض جديد
+            </Button>
+          </div>
         </div>
 
-        {/* 2. كروت الإحصائيات بأعلى الصفحة */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 2. بطاقات الإحصائيات */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
           
           {/* إجمالي المقبوضات */}
-          <div className="p-4 bg-gradient-to-br from-emerald-50/80 to-white rounded-xl border border-emerald-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-emerald-300">
-            <div className="space-y-1">
-              <span className="text-xs text-emerald-800 font-semibold block">إجمالي المقبوضات</span>
-              <span className="text-2xl font-extrabold text-emerald-950 block">
-                {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
-                <span className="text-xs font-semibold text-emerald-700 mr-1">ريال</span>
-              </span>
-            </div>
-            <div className="p-3 bg-emerald-100/70 text-emerald-700 rounded-xl">
-              <Coins className="h-6 w-6" />
-            </div>
-          </div>
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground font-semibold">إجمالي المقبوضات</p>
+                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
+                    {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* سندات معتمدة */}
-          <div className="p-4 bg-gradient-to-br from-blue-50/80 to-white rounded-xl border border-blue-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-blue-300">
-            <div className="space-y-1">
-              <span className="text-xs text-blue-800 font-semibold block">سندات معتمدة</span>
-              <span className="text-2xl font-extrabold text-blue-950 block">
-                {totalApprovedCount}
-                <span className="text-xs font-semibold text-blue-700 mr-1">سند</span>
-              </span>
-            </div>
-            <div className="p-3 bg-blue-100/70 text-blue-700 rounded-xl">
-              <CheckCircle2 className="h-6 w-6" />
-            </div>
-          </div>
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-semibold">سندات معتمدة</p>
+                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{totalApprovedCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* سندات قيد الاعتماد */}
-          <div className="p-4 bg-gradient-to-br from-amber-50/80 to-white rounded-xl border border-amber-200/80 shadow-2xs flex items-center justify-between transition-all hover:border-amber-300">
-            <div className="space-y-1">
-              <span className="text-xs text-amber-800 font-semibold block">قيد الاعتماد</span>
-              <span className="text-2xl font-extrabold text-amber-950 block">
-                {totalPendingCount}
-                <span className="text-xs font-semibold text-amber-700 mr-1">سند</span>
-              </span>
-            </div>
-            <div className="p-3 bg-amber-100/70 text-amber-700 rounded-xl">
-              <Clock className="h-6 w-6" />
-            </div>
-          </div>
-
-          {/* إجمالي عدد السندات */}
-          <div className="p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between transition-all hover:border-slate-300">
-            <div className="space-y-1">
-              <span className="text-xs text-slate-600 font-semibold block">إجمالي عدد السندات</span>
-              <span className="text-2xl font-extrabold text-slate-900 block">
-                {totalVouchersCount}
-                <span className="text-xs font-semibold text-slate-500 mr-1">سند مسجل</span>
-              </span>
-            </div>
-            <div className="p-3 bg-slate-100 text-slate-700 rounded-xl">
-              <FileText className="h-6 w-6" />
-            </div>
-          </div>
-
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow">
+            <CardContent className="p-3 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground font-semibold">سندات قيد الاعتماد</p>
+                  <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{totalPendingCount}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* 3. شريط البحث والفلترة تضبيط المسافات والترتيب */}
-        <Card className="border-slate-200 shadow-2xs">
-          <CardContent className="p-3.5">
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-              
-              {/* حقل البحث */}
-              <div className="relative flex-1 w-full min-w-[200px]">
-                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="بحث برقم السند، اسم المشروع، أو الداعم..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-9 h-10 text-xs bg-white border-slate-200"
-                />
-              </div>
+        {/* 3. الفلاتر وشريط البحث */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="بحث برقم السند أو اسم المسدد أو المشروع..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10 text-right font-medium"
+              dir="rtl"
+            />
+          </div>
 
-              {/* 1. منسدلة فلترة الحالة */}
-              <div className="w-full sm:w-36 shrink-0">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <SelectValue placeholder="الحالة" />
+          <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+            {/* اختيار المشروع */}
+            <Select value={selectedProjectId} onValueChange={handleSelectProject}>
+              <SelectTrigger className="w-full lg:w-[220px]">
+                <Filter className="ml-2 h-4 w-4" />
+                <SelectValue placeholder="المشروع" />
+              </SelectTrigger>
+              <SelectContent dir="rtl" className="max-h-72 max-w-sm">
+                <SelectItem value="all" className="font-bold text-slate-900">
+                  جميع المشاريع
+                </SelectItem>
+                {projectsList.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id.toString()}>
+                    <div className="flex items-center gap-2 max-w-[240px]">
+                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
+                      <span className="font-medium truncate block">{p.name}</span>
                     </div>
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    <SelectItem value="all">جميع الحالات</SelectItem>
-                    <SelectItem value="approved">معتمد</SelectItem>
-                    <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
-                    <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
-                    <SelectItem value="rejected">مرفوض</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              {/* 2. اختيار وتصفية حسب المشروع بعرض ثابت وتقطيع بالنقط */}
-              <div className="w-full sm:w-56 md:w-64 max-w-[250px] shrink-0">
-                <Select value={selectedProjectId} onValueChange={handleSelectProject}>
-                  <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full overflow-hidden">
-                    <div className="flex items-center gap-1.5 truncate w-full overflow-hidden">
-                      <FolderOpen className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span className="truncate block text-ellipsis overflow-hidden font-medium max-w-[170px]">
-                        <SelectValue placeholder="اختر المشروع..." />
-                      </span>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent dir="rtl" className="max-h-72 max-w-sm">
-                    <SelectItem value="all" className="font-bold text-slate-900 border-b pb-1 mb-1">
-                      جميع المشاريع
-                    </SelectItem>
-                    {projectsList.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id.toString()}>
-                        <div className="flex items-center gap-2 max-w-[240px]">
-                          <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
-                          <span className="font-medium truncate block">{p.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* فلترة الحالة */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full lg:w-[180px]">
+                <Filter className="ml-2 h-4 w-4" />
+                <SelectValue placeholder="الحالة" />
+              </SelectTrigger>
+              <SelectContent dir="rtl">
+                <SelectItem value="all">جميع الحالات</SelectItem>
+                <SelectItem value="approved">معتمد</SelectItem>
+                <SelectItem value="pending_approval">قيد الاعتماد</SelectItem>
+                <SelectItem value="approval_revoked">ملغى الاعتماد</SelectItem>
+                <SelectItem value="rejected">مرفوض</SelectItem>
+              </SelectContent>
+            </Select>
 
-            </div>
-          </CardContent>
-        </Card>
+            {/* تصدير إلى إكسل */}
+            <Button 
+              onClick={handleExportExcel} 
+              disabled={isExporting}
+              variant="outline"
+              className="w-full lg:w-auto h-10 border-[#1a5f4a]/30 text-[#1a5f4a] bg-transparent hover:bg-[#1a5f4a]/5 hover:text-[#1a5f4a] font-bold rounded-lg shrink-0 flex items-center justify-center gap-1.5 transition-colors"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              <span dir="rtl">تصدير إلى Excel</span>
+            </Button>
+          </div>
+        </div>
 
-        {/* 5. عرض كشف جدول سندات القبض المنظم والخفيف */}
-        <Card className="border-slate-200 shadow-2xs">
-          <CardHeader className="pb-3 border-b bg-slate-50/50">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-emerald-600" />
-                سجل كافة سندات القبض ({allVouchers.length})
-              </CardTitle>
-              <CardDescription className="text-xs">
-                {selectedProjectId !== "all"
-                  ? `عرض سندات القبض الخاصة بالمشروع (${currentProject?.name || selectedProjectId})`
-                  : "جدول مجمع لجميع سندات القبض المسجلة في النظام."}
-              </CardDescription>
-            </div>
-          </CardHeader>
-
+        {/* 4. جدول سندات القبض */}
+        <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {isLoadingVouchers ? (
               <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-sm">
@@ -573,191 +602,200 @@ export default function ReceiptVouchers() {
               <div className="text-center py-12 space-y-3">
                 <Receipt className="h-10 w-10 mx-auto text-muted-foreground/30" />
                 <p className="text-sm font-semibold text-slate-700">لم يتم العثور على أي سندات قبض</p>
-                <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary">
+                <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs gradient-primary text-white">
                   <Plus className="h-4 w-4" />
                   تسجيل أول سند قبض
                 </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table dir="rtl">
-                  <TableHeader className="bg-slate-50">
-                    <TableRow>
-                      <TableHead className="text-right text-xs font-bold">رقم السند</TableHead>
-                      <TableHead className="text-right text-xs font-bold">المشروع</TableHead>
-                      <TableHead className="text-right text-xs font-bold">تاريخ القبض</TableHead>
-                      <TableHead className="text-right text-xs font-bold">الجهة الداعمة (المسدد)</TableHead>
-                      <TableHead className="text-right text-xs font-bold">المبلغ المقبوض</TableHead>
-                      <TableHead className="text-right text-xs font-bold">البيان / ملاحظات</TableHead>
-                      <TableHead className="text-center text-xs font-bold">الحالة</TableHead>
-                      <TableHead className="text-center text-xs font-bold">الإجراءات</TableHead>
+              <div className="hidden md:block w-full overflow-x-auto">
+                <Table dir="rtl" className="w-full min-w-[950px]">
+                  <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="py-3.5 px-4 text-right min-w-[140px] font-bold text-slate-700 dark:text-slate-200">رقم السند</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[180px] font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[160px] font-bold text-slate-700 dark:text-slate-200">الجهة الداعمة (المسدد)</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ المقبوض</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[110px] font-bold text-slate-700 dark:text-slate-200">تاريخ القبض</TableHead>
+                      <TableHead className="py-3.5 px-4 text-right min-w-[150px] font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
+                      <TableHead className="py-3.5 px-4 text-center min-w-[140px] font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allVouchers.map((voucher) => (
-                      <TableRow key={voucher.id} className="hover:bg-slate-50/70">
-                        <TableCell className="font-bold text-xs font-mono">
-                          {voucher.status === "approved" ? (
-                            <span className="text-primary">{voucher.voucherNumber}</span>
-                          ) : (
-                            <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
-                          )}
-                        </TableCell>
+                    {allVouchers.map((voucher) => {
+                      const isPendingMyApproval = isFaaa8User && voucher.status === "pending_approval";
 
-                        <TableCell className="text-xs">
-                          <button
-                            onClick={() => handleSelectProject(voucher.projectId.toString())}
-                            className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
-                          >
-                            <span className="font-bold text-slate-800 block line-clamp-1 group-hover:underline">
-                              {voucher.projectName || `مشروع #${voucher.projectId}`}
-                            </span>
-                            {voucher.projectNumber && (
-                              <span className="text-[10px] text-muted-foreground font-mono block">
-                                {voucher.projectNumber}
-                              </span>
+                      return (
+                        <TableRow 
+                          key={voucher.id} 
+                          className={isPendingMyApproval ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
+                        >
+                          {/* رقم السند */}
+                          <TableCell className="py-3.5 px-4 font-mono text-xs text-right font-bold whitespace-nowrap">
+                            {voucher.status === "approved" ? (
+                              <span className="text-primary font-bold">{voucher.voucherNumber}</span>
+                            ) : (
+                              <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
                             )}
-                          </button>
-                        </TableCell>
+                          </TableCell>
 
-                        <TableCell className="text-xs font-mono">
-                          {voucher.receiptDate
-                            ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
-                            : "-"}
-                        </TableCell>
-
-                        <TableCell className="text-xs font-semibold text-slate-800">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold">
-                            {voucher.payerName || "جهة غير محددة"}
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="font-bold text-emerald-700 text-xs">
-                          {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
-                        </TableCell>
-
-                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
-                          {getCleanVoucherNotes(voucher.notes)}
-                        </TableCell>
-
-                        <TableCell className="text-center text-xs">
-                          {voucher.status === "approved" ? (
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2 py-0.5">
-                              معتمد
-                            </Badge>
-                          ) : voucher.status === "approval_revoked" ? (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2 py-0.5 gap-1 inline-flex items-center">
-                              <RotateCcw className="h-3 w-3 text-amber-600" />
-                              ملغى الاعتماد
-                            </Badge>
-                          ) : voucher.status === "rejected" ? (
-                            <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2 py-0.5">
-                              مرفوض
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-300 font-bold text-[10px] px-2 py-0.5">
-                              قيد الاعتماد
-                            </Badge>
-                          )}
-                        </TableCell>
-
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            {/* زر المعاينة والطباعة بأيقونة العين Eye */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                              className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                              title="معاينة وطباعة سند القبض"
+                          {/* اسم المشروع */}
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => handleSelectProject(voucher.projectId.toString())}
+                              className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
                             >
-                              <Eye className="h-3.5 w-3.5" />
-                            </Button>
+                              <span className="font-bold text-slate-800 dark:text-slate-200 block line-clamp-1 group-hover:underline">
+                                {voucher.projectName || `مشروع #${voucher.projectId}`}
+                              </span>
+                              {voucher.projectNumber && (
+                                <span className="text-[10px] text-muted-foreground font-mono block">
+                                  {voucher.projectNumber}
+                                </span>
+                              )}
+                            </button>
+                          </TableCell>
 
-                            {/* زر لعرض مبررات إلغاء الاعتماد أو سبب الرفض إن وجدت */}
-                            {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                          {/* الجهة الداعمة */}
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <Badge variant="outline" className="bg-blue-50/80 text-blue-900 border-blue-200 text-[11px] font-semibold">
+                              {voucher.payerName || "جهة غير محددة"}
+                            </Badge>
+                          </TableCell>
+
+                          {/* المبلغ المقبوض */}
+                          <TableCell className="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
+                            {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px] font-normal text-muted-foreground">ريال</span>
+                          </TableCell>
+
+                          {/* تاريخ القبض */}
+                          <TableCell className="py-3.5 px-4 text-right text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            {voucher.receiptDate
+                              ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
+                              : "-"}
+                          </TableCell>
+
+                          {/* الحالة */}
+                          <TableCell className="py-3.5 px-4 text-right">
+                            {voucher.status === "approved" ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[10px] px-2.5 py-0.5">
+                                معتمد
+                              </Badge>
+                            ) : voucher.status === "approval_revoked" ? (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-[10px] px-2.5 py-0.5 gap-1 inline-flex items-center">
+                                <RotateCcw className="h-3 w-3 text-amber-600" />
+                                ملغى الاعتماد
+                              </Badge>
+                            ) : voucher.status === "rejected" ? (
+                              <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-300 font-bold text-[10px] px-2.5 py-0.5">
+                                مرفوض
+                              </Badge>
+                            ) : (
+                              <Badge variant="default" className="bg-amber-500 text-white font-bold text-[10px] px-2.5 py-0.5">
+                                قيد الاعتماد
+                              </Badge>
+                            )}
+                          </TableCell>
+
+                          {/* الإجراءات */}
+                          <TableCell className="py-3.5 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {/* معاينة وطباعة */}
                               <Button
                                 variant="ghost"
-                                size="sm"
-                                onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
-                                className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
-                                title="عرض مبررات إلغاء الاعتماد / السبب"
+                                size="icon"
+                                onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                className="h-8 w-8 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"
+                                title="معاينة وطباعة سند القبض"
                               >
-                                <Info className="h-3.5 w-3.5 text-amber-700" />
-                                المبررات
+                                <Eye className="h-4 w-4" />
                               </Button>
-                            )}
 
-                            {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
-                            {isFaaa8User && (
-                              voucher.status === "approved" ? (
+                              {/* عرض مبررات الرفض / إلغاء الاعتماد */}
+                              {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleOpenRevokeModal(voucher)}
-                                  disabled={revokeVoucherApprovalMutation.isPending}
-                                  className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
-                                  title="إلغاء الاعتماد لإتاحة التعديل"
+                                  onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                  className="h-7 px-2 text-[10px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                  title="عرض مبررات إلغاء الاعتماد / السبب"
                                 >
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                  إلغاء الاعتماد
+                                  <Info className="h-3.5 w-3.5 text-amber-700" />
+                                  المبررات
                                 </Button>
-                              ) : voucher.status === "pending_approval" ? (
+                              )}
+
+                              {/* إجراءات الاعتماد والرفض وإلغاء الاعتماد للمسؤول المالي */}
+                              {isFaaa8User && (
+                                voucher.status === "approved" ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleOpenRevokeModal(voucher)}
+                                    disabled={revokeVoucherApprovalMutation.isPending}
+                                    className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                                    title="إلغاء الاعتماد لإتاحة التعديل"
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    إلغاء الاعتماد
+                                  </Button>
+                                ) : voucher.status === "pending_approval" ? (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
+                                      disabled={approveVoucherMutation.isPending}
+                                      className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                                      title="اعتماد سند القبض"
+                                    >
+                                      <CheckCircle className="h-3.5 w-3.5" />
+                                      اعتماد
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleOpenRejectModal(voucher)}
+                                      disabled={rejectVoucherMutation.isPending}
+                                      className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                                      title="رفض سند القبض"
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      رفض
+                                    </Button>
+                                  </>
+                                ) : null
+                              )}
+
+                              {/* أزرار التعديل والحذف لسندات غير المعتمدة */}
+                              {voucher.status !== "approved" && (
                                 <>
                                   <Button
                                     variant="ghost"
-                                    size="sm"
-                                    onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
-                                    disabled={approveVoucherMutation.isPending}
-                                    className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
-                                    title="اعتماد سند القبض"
+                                    size="icon"
+                                    onClick={() => openEditVoucherModal(voucher)}
+                                    className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
+                                    title="تعديل سند القبض"
                                   >
-                                    <CheckCircle className="h-3.5 w-3.5" />
-                                    اعتماد
+                                    <Edit3 className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleOpenRejectModal(voucher)}
-                                    disabled={rejectVoucherMutation.isPending}
-                                    className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
-                                    title="رفض سند القبض"
+                                    size="icon"
+                                    onClick={() => handleDeleteVoucher(voucher.id)}
+                                    className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
+                                    title="حذف سند القبض"
                                   >
-                                    <XCircle className="h-3.5 w-3.5" />
-                                    رفض
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </>
-                              ) : null
-                            )}
+                              )}
 
-                            {/* أزرار التعديل والحذف تظهر فقط إذا لم يكن السند معتمداً */}
-                            {voucher.status !== "approved" && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => openEditVoucherModal(voucher)}
-                                  className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                  title="تعديل سند القبض"
-                                >
-                                  <Edit3 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteVoucher(voucher.id)}
-                                  className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-50"
-                                  title="حذف سند القبض"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </>
-                            )}
-
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -765,7 +803,7 @@ export default function ReceiptVouchers() {
           </CardContent>
         </Card>
 
-        {/* نافذة المودال المباشرة لتسجيل/تعديل سند قبض */}
+        {/* مودال تسجيل/تعديل سند قبض */}
         <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
           <DialogContent className="dir-rtl text-right max-w-md">
             <DialogHeader className="text-right">
