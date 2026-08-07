@@ -301,6 +301,11 @@ export default function ReceiptVouchers() {
     setIsAddVoucherModalOpen(true);
   };
 
+  const stripPayerTitle = (payerName?: string | null) => {
+    if (!payerName || !payerName.trim()) return "جهة غير محددة";
+    return payerName.replace(/^(السيد|السيدة|السادة)\s*(\/)?\s*/, "").trim() || "جهة غير محددة";
+  };
+
   const openEditVoucherModal = (voucher: any) => {
     setEditingVoucherId(voucher.id);
     setModalProjectId(voucher.projectId.toString());
@@ -308,15 +313,15 @@ export default function ReceiptVouchers() {
     setModalDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
     
     const rawPayer = voucher.payerName || "";
-    if (rawPayer.startsWith("السيد / ")) {
+    if (rawPayer.startsWith("السيد / ") || rawPayer.startsWith("السيد ")) {
       setModalHonorificTitle("السيد");
-      setModalPayerName(rawPayer.replace("السيد / ", ""));
-    } else if (rawPayer.startsWith("السيدة / ")) {
+      setModalPayerName(rawPayer.replace(/^السيد\s*(\/)?\s*/, ""));
+    } else if (rawPayer.startsWith("السيدة / ") || rawPayer.startsWith("السيدة ")) {
       setModalHonorificTitle("السيدة");
-      setModalPayerName(rawPayer.replace("السيدة / ", ""));
-    } else if (rawPayer.startsWith("السادة / ")) {
+      setModalPayerName(rawPayer.replace(/^السيدة\s*(\/)?\s*/, ""));
+    } else if (rawPayer.startsWith("السادة / ") || rawPayer.startsWith("السادة ")) {
       setModalHonorificTitle("السادة");
-      setModalPayerName(rawPayer.replace("السادة / ", ""));
+      setModalPayerName(rawPayer.replace(/^السادة\s*(\/)?\s*/, ""));
     } else {
       setModalHonorificTitle("السادة");
       setModalPayerName(rawPayer);
@@ -399,14 +404,8 @@ export default function ReceiptVouchers() {
       return;
     }
 
-    let finalPayerName = cleanPayer;
-    if (
-      !cleanPayer.startsWith("السيد /") &&
-      !cleanPayer.startsWith("السيدة /") &&
-      !cleanPayer.startsWith("السادة /")
-    ) {
-      finalPayerName = `${modalHonorificTitle} / ${cleanPayer}`;
-    }
+    const cleanPayerWithoutTitle = cleanPayer.replace(/^(السيد|السيدة|السادة)\s*(\/)?\s*/, "").trim();
+    const finalPayerName = `${modalHonorificTitle} / ${cleanPayerWithoutTitle}`;
 
     if (editingVoucherId) {
       updateVoucherMutation.mutate({
@@ -459,7 +458,7 @@ export default function ReceiptVouchers() {
           v.projectName || `مشروع #${v.projectId}`,
           v.projectNumber || "-",
           v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("ar-SA") : "-",
-          v.payerName || "-",
+          stripPayerTitle(v.payerName),
           Number(v.amount) || 0,
           statusText,
           getCleanVoucherNotes(v.notes),
@@ -731,7 +730,7 @@ export default function ReceiptVouchers() {
                           {/* الجهة الداعمة */}
                           <TableCell className="py-3.5 px-4 text-right">
                             <Badge variant="outline" className="bg-blue-50/80 text-blue-900 border-blue-200 text-[11px] font-semibold">
-                              {voucher.payerName || "جهة غير محددة"}
+                              {stripPayerTitle(voucher.payerName)}
                             </Badge>
                           </TableCell>
 
