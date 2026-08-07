@@ -127,7 +127,6 @@ export default function ReceiptVouchers() {
 
   // جلب سندات القبض مع الفلترة
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
-    projectId: selectedProjectId !== "all" ? parseInt(selectedProjectId) : undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchQuery,
   });
@@ -598,27 +597,6 @@ export default function ReceiptVouchers() {
           </div>
 
           <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-            {/* اختيار المشروع */}
-            <Select value={selectedProjectId} onValueChange={handleSelectProject}>
-              <SelectTrigger className="w-full lg:w-[220px]">
-                <Filter className="ml-2 h-4 w-4" />
-                <SelectValue placeholder="المشروع" />
-              </SelectTrigger>
-              <SelectContent dir="rtl" className="max-h-72 max-w-sm">
-                <SelectItem value="all" className="font-bold text-slate-900">
-                  جميع المشاريع
-                </SelectItem>
-                {projectsList.map((p: any) => (
-                  <SelectItem key={p.id} value={p.id.toString()}>
-                    <div className="flex items-center gap-2 max-w-[240px]">
-                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">{p.projectNumber}</span>
-                      <span className="font-medium truncate block">{p.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* فلترة الحالة */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full lg:w-[180px]">
