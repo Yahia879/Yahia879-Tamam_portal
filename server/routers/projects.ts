@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions } from "../../drizzle/schema";
-import { eq, desc, and, sql, inArray, or, ne } from "drizzle-orm";
+import { eq, desc, asc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
@@ -19,6 +19,34 @@ async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof g
     await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
   }
   return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
+}
+
+// إعادة تسلسل أرقام سندات القبض بالترتيب REC-1, REC-2, ...
+async function resequenceVoucherNumbers(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
+  const vouchers = await db
+    .select({ id: receiptVouchers.id, voucherNumber: receiptVouchers.voucherNumber })
+    .from(receiptVouchers)
+    .orderBy(asc(receiptVouchers.id));
+
+  const needsResequence = vouchers.some((v, index) => v.voucherNumber !== `REC-${index + 1}`);
+
+  if (needsResequence && vouchers.length > 0) {
+    const timestamp = Date.now();
+    for (let i = 0; i < vouchers.length; i++) {
+      await db
+        .update(receiptVouchers)
+        .set({ voucherNumber: `TEMP-SEQ-${vouchers[i].id}-${timestamp}` })
+        .where(eq(receiptVouchers.id, vouchers[i].id));
+    }
+    for (let i = 0; i < vouchers.length; i++) {
+      await db
+        .update(receiptVouchers)
+        .set({ voucherNumber: `REC-${i + 1}` })
+        .where(eq(receiptVouchers.id, vouchers[i].id));
+    }
+  }
+
+  return `REC-${vouchers.length + 1}`;
 }
 
 // توليد رقم عقد فريد
@@ -1856,6 +1884,7 @@ export const projectsRouter = router({
       }
 
       // جلب سندات القبض
+      await resequenceVoucherNumbers(db);
       const vouchers = await db
         .select({
           id: receiptVouchers.id,
@@ -2044,6 +2073,8 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      await resequenceVoucherNumbers(db);
+
       const filters: any[] = [];
       if (input?.projectId) {
         filters.push(eq(receiptVouchers.projectId, input.projectId));
@@ -2107,9 +2138,7 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const year = new Date().getFullYear();
-      const randomSeq = Math.floor(1000 + Math.random() * 9000);
-      const voucherNumber = `REC-${year}-${input.projectId}-${randomSeq}`;
+      const voucherNumber = await resequenceVoucherNumbers(db);
 
       await db.insert(receiptVouchers).values({
         voucherNumber,

@@ -73,7 +73,7 @@ export default function ReceiptVoucherPrint() {
   }, []);
 
   const voucherNumDisplay = (voucher?.status === "approved" && voucher?.voucherNumber)
-    ? voucher.voucherNumber.replace(/^(REC-\d+-\d+-)/i, "")
+    ? voucher.voucherNumber
     : "";
 
   useEffect(() => {
