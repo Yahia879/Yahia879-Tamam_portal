@@ -1307,19 +1307,19 @@ export default function Quotations() {
                 <div className="space-y-4">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12 text-center">#</TableHead>
-                        <TableHead>البند</TableHead>
-                        <TableHead>الوصف</TableHead>
-                        <TableHead>الوحدة</TableHead>
-                        <TableHead className="text-center">الكمية</TableHead>
-                        <TableHead className="text-center">سعر الوحدة</TableHead>
-                        <TableHead className="text-center">الإجمالي</TableHead>
+                      <TableRow className="border-b-2 border-slate-300 dark:border-slate-700">
+                        <TableHead className="w-12 text-center font-bold">#</TableHead>
+                        <TableHead className="font-bold">البند</TableHead>
+                        <TableHead className="font-bold">الوصف</TableHead>
+                        <TableHead className="font-bold">الوحدة</TableHead>
+                        <TableHead className="text-center font-bold">الكمية</TableHead>
+                        <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
+                        <TableHead className="text-center font-bold">الإجمالي</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
+                    <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
                       {boqData.items.map((item: any, index: number) => (
-                        <TableRow key={item.id}>
+                        <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <TableCell className="text-center">{index + 1}</TableCell>
                           <TableCell className="font-medium align-middle max-w-[400px] min-w-[180px]">
                             <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
