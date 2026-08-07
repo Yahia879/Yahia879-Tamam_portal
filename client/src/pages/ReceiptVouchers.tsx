@@ -448,7 +448,7 @@ export default function ReceiptVouchers() {
                            v.status === "rejected" ? "مرفوض" : "قيد الاعتماد";
 
         worksheet.addRow([
-          v.voucherNumber || (v.status === "approved" ? `VCH-${v.id}` : "ينشأ بعد الاعتماد"),
+          v.voucherNumber || "-",
           v.projectName || `مشروع #${v.projectId}`,
           v.projectNumber || "-",
           v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("ar-SA") : "-",
@@ -694,11 +694,7 @@ export default function ReceiptVouchers() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              {voucher.status === "approved" ? (
-                                <span className="text-primary font-bold">{voucher.voucherNumber}</span>
-                              ) : (
-                                <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
-                              )}
+                              <span className="text-primary font-bold">{voucher.voucherNumber}</span>
                             </div>
                           </TableCell>
 

@@ -21,7 +21,7 @@ async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof g
   return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
 }
 
-// إعادة تسلسل أرقام سندات القبض بالترتيب REC-1, REC-2, ...
+// إعادة تسلسل أرقام سندات القبض لجميع السندات بالترتيب REC-1, REC-2, ... حسب تاريخ/ترتيب الإنشاء
 async function resequenceVoucherNumbers(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
   const vouchers = await db
     .select({ id: receiptVouchers.id, voucherNumber: receiptVouchers.voucherNumber })
@@ -2247,6 +2247,8 @@ export const projectsRouter = router({
         })
         .where(eq(receiptVouchers.id, input.id));
 
+      await resequenceVoucherNumbers(db);
+
       return { success: true };
     }),
 
@@ -2322,6 +2324,8 @@ export const projectsRouter = router({
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      await resequenceVoucherNumbers(db);
 
       const [voucher] = await db
         .select({

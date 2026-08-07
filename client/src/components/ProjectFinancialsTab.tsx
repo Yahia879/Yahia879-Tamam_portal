@@ -1233,9 +1233,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       </div>
 
                       <div className="flex items-center gap-4 text-xs font-semibold">
-                        <div className="text-gray-600">
-                          المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
-                        </div>
+                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span></span>
                         <div className="text-emerald-700">
                           المقبوض: <span className="font-bold text-emerald-800">{receivedAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
                         </div>
@@ -1285,7 +1283,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                      {voucher.status === "approved" ? (
                                        <span className="text-primary">{voucher.voucherNumber}</span>
                                      ) : (
-                                       <span className="text-slate-400 font-normal italic">ينشأ بعد الاعتماد</span>
+                                       <span className="text-primary">{voucher.voucherNumber}</span>
                                      )}
                                    </TableCell>
                                   <TableCell className="text-xs">

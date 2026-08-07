@@ -72,8 +72,10 @@ export default function ReceiptVoucherPrint() {
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
+
+  // عرض الرقم الصافي للسند في خانة "رقم السند" بالتقرير (مثل 5 بدلاً من REC-5)
   const voucherNumDisplay = (voucher?.status === "approved" && voucher?.voucherNumber)
-    ? voucher.voucherNumber
+    ? voucher.voucherNumber.split("-").pop() || ""
     : "";
 
   useEffect(() => {
