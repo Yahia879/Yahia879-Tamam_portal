@@ -145,12 +145,12 @@ export default function ReceiptVoucherPrint() {
   };
 
   const handleBack = () => {
-    if (voucher?.projectId) {
-      navigate(`/projects/${voucher.projectId}`);
-    } else if (window.history.length > 1) {
+    if (window.history.length > 1) {
       window.history.back();
+    } else if (voucher?.projectId) {
+      navigate(`/projects/${voucher.projectId}`);
     } else {
-      navigate("/projects");
+      navigate("/receipt-vouchers");
     }
   };
 
