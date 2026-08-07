@@ -107,6 +107,10 @@ export default function Quotations() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
   const [includeUnapproved, setIncludeUnapproved] = useState(true);
   
+  // حالة نافذة اختيار المورد لتحميل قالب التسعير
+  const [showDownloadTemplateDialog, setShowDownloadTemplateDialog] = useState(false);
+  const [templateSupplierId, setTemplateSupplierId] = useState<string>("");
+
   // حالة نافذة الاعتماد المتقدمة
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [selectedQuotationForApproval, setSelectedQuotationForApproval] = useState<any>(null);
@@ -221,7 +225,16 @@ export default function Quotations() {
     },
   });
 
-  const downloadQuotationTemplate = async () => {
+  const downloadQuotationTemplate = async (supplierIdToUse?: string) => {
+    const targetSupplierId = supplierIdToUse || templateSupplierId;
+    const selectedSupplier = (suppliers || []).find((s: any) => s.id.toString() === targetSupplierId);
+    const supplierNameToUse = selectedSupplier?.name || "";
+
+    if (!targetSupplierId || !supplierNameToUse) {
+      toast.error("يرجى اختيار المورد من القائمة أولاً");
+      return;
+    }
+
     if (!boqData?.items || boqData.items.length === 0) {
       toast.error("لا توجد بنود في جدول الكميات لتسعيرها");
       return;
@@ -233,58 +246,83 @@ export default function Quotations() {
         views: [{ showGridLines: true, rightToLeft: true }]
       });
 
-      // 1. إضافة ورقة عمل مخفية للموردين
-      const supplierSheet = workbook.addWorksheet("SuppliersData");
-      supplierSheet.state = "hidden";
-      
-      const supplierNames = (suppliers || []).map((s: any) => s.name);
-      if (supplierNames.length === 0) {
-        supplierNames.push("لا يوجد موردين نشطين");
-      }
-
-      supplierNames.forEach((name, index) => {
-        supplierSheet.getCell(`A${index + 1}`).value = name;
+      // 1. تفعيل حماية ورقة العمل لمنع تعديل الخلايا المقفلة (اسم المورد والبنود)
+      await worksheet.protect("Tamam2026", {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertColumns: false,
+        insertRows: false,
+        insertHyperlinks: false,
+        deleteColumns: false,
+        deleteRows: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
       });
 
-      // 2. تصميم الواجهة الرئيسية لعرض السعر
-      worksheet.getCell("A1").value = "المورد *";
-      worksheet.getCell("B1").value = ""; // خلية الاختيار للمورد
-      
-      // تفعيل القائمة المنسدلة لخلية المورد B1
-      worksheet.getCell("B1").dataValidation = {
-        type: "list",
-        allowBlank: false,
-        formulae: [`SuppliersData!$A$1:$A$${supplierNames.length}`],
-        showErrorMessage: true,
-        errorTitle: "خطأ في اختيار المورد",
-        error: "يرجى اختيار المورد من القائمة المنسدلة المتاحة"
-      };
+      // 2. ورقة عمل مخفية للموردين
+      const supplierSheet = workbook.addWorksheet("SuppliersData");
+      supplierSheet.state = "hidden";
+      supplierSheet.getCell("A1").value = supplierNameToUse;
 
-      worksheet.getCell("A2").value = "تاريخ انتهاء صلاحية العرض";
-      worksheet.getCell("B2").value = ""; // خلية التاريخ
-      worksheet.getCell("B2").note = "يرجى كتابة التاريخ بصيغة السنة-الشهر-اليوم YYYY-MM-DD";
+      // 3. تصميم الواجهة الرئيسية لعرض السعر
+      const a1Cell = worksheet.getCell("A1");
+      a1Cell.value = "المورد *";
+      a1Cell.font = { bold: true };
+      a1Cell.protection = { locked: true };
+
+      const b1Cell = worksheet.getCell("B1");
+      b1Cell.value = supplierNameToUse; // كتابة اسم المورد المختار
+      b1Cell.font = { bold: true, color: { argb: "FF1E3A8A" } };
+      b1Cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE0F2FE" }
+      };
+      b1Cell.protection = { locked: true }; // قفل الخلية كلياً لمنع التعديل
+
+      const a2Cell = worksheet.getCell("A2");
+      a2Cell.value = "تاريخ انتهاء صلاحية العرض";
+      a2Cell.font = { bold: true };
+      a2Cell.protection = { locked: true };
+
+      const b2Cell = worksheet.getCell("B2");
+      b2Cell.value = ""; // خلية التاريخ
+      b2Cell.note = "يرجى كتابة التاريخ بصيغة السنة-الشهر-اليوم YYYY-MM-DD";
+      b2Cell.protection = { locked: false }; // السماح بإدخال التاريخ
 
       // صف فارغ
       worksheet.addRow([]);
 
       // صف العناوين للبنود
-      worksheet.addRow(["اسم البند", "الوحدة", "الكمية", "سعر الوحدة"]);
+      const headerRow = worksheet.addRow(["اسم البند", "الوحدة", "الكمية", "سعر الوحدة *"]);
+      headerRow.font = { bold: true };
+      headerRow.eachCell((cell) => {
+        cell.protection = { locked: true };
+      });
 
       // إدراج بنود جدول الكميات
       boqData.items.forEach((item: any) => {
-        worksheet.addRow([
+        const row = worksheet.addRow([
           item.itemName,
           item.unit,
           parseFloat(item.quantity),
           "" // حقل سعر الوحدة فارغ للتعبئة
         ]);
+        row.getCell(1).protection = { locked: true };
+        row.getCell(2).protection = { locked: true };
+        row.getCell(3).protection = { locked: true };
+        row.getCell(4).protection = { locked: false }; // السماح بإدخال السعر
       });
 
-      // تنسيقات الأعمدة لتسهيل الرؤية والقراءة
-      worksheet.getColumn(1).width = 40; // اسم البند
-      worksheet.getColumn(2).width = 15; // الوحدة
-      worksheet.getColumn(3).width = 15; // الكمية
-      worksheet.getColumn(4).width = 20; // سعر الوحدة
+      // تنسيقات الأعمدة
+      worksheet.getColumn(1).width = 40;
+      worksheet.getColumn(2).width = 15;
+      worksheet.getColumn(3).width = 15;
+      worksheet.getColumn(4).width = 20;
 
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -297,13 +335,18 @@ export default function Quotations() {
         const clean = projectNameStr.replace(/[\/\\?%*:|"<>]/g, "_").trim();
         projectPart = clean.startsWith("مشروع") ? clean : `مشروع_${clean}`;
       }
-      const fileName = projectPart ? `قالب_عرض_سعر_${projectPart}.xlsx` : "قالب_عرض_سعر_المشروع.xlsx";
+      const cleanSupplierName = supplierNameToUse.replace(/[\/\\?%*:|"<>]/g, "_").trim();
+      const fileName = projectPart
+        ? `قالب_عرض_سعر_${projectPart}_${cleanSupplierName}.xlsx`
+        : `قالب_عرض_سعر_${cleanSupplierName}.xlsx`;
+
       const a = document.createElement("a");
       a.href = url;
       a.download = fileName;
       a.click();
       window.URL.revokeObjectURL(url);
-      toast.success("تم تحميل قالب عرض السعر بنجاح");
+      toast.success(`تم تحميل قالب عرض السعر للمورد (${supplierNameToUse}) بنجاح`);
+      setShowDownloadTemplateDialog(false);
     } catch (error) {
       console.error("Failed to generate Quotation template:", error);
       toast.error("حدث خطأ أثناء تحميل القالب");
@@ -1640,7 +1683,10 @@ export default function Quotations() {
                     onChange={handleQuotationExcelUpload}
                   />
                   <Button
-                    onClick={downloadQuotationTemplate}
+                    onClick={() => {
+                      setTemplateSupplierId(selectedSupplierId || "");
+                      setShowDownloadTemplateDialog(true);
+                    }}
                     variant="outline"
                     className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
                     size="sm"
@@ -2193,6 +2239,66 @@ export default function Quotations() {
               </Button>
               <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
                 إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog اختيار المورد لتحميل قالب التسعير */}
+        <Dialog open={showDownloadTemplateDialog} onOpenChange={setShowDownloadTemplateDialog}>
+          <DialogContent className="sm:max-w-[450px]" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                <FileSpreadsheet className="h-6 w-6 text-green-600" />
+                تحميل قالب التسعير (Excel)
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1.5">
+                اختر المورد لإنشاء قالب عرض السعر الخاص به. سيكون اسم المورد ثابتاً ومكتوباً ولا يمكن تعديله داخل ملف الـ Excel.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-right">
+              <div className="space-y-2">
+                <Label htmlFor="template-supplier-select" className="text-sm font-bold">
+                  اختر المورد <span className="text-red-500">*</span>
+                </Label>
+                <Select value={templateSupplierId} onValueChange={setTemplateSupplierId}>
+                  <SelectTrigger id="template-supplier-select" className="w-full text-right bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700">
+                    <SelectValue placeholder="-- اختر المورد من القائمة --" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[250px] z-[9999]">
+                    {suppliers && suppliers.length > 0 ? (
+                      suppliers.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id.toString()}>
+                          {s.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        لا يوجد موردين نشطين
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowDownloadTemplateDialog(false)}
+                type="button"
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => downloadQuotationTemplate(templateSupplierId)}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
+                disabled={!templateSupplierId}
+                type="button"
+              >
+                <Download className="h-4 w-4" />
+                تحميل الملف (Excel)
               </Button>
             </DialogFooter>
           </DialogContent>
