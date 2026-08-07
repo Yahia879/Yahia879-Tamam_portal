@@ -138,8 +138,10 @@ export default function ReceiptVouchers() {
     { enabled: activeModalProjectId > 0 }
   );
 
-  // استخراج قائمة الداعمين للمشروع المختار في المودال
+  // استخراج قائمة الداعمين والتفاصيل المالية للمشروع المختار داخل المودال
+  const supporterDetailsList: Array<{ name: string; amount: number }> = [];
   const projectSupporters: string[] = [];
+
   if (projectFinancialData?.financialDetail) {
     if (projectFinancialData.financialDetail.supportSourcesJson) {
       try {
@@ -149,8 +151,10 @@ export default function ReceiptVouchers() {
             let name = item.entity === "اخرى" ? item.customEntity : item.entity;
             if (name && name.trim()) {
               name = name.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+              const amount = parseFloat((item.amount || "0").toString());
               if (name && !projectSupporters.includes(name)) {
                 projectSupporters.push(name);
+                supporterDetailsList.push({ name, amount });
               }
             }
           });
@@ -161,9 +165,51 @@ export default function ReceiptVouchers() {
     }
     if (projectSupporters.length === 0 && projectFinancialData.financialDetail.supportEntity) {
       const cleanEntity = projectFinancialData.financialDetail.supportEntity.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
-      if (cleanEntity) projectSupporters.push(cleanEntity);
+      const amount = parseFloat((projectFinancialData.financialDetail.supportAmount || "0").toString());
+      if (cleanEntity) {
+        projectSupporters.push(cleanEntity);
+        supporterDetailsList.push({ name: cleanEntity, amount });
+      }
     }
   }
+
+  // تحديد اسم الداعم المختار (نظيف)
+  const selectedSupporterCleanName = modalPayerName === "اخرى" 
+    ? customPayerName.trim() 
+    : modalPayerName.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+
+  // جلب المبلغ الملتزم به للداعم المختار
+  const matchedSupporterItem = supporterDetailsList.find(s => s.name === selectedSupporterCleanName);
+  const finDetail = (projectFinancialData as any)?.financialDetail;
+  const projectApprovedBudget = parseFloat(((finDetail?.supportAmount || finDetail?.approvedCost || finDetail?.estimatedCost) || "0").toString());
+  
+  const supporterCommittedAmount = matchedSupporterItem 
+    ? matchedSupporterItem.amount 
+    : (supporterDetailsList.length === 1 ? supporterDetailsList[0].amount : projectApprovedBudget);
+
+  // حساب المبلغ الذي سدده الداعم سابقاً من سندات القبض الخاصة بالمشروع
+  const projectVouchersList: any[] = (projectFinancialData as any)?.receiptVouchers || (projectFinancialData as any)?.vouchers || [];
+  const validProjectVouchers = projectVouchersList.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+
+  const previouslyPaidBySupporter = validProjectVouchers
+    .filter((v: any) => {
+      if (!selectedSupporterCleanName) return true;
+      const cleanPayerInVoucher = (v.payerName || "").replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+      return cleanPayerInVoucher.includes(selectedSupporterCleanName) || selectedSupporterCleanName.includes(cleanPayerInVoucher);
+    })
+    .reduce((sum: number, v: any) => sum + parseFloat((v.amount || "0").toString()), 0);
+
+  // حساب المتبقي غير المسدد على الداعم
+  const remainingUnpaidForSupporter = Math.max(0, supporterCommittedAmount - previouslyPaidBySupporter);
+
+  // تلقائياً: تحديد الداعم الأول عند فتح المودال أو اختيار مشروع يحتوي داعمين مسجلين
+  useEffect(() => {
+    if (isAddVoucherModalOpen && projectSupporters.length > 0) {
+      if (!modalPayerName || (!projectSupporters.includes(modalPayerName) && modalPayerName !== "اخرى")) {
+        setModalPayerName(projectSupporters[0]);
+      }
+    }
+  }, [modalProjectId, projectSupporters.length, isAddVoucherModalOpen]);
 
   // الطفرات (Mutations)
   const createVoucherMutation = trpc.projects.createReceiptVoucher.useMutation({
@@ -821,57 +867,59 @@ export default function ReceiptVouchers() {
           </CardContent>
         </Card>
 
-        {/* مودال تسجيل/تعديل سند قبض */}
+        {/* مودال تسجيل/تعديل سند قبض ممتد مع إحصائيات الدفعات */}
         <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
-          <DialogContent className="dir-rtl text-right max-w-md">
-            <DialogHeader className="text-right">
-              <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">
-                <Receipt className="h-5 w-5 text-emerald-600" />
-                {editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}
+          <DialogContent className="dir-rtl text-right max-w-2xl sm:max-w-3xl font-sans bg-white rounded-xl shadow-2xl p-6 border-0">
+            <DialogHeader className="text-right border-b pb-4">
+              <DialogTitle className="text-lg font-bold flex items-center gap-2.5 text-slate-800">
+                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <span>{editingVoucherId ? "تعديل سند القبض" : "تسجيل سند قبض جديد"}</span>
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 py-2 text-xs text-right">
-              
-              {/* اختيار المشروع */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
-                <Select value={modalProjectId} onValueChange={setModalProjectId} disabled={!!editingVoucherId}>
-                  <SelectTrigger className="h-10 text-xs bg-white">
-                    <SelectValue placeholder="اختر المشروع..." />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl" className="max-h-60">
-                    {projectsList.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
-                          <span className="font-medium">{p.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* اختيار اللقب والجهة الداعمة / المسدد */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="col-span-1 space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800">اللقب / الصفة *</Label>
-                  <Select value={modalHonorificTitle} onValueChange={setModalHonorificTitle}>
-                    <SelectTrigger className="h-10 text-xs bg-white">
-                      <SelectValue placeholder="اللقب..." />
+            <div className="space-y-5 py-3">
+              {/* 1. اختيار المشروع والجهة الداعمة */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* اختيار المشروع */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
+                  <Select value={modalProjectId} onValueChange={setModalProjectId} disabled={!!editingVoucherId}>
+                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="اختر المشروع..." />
                     </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="السادة">السادة</SelectItem>
-                      <SelectItem value="السيد">السيد</SelectItem>
-                      <SelectItem value="السيدة">السيدة</SelectItem>
+                    <SelectContent dir="rtl" className="max-h-60">
+                      {projectsList.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
+                            <span className="font-medium">{p.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="col-span-2 space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
-                  {projectSupporters.length > 0 ? (
+                {/* اختيار اللقب والجهة الداعمة / المسدد */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1 space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-800">اللقب / الصفة *</Label>
+                    <Select value={modalHonorificTitle} onValueChange={setModalHonorificTitle}>
+                      <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
+                        <SelectValue placeholder="اللقب..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="السادة">السادة</SelectItem>
+                        <SelectItem value="السيد">السيد</SelectItem>
+                        <SelectItem value="السيدة">السيدة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-800">الجهة الداعمة / المسدد *</Label>
                     <Select
                       value={modalPayerName}
                       onValueChange={(val) => {
@@ -879,10 +927,10 @@ export default function ReceiptVouchers() {
                         if (val !== "اخرى") setCustomPayerName("");
                       }}
                     >
-                      <SelectTrigger className="h-10 text-xs bg-white">
-                        <SelectValue placeholder="اختر الداعم المسجل..." />
+                      <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full">
+                        <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "اختر الداعم..."} />
                       </SelectTrigger>
-                      <SelectContent dir="rtl">
+                      <SelectContent dir="rtl" className="max-h-60">
                         {projectSupporters.map((sup, idx) => (
                           <SelectItem key={idx} value={sup}>
                             {sup}
@@ -893,14 +941,7 @@ export default function ReceiptVouchers() {
                         </SelectItem>
                       </SelectContent>
                     </Select>
-                  ) : (
-                    <Input
-                      value={modalPayerName}
-                      onChange={(e) => setModalPayerName(e.target.value)}
-                      placeholder="اسم الداعم..."
-                      className="h-10 text-xs bg-white"
-                    />
-                  )}
+                  </div>
                 </div>
               </div>
 
@@ -912,34 +953,94 @@ export default function ReceiptVouchers() {
                     value={customPayerName}
                     onChange={(e) => setCustomPayerName(e.target.value)}
                     placeholder="أدخل اسم الداعم..."
-                    className="h-10 text-xs bg-white"
+                    className="h-10 text-xs bg-white border-slate-200"
                   />
                 </div>
               )}
 
-              {/* مبلغ الدفعة المقبوضة */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800">مبلغ الدفعة المقبوضة (ريال) *</Label>
-                <Input
-                  type="number"
-                  min={0.01}
-                  step={0.01}
-                  value={modalAmount}
-                  onChange={(e) => setModalAmount(e.target.value)}
-                  placeholder="مثال: 50000"
-                  className="h-10 font-bold text-emerald-800 text-left [direction:ltr] bg-white"
-                />
-              </div>
+              {/* 2. كروت الإحصائيات المالية المباشرة للمشروع والداعم داخل المودال */}
+              {activeModalProjectId > 0 && (
+                <div className="p-4 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Coins className="h-4 w-4 text-emerald-600" />
+                      <span>الموقف المالي للداعم والمشروع</span>
+                    </span>
+                    {selectedSupporterCleanName && (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[11px]">
+                        الداعم: {selectedSupporterCleanName}
+                      </Badge>
+                    )}
+                  </div>
 
-              {/* تاريخ القبض */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-800">تاريخ القبض *</Label>
-                <Input
-                  type="date"
-                  value={modalDate}
-                  onChange={(e) => setModalDate(e.target.value)}
-                  className="h-10 text-xs bg-white"
-                />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* المبلغ الملتزم به للداعم */}
+                    <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200/80 shadow-2xs">
+                      <span className="text-[11px] text-muted-foreground font-semibold block">المبلغ الملتزم به للداعم</span>
+                      <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
+                        {supporterCommittedAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                        <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
+                      </span>
+                    </div>
+
+                    {/* المبلغ الذي سدده الداعم سابقاً */}
+                    <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-lg border border-emerald-200/80 shadow-2xs">
+                      <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold block">سدده الداعم سابقاً</span>
+                      <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 block mt-0.5">
+                        {previouslyPaidBySupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                        <span className="text-[10px] font-normal text-emerald-600 mr-1">ريال</span>
+                      </span>
+                    </div>
+
+                    {/* المتبقي غير المسدد علي الداعم */}
+                    <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded-lg border border-amber-200/80 shadow-2xs">
+                      <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold block">المتبقي غير المسدد</span>
+                      <span className="text-base font-extrabold text-amber-700 dark:text-amber-400 block mt-0.5">
+                        {remainingUnpaidForSupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                        <span className="text-[10px] font-normal text-amber-600 mr-1">ريال</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. تفاصيل سند القبض: المبلغ والتاريخ والبيان */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* مبلغ الدفعة المقبوضة */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-800">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                    {remainingUnpaidForSupporter > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setModalAmount(remainingUnpaidForSupporter.toString())}
+                        className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        تعبئة المتبقي ({remainingUnpaidForSupporter.toLocaleString()} ريال)
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    value={modalAmount}
+                    onChange={(e) => setModalAmount(e.target.value)}
+                    placeholder="مثال: 50000"
+                    className="h-10 font-bold text-emerald-800 text-left [direction:ltr] bg-white border-slate-200"
+                  />
+                </div>
+
+                {/* تاريخ القبض */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-800">تاريخ القبض *</Label>
+                  <Input
+                    type="date"
+                    value={modalDate}
+                    onChange={(e) => setModalDate(e.target.value)}
+                    className="h-10 text-xs bg-white border-slate-200"
+                  />
+                </div>
               </div>
 
               {/* البيان / الملاحظات */}
@@ -950,21 +1051,21 @@ export default function ReceiptVouchers() {
                   onChange={(e) => setModalNotes(e.target.value)}
                   placeholder="أدخل البيان أو سبب القبض..."
                   rows={3}
-                  className="bg-white"
+                  className="bg-white border-slate-200 text-xs"
                 />
               </div>
 
             </div>
 
-            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-2 border-t">
+            <DialogFooter className="flex justify-between items-center gap-2 sm:justify-start pt-4 border-t mt-2">
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
                 disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700 font-bold text-xs"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 h-10 rounded-lg shadow-2xs"
               >
                 {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
-                  <Loader2 className="h-3.5 w-3.5 ml-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
                 )}
                 {editingVoucherId ? "حفظ التعديلات" : "تسجيل سند القبض"}
               </Button>
@@ -972,7 +1073,7 @@ export default function ReceiptVouchers() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsAddVoucherModalOpen(false)}
-                className="text-xs"
+                className="text-xs h-10 px-5 rounded-lg border-slate-200"
               >
                 إلغاء
               </Button>
