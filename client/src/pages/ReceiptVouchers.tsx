@@ -110,6 +110,12 @@ export default function ReceiptVouchers() {
   const [actionReason, setActionReason] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
 
+  // جلب قائمة المشاريع للاختيار من القائمة المنسدلة
+  const { data: rawProjectsData } = trpc.projects.getAll.useQuery({
+    limit: 200,
+  });
+  const projectsList: any[] = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
+
   // تحديث حالة المشروع عند تغير البارامتر بالرابط
   useEffect(() => {
     const pId = urlParams.get("projectId");
@@ -117,12 +123,6 @@ export default function ReceiptVouchers() {
       setSelectedProjectId(pId);
     }
   }, [window.location.search]);
-
-  // جلب قائمة المشاريع للاختيار من القائمة المنسدلة
-  const { data: rawProjectsData } = trpc.projects.getAll.useQuery({
-    limit: 200,
-  });
-  const projectsList: any[] = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
 
   // جلب سندات القبض مع الفلترة
   const { data: allVouchers = [], isLoading: isLoadingVouchers, refetch: refetchVouchers } = trpc.projects.getAllReceiptVouchers.useQuery({
@@ -780,6 +780,7 @@ export default function ReceiptVouchers() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                {/* 1. عرض سند القبض والطباعة */}
                                 <DropdownMenuItem
                                   onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
                                   className="flex items-center gap-2 cursor-pointer text-[#1a5f4a] hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -788,7 +789,7 @@ export default function ReceiptVouchers() {
                                   <span>عرض وسند القبض والطباعة</span>
                                 </DropdownMenuItem>
 
-                                {/* اعتماد سند القبض للمسؤول المالي */}
+                                {/* 2. اعتماد سند القبض */}
                                 {isFaaa8User && voucher.status === "pending_approval" && (
                                   <DropdownMenuItem
                                     onClick={() => approveVoucherMutation.mutate({ id: voucher.id })}
@@ -800,41 +801,7 @@ export default function ReceiptVouchers() {
                                   </DropdownMenuItem>
                                 )}
 
-                                {/* عرض المبررات / السبب */}
-                                {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
-                                  <DropdownMenuItem
-                                    onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
-                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50"
-                                  >
-                                    <Info className="h-4 w-4 text-amber-600" />
-                                    <span>عرض مبررات إلغاء الاعتماد / السبب</span>
-                                  </DropdownMenuItem>
-                                )}
-
-                                {/* تعديل سند القبض */}
-                                {voucher.status !== "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => openEditVoucherModal(voucher)}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
-                                  >
-                                    <Edit3 className="h-4 w-4 text-gray-500" />
-                                    <span>تعديل سند القبض</span>
-                                  </DropdownMenuItem>
-                                )}
-
-                                {/* إلغاء الاعتماد للمسؤول المالي */}
-                                {isFaaa8User && voucher.status === "approved" && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleOpenRevokeModal(voucher)}
-                                    disabled={revokeVoucherApprovalMutation.isPending}
-                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50"
-                                  >
-                                    <RotateCcw className="h-4 w-4 text-amber-600" />
-                                    <span>إلغاء الاعتماد</span>
-                                  </DropdownMenuItem>
-                                )}
-
-                                {/* رفض سند القبض للمسؤول المالي */}
+                                {/* 3. رفض سند القبض */}
                                 {isFaaa8User && voucher.status === "pending_approval" && (
                                   <DropdownMenuItem
                                     onClick={() => handleOpenRejectModal(voucher)}
@@ -846,7 +813,41 @@ export default function ReceiptVouchers() {
                                   </DropdownMenuItem>
                                 )}
 
-                                {/* حذف سند القبض */}
+                                {/* 4. تعديل سند القبض */}
+                                {voucher.status !== "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => openEditVoucherModal(voucher)}
+                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
+                                  >
+                                    <Edit3 className="h-4 w-4 text-gray-500" />
+                                    <span>تعديل سند القبض</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* 5. إلغاء الاعتماد */}
+                                {isFaaa8User && voucher.status === "approved" && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenRevokeModal(voucher)}
+                                    disabled={revokeVoucherApprovalMutation.isPending}
+                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:bg-amber-50"
+                                  >
+                                    <RotateCcw className="h-4 w-4 text-amber-600" />
+                                    <span>إلغاء الاعتماد</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* 6. عرض المبررات / السبب */}
+                                {((voucher as any).rejectionReason || (voucher.notes && (voucher.notes.includes("إلغاء الاعتماد") || voucher.notes.includes("مرفوض")))) && (
+                                  <DropdownMenuItem
+                                    onClick={() => setJustificationModalNote((voucher as any).rejectionReason || voucher.notes || "لا يوجد مبرر مسجل")}
+                                    className="flex items-center gap-2 cursor-pointer text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50"
+                                  >
+                                    <Info className="h-4 w-4 text-amber-600" />
+                                    <span>عرض مبررات إلغاء الاعتماد / السبب</span>
+                                  </DropdownMenuItem>
+                                )}
+
+                                {/* 7. حذف سند القبض */}
                                 {voucher.status !== "approved" && (
                                   <DropdownMenuItem
                                     onClick={() => handleDeleteVoucher(voucher.id)}
