@@ -21,7 +21,7 @@ interface FinalReportModalProps {
 }
 
 export function FinalReportModal({ requestId, isOpen, onClose }: FinalReportModalProps) {
-  const { data: report, isLoading, error } = trpc.requests.getSummaryReport.useQuery(
+  const { data: report, isLoading, error } = (trpc.requests as any).getSummaryReport.useQuery(
     { id: requestId },
     { enabled: isOpen }
   );

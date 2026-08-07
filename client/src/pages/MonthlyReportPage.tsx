@@ -403,7 +403,7 @@ export default function MonthlyReportPage({ showLayout = true }: { showLayout?: 
     const matchedList = selectedBlock.reports;
     const sumActual = Math.min(100, matchedList.reduce((acc, r) => acc + (r.actualProgress || 0), 0));
     const sumPlanned = Math.min(100, matchedList.reduce((acc, r) => acc + (r.plannedProgress || 0), 0));
-    const targetMonthYear = matchedList[0]?.monthYear || monthYear;
+    const targetMonthYear = (matchedList[0] as any)?.monthYear || monthYear;
 
     if (selectedBlock.from) setPeriodFrom(selectedBlock.from);
     if (selectedBlock.to) {

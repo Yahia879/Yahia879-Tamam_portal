@@ -229,7 +229,7 @@ export default function RequestDetailsNew() {
       toast.success("تم تحديث التسمية التوضيحية بنجاح");
       setShowEditCaptionDialog(false);
       utils.requests.getById.invalidate({ id: requestId });
-      utils.requests.list.invalidate();
+      (utils.requests as any).list?.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ التسمية التوضيحية");

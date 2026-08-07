@@ -22,7 +22,7 @@ export default function AssignFinalReport() {
       if (!isAuthenticated) {
         toast.error("يجب تسجيل الدخول للوصول لهذه الصفحة");
         setLocation("/login");
-      } else if (user?.role === "corporate_comm" && !user?.permissions?.includes("requests.upload_final_report")) {
+      } else if (user?.role === "corporate_comm" && !(user?.permissions as string[])?.includes("requests.upload_final_report")) {
         toast.error("ليس لديك صلاحية لتعيين المسؤول");
         setLocation(`/requests/${requestId}`);
       }

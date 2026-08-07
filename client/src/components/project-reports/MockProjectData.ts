@@ -217,6 +217,8 @@ export const MOCK_SEMI_MONTHLY_REPORTS: SemiMonthlyReportItem[] = [
     id: "sm-102-2",
     projectId: "proj-102",
     title: "تقرير النصف الثاني - يوليو 2026",
+    monthYear: "2026-07",
+    half: 2,
     period: "16 - 31 يوليو 2026",
     actualProgress: 60,
     plannedProgress: 90,
