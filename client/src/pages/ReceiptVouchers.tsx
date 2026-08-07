@@ -694,7 +694,7 @@ export default function ReceiptVouchers() {
                                   </Tooltip>
                                 </TooltipProvider>
                               )}
-                              <span className="text-primary font-bold">{voucher.voucherNumber}</span>
+                              <span>{voucher.voucherNumber}</span>
                             </div>
                           </TableCell>
 
