@@ -152,8 +152,9 @@ export default function ReceiptVouchers() {
             let name = item.entity === "اخرى" ? item.customEntity : item.entity;
             if (name && name.trim()) {
               name = name.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+              const isGenAcc = name.includes("الحساب العام");
               const amount = parseFloat((item.amount || "0").toString());
-              if (name && !projectSupporters.includes(name)) {
+              if (name && !isGenAcc && !projectSupporters.includes(name)) {
                 projectSupporters.push(name);
                 supporterDetailsList.push({ name, amount });
               }
@@ -166,8 +167,9 @@ export default function ReceiptVouchers() {
     }
     if (projectSupporters.length === 0 && projectFinancialData.financialDetail.supportEntity) {
       const cleanEntity = projectFinancialData.financialDetail.supportEntity.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
+      const isGenAcc = cleanEntity.includes("الحساب العام");
       const amount = parseFloat((projectFinancialData.financialDetail.supportAmount || "0").toString());
-      if (cleanEntity) {
+      if (cleanEntity && !isGenAcc) {
         projectSupporters.push(cleanEntity);
         supporterDetailsList.push({ name: cleanEntity, amount });
       }
@@ -404,6 +406,11 @@ export default function ReceiptVouchers() {
     const cleanPayer = modalPayerName.trim();
     if (!cleanPayer) {
       toast.error("يرجى اختيار اسم الجهة الداعمة المسجلة للمشروع");
+      return;
+    }
+
+    if (!editingVoucherId && remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0) {
+      toast.error("عذراً، هذا الداعم قد سدد كامل المبلغ الملتزم به سابقاً ولا يوجد متبقي غير مسدد لتسجيل سند قبض جديد");
       return;
     }
 
@@ -998,12 +1005,20 @@ export default function ReceiptVouchers() {
                     {/* المتبقي غير المسدد علي الداعم */}
                     <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded-lg border border-amber-200/80 shadow-2xs">
                       <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold block">المتبقي غير المسدد</span>
-                      <span className="text-base font-extrabold text-amber-700 dark:text-amber-400 block mt-0.5">
+                      <span className={`text-base font-extrabold block mt-0.5 ${remainingUnpaidForSupporter <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
                         {remainingUnpaidForSupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
-                        <span className="text-[10px] font-normal text-amber-600 mr-1">ريال</span>
+                        <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
                       </span>
                     </div>
                   </div>
+
+                  {/* تنبيه عند اكتمال سداد الداعم */}
+                  {remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId && (
+                    <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-lg text-emerald-900 flex items-center gap-2 text-xs font-bold mt-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>تم سداد كامل المبلغ الملتزم به من قبل هذا الداعم بنجاح ({supporterCommittedAmount.toLocaleString()} ريال)، ولا يوجد متبقي غير مسدد لتسجيل سند قبض جديد.</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1030,6 +1045,7 @@ export default function ReceiptVouchers() {
                     value={modalAmount}
                     onChange={(e) => setModalAmount(e.target.value)}
                     placeholder="مثال: 50000"
+                    disabled={remainingUnpaidForSupporter <= 0 && !editingVoucherId}
                     className="h-10 font-bold text-emerald-800 text-left [direction:ltr] bg-white border-slate-200"
                   />
                 </div>
@@ -1064,7 +1080,7 @@ export default function ReceiptVouchers() {
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
-                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0)}
+                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0) || (remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 h-10 rounded-lg shadow-2xs"
               >
                 {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (
