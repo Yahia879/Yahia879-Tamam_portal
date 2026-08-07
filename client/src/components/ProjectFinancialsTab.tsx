@@ -1562,9 +1562,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     <SelectValue placeholder="اللقب..." />
                   </SelectTrigger>
                   <SelectContent dir="rtl">
-                    <SelectItem value="السادة">السادة /</SelectItem>
-                    <SelectItem value="السيد">السيد /</SelectItem>
-                    <SelectItem value="السيدة">السيدة /</SelectItem>
+                    <SelectItem value="السادة">السادة</SelectItem>
+                    <SelectItem value="السيد">السيد</SelectItem>
+                    <SelectItem value="السيدة">السيدة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
