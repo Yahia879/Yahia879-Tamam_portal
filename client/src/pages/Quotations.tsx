@@ -1671,7 +1671,7 @@ export default function Quotations() {
               {/* خيارات الاستيراد والتصدير عبر Excel */}
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 p-4">
                 <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                  <FileSpreadsheet className="h-5 w-5 text-primary" />
                   <span className="font-semibold text-sm">تعبئة عرض السعر عبر Excel</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1688,7 +1688,7 @@ export default function Quotations() {
                       setShowDownloadTemplateDialog(true);
                     }}
                     variant="outline"
-                    className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                    className="border-primary text-primary hover:bg-primary/10 text-xs sm:text-sm"
                     size="sm"
                   >
                     <Download className="h-4 w-4 ml-2" />
@@ -1697,7 +1697,7 @@ export default function Quotations() {
                   <Button
                     onClick={() => document.getElementById("quotation-excel-upload")?.click()}
                     variant="outline"
-                    className="border-green-600 text-green-600 hover:bg-green-50 text-xs sm:text-sm"
+                    className="border-primary text-primary hover:bg-primary/10 text-xs sm:text-sm"
                     size="sm"
                   >
                     <Upload className="h-4 w-4 ml-2" />
@@ -2249,7 +2249,7 @@ export default function Quotations() {
           <DialogContent className="sm:max-w-[450px]" dir="rtl">
             <DialogHeader className="text-right sm:text-right">
               <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-                <FileSpreadsheet className="h-6 w-6 text-green-600" />
+                <FileSpreadsheet className="h-6 w-6 text-primary" />
                 تحميل قالب التسعير (Excel)
               </DialogTitle>
               <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1.5">
@@ -2293,7 +2293,7 @@ export default function Quotations() {
               </Button>
               <Button
                 onClick={() => downloadQuotationTemplate(templateSupplierId)}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold gap-2"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold gap-2"
                 disabled={!templateSupplierId}
                 type="button"
               >
