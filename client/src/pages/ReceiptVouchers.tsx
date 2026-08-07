@@ -77,7 +77,7 @@ export default function ReceiptVouchers() {
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
   const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
-  const canEdit = isAdmin || userPermissions.includes("receipt_vouchers.edit");
+  const canEdit = userPermissions.includes("receipt_vouchers.edit");
 
   // الحصول على البارامترات من URL إن وجدت
   const urlParams = new URLSearchParams(window.location.search);
