@@ -132,6 +132,7 @@ async function run() {
           await db.insert(schema.userPermissions).values({
             userId: user.id,
             permissionId: permId,
+            granted: true,
           });
           console.log(`  ✔ Granted "${permId}" to user ID ${user.id}.`);
         } else {
