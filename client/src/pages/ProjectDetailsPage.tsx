@@ -1262,7 +1262,7 @@ export default function ProjectDetailsPage() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center gap-2 justify-center">
-                              {payment.id && (
+                              {payment.id && payment.status !== "paid" && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
