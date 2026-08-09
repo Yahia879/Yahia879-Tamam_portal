@@ -382,10 +382,19 @@ export default function ReceiptVoucherPrint() {
             </div>
 
             <div className="flex items-start gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-1">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg leading-relaxed sm:leading-loose min-h-[56px]">
+              <div
+                className="grow text-slate-900 font-black text-base sm:text-lg min-h-[4.4rem]"
+                style={{
+                  backgroundImage: "radial-gradient(circle, #94a3b8 1.2px, transparent 1.2px)",
+                  backgroundSize: "8px 2.2rem",
+                  backgroundPosition: "0 1.95rem",
+                  backgroundRepeat: "repeat",
+                  lineHeight: "2.2rem",
+                }}
+              >
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
