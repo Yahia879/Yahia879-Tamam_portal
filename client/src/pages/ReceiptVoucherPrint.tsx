@@ -232,16 +232,7 @@ export default function ReceiptVoucherPrint() {
             background-color: white !important;
             padding: 0 !important;
           }
-          .print-container {
-            max-width: 100% !important;
-            width: 100% !important;
-            box-shadow: none !important;
-            padding: 8mm !important;
-            margin: 0 !important;
-            min-height: 0 !important;
-            height: auto !important;
-          }
-          .print-card {
+                 .print-card {
             box-shadow: none !important;
             border: none !important;
             margin: 0 auto !important;
@@ -249,6 +240,14 @@ export default function ReceiptVoucherPrint() {
             width: 100% !important;
             max-width: 100% !important;
           }
+        }
+        .voucher-fixed-two-lines {
+          background-image: 
+            linear-gradient(to right, #94a3b8 50%, transparent 0%),
+            linear-gradient(to right, #94a3b8 50%, transparent 0%);
+          background-position: 0 2.1rem, 0 4.4rem;
+          background-size: 8px 2px, 8px 2px;
+          background-repeat: repeat-x, repeat-x;
         }
       `}</style>
 
@@ -351,7 +350,7 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Main Document Content Body */}
-          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-9 sm:mb-11 relative z-10">
+          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-6 relative z-10">
             <div className="flex items-baseline gap-3 text-right">
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 استلمنا من
@@ -385,10 +384,8 @@ export default function ReceiptVoucherPrint() {
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
                 وذلك مقابل
               </span>
-              <div className="grow text-slate-900 font-black text-base sm:text-lg leading-[2.2rem] sm:leading-[2.5rem] min-h-[56px]">
-                <span className="inline [box-decoration-break:clone] [-webkit-box-decoration-break:clone] border-b-2 border-dotted border-slate-400 pb-1">
-                  {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
-                </span>
+              <div className="grow text-slate-900 font-black text-base sm:text-lg leading-[2.3rem] h-[4.6rem] overflow-hidden voucher-fixed-two-lines">
+                {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
           </div>
