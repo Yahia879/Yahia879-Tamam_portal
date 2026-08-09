@@ -351,7 +351,7 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Main Document Content Body */}
-          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-6 relative z-10">
+          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-9 sm:mb-11 relative z-10">
             <div className="flex items-baseline gap-3 text-right">
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 استلمنا من
@@ -385,7 +385,7 @@ export default function ReceiptVoucherPrint() {
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg min-h-[32px]">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
