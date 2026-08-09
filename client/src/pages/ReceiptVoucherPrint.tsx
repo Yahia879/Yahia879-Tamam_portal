@@ -385,7 +385,7 @@ export default function ReceiptVoucherPrint() {
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg leading-[2.2rem] sm:leading-[2.5rem] min-h-[56px] underline decoration-dotted decoration-slate-400 underline-offset-[8px] sm:underline-offset-[10px] decoration-2">
+              <div className="grow pb-1 text-slate-900 font-black text-base sm:text-lg leading-[2.2rem] sm:leading-[2.5rem] min-h-[56px] underline decoration-dotted decoration-slate-400 underline-offset-[8px] sm:underline-offset-[10px] decoration-2">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
