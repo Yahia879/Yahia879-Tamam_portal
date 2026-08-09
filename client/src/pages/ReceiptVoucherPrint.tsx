@@ -381,11 +381,11 @@ export default function ReceiptVoucherPrint() {
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
+            <div className="flex items-start gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg min-h-[32px]">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg leading-relaxed sm:leading-loose min-h-[56px]">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
