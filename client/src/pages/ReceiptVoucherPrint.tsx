@@ -241,10 +241,16 @@ export default function ReceiptVoucherPrint() {
             max-width: 100% !important;
           }
         }
+        .voucher-dotted-line {
+          background-image: linear-gradient(to right, #94a3b8 45%, transparent 0%);
+          background-position: bottom;
+          background-size: 8px 2px;
+          background-repeat: repeat-x;
+        }
         .voucher-fixed-two-lines {
           background-image: 
-            linear-gradient(to right, #94a3b8 50%, transparent 0%),
-            linear-gradient(to right, #94a3b8 50%, transparent 0%);
+            linear-gradient(to right, #94a3b8 45%, transparent 0%),
+            linear-gradient(to right, #94a3b8 45%, transparent 0%);
           background-position: 0 2.1rem, 0 4.4rem;
           background-size: 8px 2px, 8px 2px;
           background-repeat: repeat-x, repeat-x;
@@ -355,7 +361,7 @@ export default function ReceiptVoucherPrint() {
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 استلمنا من
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
+              <div className="grow pb-1 text-slate-900 font-black text-lg sm:text-xl voucher-dotted-line">
                 السادة/ {voucher.payerName || "المتبرع الكريم"}
               </div>
             </div>
@@ -364,7 +370,7 @@ export default function ReceiptVoucherPrint() {
               <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 مبلغ وقدره
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-extrabold text-base sm:text-lg">
+              <div className="grow pb-1 text-slate-900 font-extrabold text-base sm:text-lg voucher-dotted-line">
                 <span className="text-emerald-800 font-black text-lg sm:text-xl ml-2">
                   {amountVal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
@@ -375,7 +381,7 @@ export default function ReceiptVoucherPrint() {
 
             <div className="flex items-baseline gap-3 text-right">
               <div className="w-[110px] shrink-0"></div>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+              <div className="grow pb-1 text-slate-900 font-black text-base sm:text-lg voucher-dotted-line">
                 {getPaymentMethodDetails()}
               </div>
             </div>
