@@ -220,6 +220,9 @@ export const disbursementsRouter = router({
           requestedByShowSignature: users.showSignatureInDocuments,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
+          creatorSignatureUrl: disbursementRequests.creatorSignatureUrl,
+          isException: disbursementRequests.isException,
+          exceptionApprovedBy: disbursementRequests.exceptionApprovedBy,
           showCreatorSignature: disbursementRequests.showCreatorSignature,
           showExecutiveDirectorSignature: disbursementRequests.showExecutiveDirectorSignature,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -1125,6 +1128,98 @@ export const disbursementsRouter = router({
       }
 
       return { success: true, message: "تم رفض طلب الصرف" };
+    }),
+
+  // استثناء اعتماد طلب صرف (السوبر آدمن فقط)
+  exceptionApproveRequest: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق الحصري من دور سوبر آدمن
+      if (ctx.user.role !== "super_admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "هذا الإجراء متاح حصرياً للحسابات ذات دور السوبر آدمن فقط",
+        });
+      }
+
+      const [request] = await db
+        .select()
+        .from(disbursementRequests)
+        .where(eq(disbursementRequests.id, input.id));
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
+      }
+
+      if (request.status === "rejected" || request.status === "paid") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن عمل استثناء اعتماد لطلب ملغى/مرفوض أو مدفوع" });
+      }
+
+      // جلب بيانات توقيع السوبر آدمن
+      const [superAdminData] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.id, ctx.user.id));
+
+      const superAdminName = superAdminData?.signatureName || superAdminData?.name || ctx.user.name || "سوبر آدمن";
+      const superAdminDept = superAdminData?.signatureDepartment || "إدارة النظام (استثناء اعتماد)";
+      const superAdminSigUrl = superAdminData?.signatureUrl || null;
+
+      // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الطلب وتحديث الـ Snapshot
+      await db
+        .update(disbursementRequests)
+        .set({
+          status: "pending_executive",
+          creatorSignatureName: superAdminName,
+          creatorSignatureDepartment: superAdminDept,
+          creatorSignatureUrl: superAdminSigUrl,
+          isException: true,
+          exceptionApprovedBy: ctx.user.id,
+          approvalNotes: input.notes ? `[استثناء اعتماد]: ${input.notes}` : (request.approvalNotes || "[تم الاعتماد باستثناء سوبر آدمن]"),
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementRequests.id, input.id));
+
+      // إرسال إشعار للمدير التنفيذي
+      const executiveUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, ["general_manager", "executive_director"]),
+            isNull(users.deletedAt)
+          )
+        );
+
+      for (const execUser of executiveUsers) {
+        await createNotification({
+          userId: execUser.id,
+          title: "طلب صرف - استثناء اعتماد سوبر آدمن",
+          message: `تم استخدام استثناء الاعتماد لطلب الصرف رقم ${request.requestNumber} بواسطة السوبر آدمن، وهو الآن بانتظار الاعتماد النهائي`,
+          type: "warning",
+          relatedType: "disbursement_request",
+          relatedId: input.id,
+        });
+      }
+
+      return {
+        success: true,
+        status: "pending_executive",
+        message: "تم تنفيذ استثناء الاعتماد بنجاح وتسجيل اسم وتوقيع السوبر آدمن",
+      };
     }),
 
   // ==================== أوامر الصرف ====================
