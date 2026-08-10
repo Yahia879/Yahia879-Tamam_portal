@@ -1175,8 +1175,11 @@ export const disbursementsRouter = router({
         });
       }
 
-      if (request.status === "rejected" || request.status === "paid") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن عمل استثناء اعتماد لطلب ملغى/مرفوض أو مدفوع" });
+      if (request.status !== "pending" && request.status !== "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن عمل استثناء اعتماد إلا للطلبات التي في مرحلة اعتماد مُعد الطلب",
+        });
       }
 
       // جلب بيانات توقيع المستخدم المنفذ للاستثناء
