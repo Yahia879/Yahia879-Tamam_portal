@@ -212,10 +212,21 @@ export default function DisbursementOrderPrint() {
     return `${year}/${month}/${day}`;
   };
 
-  // 1. الخانة الأولى: الإدارة المالية (يظهر تاريخ الاعتماد الميلادي عند اعتماد المرحلة الأولى)
-  const creatorName = financialUser?.signatureName || financialUser?.name || "الإدارة المالية";
-  const creatorDepartment = financialUser?.signatureDepartment || "الإدارة المالية";
-  const creatorSignatureUrl = isOrderStage1Approved ? (financialUser?.signatureUrl || null) : null;
+  const isExceptionApproved = Boolean(order?.isException);
+
+  // 1. الخانة الأولى: الإدارة المالية / مُعد الأمر (عند الاستثناء تظهر بيانات المعتمِد المستثنِي)
+  const creatorName = isExceptionApproved
+    ? ((order as any)?.creatorSignatureName || "استثناء اعتماد مُعد الأمر")
+    : (financialUser?.signatureName || financialUser?.name || "الإدارة المالية");
+
+  const creatorDepartment = isExceptionApproved
+    ? ((order as any)?.creatorSignatureDepartment || "الإدارة المالية")
+    : (financialUser?.signatureDepartment || "الإدارة المالية");
+
+  const creatorSignatureUrl = isOrderStage1Approved 
+    ? (isExceptionApproved ? ((order as any)?.creatorSignatureUrl || null) : (financialUser?.signatureUrl || null)) 
+    : null;
+
   const creatorDate = isOrderStage1Approved ? formatGregorianDate((order as any)?.financialApprovedAt || order?.updatedAt || order?.createdAt) : "—";
 
   // 2. الخانة الثانية: المدير التنفيذي (يظهر تاريخ الاعتماد الميلادي عند اعتماد المرحلة الثانية والنهائية)
@@ -230,7 +241,12 @@ export default function DisbursementOrderPrint() {
     currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-  const canControlCreatorSig = (currentUser?.email === "solayani@manarah.org.sa" || isCreator) && !!creatorSignatureUrl && isOrderStage1Approved;
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const isExceptionApprover = (order as any)?.exceptionApprovedBy
+    ? currentUser?.id === (order as any)?.exceptionApprovedBy
+    : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursement_orders.exception_approve"));
+
+  const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : (currentUser?.email === "solayani@manarah.org.sa" || isCreator)) && !!creatorSignatureUrl && isOrderStage1Approved;
   const canControlExecSig = (currentUser?.email === "ceo@manarah.org.sa" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
