@@ -267,8 +267,7 @@ export default function EditLinkedDisbursementRequest() {
   }, [contractDetails, paymentInfo]);
 
   // حساب الإجمالي والمبالغ
-  const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const totalAmount = rawSuppliersAmount > 0 ? rawSuppliersAmount : ((formData as any).amount || 0);
+  const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0");
 
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {

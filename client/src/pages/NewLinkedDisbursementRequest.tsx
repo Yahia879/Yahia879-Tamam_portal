@@ -870,8 +870,9 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [projectContracts]);
   
-  // حساب الإجمالي من قائمة الموردين أو التقرير أو الدفعة أو العقد أو ميزانية المشروع أو formData.amount
+  // حساب الإجمالي من قائمة الموردين
   const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
+  const totalAmount = rawSuppliersAmount;
   
   // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، ميزانية المشروع، أو العرض المعتمد
   const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
@@ -902,8 +903,6 @@ export default function NewLinkedDisbursementRequest() {
           rawProjectBudget > 0 ? rawProjectBudget :
           formData.amount || 0
         );
-
-  const totalAmount = currentDisbursementAmount;
   
   // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
   const funderDeficit = Math.max(0, currentDisbursementAmount - totalSupporterPayments);
@@ -1081,7 +1080,7 @@ export default function NewLinkedDisbursementRequest() {
         return;
       }
     }
-    if (!isCustom && suppliers.some(s => !s.name)) {
+    if (suppliers.some(s => !s.name)) {
       toast.error("يرجى اختيار المورد المستفيد");
       return;
     }

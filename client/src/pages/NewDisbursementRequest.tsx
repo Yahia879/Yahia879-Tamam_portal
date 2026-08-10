@@ -184,8 +184,7 @@ export default function NewDisbursementRequest() {
   }, [projectContracts]);
   
   // حساب الإجمالي
-  const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const totalAmount = rawSuppliersAmount > 0 ? rawSuppliersAmount : ((formData as any).amount || 0);
+  const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
   // حساب المتبقي للدفعة
   const totalPaymentsSum = projectDetails?.payments
