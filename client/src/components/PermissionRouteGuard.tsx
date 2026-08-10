@@ -1,5 +1,4 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useUserPermissions } from "@/hooks/usePermission";
 import { useLocation } from "wouter";
 import { useEffect, useMemo } from "react";
 import { hasRouteAccess, EXEMPT_ROUTES, REQUESTER_ROUTES } from "@/lib/routePermissions";
@@ -20,7 +19,6 @@ interface PermissionRouteGuardProps {
  */
 export default function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const { user, loading } = useAuth();
-  const dbPermissions = useUserPermissions();
   const [location, navigate] = useLocation();
 
   const accessResult = useMemo(() => {
@@ -40,7 +38,15 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     // مسارات طالب الخدمة
     if (REQUESTER_ROUTES.has(location)) {
       if (user.role === "service_requester") return { allowed: true, reason: "requester", pending: false };
-      const sharedPaths = ["/requests", "/profile", "/settings"];
+      // المستخدمين الإداريين يمكنهم أيضاً الوصول إلى /my-requests
+      if (location === "/my-requests") return { allowed: true, reason: "my-requests", pending: false };
+    }
+
+    // طالب الخدمة يحاول الوصول لصفحة إدارية
+    // استثناء: إذا كان لديه دور مخصص (customRole)، نسمح له بالمرور للفحص الذي يليه
+    if (user.role === "service_requester" && !REQUESTER_ROUTES.has(location) && !((user as any)?.customRole)) {
+      // نسمح بالوصول لبعض الصفحات المشتركة (الملف الشخصي، الإشعارات، وتفاصيل الطلبات/المساجد)
+      const sharedPaths = ["/profile", "/notifications"];
       const isDynamicSharedPath = 
         /^\/requests\/\d+$/.test(location) || 
         /^\/mosques\/\d+$/.test(location) || 
@@ -53,14 +59,14 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     }
 
     // التحقق من الصلاحيات — يشمل الأدوار الأساسية والمخصصة
-    const userPerms: string[] = dbPermissions.length > 0 ? dbPermissions : ((user as any)?.permissions ?? []);
+    const userPerms: string[] = (user as any)?.permissions ?? [];
     // يعتبر المستخدم لديه دور مخصص إذا كان لديه كائن customRole أو إذا كان دوره غير موجود في الأدوار الأساسية المعروفة
     const isBaseRole = ["super_admin", "system_admin", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
     const hasCustom = !!(user as any)?.customRole || !isBaseRole;
 
     const allowed = hasRouteAccess(location, user.role, userPerms, hasCustom);
     return { allowed, reason: allowed ? "permission-ok" : "permission-denied", pending: false };
-  }, [user, loading, location, dbPermissions]);
+  }, [user, loading, location]);
 
   useEffect(() => {
     if (accessResult.pending) return;
