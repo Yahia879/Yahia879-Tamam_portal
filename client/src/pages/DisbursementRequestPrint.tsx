@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ShieldAlert } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
