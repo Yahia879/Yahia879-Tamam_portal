@@ -96,8 +96,10 @@ export default function ReceiptVouchers() {
   const [modalAmount, setModalAmount] = useState<string>("");
   const [modalDate, setModalDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [modalPayerName, setModalPayerName] = useState<string>("");
-  const [customPayerName, setCustomPayerName] = useState<string>("");
   const [modalNotes, setModalNotes] = useState<string>("");
+  const [modalPaymentMethod, setModalPaymentMethod] = useState<string>("bank_transfer");
+  const [modalBankName, setModalBankName] = useState<string>("مصرف الراجحي");
+  const [modalReferenceNumber, setModalReferenceNumber] = useState<string>("");
 
   // حالات مودالات المبررات والاعتماد/الرفض
   const [justificationModalNote, setJustificationModalNote] = useState<string | null>(null);
@@ -282,8 +284,10 @@ export default function ReceiptVouchers() {
     setModalAmount("");
     setModalDate(new Date().toISOString().split("T")[0]);
     setModalPayerName("");
-    setCustomPayerName("");
     setModalNotes("");
+    setModalPaymentMethod("bank_transfer");
+    setModalBankName("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setModalReferenceNumber("");
   };
 
   const openAddVoucherModal = () => {
@@ -319,8 +323,10 @@ export default function ReceiptVouchers() {
       setModalPayerName(rawPayer);
     }
 
-    setCustomPayerName("");
     setModalNotes(voucher.notes || "");
+    setModalPaymentMethod(voucher.paymentMethod || "bank_transfer");
+    setModalBankName(voucher.bankName || "حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setModalReferenceNumber(voucher.referenceNumber || "");
     setIsAddVoucherModalOpen(true);
   };
   const handleOpenRevokeModal = (voucher: { id: number; voucherNumber: string }) => {
@@ -407,6 +413,9 @@ export default function ReceiptVouchers() {
         amount: amountNum,
         receiptDate: modalDate,
         payerName: finalPayerName,
+        paymentMethod: modalPaymentMethod,
+        bankName: modalBankName,
+        referenceNumber: modalReferenceNumber,
         notes: modalNotes,
       });
     } else {
@@ -415,6 +424,9 @@ export default function ReceiptVouchers() {
         amount: amountNum,
         receiptDate: modalDate,
         payerName: finalPayerName,
+        paymentMethod: modalPaymentMethod,
+        bankName: modalBankName,
+        referenceNumber: modalReferenceNumber,
         notes: modalNotes,
       });
     }
@@ -850,7 +862,7 @@ export default function ReceiptVouchers() {
 
         {/* مودال تسجيل/تعديل سند قبض ممتد مع إحصائيات الدفعات */}
         <Dialog open={isAddVoucherModalOpen} onOpenChange={setIsAddVoucherModalOpen}>
-          <DialogContent className="dir-rtl text-right max-w-2xl sm:max-w-3xl font-sans bg-white rounded-xl shadow-2xl p-6 border-0">
+          <DialogContent className="dir-rtl text-right max-w-3xl sm:max-w-4xl w-[92vw] font-sans bg-white rounded-xl shadow-2xl p-6 border-0 max-h-[90vh] overflow-y-auto">
             <DialogHeader className="text-right border-b pb-4">
               <DialogTitle className="text-lg font-bold flex items-center gap-2.5 text-slate-800">
                 <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -1039,6 +1051,18 @@ export default function ReceiptVouchers() {
                   placeholder="أدخل البيان أو سبب القبض..."
                   rows={3}
                   className="bg-white border-slate-200 text-xs"
+                />
+              </div>
+
+              {/* تفاصيل طريقة القبض والحساب البنكي - خانة واحدة سطرية */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                <Label className="text-xs font-bold text-slate-800">تفاصيل طريقة القبض والحساب البنكي</Label>
+                <Input
+                  type="text"
+                  value={modalBankName}
+                  onChange={(e) => setModalBankName(e.target.value)}
+                  placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                  className="h-10 text-xs bg-white border-slate-200 font-medium"
                 />
               </div>
 

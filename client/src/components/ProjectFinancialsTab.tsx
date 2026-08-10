@@ -1486,7 +1486,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
       {/* Dialog to Add/Edit Receipt Voucher */}
       <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
-        <DialogContent className="dir-rtl text-right max-w-md">
+        <DialogContent className="dir-rtl text-right max-w-2xl sm:max-w-3xl w-[92vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="text-right">
             <DialogTitle className="text-base font-bold flex items-center gap-2 text-right">
               <Receipt className="h-5 w-5 text-primary" />
@@ -1575,6 +1575,18 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 placeholder="أدخل سبب القبض أو الغرض (مثال: تأمين احتياجات جامع ابن حمران بالمنسك)..."
                 rows={2}
                 required
+              />
+            </div>
+
+            {/* تفاصيل طريقة القبض والحساب البنكي - خانة واحدة سطرية */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-100">
+              <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">تفاصيل طريقة القبض والحساب البنكي</Label>
+              <Input
+                type="text"
+                value={voucherBankName}
+                onChange={(e) => setVoucherBankName(e.target.value)}
+                placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                className="h-10 text-xs bg-white border-slate-200 font-medium"
               />
             </div>
           </div>

@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "c2a808c5-889a-47e3-9ee9-5a3134ae73f6",
-  "prevId": "9ea1743a-c4c9-490a-8677-94255f5f5e7c",
+  "id": "359872af-0913-4336-a8e9-f4bc1ead2136",
+  "prevId": "c2a808c5-889a-47e3-9ee9-5a3134ae73f6",
   "tables": {
     "action_settings": {
       "name": "action_settings",
@@ -2138,6 +2138,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "financialApprovedAt": {
+          "name": "financialApprovedAt",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "approvedBy": {
           "name": "approvedBy",
           "type": "int",
@@ -2285,6 +2292,13 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": true
+        },
+        "financialApprovedAt": {
+          "name": "financialApprovedAt",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "orderNumber": {
           "name": "orderNumber",
@@ -2435,6 +2449,58 @@
           "notNull": false,
           "autoincrement": false
         },
+        "isException": {
+          "name": "isException",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "exceptionApprovedBy": {
+          "name": "exceptionApprovedBy",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "creatorSignatureName": {
+          "name": "creatorSignatureName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "creatorSignatureDepartment": {
+          "name": "creatorSignatureDepartment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "creatorSignatureUrl": {
+          "name": "creatorSignatureUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "showCreatorSignature": {
+          "name": "showCreatorSignature",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "showExecutiveDirectorSignature": {
+          "name": "showExecutiveDirectorSignature",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -2500,6 +2566,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "rejectedBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "disbursement_orders_exceptionApprovedBy_users_id_fk": {
+          "name": "disbursement_orders_exceptionApprovedBy_users_id_fk",
+          "tableFrom": "disbursement_orders",
+          "tableTo": "users",
+          "columnsFrom": [
+            "exceptionApprovedBy"
           ],
           "columnsTo": [
             "id"
@@ -2634,6 +2713,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "fundingSourceName": {
+          "name": "fundingSourceName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "attachmentsJson": {
           "name": "attachmentsJson",
           "type": "text",
@@ -2663,6 +2749,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(now())"
+        },
+        "financialApprovedAt": {
+          "name": "financialApprovedAt",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "approvedBy": {
           "name": "approvedBy",
@@ -2720,6 +2813,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "creatorSignatureUrl": {
+          "name": "creatorSignatureUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "showCreatorSignature": {
           "name": "showCreatorSignature",
           "type": "boolean",
@@ -2735,6 +2835,21 @@
           "notNull": false,
           "autoincrement": false,
           "default": true
+        },
+        "isException": {
+          "name": "isException",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "exceptionApprovedBy": {
+          "name": "exceptionApprovedBy",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "isDirect": {
           "name": "isDirect",
@@ -2848,6 +2963,19 @@
           "tableTo": "users",
           "columnsFrom": [
             "rejectedBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "disbursement_requests_exceptionApprovedBy_users_id_fk": {
+          "name": "disbursement_requests_exceptionApprovedBy_users_id_fk",
+          "tableFrom": "disbursement_requests",
+          "tableTo": "users",
+          "columnsFrom": [
+            "exceptionApprovedBy"
           ],
           "columnsTo": [
             "id"
@@ -4777,6 +4905,13 @@
         "programData": {
           "name": "programData",
           "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "descriptiveName": {
+          "name": "descriptiveName",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -6724,6 +6859,170 @@
       },
       "checkConstraint": {}
     },
+    "project_financial_details": {
+      "name": "project_financial_details",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "approvedQuotationId": {
+          "name": "approvedQuotationId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "supportEntity": {
+          "name": "supportEntity",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "customSupportEntity": {
+          "name": "customSupportEntity",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "supportAmount": {
+          "name": "supportAmount",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'0.00'"
+        },
+        "adminFeeType": {
+          "name": "adminFeeType",
+          "type": "enum('percentage','fixed')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'percentage'"
+        },
+        "adminFeeValue": {
+          "name": "adminFeeValue",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'0.00'"
+        },
+        "adminFeeAmount": {
+          "name": "adminFeeAmount",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'0.00'"
+        },
+        "associationFundingAmount": {
+          "name": "associationFundingAmount",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'0.00'"
+        },
+        "associationFundingNotes": {
+          "name": "associationFundingNotes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "supportSourcesJson": {
+          "name": "supportSourcesJson",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_financial_details_projectId_projects_id_fk": {
+          "name": "project_financial_details_projectId_projects_id_fk",
+          "tableFrom": "project_financial_details",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "project_financial_details_approvedQuotationId_quotations_id_fk": {
+          "name": "project_financial_details_approvedQuotationId_quotations_id_fk",
+          "tableFrom": "project_financial_details",
+          "tableTo": "quotations",
+          "columnsFrom": [
+            "approvedQuotationId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "project_financial_details_id": {
+          "name": "project_financial_details_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "project_financial_details_projectId_unique": {
+          "name": "project_financial_details_projectId_unique",
+          "columns": [
+            "projectId"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
     "project_number_sequence": {
       "name": "project_number_sequence",
       "columns": {
@@ -7108,7 +7407,7 @@
         },
         "itemName": {
           "name": "itemName",
-          "type": "varchar(255)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -7627,6 +7926,174 @@
           "name": "quotations_quotationNumber_unique",
           "columns": [
             "quotationNumber"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "receipt_vouchers": {
+      "name": "receipt_vouchers",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "voucherNumber": {
+          "name": "voucherNumber",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "projectId": {
+          "name": "projectId",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "decimal(15,2)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "receiptDate": {
+          "name": "receiptDate",
+          "type": "datetime",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payerName": {
+          "name": "payerName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "paymentMethod": {
+          "name": "paymentMethod",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'bank_transfer'"
+        },
+        "referenceNumber": {
+          "name": "referenceNumber",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "bankName": {
+          "name": "bankName",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attachmentUrl": {
+          "name": "attachmentUrl",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'pending_approval'"
+        },
+        "rejectionReason": {
+          "name": "rejectionReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdById": {
+          "name": "createdById",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(now())"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "receipt_vouchers_projectId_projects_id_fk": {
+          "name": "receipt_vouchers_projectId_projects_id_fk",
+          "tableFrom": "receipt_vouchers",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "projectId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "receipt_vouchers_createdById_users_id_fk": {
+          "name": "receipt_vouchers_createdById_users_id_fk",
+          "tableFrom": "receipt_vouchers",
+          "tableTo": "users",
+          "columnsFrom": [
+            "createdById"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "receipt_vouchers_id": {
+          "name": "receipt_vouchers_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "receipt_vouchers_voucherNumber_unique": {
+          "name": "receipt_vouchers_voucherNumber_unique",
+          "columns": [
+            "voucherNumber"
           ]
         }
       },

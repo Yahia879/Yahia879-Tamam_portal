@@ -194,8 +194,25 @@ export default function ReceiptVoucherPrint() {
 
   // Payment Method details string
   const getPaymentMethodDetails = () => {
+    if (voucher.bankName && voucher.bankName.trim()) {
+      const bn = voucher.bankName.trim();
+      if (bn.startsWith("حوالة") || bn.startsWith("استلام") || bn.startsWith("شيك") || bn.length > 15) {
+        return bn;
+      }
+      const bank = `في ${bn}`;
+      const refDateStr = formatGregorianDate(receiptDateObj);
+
+      if (voucher.paymentMethod === "cash") {
+        return "استلام نقدي بالحساب المالي للجمعية";
+      }
+      if (voucher.paymentMethod === "check") {
+        return `شيك مسحوب ${bank} ${voucher.referenceNumber ? `برقم (${voucher.referenceNumber})` : ""} بتاريخ ${refDateStr}`;
+      }
+      return `حوالة بنكية على حساب الجمعية ${bank} ${voucher.referenceNumber ? `بتاريخ ${refDateStr}` : ""}`;
+    }
+
     const pMethod = voucher.paymentMethod;
-    const bank = voucher.bankName ? `في ${voucher.bankName}` : "في مصرف الراجحي";
+    const bank = "في مصرف الراجحي";
     const refDateStr = formatGregorianDate(receiptDateObj);
 
     if (pMethod === "cash") {
