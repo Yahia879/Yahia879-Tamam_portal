@@ -536,10 +536,10 @@ export default function DisbursementOrders() {
                                   {(() => {
                                     const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                     const isStage2Pending = order.status === "pending_executive";
-                                    const canApproveStage1 = isStage1Pending && (canApproveOrder || order.createdBy === user?.id || user?.email === "solayani@manarah.org.sa");
-                                    const canApproveStage2 = isStage2Pending && (isExecutiveDirector || user?.email === "ceo@manarah.org.sa");
-                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id;
-                                    const canReject = (isStage1Pending && (canRejectOrder || canApproveOrder || order.createdBy === user?.id || user?.email === "solayani@manarah.org.sa")) || (isStage2Pending && (isExecutiveDirector || user?.email === "ceo@manarah.org.sa"));
+                                    const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
+                                    const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
+                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id && user?.email !== "solayani@manarah.org.sa";
+                                    const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
 
                                     return (
                                       <>
@@ -719,10 +719,10 @@ export default function DisbursementOrders() {
                                 {(() => {
                                   const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
                                   const isStage2Pending = order.status === "pending_executive";
-                                  const canApproveStage1 = isStage1Pending && (canApproveOrder || order.createdBy === user?.id || user?.email === "solayani@manarah.org.sa");
-                                  const canApproveStage2 = isStage2Pending && (isExecutiveDirector || user?.email === "ceo@manarah.org.sa");
-                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id;
-                                  const canReject = (isStage1Pending && (canRejectOrder || canApproveOrder || order.createdBy === user?.id || user?.email === "solayani@manarah.org.sa")) || (isStage2Pending && (isExecutiveDirector || user?.email === "ceo@manarah.org.sa"));
+                                  const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
+                                  const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
+                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id && user?.email !== "solayani@manarah.org.sa";
+                                  const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
 
                                   return (
                                     <>
