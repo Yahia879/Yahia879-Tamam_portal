@@ -444,7 +444,7 @@ export default function DisbursementRequests() {
   const canCreateRequest = permDisbursementsEdit;
   const canCreateDisbursement = permDisbursementsCreate;
   const canApproveRequest = hasApprovePermission;
-  const canExceptionApprove = user?.role === "super_admin" || permExceptionApprove;
+  const canExceptionApprove = permExceptionApprove;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
