@@ -144,6 +144,9 @@ export const disbursementsRouter = router({
           contractPaymentId: disbursementRequests.contractPaymentId,
           paymentId: disbursementRequests.paymentId,
           rejectionReason: disbursementRequests.rejectionReason,
+          isException: disbursementRequests.isException,
+          creatorSignatureName: disbursementRequests.creatorSignatureName,
+          approvalNotes: disbursementRequests.approvalNotes,
           orderId: disbursementOrders.id,
           orderNumber: disbursementOrders.orderNumber,
           orderStatus: disbursementOrders.status,
@@ -220,6 +223,9 @@ export const disbursementsRouter = router({
           requestedByShowSignature: users.showSignatureInDocuments,
           creatorSignatureName: disbursementRequests.creatorSignatureName,
           creatorSignatureDepartment: disbursementRequests.creatorSignatureDepartment,
+          creatorSignatureUrl: disbursementRequests.creatorSignatureUrl,
+          isException: disbursementRequests.isException,
+          exceptionApprovedBy: disbursementRequests.exceptionApprovedBy,
           showCreatorSignature: disbursementRequests.showCreatorSignature,
           showExecutiveDirectorSignature: disbursementRequests.showExecutiveDirectorSignature,
           dateMiladi: disbursementRequests.dateMiladi,
@@ -1127,6 +1133,230 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم رفض طلب الصرف" };
     }),
 
+  // استثناء اعتماد طلب صرف (اعتماد بديل لمنشئ الطلب)
+  exceptionApproveRequest: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().min(1, "سبب أو مبرر الاستثناء مطلوب"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحية استثناء اعتماد مُعد الطلب
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "disbursements.exception_approve");
+
+      if (!hasExceptionPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية استثناء اعتماد مُعد الطلب",
+        });
+      }
+
+      if (!input.notes || !input.notes.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يرجى توضيح سبب أو مبرر استثناء الاعتماد",
+        });
+      }
+
+      const [request] = await db
+        .select()
+        .from(disbursementRequests)
+        .where(eq(disbursementRequests.id, input.id));
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
+      }
+
+      if (request.requestedBy === ctx.user.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن استخدام استثناء الاعتماد على طلباتك المنشأة بنفسك، يمكنك استخدام زر الاعتماد العادي لمُعد الطلب",
+        });
+      }
+
+      if (request.status !== "pending" && request.status !== "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن عمل استثناء اعتماد إلا للطلبات التي في مرحلة اعتماد مُعد الطلب",
+        });
+      }
+
+      // جلب بيانات توقيع المستخدم المنفذ للاستثناء
+      const [approverData] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.id, ctx.user.id));
+
+      const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
+      const approverDept = approverData?.signatureDepartment || "إدارة النظام (استثناء اعتماد)";
+      const approverSigUrl = approverData?.signatureUrl || null;
+
+      // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الطلب وتحديث الـ Snapshot
+      await db
+        .update(disbursementRequests)
+        .set({
+          status: "pending_executive",
+          creatorSignatureName: approverName,
+          creatorSignatureDepartment: approverDept,
+          creatorSignatureUrl: approverSigUrl,
+          isException: true,
+          exceptionApprovedBy: ctx.user.id,
+          approvalNotes: `[مبرر استثناء اعتماد مُعد الطلب]: ${input.notes.trim()}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementRequests.id, input.id));
+
+      // إرسال إشعار للمدير التنفيذي
+      const executiveUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, ["general_manager", "executive_director"]),
+            isNull(users.deletedAt)
+          )
+        );
+
+      for (const execUser of executiveUsers) {
+        await createNotification({
+          userId: execUser.id,
+          title: "طلب صرف - استثناء اعتماد مُعد الطلب",
+          message: `تم استخدام استثناء الاعتماد لطلب الصرف رقم ${request.requestNumber} بواسطة (${approverName}) بمبرر: ${input.notes.trim()}`,
+          type: "warning",
+          relatedType: "disbursement_request",
+          relatedId: input.id,
+        });
+      }
+
+      return {
+        success: true,
+        status: "pending_executive",
+        message: "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرر الاعتماد واسم وتوقيع المعتمِد",
+      };
+    }),
+
+  // استثناء اعتماد مُعد الأمر (أمر الصرف)
+  exceptionApproveOrder: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().min(1, "سبب أو مبرر الاستثناء مطلوب"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحية استثناء اعتماد مُعد الأمر
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "disbursement_orders.exception_approve");
+
+      if (!hasExceptionPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية استثناء اعتماد مُعد أمر الصرف",
+        });
+      }
+
+      if (!input.notes || !input.notes.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يرجى توضيح سبب أو مبرر استثناء الاعتماد",
+        });
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (ctx.user.email === "solayani@manarah.org.sa") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يمكنك اعتماد أمر الصرف بشكل عادي دون الحاجة لاستخدام استثناء الاعتماد",
+        });
+      }
+
+      if (order.status !== "pending" && order.status !== "draft" && order.status !== "edited") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن عمل استثناء اعتماد إلا للأوامر التي في مرحلة اعتماد مُعد الأمر",
+        });
+      }
+
+      // جلب بيانات توقيع المستخدم المنفذ للاستثناء
+      const [approverData] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.id, ctx.user.id));
+
+      const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
+      const approverDept = approverData?.signatureDepartment || "الإدارة المالية (استثناء اعتماد)";
+      const approverSigUrl = approverData?.signatureUrl || null;
+
+      // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الأمر وتحديث الـ Snapshot
+      await db
+        .update(disbursementOrders)
+        .set({
+          status: "pending_executive",
+          creatorSignatureName: approverName,
+          creatorSignatureDepartment: approverDept,
+          creatorSignatureUrl: approverSigUrl,
+          isException: true,
+          exceptionApprovedBy: ctx.user.id,
+          financialApprovedAt: new Date(),
+          approvalNotes: `[مبرر استثناء اعتماد مُعد الأمر]: ${input.notes.trim()}`,
+          showCreatorSignature: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.id));
+
+      // إرسال إشعار للمدير التنفيذي
+      const executiveUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, ["general_manager", "executive_director"]),
+            isNull(users.deletedAt)
+          )
+        );
+
+      for (const execUser of executiveUsers) {
+        await createNotification({
+          userId: execUser.id,
+          title: "أمر صرف - استثناء اعتماد مُعد الأمر",
+          message: `تم استخدام استثناء الاعتماد لأمر الصرف رقم ${order.orderNumber} بواسطة (${approverName}) بمبرر: ${input.notes.trim()}`,
+          type: "warning",
+          relatedType: "disbursement_order",
+          relatedId: input.id,
+        });
+      }
+
+      return {
+        success: true,
+        status: "pending_executive",
+        message: "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرر الاعتماد واسم وتوقيع المعتمِد",
+      };
+    }),
+
   // ==================== أوامر الصرف ====================
 
   // جلب قائمة أوامر الصرف
@@ -1182,6 +1412,12 @@ export const disbursementsRouter = router({
           approvedBy: disbursementOrders.approvedBy,
           createdAt: disbursementOrders.createdAt,
           approvedAt: disbursementOrders.approvedAt,
+          isException: disbursementOrders.isException,
+          creatorSignatureName: disbursementOrders.creatorSignatureName,
+          creatorSignatureDepartment: disbursementOrders.creatorSignatureDepartment,
+          creatorSignatureUrl: disbursementOrders.creatorSignatureUrl,
+          approvalNotes: disbursementOrders.approvalNotes,
+          exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           requestNumber: disbursementRequests.requestNumber,
           isDirect: disbursementRequests.isDirect,
           requestTitle: disbursementRequests.description,

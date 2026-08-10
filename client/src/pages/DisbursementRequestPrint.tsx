@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ShieldAlert } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -83,17 +83,19 @@ export default function DisbursementRequestPrint() {
     { enabled: !!params.id }
   );
 
-  const resolvedSignatureName = 
-    (request as any)?.requestedBySignatureName || 
-    (request as any)?.creatorSignatureName || 
-    (request as any)?.requestedByName;
+  const isExceptionApproved = Boolean((request as any)?.isException);
 
-  const resolvedSignatureDepartment = 
-    (request as any)?.requestedBySignatureDepartment || 
-    (request as any)?.creatorSignatureDepartment;
+  const resolvedSignatureName = isExceptionApproved
+    ? ((request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName)
+    : ((request as any)?.requestedBySignatureName || (request as any)?.requestedByName);
 
-  const resolvedSignatureUrl = 
-    (request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl;
+  const resolvedSignatureDepartment = isExceptionApproved
+    ? ((request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب")
+    : ((request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب");
+
+  const resolvedSignatureUrl = isExceptionApproved
+    ? ((request as any)?.creatorSignatureUrl)
+    : ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
@@ -347,7 +349,10 @@ export default function DisbursementRequestPrint() {
           const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
           const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
 
-          const canControlCreatorSig = isCreator && !!resolvedSignatureUrl && isRequestStage1Approved;
+          const isExceptionApprover = (request as any)?.exceptionApprovedBy
+            ? currentUser?.id === (request as any)?.exceptionApprovedBy
+            : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursements.exception_approve"));
+          const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
           const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
 
           return (

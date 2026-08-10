@@ -232,23 +232,28 @@ export default function ReceiptVoucherPrint() {
             background-color: white !important;
             padding: 0 !important;
           }
-          .print-container {
-            max-width: 100% !important;
-            width: 100% !important;
-            box-shadow: none !important;
-            padding: 8mm !important;
-            margin: 0 !important;
-            min-height: 0 !important;
-            height: auto !important;
-          }
-          .print-card {
+                 .print-card {
             box-shadow: none !important;
             border: none !important;
             margin: 0 auto !important;
-            padding: 30px 40px !important;
+            padding: 20px 35px !important;
             width: 100% !important;
             max-width: 100% !important;
           }
+        }
+        .voucher-dotted-line {
+          background-image: linear-gradient(to right, #94a3b8 45%, transparent 0%);
+          background-position: bottom;
+          background-size: 8px 2px;
+          background-repeat: repeat-x;
+        }
+        .voucher-fixed-two-lines {
+          background-image: 
+            linear-gradient(to right, #94a3b8 45%, transparent 0%),
+            linear-gradient(to right, #94a3b8 45%, transparent 0%);
+          background-position: 0 2.1rem, 0 4.4rem;
+          background-size: 8px 2px, 8px 2px;
+          background-repeat: repeat-x, repeat-x;
         }
       `}</style>
 
@@ -282,7 +287,7 @@ export default function ReceiptVoucherPrint() {
       <div className="print-container w-full max-w-[210mm] sm:max-w-[235mm] mx-auto">
 
         {/* Main A4 Document Canvas - Original Receipt Voucher Design */}
-        <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-8 sm:p-12 relative overflow-hidden print-card">
+        <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-6 sm:p-8 relative overflow-hidden print-card">
 
           {/* Subtle Islamic Geometric Watermark Overlay Background */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.035] overflow-hidden flex items-center justify-center">
@@ -297,38 +302,38 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Top Header Line with License Number */}
-          <div className="relative border-b-2 border-[#978457] pb-2 mb-6 flex justify-between items-center">
+          <div className="relative border-b-2 border-[#978457] pb-1 mb-4 flex justify-between items-center">
             <div></div>
             <div className="text-left">
-              <span className="text-sm sm:text-base font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
+              <span className="text-sm font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
             </div>
           </div>
 
           {/* Top Header Row: Rectangular Box "سند قبض" & Main Logo */}
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <div className="flex items-center justify-start pt-4 mt-2">
-              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[200px] h-[72px] rounded-xl shadow-xs flex items-center justify-center translate-y-2 px-6">
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-none text-center">
+          <div className="flex justify-between items-center mb-5 relative z-10">
+            <div className="flex items-center justify-start pt-1">
+              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[170px] h-[58px] rounded-xl shadow-xs flex items-center justify-center px-5">
+                <h1 className="text-2xl font-black tracking-tight leading-none text-center">
                   سند قبض
                 </h1>
               </div>
             </div>
 
-            <div className="flex justify-end items-center pt-4 mt-2">
+            <div className="flex justify-end items-center pt-1">
               {mainLogoUrl ? (
                 <img
                   src={mainLogoUrl}
                   alt={orgSettings?.organizationName || "الشعار الرئيسي"}
-                  className="max-h-24 max-w-[210px] object-contain translate-y-2"
+                  className="max-h-20 max-w-[190px] object-contain"
                 />
               ) : (
-                <div className="h-20 w-44"></div>
+                <div className="h-16 w-36"></div>
               )}
             </div>
           </div>
 
           {/* Title & Dates Block */}
-          <div className="relative flex items-center justify-between mb-10 pb-4 border-b border-slate-200 z-10">
+          <div className="relative flex items-center justify-between mb-5 pb-3 border-b border-slate-200 z-10">
             <div className="flex items-center gap-3 text-sm sm:text-base font-bold">
               <span className="text-[#1f7a63] font-black">التاريخ:</span>
               <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
@@ -351,9 +356,9 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Main Document Content Body */}
-          <div className="space-y-7 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-12 relative z-10">
+          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-6 relative z-10">
             <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 استلمنا من
               </span>
               <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
@@ -362,10 +367,10 @@ export default function ReceiptVoucherPrint() {
             </div>
 
             <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
                 مبلغ وقدره
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-extrabold text-base sm:text-lg">
+              <div className="grow pb-1 text-slate-900 font-extrabold text-base sm:text-lg voucher-dotted-line">
                 <span className="text-emerald-800 font-black text-lg sm:text-xl ml-2">
                   {amountVal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
                 </span>
@@ -375,54 +380,54 @@ export default function ReceiptVoucherPrint() {
             </div>
 
             <div className="flex items-baseline gap-3 text-right">
-              <div className="w-[120px] shrink-0"></div>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+              <div className="w-[110px] shrink-0"></div>
+              <div className="grow pb-1 text-slate-900 font-black text-base sm:text-lg voucher-dotted-line">
                 {getPaymentMethodDetails()}
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[120px] text-base sm:text-lg">
+            <div className="flex items-start gap-3 text-right">
+              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
                 وذلك مقابل
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-base sm:text-lg">
+              <div className="grow text-slate-900 font-black text-base sm:text-lg leading-[2.3rem] h-[4.6rem] overflow-hidden voucher-fixed-two-lines">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
           </div>
 
           {/* Bottom Section: Signatures & Stamp */}
-          <div className="grid grid-cols-12 items-end pt-4 mb-4 relative z-20">
-            <div className="col-span-6 flex justify-start items-center min-h-[100px] relative z-30">
+          <div className="grid grid-cols-12 items-end pt-2 mb-2 relative z-20">
+            <div className="col-span-6 flex justify-start items-center min-h-[75px] relative z-30">
               {officialStampUrl && (
-                <div className="relative select-none pr-8 sm:pr-14 translate-y-2 sm:translate-y-4 opacity-95 pointer-events-none">
+                <div className="relative select-none pr-6 sm:pr-10 opacity-95 pointer-events-none">
                   <img
                     src={officialStampUrl}
                     alt="الختم الرسمي"
-                    className="w-48 sm:w-52 h-auto max-h-38 object-contain"
+                    className="w-40 sm:w-44 h-auto max-h-32 object-contain"
                   />
                 </div>
               )}
             </div>
 
-            <div className="col-span-6 flex flex-col items-center justify-end space-y-1">
+            <div className="col-span-6 flex flex-col items-center justify-end space-y-0.5">
               <span className="text-base font-black text-[#978457]">الإدارة المالية</span>
-              <div className="w-44 h-16 flex items-center justify-center relative">
+              <div className="w-40 h-14 flex items-center justify-center relative">
                 {signatureUrl ? (
                   <img
                     src={signatureUrl}
                     alt="توقيع الإدارة المالية"
-                    className="max-h-16 max-w-full object-contain"
+                    className="max-h-14 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="w-40 h-16"></div>
+                  <div className="w-36 h-14"></div>
                 )}
               </div>
             </div>
           </div>
 
           {/* Page Footer Section */}
-          <div className="border-t-2 border-[#978457] pt-3 mt-auto relative z-10">
+          <div className="border-t-2 border-[#978457] pt-2 mt-auto relative z-10">
             <div className="flex flex-row items-end justify-between text-xs text-slate-700 gap-4">
               <div className="text-right space-y-0.5">
                 <span className="block font-black text-[#978457] text-xs">المركز الرئيسي</span>

@@ -62,6 +62,8 @@ import {
   Loader2,
   Download,
   ExternalLink,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -172,10 +174,13 @@ export default function DisbursementOrders() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showExecuteDialog, setShowExecuteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showExceptionDialog, setShowExceptionDialog] = useState(false);
+  const [showViewExceptionDialog, setShowViewExceptionDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [transactionReference, setTransactionReference] = useState("");
+  const [exceptionNotes, setExceptionNotes] = useState("");
 
   // مؤقت لتأخير البحث (Debounce) لضمان أفضل أداء للاستعلامات
   useEffect(() => {
@@ -242,11 +247,25 @@ export default function DisbursementOrders() {
   const permOrdersReject = usePermission("disbursement_orders.reject");
   const permOrdersViewDetails = usePermission("disbursement_orders.view_details");
   const permOrdersCreateDirect = usePermission("disbursement_orders.create_direct");
+  const permOrdersExceptionApprove = usePermission("disbursement_orders.exception_approve");
 
   const canApproveOrder = permOrdersApprove || permOrdersSign || permDisbursementsApprove || permDisbursementsSign;
   const canRejectOrder = permOrdersReject;
   const canViewDetails = permOrdersViewDetails;
   const canCreateDirectOrder = permOrdersCreateDirect;
+  const canExceptionApproveOrder = user?.role === "super_admin" || permOrdersExceptionApprove;
+
+  const exceptionApproveOrderMutation = trpc.disbursements.exceptionApproveOrder.useMutation({
+    onSuccess: () => {
+      toast.success("تم اعتماد المرحلة الأولى باستثناء اعتماد مُعد الأمر بنجاح");
+      setShowExceptionDialog(false);
+      setExceptionNotes("");
+      refetchOrders();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تنفيذ استثناء الاعتماد");
+    },
+  });
 
   const isExecutiveDirector = 
     ["general_manager", "executive_director"].includes(user?.role || "") ||
@@ -469,6 +488,20 @@ export default function DisbursementOrders() {
                                   </TooltipProvider>
                                 )}
                                 <span>{order.orderNumber}</span>
+                                {order.isException && (
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={100}>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex items-center justify-center p-0.5 rounded bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 shrink-0 cursor-help">
+                                          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="bg-amber-900 text-amber-50 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg border border-amber-700 z-50">
+                                        تم اعتماد المرحلة الأولى باستثناء اعتماد مُعد الأمر
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="py-2.5 px-3 text-xs text-right whitespace-nowrap">
@@ -499,54 +532,95 @@ export default function DisbursementOrders() {
                                     <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="w-52 text-right font-medium">
-                                  {((order.status === "pending_executive" && user?.email === "ceo@manarah.org.sa") || ((order.status === "pending" || order.status === "edited" || order.status === "draft") && user?.email === "solayani@manarah.org.sa")) && (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowApproveDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
-                                      >
-                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                        <span>اعتماد أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowRejectDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
-                                      >
-                                        <XCircle className="h-4 w-4 text-red-600" />
-                                        <span>رفض أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
+                                <DropdownMenuContent align="start" className="w-56 text-right font-medium">
+                                  {(() => {
+                                    const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
+                                    const isStage2Pending = order.status === "pending_executive";
+                                    const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
+                                    const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
+                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
+                                    const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
 
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      navigate(`/disbursement-orders/${order.id}/print`);
-                                    }}
-                                    className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                  >
-                                    <Printer className="h-4 w-4 text-emerald-600" />
-                                    <span>عرض تقرير أمر الصرف</span>
-                                  </DropdownMenuItem>
+                                    return (
+                                      <>
+                                        {(canApproveStage1 || canApproveStage2) && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowApproveDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                          >
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                            <span>اعتماد أمر الصرف</span>
+                                          </DropdownMenuItem>
+                                        )}
 
-                                  {canViewDetails && (
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedOrder(order);
-                                        setShowDetailsDialog(true);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                    >
-                                      <Eye className="h-4 w-4 text-blue-500" />
-                                      <span>عرض التفاصيل</span>
-                                    </DropdownMenuItem>
-                                  )}
+                                        {canShowExceptionOption && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setExceptionNotes("");
+                                              setShowExceptionDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
+                                          >
+                                            <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                            <span>استثناء اعتماد مُعد الأمر</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {canReject && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowRejectDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                          >
+                                            <XCircle className="h-4 w-4 text-red-600" />
+                                            <span>رفض أمر الصرف</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {order.isException && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowViewExceptionDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                          >
+                                            <Info className="h-4 w-4 text-amber-600" />
+                                            <span>عرض مبررات استثناء الاعتماد</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            navigate(`/disbursement-orders/${order.id}/print`);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
+                                        >
+                                          <Printer className="h-4 w-4 text-emerald-600" />
+                                          <span>عرض تقرير أمر الصرف</span>
+                                        </DropdownMenuItem>
+
+                                        {canViewDetails && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowDetailsDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
+                                          >
+                                            <Eye className="h-4 w-4 text-blue-500" />
+                                            <span>عرض التفاصيل</span>
+                                          </DropdownMenuItem>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -564,9 +638,25 @@ export default function DisbursementOrders() {
                       <div className="p-4 space-y-4">
                         {/* Card Header */}
                         <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
-                          <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
-                            {order.orderNumber}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
+                              {order.orderNumber}
+                            </span>
+                            {order.isException && (
+                              <TooltipProvider>
+                                <Tooltip delayDuration={100}>
+                                  <TooltipTrigger asChild>
+                                    <span className="inline-flex items-center justify-center p-0.5 rounded bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 shrink-0 cursor-help">
+                                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-amber-900 text-amber-50 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg border border-amber-700 z-50">
+                                    تم اعتماد المرحلة الأولى باستثناء اعتماد مُعد الأمر
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
                           <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${STATUS_MAP[order.status || "draft"]?.className}`}>
                             {STATUS_MAP[order.status || "draft"]?.label}
                           </Badge>
@@ -625,73 +715,95 @@ export default function DisbursementOrders() {
                                   <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" className="w-48 text-right font-medium">
-                                {order.status === "approved" ? (
-                                  <>
-                                    {canViewDetails && (
+                              <DropdownMenuContent align="start" className="w-56 text-right font-medium">
+                                {(() => {
+                                  const isStage1Pending = order.status === "pending" || order.status === "draft" || order.status === "edited";
+                                  const isStage2Pending = order.status === "pending_executive";
+                                  const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
+                                  const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
+                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
+                                  const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
+
+                                  return (
+                                    <>
+                                      {(canApproveStage1 || canApproveStage2) && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setShowApproveDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
+                                        >
+                                          <CheckCircle className="h-4 w-4 text-green-600" />
+                                          <span>اعتماد أمر الصرف</span>
+                                        </DropdownMenuItem>
+                                      )}
+
+                                      {canShowExceptionOption && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setExceptionNotes("");
+                                            setShowExceptionDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-amber-700 dark:text-amber-400 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
+                                        >
+                                          <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                          <span>استثناء اعتماد مُعد الأمر</span>
+                                        </DropdownMenuItem>
+                                      )}
+
+                                      {canReject && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setShowRejectDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
+                                        >
+                                          <XCircle className="h-4 w-4 text-red-600" />
+                                          <span>رفض أمر الصرف</span>
+                                        </DropdownMenuItem>
+                                      )}
+
+                                      {order.isException && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setShowViewExceptionDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                        >
+                                          <Info className="h-4 w-4 text-amber-600" />
+                                          <span>عرض مبررات استثناء الاعتماد</span>
+                                        </DropdownMenuItem>
+                                      )}
+
                                       <DropdownMenuItem
                                         onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowDetailsDialog(true);
+                                          navigate(`/disbursement-orders/${order.id}/print`);
                                         }}
                                         className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
                                       >
-                                        <Eye className="h-4 w-4 text-blue-500" />
-                                        <span>عرض التفاصيل</span>
+                                        <Printer className="h-4 w-4 text-emerald-600" />
+                                        <span>عرض تقرير أمر الصرف</span>
                                       </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        navigate(`/disbursement-orders/${order.id}/print`);
-                                      }}
-                                      className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                    >
-                                      <Printer className="h-4 w-4 text-emerald-600" />
-                                      <span>عرض تقرير امر الصرف</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                ) : (
-                                  <>
-                                    {canApproveOrder && (order.status === "pending" || order.status === "edited") && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowApproveDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-950/30 font-bold"
-                                      >
-                                        <CheckCircle className="h-4 w-4 text-green-600" />
-                                        <span>اعتماد أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                    )}
 
-                                    {canRejectOrder && (order.status === "pending" || order.status === "edited") && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowRejectDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30 font-bold"
-                                      >
-                                        <XCircle className="h-4 w-4 text-red-600" />
-                                        <span>رفض أمر الصرف</span>
-                                      </DropdownMenuItem>
-                                    )}
-
-                                    {canViewDetails && (
-                                      <DropdownMenuItem
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setShowDetailsDialog(true);
-                                        }}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
-                                      >
-                                        <Eye className="h-4 w-4 text-blue-500" />
-                                        <span>عرض التفاصيل</span>
-                                      </DropdownMenuItem>
-                                    )}
-                                  </>
-                                )}
+                                      {canViewDetails && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setShowDetailsDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-slate-900 focus:bg-muted/50 font-semibold"
+                                        >
+                                          <Eye className="h-4 w-4 text-blue-500" />
+                                          <span>عرض التفاصيل</span>
+                                        </DropdownMenuItem>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -1025,6 +1137,113 @@ export default function DisbursementOrders() {
 
             <DialogFooter className="sm:justify-start">
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)} className="w-full sm:w-auto font-semibold">
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة استثناء اعتماد مُعد الأمر */}
+        <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
+          <DialogContent dir="rtl" className="sm:max-w-[480px]">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>استثناء اعتماد أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs">
+                سيتم اعتماد المرحلة الأولى لأمر الصرف رقم ({selectedOrder?.orderNumber}) استثناءً نيابة عن مُعد الأمر، وتسجيل اسمك وتوقيعك في التقرير بدلاً من بيانات مُعد الأمر.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-right">
+              <div className="p-3 bg-amber-50/80 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/60 rounded-xl space-y-1.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">المبلغ:</span>
+                  <span className="font-bold text-amber-900 dark:text-amber-200 font-mono">{Number(selectedOrder?.amount || 0).toLocaleString()} ريال</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-600 dark:text-slate-400 font-medium">المستفيد:</span>
+                  <span className="font-bold text-amber-900 dark:text-amber-200 truncate max-w-[220px]">{selectedOrder?.beneficiaryName || "-"}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="exception-notes" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  سبب / مبرر الاستثناء <span className="text-rose-500">*</span>
+                </Label>
+                <Textarea
+                  id="exception-notes"
+                  value={exceptionNotes}
+                  onChange={(e) => setExceptionNotes(e.target.value)}
+                  placeholder="أدخل مبرر استثناء اعتماد مُعد الأمر بشكل واضح ومفصل..."
+                  rows={4}
+                  className="text-xs text-right leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setShowExceptionDialog(false)}
+                className="text-xs font-semibold"
+              >
+                إلغاء
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedOrder && exceptionNotes.trim()) {
+                    exceptionApproveOrderMutation.mutate({
+                      id: selectedOrder.id,
+                      notes: exceptionNotes.trim(),
+                    });
+                  }
+                }}
+                disabled={!exceptionNotes.trim() || exceptionApproveOrderMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs"
+              >
+                {exceptionApproveOrderMutation.isPending ? "جاري الاعتماد..." : "تأكيد استثناء الاعتماد"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض مبررات استثناء الاعتماد */}
+        <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
+          <DialogContent dir="rtl" className="sm:max-w-[480px]">
+            <DialogHeader className="text-right">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg">
+                <Info className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>مبررات استثناء اعتماد أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs">
+                تفاصيل المبرر المدخل عند تنفيذ استثناء اعتماد المرحلة الأولى لأمر الصرف رقم ({selectedOrder?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-right">
+              {selectedOrder?.creatorSignatureName && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
+                  <span className="text-slate-500 font-medium">منفذ الاستثناء:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{selectedOrder.creatorSignatureName}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص المبرر:</Label>
+                <div className="p-3.5 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl text-xs text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap">
+                  {selectedOrder?.approvalNotes ? (
+                    selectedOrder.approvalNotes.replace(/^\[مبرر استثناء اعتماد مُعد الأمر\]:\s*/, "")
+                  ) : (
+                    "لا يوجد مبرر مدون"
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)} className="text-xs font-semibold">
                 إغلاق
               </Button>
             </DialogFooter>

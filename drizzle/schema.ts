@@ -1101,8 +1101,12 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   // توقيع منشئ الطلب (Snapshot)
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
+  creatorSignatureUrl: text("creatorSignatureUrl"),
   showCreatorSignature: boolean("showCreatorSignature").default(true),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
+  
+  isException: boolean("isException").default(false),
+  exceptionApprovedBy: int("exceptionApprovedBy").references(() => users.id, { onDelete: "set null" }),
   
   isDirect: boolean("isDirect").default(false).notNull(),
   
@@ -1147,6 +1151,13 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
+
+  // الاستثناء والتوقيع
+  isException: boolean("isException").default(false).notNull(),
+  exceptionApprovedBy: int("exceptionApprovedBy").references(() => users.id, { onDelete: "set null" }),
+  creatorSignatureName: text("creatorSignatureName"),
+  creatorSignatureDepartment: text("creatorSignatureDepartment"),
+  creatorSignatureUrl: text("creatorSignatureUrl"),
   
   showCreatorSignature: boolean("showCreatorSignature").default(true).notNull(),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true).notNull(),

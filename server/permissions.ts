@@ -48,8 +48,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
   financial_approval: ["financial.view", "financial.approve", "financial.reject"],
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
-  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve"],
-  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
+  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
+  disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["reports.view", "reports.create"],
   financial_report: ["reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
@@ -187,6 +187,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursements.add": ["disbursements.create"],
   "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom", "disbursements.create_donation"],
   "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
+  "disbursements.exception_approve": ["disbursements.exception_approve"],
+  "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
 };
 
 /**
@@ -535,6 +537,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
       { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
+      { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الطلب", nameEn: "Override Requester Approval" },
+      { id: "disbursement_orders.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد مُعد الأمر", nameEn: "Override Order Creator Approval" },
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
@@ -855,7 +859,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursements.create_donation") ||
     allPermissions.has("disbursements.edit") ||
     allPermissions.has("disbursements.delete") ||
-    allPermissions.has("disbursements.approve")
+    allPermissions.has("disbursements.approve") ||
+    allPermissions.has("disbursements.exception_approve")
   ) {
     allPermissions.add("disbursements");
     allPermissions.add("disbursement_requests");
@@ -873,6 +878,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (
     allPermissions.has("disbursement_orders.view") ||
     allPermissions.has("disbursement_orders.approve") ||
+    allPermissions.has("disbursement_orders.exception_approve") ||
     allPermissions.has("disbursement_orders.reject") ||
     allPermissions.has("disbursement_orders.view_details") ||
     allPermissions.has("disbursement_orders.create_direct")
@@ -1792,9 +1798,13 @@ export const permissionsRouter = router({
         for (const p of input.permissions) {
           if (!existingSet.has(p.permissionId)) {
             const parts = p.permissionId.split(".");
+            const rawMod = parts[0] || "general";
+            const modId = ["disbursement_orders", "receipt_vouchers", "financial_reports", "progress_reports", "pending_reports"].includes(rawMod)
+              ? (rawMod === "financial_reports" || rawMod === "progress_reports" || rawMod === "pending_reports" ? "reports" : "disbursements")
+              : rawMod;
             await db.insert(permissions).values({
               id: p.permissionId,
-              moduleId: parts[0] || "general",
+              moduleId: modId,
               action: parts[1] || "manage",
               nameAr: p.permissionId,
               nameEn: p.permissionId
