@@ -68,6 +68,7 @@ import {
   MoreVertical,
   Loader2,
   ShieldAlert,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -242,6 +243,7 @@ export default function DisbursementRequests() {
   const [viewRejectionReasonText, setViewRejectionReasonText] = useState("");
   
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
+  const [showViewExceptionDialog, setShowViewExceptionDialog] = useState(false);
   const [exceptionNotes, setExceptionNotes] = useState("");
   
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -838,7 +840,25 @@ export default function DisbursementRequests() {
                                   <span>{request.requestNumber}</span>
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3.5 px-4 max-w-[220px] truncate text-right text-xs">{request.title || request.description}</TableCell>
+                              <TableCell className="py-3.5 px-4 max-w-[240px] text-right text-xs">
+                                <div className="flex items-center gap-1.5 justify-start">
+                                  <span className="truncate">{request.title || request.description}</span>
+                                  {request.isException && (
+                                    <TooltipProvider>
+                                      <Tooltip delayDuration={100}>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center justify-center p-0.5 rounded bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 shrink-0 cursor-help">
+                                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-amber-900 text-amber-50 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg border border-amber-700 z-50">
+                                          تم اعتماد المرحلة الأولى باستثناء اعتماد مُعد الطلب
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                              </TableCell>
                               <TableCell className="py-3.5 px-4 max-w-[200px] text-right">
                                 {request.projectId ? (
                                   <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs block truncate">
@@ -979,6 +999,20 @@ export default function DisbursementRequests() {
                                         </DropdownMenuItem>
                                       )}
 
+                                      {/* عرض مبررات استثناء الاعتماد */}
+                                      {request.isException && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setShowViewExceptionDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-400 hover:text-amber-900 focus:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-medium"
+                                        >
+                                          <Info className="h-4 w-4 text-amber-600" />
+                                          <span>عرض مبررات استثناء الاعتماد</span>
+                                        </DropdownMenuItem>
+                                      )}
+
                                       {/* Stage 1 Approval: Preparer */}
                                       {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && (
                                         <>
@@ -1110,7 +1144,23 @@ export default function DisbursementRequests() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1 text-right">
                                 <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
-                                <p className="font-bold text-sm truncate">{request.title || request.description}</p>
+                                <div className="flex items-center gap-1.5 justify-start">
+                                  <p className="font-bold text-sm truncate">{request.title || request.description}</p>
+                                  {request.isException && (
+                                    <TooltipProvider>
+                                      <Tooltip delayDuration={100}>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center justify-center p-0.5 rounded bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 shrink-0 cursor-help">
+                                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-amber-900 text-amber-50 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg border border-amber-700 z-50">
+                                          تم اعتماد المرحلة الأولى باستثناء اعتماد مُعد الطلب
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                                 {request.projectId ? (
                                   <div className="mt-0.5 flex justify-end">
                                     <span className="text-xs text-muted-foreground truncate max-w-[150px]">{request.projectName}</span>
@@ -1126,13 +1176,13 @@ export default function DisbursementRequests() {
                                   status={request.status as any} 
                                   type="request" 
                                 />
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
-                                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-56 text-right font-medium">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted shrink-0">
+                                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 text-right font-medium">
                                     {/* 1. Print/View Report - Available if has approve permission */}
                                     {hasApprovePermission && (
                                       <DropdownMenuItem
@@ -1201,25 +1251,6 @@ export default function DisbursementRequests() {
                                      {canApproveRequest && request.status === "pending" && (
                                        <>
                                          <DropdownMenuItem
-                                           onClick={() => {
-                                             setSelectedRequest(request);
-                                             setApprovalNotes("");
-                                             setShowApproveDialog(true);
-                                           }}
-                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                         >
-                                           <CheckCircle className="h-4 w-4 text-emerald-500" />
-                                           <span>اعتماد طلب الصرف</span>
-                                         </DropdownMenuItem>
-                                         <DropdownMenuItem
-                                           onClick={() => {
-                                             setSelectedRequest(request);
-                                             setRejectionReason("");
-                                             setShowRejectDialog(true);
-                                           }}
-                                           className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30"
-                                         >
-                                           <XCircle className="h-4 w-4 text-rose-500" />
                                            <span>إلغاء طلب الصرف</span>
                                          </DropdownMenuItem>
                                        </>
@@ -1239,6 +1270,7 @@ export default function DisbursementRequests() {
                                 </DropdownMenu>
                               </div>
                             </div>
+                          </div>
 
                           <div className="flex justify-between items-end pt-1">
                             <div>
@@ -2039,6 +2071,45 @@ export default function DisbursementRequests() {
                 {exceptionApproveRequestMutation.isPending
                   ? "جاري تنفيذ الاستثناء..."
                   : "تأكيد استثناء الاعتماد"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض مبررات استثناء الاعتماد */}
+        <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
+          <DialogContent dir="rtl" className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                <Info className="w-5 h-5 text-amber-600" />
+                <span>مبررات استثناء اعتماد مُعد الطلب</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-amber-50/80 border border-amber-200 p-3.5 space-y-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  طلب صرف رقم: <span className="font-mono">{selectedRequest?.requestNumber}</span>
+                </p>
+                {selectedRequest?.creatorSignatureName && (
+                  <p className="text-slate-700 dark:text-slate-300">
+                    منفذ الاستثناء: <span className="font-semibold">{selectedRequest.creatorSignatureName}</span>
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800 dark:text-slate-200 text-xs">سبب / مبرر الاستثناء:</Label>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[70px] font-sans leading-relaxed">
+                  {selectedRequest?.approvalNotes ? (
+                    selectedRequest.approvalNotes.replace(/^\[مبرر استثناء اعتماد مُعد الطلب\]:\s*/, "")
+                  ) : (
+                    "لا يوجد مبرر مسجل"
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)}>
+                إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
