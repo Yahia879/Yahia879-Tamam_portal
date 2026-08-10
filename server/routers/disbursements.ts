@@ -1168,6 +1168,13 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
+      if (request.requestedBy === ctx.user.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن استخدام استثناء الاعتماد على طلباتك المنشأة بنفسك، يمكنك استخدام زر الاعتماد العادي لمُعد الطلب",
+        });
+      }
+
       if (request.status === "rejected" || request.status === "paid") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن عمل استثناء اعتماد لطلب ملغى/مرفوض أو مدفوع" });
       }
