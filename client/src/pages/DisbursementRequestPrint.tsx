@@ -83,18 +83,19 @@ export default function DisbursementRequestPrint() {
     { enabled: !!params.id }
   );
 
-  const resolvedSignatureName = 
-    (request as any)?.creatorSignatureName || 
-    (request as any)?.requestedBySignatureName || 
-    (request as any)?.requestedByName;
+  const isExceptionApproved = Boolean((request as any)?.isException);
 
-  const resolvedSignatureDepartment = 
-    (request as any)?.creatorSignatureDepartment || 
-    (request as any)?.requestedBySignatureDepartment;
+  const resolvedSignatureName = isExceptionApproved
+    ? ((request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName)
+    : ((request as any)?.requestedBySignatureName || (request as any)?.requestedByName);
 
-  const resolvedSignatureUrl = 
-    (request as any)?.creatorSignatureUrl ||
-    ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
+  const resolvedSignatureDepartment = isExceptionApproved
+    ? ((request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب")
+    : ((request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب");
+
+  const resolvedSignatureUrl = isExceptionApproved
+    ? ((request as any)?.creatorSignatureUrl)
+    : ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
@@ -348,7 +349,8 @@ export default function DisbursementRequestPrint() {
           const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
           const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
 
-          const canControlCreatorSig = isCreator && !!resolvedSignatureUrl && isRequestStage1Approved;
+          const isExceptionApprover = currentUser?.id === (request as any)?.exceptionApprovedBy || currentUser?.role === "super_admin";
+          const canControlCreatorSig = (isExceptionApproved ? (isExceptionApprover || isCreator) : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
           const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
 
           return (
