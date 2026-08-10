@@ -357,7 +357,7 @@ export default function ReceiptVoucherPrint() {
                 استلمنا من
               </span>
               <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
-                السادة/ {voucher.payerName || "المتبرع الكريم"}
+                {voucher.payerName || "المتبرع الكريم"}
               </div>
             </div>
 
