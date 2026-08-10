@@ -150,6 +150,30 @@ export default function Quotations() {
     { enabled: !!selectedRequestId && !isNaN(parseInt(selectedRequestId)) }
   );
 
+  const getMosqueDisplayName = (request: any) => {
+    if (!request) return "غير محدد";
+
+    // 1. إذا كان اسم المسجد موجود وصريح ولا يساوي "غير محدد"
+    if (request.mosqueName && request.mosqueName !== "غير محدد" && request.mosqueName.trim()) {
+      const mName = request.mosqueName.trim();
+      return mName.startsWith("مسجد") ? mName : `مسجد ${mName}`;
+    }
+
+    // 2. إذا كان الطلب من برنامج بنيان أو أي طلب بدون مسجد محدد، نأخذ اسم مقدم الطلب
+    const reqName = request.requesterName || request.requester?.name || request.userName || request.user?.name || request.applicantName || "";
+    if (reqName && reqName.trim()) {
+      const trimmed = reqName.trim();
+      return trimmed.startsWith("مسجد") ? trimmed : `مسجد ${trimmed}`;
+    }
+
+    // 3. إذا كان برنامج بنيان بدون اسم مقدم طلب، يظهر "مسجد بنيان"
+    if (request.programType === "bunyan" || request.programType === "bonyan") {
+      return "مسجد بنيان";
+    }
+
+    return "غير محدد";
+  };
+
   const allRequestsList = requests?.requests || [];
 
   const displayedRequestsList = useMemo(() => {
@@ -159,12 +183,18 @@ export default function Quotations() {
     if (singleRequestData) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
+        const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
+        const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
         return [{
+          ...targetReq,
           id: targetReq.id,
           requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
           mosqueName: targetReq.mosqueName || targetReq.mosqueId || "غير محدد",
           programType: targetReq.programType || "other",
           createdAt: targetReq.createdAt || new Date().toISOString(),
+          requesterName: reqName,
+          user: reqUser,
+          requester: reqUser,
         }];
       }
     }
@@ -1289,7 +1319,7 @@ export default function Quotations() {
                       onClick={() => setSelectedRequestId(request.id.toString())}
                     >
                       <TableCell className="font-mono text-sm text-right">{request.requestNumber}</TableCell>
-                      <TableCell className="font-medium text-right">{request.mosqueName || "غير محدد"}</TableCell>
+                      <TableCell className="font-medium text-right">{getMosqueDisplayName(request)}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline">
                           {PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS] || request.programType}
