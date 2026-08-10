@@ -558,7 +558,7 @@ export default function RolePermissions() {
             { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
             { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
             { id: "disbursements.create_custom", nameAr: "انشاء طلبات صرف مخصصة" },
-            { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد منشئ الطلب" },
+            { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد مُعد الطلب" },
           ]
         },
         {
@@ -718,7 +718,7 @@ export default function RolePermissions() {
             { id: "disbursements.edit", nameAr: "تعديل طلب الصرف" },
             { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
             { id: "disbursements.create_custom", nameAr: "انشاء طلبات صرف مخصصة" },
-            { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد منشئ الطلب" },
+            { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد مُعد الطلب" },
           ]
         },
         {
@@ -997,7 +997,7 @@ export default function RolePermissions() {
         delete: "حذف طلب صرف",
         approve: "اعتماد طلبات الصرف",
         create_custom: "انشاء طلبات صرف مخصصة",
-        exception_approve: "استثناء اعتماد منشئ الطلب",
+        exception_approve: "استثناء اعتماد مُعد الطلب",
       },
       receipt_vouchers: {
         view: "عرض سندات القبض",
