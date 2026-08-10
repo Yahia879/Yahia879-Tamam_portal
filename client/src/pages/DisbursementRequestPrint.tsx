@@ -84,16 +84,17 @@ export default function DisbursementRequestPrint() {
   );
 
   const resolvedSignatureName = 
-    (request as any)?.requestedBySignatureName || 
     (request as any)?.creatorSignatureName || 
+    (request as any)?.requestedBySignatureName || 
     (request as any)?.requestedByName;
 
   const resolvedSignatureDepartment = 
-    (request as any)?.requestedBySignatureDepartment || 
-    (request as any)?.creatorSignatureDepartment;
+    (request as any)?.creatorSignatureDepartment || 
+    (request as any)?.requestedBySignatureDepartment;
 
   const resolvedSignatureUrl = 
-    (request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl;
+    (request as any)?.creatorSignatureUrl ||
+    ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
 
   const executiveDirectorDepartment = 
     (request as any)?.executiveDirectorSignatureDepartment || 
