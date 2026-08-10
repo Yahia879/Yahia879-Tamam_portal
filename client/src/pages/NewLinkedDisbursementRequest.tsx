@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -94,10 +95,11 @@ export default function NewLinkedDisbursementRequest() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const userPermissions = (user as any)?.permissions || [];
-  const canCreateStandard = userPermissions.includes("disbursements.add");
-  const canCreateCustom = userPermissions.includes("disbursements.create_custom");
-  const canCreateDonationDisbursement = userPermissions.includes("disbursements.create_donation");
+  const userPermissions = useUserPermissions();
+  const isSuperOrSystemAdmin = ["super_admin", "system_admin", "projects_office", "project_manager", "financial", "financial_manager"].includes(user?.role || "");
+  const canCreateStandard = isSuperOrSystemAdmin || userPermissions.includes("disbursements.add") || userPermissions.includes("disbursements.create") || userPermissions.includes("*");
+  const canCreateCustom = isSuperOrSystemAdmin || userPermissions.includes("disbursements.create_custom") || userPermissions.includes("disbursements.create") || userPermissions.includes("*");
+  const canCreateDonationDisbursement = isSuperOrSystemAdmin || userPermissions.includes("disbursements.create_donation") || userPermissions.includes("disbursements.create") || userPermissions.includes("*");
 
   // استرجاع حالة الصفحة المحفوظة في حال العودة من صفحة معاينة التقرير
   const savedState = (() => {
