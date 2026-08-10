@@ -75,7 +75,7 @@ const superAdminGroups = [
       { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
       { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
       { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
-      { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct"] },
+      { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
     ]
   },
   {
@@ -211,7 +211,8 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
     disbursement_orders: {
       view: "عرض أوامر الصرف",
       view_details: "عرض تفاصيل أوامر الصرف",
-      create_direct: "انشاء امر صرف مخصص"
+      create_direct: "انشاء امر صرف مخصص",
+      exception_approve: "استثناء اعتماد مُعد الأمر",
     },
     progress_reports: {
       view: "عرض تقارير الإنجاز",
