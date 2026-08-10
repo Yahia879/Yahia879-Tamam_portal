@@ -975,7 +975,7 @@ export default function DisbursementRequests() {
                                           className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
                                         >
                                           <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                          <span>استثناء اعتماد منشئ الطلب</span>
+                                          <span>استثناء اعتماد مُعد الطلب</span>
                                         </DropdownMenuItem>
                                       )}
 
@@ -1155,7 +1155,7 @@ export default function DisbursementRequests() {
                                         className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
                                       >
                                         <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                        <span>استثناء اعتماد منشئ الطلب</span>
+                                        <span>استثناء اعتماد مُعد الطلب</span>
                                       </DropdownMenuItem>
                                     )}
 
@@ -2015,7 +2015,7 @@ export default function DisbursementRequests() {
                 <Textarea
                   value={exceptionNotes}
                   onChange={(e) => setExceptionNotes(e.target.value)}
-                  placeholder="اكتب سبب أو مبرر استثناء اعتماد منشئ الطلب (إجباري)..."
+                  placeholder="اكتب سبب أو مبرر استثناء اعتماد مُعد الطلب (إجباري)..."
                   className="min-h-[100px]"
                 />
               </div>
