@@ -1101,8 +1101,12 @@ export const disbursementRequests = mysqlTable("disbursement_requests", {
   // توقيع منشئ الطلب (Snapshot)
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
+  creatorSignatureUrl: text("creatorSignatureUrl"),
   showCreatorSignature: boolean("showCreatorSignature").default(true),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
+  
+  isException: boolean("isException").default(false),
+  exceptionApprovedBy: int("exceptionApprovedBy").references(() => users.id, { onDelete: "set null" }),
   
   isDirect: boolean("isDirect").default(false).notNull(),
   
