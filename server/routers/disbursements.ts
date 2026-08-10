@@ -1143,9 +1143,7 @@ export const disbursementsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // التحقق من صلاحية استثناء اعتماد مُعد الطلب
-      const hasExceptionPerm = 
-        ctx.user.role === "super_admin" ||
-        await checkPermission(ctx.user.id, "disbursements.exception_approve");
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "disbursements.exception_approve");
 
       if (!hasExceptionPerm) {
         throw new TRPCError({
