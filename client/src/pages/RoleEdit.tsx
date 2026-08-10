@@ -202,7 +202,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       delete: "حذف طلب صرف",
       approve: "اعتماد طلبات الصرف",
       create_custom: "انشاء طلبات صرف مخصصة",
-      exception_approve: "استثناء اعتماد منشئ الطلب",
+      exception_approve: "استثناء اعتماد مُعد الطلب",
     },
     receipt_vouchers: {
       view: "عرض سندات القبض",
