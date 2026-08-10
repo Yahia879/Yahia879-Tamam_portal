@@ -438,11 +438,13 @@ export default function DisbursementRequests() {
   const permDisbursementsAdd = usePermission("disbursements.add");
   const permCreateCustom = usePermission("disbursements.create_custom");
   const permDisbursementsCreate = usePermission("disbursements.create");
+  const permExceptionApprove = usePermission("disbursements.exception_approve");
 
   const hasApprovePermission = permDisbursementsApprove || permDisbursementsSign || permOrdersSign;
   const canCreateRequest = permDisbursementsEdit;
   const canCreateDisbursement = permDisbursementsCreate;
   const canApproveRequest = hasApprovePermission;
+  const canExceptionApprove = user?.role === "super_admin" || permExceptionApprove;
   const canCreateOrder = hasApprovePermission;
   const canApproveOrder = permOrdersApprove || permOrdersSign || hasApprovePermission;
   const canExecuteOrder = ["super_admin", "system_admin", "financial"].includes(user?.role || "");
@@ -963,7 +965,7 @@ export default function DisbursementRequests() {
                                       )}
                                       
                                       {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
-                                      {user?.role === "super_admin" && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                      {canExceptionApprove && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedRequest(request);
@@ -973,7 +975,7 @@ export default function DisbursementRequests() {
                                           className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
                                         >
                                           <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                          <span>استثناء اعتماد (سوبر آدمن)</span>
+                                          <span>استثناء اعتماد منشئ الطلب</span>
                                         </DropdownMenuItem>
                                       )}
 
@@ -1143,7 +1145,7 @@ export default function DisbursementRequests() {
                                     )}
 
                                     {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
-                                    {user?.role === "super_admin" && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                    {canExceptionApprove && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedRequest(request);
@@ -1153,7 +1155,7 @@ export default function DisbursementRequests() {
                                         className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
                                       >
                                         <ShieldAlert className="h-4 w-4 text-amber-600" />
-                                        <span>استثناء اعتماد (سوبر آدمن)</span>
+                                        <span>استثناء اعتماد منشئ الطلب</span>
                                       </DropdownMenuItem>
                                     )}
 
@@ -1998,13 +2000,13 @@ export default function DisbursementRequests() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة استثناء اعتماد طلب الصرف (خاصة بالسوبر آدمن فقط) */}
+        {/* نافذة استثناء اعتماد طلب الصرف (اعتماد بديل لمنشئ الطلب) */}
         <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
           <DialogContent dir="rtl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
-                <span>استثناء اعتماد طلب الصرف (سوبر آدمن)</span>
+                <span>استثناء اعتماد طلب الصرف (اعتماد بديل لمنشئ الطلب)</span>
               </DialogTitle>
               <DialogDescription>
                 سيتم اعتماد المرحلة الأولى لطلب الصرف رقم <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedRequest?.requestNumber}</span> استثناءً نيابة عن مُعد الطلب، وتسجيل اسمك وتوقيعك في التقرير بدلاً من بيانات منشئ الطلب.
@@ -2020,15 +2022,16 @@ export default function DisbursementRequests() {
                   <p>المشروع: {selectedRequest.projectName}</p>
                 )}
                 <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold pt-1 border-t border-amber-200/60 dark:border-amber-900/50">
-                  تنبيه: هذا الإجراء مخصص وحصري للحسابات ذات دور السوبر آدمن فقط لتجاوز مرحلة اعتماد منشئ الطلب.
+                  تنبيه: هذا الإجراء مخصص لتجاوز مرحلة اعتماد منشئ الطلب، ويتوجب إدخال مبرر الاستثناء لتأكيد العملية.
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>مبررات / ملاحظات الاستثناء (اختياري)</Label>
+                <Label className="font-bold text-slate-800">سبب / مبرر الاستثناء *</Label>
                 <Textarea
                   value={exceptionNotes}
                   onChange={(e) => setExceptionNotes(e.target.value)}
-                  placeholder="أدخل سبب أو ملاحظات استثناء الاعتماد..."
+                  placeholder="اكتب سبب أو مبرر استثناء اعتماد منشئ الطلب (إجباري)..."
+                  className="min-h-[100px]"
                 />
               </div>
             </div>
@@ -2039,14 +2042,14 @@ export default function DisbursementRequests() {
               <Button
                 className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
                 onClick={() => {
-                  if (selectedRequest?.id) {
+                  if (selectedRequest?.id && exceptionNotes.trim()) {
                     exceptionApproveRequestMutation.mutate({
                       id: selectedRequest.id,
-                      notes: exceptionNotes,
+                      notes: exceptionNotes.trim(),
                     });
                   }
                 }}
-                disabled={exceptionApproveRequestMutation.isPending}
+                disabled={!exceptionNotes || !exceptionNotes.trim() || exceptionApproveRequestMutation.isPending}
               >
                 {exceptionApproveRequestMutation.isPending
                   ? "جاري تنفيذ الاستثناء..."
