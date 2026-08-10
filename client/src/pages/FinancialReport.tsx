@@ -17,6 +17,11 @@ import {
   Download,
   Folder,
   Percent,
+  Receipt,
+  CheckCircle2,
+  Clock,
+  Printer,
+  Search,
 } from "lucide-react";
 import { 
   AreaChart, 
@@ -61,6 +66,46 @@ const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
   approved: { label: "معتمد", color: "#3b82f6" },
   rejected: { label: "مرفوض", color: "#ef4444" },
   edited: { label: "تم التعديل", color: "#f97316" },
+};
+
+const RECEIPT_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  approved: { label: "معتمد", color: "#10b981" },
+  pending_approval: { label: "قيد الاعتماد", color: "#eab308" },
+  approval_revoked: { label: "ملغى الاعتماد", color: "#f59e0b" },
+  rejected: { label: "مرفوض", color: "#ef4444" },
+};
+
+const CustomReceiptTimelineTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border p-3 rounded-xl shadow-xl text-xs font-semibold text-foreground opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{label}</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+          <span className="text-muted-foreground">السندات المنشأة:</span>
+          <span className="font-black text-foreground mr-auto">{payload[0].value} سند</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieReceiptStatusTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border shadow-xl p-3 rounded-xl text-xs font-semibold text-foreground min-w-[150px] opacity-100" style={{ direction: 'rtl' }}>
+        <p className="font-bold text-foreground mb-1">{data.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: payload[0].color }} />
+          <span className="text-muted-foreground">عدد السندات:</span>
+          <span className="font-black text-foreground mr-auto">{data.value} سند</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
 };
 
 const CustomTimelineTooltip = ({ active, payload, label }: any) => {
@@ -166,6 +211,7 @@ export default function FinancialReport() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("projects");
+  const [receiptVoucherSearch, setReceiptVoucherSearch] = useState<string>("");
 
   const userPermissions: string[] = (user as any)?.permissions ?? [];
   const isSuperOrSystemAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
@@ -180,6 +226,9 @@ export default function FinancialReport() {
 
   // جلب بيانات التقرير المالي
   const { data: reportData, isLoading } = trpc.disbursements.getFinancialReport.useQuery({});
+
+  // جلب كافة سندات القبض للتبويب الجديد
+  const { data: allReceiptVouchers = [] } = trpc.projects.getAllReceiptVouchers.useQuery();
 
   // تنسيق المبالغ
   const formatAmount = (amount: number) => {
@@ -265,8 +314,22 @@ export default function FinancialReport() {
     } else {
       csvContent += `"لا توجد بيانات عقود"\n`;
     }
+    csvContent += `\n`;
 
-    // 7. إنشاء تحميل الملف وتنزيله تلقائياً
+    // 7. سندات القبض
+    csvContent += `"سندات القبض"\n`;
+    csvContent += `"رقم السند","المشروع","الجهة الداعمة (المسدد)","تاريخ القبض","المبلغ (ريال)","الحالة","طريقة القبض / الحساب البنكي"\n`;
+    if (allReceiptVouchers && allReceiptVouchers.length > 0) {
+      allReceiptVouchers.forEach((v: any) => {
+        const statusLabel = v.status === "approved" ? "معتمد" : v.status === "approval_revoked" ? "ملغى الاعتماد" : v.status === "rejected" ? "مرفوض" : "قيد الاعتماد";
+        const rDate = v.receiptDate ? new Intl.DateTimeFormat("en-CA").format(new Date(v.receiptDate)) : "-";
+        csvContent += `"${v.voucherNumber || `REC-${v.id}`}","${v.project?.name || "-"}","${v.payerName || "-"}","${rDate}","${v.amount || 0}","${statusLabel}","${v.bankName || "حوالة بنكية"}"\n`;
+      });
+    } else {
+      csvContent += `"لا توجد بيانات سندات قبض"\n`;
+    }
+
+    // 8. إنشاء تحميل الملف وتنزيله تلقائياً
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -325,6 +388,71 @@ export default function FinancialReport() {
         };
       });
   }, [reportData?.ordersByStatus, summary?.totalOrders]);
+
+  const receiptVouchersSummary = useMemo(() => {
+    const totalCount = allReceiptVouchers.length;
+    const approvedVouchers = allReceiptVouchers.filter((v: any) => v.status === "approved");
+    const pendingVouchers = allReceiptVouchers.filter((v: any) => v.status === "pending_approval");
+    const totalApprovedAmount = approvedVouchers.reduce((sum: number, v: any) => sum + (parseFloat(v.amount) || 0), 0);
+    return {
+      totalCount,
+      approvedCount: approvedVouchers.length,
+      pendingCount: pendingVouchers.length,
+      totalApprovedAmount,
+    };
+  }, [allReceiptVouchers]);
+
+  const filteredReceiptVouchers = useMemo(() => {
+    if (!receiptVoucherSearch.trim()) return allReceiptVouchers;
+    const q = receiptVoucherSearch.trim().toLowerCase();
+    return allReceiptVouchers.filter((v: any) =>
+      (v.voucherNumber && v.voucherNumber.toLowerCase().includes(q)) ||
+      (v.payerName && v.payerName.toLowerCase().includes(q)) ||
+      (v.bankName && v.bankName.toLowerCase().includes(q)) ||
+      (v.notes && v.notes.toLowerCase().includes(q)) ||
+      (v.project?.name && v.project.name.toLowerCase().includes(q))
+    );
+  }, [allReceiptVouchers, receiptVoucherSearch]);
+
+  const receiptVouchersByStatusData = useMemo(() => {
+    if (!allReceiptVouchers || allReceiptVouchers.length === 0) return [];
+    const counts: Record<string, number> = {};
+    allReceiptVouchers.forEach((v: any) => {
+      const st = v.status || "pending_approval";
+      counts[st] = (counts[st] || 0) + 1;
+    });
+
+    const total = allReceiptVouchers.length;
+    return Object.keys(counts).map((st) => {
+      const info = RECEIPT_STATUS_MAP[st] || { label: st, color: "#94a3b8" };
+      return {
+        name: info.label,
+        value: counts[st],
+        color: info.color,
+        percentage: total ? Math.round((counts[st] / total) * 100) : 0,
+      };
+    });
+  }, [allReceiptVouchers]);
+
+  const receiptVouchersTimeline = useMemo(() => {
+    if (!allReceiptVouchers || allReceiptVouchers.length === 0) return [];
+    const dateMap: Record<string, number> = {};
+    const sorted = [...allReceiptVouchers].sort((a: any, b: any) =>
+      new Date(a.receiptDate || a.createdAt).getTime() - new Date(b.receiptDate || b.createdAt).getTime()
+    );
+
+    sorted.forEach((v: any) => {
+      const d = v.receiptDate || v.createdAt;
+      if (!d) return;
+      const dateStr = new Date(d).toLocaleDateString("ar-SA", { month: "numeric", day: "numeric" });
+      dateMap[dateStr] = (dateMap[dateStr] || 0) + 1;
+    });
+
+    return Object.keys(dateMap).map((date) => ({
+      date,
+      count: dateMap[date],
+    }));
+  }, [allReceiptVouchers]);
 
   if (!user || !canView) {
     return null;
@@ -443,6 +571,7 @@ export default function FinancialReport() {
               { id: "contracts", label: "العقود", count: summary?.totalContracts || 0, icon: ScrollText, activeColor: "from-primary to-teal-600" },
               { id: "requests", label: "طلبات الصرف", count: summary?.totalRequests || 0, icon: FileText, activeColor: "from-primary to-teal-600" },
               { id: "orders", label: "أوامر الصرف", count: summary?.totalOrders || 0, icon: Wallet, activeColor: "from-primary to-teal-600" },
+              { id: "receipt_vouchers", label: "سندات القبض", count: receiptVouchersSummary.totalCount, icon: Receipt, activeColor: "from-emerald-600 to-teal-600" },
             ].map((tab) => {
               const IsActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -901,6 +1030,125 @@ export default function FinancialReport() {
                         {/* الليجند الجانبي للتوزيع */}
                         <div className="flex-1 w-full space-y-2 max-h-[180px] overflow-y-auto pr-2">
                           {ordersByStatusData.map((item: any) => (
+                            <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
+                                <span className="text-muted-foreground">{item.name}</span>
+                              </div>
+                              <span className="text-slate-800 dark:text-slate-200 font-bold">{item.value} ({item.percentage}%)</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات حالات كافية
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* تبويب سندات القبض */}
+          <TabsContent value="receipt_vouchers" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="space-y-6"
+            >
+              {/* رسوم بيانية لسندات القبض */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* مخطط سير سندات القبض عبر الأيام */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">سير سندات القبض</CardTitle>
+                    <CardDescription>عدد سندات القبض التي تم عملها خلال الفترة الأخيرة</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72">
+                    {receiptVouchersTimeline && receiptVouchersTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={receiptVouchersTimeline}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorReceipts" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+                          <XAxis 
+                            dataKey="date" 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                          />
+                          <YAxis 
+                            tickLine={false} 
+                            axisLine={false} 
+                            className="text-[10px] text-muted-foreground" 
+                            allowDecimals={false}
+                          />
+                          <Tooltip content={<CustomReceiptTimelineTooltip />} />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#10b981" 
+                            strokeWidth={2.5} 
+                            fillOpacity={1} 
+                            fill="url(#colorReceipts)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* مخطط توزيع حالات سندات القبض */}
+                <Card className="border-0 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200">حالات سندات القبض</CardTitle>
+                    <CardDescription>توزيع سندات القبض بين معتمد وقيد الاعتماد وملغى ومرفوض</CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-64 sm:h-72 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {receiptVouchersByStatusData && receiptVouchersByStatusData.length > 0 ? (
+                      <>
+                        <div className="relative w-44 h-44 flex-shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Tooltip content={<CustomPieReceiptStatusTooltip />} />
+                              <Pie
+                                data={receiptVouchersByStatusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={3}
+                                dataKey="value"
+                              >
+                                {receiptVouchersByStatusData.map((entry: any, index: number) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                            <span className="text-2xl font-black text-slate-800 dark:text-slate-200">{receiptVouchersSummary.totalCount}</span>
+                            <span className="text-[10px] text-muted-foreground font-bold mt-1">إجمالي السندات</span>
+                          </div>
+                        </div>
+                        
+                        {/* الليجند الجانبي للتوزيع */}
+                        <div className="flex-1 w-full space-y-2 max-h-[180px] overflow-y-auto pr-2">
+                          {receiptVouchersByStatusData.map((item: any) => (
                             <div key={item.name} className="flex items-center justify-between text-xs font-semibold">
                               <div className="flex items-center gap-2">
                                 <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color }} />
