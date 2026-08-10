@@ -48,7 +48,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   quotations: ["quotations.view", "quotations.create", "quotations.edit", "quotations.approve"],
   financial_approval: ["financial.view", "financial.approve", "financial.reject"],
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
-  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve"],
+  disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["reports.view", "reports.create"],
   financial_report: ["reports.view"],
@@ -187,6 +187,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursements.add": ["disbursements.create"],
   "disbursements.create_custom": ["disbursements.create", "disbursements.create_custom", "disbursements.create_donation"],
   "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
+  "disbursements.exception_approve": ["disbursements.exception_approve"],
 };
 
 /**
@@ -535,6 +536,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "requests.sign_final_report", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقرير الختامي", nameEn: "Sign Final Report" },
       { id: "disbursements.create_custom", moduleId: "disbursements", action: "create_custom", nameAr: "انشاء طلبات صرف مخصصة", nameEn: "Create Custom Disbursement Requests" },
       { id: "disbursements.create_donation", moduleId: "disbursements", action: "create_donation", nameAr: "انشاء طلب صرف لفرصة تبرع", nameEn: "Create Donation Disbursement Request" },
+      { id: "disbursements.exception_approve", moduleId: "disbursements", action: "exception_approve", nameAr: "استثناء اعتماد منشئ الطلب", nameEn: "Override Requester Approval" },
       { id: "disbursements.sign", moduleId: "disbursements", action: "sign", nameAr: "توقيع طلبات الصرف", nameEn: "Sign Disbursement Requests" },
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
@@ -855,7 +857,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("disbursements.create_donation") ||
     allPermissions.has("disbursements.edit") ||
     allPermissions.has("disbursements.delete") ||
-    allPermissions.has("disbursements.approve")
+    allPermissions.has("disbursements.approve") ||
+    allPermissions.has("disbursements.exception_approve")
   ) {
     allPermissions.add("disbursements");
     allPermissions.add("disbursement_requests");
