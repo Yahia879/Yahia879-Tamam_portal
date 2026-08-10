@@ -237,6 +237,8 @@ export default function ReceiptVouchers() {
       resetModalForm();
       refetchVouchers();
       utils.projects.getFinancialData.invalidate();
+      utils.projects.getReceiptVoucherById.invalidate();
+      utils.projects.getAllReceiptVouchers.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء تحديث سند القبض");
@@ -294,6 +296,10 @@ export default function ReceiptVouchers() {
     const initialPrj = selectedProjectId !== "all" ? selectedProjectId : (projectsList[0]?.id.toString() || "");
     setModalProjectId(initialPrj);
     resetModalForm();
+    const matchedProject = projectsList.find((p: any) => p.id.toString() === initialPrj);
+    if (matchedProject?.name) {
+      setModalNotes(matchedProject.name);
+    }
     setIsAddVoucherModalOpen(true);
   };
 
@@ -323,7 +329,13 @@ export default function ReceiptVouchers() {
       setModalPayerName(rawPayer);
     }
 
-    setModalNotes(voucher.notes || "");
+    const rawCleanNote = getCleanVoucherNotes(voucher.notes);
+    const matchedProject = projectsList.find((p: any) => p.id === voucher.projectId);
+    const loadedNote = (rawCleanNote && rawCleanNote !== "-")
+      ? rawCleanNote
+      : ((voucher.notes && voucher.notes !== "-") ? voucher.notes : (matchedProject?.name || ""));
+
+    setModalNotes(loadedNote);
     setModalPaymentMethod(voucher.paymentMethod || "bank_transfer");
     setModalBankName(voucher.bankName || "حوالة بنكية على حساب الجمعية في مصرف الراجحي");
     setModalReferenceNumber(voucher.referenceNumber || "");
@@ -878,7 +890,19 @@ export default function ReceiptVouchers() {
                 {/* اختيار المشروع */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
-                  <Select value={modalProjectId} onValueChange={setModalProjectId} disabled={!!editingVoucherId}>
+                  <Select
+                    value={modalProjectId}
+                    onValueChange={(val) => {
+                      setModalProjectId(val);
+                      if (!editingVoucherId) {
+                        const matched = projectsList.find((p: any) => p.id.toString() === val);
+                        if (matched?.name) {
+                          setModalNotes(matched.name);
+                        }
+                      }
+                    }}
+                    disabled={!!editingVoucherId}
+                  >
                     <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
                       <SelectValue placeholder="اختر المشروع..." />
                     </SelectTrigger>

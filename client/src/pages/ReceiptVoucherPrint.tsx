@@ -57,7 +57,7 @@ export default function ReceiptVoucherPrint() {
   // Fetch Voucher Data
   const { data: voucher, isLoading, error } = trpc.projects.getReceiptVoucherById.useQuery(
     { id: voucherId },
-    { enabled: voucherId > 0 }
+    { enabled: voucherId > 0, staleTime: 0, refetchOnMount: "always" }
   );
 
   // Fetch Branding & Organization Settings (Logo, Stamp, License Number)

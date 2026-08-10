@@ -419,9 +419,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     setCustomVoucherPayerName("");
     setVoucherPaymentMethod("bank_transfer");
     setVoucherRefNumber("");
-    setVoucherBankName("");
+    setVoucherBankName("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
     setVoucherAttachmentUrl("");
-    setVoucherNotes("");
+    setVoucherNotes((data as any)?.project?.name || "");
     setIsVoucherModalOpen(true);
   };
 
@@ -458,9 +458,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     }
     setVoucherPaymentMethod(voucher.paymentMethod || "bank_transfer");
     setVoucherRefNumber(voucher.referenceNumber || "");
-    setVoucherBankName(voucher.bankName || "");
+    setVoucherBankName(voucher.bankName || "حوالة بنكية على حساب الجمعية في مصرف الراجحي");
     setVoucherAttachmentUrl(voucher.attachmentUrl || "");
-    setVoucherNotes(voucher.notes || "");
+    const cleanNote = getCleanVoucherNotes(voucher.notes);
+    setVoucherNotes(cleanNote && cleanNote !== "-" ? cleanNote : (voucher.notes && voucher.notes !== "-" ? voucher.notes : ((data as any)?.project?.name || "")));
     setIsVoucherModalOpen(true);
   };
 
