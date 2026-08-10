@@ -349,8 +349,10 @@ export default function DisbursementRequestPrint() {
           const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
           const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
 
-          const isExceptionApprover = currentUser?.id === (request as any)?.exceptionApprovedBy || currentUser?.role === "super_admin";
-          const canControlCreatorSig = (isExceptionApproved ? (isExceptionApprover || isCreator) : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
+          const isExceptionApprover = (request as any)?.exceptionApprovedBy
+            ? currentUser?.id === (request as any)?.exceptionApprovedBy
+            : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursements.exception_approve"));
+          const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
           const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
 
           return (
