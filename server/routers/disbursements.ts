@@ -1282,10 +1282,10 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      if (order.createdBy === ctx.user.id) {
+      if (ctx.user.email === "solayani@manarah.org.sa") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن استخدام استثناء الاعتماد على أوامر الصرف المنشأة بنفسك، يمكنك استخدام زر الاعتماد العادي لمُعد الأمر",
+          message: "يمكنك اعتماد أمر الصرف بشكل عادي دون الحاجة لاستخدام استثناء الاعتماد",
         });
       }
 
