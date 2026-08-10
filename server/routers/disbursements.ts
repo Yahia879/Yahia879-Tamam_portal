@@ -1289,7 +1289,7 @@ export const disbursementsRouter = router({
         });
       }
 
-      if (order.status !== "pending" && order.status !== "draft") {
+      if (order.status !== "pending" && order.status !== "draft" && order.status !== "edited") {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "لا يمكن عمل استثناء اعتماد إلا للأوامر التي في مرحلة اعتماد مُعد الأمر",
