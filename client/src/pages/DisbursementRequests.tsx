@@ -965,7 +965,7 @@ export default function DisbursementRequests() {
                                       )}
                                       
                                       {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
-                                      {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                      {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft") && (
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedRequest(request);
@@ -1145,7 +1145,7 @@ export default function DisbursementRequests() {
                                     )}
 
                                     {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
-                                    {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                    {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft") && (
                                       <DropdownMenuItem
                                         onClick={() => {
                                           setSelectedRequest(request);
