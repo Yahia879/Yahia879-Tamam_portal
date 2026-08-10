@@ -809,49 +809,6 @@ export default function NewLinkedDisbursementRequest() {
   
   // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
-    if (isCustom && (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses")) {
-      const targetName = requestType === "sadad_invoice" ? formData.billerName : formData.beneficiaryName;
-      const targetBank = requestType === "sadad_invoice" ? formData.billerCode : formData.bankName;
-      const targetIban = requestType === "sadad_invoice" ? formData.sadadNumber : formData.iban;
-      const targetAmount = formData.amount || 0;
-      const targetWork = formData.requiredWorksDesc || formData.description || "";
-
-      setSuppliers(prev => {
-        if (prev.length > 0) {
-          const first = prev[0];
-          if (
-            first.amount !== targetAmount ||
-            first.name !== targetName ||
-            first.bank !== targetBank ||
-            first.iban !== targetIban ||
-            first.work !== targetWork
-          ) {
-            return [{
-              ...first,
-              name: targetName || "",
-              bank: targetBank || "",
-              iban: targetIban || "",
-              amount: targetAmount,
-              agreedAmount: targetAmount,
-              work: targetWork || "",
-            }];
-          }
-        } else {
-          return [{
-            id: crypto.randomUUID(),
-            name: targetName || "",
-            bank: targetBank || "",
-            iban: targetIban || "",
-            amount: targetAmount,
-            agreedAmount: targetAmount,
-            work: targetWork || "",
-          }];
-        }
-        return prev;
-      });
-      return;
-    }
-
     const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
     const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
     const quotationAmt = parseFloat(String(
@@ -897,11 +854,7 @@ export default function NewLinkedDisbursementRequest() {
         return prev;
       });
     }
-  }, [
-    selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails,
-    isCustom, requestType, formData.amount, formData.beneficiaryName, formData.billerName,
-    formData.bankName, formData.billerCode, formData.iban, formData.sadadNumber, formData.requiredWorksDesc, formData.description
-  ]);
+  }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد معتمد أو نشط واحد فقط للمشروع
   useEffect(() => {
@@ -917,9 +870,9 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [projectContracts]);
   
-  // حساب الإجمالي من قائمة الموردين أو formData.amount
+  // حساب الإجمالي من قائمة الموردين
   const rawSuppliersAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  const totalAmount = rawSuppliersAmount > 0 ? rawSuppliersAmount : (formData.amount || 0);
+  const totalAmount = rawSuppliersAmount;
   
   // حساب قيمة طلب الصرف المتوقع من التقرير، الدفعة المرتبطة، العقد، ميزانية المشروع، أو العرض المعتمد
   const rawReportAmount = parseFloat(String(selectedReport?.budgetSpent || "0"));
@@ -1127,7 +1080,7 @@ export default function NewLinkedDisbursementRequest() {
         return;
       }
     }
-    if (!isCustom && suppliers.some(s => !s.name)) {
+    if (suppliers.some(s => !s.name)) {
       toast.error("يرجى اختيار المورد المستفيد");
       return;
     }
