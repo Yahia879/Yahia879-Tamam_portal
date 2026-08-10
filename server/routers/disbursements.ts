@@ -1130,23 +1130,34 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم رفض طلب الصرف" };
     }),
 
-  // استثناء اعتماد طلب صرف (السوبر آدمن فقط)
+  // استثناء اعتماد طلب صرف (اعتماد بديل لمنشئ الطلب)
   exceptionApproveRequest: protectedProcedure
     .input(
       z.object({
         id: z.number(),
-        notes: z.string().optional(),
+        notes: z.string().min(1, "سبب أو مبرر الاستثناء مطلوب"),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق الحصري من دور سوبر آدمن
-      if (ctx.user.role !== "super_admin") {
+      // التحقق من صلاحية استثناء اعتماد منشئ الطلب
+      const hasExceptionPerm = 
+        ctx.user.role === "super_admin" ||
+        await checkPermission(ctx.user.id, "disbursements.exception_approve");
+
+      if (!hasExceptionPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "هذا الإجراء متاح حصرياً للحسابات ذات دور السوبر آدمن فقط",
+          message: "ليس لديك صلاحية استثناء اعتماد منشئ الطلب",
+        });
+      }
+
+      if (!input.notes || !input.notes.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يرجى توضيح سبب أو مبرر استثناء الاعتماد",
         });
       }
 
@@ -1163,8 +1174,8 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن عمل استثناء اعتماد لطلب ملغى/مرفوض أو مدفوع" });
       }
 
-      // جلب بيانات توقيع السوبر آدمن
-      const [superAdminData] = await db
+      // جلب بيانات توقيع المستخدم المنفذ للاستثناء
+      const [approverData] = await db
         .select({
           name: users.name,
           signatureName: users.signatureName,
@@ -1174,21 +1185,21 @@ export const disbursementsRouter = router({
         .from(users)
         .where(eq(users.id, ctx.user.id));
 
-      const superAdminName = superAdminData?.signatureName || superAdminData?.name || ctx.user.name || "سوبر آدمن";
-      const superAdminDept = superAdminData?.signatureDepartment || "إدارة النظام (استثناء اعتماد)";
-      const superAdminSigUrl = superAdminData?.signatureUrl || null;
+      const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
+      const approverDept = approverData?.signatureDepartment || "إدارة النظام (استثناء اعتماد)";
+      const approverSigUrl = approverData?.signatureUrl || null;
 
       // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الطلب وتحديث الـ Snapshot
       await db
         .update(disbursementRequests)
         .set({
           status: "pending_executive",
-          creatorSignatureName: superAdminName,
-          creatorSignatureDepartment: superAdminDept,
-          creatorSignatureUrl: superAdminSigUrl,
+          creatorSignatureName: approverName,
+          creatorSignatureDepartment: approverDept,
+          creatorSignatureUrl: approverSigUrl,
           isException: true,
           exceptionApprovedBy: ctx.user.id,
-          approvalNotes: input.notes ? `[استثناء اعتماد]: ${input.notes}` : (request.approvalNotes || "[تم الاعتماد باستثناء سوبر آدمن]"),
+          approvalNotes: `[مبرر استثناء اعتماد منشئ الطلب]: ${input.notes.trim()}`,
           updatedAt: new Date(),
         })
         .where(eq(disbursementRequests.id, input.id));
@@ -1207,8 +1218,8 @@ export const disbursementsRouter = router({
       for (const execUser of executiveUsers) {
         await createNotification({
           userId: execUser.id,
-          title: "طلب صرف - استثناء اعتماد سوبر آدمن",
-          message: `تم استخدام استثناء الاعتماد لطلب الصرف رقم ${request.requestNumber} بواسطة السوبر آدمن، وهو الآن بانتظار الاعتماد النهائي`,
+          title: "طلب صرف - استثناء اعتماد منشئ الطلب",
+          message: `تم استخدام استثناء الاعتماد لطلب الصرف رقم ${request.requestNumber} بواسطة (${approverName}) بمبرر: ${input.notes.trim()}`,
           type: "warning",
           relatedType: "disbursement_request",
           relatedId: input.id,
@@ -1218,7 +1229,7 @@ export const disbursementsRouter = router({
       return {
         success: true,
         status: "pending_executive",
-        message: "تم تنفيذ استثناء الاعتماد بنجاح وتسجيل اسم وتوقيع السوبر آدمن",
+        message: "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرر الاعتماد واسم وتوقيع المعتمِد",
       };
     }),
 
