@@ -965,7 +965,7 @@ export default function DisbursementRequests() {
                                       )}
                                       
                                       {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
-                                      {canExceptionApprove && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                      {canExceptionApprove && request.requestedBy !== user?.id && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
                                         <DropdownMenuItem
                                           onClick={() => {
                                             setSelectedRequest(request);
@@ -1109,12 +1109,6 @@ export default function DisbursementRequests() {
                             )}
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1 text-right">
-                                <p className="font-mono text-[10px] text-muted-foreground">{request.requestNumber}</p>
-                                <p className="font-bold text-sm truncate">{request.title || request.description}</p>
-                                {request.projectId ? (
-                                  <div className="mt-0.5 flex justify-end">
-                                    <span className="text-xs text-muted-foreground truncate max-w-[150px]">{request.projectName}</span>
-                                  </div>
                                 ) : (
                                   <div className="mt-0.5 flex justify-end">
                                     <span className="text-muted-foreground text-xs font-medium">-</span>
