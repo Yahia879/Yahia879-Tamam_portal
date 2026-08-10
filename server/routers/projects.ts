@@ -21,14 +21,15 @@ async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof g
   return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
 }
 
-// إعادة تسلسل أرقام سندات القبض لجميع السندات بالترتيب REC-1, REC-2, ... حسب تاريخ/ترتيب الإنشاء
+// إعادة تسلسل أرقام سندات القبض لجميع السندات بالترتيب REC-51, REC-52, ... حسب تاريخ/ترتيب الإنشاء (الترقيم يبدأ من 51)
 async function resequenceVoucherNumbers(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
+  const START_NUMBER = 51;
   const vouchers = await db
     .select({ id: receiptVouchers.id, voucherNumber: receiptVouchers.voucherNumber })
     .from(receiptVouchers)
     .orderBy(asc(receiptVouchers.id));
 
-  const needsResequence = vouchers.some((v, index) => v.voucherNumber !== `REC-${index + 1}`);
+  const needsResequence = vouchers.some((v, index) => v.voucherNumber !== `REC-${index + START_NUMBER}`);
 
   if (needsResequence && vouchers.length > 0) {
     const timestamp = Date.now();
@@ -41,12 +42,12 @@ async function resequenceVoucherNumbers(db: NonNullable<Awaited<ReturnType<typeo
     for (let i = 0; i < vouchers.length; i++) {
       await db
         .update(receiptVouchers)
-        .set({ voucherNumber: `REC-${i + 1}` })
+        .set({ voucherNumber: `REC-${i + START_NUMBER}` })
         .where(eq(receiptVouchers.id, vouchers[i].id));
     }
   }
 
-  return `REC-${vouchers.length + 1}`;
+  return `REC-${vouchers.length + START_NUMBER}`;
 }
 
 // توليد رقم عقد فريد
