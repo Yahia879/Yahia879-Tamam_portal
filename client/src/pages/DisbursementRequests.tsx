@@ -1246,15 +1246,7 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                    {/* 5. Convert to Order - If allowed */}
-                                     {/* 5. Approve & Reject buttons - If allowed and pending */}
-                                     {canApproveRequest && request.status === "pending" && (
-                                       <>
-                                         <DropdownMenuItem
-                                           <span>إلغاء طلب الصرف</span>
-                                         </DropdownMenuItem>
-                                       </>
-                                     )}
+                                     {/* 5. Convert to Order - If allowed */}
 
                                      {/* 6. Convert to Order - If allowed and approved */}
                                      {canCreateOrder && request.status === "approved" && !isConverted && (
@@ -1270,7 +1262,6 @@ export default function DisbursementRequests() {
                                 </DropdownMenu>
                               </div>
                             </div>
-                          </div>
 
                           <div className="flex justify-between items-end pt-1">
                             <div>
