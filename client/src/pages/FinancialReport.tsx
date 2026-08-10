@@ -444,7 +444,8 @@ export default function FinancialReport() {
     sorted.forEach((v: any) => {
       const d = v.receiptDate || v.createdAt;
       if (!d) return;
-      const dateStr = new Date(d).toLocaleDateString("ar-SA", { month: "numeric", day: "numeric" });
+      const dt = new Date(d);
+      const dateStr = `${dt.getDate()}/${dt.getMonth() + 1}/${dt.getFullYear()}`;
       dateMap[dateStr] = (dateMap[dateStr] || 0) + 1;
     });
 
