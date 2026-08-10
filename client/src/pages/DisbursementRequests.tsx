@@ -67,6 +67,7 @@ import {
   ChevronLeft,
   MoreVertical,
   Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -240,6 +241,9 @@ export default function DisbursementRequests() {
   const [showViewRejectionDialog, setShowViewRejectionDialog] = useState(false);
   const [viewRejectionReasonText, setViewRejectionReasonText] = useState("");
   
+  const [showExceptionDialog, setShowExceptionDialog] = useState(false);
+  const [exceptionNotes, setExceptionNotes] = useState("");
+  
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -322,6 +326,18 @@ export default function DisbursementRequests() {
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إلغاء طلب الصرف");
+    },
+  });
+
+  const exceptionApproveRequestMutation = trpc.disbursements.exceptionApproveRequest.useMutation({
+    onSuccess: (data: any) => {
+      toast.success(data?.message || "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق بياناتك بدلاً من منشئ الطلب");
+      setShowExceptionDialog(false);
+      setExceptionNotes("");
+      refetchRequests();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تنفيذ استثناء الاعتماد");
     },
   });
 
@@ -946,6 +962,21 @@ export default function DisbursementRequests() {
                                         </DropdownMenuItem>
                                       )}
                                       
+                                      {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
+                                      {user?.role === "super_admin" && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            setSelectedRequest(request);
+                                            setExceptionNotes("");
+                                            setShowExceptionDialog(true);
+                                          }}
+                                          className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
+                                        >
+                                          <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                          <span>استثناء اعتماد (سوبر آدمن)</span>
+                                        </DropdownMenuItem>
+                                      )}
+
                                       {/* Stage 1 Approval: Preparer */}
                                       {(request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id) && (
                                         <>
@@ -1108,6 +1139,21 @@ export default function DisbursementRequests() {
                                       >
                                         <Printer className="h-4 w-4 text-blue-500" />
                                         <span>عرض تقرير طلب الصرف</span>
+                                      </DropdownMenuItem>
+                                    )}
+
+                                    {/* Super Admin ONLY: Approval Exception (استثناء اعتماد) */}
+                                    {user?.role === "super_admin" && (request.status === "pending" || request.status === "draft" || request.status === "pending_executive") && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          setSelectedRequest(request);
+                                          setExceptionNotes("");
+                                          setShowExceptionDialog(true);
+                                        }}
+                                        className="flex items-center gap-2 cursor-pointer font-bold text-amber-700 hover:text-amber-800 focus:text-amber-800 focus:bg-amber-50 dark:focus:bg-amber-950/30"
+                                      >
+                                        <ShieldAlert className="h-4 w-4 text-amber-600" />
+                                        <span>استثناء اعتماد (سوبر آدمن)</span>
                                       </DropdownMenuItem>
                                     )}
 
@@ -1947,6 +1993,64 @@ export default function DisbursementRequests() {
                 disabled={!rejectionReason || rejectRequestMutation.isPending}
               >
                 {rejectRequestMutation.isPending ? "جاري الإلغاء..." : "إلغاء طلب الصرف"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة استثناء اعتماد طلب الصرف (خاصة بالسوبر آدمن فقط) */}
+        <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+                <span>استثناء اعتماد طلب الصرف (سوبر آدمن)</span>
+              </DialogTitle>
+              <DialogDescription>
+                سيتم اعتماد المرحلة الأولى لطلب الصرف رقم <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedRequest?.requestNumber}</span> استثناءً نيابة عن مُعد الطلب، وتسجيل اسمك وتوقيعك في التقرير بدلاً من بيانات منشئ الطلب.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="rounded-lg bg-amber-50/70 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50 p-4 space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{selectedRequest?.title}</p>
+                <p>
+                  المبلغ: <span className="font-bold text-emerald-700 dark:text-emerald-400">{Number(selectedRequest?.amount || 0).toLocaleString()} ريال</span>
+                </p>
+                {selectedRequest?.projectName && (
+                  <p>المشروع: {selectedRequest.projectName}</p>
+                )}
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold pt-1 border-t border-amber-200/60 dark:border-amber-900/50">
+                  تنبيه: هذا الإجراء مخصص وحصري للحسابات ذات دور السوبر آدمن فقط لتجاوز مرحلة اعتماد منشئ الطلب.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>مبررات / ملاحظات الاستثناء (اختياري)</Label>
+                <Textarea
+                  value={exceptionNotes}
+                  onChange={(e) => setExceptionNotes(e.target.value)}
+                  placeholder="أدخل سبب أو ملاحظات استثناء الاعتماد..."
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowExceptionDialog(false)}>
+                إلغاء
+              </Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                onClick={() => {
+                  if (selectedRequest?.id) {
+                    exceptionApproveRequestMutation.mutate({
+                      id: selectedRequest.id,
+                      notes: exceptionNotes,
+                    });
+                  }
+                }}
+                disabled={exceptionApproveRequestMutation.isPending}
+              >
+                {exceptionApproveRequestMutation.isPending
+                  ? "جاري تنفيذ الاستثناء..."
+                  : "تأكيد استثناء الاعتماد"}
               </Button>
             </DialogFooter>
           </DialogContent>
