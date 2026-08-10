@@ -2000,31 +2000,16 @@ export default function DisbursementRequests() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة استثناء اعتماد طلب الصرف (اعتماد بديل لمنشئ الطلب) */}
+        {/* نافذة استثناء اعتماد طلب الصرف */}
         <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
           <DialogContent dir="rtl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
-                <span>استثناء اعتماد طلب الصرف (اعتماد بديل لمنشئ الطلب)</span>
+                <span>استثناء اعتماد طلب الصرف</span>
               </DialogTitle>
-              <DialogDescription>
-                سيتم اعتماد المرحلة الأولى لطلب الصرف رقم <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{selectedRequest?.requestNumber}</span> استثناءً نيابة عن مُعد الطلب، وتسجيل اسمك وتوقيعك في التقرير بدلاً من بيانات منشئ الطلب.
-              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="rounded-lg bg-amber-50/70 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/50 p-4 space-y-1.5 text-xs text-amber-900 dark:text-amber-200">
-                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">{selectedRequest?.title}</p>
-                <p>
-                  المبلغ: <span className="font-bold text-emerald-700 dark:text-emerald-400">{Number(selectedRequest?.amount || 0).toLocaleString()} ريال</span>
-                </p>
-                {selectedRequest?.projectName && (
-                  <p>المشروع: {selectedRequest.projectName}</p>
-                )}
-                <p className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold pt-1 border-t border-amber-200/60 dark:border-amber-900/50">
-                  تنبيه: هذا الإجراء مخصص لتجاوز مرحلة اعتماد منشئ الطلب، ويتوجب إدخال مبرر الاستثناء لتأكيد العملية.
-                </p>
-              </div>
               <div className="space-y-2">
                 <Label className="font-bold text-slate-800">سبب / مبرر الاستثناء *</Label>
                 <Textarea
