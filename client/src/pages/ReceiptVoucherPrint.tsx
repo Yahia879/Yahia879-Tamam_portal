@@ -195,7 +195,7 @@ export default function ReceiptVoucherPrint() {
   // Payment Method details string
   const getPaymentMethodDetails = () => {
     const pMethod = voucher.paymentMethod;
-    const bank = voucher.bankName ? `في ${voucher.bankName}` : "في بنك البلاد";
+    const bank = voucher.bankName ? `في ${voucher.bankName}` : "في مصرف الراجحي";
     const refDateStr = formatGregorianDate(receiptDateObj);
 
     if (pMethod === "cash") {
@@ -280,10 +280,10 @@ export default function ReceiptVoucherPrint() {
 
       {/* Main Container wrapping original receipt report */}
       <div className="print-container w-full max-w-[210mm] sm:max-w-[235mm] mx-auto">
-        
+
         {/* Main A4 Document Canvas - Original Receipt Voucher Design */}
         <div className="bg-white text-slate-900 border border-slate-300 shadow-2xl rounded-2xl p-8 sm:p-12 relative overflow-hidden print-card">
-          
+
           {/* Subtle Islamic Geometric Watermark Overlay Background */}
           <div className="absolute inset-0 pointer-events-none opacity-[0.035] overflow-hidden flex items-center justify-center">
             <svg className="w-full h-full" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
