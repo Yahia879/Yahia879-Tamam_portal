@@ -538,7 +538,7 @@ export default function DisbursementOrders() {
                                     const isStage2Pending = order.status === "pending_executive";
                                     const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
                                     const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
-                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id && user?.email !== "solayani@manarah.org.sa";
+                                    const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
                                     const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
 
                                     return (
@@ -721,7 +721,7 @@ export default function DisbursementOrders() {
                                   const isStage2Pending = order.status === "pending_executive";
                                   const canApproveStage1 = isStage1Pending && user?.email === "solayani@manarah.org.sa";
                                   const canApproveStage2 = isStage2Pending && user?.email === "ceo@manarah.org.sa";
-                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && order.createdBy !== user?.id && user?.email !== "solayani@manarah.org.sa";
+                                  const canShowExceptionOption = isStage1Pending && canExceptionApproveOrder && user?.email !== "solayani@manarah.org.sa";
                                   const canReject = (isStage1Pending && user?.email === "solayani@manarah.org.sa") || (isStage2Pending && user?.email === "ceo@manarah.org.sa");
 
                                   return (
