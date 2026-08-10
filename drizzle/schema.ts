@@ -876,6 +876,7 @@ export const organizationSettings = mysqlTable("organization_settings", {
   colorSecondary3: varchar("colorSecondary3", { length: 7 }).default("#ef4444"), // اللون الثانوي 3
   colorSecondary4: varchar("colorSecondary4", { length: 7 }).default("#8b5cf6"), // اللون الثانوي 4
   colorSecondary5: varchar("colorSecondary5", { length: 7 }).default("#10b981"), // اللون الثانوي 5
+  metaTitle: varchar("metaTitle", { length: 255 }), // عنوان الترويسة والـ Meta Title الخاص بالموقع
   // حقول قديمة (للتوافق العكسي)
   authorizedSignatory: varchar("authorizedSignatory", { length: 255 }),
   signatoryTitle: varchar("signatoryTitle", { length: 100 }),

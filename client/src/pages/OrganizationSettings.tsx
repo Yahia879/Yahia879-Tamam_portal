@@ -47,6 +47,7 @@ import {
   UserCheck,
   ChevronDown,
   Lock,
+  Globe,
 } from "lucide-react";
 import {
   Dialog,
@@ -808,6 +809,7 @@ export default function OrganizationSettings() {
     name: "جمعية تمام للعناية بالمساجد",
     officialReportsName: "",
     licenseNumber: "",
+    metaTitle: "",
     address: "",
     city: "",
     phone: "",
@@ -865,6 +867,7 @@ export default function OrganizationSettings() {
         name: settings.organizationName || "جمعية تمام للعناية بالمساجد",
         officialReportsName: settings.officialReportsName || "",
         licenseNumber: settings.licenseNumber || "",
+        metaTitle: (settings as any)?.metaTitle || "",
         address: settings.address || "",
         city: settings.city || "",
         phone: settings.phone || "",
@@ -897,6 +900,7 @@ export default function OrganizationSettings() {
       organizationName: orgSettings.name,
       officialReportsName: orgSettings.officialReportsName || undefined,
       licenseNumber: orgSettings.licenseNumber || undefined,
+      metaTitle: orgSettings.metaTitle || undefined,
       address: orgSettings.address || undefined,
       city: orgSettings.city || undefined,
       phone: orgSettings.phone || undefined,
@@ -1016,7 +1020,7 @@ export default function OrganizationSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
                     <Input
@@ -1027,6 +1031,22 @@ export default function OrganizationSettings() {
                       className="h-10 sm:h-11"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="metaTitle" className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                      <Globe className="w-4 h-4 text-primary" />
+                      عنوان تبويب المتصفح
+                    </Label>
+                    <Input
+                      id="metaTitle"
+                      value={orgSettings.metaTitle}
+                      onChange={(e) => setOrgSettings({ ...orgSettings, metaTitle: e.target.value })}
+                      placeholder="مثال: بوابة تمام | نظام إدارة برامج ومشاريع الجمعية"
+                      className="h-10 sm:h-11 font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="officialReportsName" className="text-xs sm:text-sm font-bold">اسم الجمعية للتقارير الرسمية</Label>
                     <Input

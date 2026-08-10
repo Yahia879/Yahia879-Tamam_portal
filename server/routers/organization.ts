@@ -59,6 +59,7 @@ export const organizationRouter = router({
         colorSecondary3: "#ef4444",
         colorSecondary4: "#8b5cf6",
         colorSecondary5: "#10b981",
+        metaTitle: "",
         authorizedSignatory: "",
         signatoryTitle: "",
         signatoryPhone: "",
@@ -113,6 +114,7 @@ export const organizationRouter = router({
       colorSecondary3: z.string().optional(),
       colorSecondary4: z.string().optional(),
       colorSecondary5: z.string().optional(),
+      metaTitle: z.string().optional(),
       // بيانات المفوض بالتوقيع
       authorizedSignatory: z.string().optional(),
       signatoryTitle: z.string().optional(),
@@ -182,6 +184,7 @@ export const organizationRouter = router({
         colorSecondary3: input.colorSecondary3 || "#ef4444",
         colorSecondary4: input.colorSecondary4 || "#8b5cf6",
         colorSecondary5: input.colorSecondary5 || "#10b981",
+        metaTitle: input.metaTitle !== undefined ? (input.metaTitle || null) : (existing?.metaTitle || null),
         authorizedSignatory: input.authorizedSignatory || null,
         signatoryTitle: input.signatoryTitle || null,
         signatoryPhone: input.signatoryPhone || null,

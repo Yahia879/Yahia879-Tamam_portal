@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star, ArrowRight } from "lucide-react";
+import { Palette, Upload, Eye, Save, X, Loader2, FileText, Building2, Star, ArrowRight, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useRef, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
@@ -42,6 +42,7 @@ export default function Branding() {
   const [colorSecondary3, setColorSecondary3] = useState("#ef4444");
   const [colorSecondary4, setColorSecondary4] = useState("#8b5cf6");
   const [colorSecondary5, setColorSecondary5] = useState("#10b981");
+  const [metaTitle, setMetaTitle] = useState("بوابة تمام للعناية بالمساجد");
   const [isSaving, setIsSaving] = useState(false);
 
   // حالات الشعارات
@@ -80,6 +81,7 @@ export default function Branding() {
       if ((orgSettings as any).colorSecondary3) setColorSecondary3((orgSettings as any).colorSecondary3);
       if ((orgSettings as any).colorSecondary4) setColorSecondary4((orgSettings as any).colorSecondary4);
       if ((orgSettings as any).colorSecondary5) setColorSecondary5((orgSettings as any).colorSecondary5);
+      if ((orgSettings as any).metaTitle) setMetaTitle((orgSettings as any).metaTitle);
     }
   }, [orgSettings]);
 
@@ -108,8 +110,12 @@ export default function Branding() {
         colorSecondary3,
         colorSecondary4,
         colorSecondary5,
+        metaTitle,
       });
-      toast.success("تم حفظ الألوان وتطبيقها على البوابة");
+      if (metaTitle && metaTitle.trim()) {
+        document.title = metaTitle.trim();
+      }
+      toast.success("تم حفظ إعدادات الهوية وعنوان الموقع بنجاح");
       refetch();
     } catch (error) {
       toast.error("فشل في حفظ الألوان");
