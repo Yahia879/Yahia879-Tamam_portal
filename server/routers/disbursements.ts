@@ -1244,6 +1244,119 @@ export const disbursementsRouter = router({
       };
     }),
 
+  // استثناء اعتماد مُعد الأمر (أمر الصرف)
+  exceptionApproveOrder: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().min(1, "سبب أو مبرر الاستثناء مطلوب"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من صلاحية استثناء اعتماد مُعد الأمر
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "disbursement_orders.exception_approve");
+
+      if (!hasExceptionPerm) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية استثناء اعتماد مُعد أمر الصرف",
+        });
+      }
+
+      if (!input.notes || !input.notes.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "يرجى توضيح سبب أو مبرر استثناء الاعتماد",
+        });
+      }
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.id));
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      if (order.createdBy === ctx.user.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن استخدام استثناء الاعتماد على أوامر الصرف المنشأة بنفسك، يمكنك استخدام زر الاعتماد العادي لمُعد الأمر",
+        });
+      }
+
+      if (order.status !== "pending" && order.status !== "draft") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن عمل استثناء اعتماد إلا للأوامر التي في مرحلة اعتماد مُعد الأمر",
+        });
+      }
+
+      // جلب بيانات توقيع المستخدم المنفذ للاستثناء
+      const [approverData] = await db
+        .select({
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(eq(users.id, ctx.user.id));
+
+      const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
+      const approverDept = approverData?.signatureDepartment || "الإدارة المالية (استثناء اعتماد)";
+      const approverSigUrl = approverData?.signatureUrl || null;
+
+      // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الأمر وتحديث الـ Snapshot
+      await db
+        .update(disbursementOrders)
+        .set({
+          status: "pending_executive",
+          creatorSignatureName: approverName,
+          creatorSignatureDepartment: approverDept,
+          creatorSignatureUrl: approverSigUrl,
+          isException: true,
+          exceptionApprovedBy: ctx.user.id,
+          financialApprovedAt: new Date(),
+          approvalNotes: `[مبرر استثناء اعتماد مُعد الأمر]: ${input.notes.trim()}`,
+          showCreatorSignature: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.id));
+
+      // إرسال إشعار للمدير التنفيذي
+      const executiveUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, ["general_manager", "executive_director"]),
+            isNull(users.deletedAt)
+          )
+        );
+
+      for (const execUser of executiveUsers) {
+        await createNotification({
+          userId: execUser.id,
+          title: "أمر صرف - استثناء اعتماد مُعد الأمر",
+          message: `تم استخدام استثناء الاعتماد لأمر الصرف رقم ${order.orderNumber} بواسطة (${approverName}) بمبرر: ${input.notes.trim()}`,
+          type: "warning",
+          relatedType: "disbursement_order",
+          relatedId: input.id,
+        });
+      }
+
+      return {
+        success: true,
+        status: "pending_executive",
+        message: "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرر الاعتماد واسم وتوقيع المعتمِد",
+      };
+    }),
+
   // ==================== أوامر الصرف ====================
 
   // جلب قائمة أوامر الصرف
@@ -1299,6 +1412,12 @@ export const disbursementsRouter = router({
           approvedBy: disbursementOrders.approvedBy,
           createdAt: disbursementOrders.createdAt,
           approvedAt: disbursementOrders.approvedAt,
+          isException: disbursementOrders.isException,
+          creatorSignatureName: disbursementOrders.creatorSignatureName,
+          creatorSignatureDepartment: disbursementOrders.creatorSignatureDepartment,
+          creatorSignatureUrl: disbursementOrders.creatorSignatureUrl,
+          approvalNotes: disbursementOrders.approvalNotes,
+          exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           requestNumber: disbursementRequests.requestNumber,
           isDirect: disbursementRequests.isDirect,
           requestTitle: disbursementRequests.description,
