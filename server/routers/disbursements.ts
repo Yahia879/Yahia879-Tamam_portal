@@ -1142,7 +1142,7 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // التحقق من صلاحية استثناء اعتماد منشئ الطلب
+      // التحقق من صلاحية استثناء اعتماد مُعد الطلب
       const hasExceptionPerm = 
         ctx.user.role === "super_admin" ||
         await checkPermission(ctx.user.id, "disbursements.exception_approve");
@@ -1150,7 +1150,7 @@ export const disbursementsRouter = router({
       if (!hasExceptionPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "ليس لديك صلاحية استثناء اعتماد منشئ الطلب",
+          message: "ليس لديك صلاحية استثناء اعتماد مُعد الطلب",
         });
       }
 
@@ -1199,7 +1199,7 @@ export const disbursementsRouter = router({
           creatorSignatureUrl: approverSigUrl,
           isException: true,
           exceptionApprovedBy: ctx.user.id,
-          approvalNotes: `[مبرر استثناء اعتماد منشئ الطلب]: ${input.notes.trim()}`,
+          approvalNotes: `[مبرر استثناء اعتماد مُعد الطلب]: ${input.notes.trim()}`,
           updatedAt: new Date(),
         })
         .where(eq(disbursementRequests.id, input.id));
@@ -1218,7 +1218,7 @@ export const disbursementsRouter = router({
       for (const execUser of executiveUsers) {
         await createNotification({
           userId: execUser.id,
-          title: "طلب صرف - استثناء اعتماد منشئ الطلب",
+          title: "طلب صرف - استثناء اعتماد مُعد الطلب",
           message: `تم استخدام استثناء الاعتماد لطلب الصرف رقم ${request.requestNumber} بواسطة (${approverName}) بمبرر: ${input.notes.trim()}`,
           type: "warning",
           relatedType: "disbursement_request",
