@@ -142,8 +142,8 @@ export default function BoqFormDialog({
       });
     } else {
       addItemMutation.mutate({
-        requestId,
-        projectId,
+        requestId: requestId || undefined,
+        projectId: projectId || undefined,
         itemName: formData.itemName,
         itemDescription: formData.description,
         unit: formData.unit,
