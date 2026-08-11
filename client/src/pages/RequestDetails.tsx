@@ -79,7 +79,7 @@ const ACTION_LABELS: Record<string, string> = {
   'project_started': 'تم بدء المشروع',
   'project_completed': 'تم إكمال المشروع',
 };
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Image, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
@@ -127,7 +127,23 @@ export default function RequestDetails() {
   const [visitContactTitle, setVisitContactTitle] = useState("");
   const [visitContactPhone, setVisitContactPhone] = useState("");
 
-  const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
+  const { data: request, isLoading } = trpc.requests.getById.useQuery(
+    { id: requestId },
+    { refetchInterval: user?.role === 'service_requester' ? 4000 : false }
+  );
+
+  useEffect(() => {
+    if (
+      request &&
+      user &&
+      request.userId === user.id &&
+      (request.currentStage === "closed" || request.status === "completed") &&
+      !request.isEvaluated
+    ) {
+      toast.info("تم إغلاق الطلب، جاري توجيهك لصفحة التقييم...");
+      navigate(`/requests/${requestId}/evaluation`);
+    }
+  }, [request, user, requestId, navigate]);
   const { data: attachments } = trpc.storage.getRequestAttachments.useQuery({ requestId });
   // history and comments are included in the request data
   
