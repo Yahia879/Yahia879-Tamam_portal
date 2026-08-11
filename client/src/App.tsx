@@ -63,6 +63,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import NotificationCustomization from "./pages/NotificationCustomization";
+import RequestEvaluation from "./pages/RequestEvaluation";
 import Reports from "./pages/Reports";
 import PendingReports from "./pages/PendingReports";
 
@@ -246,6 +247,7 @@ function Router() {
       <Route path="/requests/quick-create">{() => <AdminRoute component={QuickRequestCreate} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
+      <Route path="/requests/:requestId/evaluation" component={RequestEvaluation} />
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
@@ -254,6 +256,7 @@ function Router() {
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
+      <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic">{() => <DynamicServiceRequestForm />}</Route>      
