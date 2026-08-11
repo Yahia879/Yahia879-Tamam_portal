@@ -23,6 +23,7 @@ import {
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
+import { triggerBeneficiarySatisfactionSurvey } from "./requests";
 
 // توليد رقم طلب صرف
 async function generateDisbursementRequestNumber(
@@ -2405,6 +2406,7 @@ export const disbursementsRouter = router({
                     updatedAt: new Date(),
                   })
                   .where(eq(mosqueRequests.id, Number(meta.mosqueRequestId)));
+                await triggerBeneficiarySatisfactionSurvey(Number(meta.mosqueRequestId));
               }
             }
           }
