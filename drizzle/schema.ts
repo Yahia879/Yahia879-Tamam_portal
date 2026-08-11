@@ -295,6 +295,11 @@ export const mosqueRequests = mysqlTable("mosque_requests", {
   approvedAt: datetime("approvedAt"),
   completedAt: datetime("completedAt"),
   
+  // تقييم رضا المستفيد النهائي
+  isEvaluated: boolean("isEvaluated").default(false),
+  satisfactionRating: int("satisfactionRating"),
+  evaluatedAt: timestamp("evaluatedAt"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -340,6 +345,8 @@ export const requestEvaluations = mysqlTable("request_evaluations", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").notNull().references(() => mosqueRequests.id),
   userId: int("userId").references(() => users.id, { onDelete: "set null" }),
+  rating: int("rating"),
+  evaluationType: varchar("evaluationType", { length: 50 }).default("beneficiary_satisfaction"),
   decision: varchar("decision", { length: 50 }),
   justification: text("justification"),
   notes: text("notes"),
