@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -342,6 +342,8 @@ export const projectsRouter = router({
           projectNumber: projects.projectNumber,
           name: projects.name,
           description: projects.description,
+          donorName: projects.donorName,
+          isMultiMosque: projects.isMultiMosque,
           status: projects.status,
           budget: projects.budget,
           actualCost: projects.actualCost,
@@ -368,6 +370,8 @@ export const projectsRouter = router({
             projectNumber: projects.projectNumber,
             name: projects.name,
             description: projects.description,
+            donorName: projects.donorName,
+            isMultiMosque: projects.isMultiMosque,
             status: projects.status,
             budget: projects.budget,
             actualCost: projects.actualCost,
@@ -407,7 +411,7 @@ export const projectsRouter = router({
       const targetProjectId = project.id;
 
       // جلب الطلب المرتبط
-      const [request] = input.lightweight ? [null] : await db
+      const [request] = (input.lightweight || !project.requestId) ? [null] : await db
         .select({
           id: mosqueRequests.id,
           requestNumber: mosqueRequests.requestNumber,
@@ -418,7 +422,7 @@ export const projectsRouter = router({
         })
         .from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-        .where(eq(mosqueRequests.id, project.requestId));
+        .where(eq(mosqueRequests.id, project.requestId!));
 
       // جلب مراحل المشروع
       const phases = input.lightweight ? [] : await db
@@ -439,7 +443,7 @@ export const projectsRouter = router({
         })
         .from(requestEvaluations)
         .leftJoin(users, eq(requestEvaluations.userId, users.id))
-        .where(eq(requestEvaluations.requestId, project.requestId))
+        .where(eq(requestEvaluations.requestId, project.requestId!))
         .orderBy(desc(requestEvaluations.createdAt));
 
       // جلب العقود (من جدول contracts_enhanced)
@@ -555,6 +559,23 @@ export const projectsRouter = router({
         .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
         .where(eq(quotations.projectId, targetProjectId));
 
+      // جلب المساجد المشمولة في حالة المشاريع المباشرة لعدة مساجد
+      const linkedMosques = await db
+        .select({
+          id: projectMosques.id,
+          mosqueId: projectMosques.mosqueId,
+          allocatedBudget: projectMosques.allocatedBudget,
+          notes: projectMosques.notes,
+          mosqueName: mosques.name,
+          mosqueCity: mosques.city,
+          mosqueDistrict: mosques.district,
+          imamName: mosques.imamName,
+          imamPhone: mosques.imamPhone,
+        })
+        .from(projectMosques)
+        .leftJoin(mosques, eq(projectMosques.mosqueId, mosques.id))
+        .where(eq(projectMosques.projectId, targetProjectId));
+
       return {
         ...project,
         request,
@@ -564,6 +585,7 @@ export const projectsRouter = router({
         payments: unifiedPayments,
         boq,
         quotations: projectQuotations,
+        linkedMosques,
       };
     }),
 
@@ -2386,6 +2408,104 @@ export const projectsRouter = router({
         ...voucher,
         project,
         signerUser,
+      };
+    }),
+
+  // إنشاء مشروع مباشر لعدة مساجد
+  createMultiMosqueProject: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1, "اسم المشروع مطلوب"),
+        description: z.string().optional(),
+        donorName: z.string().min(1, "اسم المانح مطلوب"),
+        managerId: z.number().optional().nullable(),
+        budget: z.number().positive("الميزانية يجب أن تكون أكبر من صفر"),
+        startDate: z.string().optional(),
+        expectedEndDate: z.string().optional(),
+        mosques: z.array(
+          z.object({
+            mosqueId: z.number(),
+            allocatedBudget: z.number().optional(),
+            notes: z.string().optional(),
+          })
+        ).min(1, "يجب اختيار مسجد واحد على الأقل للمشروع المباشر"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "financial", "financial_manager"];
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+
+      if (!allowedRoles.includes(ctx.user.role) && !userPerms.includes("projects.create") && !userPerms.includes("projects")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إنشاء مشروع جديد" });
+      }
+
+      const projectNumber = await generateProjectNumber(db);
+
+      // 1. إنشاء المشروع المباشر لعدة مساجد
+      const [projResult] = await db.insert(projects).values({
+        projectNumber,
+        requestId: null,
+        name: input.name,
+        description: input.description || null,
+        donorName: input.donorName,
+        isMultiMosque: true,
+        managerId: input.managerId || null,
+        status: "planning", // يمثل مرحلة "إعداد جدول الكميات" boq_preparation
+        budget: input.budget.toString(),
+        startDate: input.startDate ? new Date(input.startDate) : null,
+        expectedEndDate: input.expectedEndDate ? new Date(input.expectedEndDate) : null,
+        completionPercentage: 0,
+      });
+
+      const projectId = Number(projResult.insertId);
+
+      // 2. ربط المساجد بالمشروع في جدول project_mosques
+      for (const m of input.mosques) {
+        await db.insert(projectMosques).values({
+          projectId,
+          mosqueId: m.mosqueId,
+          allocatedBudget: m.allocatedBudget ? m.allocatedBudget.toString() : null,
+          notes: m.notes || null,
+        });
+      }
+
+      // 3. إنشاء مراحل المشروع الخمس فورياً تبدأ مباشرة من "إعداد جدول الكميات" وتتخطى الطلبات الأولية
+      const defaultPhases = [
+        { phaseName: "المرحلة الأولى : إعداد جدول الكميات", phaseOrder: 1, status: "in_progress", completionPercentage: 0 },
+        { phaseName: "المرحلة الثانية : التقييم المالي واعتماد العرض المناسب", phaseOrder: 2, status: "pending", completionPercentage: 0 },
+        { phaseName: "المرحلة الثالثة : التعاقد لتنفيذ أعمال المسجد", phaseOrder: 3, status: "pending", completionPercentage: 0 },
+        { phaseName: "المرحلة الرابعة : التنفيذ وصرف مدفوعات العقد", phaseOrder: 4, status: "pending", completionPercentage: 0 },
+        { phaseName: "المرحلة الخامسة : المراجعة والاستلام النهائي والإغلاق", phaseOrder: 5, status: "pending", completionPercentage: 0 },
+      ];
+
+      for (const phase of defaultPhases) {
+        await db.insert(projectPhases).values({
+          projectId,
+          phaseName: phase.phaseName,
+          phaseOrder: phase.phaseOrder,
+          status: phase.status as any,
+          completionPercentage: phase.completionPercentage,
+          description: phase.phaseOrder === 1 ? "إعداد جدول الكميات والاشتراطات للمساجد المشمولة" : undefined,
+        });
+      }
+
+      if (input.managerId) {
+        try {
+          await notifyProjectManagerAssigned(projectId, projectNumber, input.name, input.managerId);
+        } catch (error) {
+          console.error("Failed to send project manager assignment notification on multi-project create:", error);
+        }
+      }
+
+      return {
+        success: true,
+        projectId,
+        projectNumber,
+        message: "تم إنشاء مشروع لعدة مساجد بنجاح",
       };
     }),
 });
