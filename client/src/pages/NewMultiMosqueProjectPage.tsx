@@ -61,9 +61,15 @@ export default function NewMultiMosqueProjectPage() {
   const [mosqueSearchQuery, setMosqueSearchQuery] = useState("");
   const [selectedMosques, setSelectedMosques] = useState<SelectedMosqueItem[]>([]);
 
-  // جلب الموظفين / مدراء المشاريع
-  const { data: usersResponse, isLoading: loadingUsers } = trpc.users.getAll.useQuery({});
-  const managersList = (usersResponse as any)?.items || (usersResponse as any)?.users || [];
+  // جلب مدراء المشاريع فقط
+  const { data: usersResponse, isLoading: loadingUsers } = trpc.users.getAll.useQuery({
+    role: "project_manager",
+    limit: 100,
+    includeAll: true,
+  });
+  const managersList = ((usersResponse as any)?.items || (usersResponse as any)?.users || []).filter(
+    (m: any) => m.role === "project_manager"
+  );
 
   // جلب قائمة المساجد
   const { data: mosquesResponse, isLoading: loadingMosques } = trpc.mosques.search.useQuery({
@@ -347,12 +353,12 @@ export default function NewMultiMosqueProjectPage() {
                     </Label>
                     <Select value={managerId} onValueChange={setManagerId}>
                       <SelectTrigger className="h-10 rounded-xl">
-                        <SelectValue placeholder="اختر مدير المشروع من الموظفين..." />
+                        <SelectValue placeholder="اختر مدير المشروع..." />
                       </SelectTrigger>
                       <SelectContent>
                         {managersList.map((m: any) => (
                           <SelectItem key={m.id} value={m.id.toString()}>
-                            {m.name} ({m.role || "موظف"})
+                            {m.name} (مدير مشروع)
                           </SelectItem>
                         ))}
                       </SelectContent>
