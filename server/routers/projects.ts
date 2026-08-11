@@ -703,12 +703,122 @@ export const projectsRouter = router({
 
       // جلب مدير المشروع الحالي واسم المشروع وتفاصيله قبل التحديث
       const [oldProject] = await db
+        .select({
+          managerId: projects.managerId,
+          name: projects.name,
+          projectNumber: projects.projectNumber,
+        })
+        .from(projects)
+        .where(eq(projects.id, id))
+        .limit(1);
+      
+      const updateValues: any = {};
+      if (updateData.name) updateValues.name = updateData.name;
+      if (updateData.description) updateValues.description = updateData.description;
+      if (updateData.status) updateValues.status = updateData.status;
+      if (updateData.budget !== undefined) updateValues.budget = updateData.budget.toString();
+      if (updateData.actualCost !== undefined) updateValues.actualCost = updateData.actualCost.toString();
+      if (updateData.completionPercentage !== undefined) updateValues.completionPercentage = updateData.completionPercentage;
+      if (updateData.managerId) updateValues.managerId = updateData.managerId;
+      if (updateData.startDate) updateValues.startDate = updateData.startDate;
+      if (updateData.endDate) updateValues.endDate = updateData.endDate;
+
+      await db
+        .update(projects)
+        .set(updateValues)
+        .where(eq(projects.id, id));
+
+      // إرسال إشعار لمدير المشروع إذا تم تعيين مدير جديد ومختلف عن السابق
+      if (updateData.managerId && oldProject && oldProject.managerId !== updateData.managerId) {
+        try {
+          await notifyProjectManagerAssigned(
+            id,
+            oldProject.projectNumber,
+            oldProject.name,
+            updateData.managerId
+          );
+        } catch (error) {
+          console.error("Failed to send project manager assignment notification:", error);
+        }
+      }
+
+      return { success: true };
+    }),
+
+  // ==================== جداول الكميات (BOQ) ====================
+
+  // إضافة بنود متعددة في جدول الكميات دفعة واحدة
+  bulkAddBOQItems: protectedProcedure
+    .input(z.object({
+      requestId: z.number().optional(),
+      projectId: z.number().optional(),
+      items: z.array(z.object({
+        itemName: z.string().min(1),
+        itemDescription: z.string().optional(),
+        unit: z.string().min(1),
+        quantity: z.number().positive(),
+        unitPrice: z.number().optional(),
+        category: z.string().optional(),
+      }))
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // البحث عن مشروع مرتبط بالطلب (إن وُجد)
+      let projectId: number | null = input.projectId || null;
+      if (!projectId && input.requestId) {
+        const [existingProject] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.requestId, input.requestId))
+          .limit(1);
+        
+        if (existingProject) {
+          projectId = existingProject.id;
+        }
+      }
+
+      if (input.items.length === 0) return { success: true, count: 0 };
+
+      // تحضير القيم للإدخال
+      const valuesToInsert = input.items.map(item => {
+        const totalPrice = item.unitPrice ? item.quantity * item.unitPrice : null;
+        return {
+          projectId: projectId,
+          requestId: input.requestId || null,
+          itemName: item.itemName,
+          itemDescription: item.itemDescription,
+          unit: item.unit,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice?.toString(),
+          totalPrice: totalPrice?.toString(),
+          category: item.category || "other",
+        };
+      });
+
+      for (const itemValue of valuesToInsert) {
+        const pid = itemValue.projectId ?? null;
+        const uPrice = itemValue.unitPrice ?? null;
+        const tPrice = itemValue.totalPrice ?? null;
+        const desc = itemValue.itemDescription || null;
+        const rId = itemValue.requestId ?? null;
+        await db.execute(sql`
+          INSERT INTO quantity_schedules 
+          (requestId, projectId, itemName, itemDescription, unit, quantity, unitPrice, totalPrice, category) 
+          VALUES 
+          (${rId}, ${pid}, ${itemValue.itemName}, ${desc}, ${itemValue.unit}, ${itemValue.quantity}, ${uPrice}, ${tPrice}, ${itemValue.category})
+        `);
+      }
+
+      return { success: true, count: valuesToInsert.length, projectId };
+    }),
 
   // إضافة بند في جدول الكميات
   addBOQItem: protectedProcedure
     .input(z.object({
       projectId: z.number().optional(),
-      requestId: z.number(),
+      requestId: z.number().optional(),
       boqCode: z.string().optional(),
       boqName: z.string().optional(),
       itemName: z.string().min(1),
@@ -723,9 +833,9 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // البحث عن مشروع مرتبط بالطلب (إن وُجد)
-      let projectId = input.projectId;
+      let projectId = input.projectId || null;
       
-      if (!projectId) {
+      if (!projectId && input.requestId) {
         const [existingProject] = await db
           .select()
           .from(projects)
@@ -735,14 +845,13 @@ export const projectsRouter = router({
         if (existingProject) {
           projectId = existingProject.id;
         }
-        // لا نُنشئ مشروعاً تلقائياً - يجب أن يتم التحويل صراحة
       }
 
       const totalPrice = input.unitPrice ? input.quantity * input.unitPrice : null;
 
       const [item] = await db.insert(quantitySchedules).values({
         projectId: projectId,
-        requestId: input.requestId,
+        requestId: input.requestId || null,
         boqCode: input.boqCode,
         boqName: input.boqName,
         itemName: input.itemName,
