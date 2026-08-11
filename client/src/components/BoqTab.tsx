@@ -292,7 +292,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
           }
 
           bulkMutation.mutate({
-            requestId,
+            requestId: requestId || undefined,
+            projectId: projectId || undefined,
             items: itemsToInsert
           });
 
