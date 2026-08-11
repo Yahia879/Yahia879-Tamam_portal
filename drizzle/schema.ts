@@ -448,9 +448,11 @@ export const finalReports = mysqlTable("final_reports", {
 export const projects = mysqlTable("projects", {
   id: int("id").autoincrement().primaryKey(),
   projectNumber: varchar("projectNumber", { length: 50 }).notNull().unique(),
-  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  requestId: int("requestId").references(() => mosqueRequests.id),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
+  donorName: varchar("donorName", { length: 255 }),
+  isMultiMosque: boolean("isMultiMosque").default(false),
   managerId: int("managerId").references(() => users.id, { onDelete: "set null" }),
   status: mysqlEnum("status", ["planning", "in_progress", "on_hold", "completed", "cancelled"]).default("planning"),
   budget: decimal("budget", { precision: 15, scale: 2 }),
@@ -461,6 +463,17 @@ export const projects = mysqlTable("projects", {
   completionPercentage: int("completionPercentage").default(0),
   plannedProgress: int("plannedProgress").default(0),
   milestones: longtext("milestones"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+// جدول ربط المساجد بالمشاريع المباشرة (عدة مساجد)
+export const projectMosques = mysqlTable("project_mosques", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  mosqueId: int("mosqueId").notNull().references(() => mosques.id, { onDelete: "cascade" }),
+  allocatedBudget: decimal("allocatedBudget", { precision: 15, scale: 2 }),
+  notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
