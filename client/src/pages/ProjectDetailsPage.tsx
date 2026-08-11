@@ -521,8 +521,8 @@ export default function ProjectDetailsPage() {
           <>
             <TooltipProvider delayDuration={300}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* الميزانية - تظهر فقط عندما تكون حالة الطلب المرتبط هي "التقييم المالي واعتماد العرض" أو بعدها */}
-                {project.request && BUDGET_VISIBLE_STAGES.includes(project.request.currentStage) ? (
+                {/* الميزانية - تظهر للمشاريع المباشرة أو عندما تكون حالة الطلب المرتبط هي "التقييم المالي واعتماد العرض" أو بعدها */}
+                {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage)) ? (
                   <Card className="border-0 shadow-sm">
                     <CardContent className="p-4 text-right">
                       <div className="flex items-center gap-3">
@@ -757,6 +757,20 @@ export default function ProjectDetailsPage() {
                         }
                       </p>
                     </div>
+                    {project.donorName && (
+                      <div className="col-span-2">
+                        <p className="text-sm text-muted-foreground">اسم المانح / الجهة الداعمة</p>
+                        <p className="font-bold text-primary">{project.donorName}</p>
+                      </div>
+                    )}
+                    {project.isMultiMosque && (
+                      <div className="col-span-2">
+                        <p className="text-sm text-muted-foreground">نوع المشروع</p>
+                        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 mt-1 font-bold">
+                          مشروع مباشر لعدة مساجد
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   {project.description && (
                     <div>
@@ -797,6 +811,65 @@ export default function ProjectDetailsPage() {
                 </Card>
               )}
             </div>
+
+            {/* بطاقة المساجد المشمولة في حالة مشروع عدة مساجد المباشر */}
+            {(project as any).linkedMosques && (project as any).linkedMosques.length > 0 && (
+              <Card className="border-0 shadow-sm mt-6">
+                <CardHeader className="text-right flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2" dir="rtl">
+                      <Building className="w-5 h-5 text-primary" />
+                      المساجد المشمولة بالمشروع (عدة مساجد)
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      قائمة المساجد المخصصة ضمن هذا المشروع والميزانية واشتراطات الأعمال لكل مسجد
+                    </CardDescription>
+                  </div>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1">
+                    {(project as any).linkedMosques.length} مساجد
+                  </Badge>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table dir="rtl">
+                    <TableHeader className="bg-muted/40">
+                      <TableRow>
+                        <TableHead className="text-right font-bold">المسجد</TableHead>
+                        <TableHead className="text-right font-bold">المدينة / الحي</TableHead>
+                        <TableHead className="text-right font-bold">الميزانية المخصصة</TableHead>
+                        <TableHead className="text-right font-bold">الإمام / التواصل</TableHead>
+                        <TableHead className="text-right font-bold">ملاحظات واشتراطات الأعمال</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(project as any).linkedMosques.map((item: any) => (
+                        <TableRow key={item.id} className="hover:bg-muted/20">
+                          <TableCell className="font-bold text-foreground">
+                            {item.mosqueName || `مسجد #${item.mosqueId}`}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {item.mosqueCity || "—"} {item.mosqueDistrict ? ` - ${item.mosqueDistrict}` : ""}
+                          </TableCell>
+                          <TableCell className="font-bold text-primary">
+                            {item.allocatedBudget ? `${parseFloat(item.allocatedBudget).toLocaleString()} ريال` : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {item.imamName ? (
+                              <div>
+                                <span className="font-semibold block">{item.imamName}</span>
+                                <span className="text-muted-foreground">{item.imamPhone || ""}</span>
+                              </div>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-xs">
+                            {item.notes || "لا توجد ملاحظات خاصة"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
 
             {(project as any).evaluations && (project as any).evaluations.length > 0 && (
               <Card className="border-0 shadow-sm mt-6">
