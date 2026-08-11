@@ -33,6 +33,14 @@ import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface SelectedMosqueItem {
   mosqueId: number;
@@ -186,7 +194,7 @@ export default function NewMultiMosqueProjectPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
         {/* Header and Visual Step Timeline */}
         <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
           <div className="flex items-center justify-between pb-2">
@@ -416,6 +424,7 @@ export default function NewMultiMosqueProjectPage() {
           </div>
         )}
 
+        {/* الخطوة الثانية: واجهة تقسيمية سلسة ومريحة للمستخدم (Split View + Interactive Table) */}
         {currentStep === 2 && (
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
@@ -426,190 +435,195 @@ export default function NewMultiMosqueProjectPage() {
                     الخطوة 2: المساجد والشروط الخاصة بالمشروع
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
-                    اختر المساجد المعنية بالمشروع وقم بتخصيص الميزانية وشروط الأعمال لكل مسجد
+                    اختر المساجد من القائمة الجانبية وحدد ميزانية وشروط الأعمال لكل مسجد بسهولة
                   </CardDescription>
                 </div>
                 <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 text-xs">
-                  {selectedMosques.length} مساجد محددة
+                  {selectedMosques.length} مساجد مضافة
                 </Badge>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
-                {/* شريط بطاقة التخصيص المالي للمساجد */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3">
+              
+              <CardContent className="p-6 space-y-6 text-right">
+                {/* شريط توزيع الميزانية التفاعلي */}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60">
-                      <span className="text-muted-foreground block text-[11px]">ميزانية المشروع الكلية</span>
-                      <span className="font-bold text-foreground text-sm">{parsedTotalBudget.toLocaleString()} ريال</span>
+                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
+                      <span className="text-muted-foreground text-[11px]">ميزانية المشروع الكلية:</span>
+                      <span className="font-bold text-foreground text-xs">{parsedTotalBudget.toLocaleString()} ريال</span>
                     </div>
 
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60">
-                      <span className="text-muted-foreground block text-[11px]">إجمالي المخصص للمساجد</span>
-                      <span className="font-bold text-primary text-sm">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span>
+                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
+                      <span className="text-muted-foreground text-[11px]">المخصص للمساجد:</span>
+                      <span className="font-bold text-primary text-xs">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span>
                     </div>
 
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60">
-                      <span className="text-muted-foreground block text-[11px]">المتبقي غير المخصص</span>
-                      <span className={`font-bold text-sm ${remainingBudget < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
+                      <span className="text-muted-foreground text-[11px]">المتبقي غير المخصص:</span>
+                      <span className={`font-bold text-xs ${remainingBudget < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
                         {remainingBudget.toLocaleString()} ريال
                       </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1 pt-1">
+                  <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-muted-foreground">
                       <span>نسبة تخصيص ميزانية المساجد</span>
                       <span className="font-bold">{budgetAllocationPercentage}%</span>
                     </div>
-                    <Progress value={budgetAllocationPercentage} className="h-2" />
+                    <Progress value={budgetAllocationPercentage} className="h-1.5" />
                   </div>
                 </div>
 
-                {/* البحث عن مساجد بالنظام */}
-                <div className="space-y-3 bg-muted/20 p-4 rounded-xl border border-border/40">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Search className="w-4 h-4 text-primary" />
-                      ابحث عن مسجد لإضافته للمشروع:
-                    </Label>
-                    <span className="text-[11px] text-muted-foreground">ابحث باسم المسجد أو المدينة أو الحي</span>
-                  </div>
-
-                  <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="ادخل اسم المسجد أو المدينة أو الحي للبحث..."
-                      value={mosqueSearchQuery}
-                      onChange={(e) => setMosqueSearchQuery(e.target.value)}
-                      className="pr-9 h-10 rounded-xl bg-background"
-                    />
-                  </div>
-
-                  {loadingMosques ? (
-                    <div className="text-center py-6">
-                      <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
-                      <p className="text-xs text-muted-foreground mt-2">جاري البحث عن المساجد...</p>
+                {/* واجهة العرض المقسمة سريعة ومريحة (2 Columns: Search vs Workspace Table) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                  
+                  {/* العمود الأيمن: البحث عن مسجد وإضافته */}
+                  <div className="lg:col-span-5 bg-muted/20 p-4 rounded-xl border border-border/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                        <Search className="w-4 h-4 text-primary" />
+                        ابحث عن مسجد بالنظام:
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground">انقر (+ إضافة)</span>
                     </div>
-                  ) : mosquesList.length > 0 ? (
-                    <div className="max-h-52 overflow-y-auto divide-y border rounded-xl bg-background text-xs">
-                      {mosquesList.map((m: any) => {
-                        const isAdded = selectedMosques.some(item => item.mosqueId === m.id);
-                        return (
-                          <div key={m.id} className="p-3 flex items-center justify-between hover:bg-muted/40 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 text-teal-600 flex items-center justify-center shrink-0">
-                                <Building className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <span className="font-bold text-foreground block text-xs">{m.name}</span>
-                                <span className="text-muted-foreground text-[11px]">
+
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="ابحث باسم المسجد أو المدينة..."
+                        value={mosqueSearchQuery}
+                        onChange={(e) => setMosqueSearchQuery(e.target.value)}
+                        className="pr-9 h-9 text-xs rounded-lg bg-background"
+                      />
+                    </div>
+
+                    {loadingMosques ? (
+                      <div className="text-center py-6">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto text-primary" />
+                        <p className="text-[11px] text-muted-foreground mt-1">جاري البحث...</p>
+                      </div>
+                    ) : mosquesList.length > 0 ? (
+                      <div className="max-h-[360px] overflow-y-auto divide-y divide-border/40 border rounded-lg bg-background text-xs">
+                        {mosquesList.map((m: any) => {
+                          const isAdded = selectedMosques.some(item => item.mosqueId === m.id);
+                          return (
+                            <div key={m.id} className="p-2.5 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                              <div className="min-w-0 flex-1 ml-2">
+                                <span className="font-bold text-foreground block text-xs truncate">{m.name}</span>
+                                <span className="text-muted-foreground text-[10px] block">
                                   {m.city || "مدينة غير محددة"}{m.district ? ` - ${m.district}` : ""}
                                 </span>
                               </div>
+                              <Button
+                                size="sm"
+                                variant={isAdded ? "outline" : "default"}
+                                disabled={isAdded}
+                                onClick={() => handleAddMosque(m)}
+                                className="h-7 text-[11px] px-2.5 rounded-md font-bold shrink-0"
+                              >
+                                {isAdded ? (
+                                  <span className="text-emerald-600 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> مضاف
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Plus className="w-3.5 h-3.5" /> إضافة
+                                  </span>
+                                )}
+                              </Button>
                             </div>
-                            <Button
-                              size="sm"
-                              variant={isAdded ? "outline" : "default"}
-                              disabled={isAdded}
-                              onClick={() => handleAddMosque(m)}
-                              className="h-7 text-xs px-3 rounded-lg font-bold"
-                            >
-                              {isAdded ? (
-                                <span className="text-emerald-600 flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> تم الإضافة
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1">
-                                  <Plus className="w-3.5 h-3.5" /> إضافة المسجد
-                                </span>
-                              )}
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground text-center py-4">لم يتم العثور على مساجد مطابقة</p>
-                  )}
-                </div>
-
-                {/* قائمة المساجد المختارة */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-primary" />
-                      المساجد المضافة للمشروع ({selectedMosques.length})
-                    </h4>
-                    {selectedMosques.length > 0 && (
-                      <span className="text-xs text-muted-foreground">قم بإدخال الميزانية والشروط المخصصة لكل مسجد بالأسفل</span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground text-center py-4">لم يتم العثور على مساجد مطابقة</p>
                     )}
                   </div>
 
-                  {selectedMosques.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedMosques.map((item, idx) => (
-                        <Card key={item.mosqueId} className="border border-border/60 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-                              <div className="flex items-center gap-2.5">
-                                <span className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                                  {idx + 1}
-                                </span>
-                                <div>
-                                  <h5 className="font-bold text-foreground text-sm">{item.mosqueName}</h5>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-muted/40 font-normal">
-                                      {item.city || "مدينة غير محددة"} {item.district ? `- ${item.district}` : ""}
-                                    </Badge>
+                  {/* العمود الأيسر: جدول المساجد المخصصة للمشروع (Interactive Table) */}
+                  <div className="lg:col-span-7 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-foreground flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary" />
+                        المساجد المضافة للمشروع ({selectedMosques.length})
+                      </h4>
+                      {selectedMosques.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">ادخل الميزانية وشروط العمل مباشرة لكل مسجد</span>
+                      )}
+                    </div>
+
+                    {selectedMosques.length > 0 ? (
+                      <div className="border border-border/60 rounded-xl overflow-hidden shadow-2xs bg-background">
+                        <Table dir="rtl" className="text-xs">
+                          <TableHeader className="bg-muted/40">
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="w-[180px] text-right font-bold py-2.5">المسجد والمدينة</TableHead>
+                              <TableHead className="w-[140px] text-right font-bold py-2.5">الميزانية المخصصة</TableHead>
+                              <TableHead className="text-right font-bold py-2.5">الشروط وملاحظات الأعمال</TableHead>
+                              <TableHead className="w-[45px] text-center font-bold py-2.5"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {selectedMosques.map((item, idx) => (
+                              <TableRow key={item.mosqueId} className="hover:bg-muted/20">
+                                <TableCell className="align-middle py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="font-bold text-foreground block truncate text-xs">{item.mosqueName}</span>
+                                      <span className="text-[10px] text-muted-foreground truncate block">{item.city}</span>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveMosque(item.mosqueId)}
-                                className="text-destructive hover:bg-destructive/10 h-7 px-2.5 rounded-lg text-xs"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 ml-1" />
-                                حذف المسجد
-                              </Button>
-                            </div>
+                                </TableCell>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                              <div className="space-y-1.5">
-                                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">الميزانية المخصصة لهذا المسجد (ريال):</Label>
-                                <div className="relative">
+                                <TableCell className="align-middle py-2.5">
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      placeholder="0"
+                                      value={item.allocatedBudget}
+                                      onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "allocatedBudget", e.target.value)}
+                                      className="h-8 text-xs font-bold pl-10 pr-2 rounded-md"
+                                    />
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground font-semibold">ريال</span>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="align-middle py-2.5">
                                   <Input
-                                    type="number"
-                                    placeholder="مثال: 120000"
-                                    value={item.allocatedBudget}
-                                    onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "allocatedBudget", e.target.value)}
-                                    className="h-9 rounded-lg font-bold pl-12"
+                                    placeholder="أدخل الشروط والأعمال..."
+                                    value={item.notes}
+                                    onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "notes", e.target.value)}
+                                    className="h-8 text-xs rounded-md"
                                   />
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-semibold">ريال</span>
-                                </div>
-                              </div>
+                                </TableCell>
 
-                              <div className="space-y-1.5">
-                                <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">شروط وملاحظات الأعمال للمسجد:</Label>
-                                <Input
-                                  placeholder="مثال: صيانة التكييف المركزي وإصلاح الإنارة والمغاسل..."
-                                  value={item.notes}
-                                  onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "notes", e.target.value)}
-                                  className="h-9 rounded-lg text-xs"
-                                />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 border-2 border-dashed rounded-xl bg-muted/10">
-                      <Building className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
-                      <p className="font-bold text-xs text-foreground">لم تقم بإضافة أي مسجد بعد</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">استخدم شريط البحث أعلاه لاختيار المساجد وتخصيص الميزانية والشروط لها.</p>
-                    </div>
-                  )}
+                                <TableCell className="align-middle text-center py-2.5">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemoveMosque(item.mosqueId)}
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md"
+                                    title="حذف المسجد"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/10">
+                        <Building className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+                        <p className="font-bold text-xs text-foreground">لم تقم بإضافة أي مسجد بعد</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">اختر المساجد من القائمة الجانبية لإضافتها مباشرة لجدول المشروع.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex justify-between pt-4 border-t border-border/40">
