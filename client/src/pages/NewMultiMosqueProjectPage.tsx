@@ -170,6 +170,10 @@ export default function NewMultiMosqueProjectPage() {
       toast.error("يجب اختيار مسجد واحد على الأقل للمشروع المباشر");
       return false;
     }
+    if (totalAllocatedBudgetsSum > parsedTotalBudget) {
+      toast.error(`مجموع الميزانيات المخصصة للمساجد (${totalAllocatedBudgetsSum.toLocaleString()} ريال) يتجاوز ميزانية المشروع الإجمالية (${parsedTotalBudget.toLocaleString()} ريال)`);
+      return false;
+    }
     return true;
   };
 
@@ -194,7 +198,7 @@ export default function NewMultiMosqueProjectPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0" dir="rtl">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-6 md:px-8" dir="rtl">
         {/* Header and Visual Step Timeline */}
         <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
           <div className="flex items-center justify-between pb-2">
@@ -230,7 +234,7 @@ export default function NewMultiMosqueProjectPage() {
           </div>
 
           {/* 3-Step Timeline Header */}
-          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
+          <div className="max-w-2xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
               {/* Connecting Line background */}
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
@@ -307,7 +311,7 @@ export default function NewMultiMosqueProjectPage() {
         {currentStep === 1 && (
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <FolderKanban className="h-4.5 w-4.5 text-primary" />
                   الخطوة 1: البيانات العامة للمشروع والمانح
@@ -316,7 +320,7 @@ export default function NewMultiMosqueProjectPage() {
                   أدخل المعلومات الأساسية للمشروع واسم المانح والميزانية الإجمالية التقديرية
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-6 pt-6 px-6 text-right">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
@@ -424,11 +428,11 @@ export default function NewMultiMosqueProjectPage() {
           </div>
         )}
 
-        {/* الخطوة الثانية: واجهة تقسيمية سلسة ومريحة للمستخدم (Split View + Interactive Table) */}
+        {/* الخطوة الثانية: واجهة واسعة مقسمة سلسة ومريحة للمستخدم (Split View + Interactive Table) */}
         {currentStep === 2 && (
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right flex flex-row items-center justify-between">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                     <Building2 className="h-4.5 w-4.5 text-primary" />
@@ -445,40 +449,47 @@ export default function NewMultiMosqueProjectPage() {
               
               <CardContent className="p-6 space-y-6 text-right">
                 {/* شريط توزيع الميزانية التفاعلي */}
-                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2.5">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
-                      <span className="text-muted-foreground text-[11px]">ميزانية المشروع الكلية:</span>
-                      <span className="font-bold text-foreground text-xs">{parsedTotalBudget.toLocaleString()} ريال</span>
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
+                      <span className="text-muted-foreground text-xs">ميزانية المشروع الكلية:</span>
+                      <span className="font-bold text-foreground text-sm">{parsedTotalBudget.toLocaleString()} ريال</span>
                     </div>
 
-                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
-                      <span className="text-muted-foreground text-[11px]">المخصص للمساجد:</span>
-                      <span className="font-bold text-primary text-xs">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span>
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
+                      <span className="text-muted-foreground text-xs">المخصص للمساجد:</span>
+                      <span className="font-bold text-primary text-sm">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span>
                     </div>
 
-                    <div className="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between">
-                      <span className="text-muted-foreground text-[11px]">المتبقي غير المخصص:</span>
-                      <span className={`font-bold text-xs ${remainingBudget < 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
+                      <span className="text-muted-foreground text-xs">المتبقي غير المخصص:</span>
+                      <span className={`font-bold text-sm ${remainingBudget < 0 ? 'text-destructive font-black' : 'text-emerald-600'}`}>
                         {remainingBudget.toLocaleString()} ريال
                       </span>
                     </div>
                   </div>
+
+                  {remainingBudget < 0 && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs border border-red-200 dark:border-red-900 font-bold">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                      <span>تنبيه: إجمالي الميزانيات المخصصة للمساجد يتجاوز الميزانية الإجمالية للمشروع! يُرجى تعديل ميزانيات المساجد.</span>
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <div className="flex justify-between text-[11px] text-muted-foreground">
                       <span>نسبة تخصيص ميزانية المساجد</span>
                       <span className="font-bold">{budgetAllocationPercentage}%</span>
                     </div>
-                    <Progress value={budgetAllocationPercentage} className="h-1.5" />
+                    <Progress value={budgetAllocationPercentage} className="h-2" />
                   </div>
                 </div>
 
-                {/* واجهة العرض المقسمة سريعة ومريحة (2 Columns: Search vs Workspace Table) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* واجهة العرض المقسمة الواسعة (2 Columns: Search vs Workspace Table) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   
-                  {/* العمود الأيمن: البحث عن مسجد وإضافته */}
-                  <div className="lg:col-span-5 bg-muted/20 p-4 rounded-xl border border-border/50 space-y-3">
+                  {/* العمود الأيمن: البحث عن مسجد وإضافته (Col 4) */}
+                  <div className="lg:col-span-4 bg-muted/20 p-4 rounded-xl border border-border/50 space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <Search className="w-4 h-4 text-primary" />
@@ -503,7 +514,7 @@ export default function NewMultiMosqueProjectPage() {
                         <p className="text-[11px] text-muted-foreground mt-1">جاري البحث...</p>
                       </div>
                     ) : mosquesList.length > 0 ? (
-                      <div className="max-h-[360px] overflow-y-auto divide-y divide-border/40 border rounded-lg bg-background text-xs">
+                      <div className="max-h-[380px] overflow-y-auto divide-y divide-border/40 border rounded-lg bg-background text-xs">
                         {mosquesList.map((m: any) => {
                           const isAdded = selectedMosques.some(item => item.mosqueId === m.id);
                           return (
@@ -540,8 +551,8 @@ export default function NewMultiMosqueProjectPage() {
                     )}
                   </div>
 
-                  {/* العمود الأيسر: جدول المساجد المخصصة للمشروع (Interactive Table) */}
-                  <div className="lg:col-span-7 space-y-3">
+                  {/* العمود الأيسر الواسع: جدول المساجد المخصصة للمشروع (Col 8 - Expansive Interactive Table) */}
+                  <div className="lg:col-span-8 space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-xs text-foreground flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-primary" />
@@ -557,16 +568,16 @@ export default function NewMultiMosqueProjectPage() {
                         <Table dir="rtl" className="text-xs">
                           <TableHeader className="bg-muted/40">
                             <TableRow className="hover:bg-transparent">
-                              <TableHead className="w-[180px] text-right font-bold py-2.5">المسجد والمدينة</TableHead>
-                              <TableHead className="w-[140px] text-right font-bold py-2.5">الميزانية المخصصة</TableHead>
-                              <TableHead className="text-right font-bold py-2.5">الشروط وملاحظات الأعمال</TableHead>
-                              <TableHead className="w-[45px] text-center font-bold py-2.5"></TableHead>
+                              <TableHead className="w-[200px] text-right font-bold py-3">المسجد والمدينة</TableHead>
+                              <TableHead className="w-[160px] text-right font-bold py-3">الميزانية المخصصة</TableHead>
+                              <TableHead className="text-right font-bold py-3">الشروط وملاحظات الأعمال</TableHead>
+                              <TableHead className="w-[45px] text-center font-bold py-3"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {selectedMosques.map((item, idx) => (
                               <TableRow key={item.mosqueId} className="hover:bg-muted/20">
-                                <TableCell className="align-middle py-2.5">
+                                <TableCell className="align-middle py-3">
                                   <div className="flex items-center gap-2">
                                     <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0">
                                       {idx + 1}
@@ -578,37 +589,37 @@ export default function NewMultiMosqueProjectPage() {
                                   </div>
                                 </TableCell>
 
-                                <TableCell className="align-middle py-2.5">
+                                <TableCell className="align-middle py-3">
                                   <div className="relative">
                                     <Input
                                       type="number"
                                       placeholder="0"
                                       value={item.allocatedBudget}
                                       onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "allocatedBudget", e.target.value)}
-                                      className="h-8 text-xs font-bold pl-10 pr-2 rounded-md"
+                                      className="h-9 text-xs font-bold pl-10 pr-2 rounded-lg"
                                     />
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground font-semibold">ريال</span>
+                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-semibold">ريال</span>
                                   </div>
                                 </TableCell>
 
-                                <TableCell className="align-middle py-2.5">
+                                <TableCell className="align-middle py-3">
                                   <Input
-                                    placeholder="أدخل الشروط والأعمال..."
+                                    placeholder="أدخل الشروط وملاحظات الأعمال..."
                                     value={item.notes}
                                     onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "notes", e.target.value)}
-                                    className="h-8 text-xs rounded-md"
+                                    className="h-9 text-xs rounded-lg"
                                   />
                                 </TableCell>
 
-                                <TableCell className="align-middle text-center py-2.5">
+                                <TableCell className="align-middle text-center py-3">
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleRemoveMosque(item.mosqueId)}
-                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-md"
+                                    className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg"
                                     title="حذف المسجد"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-4 h-4" />
                                   </Button>
                                 </TableCell>
                               </TableRow>
@@ -652,7 +663,7 @@ export default function NewMultiMosqueProjectPage() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+              <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <Sparkles className="h-4.5 w-4.5 text-primary" />
                   الخطوة 3: مراجعة واعتماد المشروع
@@ -662,7 +673,7 @@ export default function NewMultiMosqueProjectPage() {
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="space-y-6 pt-6 text-right">
+              <CardContent className="space-y-6 pt-6 px-6 text-right">
                 {/* ملخص البيانات */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-3">
