@@ -29,7 +29,8 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 
 interface BoqTabProps {
-  requestId: number;
+  requestId?: number;
+  projectId?: number;
   isLocked?: boolean;
   hideAddButton?: boolean;
 }
@@ -39,7 +40,7 @@ export interface BoqTabHandle {
 }
 
 const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
-  ({ requestId, isLocked: externalIsLocked, hideAddButton }, ref) => {
+  ({ requestId, projectId, isLocked: externalIsLocked, hideAddButton }, ref) => {
     const { user } = useAuth();
     const userPermissions = (user as any)?.permissions ?? [];
     const hasViewDetails = userPermissions.includes("requests.view_details") || ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
@@ -53,11 +54,14 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const utils = trpc.useUtils();
 
-    const { data: request } = trpc.requests.getById.useQuery({ id: requestId });
+    const { data: request } = trpc.requests.getById.useQuery(
+      { id: requestId! },
+      { enabled: !!requestId }
+    );
 
     const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
-      { requestId },
-      { enabled: !!requestId }
+      { requestId, projectId },
+      { enabled: !!requestId || !!projectId }
     );
 
     const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
@@ -539,12 +543,13 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
         )}
 
         {showAddDialog && (
-          <BoqFormDialog requestId={requestId} open={showAddDialog} onClose={handleDialogClose} />
+          <BoqFormDialog requestId={requestId} projectId={projectId} open={showAddDialog} onClose={handleDialogClose} />
         )}
 
         {showEditDialog && selectedItem && (
           <BoqFormDialog
             requestId={requestId}
+            projectId={projectId}
             open={showEditDialog}
             onClose={handleDialogClose}
             item={selectedItem}
