@@ -2,13 +2,13 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
+import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft, ArrowRight, Star } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const notificationIcons: Record<string, any> = {
   request_update: FileText,
@@ -17,10 +17,12 @@ const notificationIcons: Record<string, any> = {
   user: User,
   system: Bell,
   info: Bell,
+  request_evaluation: Star,
 };
 
 export default function Notifications() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const utils = trpc.useContext();
   const [page, setPage] = useState(1);
   const limit = 10;
@@ -105,34 +107,55 @@ export default function Notifications() {
               <div className="flex flex-col">
                 <div className="divide-y divide-border">
                   {notifications.map((notification) => {
-                    const Icon = notificationIcons[notification.type || "info"] || Bell;
+                    const isEvalNotif = notification.relatedType === "request_evaluation";
+                    const Icon = isEvalNotif ? Star : (notificationIcons[notification.type || "info"] || Bell);
                     return (
                       <div 
                         key={notification.id} 
-                        className={`flex items-start gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.isRead ? "bg-primary/5" : ""}`}
-                        onClick={() => handleMarkAsRead(notification.id, !!notification.isRead)}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.isRead ? "bg-primary/5 border-r-4 border-r-primary" : ""}`}
+                        onClick={() => {
+                          if (!notification.isRead) {
+                            handleMarkAsRead(notification.id, false);
+                          }
+                          if (isEvalNotif && notification.relatedId) {
+                            setLocation(`/requests/${notification.relatedId}/evaluation`);
+                          } else if (notification.relatedType === "request" && notification.relatedId) {
+                            setLocation(`/requests/${notification.relatedId}`);
+                          }
+                        }}
                       >
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${!notification.isRead ? "bg-primary/10" : "bg-muted"}`}>
-                          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${!notification.isRead ? "text-primary" : "text-muted-foreground"}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                            <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground" : "text-muted-foreground"}`} title={notification.title}>
-                              {notification.title}
-                            </p>
-                            <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
-                              {notification.createdAt ? (() => {
-                                const d = new Date(notification.createdAt);
-                                return format(d, 'dd MMM yyyy, hh:mm a', { locale: ar });
-                              })() : ""}
-                            </span>
+                        <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                          <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 ${isEvalNotif ? "bg-amber-500/20 text-amber-500" : !notification.isRead ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-none leading-relaxed">
-                            {notification.message}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                              <p className={`text-sm sm:text-base font-medium truncate ${!notification.isRead ? "text-foreground font-bold" : "text-muted-foreground"}`} title={notification.title}>
+                                {notification.title}
+                              </p>
+                              <span className="text-[10px] sm:text-xs text-muted-foreground shrink-0">
+                                {notification.createdAt ? (() => {
+                                  const d = new Date(notification.createdAt);
+                                  return format(d, 'dd MMM yyyy, hh:mm a', { locale: ar });
+                                })() : ""}
+                              </span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                              {notification.message}
+                            </p>
+                          </div>
                         </div>
-                        {!notification.isRead && (
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary mt-1.5 sm:mt-2 shrink-0" />
+
+                        {/* زر العمل المباشر للتقييم */}
+                        {isEvalNotif && notification.relatedId && (
+                          <div className="shrink-0 pt-2 sm:pt-0 self-end sm:self-center">
+                            <Link href={`/requests/${notification.relatedId}/evaluation`} onClick={(e) => e.stopPropagation()}>
+                              <Button size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-sm text-xs">
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                                تقييم الخدمة
+                              </Button>
+                            </Link>
+                          </div>
                         )}
                       </div>
                     );
