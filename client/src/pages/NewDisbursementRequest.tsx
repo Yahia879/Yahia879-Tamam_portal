@@ -188,7 +188,7 @@ export default function NewDisbursementRequest() {
   
   // حساب المتبقي للدفعة
   const totalPaymentsSum = projectDetails?.payments
-    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !String(p.id).startsWith("cp-"))
     ?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
   const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
