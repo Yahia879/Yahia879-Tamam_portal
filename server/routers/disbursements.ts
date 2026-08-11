@@ -1852,6 +1852,8 @@ export const disbursementsRouter = router({
               beneficiaryIban: input.beneficiaryIban,
               beneficiaryAccountName: input.beneficiaryAccountName || null,
               paymentMethod: input.paymentMethod,
+              sadadNumber: input.sadadNumber || null,
+              billerCode: input.billerCode || null,
               status: "edited" as any,
               updatedAt: new Date(),
             })
@@ -1883,6 +1885,8 @@ export const disbursementsRouter = router({
         beneficiaryBank: input.beneficiaryBank,
         beneficiaryIban: input.beneficiaryIban,
         paymentMethod: input.paymentMethod,
+        sadadNumber: input.sadadNumber || null,
+        billerCode: input.billerCode || null,
         status: "pending",
         createdBy: ctx.user.id,
       });
@@ -2371,6 +2375,44 @@ export const disbursementsRouter = router({
           })
           .where(eq(projects.id, pId));
       }
+
+      // تحديث وإغلاق فرصة التبرع والطلب المرتبط تلقائياً عند الصرف
+      if (request?.attachmentsJson) {
+        try {
+          const attachments = typeof request.attachmentsJson === "string"
+            ? JSON.parse(request.attachmentsJson)
+            : request.attachmentsJson;
+          if (Array.isArray(attachments)) {
+            const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info" && a.type === "metadata");
+            if (infoAttachment && infoAttachment.url) {
+              const meta = typeof infoAttachment.url === "string" ? JSON.parse(infoAttachment.url) : infoAttachment.url;
+              if (meta?.donationOpportunityId) {
+                await db
+                  .update(donationOpportunities)
+                  .set({
+                    status: "completed",
+                    collectedAmount: sql`targetAmount`,
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(donationOpportunities.id, Number(meta.donationOpportunityId)));
+              }
+              if (meta?.mosqueRequestId) {
+                await db
+                  .update(mosqueRequests)
+                  .set({
+                    currentStage: "closed",
+                    status: "completed",
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(mosqueRequests.id, Number(meta.mosqueRequestId)));
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error updating linked donation opportunity status on order execution:", e);
+        }
+      }
+
       return { success: true, message: "تم تنفيذ أمر الصرف بنجاح" };
     }),
 

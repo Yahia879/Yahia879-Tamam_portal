@@ -1121,16 +1121,18 @@ export default function NewLinkedDisbursementRequest() {
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
     // إدراج الحقول المخصصة في المرفقات كـ metadata لحفظها بالكامل في قاعدة البيانات
+    const isSadad = requestType === "sadad_invoice";
     const customSupplierMetadata = isCustom ? [{
       name: "custom_supplier_info",
       url: JSON.stringify({
-        name: suppliers[0].name,
-        bank: suppliers[0].bank,
-        iban: suppliers[0].iban,
-        work: suppliers[0].work,
-        agreedAmount: suppliers[0].agreedAmount,
+        name: isSadad ? (formData.billerName || suppliers[0]?.name || "") : (suppliers[0]?.name || ""),
+        bank: isSadad ? (formData.billerCode || suppliers[0]?.bank || "") : (suppliers[0]?.bank || ""),
+        iban: isSadad ? (formData.sadadNumber || suppliers[0]?.iban || "") : (suppliers[0]?.iban || ""),
+        work: suppliers[0]?.work || formData.requiredWorksDesc || "",
+        agreedAmount: suppliers[0]?.agreedAmount || formData.amount || 0,
         bankAccountName: formData.bankAccountName || "",
         requestType: requestType,
+        paymentMethod: isSadad ? "sadad" : "bank_transfer",
         fundingSupport: formData.fundingSupport,
         mainProjectName: formData.mainProjectName,
         customProjectName: formData.customProjectName || "",
@@ -1494,37 +1496,56 @@ export default function NewLinkedDisbursementRequest() {
 
                 {/* 2. فرصة التبرع (إذا كان المسار هو فرصة التبرع) */}
                 {activeCategory === "donation_opportunity" && (
-                  <div className="space-y-2 text-right pb-4 border-b border-border/40 animate-in slide-in-from-top-2 duration-200">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
-                    <Select
-                      value={formData.donationOpportunityId.toString()}
-                      onValueChange={(value) => {
-                        const oppId = parseInt(value);
-                        const selectedOpp = donationOpportunities?.find((o: any) => o.id === oppId);
-                        const parsedAmount = selectedOpp ? parseFloat(selectedOpp.targetAmount) : 0;
-                        setFormData({ 
-                          ...formData, 
-                          donationOpportunityId: oppId,
-                          mosqueRequestId: selectedOpp ? (selectedOpp.requestId ?? 0) : 0,
-                          projectId: 0,
-                          contractId: 0,
-                          amount: parsedAmount || formData.amount,
-                          customProjectName: selectedOpp ? selectedOpp.title : formData.customProjectName
-                        });
-                        setSelectedReportId(null);
-                      }}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm" dir="rtl">
-                        <SelectValue placeholder="اختر فرصة التبرع للربط بها" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {donationOpportunities?.map((opp: any) => (
-                          <SelectItem key={opp.id} value={opp.id.toString()} className="text-right">
-                            {opp.title} - {opp.requestNumber}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-4 text-right pb-4 border-b border-border/40 animate-in slide-in-from-top-2 duration-200">
+                    <div className="space-y-2">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع المرتبط (فرصة التبرع) *</Label>
+                      <Select
+                        value={formData.donationOpportunityId.toString()}
+                        onValueChange={(value) => {
+                          const oppId = parseInt(value);
+                          const selectedOpp = donationOpportunities?.find((o: any) => o.id === oppId);
+                          const parsedAmount = selectedOpp ? parseFloat(selectedOpp.targetAmount) : 0;
+                          setFormData({ 
+                            ...formData, 
+                            donationOpportunityId: oppId,
+                            mosqueRequestId: selectedOpp ? (selectedOpp.requestId ?? 0) : 0,
+                            projectId: 0,
+                            contractId: 0,
+                            amount: parsedAmount || formData.amount,
+                            customProjectName: selectedOpp ? selectedOpp.title : formData.customProjectName
+                          });
+                          setSelectedReportId(null);
+                        }}
+                      >
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm" dir="rtl">
+                          <SelectValue placeholder="اختر فرصة التبرع للربط بها" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {donationOpportunities?.map((opp: any) => (
+                            <SelectItem key={opp.id} value={opp.id.toString()} className="text-right">
+                              {opp.title} - {opp.requestNumber}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* طريقة الدفع للمشروع المرتبط / فرصة التبرع */}
+                    <div className="space-y-2">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">طريقة الدفع للمستفيد / الفاتورة *</Label>
+                      <Select
+                        value={requestType === "sadad_invoice" ? "sadad_invoice" : "supplier_one_time"}
+                        onValueChange={(val) => handleRequestTypeChange(val)}
+                      >
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                          <SelectValue placeholder="اختر طريقة الدفع" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="supplier_one_time" className="text-right">تحويل بنكي (IBAN / حساب بنكي)</SelectItem>
+                          <SelectItem value="sadad_invoice" className="text-right">نظام سداد (رقم الفاتورة / رقم السداد / المفوتر)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
 
