@@ -47,6 +47,7 @@ import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
 import ProjectManagement from "./pages/ProjectManagement";
 import ProjectDetailsPage from "./pages/ProjectDetailsPage";
+import NewMultiMosqueProjectPage from "./pages/NewMultiMosqueProjectPage";
 import ProjectReportsHubPage from "./pages/ProjectReportsHubPage";
 import NewProjectReportPage from "./pages/NewProjectReportPage";
 import ProjectReportPrintPage from "./pages/ProjectReportPrintPage";
@@ -268,6 +269,7 @@ function Router() {
       
       {/* المشاريع - إدارية */}
       <Route path="/projects">{() => <AdminRoute component={Projects} />}</Route>
+      <Route path="/projects/new">{() => <AdminRoute component={NewMultiMosqueProjectPage} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
       <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
