@@ -37,7 +37,8 @@ import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BoqFormDialogProps {
-  requestId: number;
+  requestId?: number;
+  projectId?: number;
   open: boolean;
   onClose: () => void;
   item?: any; // إذا كان موجوداً، يكون في وضع التعديل
@@ -45,6 +46,7 @@ interface BoqFormDialogProps {
 
 export default function BoqFormDialog({
   requestId,
+  projectId,
   open,
   onClose,
   item,
@@ -141,6 +143,7 @@ export default function BoqFormDialog({
     } else {
       addItemMutation.mutate({
         requestId,
+        projectId,
         itemName: formData.itemName,
         itemDescription: formData.description,
         unit: formData.unit,
