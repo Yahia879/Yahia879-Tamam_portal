@@ -198,7 +198,7 @@ export default function NewMultiMosqueProjectPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-6 md:px-8" dir="rtl">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5 animate-fade-in pb-20 px-3 sm:px-5 md:px-6" dir="rtl">
         {/* Header and Visual Step Timeline */}
         <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
           <div className="flex items-center justify-between pb-2">
