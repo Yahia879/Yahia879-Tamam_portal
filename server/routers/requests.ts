@@ -47,6 +47,50 @@ import {
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
 
+export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
+  const db = await getDb();
+  if (!db) return;
+
+  try {
+    const [request] = await db
+      .select()
+      .from(mosqueRequests)
+      .where(eq(mosqueRequests.id, requestId))
+      .limit(1);
+
+    if (!request || !request.userId) return;
+
+    const [beneficiary] = await db
+      .select({ id: users.id, email: users.email, role: users.role, name: users.name })
+      .from(users)
+      .where(eq(users.id, request.userId))
+      .limit(1);
+
+    if (!beneficiary) return;
+
+    const evalUrl = `https://tamamgate.manarah.org.sa/requests/${requestId}/evaluation`;
+    const emailTitle = `📋 تقييم رضا المستفيد - تم إغلاق الطلب رقم ${request.requestNumber}`;
+    const emailMessage = `السلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تحسين وتطوير خدماتنا، نأمل منكم تكرمكم بتقييم مستوى رضاكم عن الخدمة المقدمة من خلال الرابط المباشر التالي:\n${evalUrl}\n\nشكراً لتعاونكم معنا.`;
+
+    // 1. In-App Notification (قائمة الإشعارات)
+    await createNotification({
+      userId: beneficiary.id,
+      title: `📋 تقييم رضا المستفيد (طلب ${request.requestNumber})`,
+      message: `تم إغلاق طلبك رقم ${request.requestNumber} بنجاح. يسعدنا مشاركتك تقييم مستوى الخدمة المقدمة عبر الرابط المباشر.`,
+      type: "request",
+      relatedType: "request_evaluation",
+      relatedId: requestId,
+    });
+
+    // 2. Email Notification (إشعار البريد الإلكتروني عبر sendEmailNotification)
+    if (beneficiary.email) {
+      await sendEmailNotification(beneficiary.email, emailTitle, emailMessage);
+    }
+  } catch (error) {
+    console.error("Error triggering beneficiary satisfaction survey:", error);
+  }
+}
+
 // دالة إنشاء رقم طلب فريد بمنهجية سنوية
 async function generateRequestNumber(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
@@ -1231,6 +1275,10 @@ export const requestsRouter = router({
         });
       }
 
+      if (input.newStage === "closed") {
+        await triggerBeneficiarySatisfactionSurvey(input.requestId);
+      }
+
       return { success: true, message: `تم تحويل الطلب إلى مرحلة ${newStageName} بنجاح` };
     }),
 
@@ -1310,6 +1358,10 @@ export const requestsRouter = router({
           relatedType: "request",
           relatedId: input.requestId,
         });
+      }
+
+      if ((input.newStatus as string) === "completed" || (input.newStatus as string) === "closed") {
+        await triggerBeneficiarySatisfactionSurvey(input.requestId);
       }
 
       return { success: true, message: "تم تحديث حالة الطلب بنجاح" };
@@ -1762,6 +1814,7 @@ export const requestsRouter = router({
       });
 
       const requestId = Number(requestResult[0].insertId);
+      await triggerBeneficiarySatisfactionSurvey(requestId);
 
       await db.insert(quickResponseReports).values({
         requestId,
@@ -3244,5 +3297,160 @@ export const requestsRouter = router({
       }
 
       return { success: true };
+    }),
+
+  // تقديم تقييم رضا المستفيد (Beneficiary Satisfaction Survey)
+  submitBeneficiaryEvaluation: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number(),
+        rating: z.number().min(1).max(5),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (request.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عفواً، التقييم مخصص فقط للمستفيد (طالب الخدمة) صاحب الطلب.",
+        });
+      }
+
+      if (request.currentStage !== "closed" && request.status !== "completed") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عفواً، يمكن تقييم الطلب فقط فور تحويله إلى مغلق (closed).",
+        });
+      }
+
+      const existing = await db
+        .select()
+        .from(requestEvaluations)
+        .where(
+          and(
+            eq(requestEvaluations.requestId, input.requestId),
+            eq(requestEvaluations.userId, ctx.user.id),
+            eq(requestEvaluations.evaluationType, "beneficiary_satisfaction")
+          )
+        )
+        .limit(1);
+
+      if (existing.length > 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تم تقييم هذا الطلب سابقاً، شكراً لمشاركتك!",
+        });
+      }
+
+      await db.insert(requestEvaluations).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        rating: input.rating,
+        evaluationType: "beneficiary_satisfaction",
+        notes: input.notes || null,
+        createdAt: new Date(),
+      });
+
+      await db
+        .update(mosqueRequests)
+        .set({
+          isEvaluated: true,
+          satisfactionRating: input.rating,
+          evaluatedAt: new Date(),
+        })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return {
+        success: true,
+        message: "شكراً لك! تم استلام تقييمك بنجاح ونقدر مشاركتك.",
+      };
+    }),
+
+  // جلب تفاصيل تقييم المستفيد للطلب
+  getBeneficiaryEvaluation: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db
+        .select({
+          id: mosqueRequests.id,
+          requestNumber: mosqueRequests.requestNumber,
+          descriptiveName: mosqueRequests.descriptiveName,
+          programType: mosqueRequests.programType,
+          currentStage: mosqueRequests.currentStage,
+          status: mosqueRequests.status,
+          userId: mosqueRequests.userId,
+          isEvaluated: mosqueRequests.isEvaluated,
+          satisfactionRating: mosqueRequests.satisfactionRating,
+          evaluatedAt: mosqueRequests.evaluatedAt,
+          mosqueId: mosqueRequests.mosqueId,
+          completedAt: mosqueRequests.completedAt,
+        })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      const isOwner = request.userId === ctx.user.id;
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!isOwner && !isAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "عفواً، ليس لديك صلاحية لعرض هذا التقييم.",
+        });
+      }
+
+      let existingEvaluation = null;
+      if (request.isEvaluated) {
+        const [evalRow] = await db
+          .select()
+          .from(requestEvaluations)
+          .where(
+            and(
+              eq(requestEvaluations.requestId, input.requestId),
+              eq(requestEvaluations.evaluationType, "beneficiary_satisfaction")
+            )
+          )
+          .limit(1);
+        existingEvaluation = evalRow || null;
+      }
+
+      let mosqueName = null;
+      if (request.mosqueId) {
+        const [m] = await db
+          .select({ name: mosques.name })
+          .from(mosques)
+          .where(eq(mosques.id, request.mosqueId))
+          .limit(1);
+        if (m) mosqueName = m.name;
+      }
+
+      return {
+        request: {
+          ...request,
+          mosqueName,
+        },
+        existingEvaluation,
+        isOwner,
+      };
     }),
 });
