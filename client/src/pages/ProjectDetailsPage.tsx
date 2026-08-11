@@ -822,7 +822,7 @@ export default function ProjectDetailsPage() {
                       المساجد المشمولة بالمشروع (عدة مساجد)
                     </CardTitle>
                     <CardDescription className="text-xs mt-1">
-                      قائمة المساجد المخصصة ضمن هذا المشروع والميزانية واشتراطات الأعمال لكل مسجد
+                      قائمة المساجد المخصصة ضمن هذا المشروع والميزانية وشروط الأعمال لكل مسجد
                     </CardDescription>
                   </div>
                   <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1">
@@ -837,7 +837,7 @@ export default function ProjectDetailsPage() {
                         <TableHead className="text-right font-bold">المدينة / الحي</TableHead>
                         <TableHead className="text-right font-bold">الميزانية المخصصة</TableHead>
                         <TableHead className="text-right font-bold">الإمام / التواصل</TableHead>
-                        <TableHead className="text-right font-bold">ملاحظات واشتراطات الأعمال</TableHead>
+                        <TableHead className="text-right font-bold">الشروط وملاحظات الأعمال</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
