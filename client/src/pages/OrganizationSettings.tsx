@@ -939,7 +939,7 @@ export default function OrganizationSettings() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0">
+      <div className="space-y-6 max-w-6xl px-4 sm:px-0" dir="rtl">
         {/* العنوان */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -1009,7 +1009,7 @@ export default function OrganizationSettings() {
           {/* معلومات الجمعية الأساسية */}
           {canShowBasic && (
             <TabsContent value="basic" className="space-y-6">
-            <Card className="border-0 shadow-sm overflow-hidden">
+            <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Building2 className="h-5 w-5 text-primary" />
@@ -1019,7 +1019,7 @@ export default function OrganizationSettings() {
                   البيانات الأساسية للجمعية التي تظهر في العقود والمستندات الرسمية
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-6">
+              <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-xs sm:text-sm font-bold">اسم الجمعية</Label>
@@ -1210,7 +1210,7 @@ export default function OrganizationSettings() {
           {/* البيانات البنكية */}
           {canShowBanks && (
             <TabsContent value="bank">
-            <Card className="border-0 shadow-sm overflow-hidden">
+            <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <CreditCard className="h-5 w-5 text-primary" />
@@ -1220,7 +1220,7 @@ export default function OrganizationSettings() {
                   معلومات الحساب البنكي للجمعية المستخدمة في العقود والتحويلات
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-6">
+              <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="bankName" className="text-xs sm:text-sm font-bold">اسم البنك</Label>
@@ -1275,7 +1275,7 @@ export default function OrganizationSettings() {
           {/* إعدادات العقود */}
           {canShowContracts && (
             <TabsContent value="contracts" className="space-y-6">
-            <Card className="border-0 shadow-sm overflow-hidden">
+            <Card className="border-0 shadow-sm overflow-hidden" dir="rtl">
               <CardHeader className="p-4 sm:p-6 pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <FileText className="h-5 w-5 text-primary" />
@@ -1285,7 +1285,7 @@ export default function OrganizationSettings() {
                   تخصيص إعدادات العقود والنصوص الافتراضية
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-6">
+              <CardContent className="p-4 sm:p-6 space-y-6" dir="rtl">
                 <div className="space-y-3">
                   <Label htmlFor="contractPrefix" className="text-xs sm:text-sm font-bold">بادئة رقم العقد</Label>
                   <Input
