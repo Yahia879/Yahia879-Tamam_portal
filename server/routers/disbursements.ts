@@ -342,6 +342,23 @@ export const disbursementsRouter = router({
 
       let execDirector: any = null;
 
+      // جلب بيانات مُنفذ الاستثناء الحية (لتحديث خانة التوقيع عند تغيير البيانات من البروفايل)
+      let liveExceptionApproverData: any = null;
+      if (request.isException && request.exceptionApprovedBy) {
+        const [exceptionApprover] = await db
+          .select({
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            name: users.name,
+          })
+          .from(users)
+          .where(eq(users.id, request.exceptionApprovedBy));
+        if (exceptionApprover) {
+          liveExceptionApproverData = exceptionApprover;
+        }
+      }
+
       if ((request as any).approvedBy) {
         const [approver] = await db
           .select({
@@ -459,6 +476,16 @@ export const disbursementsRouter = router({
         executiveDirectorSignatureDepartment,
         executiveDirectorSignatureUrl,
         creatorHasSignPermission: hasSignInfo,
+        // بيانات مُنفذ الاستثناء الحية (تتحدث تلقائياً عند تغيير البيانات من البروفايل)
+        liveExceptionApproverName: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureName || liveExceptionApproverData.name || null)
+          : null,
+        liveExceptionApproverDepartment: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureDepartment || null)
+          : null,
+        liveExceptionApproverSignatureUrl: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureUrl || null)
+          : null,
         project,
         contract,
         opportunity: opportunity || null,
@@ -1197,7 +1224,7 @@ export const disbursementsRouter = router({
         .where(eq(users.id, ctx.user.id));
 
       const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
-      const approverDept = approverData?.signatureDepartment || "إدارة النظام (استثناء اعتماد)";
+      const approverDept = approverData?.signatureDepartment || "إدارة النظام";
       const approverSigUrl = approverData?.signatureUrl || null;
 
       // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الطلب وتحديث الـ Snapshot
@@ -1308,7 +1335,7 @@ export const disbursementsRouter = router({
         .where(eq(users.id, ctx.user.id));
 
       const approverName = approverData?.signatureName || approverData?.name || ctx.user.name || "معتمد الاستثناء";
-      const approverDept = approverData?.signatureDepartment || "الإدارة المالية (استثناء اعتماد)";
+      const approverDept = approverData?.signatureDepartment || "الإدارة المالية";
       const approverSigUrl = approverData?.signatureUrl || null;
 
       // عند الاستثناء: اعتماد المرحلة الأولى نيابة عن منشئ الأمر وتحديث الـ Snapshot
@@ -1728,6 +1755,23 @@ export const disbursementsRouter = router({
         .from(users)
         .where(eq(users.email, "ceo@manarah.org.sa"));
 
+      // جلب بيانات مُنفذ الاستثناء الحية (لتحديث خانة التوقيع عند تغيير البيانات من البروفايل)
+      let liveExceptionApproverData: any = null;
+      if (order.isException && order.exceptionApprovedBy) {
+        const [exceptionApprover] = await db
+          .select({
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+            name: users.name,
+          })
+          .from(users)
+          .where(eq(users.id, order.exceptionApprovedBy));
+        if (exceptionApprover) {
+          liveExceptionApproverData = exceptionApprover;
+        }
+      }
+
       return {
         ...order,
         disbursementRequest: request,
@@ -1736,6 +1780,16 @@ export const disbursementsRouter = router({
         approvedByUser: executiveDirectorUser || null,
         financialUser: financialUser || null,
         executiveDirectorUser: executiveDirectorUser || null,
+        // بيانات مُنفذ الاستثناء الحية
+        liveExceptionApproverName: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureName || liveExceptionApproverData.name || null)
+          : null,
+        liveExceptionApproverDepartment: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureDepartment || null)
+          : null,
+        liveExceptionApproverSignatureUrl: liveExceptionApproverData
+          ? (liveExceptionApproverData.signatureUrl || null)
+          : null,
       };
     }),
 

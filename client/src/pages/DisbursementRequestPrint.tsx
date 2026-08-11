@@ -86,15 +86,15 @@ export default function DisbursementRequestPrint() {
   const isExceptionApproved = Boolean((request as any)?.isException);
 
   const resolvedSignatureName = isExceptionApproved
-    ? ((request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName)
+    ? (((request as any)?.liveExceptionApproverName || (request as any)?.creatorSignatureName || (request as any)?.requestedBySignatureName || (request as any)?.requestedByName || "").replace(/\s*\(استثناء اعتماد\)/g, ""))
     : ((request as any)?.requestedBySignatureName || (request as any)?.requestedByName);
 
   const resolvedSignatureDepartment = isExceptionApproved
-    ? ((request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب")
+    ? (((request as any)?.liveExceptionApproverDepartment || (request as any)?.creatorSignatureDepartment || (request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب").replace(/\s*\(استثناء اعتماد\)/g, ""))
     : ((request as any)?.requestedBySignatureDepartment || "مُعدّ الطلب");
 
   const resolvedSignatureUrl = isExceptionApproved
-    ? ((request as any)?.creatorSignatureUrl)
+    ? ((request as any)?.liveExceptionApproverSignatureUrl || (request as any)?.creatorSignatureUrl)
     : ((request as any)?.requestedByShowSignature === false ? null : (request as any)?.requestedBySignatureUrl);
 
   const executiveDirectorDepartment = 

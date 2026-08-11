@@ -216,15 +216,15 @@ export default function DisbursementOrderPrint() {
 
   // 1. الخانة الأولى: الإدارة المالية / مُعد الأمر (عند الاستثناء تظهر بيانات المعتمِد المستثنِي)
   const creatorName = isExceptionApproved
-    ? ((order as any)?.creatorSignatureName || "استثناء اعتماد مُعد الأمر")
+    ? (((order as any)?.liveExceptionApproverName || (order as any)?.creatorSignatureName || "مُعد الأمر").replace(/\s*\(استثناء اعتماد\)/g, ""))
     : (financialUser?.signatureName || financialUser?.name || "الإدارة المالية");
 
   const creatorDepartment = isExceptionApproved
-    ? ((order as any)?.creatorSignatureDepartment || "الإدارة المالية")
+    ? (((order as any)?.liveExceptionApproverDepartment || (order as any)?.creatorSignatureDepartment || "الإدارة المالية").replace(/\s*\(استثناء اعتماد\)/g, ""))
     : (financialUser?.signatureDepartment || "الإدارة المالية");
 
   const creatorSignatureUrl = isOrderStage1Approved 
-    ? (isExceptionApproved ? ((order as any)?.creatorSignatureUrl || null) : (financialUser?.signatureUrl || null)) 
+    ? (isExceptionApproved ? ((order as any)?.liveExceptionApproverSignatureUrl || (order as any)?.creatorSignatureUrl || null) : (financialUser?.signatureUrl || null)) 
     : null;
 
   const creatorDate = isOrderStage1Approved ? formatGregorianDate((order as any)?.financialApprovedAt || order?.updatedAt || order?.createdAt) : "—";
