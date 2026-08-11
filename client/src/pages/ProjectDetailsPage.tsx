@@ -979,57 +979,59 @@ export default function ProjectDetailsPage() {
 
           {/* جدول الكميات */}
           <TabsContent value="boq" className="space-y-4">
-            {project?.requestId ? (
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">جداول الكميات (BOQ)</CardTitle>
-                    <CardDescription>إدارة جداول الكميات المرتبطة بهذا الطلب</CardDescription>
-                  </div>
-                  {!isBOQLocked && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-lg">جداول الكميات (BOQ)</CardTitle>
+                  <CardDescription>
+                    {project.isMultiMosque
+                      ? "إدارة جداول الكميات لمشروع عدة مساجد"
+                      : "إدارة جداول الكميات المرتبطة بهذا المشروع"}
+                  </CardDescription>
+                </div>
+                {!isBOQLocked && (
+                  <Button 
+                    className="gradient-primary text-white" 
+                    onClick={() => boqTabRef.current?.openAddDialog()}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة بند جديد
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                <BoqTab 
+                  requestId={project.requestId || undefined} 
+                  projectId={project.id} 
+                  isLocked={isBOQLocked} 
+                  ref={boqTabRef} 
+                  hideAddButton={true} 
+                />
+                {showApproveBOQButton && project.requestId && (
+                  <div className="mt-6 flex justify-center">
                     <Button 
-                      className="gradient-primary text-white" 
-                      onClick={() => boqTabRef.current?.openAddDialog()}
+                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                      onClick={() => {
+                        if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
+                          updateRequestStageMutation.mutate({ 
+                            requestId: project.requestId!, 
+                            newStage: "financial_eval_and_approval" as any 
+                          });
+                        }
+                      }}
+                      disabled={updateRequestStageMutation.isPending}
                     >
-                      <Plus className="w-4 h-4 ml-2" />
-                      إضافة بند جديد
+                      {updateRequestStageMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      اعتماد جداول الكميات
                     </Button>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <BoqTab requestId={project.requestId} isLocked={isBOQLocked} ref={boqTabRef} hideAddButton={true} />
-                  {showApproveBOQButton && (
-                    <div className="mt-6 flex justify-center">
-                      <Button 
-                        className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
-                        onClick={() => {
-                          if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
-                            updateRequestStageMutation.mutate({ 
-                              requestId: project.requestId!, 
-                              newStage: "financial_eval_and_approval" as any 
-                            });
-                          }
-                        }}
-                        disabled={updateRequestStageMutation.isPending}
-                      >
-                        {updateRequestStageMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-4 h-4" />
-                        )}
-                        اعتماد جداول الكميات
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-0 shadow-sm">
-                <CardContent className="text-center py-12">
-                  <p className="text-muted-foreground">لا يوجد طلب مرتبط بهذا المشروع</p>
-                </CardContent>
-              </Card>
-            )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* المالية */}
