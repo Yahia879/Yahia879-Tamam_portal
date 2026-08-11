@@ -358,7 +358,7 @@ export default function NewMultiMosqueProjectPage() {
                       <SelectContent>
                         {managersList.map((m: any) => (
                           <SelectItem key={m.id} value={m.id.toString()}>
-                            {m.name} (مدير مشروع)
+                            {m.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
