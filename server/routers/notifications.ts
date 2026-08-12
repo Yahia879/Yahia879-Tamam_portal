@@ -72,24 +72,43 @@ function getTransporter() {
   return transporter;
 }
 
-export async function sendEmailNotification(to: string, title: string, message: string) {
+export async function sendEmailNotification(
+  to: string, 
+  title: string, 
+  message: string,
+  actionUrl?: string,
+  actionText?: string
+) {
   const user = process.env.SMTP_USER || "tamamgate@manarah.org.sa";
   
+  const formattedMessage = message.replace(/\n/g, "<br />");
+  
+  const buttonHtml = actionUrl ? `
+    <div style="text-align: center; margin: 30px 0 25px 0;">
+      <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; text-decoration: none; padding: 14px 34px; font-size: 16px; font-weight: bold; border-radius: 10px; display: inline-block; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35); letter-spacing: 0.3px;">
+        ⭐ ${actionText || "تقييم الخدمة الآن"}
+      </a>
+    </div>
+  ` : "";
+
   try {
     const mailOptions = {
       from: `"جمعية عمارة المساجد (منارة)" <${user}>`,
       to,
       subject: title,
-      text: message,
+      text: `${message}\n\n${actionUrl ? `${actionText || 'رابط التقييم'}: ${actionUrl}` : ''}`,
       html: `
-        <div style="direction: rtl; font-family: Tahoma, Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 10px;">إشعار جديد من جمعية عمارة المساجد (منارة)</h2>
-          <p style="font-size: 16px; line-height: 1.6; color: #333;"><strong>${title}</strong></p>
-          <p style="font-size: 14px; line-height: 1.5; color: #555; background-color: #f9f9f9; padding: 15px; border-radius: 4px; border-right: 4px solid #0d9488;">
-            ${message}
-          </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #999; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لجمعية عمارة المساجد (منارة).</p>
+        <div style="direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0d9488; padding-bottom: 15px;">
+            <h2 style="color: #0d9488; margin: 0; font-size: 20px;">جمعية عمارة المساجد (منارة)</h2>
+          </div>
+          <p style="font-size: 16px; line-height: 1.6; color: #1f2937; font-weight: bold;">${title}</p>
+          <div style="font-size: 14px; line-height: 1.7; color: #374151; background-color: #f9fafb; padding: 18px; border-radius: 8px; border-right: 4px solid #d97706;">
+            ${formattedMessage}
+          </div>
+          ${buttonHtml}
+          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 25px 0 15px 0;" />
+          <p style="font-size: 12px; color: #9ca3af; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لجمعية عمارة المساجد (منارة).</p>
         </div>
       `,
     };
