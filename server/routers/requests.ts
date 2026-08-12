@@ -3342,17 +3342,21 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
       }
 
-      if (request.userId !== ctx.user.id) {
+      const isOwner = request.userId === ctx.user.id;
+      const isRequesterRole = ctx.user.role === "service_requester";
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!isOwner && !isRequesterRole && !isAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "عفواً، التقييم مخصص فقط للمستفيد (طالب الخدمة) صاحب الطلب.",
         });
       }
 
-      if (request.currentStage !== "closed" && request.status !== "completed") {
+      if (!["handover", "closed"].includes(request.currentStage) && request.status !== "completed") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "عفواً، يمكن تقييم الطلب فقط فور تحويله إلى مغلق (closed).",
+          message: "عفواً، يمكن تقييم الطلب عند مرحلة الاستلام أو تحويله إلى مغلق (closed).",
         });
       }
 
@@ -3362,7 +3366,6 @@ export const requestsRouter = router({
         .where(
           and(
             eq(requestEvaluations.requestId, input.requestId),
-            eq(requestEvaluations.userId, ctx.user.id),
             eq(requestEvaluations.evaluationType, "beneficiary_satisfaction")
           )
         )
@@ -3430,9 +3433,10 @@ export const requestsRouter = router({
       }
 
       const isOwner = request.userId === ctx.user.id;
+      const isRequesterRole = ctx.user.role === "service_requester";
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
 
-      if (!isOwner && !isAdmin) {
+      if (!isOwner && !isRequesterRole && !isAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "عفواً، ليس لديك صلاحية لعرض هذا التقييم.",
