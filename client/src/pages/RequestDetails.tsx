@@ -529,7 +529,7 @@ export default function RequestDetails() {
 
   const stageChecklist = getStageChecklist();
 
-  const isBeneficiaryUser = !!user && (user.id === request.userId || user.role === "service_requester");
+  const isBeneficiaryUser = !!user && (user.id === request.userId || user.role === "service_requester" || ["super_admin", "system_admin"].includes(user.role));
 
   return (
     <DashboardLayout>
