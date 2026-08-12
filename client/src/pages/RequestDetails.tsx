@@ -35,6 +35,7 @@ import {
   FolderKanban,
   AlertCircle,
   Loader2,
+  Star,
 } from "lucide-react";
 import { Link, useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -168,6 +169,13 @@ export default function RequestDetails() {
     undefined,
     { enabled: !!request && ['initial_review', 'field_visit'].includes(request.currentStage) }
   );
+
+  // جلب التقرير الختامي للمشروع
+  const { data: finalReportsList } = trpc.finalReports.getByRequestId.useQuery(
+    { requestId },
+    { enabled: !!request }
+  );
+  const latestFinalReportItem = finalReportsList?.[0] || null;
 
   const utils = trpc.useUtils();
 
@@ -521,6 +529,8 @@ export default function RequestDetails() {
 
   const stageChecklist = getStageChecklist();
 
+  const isBeneficiaryUser = !!user && (user.id === request.userId || user.role === "service_requester");
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -553,6 +563,31 @@ export default function RequestDetails() {
             {STATUS_LABELS[request.status]}
           </span>
         </div>
+
+        {/* بنر التقييم المباشر لمرحلة الاستلام والإغلاق - للمستفيد فقط */}
+        {isBeneficiaryUser && (request.currentStage === "handover" || request.currentStage === "closed" || request.isEvaluated) && (
+          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-white p-5 rounded-2xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-4 border border-amber-400/30">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 bg-white/20 backdrop-blur-md rounded-2xl shrink-0">
+                <Star className="w-7 h-7 text-yellow-200 fill-yellow-200 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-white">تقييم رضا المستفيد (استبيان الخدمة)</h3>
+                <p className="text-amber-100 text-sm mt-0.5">
+                  {request.isEvaluated 
+                    ? `تم التقييم بنجاح! التقييم المسجل: ${request.satisfactionRating || 5} نجوم ⭐` 
+                    : "وصل الطلب إلى المرحلة النهائية، يسعدنا جداً مشاركة رأيك وتقييمك لمستوى الخدمة المقدمة."}
+                </p>
+              </div>
+            </div>
+            <Link href={`/requests/${requestId}/evaluation`}>
+              <Button className="bg-white hover:bg-amber-50 text-amber-950 font-bold px-6 py-2.5 rounded-xl shadow-md gap-2 transition-all shrink-0">
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                {request.isEvaluated ? "عرض التقييم" : "الذهاب للتقييم الآن"}
+              </Button>
+            </Link>
+          </div>
+        )}
 
         {/* شريط المراحل - للموظفين الداخليين فقط */}
         {user?.role !== "service_requester" && !isDirectQuickRequest ? (
@@ -1468,7 +1503,7 @@ export default function RequestDetails() {
                       )}
 
                       {/* زر تحويل المرحلة أو الإجراء المطلوب */}
-                      {request.currentStage !== "closed" && request.currentStage !== "technical_eval" && (
+                      {request.currentStage !== "technical_eval" && (
                         // إذا كان في مرحلة الزيارة الميدانية، عرض زر رفع التقرير دائماً (بغض النظر عن canTransition)
                         request.currentStage === "field_visit" ? (
                           canTransition ? (
@@ -1489,6 +1524,62 @@ export default function RequestDetails() {
                               </p>
                             </div>
                           )
+                        ) : (request.currentStage as string) === "handover" || (request.currentStage as string) === "closed" ? (
+                          // في مرحلة الاستلام والإغلاق: عرض أزرار التقرير الختامي، التقييم المباشر، والإغلاق الرسمي
+                          <div className="space-y-3">
+                            {latestFinalReportItem ? (
+                              <Link href={`/final-report/${latestFinalReportItem.id}?requestId=${requestId}`}>
+                                <Button 
+                                  variant="outline" 
+                                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 font-bold justify-center"
+                                >
+                                  <FileText className="w-4 h-4 ml-2" />
+                                  عرض التقرير النهائي للمشروع
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Link href={`/final-report/new?requestId=${requestId}`}>
+                                <Button 
+                                  variant="outline" 
+                                  className="w-full border-primary/40 text-primary hover:bg-primary/5 font-medium justify-center"
+                                >
+                                  <FileText className="w-4 h-4 ml-2" />
+                                  رفع التقرير الختامي للمشروع
+                                </Button>
+                              </Link>
+                            )}
+
+                            {/* زر تقييم رضا المستفيد المباشر - للمستفيد صاحب الطلب فقط */}
+                            {isBeneficiaryUser && (
+                              <Link href={`/requests/${requestId}/evaluation`}>
+                                <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-sm justify-center gap-2">
+                                  <Star className="w-4 h-4 ml-1 fill-yellow-200 text-yellow-200" />
+                                  {request.isEvaluated ? "عرض تقييم الخدمة" : "تقييم رضا المستفيد ⭐"}
+                                </Button>
+                              </Link>
+                            )}
+
+                            {/* زر إغلاق الطلب رسمياً للطلبات غير المغلقة بعد */}
+                            {(request.currentStage as string) !== "closed" && (
+                              canTransition ? (
+                                <Button 
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm justify-center" 
+                                  onClick={() => updateStageMutation.mutate({ requestId, newStage: 'closed' as any })}
+                                  disabled={updateStageMutation.isPending}
+                                >
+                                  <CheckCircle2 className="w-4 h-4 ml-2" />
+                                  {updateStageMutation.isPending ? "جاري الإغلاق..." : "إغلاق الطلب رسمياً"}
+                                </Button>
+                              ) : (
+                                <div className="p-3 bg-amber-50 rounded-lg">
+                                  <p className="text-sm text-amber-800 font-medium mb-1">لا يمكنك إغلاق الطلب</p>
+                                  <p className="text-xs text-amber-600">
+                                    الأدوار المسموح لها: {allowedRolesForStage.map(r => ROLE_LABELS[r] || r).join('، ')}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
                         ) : (
                           // في المراحل الأخرى، عرض زر تحويل المرحلة أو رسالة عدم الصلاحية
                           canTransition ? (
