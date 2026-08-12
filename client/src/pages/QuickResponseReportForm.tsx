@@ -150,8 +150,15 @@ export default function QuickResponseReportForm() {
   const [showMapDialog, setShowMapDialog] = useState(false);
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [lang, setLang] = useState<"ar" | "en">(() => {
+    if (user?.role && user.role !== "quick_response") return "ar";
     return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
   });
+
+  useEffect(() => {
+    if (user && user.role !== "quick_response") {
+      setLang("ar");
+    }
+  }, [user]);
 
   const t = translations[lang];
 

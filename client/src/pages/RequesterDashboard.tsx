@@ -119,7 +119,7 @@ export default function RequesterDashboard() {
                         {user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-xs sm:text-sm font-medium hidden sm:block truncate max-w-[120px] lg:max-w-[180px]">{user?.name}</span>
+                    <span className="text-xs sm:text-sm font-medium truncate max-w-[100px] sm:max-w-[180px]">{user?.name}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">

@@ -60,6 +60,7 @@ import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { ROLE_LABELS } from "@shared/constants";
 import { useTheme } from "@/contexts/ThemeContext";
+import { formatDocumentTitle, getPageTitle } from "@/lib/pageTitle";
 
 // مجموعات القائمة حسب الدور
 type MenuItem = { icon: any; label: string; path: string };
@@ -423,15 +424,14 @@ export default function DashboardLayout({
 // تخطيط مخصص لطالب الخدمة (المستفيد) بدون قائمة جانبية (Sidebar) مع هيدر علوي متناسق
 function RequesterLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
   
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   useEffect(() => {
-    if (orgSettings?.metaTitle && orgSettings.metaTitle.trim()) {
-      document.title = orgSettings.metaTitle.trim();
-    }
-  }, [orgSettings?.metaTitle]);
+    const pageTitle = getPageTitle(location);
+    document.title = formatDocumentTitle(pageTitle, orgSettings?.metaTitle);
+  }, [orgSettings?.metaTitle, location]);
 
   const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
@@ -571,10 +571,9 @@ function DashboardLayoutContent({
   // جلب الشعار من قاعدة البيانات
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   useEffect(() => {
-    if (orgSettings?.metaTitle && orgSettings.metaTitle.trim()) {
-      document.title = orgSettings.metaTitle.trim();
-    }
-  }, [orgSettings?.metaTitle]);
+    const pageTitle = getPageTitle(location);
+    document.title = formatDocumentTitle(pageTitle, orgSettings?.metaTitle);
+  }, [orgSettings?.metaTitle, location]);
   const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
     refetchInterval: 10000,

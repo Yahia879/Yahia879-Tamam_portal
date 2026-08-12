@@ -250,14 +250,14 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
-              {user?.role === "quick_response" && (
+              {(user?.role === "quick_response" || user?.role === "field_team" || user?.role === "super_admin" || user?.role === "system_admin") && (
                 <>
                   <Link href="/requests/quick-create">
                     <Button 
                       className="bg-amber-600 hover:bg-amber-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm transition-all"
                     >
                       <Zap className="w-4 h-4" />
-                      {lang === "en" ? "Quick Request" : "طلب سريع"}
+                      {isEn ? "Quick Request" : "طلب سريع"}
                     </Button>
                   </Link>
                 </>

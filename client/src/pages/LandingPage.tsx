@@ -39,13 +39,15 @@ export default function LandingPage() {
   }, [isAuthenticated, loading, user, setLocation]);
 
 
-  if (loading || isAuthenticated) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
+
+  const homeRoute = user ? getUserHomeRoute(user) : "/dashboard";
 
   return (
     <div className="min-h-screen flex flex-col bg-background" dir="rtl">
@@ -77,50 +79,75 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* أزرار الدخول */}
-            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-              <Link href="/login">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 ${
-                    isScrolled 
-                      ? "text-muted-foreground hover:text-foreground" 
-                      : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  دخول المستفيدين
-                </Button>
-              </Link>
-              <Link href="/admin/login">
-                <Button 
-                  size="sm" 
-                  className={`shadow-sm px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm border-0 transition-all duration-300 ${
-                    isScrolled ? "text-white" : ""
-                  }`}
-                  style={
-                    isScrolled 
-                      ? { background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }
-                      : { backgroundColor: "#ffffff", color: primaryColor }
-                  }
-                  onMouseEnter={(e) => {
-                    if (isScrolled) {
-                      e.currentTarget.style.filter = "brightness(1.1)";
-                    } else {
-                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isScrolled) {
-                      e.currentTarget.style.filter = "none";
-                    } else {
-                      e.currentTarget.style.backgroundColor = "#ffffff";
-                    }
-                  }}
-                >
-                  دخول الموظفين
-                </Button>
-              </Link>
+            {/* أزرار الدخول ورأس الصفحة */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {isAuthenticated && user ? (
+                <>
+                  <span className={`text-xs sm:text-sm font-bold truncate max-w-[130px] sm:max-w-[200px] ${isScrolled ? "text-foreground" : "text-white"}`}>
+                    مرحباً، {user.name}
+                  </span>
+                  <Link href={homeRoute}>
+                    <Button 
+                      size="sm" 
+                      className={`shadow-sm px-2.5 sm:px-4 text-xs font-bold border-0 transition-all duration-300 ${
+                        isScrolled ? "text-white" : ""
+                      }`}
+                      style={
+                        isScrolled 
+                          ? { background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }
+                          : { backgroundColor: "#ffffff", color: primaryColor }
+                      }
+                    >
+                      لوحة التحكم
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 ${
+                        isScrolled 
+                          ? "text-muted-foreground hover:text-foreground" 
+                          : "text-white/90 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      دخول المستفيدين
+                    </Button>
+                  </Link>
+                  <Link href="/admin/login">
+                    <Button 
+                      size="sm" 
+                      className={`shadow-sm px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm border-0 transition-all duration-300 ${
+                        isScrolled ? "text-white" : ""
+                      }`}
+                      style={
+                        isScrolled 
+                          ? { background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }
+                          : { backgroundColor: "#ffffff", color: primaryColor }
+                      }
+                      onMouseEnter={(e) => {
+                        if (isScrolled) {
+                          e.currentTarget.style.filter = "brightness(1.1)";
+                        } else {
+                          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (isScrolled) {
+                          e.currentTarget.style.filter = "none";
+                        } else {
+                          e.currentTarget.style.backgroundColor = "#ffffff";
+                        }
+                      }}
+                    >
+                      دخول الموظفين
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -141,7 +168,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 leading-tight">
-              {orgSettings?.organizationName || "بوابة تمام"}
+              {isAuthenticated && user ? `أهلاً بك، ${user.name}` : (orgSettings?.organizationName || "بوابة تمام")}
               <span className="block text-white/80 text-xl sm:text-2xl md:text-3xl font-medium mt-1 md:mt-2">
                 {orgSettings?.organizationNameShort || "للعناية بالمساجد"}
               </span>
@@ -153,26 +180,53 @@ export default function LandingPage() {
 
             {/* الأزرار الرئيسية */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
-              <Link href="/register">
-                <Button
-                  size="lg"
-                  className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-                  style={{ color: primaryColor }}
-                >
-                  <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-                  طلب خدمة جديدة
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto"
-                >
-                  لديك حساب؟ سجّل دخولك
-                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                </Button>
-              </Link>
+              {isAuthenticated && user ? (
+                <>
+                  <Link href={homeRoute}>
+                    <Button
+                      size="lg"
+                      className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                      style={{ color: primaryColor }}
+                    >
+                      لوحة التحكم
+                      <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                    </Button>
+                  </Link>
+                  <Link href={user.role === "service_requester" ? "/request-form-dynamic" : "/requests/new"}>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto"
+                    >
+                      <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+                      طلب خدمة جديدة
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/register">
+                    <Button
+                      size="lg"
+                      className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                      style={{ color: primaryColor }}
+                    >
+                      <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+                      طلب خدمة جديدة
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-2 border-white/60 text-white hover:bg-white/15 font-semibold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base backdrop-blur transition-all w-full sm:w-auto"
+                    >
+                      لديك حساب؟ سجّل دخولك
+                      <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1722,7 +1722,8 @@ export const requestsRouter = router({
       requiresProject: z.boolean().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
-      const hasPermission = await checkPermission(ctx.user.id, "requests.manage_as_quick_response") || ctx.user.role === "quick_response";
+      const hasPermission = await checkPermission(ctx.user.id, "requests.manage_as_quick_response") ||
+                       ["quick_response", "field_team", "super_admin", "system_admin"].includes(ctx.user.role);
       if (!hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة طلب استجابة سريعة" });
       }
