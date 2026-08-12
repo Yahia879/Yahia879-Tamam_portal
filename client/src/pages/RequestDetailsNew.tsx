@@ -1483,12 +1483,11 @@ export default function RequestDetailsNew() {
                                       : undefined,
                                   }
                           : request.currentStage === 'handover' &&
-                            latestFinalReport &&
                             user?.role !== 'corporate_comm' &&
                             (canTransitionStage(user?.role || '', 'handover') || userPermissions.includes("requests.view_details")) &&
                             !isQuickResponseUser
                           ? {
-                              label: "الانتقال إلى مرحلة الإغلاق",
+                              label: "إغلاق الطلب رسمياً",
                               onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
                               variant: 'default' as const,
                             }
