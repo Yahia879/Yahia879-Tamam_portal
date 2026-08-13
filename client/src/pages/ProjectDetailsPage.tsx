@@ -491,63 +491,63 @@ export default function ProjectDetailsPage() {
                 </div>
               </div>
 
-              {/* Left Side: Completion Progress Widget */}
+              {/* Left Side: Completion Progress Widget - Enlarged */}
               {!financialsOnly && (
-                <div className="flex flex-col justify-center bg-muted/40 p-3 rounded-xl border border-border/50 min-w-[220px] sm:min-w-[260px] space-y-1.5 shrink-0">
-                  <div className="flex items-center justify-between text-xs font-bold">
+                <div className="flex flex-col justify-center bg-muted/40 p-4 rounded-xl border border-border/50 min-w-[260px] sm:min-w-[300px] space-y-2 shrink-0">
+                  <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
                     <span className="text-muted-foreground">نسبة الإنجاز الكلي:</span>
-                    <span className="text-primary font-mono text-xs font-extrabold">{project.completionPercentage || 0}%</span>
+                    <span className="text-primary font-mono text-sm sm:text-base font-black">{project.completionPercentage || 0}%</span>
                   </div>
-                  <Progress value={project.completionPercentage || 0} className="h-2 rounded-full" />
+                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full" />
                 </div>
               )}
             </div>
 
-            {/* Bottom Embedded Metrics Bar */}
+            {/* Bottom Embedded Metrics Bar - Enlarged & Balanced Spacing */}
             {!financialsOnly && (
-              <div className="pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="pt-4 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 text-xs">
                 {/* Metric 1: Budget */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="space-y-0.5">
-                    <span className="text-muted-foreground font-semibold text-[11px]">الميزانية الإجمالية</span>
-                    <p className="font-extrabold text-foreground font-mono text-sm">
+                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground font-semibold text-xs">الميزانية الإجمالية</span>
+                    <p className="font-black text-foreground font-mono text-base sm:text-lg">
                       {boqData && boqData.total > 0
                         ? formatCurrency(boqData.total.toString())
                         : formatCurrency(project.budget)
                       }
                     </p>
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                    <DollarSign className="w-4 h-4" />
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-5 h-5" />
                   </div>
                 </div>
 
                 {/* Metric 2: Actual Cost */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="space-y-0.5">
-                    <span className="text-muted-foreground font-semibold text-[11px]">التكلفة الفعلية</span>
-                    <p className="font-extrabold text-primary font-mono text-sm">{formatCurrency(project.actualCost)}</p>
+                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground font-semibold text-xs">التكلفة الفعلية</span>
+                    <p className="font-black text-primary font-mono text-base sm:text-lg">{formatCurrency(project.actualCost)}</p>
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CreditCard className="w-4 h-4" />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-5 h-5" />
                   </div>
                 </div>
 
                 {/* Metric 3: Status */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="space-y-0.5">
-                    <span className="text-muted-foreground font-semibold text-[11px]">حالة المشروع</span>
-                    <p className="font-bold text-foreground text-xs">{getStatusLabel()}</p>
+                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
+                  <div className="space-y-1">
+                    <span className="text-muted-foreground font-semibold text-xs">حالة المشروع</span>
+                    <p className="font-bold text-foreground text-xs sm:text-sm">{getStatusLabel()}</p>
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <BarChart3 className="w-4 h-4" />
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-5 h-5" />
                   </div>
                 </div>
 
                 {/* Metric 4: Project Manager */}
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
-                  <div className="space-y-0.5 min-w-0 flex-1 ml-2">
-                    <span className="text-muted-foreground font-semibold text-[11px] block">مدير المشروع</span>
+                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
+                  <div className="space-y-1 min-w-0 flex-1 ml-2">
+                    <span className="text-muted-foreground font-semibold text-xs block">مدير المشروع</span>
                     {isEditingManager ? (
                       <div className="flex items-center gap-1 mt-0.5">
                         <Select
@@ -576,7 +576,7 @@ export default function ProjectDetailsPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-1 truncate">
-                        <span className="font-extrabold text-foreground text-xs truncate">
+                        <span className="font-extrabold text-foreground text-xs sm:text-sm truncate">
                           {project.managerName || "غير محدد"}
                         </span>
                         {canChangeManager && (
@@ -593,8 +593,8 @@ export default function ProjectDetailsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4" />
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" />
                   </div>
                 </div>
               </div>
