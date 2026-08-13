@@ -1048,10 +1048,10 @@ export default function ProjectDetailsPage() {
 
           {/* TAB 6: CONTRACTS */}
           <TabsContent value="contracts" className="space-y-6">
-            <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-              <CardHeader className="p-6 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
                 <div>
-                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                     <FileSignature className="w-5 h-5 text-primary" />
                     <span>عقود المقاولين والموردين</span>
                   </CardTitle>
@@ -1064,7 +1064,7 @@ export default function ProjectDetailsPage() {
                 </div>
                 {!isContractsLocked && !isExecutionStarted && (!project.contracts || project.contracts.length === 0) && (
                   <Button 
-                    className="rounded-2xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-10 px-4" 
+                    className="rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-9 px-4 shrink-0" 
                     onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
                   >
                     <Plus className="w-4 h-4" />
@@ -1072,44 +1072,63 @@ export default function ProjectDetailsPage() {
                   </Button>
                 )}
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-5 space-y-5">
                 {isContractsLocked ? (
                   <div className="text-center py-12 max-w-md mx-auto space-y-4">
                     <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
                       <Lock className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-bold text-foreground">قسم العقود مقفل حالياً</h3>
+                    <h3 className="text-base font-bold text-foreground">قسم العقود مقفل حالياً</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       سيتم فتح قسم العقود بمجرد اكتمال مرحلة التقييم المالي واعتماد عرض السعر المخصص للمشروع.
                     </p>
                   </div>
                 ) : project.contracts && project.contracts.length > 0 ? (
-                  <div className="space-y-6">
-                    <div className="overflow-x-auto rounded-2xl border border-border/60">
+                  <div className="space-y-5">
+                    {/* Metrics Bar for Contracts */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">عدد العقود المبرمة</span>
+                        <p className="font-extrabold text-foreground font-mono text-base">{project.contracts.length} عقد</p>
+                      </div>
+                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 space-y-1">
+                        <span className="text-primary font-semibold text-[11px]">إجمالي قيمة العقود</span>
+                        <p className="font-extrabold text-primary font-mono text-base">
+                          {formatCurrency(project.contracts.reduce((sum, c) => sum + parseFloat((c.amount || "0").toString()), 0).toString())}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">المورد الرئيسي</span>
+                        <p className="font-bold text-foreground truncate">{project.contracts[0]?.supplierName || "غير محدد"}</p>
+                      </div>
+                    </div>
+
+                    {/* Table View */}
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
                       <Table>
                         <TableHeader className="bg-muted/40">
                           <TableRow>
-                            <TableHead className="text-right font-bold">رقم العقد</TableHead>
-                            <TableHead className="text-right font-bold">المورد / المقاول</TableHead>
-                            <TableHead className="text-right font-bold">نوع العقد</TableHead>
-                            <TableHead className="text-right font-bold">القيمة الإجمالية</TableHead>
-                            <TableHead className="text-right font-bold">الحالة</TableHead>
-                            <TableHead className="text-center font-bold">الإجراءات</TableHead>
+                            <TableHead className="text-right font-bold text-xs">رقم العقد</TableHead>
+                            <TableHead className="text-right font-bold text-xs">المورد / المقاول</TableHead>
+                            <TableHead className="text-right font-bold text-xs">نوع العقد</TableHead>
+                            <TableHead className="text-right font-bold text-xs">القيمة الإجمالية</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الحالة</TableHead>
+                            <TableHead className="text-center font-bold text-xs">الإجراءات</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {project.contracts.map((contract) => (
                             <TableRow key={contract.id} className="hover:bg-muted/20">
-                              <TableCell className="font-mono font-bold text-foreground">{contract.contractNumber}</TableCell>
-                              <TableCell className="font-bold text-xs">{contract.supplierName || "غير محدد"}</TableCell>
+                              <TableCell className="font-mono font-bold text-foreground text-xs">{contract.contractNumber}</TableCell>
+                              <TableCell className="font-bold text-xs text-foreground">{contract.supplierName || "غير محدد"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground">{contract.contractType || "-"}</TableCell>
-                              <TableCell className="font-mono font-extrabold text-primary">{formatCurrency(contract.amount)}</TableCell>
+                              <TableCell className="font-mono font-extrabold text-primary text-xs">{formatCurrency(contract.amount)}</TableCell>
                               <TableCell>
                                 <Badge 
                                   variant="outline"
-                                  className={`rounded-xl text-[11px] font-bold px-2.5 py-0.5 ${
+                                  className={`rounded-lg text-[11px] font-bold px-2.5 py-0.5 ${
                                     contract.status === "approved" || contract.status === "active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                                    contract.status === "draft" ? "bg-slate-100 text-slate-700 border-slate-200" :
+                                    contract.status === "draft" ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300" :
                                     contract.status === "pending_approval" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
                                     "bg-slate-100 text-slate-700"
                                   }`}
@@ -1124,27 +1143,27 @@ export default function ProjectDetailsPage() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-center">
-                                <div className="flex items-center gap-1.5 justify-center">
+                                <div className="flex items-center gap-1 justify-center">
                                   {contract.status === "draft" && !isExecutionStarted && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="rounded-xl h-8 w-8 text-blue-600 hover:bg-blue-50"
+                                      className="rounded-lg h-7 w-7 text-blue-600 hover:bg-blue-50"
                                       onClick={() => navigate(`/contracts/${contract.id}/edit`)}
                                       title="تعديل العقد"
                                     >
-                                      <Edit className="h-4 w-4" />
+                                      <Edit className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                   {contract.status !== "draft" && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="rounded-xl h-8 w-8 text-foreground hover:bg-muted"
+                                      className="rounded-lg h-7 w-7 text-foreground hover:bg-muted"
                                       onClick={() => navigate(`/contracts/${contract.id}/preview`)}
                                       title="معاينة العقد"
                                     >
-                                      <Eye className="h-4 w-4" />
+                                      <Eye className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </div>
@@ -1156,9 +1175,9 @@ export default function ProjectDetailsPage() {
                     </div>
 
                     {showApproveContractButton && (
-                      <div className="flex justify-center border-t border-border/40 pt-6">
+                      <div className="flex justify-center pt-3 border-t border-border/40">
                         <Button 
-                          className="rounded-2xl gradient-primary text-white font-bold shadow-lg hover:shadow-xl transition-all gap-2 px-8 h-11"
+                          className="rounded-xl gradient-primary text-white font-bold shadow-lg hover:shadow-xl transition-all gap-2 px-8 h-10 text-xs"
                           onClick={() => {
                             if (confirm("هل أنت متأكد من اعتماد هذا العقد؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التنفيذ وصرف المدفوعات.")) {
                               approveContractMutation.mutate({ id: project.contracts![0].id });
@@ -1167,9 +1186,9 @@ export default function ProjectDetailsPage() {
                           disabled={approveContractMutation.isPending}
                         >
                           {approveContractMutation.isPending ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <CheckCircle2 className="w-5 h-5" />
+                            <CheckCircle2 className="w-4 h-4" />
                           )}
                           <span>اعتماد العقد وبدء التنفيذ</span>
                         </Button>
@@ -1178,8 +1197,8 @@ export default function ProjectDetailsPage() {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <FileSignature className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-xs text-muted-foreground">لا توجد عقود مسجلة لهذا المشروع بعد</p>
+                    <FileSignature className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-foreground">لا توجد عقود مسجلة لهذا المشروع بعد</p>
                   </div>
                 )}
               </CardContent>
