@@ -993,37 +993,13 @@ export default function ProjectDetailsPage() {
 
           {/* TAB 4: BOQ */}
           <TabsContent value="boq" className="space-y-6">
-            <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-              <CardHeader className="p-6 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
-                <div>
-                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-primary" />
-                    <span>جداول الكميات (BOQ)</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    {project.isMultiMosque
-                      ? "إدارة بنود وتفاصيل جداول الكميات لمشروع عدة مساجد"
-                      : "إدارة بنود وأسعار جداول الكميات التقديرية للمشروع"}
-                  </CardDescription>
-                </div>
-                {!isBOQLocked && (
-                  <Button 
-                    className="rounded-2xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-10 px-4" 
-                    onClick={() => boqTabRef.current?.openAddDialog()}
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>إضافة بند جديد</span>
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent className="p-6">
-                <BoqTab 
-                  requestId={project.requestId || undefined} 
-                  projectId={project.id} 
-                  isLocked={isBOQLocked} 
-                  ref={boqTabRef} 
-                  hideAddButton={true} 
-                />
+            <BoqTab 
+              requestId={project.requestId || undefined} 
+              projectId={project.id} 
+              isLocked={isBOQLocked} 
+              ref={boqTabRef} 
+              hideAddButton={false} 
+            />
                 {showApproveBOQButton && project.requestId && (
                   <div className="mt-6 flex justify-center border-t border-border/40 pt-6">
                     <Button 
@@ -1047,8 +1023,6 @@ export default function ProjectDetailsPage() {
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* TAB 5: FINANCIALS */}
