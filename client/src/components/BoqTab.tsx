@@ -378,170 +378,171 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     }
 
     return (
-      <div className="space-y-6">
-        {!hideAddButton && !isLocked && canAdd && (
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-muted/40 p-4">
-            <div className="flex items-center gap-2">
-              <Calculator className="h-5 w-5 text-teal-600" />
-              <span className="font-semibold text-sm">إدارة بنود جدول الكميات</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                id="boq-excel-upload"
-                className="hidden"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleExcelUpload}
-              />
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                className="border-teal-600 text-teal-600 hover:bg-teal-50 text-xs sm:text-sm"
-                size="sm"
-              >
-                <Download className="h-4 w-4 ml-2" />
-                تحميل القالب
-              </Button>
-              <Button
-                onClick={() => document.getElementById("boq-excel-upload")?.click()}
-                variant="outline"
-                className="border-teal-600 text-teal-600 hover:bg-teal-50 text-xs sm:text-sm"
-                size="sm"
-                disabled={bulkMutation.isPending}
-              >
-                {bulkMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                ) : (
-                  <Upload className="h-4 w-4 ml-2" />
-                )}
-                استيراد بنود (Excel)
-              </Button>
-              <Button
-                onClick={() => setShowAddDialog(true)}
-                className="bg-teal-600 text-white text-xs hover:bg-teal-700 sm:text-sm"
-                size="sm"
-              >
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة بند
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {boqData.length > 0 && (
-          <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-teal-100 dark:border-teal-800 dark:from-teal-950 dark:to-teal-900">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
-                <FileText className="h-5 w-5" />
-                ملخص جدول الكميات
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
-                  <p className="text-sm text-muted-foreground">عدد البنود</p>
-                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {boqData.length}
-                  </p>
+      <div className="space-y-4">
+        {/* Single Unified BOQ Card */}
+        <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+          {/* Integrated Header Toolbar & Summary Bar */}
+          <CardHeader className="p-5 border-b border-border/50 bg-muted/20 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Calculator className="w-5 h-5" />
                 </div>
-                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
-                  <p className="text-sm text-muted-foreground">الإجمالي الكلي</p>
-                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {totalAmount.toLocaleString("ar-SA")} ريال
-                  </p>
-                </div>
-                <div className="rounded-lg bg-white p-4 dark:bg-gray-800">
-                  <p className="text-sm text-muted-foreground">التصنيفات</p>
-                  <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {Object.keys(groupedItems).length}
+                <div>
+                  <CardTitle className="text-base font-bold text-foreground">جدول الكميات التفصيلي (BOQ)</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    إدارة واستيراد بنود وأسعار جداول الكميات التقديرية للمشروع
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {boqData.length === 0 ? (
-          <Card>
-            <CardContent className="py-12">
-              <div className="text-center text-muted-foreground">
-                <Calculator className="mx-auto mb-4 h-16 w-16 opacity-50" />
-                <p className="text-lg font-medium">لا توجد بنود في جدول الكميات</p>
+              {!hideAddButton && !isLocked && canAdd && (
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <input
+                    type="file"
+                    id="boq-excel-upload"
+                    className="hidden"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleExcelUpload}
+                  />
+                  <Button
+                    onClick={downloadTemplate}
+                    variant="outline"
+                    className="rounded-xl border-border/70 text-foreground hover:bg-muted text-xs font-bold h-9 px-3"
+                    size="sm"
+                  >
+                    <Download className="h-3.5 w-3.5 ml-1 text-primary" />
+                    تحميل القالب
+                  </Button>
+                  <Button
+                    onClick={() => document.getElementById("boq-excel-upload")?.click()}
+                    variant="outline"
+                    className="rounded-xl border-border/70 text-foreground hover:bg-muted text-xs font-bold h-9 px-3"
+                    size="sm"
+                    disabled={bulkMutation.isPending}
+                  >
+                    {bulkMutation.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin ml-1" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5 ml-1 text-primary" />
+                    )}
+                    استيراد (Excel)
+                  </Button>
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    className="rounded-xl gradient-primary text-white text-xs font-bold shadow-md hover:shadow-lg transition-all h-9 px-3.5"
+                    size="sm"
+                  >
+                    <Plus className="h-3.5 w-3.5 ml-1" />
+                    إضافة بند
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Integrated Metrics Strip */}
+            {boqData.length > 0 && (
+              <div className="pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="flex items-center gap-2 bg-background p-2.5 rounded-xl border border-border/40">
+                  <span className="text-muted-foreground font-semibold">إجمالي البنود:</span>
+                  <span className="font-extrabold text-foreground font-mono">{boqData.length} بند</span>
+                </div>
+                <div className="flex items-center gap-2 bg-primary/5 p-2.5 rounded-xl border border-primary/20">
+                  <span className="text-primary font-semibold">الإجمالي الكلي:</span>
+                  <span className="font-extrabold text-primary font-mono text-sm">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                </div>
+                <div className="flex items-center gap-2 bg-background p-2.5 rounded-xl border border-border/40">
+                  <span className="text-muted-foreground font-semibold">التصنيفات:</span>
+                  <span className="font-extrabold text-foreground font-mono">{Object.keys(groupedItems).length} فئات</span>
+                </div>
+              </div>
+            )}
+          </CardHeader>
+
+          {/* Table Items View */}
+          <CardContent className="p-0">
+            {boqData.length === 0 ? (
+              <div className="text-center py-12 px-4">
+                <Calculator className="mx-auto mb-3 h-12 w-12 text-muted-foreground/30" />
+                <p className="text-sm font-bold text-foreground">لا توجد بنود مسجلة في جدول الكميات</p>
                 {!isLocked && (
-                  <p className="mt-2 text-sm">ابدأ بإضافة بنود جديدة باستخدام الزر أعلاه</p>
+                  <p className="mt-1 text-xs text-muted-foreground">يمكنك إضافة بنود جديدة أو رفع ملف Excel مستعد</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-border">
-            <CardContent className="p-0 divide-y divide-border">
-              {Object.entries(groupedItems).map(([category, items]: [string, any]) => (
-                <div key={category} className="p-6 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-base bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200">
-                      {categoriesMap[category] || category}
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">({items.length} بند)</span>
-                  </div>
-                  <div className="border rounded-md overflow-hidden bg-background">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>اسم البند</TableHead>
-                          <TableHead>الوحدة</TableHead>
-                          <TableHead>الكمية</TableHead>
-                          <TableHead>سعر الوحدة</TableHead>
-                          <TableHead>الإجمالي</TableHead>
-                          {!isLocked && (canEdit || canDelete) && <TableHead>الإجراءات</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {items.map((item: any) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.itemName}</TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                            <TableCell>{item.quantity}</TableCell>
-                            <TableCell>
-                              {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
-                            </TableCell>
-                            <TableCell className="font-bold text-teal-600">
-                              {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
-                            </TableCell>
-                            {!isLocked && (canEdit || canDelete) && (
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  {canEdit && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => openEditDialog(item)}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                  {canDelete && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleDeleteItem(item.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-red-500" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            )}
+            ) : (
+              <div className="divide-y divide-border/50">
+                {Object.entries(groupedItems).map(([category, items]: [string, any]) => (
+                  <div key={category} className="p-4 sm:p-5 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs rounded-lg bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5">
+                        {categoriesMap[category] || category}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-medium">({items.length} بند)</span>
+                    </div>
+
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow>
+                            <TableHead className="text-right font-bold text-xs">اسم البند</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الوحدة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الكمية</TableHead>
+                            <TableHead className="text-right font-bold text-xs">سعر الوحدة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الإجمالي</TableHead>
+                            {!isLocked && (canEdit || canDelete) && <TableHead className="text-center font-bold text-xs">الإجراءات</TableHead>}
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {items.map((item: any) => (
+                            <TableRow key={item.id} className="hover:bg-muted/20">
+                              <TableCell className="font-bold text-foreground text-xs">{item.itemName}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.unit}</TableCell>
+                              <TableCell className="font-mono font-bold text-xs">{item.quantity}</TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {parseFloat(item.unitPrice || "0").toLocaleString("ar-SA")} ريال
+                              </TableCell>
+                              <TableCell className="font-mono font-extrabold text-primary text-xs">
+                                {parseFloat(item.totalPrice || "0").toLocaleString("ar-SA")} ريال
+                              </TableCell>
+                              {!isLocked && (canEdit || canDelete) && (
+                                <TableCell className="text-center">
+                                  <div className="flex items-center gap-1 justify-center">
+                                    {canEdit && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="rounded-lg h-7 w-7 text-blue-600 hover:bg-blue-50"
+                                        onClick={() => openEditDialog(item)}
+                                        title="تعديل البند"
+                                      >
+                                        <Edit className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    {canDelete && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="rounded-lg h-7 w-7 text-red-500 hover:bg-red-50"
+                                        onClick={() => handleDeleteItem(item.id)}
+                                        title="حذف البند"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {showAddDialog && (
           <BoqFormDialog requestId={requestId} projectId={projectId} open={showAddDialog} onClose={handleDialogClose} />
